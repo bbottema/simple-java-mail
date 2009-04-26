@@ -3,7 +3,8 @@
 	<property name="src.dir" value="${basedir}/src" />
 	<property name="compile.lib" value="${basedir}/lib" />
 	<property name="output.dir" value="${basedir}/target" />
-	<property name="dest.file" value="${output.dir}/vesijama.jar" />
+	<property name="dest.libfile" value="${output.dir}/vesijama.jar" />
+	<property name="dest.srcfile" value="${output.dir}/vesijama-src.jar" />
 	
 	<path id="compiletime-libraries">
       <fileset dir="${compile.lib}" includes="**/*.jar"/>
@@ -21,7 +22,7 @@
 	</target>
 	
 	<target name="jar" depends="compile" description="Compiles and jars the library">
-		<jar destfile="${dest.file}" basedir="${output.dir}/classes" />
+		<jar destfile="${dest.libfile}" basedir="${output.dir}/classes" />
 	</target>
 	
 	<target name="run" depends="jar" description="compiles and runs the MailTest class">
@@ -39,6 +40,11 @@
 	
 	<target name="clean">
 		<delete dir="${output.dir}" />
+	</target>
+	
+	<target name="jar-src" description="jars the frameworks sourcecode">
+		<mkdir dir="${output.dir}/classes"/>
+		<jar destfile="${dest.srcfile}" basedir="${src.dir}" />
 	</target>
 
 </project>
