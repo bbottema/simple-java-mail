@@ -3,14 +3,15 @@
 	<property name="src.dir" value="${basedir}/src" />
 	<property name="compile.lib" value="${basedir}/lib" />
 	<property name="output.dir" value="${basedir}/target" />
+	<property name="dest.file" value="${output.dir}/vesijama.jar" />
 	
 	<path id="compiletime-libraries">
       <fileset dir="${compile.lib}" includes="**/*.jar"/>
   </path>
 	
 	<target name="compile">
-		<mkdir dir="${output.dir}"/>
-		<javac destdir="${output.dir}" debug="true" deprecation="true" optimize="false" source="1.6">
+		<mkdir dir="${output.dir}/classes"/>
+		<javac destdir="${output.dir}/classes" debug="true" deprecation="true" optimize="false" source="1.6">
 			<compilerarg value="-Xlint" />
 			<classpath>
 				<path refid="compiletime-libraries"/>
@@ -19,11 +20,19 @@
 		</javac>
 	</target>
 	
-	<target name="run" depends="compile">
-		<java classname="MailTest">
+	<target name="jar" depends="compile" description="Compiles and jars the library">
+		<jar destfile="${dest.file}" basedir="${output.dir}/classes" />
+	</target>
+	
+	<target name="run" depends="jar" description="compiles and runs the MailTest class">
+		<java classname="MailTest" fork="true">
+			<jvmarg value="-Dhost=${host}" />
+			<jvmarg value="-Dport=${port}" />
+			<jvmarg value="-Dusername=${username}" />
+			<jvmarg value="-Dpassword=${password}" />
 			<classpath>
 				<path refid="compiletime-libraries" />
-				<pathelement path="${output.dir}"/>
+				<pathelement path="${output.dir}/classes"/>
 			</classpath>
 		</java>
 	</target>

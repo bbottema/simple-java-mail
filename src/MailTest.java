@@ -20,6 +20,13 @@ public class MailTest {
 		email.setText("We should meet up!");
 		email.setTextHTML("<b>We should meet up!</b>");
 		email.setSubject("hey");
-		new Mailer("smtp.fill-in-host.com", 25, "some-username", "some-password").sendMail(email);
+		sendMail(email);
+	}
+
+	private static void sendMail(final Email email) {
+		final String host = System.getProperty("host") != null ? System.getProperty("host") : "";
+		final String username = System.getProperty("username") != null ? System.getProperty("username") : "";
+		final String password = System.getProperty("password") != null ? System.getProperty("password") : "";
+		new Mailer(host, 25, username, password).sendMail(email);
 	}
 }
