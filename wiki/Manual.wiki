@@ -1,7 +1,17 @@
 #labels Featured,Phase-Implementation,Phase-Requirements
 = Introduction =
 
-Vesijama is a wrapper framework for the javax.mail API for sending emails over smtp. Vesijama stands for Very Simple Java Mail and is designed to be as easy to use as possible, while still being able to do everything you want when sending email. 
+Vesijama is a wrapper framework for the javax.mail API for sending emails over smtp. Vesijama stands for Very Simple Java Mail and is designed to be as easy to use as possible, while still being able to do everything you want when sending email.
+
+= Required libraries =
+
+Also see: [http://code.google.com/p/vesijama/source/browse/trunk/NOTICE.txt NOTICE.txt]
+
+Vesijama uses a couple of jars that are all opensource. These are the Apache log4j library and Sun JavaMail API library. It uses the javax.activation package as well, which is shipped with JavaEE or is available as seperate package.
+
+ * [http://logging.apache.org/log4j/1.2/index.html Log4j] (download [http://code.google.com/p/vesijama/source/browse/trunk/lib/log4j-1.2.15.jar log4j.jar])
+ * [http://java.sun.com/products/javamail/ JavaMail API] (download [http://code.google.com/p/vesijama/source/browse/trunk/lib/mail.jar mail.jar], [http://code.google.com/p/vesijama/source/browse/trunk/lib/mailapi.jar mailapi.jar])
+ * [http://java.sun.com/javase/technologies/desktop/javabeans/jaf/index.jsp Activation framework] (included in jre1.6, or download [http://code.google.com/p/vesijama/source/browse/trunk/lib/activation.jar activation.jar])
 
 = Example usage =
 
@@ -26,16 +36,13 @@ new Mailer("smtp.host.com", 25, "username", "password").sendMail(email);
 
 You can also pass in your own preconfigured mail Session instance, so this framework is backwards compatible with whatever you use now.
 
-= Required libraries =
-
-Also see: [http://code.google.com/p/vesijama/source/browse/trunk/NOTICE.txt NOTICE.txt]
-
-Vesijama uses a couple of jars that are all opensource. These are the Apache log4j library and Sun JavaMail API library. It uses the javax.activation package as well, which is shipped with JavaEE or is available as seperate package.
-
- * [http://logging.apache.org/log4j/1.2/index.html Log4j] (download [http://code.google.com/p/vesijama/source/browse/trunk/lib/log4j-1.2.15.jar log4j.jar])
- * [http://java.sun.com/products/javamail/ JavaMail API] (download [http://code.google.com/p/vesijama/source/browse/trunk/lib/mail.jar mail.jar], [http://code.google.com/p/vesijama/source/browse/trunk/lib/mailapi.jar mailapi.jar])
- * [http://java.sun.com/javase/technologies/desktop/javabeans/jaf/index.jsp Activation framework] (included in jre1.6, or download [http://code.google.com/p/vesijama/source/browse/trunk/lib/activation.jar activation.jar])
-
 = Alternatives =
 
 There are some alternatives around, such as the [http://static.springframework.org/spring/docs/1.2.x/reference/mail.html Spring mailing framework] or the [http://commons.apache.org/email/userguide.html Apache Commons Mail]. However, Spring works a bit awkward with anonymous subclasses and stuff (and you need Spring in your dependencies), while Apache Commons Mail isn't as simple as it could be.
+
+= Developing Vesijama =
+
+The sourcecode is relatively easy to understand, and well commented. When checking out, you can run a build using `ant compile `, or `ant jar` if you like to create a jar while at it. To run the included test class use `ant` or `ant run`, which does the same. Make sure you provide some jvm arguments to indicate which smtp server to use for sending emails.
+
+Example:
+{{{ant -Dhost=smtp.someserver.com -Dusername=joe -Dpassword=sixpack}}}
