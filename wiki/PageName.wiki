@@ -15,11 +15,13 @@ email.setSubject("hey");
 email.addRecipient("C. Cane", "candycane@candyshop.org", RecipientType.TO);
 email.addRecipient("C. Bo", "chocobo@candyshop.org", RecipientType.BCC);
 email.setText("We should meet up! ;)");
-email.setTextHTML("<b>We should meet up!</b><img src='cid:wink'>");
+email.setTextHTML("<img src='cid:wink1'><b>We should meet up!</b><img src='cid:wink2'>");
 
-// embed image and include downloadable attachment
-email.addEmbeddedImage("wink", imagedata);
-email.addAttachment("invitation", pdfdata, "application/pdf");
+// embed images and include downloadable attachments
+email.addEmbeddedImage("wink1", imageByteArray, "image/png");
+email.addEmbeddedImage("wink2", imageDatesource);
+email.addAttachment("invitation", pdfByteArray, "application/pdf");
+email.addAttachment("dresscode", odfDatasource);
 
 new Mailer("smtp.host.com", 25, "username", "password").sendMail(email);
 }}}
