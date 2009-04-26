@@ -13,6 +13,7 @@ There are some alternatives around, such as the [http://static.springframework.o
 
 {{{
 final Email email = new Email();
+
 email.setFromAddress("lollypop", "lolly.pop@somemail.com");
 email.setSubject("hey");
 email.addRecipient("C. Cane", "candycane@candyshop.org", RecipientType.TO);
