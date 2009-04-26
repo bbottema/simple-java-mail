@@ -1,0 +1,35 @@
+<project name="MBKNext 2" basedir="." default="run">
+
+	<property name="src.dir" value="${basedir}/src" />
+	<property name="compile.lib" value="${basedir}/lib" />
+	<property name="output.dir" value="${basedir}/target" />
+	
+	<path id="compiletime-libraries">
+      <fileset dir="${compile.lib}" includes="**/*.jar"/>
+  </path>
+	
+	<target name="compile">
+		<mkdir dir="${output.dir}"/>
+		<javac destdir="${output.dir}" debug="true" deprecation="true" optimize="false" source="1.6">
+			<compilerarg value="-Xlint" />
+			<classpath>
+				<path refid="compiletime-libraries"/>
+			</classpath>
+			<src path="${src.dir}" />
+		</javac>
+	</target>
+	
+	<target name="run" depends="compile">
+		<java classname="MailTest">
+			<classpath>
+				<path refid="compiletime-libraries" />
+				<pathelement path="${output.dir}"/>
+			</classpath>
+		</java>
+	</target>
+	
+	<target name="clean">
+		<delete dir="${output.dir}" />
+	</target>
+
+</project>
