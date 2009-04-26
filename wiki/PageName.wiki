@@ -38,4 +38,4 @@ Vesijama uses a couple of jars that are all opensource. These are the Apache log
 
  * [http://logging.apache.org/log4j/1.2/index.html Log4j] (download [http://code.google.com/p/vesijama/source/browse/trunk/lib/log4j-1.2.15.jar log4j.jar])
  * [http://java.sun.com/products/javamail/ JavaMail API] (download [http://code.google.com/p/vesijama/source/browse/trunk/lib/mail.jar mail.jar], [http://code.google.com/p/vesijama/source/browse/trunk/lib/mailapi.jar mailapi.jar])
- * [http://java.sun.com/javase/technologies/desktop/javabeans/jaf/index.jsp Activation framework] (included in jre1.6)
+ * [http://java.sun.com/javase/technologies/desktop/javabeans/jaf/index.jsp Activation framework] (included in jre1.6, or download [http://code.google.com/p/vesijama/source/browse/trunk/lib/activation.jar activation.jar])
