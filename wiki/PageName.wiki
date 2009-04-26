@@ -20,6 +20,7 @@ email.addRecipient("C. Cane", "candycane@candyshop.org", RecipientType.TO);
 email.addRecipient("C. Bo", "chocobo@candyshop.org", RecipientType.BCC);
 email.setText("We should meet up! ;)");
 email.setTextHTML("<b>We should meet up!</b><img src='cid:wink'>");
+
 email.addEmbeddedImage("wink", imagedata);
 email.addAttachment("invitation", pdfdata, "application/pdf");
 
