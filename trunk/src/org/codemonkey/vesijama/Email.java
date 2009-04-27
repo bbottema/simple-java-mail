@@ -9,7 +9,7 @@ import javax.mail.Message.RecipientType;
 import javax.mail.util.ByteArrayDataSource;
 
 /**
- * Email message with all necessary data for an effective mailing action, including attachments etc.<br />
+ * Email message with all necessary data for an effective mailing action, including attachments etc.
  * 
  * @author Benny Bottema
  */
