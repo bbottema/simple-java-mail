@@ -322,7 +322,7 @@ public class Mailer {
 			throws MessagingException {
 		final BodyPart attachmentPart = new MimeBodyPart();
 		final DataSource ds = resource.getDataSource();
-		// headers zetten werkt niet lekker met de javax mail API, dus er wordt hier wat handmatig bijgewerkt
+		// setting headers isn't working nicely using the javax mail API, so let's do that manually
 		attachmentPart.setDataHandler(new DataHandler(resource.getDataSource()));
 		attachmentPart.setFileName(resource.getName());
 		attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + ds.getName() + "; name="
