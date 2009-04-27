@@ -130,6 +130,9 @@ public class Mailer {
 	 */
 	private static Session createMailSession(final String host, final int port, final String username,
 			final String password) {
+		assert host != null : "Can't send an email without host";
+		assert password == null || username != null : "Can't have a password without username";
+
 		final Properties props = new Properties();
 		props.put("mail.smtp.host", host);
 		props.put("mail.smtp.port", port);
