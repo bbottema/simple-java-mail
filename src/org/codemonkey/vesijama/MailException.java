@@ -4,6 +4,8 @@ import javax.mail.MessagingException;
 
 /**
  * This exception is used to communicate errors during the sending of email.
+ * 
+ * @author Benny Bottema
  */
 @SuppressWarnings("serial")
 public final class MailException extends RuntimeException {
