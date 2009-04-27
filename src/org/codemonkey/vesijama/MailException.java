@@ -10,12 +10,12 @@ public final class MailException extends RuntimeException {
 
 	protected static final String GENERIC_ERROR = "Generic error: %s";
 	protected static final String INVALID_ENCODING = "Encoding not accepted: %s";
-	protected static final String INVALID_RECIPIENT = "To addres is niet goed gevuld: %s";
-	protected static final String INVALID_SENDER = "From addres is niet goed gevuld: %s";
-	protected static final String MISSING_SENDER = "Email is niet goed gevuld: geen verzender gedefinieerd";
-	protected static final String MISSING_RECIPIENT = "Email is niet goed gevuld: geen ontvangers gedefinieerd";
-	protected static final String MISSING_SUBJECT = "Email is niet goed gevuld: geen subject gedefinieerd";
-	protected static final String MISSING_CONTENT = "Email is niet goed gevuld: geen inhoud gedefinieerd";
+	protected static final String INVALID_RECIPIENT = "Invalid TO address: %s";
+	protected static final String INVALID_SENDER = "Invalid FROM address: %s";
+	protected static final String MISSING_SENDER = "Email is not valid: missing sender";
+	protected static final String MISSING_RECIPIENT = "Email is not valid: missing recipients";
+	protected static final String MISSING_SUBJECT = "Email is not valid: missing subject";
+	protected static final String MISSING_CONTENT = "Email is not valid: missing content body";
 
 	protected MailException(final String message) {
 		super(message);
