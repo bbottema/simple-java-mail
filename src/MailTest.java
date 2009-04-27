@@ -7,7 +7,7 @@ import org.codemonkey.vesijama.MailException;
 import org.codemonkey.vesijama.Mailer;
 
 /**
- * Demonstration program for the Simpelmail framework.
+ * Demonstration program for the Vesijama Very Simple Java Mail framework.
  * 
  * @author Benny Bottema
  */
