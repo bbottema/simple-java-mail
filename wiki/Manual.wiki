@@ -38,7 +38,7 @@ You can also pass in your own preconfigured mail Session instance, so this frame
 
 = Alternatives =
 
-There are some alternatives around, such as the [http://static.springframework.org/spring/docs/1.2.x/reference/mail.html Spring mailing framework] or the [http://commons.apache.org/email/userguide.html Apache Commons Mail]. However, Spring works a bit awkward with anonymous subclasses and stuff (and you need Spring in your dependencies), while Apache Commons Mail isn't as simple as it could be.
+There are some alternatives around, such as the [http://static.springframework.org/spring/docs/2.0.x/reference/mail.html Spring mailing framework] or the [http://commons.apache.org/email/userguide.html Apache Commons Mail]. However, Spring works a bit awkward with anonymous subclasses and stuff (and you need Spring in your dependencies), while Apache Commons Mail isn't as simple as it could be.
 
 = Developing Vesijama =
 
