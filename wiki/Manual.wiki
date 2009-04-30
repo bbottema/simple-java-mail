@@ -1,11 +1,13 @@
 #labels Featured,Phase-Implementation,Phase-Requirements
 = Introduction =
 
-Vesijama is a wrapper framework for the javax.mail API for sending emails over smtp. Vesijama stands for Very Simple Java Mail and is designed to be as easy to use as possible, while still being able to do everything you want when sending email.
+Vesijama is a wrapper framework for [http://java.sun.com/products/javamail/ Sun's JavaMail] (javax.mail API) for sending emails over smtp. Vesijama stands for Very Simple Java Mail and is designed to be as easy to use as possible, while still being able to do everything you want when sending email.
 
 = Required libraries =
 
 Also see: [http://code.google.com/p/vesijama/source/browse/trunk/NOTICE.txt NOTICE.txt]
+
+since Vesijama builds on the JavaMail library, it has the same dependencies and adds log4j to it (although the sourcecode could be modified to use Java's built in logging framework).
 
 Vesijama uses a couple of jars that are all opensource. These are the Apache log4j library and Sun JavaMail API library (only the smtp sublibraries). It uses the javax.activation package as well, which is shipped with JavaEE or is available as seperate package.
 
