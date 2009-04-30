@@ -7,7 +7,7 @@ Vesijama is a wrapper framework for [http://java.sun.com/products/javamail/ Sun'
 
 Also see: [http://code.google.com/p/vesijama/source/browse/trunk/NOTICE.txt NOTICE.txt]
 
-since Vesijama builds on the JavaMail library, it has the same dependencies and adds log4j to it (although the sourcecode could be modified to use Java's built in logging framework).
+Because Vesijama builds on the JavaMail library, it has the same dependencies and adds log4j to it (although the sourcecode could be modified to use Java's built in logging framework).
 
 Vesijama uses a couple of jars that are all opensource. These are the Apache log4j library and Sun JavaMail API library (only the smtp sublibraries). It uses the javax.activation package as well, which is shipped with JavaEE or is available as seperate package.
 
