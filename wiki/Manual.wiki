@@ -1,7 +1,7 @@
 #labels Featured,Phase-Implementation,Phase-Requirements
 = Introduction =
 
-Vesijama is a wrapper framework for [http://java.sun.com/products/javamail/ Sun's JavaMail] (javax.mail API) for sending emails over smtp. Vesijama stands for Very Simple Java Mail and is designed to be as easy to use as possible, while still being able to do everything you want when sending email.
+Vesijama is a lightweight wrapper framework for [http://java.sun.com/products/javamail/ Sun's JavaMail] (javax.mail API) for sending emails over smtp. Vesijama stands for Very Simple Java Mail and is designed to be as easy to use as possible, while still being able to do everything you want when sending email.
 
 = Required libraries =
 
