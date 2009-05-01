@@ -3,6 +3,7 @@
 	<property name="src.dir" value="${basedir}/src" />
 	<property name="compile.lib" value="${basedir}/lib" />
 	<property name="output.dir" value="${basedir}/target" />
+	<property name="javadoc.dir" value="${basedir}/javadoc" />
 	<property name="dest.libfile" value="${output.dir}/vesijama.jar" />
 	<property name="dest.srcfile" value="${output.dir}/vesijama-src.jar" />
 	
@@ -46,5 +47,32 @@
 		<mkdir dir="${output.dir}/classes"/>
 		<jar destfile="${dest.srcfile}" basedir="${src.dir}" />
 	</target>
+	
+	<target name="update-javadoc" description="parses the javadoc comments from the source code, both for users and developers">
+		<update-javadoc dest.dir="${javadoc.dir}/users" private="false" />
+		<update-javadoc dest.dir="${javadoc.dir}/developers" private="true" />
+	</target>
+	
+	<macrodef name="update-javadoc">
+		<attribute name="dest.dir" />
+		<attribute name="private" />
+		<sequential>
+			<mkdir dir="@{dest.dir}"/>
+			<javadoc packagenames="org.codemonkey.vesijama.*"
+		           sourcepath="${src.dir}"
+		           destdir="@{dest.dir}"
+		           author="true"
+		           version="true"
+		           use="true"
+		           windowtitle="Vesijama API"
+							 linksource="true"
+							 Private="@{private}">
+		    <doctitle><![CDATA[<h1>Vesijama - Very Simple JavaMail</h1>]]></doctitle>
+		    <bottom><![CDATA[<i>Copyright &#169; 2009 under Apache v2 license.</i>]]></bottom>
+		    <link href="http://java.sun.com/products/javamail/javadocs/"/>
+		    <link href="http://java.sun.com/javase/6/docs/api/"/>
+		  </javadoc>
+		</sequential>
+	</macrodef>
 
 </project>
