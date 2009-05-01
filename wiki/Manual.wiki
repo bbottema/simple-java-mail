@@ -17,7 +17,7 @@ Vesijama uses a couple of jars that are all opensource. These are the Apache log
 
 = Example usage =
 
-There are only three classes exposed to the public. These are Email, Mailer and MailException. The step is to simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
+There are only three classes exposed to the public. These are [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Email.html Email], [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Mailer.html Mailer] and [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/MailException.html MailException]. The step is to simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
 
 Here's an example:
 
