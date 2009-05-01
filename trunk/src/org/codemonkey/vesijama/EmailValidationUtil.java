@@ -11,8 +11,7 @@ package org.codemonkey.vesijama;
 import java.util.regex.Pattern;
 
 /**
- * An email address represents the textual string of an <a href="http://www.ietf.org/rfc/rfc2822.txt">RFC 2822</a> email
- * address and other corresponding information of interest.
+ * Validates an email address according to <a href="http://www.ietf.org/rfc/rfc2822.txt">RFC 2822</a>, using regular expressions.
  * <p>
  * If you use this code, please keep the author information in tact and reference my site at <a
  * href="http://www.leshazlewood.com">leshazlewood.com</a>. Thanks! <br />
