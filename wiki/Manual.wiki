@@ -3,6 +3,8 @@
 
 Vesijama is a lightweight wrapper framework for [http://java.sun.com/products/javamail/ Sun's JavaMail] (javax.mail API) for sending emails over smtp. Vesijama stands for Very Simple Java Mail and is designed to be as easy to use as possible, while still being able to do everything you want when sending email.
 
+ * [http://vesijama.googlecode.com/svn/trunk/javadoc/users/index.html Javadoc for user]
+
 = Required libraries =
 
 Also see: [http://code.google.com/p/vesijama/source/browse/trunk/NOTICE.txt NOTICE.txt]
@@ -52,3 +54,6 @@ The sourcecode is relatively easy to understand, and well commented. When checki
 
 Example:
 {{{ant -Dhost=smtp.someserver.com -Dusername=joe -Dpassword=sixpack}}}
+
+Als check out the developers version of the Javadoc:
+ * [http://vesijama.googlecode.com/svn/trunk/javadoc/developers/index.html Javadoc for developers]
