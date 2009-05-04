@@ -58,5 +58,7 @@ Example:
 Als check out the developers version of the Javadoc:
  * [http://vesijama.googlecode.com/svn/trunk/javadoc/developers/index.html Javadoc for developers]
 
+=== Some factoids ===
+
 <wiki:gadget url="http://www.ohloh.net/p/328803/widgets/project_factoids.xml" border="0" width="400"/>
 <wiki:gadget url="http://www.ohloh.net/p/328803/widgets/project_languages.xml" border="0" width="400" height="200"/>
