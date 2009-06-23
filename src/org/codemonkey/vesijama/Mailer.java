@@ -128,8 +128,7 @@ public class Mailer {
 	 * @param password An optional password, may be <code>null</code>.
 	 * @return A fully configured <code>Session</code> possibly with authentication set.
 	 */
-	private static Session createMailSession(final String host, final int port, final String username,
-			final String password) {
+	private static Session createMailSession(final String host, final int port, final String username, final String password) {
 		assert host != null : "Can't send an email without host";
 		assert password == null || username != null : "Can't have a password without username";
 
@@ -268,12 +267,16 @@ public class Mailer {
 	 */
 	private void setTexts(final Email email, final MimeMultipart multipartAlternativeMessages)
 			throws MessagingException {
-		final BodyPart messagePart = new MimeBodyPart();
-		final BodyPart messagePartHTML = new MimeBodyPart();
-		messagePart.setText(email.getText());
-		messagePartHTML.setContent(email.getTextHTML(), "text/html");
-		multipartAlternativeMessages.addBodyPart(messagePart);
-		multipartAlternativeMessages.addBodyPart(messagePartHTML);
+		if (email.getText() != null) {
+			final BodyPart messagePart = new MimeBodyPart();
+			messagePart.setText(email.getText());
+			multipartAlternativeMessages.addBodyPart(messagePart);
+		}
+		if (email.getTextHTML() != null) {
+			final BodyPart messagePartHTML = new MimeBodyPart();
+			messagePartHTML.setContent(email.getTextHTML(), "text/html");
+			multipartAlternativeMessages.addBodyPart(messagePartHTML);
+		}
 	}
 
 	/**
@@ -325,8 +328,7 @@ public class Mailer {
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
 		attachmentPart.setDataHandler(new DataHandler(resource.getDataSource()));
 		attachmentPart.setFileName(resource.getName());
-		attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + ds.getName() + "; name="
-				+ ds.getName());
+		attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + ds.getName() + "; name=" + ds.getName());
 		attachmentPart.setHeader("Content-ID", ds.getName());
 		attachmentPart.setDisposition(dispositionType + "; size=0");
 		return attachmentPart;
