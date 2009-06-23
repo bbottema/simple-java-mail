@@ -60,17 +60,12 @@ import org.apache.log4j.Logger;
  * </pre>
  * 
  * @author Benny Bottema
+ * @see MimeEmailMessageWrapper
  * @see Email
  */
 public class Mailer {
 
 	private static final Logger logger = Logger.getLogger(Mailer.class);
-
-	private final MimeMultipart multipartRoot;
-
-	private final MimeMultipart multipartRelated;
-
-	private final MimeMultipart multipartAlternativeMessages;
 
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by
@@ -82,28 +77,12 @@ public class Mailer {
 	private final Session session;
 
 	/**
-	 * Default constructor. Creates an email skeleton structure, so that embedded images, attachments en (html) textx
-	 * are being processed properly.
+	 * Default constructor, stores the given mail session for later use.
 	 * 
 	 * @param session A preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 */
 	public Mailer(final Session session) {
 		this.session = session;
-		multipartRoot = new MimeMultipart("mixed");
-		final MimeBodyPart contentRelated = new MimeBodyPart();
-		multipartRelated = new MimeMultipart("related");
-		final MimeBodyPart contentAlternativeMessages = new MimeBodyPart();
-		multipartAlternativeMessages = new MimeMultipart("alternative");
-		try {
-			// construct mail structure
-			multipartRoot.addBodyPart(contentRelated);
-			contentRelated.setContent(multipartRelated);
-			multipartRelated.addBodyPart(contentAlternativeMessages);
-			contentAlternativeMessages.setContent(multipartAlternativeMessages);
-		} catch (final MessagingException e) {
-			logger.error(e.getMessage(), e);
-			throw new RuntimeException(e.getMessage(), e);
-		}
 	}
 
 	/**
@@ -173,11 +152,14 @@ public class Mailer {
 			throws MailException {
 		if (validate(email)) {
 			try {
-				final Message message = prepareMessage(email, multipartRoot);
+				// create new wrapper for each mail being sent (enable sending multiple emails with one mailer)
+				final MimeEmailMessageWrapper messageRoot = new MimeEmailMessageWrapper();
+				// fill and send wrapped mime message parts
+				final Message message = prepareMessage(email, messageRoot.multipartRoot);
 				setRecipients(email, message);
-				setTexts(email, multipartAlternativeMessages);
-				setEmbeddedImages(email, multipartRelated);
-				setAttachments(email, multipartRoot);
+				setTexts(email, messageRoot.multipartAlternativeMessages);
+				setEmbeddedImages(email, messageRoot.multipartRelated);
+				setAttachments(email, messageRoot.multipartRoot);
 				Transport.send(message);
 			} catch (final UnsupportedEncodingException e) {
 				logger.error(e.getMessage(), e);
@@ -332,5 +314,54 @@ public class Mailer {
 		attachmentPart.setHeader("Content-ID", ds.getName());
 		attachmentPart.setDisposition(dispositionType + "; size=0");
 		return attachmentPart;
+	}
+
+	/**
+	 * This class conveniently wraps all necessary mimemessage parts that need to be filled with content, attachments
+	 * etc. The root is ultimately send using JavaMail.<br />
+	 * <br />
+	 * The constructor creates a new email message constructed from {@link MimeMultipart} as follows:
+	 * 
+	 * <pre>
+	 * - root
+	 * 	- related
+	 * 		- alternative
+	 * 			- mail tekst
+	 * 			- mail html tekst
+	 * 		- embedded images
+	 * 	- attachments
+	 * </pre>
+	 * 
+	 * @author Benny Bottema
+	 */
+	private class MimeEmailMessageWrapper {
+
+		private final MimeMultipart multipartRoot;
+
+		private final MimeMultipart multipartRelated;
+
+		private final MimeMultipart multipartAlternativeMessages;
+
+		/**
+		 * Creates an email skeleton structure, so that embedded images, attachments and (html) texts are being
+		 * processed properly.
+		 */
+		MimeEmailMessageWrapper() {
+			multipartRoot = new MimeMultipart("mixed");
+			final MimeBodyPart contentRelated = new MimeBodyPart();
+			multipartRelated = new MimeMultipart("related");
+			final MimeBodyPart contentAlternativeMessages = new MimeBodyPart();
+			multipartAlternativeMessages = new MimeMultipart("alternative");
+			try {
+				// construct mail structure
+				multipartRoot.addBodyPart(contentRelated);
+				contentRelated.setContent(multipartRelated);
+				multipartRelated.addBodyPart(contentAlternativeMessages);
+				contentAlternativeMessages.setContent(multipartAlternativeMessages);
+			} catch (final MessagingException e) {
+				logger.error(e.getMessage(), e);
+				throw new RuntimeException(e.getMessage(), e);
+			}
+		}
 	}
 }
