@@ -1,15 +1,19 @@
-<project name="MBKNext 2" basedir="." default="run">
+<project name="Vesijama" basedir="." default="run">
 
 	<property name="src.dir" value="${basedir}/src" />
 	<property name="compile.lib" value="${basedir}/lib" />
 	<property name="output.dir" value="${basedir}/target" />
 	<property name="javadoc.dir" value="${basedir}/javadoc" />
-	<property name="dest.libfile" value="${output.dir}/vesijama.jar" />
-	<property name="dest.srcfile" value="${output.dir}/vesijama-src.jar" />
+	<property name="version-major" value="X" />
+	<property name="version-minor" value="X" />
+	<property name="dest.libfile" value="${output.dir}/vesijama v${version-major}.${version-minor}.jar" />
+	<property name="dest.srcfile" value="${output.dir}/vesijama v${version-major}.${version-minor}-src.jar.jar" />
 	
 	<path id="compiletime-libraries">
       <fileset dir="${compile.lib}" includes="**/*.jar"/>
   </path>
+	
+	<target name="release" depends="jar, jar-src, update-javadoc" description="Updates Javadoc and creates new jars"/>
 	
 	<target name="compile">
 		<mkdir dir="${output.dir}/classes"/>
