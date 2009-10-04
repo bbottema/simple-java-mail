@@ -19,7 +19,7 @@ Vesijama uses a couple of jars that are all opensource. These are the Apache log
 
 = Example usage =
 
-There are only three classes exposed to the public. These are [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Email.html Email], [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Mailer.html Mailer] and [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/MailException.html MailException]. The step is to simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
+There are only three classes exposed to the public. These are [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Email.html Email], [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Mailer.html Mailer] and [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/MailException.html MailException]. Simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
 
 Here's an example:
 
@@ -50,12 +50,12 @@ There are some alternatives around, such as the [http://static.springframework.o
 
 = Developing Vesijama =
 
-The sourcecode is relatively easy to understand, and well commented. When checking out, you can run a build using `ant compile`, or `ant jar` if you like to create a jar while you're at it. To run the included test class use `ant` or `ant run`, which does the same. Make sure you provide some jvm arguments to indicate which smtp server to use for sending emails.
+The sourcecode is relatively easy to understand and well commented. When you've checked out the code from the Subversion repository, you can run a build using `ant compile`, or `ant jar` if you like to create a jar while you're at it. To run the included test class use `ant` or `ant run`, which does the same. Make sure you provide some jvm arguments to indicate which smtp server to use for sending emails.
 
 Example:
 {{{ant -Dhost=smtp.someserver.com -Dusername=joe -Dpassword=sixpack}}}
 
-Als check out the developers version of the Javadoc:
+Also check out the developers version of the Javadoc:
  * [http://vesijama.googlecode.com/svn/trunk/javadoc/developers/index.html Javadoc for developers]
 
 === Some factoids ===
