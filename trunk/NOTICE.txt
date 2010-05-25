@@ -1,15 +1,15 @@
-   =========================================================================
-   ==  NOTICE file for use with the Apache License, Version 2.0           ==
-   =========================================================================
-
-   Vesijama - Very simpel java mail
-   Copyright 2009-2010 B. Bottema
-
-	This product uses no commercial products.
-
-   This product uses the following external (Open Source) libraries:
-
-   - activation package from jre6 
-   - Apache log4j (http://logging.apache.org/log4j/)
-   - Sun Java Mail API, shipped with JavaEE or as seperate download) (http://java.sun.com/products/javamail/)
-   - RFC Email validation regular expressions, by Les Hazlewood (http://www.leshazlewood.com/?p=23)
+  =========================================================================
+  ==  NOTICE file for use with the Apache License, Version 2.0           ==
+  =========================================================================
+  
+  Vesijama - Very simpel java mail
+  Copyright 2009-2011 B. Bottema
+  
+  This product uses no commercial products.
+  
+  This product uses the following external (Open Source) libraries:
+  
+    - activation package from jre6 
+    - Apache log4j (http://logging.apache.org/log4j/)
+    - Sun Java Mail API, shipped with JavaEE or as seperate download) (http://java.sun.com/products/javamail/)
+    - RFC Email validation regular expressions, by Les Hazlewood (http://www.leshazlewood.com/?p=23)
