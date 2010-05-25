@@ -320,7 +320,7 @@ public class Mailer {
 		attachmentPart.setDataHandler(new DataHandler(resource.getDataSource()));
 		attachmentPart.setFileName(resource.getName());
 		attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + ds.getName() + "; name=" + ds.getName());
-		attachmentPart.setHeader("Content-ID", ds.getName());
+		attachmentPart.setHeader("Content-ID", String.format("<%s>", ds.getName()));
 		attachmentPart.setDisposition(dispositionType + "; size=0");
 		return attachmentPart;
 	}
