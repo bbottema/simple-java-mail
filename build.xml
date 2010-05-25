@@ -7,7 +7,7 @@
 	<property name="version-major" value="X" />
 	<property name="version-minor" value="X" />
 	<property name="dest.libfile" value="${output.dir}/vesijama v${version-major}.${version-minor}.jar" />
-	<property name="dest.srcfile" value="${output.dir}/vesijama v${version-major}.${version-minor}-src.jar.jar" />
+	<property name="dest.srcfile" value="${output.dir}/vesijama v${version-major}.${version-minor}-src.jar" />
 	
 	<path id="compiletime-libraries">
       <fileset dir="${compile.lib}" includes="**/*.jar"/>
