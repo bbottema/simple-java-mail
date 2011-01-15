@@ -327,7 +327,7 @@ public class Mailer {
 
 	/**
 	 * This class conveniently wraps all necessary mimemessage parts that need to be filled with content, attachments etc. The root is
-	 * ultimately send using JavaMail.<br />
+	 * ultimately sent using JavaMail.<br />
 	 * <br />
 	 * The constructor creates a new email message constructed from {@link MimeMultipart} as follows:
 	 * 
