@@ -259,13 +259,13 @@ public class Mailer {
 	private void setTexts(final Email email, final MimeMultipart multipartAlternativeMessages)
 			throws MessagingException {
 		if (email.getText() != null) {
-			final BodyPart messagePart = new MimeBodyPart();
-			messagePart.setText(email.getText());
+			final MimeBodyPart messagePart = new MimeBodyPart();
+			messagePart.setText(email.getText(), "UTF-8");
 			multipartAlternativeMessages.addBodyPart(messagePart);
 		}
 		if (email.getTextHTML() != null) {
-			final BodyPart messagePartHTML = new MimeBodyPart();
-			messagePartHTML.setContent(email.getTextHTML(), "text/html");
+			final MimeBodyPart messagePartHTML = new MimeBodyPart();
+			messagePartHTML.setContent(email.getTextHTML(), "text/html; charset=\"UTF-8\"");
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
 		}
 	}
