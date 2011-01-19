@@ -124,7 +124,7 @@ public class Mailer {
 
 		final Properties props = new Properties();
 		props.put("mail.smtp.host", host);
-		props.put("mail.smtp.port", port);
+		props.put("mail.smtp.port", String.valueOf(port));
 
 		if (username != null) {
 			props.put("mail.smtp.username", username);
