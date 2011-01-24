@@ -44,7 +44,7 @@ new Mailer("smtp.host.com", 25, "username", "password").sendMail(email);
 
 You can also pass in your own preconfigured mail _Session_ instance, so this framework is backwards compatible with whatever you use now.
 
-There are two more classes exposed for public use, concerning e-mail validation. [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailValidationUtil.html EmailValidationUtil] can be used to validate any e-mail aside from sending them. The class is used internally when sending e-mails, but if you want you can use this tool yourself as well. You can optionally pass in a n instance of the second available class, [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailAddressValidationCriteria.html EmailAddressValidationCriteria], which allows you to influence how strict validation works.
+There are two more classes exposed for public use, concerning e-mail validation. [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailValidationUtil.html EmailValidationUtil] can be used to validate any e-mail aside from sending them. It is used internally, but if you want you can use this tool yourself as well. The validation methods optionally accept an instance of the second available class, [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailAddressValidationCriteria.html EmailAddressValidationCriteria], which influences how strict validation works.
 
 = Alternatives =
 
