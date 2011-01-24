@@ -19,7 +19,7 @@ Vesijama uses a couple of jars that are all opensource. These are the Apache log
 
 = Example usage =
 
-There are only three classes exposed to the public. These are [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Email.html Email], [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Mailer.html Mailer] and [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/MailException.html MailException]. Simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
+For most use cases there are only three classes exposed to the public. These are [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Email.html Email], [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Mailer.html Mailer] and [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/MailException.html MailException]. Simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
 
 Here's an example:
 
@@ -43,6 +43,8 @@ new Mailer("smtp.host.com", 25, "username", "password").sendMail(email);
 }}}
 
 You can also pass in your own preconfigured mail Session instance, so this framework is backwards compatible with whatever you use now.
+
+There are two more classes exposed for public use, concerning e-mail validation. [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailValidationUtil.html EmailValidationUtil] can be used to validate any e-mail aside from sending them. The class is used internally when sending e-mails, but if you want you can use this tool yourself as well. You can optionally pass in a n instance of the second available class, [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailAddressValidationCriteria.html EmailAddressValidationCriteria], which allows you to influence how strict validation works.
 
 = Alternatives =
 
