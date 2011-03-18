@@ -1,25 +1,25 @@
 #labels Featured,Phase-Implementation,Phase-Requirements
 = Introduction =
 
-Vesijama is a lightweight wrapper framework for [http://java.sun.com/products/javamail/ Sun's JavaMail] (javax.mail API) for sending emails over smtp. Vesijama stands for Very Simple Java Mail and is designed to be as easy to use as possible, while still being able to do everything you want when sending email.
+Simple Java Mail is a lightweight wrapper framework for [http://java.sun.com/products/javamail/ Sun's JavaMail] (javax.mail API) for sending emails over smtp. Simple Java Mail is designed to be as easy to use as possible, while still being able to do everything you want when sending email.
 
- * [http://vesijama.googlecode.com/svn/trunk/javadoc/users/index.html Javadoc for users]
+ * [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/index.html Javadoc for users]
 
 = Required libraries =
 
-Also see: [http://code.google.com/p/vesijama/source/browse/trunk/NOTICE.txt NOTICE.txt]
+Also see: [http://code.google.com/p/simple-java-mail/source/browse/trunk/NOTICE.txt NOTICE.txt]
 
-Because Vesijama builds on the JavaMail library, it has the same dependencies and adds log4j to it (although the sourcecode could be modified to use Java's built in logging framework).
+Because Simple Java Mail builds on the native JavaMail library, it has the same dependencies and adds log4j to it (although the sourcecode could be modified to use Java's built in logging framework).
 
-Vesijama uses a couple of jars that are all opensource. These are the Apache log4j library and Sun JavaMail API library (only the smtp sublibraries). It uses the javax.activation package as well, which is shipped with JavaEE or is available as seperate package.
+Simple Java Mail uses a couple of jars that are all opensource. These are the Apache log4j library and Sun JavaMail API library (only the smtp sublibraries). It uses the javax.activation package as well, which is shipped with JavaEE or is available as seperate package.
 
- * [http://logging.apache.org/log4j/1.2/index.html Log4j] (download [http://vesijama.googlecode.com/files/log4j-1.2.15.jar log4j.jar])
- * [http://java.sun.com/products/javamail/ JavaMail API] (download [http://vesijama.googlecode.com/files/smtp.jar smtp.jar], [http://vesijama.googlecode.com/files/mailapi.jar mailapi.jar])
- * [http://java.sun.com/javase/technologies/desktop/javabeans/jaf/index.jsp Activation framework] (included in jre1.6, or download [http://vesijama.googlecode.com/files/activation.jar activation.jar])
+ * [http://logging.apache.org/log4j/1.2/index.html Log4j] (download [http://simple-java-mail.googlecode.com/files/log4j-1.2.15.jar log4j.jar])
+ * [http://java.sun.com/products/javamail/ JavaMail API] (download [http://simple-java-mail.googlecode.com/files/smtp.jar smtp.jar], [http://simple-java-mail.googlecode.com/files/mailapi.jar mailapi.jar])
+ * [http://java.sun.com/javase/technologies/desktop/javabeans/jaf/index.jsp Activation framework] (included in jre1.6, or download [http://simple-java-mail.googlecode.com/files/activation.jar activation.jar])
 
 = Example usage =
 
-For most use cases there are only three classes exposed to the public. These are [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Email.html Email], [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Mailer.html Mailer] and [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/MailException.html MailException]. Simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
+For most use cases there are only three classes exposed to the public. These are [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Email.html Email], [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Mailer.html Mailer] and [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/MailException.html MailException]. Simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
 
 Here's an example:
 
@@ -44,13 +44,13 @@ new Mailer("smtp.host.com", 25, "username", "password").sendMail(email);
 
 You can also pass in your own preconfigured mail _Session_ instance, so this framework is backwards compatible with whatever you use now.
 
-There are two more classes exposed for public use, concerning e-mail validation. [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailValidationUtil.html EmailValidationUtil] can be used to validate any e-mail aside from sending them. It is used internally, but if you want you can use this tool yourself as well. The validation methods optionally accept an instance of the second available class, [http://vesijama.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailAddressValidationCriteria.html EmailAddressValidationCriteria], which influences how strict validation works.
+There are two more classes exposed for public use, concerning e-mail validation. [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailValidationUtil.html EmailValidationUtil] can be used to validate any e-mail aside from sending them. It is used internally, but if you want you can use this tool yourself as well. The validation methods optionally accept an instance of the second available class, [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailAddressValidationCriteria.html EmailAddressValidationCriteria], which influences how strict validation works.
 
 = Alternatives =
 
-There are some alternatives around, such as the [http://static.springframework.org/spring/docs/2.0.x/reference/mail.html Spring mailing framework] or the [http://commons.apache.org/email/userguide.html Apache Commons Mail]. However, Spring works a bit awkward with anonymous subclasses and stuff (and you need Spring in your dependencies), while Apache Commons Mail isn't as simple as it could be.
+There are some alternatives around, such as the [http://static.springframework.org/spring/docs/2.0.x/reference/mail.html Spring mailing framework] or the [http://commons.apache.org/email/userguide.html Apache Commons Mail]. However, Spring works a bit awkward with anonymous subclasses and stuff (and you need Spring in your dependencies), while Apache Commons Mail isn't as simple and straightforward as it could be.
 
-= Developing Vesijama =
+= Developing Simple Java Mail =
 
 The sourcecode is relatively easy to understand and well commented. When you've checked out the code from the Subversion repository, you can run a build using `ant compile`, or `ant jar` if you like to create a jar while you're at it. To run the included test class use `ant` or `ant run`, which does the same. Make sure you provide some jvm arguments to indicate which smtp server to use for sending emails.
 
@@ -58,7 +58,7 @@ Example:
 {{{ant -Dhost=smtp.someserver.com -Dusername=joe -Dpassword=sixpack}}}
 
 Also check out the developers version of the Javadoc:
- * [http://vesijama.googlecode.com/svn/trunk/javadoc/developers/index.html Javadoc for developers]
+ * [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/developers/index.html Javadoc for developers]
 
 === Some factoids ===
 
