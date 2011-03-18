@@ -62,5 +62,7 @@ Also check out the developers version of the Javadoc:
 
 === Some factoids ===
 
+Simple Java Mail's working title is Vesijama.
+
 <wiki:gadget url="http://www.ohloh.net/p/328803/widgets/project_factoids.xml" border="0" width="400"/>
 <wiki:gadget url="http://www.ohloh.net/p/328803/widgets/project_languages.xml" border="0" width="400" height="200"/>
