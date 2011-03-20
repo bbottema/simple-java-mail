@@ -22,4 +22,4 @@ This configures the logging framework to log to the console (system.out) and log
 
 For more information on how to properly configure log4j or utilize check out the [http://logging.apache.org/log4j/1.2/manual.html log4j homepage].
 
-[Documentation back]
+[Manual back]
