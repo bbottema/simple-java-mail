@@ -17,6 +17,8 @@ Simple Java Mail uses a couple of jars that are all opensource. These are the Ap
  * [http://java.sun.com/products/javamail/ JavaMail API] (download [http://simple-java-mail.googlecode.com/files/smtp.jar smtp.jar], [http://simple-java-mail.googlecode.com/files/mailapi.jar mailapi.jar])
  * [http://java.sun.com/javase/technologies/desktop/javabeans/jaf/index.jsp Activation framework] (included in jre1.6, or download [http://simple-java-mail.googlecode.com/files/activation.jar activation.jar])
 
+[Concerning the log4j warning]
+
 = Example usage =
 
 For most use cases there are only three classes exposed to the public. These are [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Email.html Email], [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Mailer.html Mailer] and [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/MailException.html MailException]. Simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
