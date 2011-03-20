@@ -1,4 +1,4 @@
-== concerning the log4j warning ==
+== Concerning the log4j warning ==
 
 By default, you may get two warnings as follows:
 
