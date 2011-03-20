@@ -1,0 +1,25 @@
+== concerning the log4j warning ==
+
+By default, you may get two warnings as follows:
+
+{{{
+log4j:WARN No appenders could be found for logger (org.codemonkey.vesijama.Mailer).
+log4j:WARN Please initialize the log4j system properly.
+}}}
+
+This is because Simple Java Mail uses the log4j logging library which needs you to define how you want your logging.
+
+A quick solution if you're not interested in any of this, just copy paste the following snipper in your own application.
+
+{{{
+// normally you would do this in the log4j.xml
+Logger rootLogger = Logger.getRootLogger();
+rootLogger.addAppender(new ConsoleAppender(new SimpleLayout()));
+rootLogger.setLevel(Level.INFO);
+}}}
+
+This configures the logging framework to log to the console (system.out) and log only info-level messages and above.
+
+For more information on how to properly configure log4j or utilize check out the [http://logging.apache.org/log4j/1.2/manual.html log4j homepage].
+
+[Documentation back]
