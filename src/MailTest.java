@@ -26,7 +26,7 @@ public class MailTest {
 		// normally you would do this in the log4j.xml
 		final Logger rootLogger = Logger.getRootLogger();
 		rootLogger.addAppender(new ConsoleAppender(new SimpleLayout()));
-		rootLogger.setLevel(Level.INFO);
+		rootLogger.setLevel(Level.DEBUG);
 	}
 
 	public static void main(final String[] args)
@@ -44,7 +44,6 @@ public class MailTest {
 		final String host = System.getProperty("host") != null ? System.getProperty("host") : "";
 		final String username = System.getProperty("username") != null ? System.getProperty("username") : "";
 		final String password = System.getProperty("password") != null ? System.getProperty("password") : "";
-		System.out.println(String.format("sending mail (host: %s, username: %s, password: %s)", host, username, password));
 		new Mailer(host, 25, username, password).sendMail(email);
 	}
 }

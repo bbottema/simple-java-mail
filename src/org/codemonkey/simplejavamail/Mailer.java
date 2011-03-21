@@ -132,7 +132,7 @@ public class Mailer {
 
 		if (password != null) {
 			// setup mail session to authenticate when connecting
-			props.put("mail.smtp.auth", true);
+			props.put("mail.smtp.auth", "true");
 			return Session.getInstance(props, new Authenticator() {
 				@Override
 				protected PasswordAuthentication getPasswordAuthentication() {
@@ -224,12 +224,25 @@ public class Mailer {
 	 */
 	private Message prepareMessage(final Email email, final MimeMultipart multipartRoot)
 			throws MessagingException, UnsupportedEncodingException {
+		logSessionSettings(session);
 		final Message message = new MimeMessage(session);
 		message.setSubject(email.getSubject());
 		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName()));
 		message.setContent(multipartRoot);
 		message.setSentDate(new Date());
 		return message;
+	}
+
+	/**
+	 * Simply logs some debug statements about the mailing session suchs as host and username being used.
+	 */
+	private void logSessionSettings(final Session session) {
+		final String host = session.getProperty("mail.smtp.host");
+		final String port = session.getProperty("mail.smtp.port");
+		final String username = session.getProperty("mail.smtp.username");
+		final boolean useAuthentication = Boolean.parseBoolean(session.getProperty("mail.smtp.auth"));
+		final String logmsg = "starting mail session (host: %s, port: %s, username: %s, using authentication: %s)";
+		logger.debug(String.format(logmsg, host, port, username, useAuthentication));
 	}
 
 	/**
