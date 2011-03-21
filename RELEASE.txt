@@ -8,6 +8,7 @@ v1.6
 
 Completed migration to Java Simple Mail project.
 
-- removed all Vesijama references.
-- updated TestMail demonstration class for clarification.
-- updated readme.txt for test run instructions.
+- removed all Vesijama references
+- updated TestMail demonstration class for clarification
+- updated readme.txt for test run instructions
+- included log4j.properties

@@ -135,7 +135,7 @@
 <FONT color="green">132</FONT>    <a name="line.132"></a>
 <FONT color="green">133</FONT>                    if (password != null) {<a name="line.133"></a>
 <FONT color="green">134</FONT>                            // setup mail session to authenticate when connecting<a name="line.134"></a>
-<FONT color="green">135</FONT>                            props.put("mail.smtp.auth", true);<a name="line.135"></a>
+<FONT color="green">135</FONT>                            props.put("mail.smtp.auth", "true");<a name="line.135"></a>
 <FONT color="green">136</FONT>                            return Session.getInstance(props, new Authenticator() {<a name="line.136"></a>
 <FONT color="green">137</FONT>                                    @Override<a name="line.137"></a>
 <FONT color="green">138</FONT>                                    protected PasswordAuthentication getPasswordAuthentication() {<a name="line.138"></a>
@@ -227,166 +227,179 @@
 <FONT color="green">224</FONT>             */<a name="line.224"></a>
 <FONT color="green">225</FONT>            private Message prepareMessage(final Email email, final MimeMultipart multipartRoot)<a name="line.225"></a>
 <FONT color="green">226</FONT>                            throws MessagingException, UnsupportedEncodingException {<a name="line.226"></a>
-<FONT color="green">227</FONT>                    final Message message = new MimeMessage(session);<a name="line.227"></a>
-<FONT color="green">228</FONT>                    message.setSubject(email.getSubject());<a name="line.228"></a>
-<FONT color="green">229</FONT>                    message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName()));<a name="line.229"></a>
-<FONT color="green">230</FONT>                    message.setContent(multipartRoot);<a name="line.230"></a>
-<FONT color="green">231</FONT>                    message.setSentDate(new Date());<a name="line.231"></a>
-<FONT color="green">232</FONT>                    return message;<a name="line.232"></a>
-<FONT color="green">233</FONT>            }<a name="line.233"></a>
-<FONT color="green">234</FONT>    <a name="line.234"></a>
-<FONT color="green">235</FONT>            /**<a name="line.235"></a>
-<FONT color="green">236</FONT>             * Fills the {@link Message} instance with recipients from the {@link Email}.<a name="line.236"></a>
-<FONT color="green">237</FONT>             * <a name="line.237"></a>
-<FONT color="green">238</FONT>             * @param email The message in which the recipients are defined.<a name="line.238"></a>
-<FONT color="green">239</FONT>             * @param message The javax message that needs to be filled with recipients.<a name="line.239"></a>
-<FONT color="green">240</FONT>             * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.<a name="line.240"></a>
-<FONT color="green">241</FONT>             * @throws MessagingException See {@link Message#addRecipient(javax.mail.Message.RecipientType, Address)}<a name="line.241"></a>
-<FONT color="green">242</FONT>             */<a name="line.242"></a>
-<FONT color="green">243</FONT>            private void setRecipients(final Email email, final Message message)<a name="line.243"></a>
-<FONT color="green">244</FONT>                            throws UnsupportedEncodingException, MessagingException {<a name="line.244"></a>
-<FONT color="green">245</FONT>                    for (final Recipient recipient : email.getRecipients()) {<a name="line.245"></a>
-<FONT color="green">246</FONT>                            final Address address = new InternetAddress(recipient.getAddress(), recipient.getName());<a name="line.246"></a>
-<FONT color="green">247</FONT>                            message.addRecipient(recipient.getType(), address);<a name="line.247"></a>
-<FONT color="green">248</FONT>                    }<a name="line.248"></a>
-<FONT color="green">249</FONT>            }<a name="line.249"></a>
-<FONT color="green">250</FONT>    <a name="line.250"></a>
-<FONT color="green">251</FONT>            /**<a name="line.251"></a>
-<FONT color="green">252</FONT>             * Fills the {@link Message} instance with the content bodies (text and html).<a name="line.252"></a>
-<FONT color="green">253</FONT>             * <a name="line.253"></a>
-<FONT color="green">254</FONT>             * @param email The message in which the content is defined.<a name="line.254"></a>
-<FONT color="green">255</FONT>             * @param multipartAlternativeMessages See {@link MimeMultipart#addBodyPart(BodyPart)}<a name="line.255"></a>
-<FONT color="green">256</FONT>             * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)} and<a name="line.256"></a>
-<FONT color="green">257</FONT>             *             {@link MimeMultipart#addBodyPart(BodyPart)}.<a name="line.257"></a>
-<FONT color="green">258</FONT>             */<a name="line.258"></a>
-<FONT color="green">259</FONT>            private void setTexts(final Email email, final MimeMultipart multipartAlternativeMessages)<a name="line.259"></a>
-<FONT color="green">260</FONT>                            throws MessagingException {<a name="line.260"></a>
-<FONT color="green">261</FONT>                    if (email.getText() != null) {<a name="line.261"></a>
-<FONT color="green">262</FONT>                            final MimeBodyPart messagePart = new MimeBodyPart();<a name="line.262"></a>
-<FONT color="green">263</FONT>                            messagePart.setText(email.getText(), "UTF-8");<a name="line.263"></a>
-<FONT color="green">264</FONT>                            multipartAlternativeMessages.addBodyPart(messagePart);<a name="line.264"></a>
-<FONT color="green">265</FONT>                    }<a name="line.265"></a>
-<FONT color="green">266</FONT>                    if (email.getTextHTML() != null) {<a name="line.266"></a>
-<FONT color="green">267</FONT>                            final MimeBodyPart messagePartHTML = new MimeBodyPart();<a name="line.267"></a>
-<FONT color="green">268</FONT>                            messagePartHTML.setContent(email.getTextHTML(), "text/html; charset=\"UTF-8\"");<a name="line.268"></a>
-<FONT color="green">269</FONT>                            multipartAlternativeMessages.addBodyPart(messagePartHTML);<a name="line.269"></a>
-<FONT color="green">270</FONT>                    }<a name="line.270"></a>
-<FONT color="green">271</FONT>            }<a name="line.271"></a>
-<FONT color="green">272</FONT>    <a name="line.272"></a>
-<FONT color="green">273</FONT>            /**<a name="line.273"></a>
-<FONT color="green">274</FONT>             * Fills the {@link Message} instance with the embedded images from the {@link Email}.<a name="line.274"></a>
-<FONT color="green">275</FONT>             * <a name="line.275"></a>
-<FONT color="green">276</FONT>             * @param email The message in which the embedded images are defined.<a name="line.276"></a>
-<FONT color="green">277</FONT>             * @param multipartRelated The branch in the email structure in which we'll stuff the embedded images.<a name="line.277"></a>
-<FONT color="green">278</FONT>             * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and<a name="line.278"></a>
-<FONT color="green">279</FONT>             *             {@link #getBodyPartFromDatasource(AttachmentResource, String)}<a name="line.279"></a>
-<FONT color="green">280</FONT>             */<a name="line.280"></a>
-<FONT color="green">281</FONT>            private void setEmbeddedImages(final Email email, final MimeMultipart multipartRelated)<a name="line.281"></a>
-<FONT color="green">282</FONT>                            throws MessagingException {<a name="line.282"></a>
-<FONT color="green">283</FONT>                    for (final AttachmentResource embeddedImage : email.getEmbeddedImages()) {<a name="line.283"></a>
-<FONT color="green">284</FONT>                            multipartRelated.addBodyPart(getBodyPartFromDatasource(embeddedImage, Part.INLINE));<a name="line.284"></a>
-<FONT color="green">285</FONT>                    }<a name="line.285"></a>
-<FONT color="green">286</FONT>            }<a name="line.286"></a>
-<FONT color="green">287</FONT>    <a name="line.287"></a>
-<FONT color="green">288</FONT>            /**<a name="line.288"></a>
-<FONT color="green">289</FONT>             * Fills the {@link Message} instance with the attachments from the {@link Email}.<a name="line.289"></a>
-<FONT color="green">290</FONT>             * <a name="line.290"></a>
-<FONT color="green">291</FONT>             * @param email The message in which the attachments are defined.<a name="line.291"></a>
-<FONT color="green">292</FONT>             * @param multipartRoot The branch in the email structure in which we'll stuff the attachments.<a name="line.292"></a>
-<FONT color="green">293</FONT>             * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and<a name="line.293"></a>
-<FONT color="green">294</FONT>             *             {@link #getBodyPartFromDatasource(AttachmentResource, String)}<a name="line.294"></a>
-<FONT color="green">295</FONT>             */<a name="line.295"></a>
-<FONT color="green">296</FONT>            private void setAttachments(final Email email, final MimeMultipart multipartRoot)<a name="line.296"></a>
-<FONT color="green">297</FONT>                            throws MessagingException {<a name="line.297"></a>
-<FONT color="green">298</FONT>                    for (final AttachmentResource resource : email.getAttachments()) {<a name="line.298"></a>
-<FONT color="green">299</FONT>                            multipartRoot.addBodyPart(getBodyPartFromDatasource(resource, Part.ATTACHMENT));<a name="line.299"></a>
-<FONT color="green">300</FONT>                    }<a name="line.300"></a>
-<FONT color="green">301</FONT>            }<a name="line.301"></a>
-<FONT color="green">302</FONT>    <a name="line.302"></a>
-<FONT color="green">303</FONT>            /**<a name="line.303"></a>
-<FONT color="green">304</FONT>             * Helper method which generates a {@link BodyPart} from an {@link AttachmentResource} (from its {@link DataSource}) and a disposition<a name="line.304"></a>
-<FONT color="green">305</FONT>             * type ({@link Part#INLINE} or {@link Part#ATTACHMENT}). With this the attachment data can be converted into objects that fit in the<a name="line.305"></a>
-<FONT color="green">306</FONT>             * email structure. &lt;br /&gt;<a name="line.306"></a>
-<FONT color="green">307</FONT>             * &lt;br /&gt;<a name="line.307"></a>
-<FONT color="green">308</FONT>             * For every attachment and embedded image a header needs to be set.<a name="line.308"></a>
-<FONT color="green">309</FONT>             * <a name="line.309"></a>
-<FONT color="green">310</FONT>             * @param resource An object that describes the attachment and contains the actual content data.<a name="line.310"></a>
-<FONT color="green">311</FONT>             * @param dispositionType The type of attachment, {@link Part#INLINE} or {@link Part#ATTACHMENT} .<a name="line.311"></a>
-<FONT color="green">312</FONT>             * @return An object with the attachment data read for placement in the email structure.<a name="line.312"></a>
-<FONT color="green">313</FONT>             * @throws MessagingException All BodyPart setters.<a name="line.313"></a>
-<FONT color="green">314</FONT>             */<a name="line.314"></a>
-<FONT color="green">315</FONT>            private BodyPart getBodyPartFromDatasource(final AttachmentResource resource, final String dispositionType)<a name="line.315"></a>
-<FONT color="green">316</FONT>                            throws MessagingException {<a name="line.316"></a>
-<FONT color="green">317</FONT>                    final BodyPart attachmentPart = new MimeBodyPart();<a name="line.317"></a>
-<FONT color="green">318</FONT>                    final DataSource ds = resource.getDataSource();<a name="line.318"></a>
-<FONT color="green">319</FONT>                    // setting headers isn't working nicely using the javax mail API, so let's do that manually<a name="line.319"></a>
-<FONT color="green">320</FONT>                    attachmentPart.setDataHandler(new DataHandler(resource.getDataSource()));<a name="line.320"></a>
-<FONT color="green">321</FONT>                    attachmentPart.setFileName(resource.getName());<a name="line.321"></a>
-<FONT color="green">322</FONT>                    attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + ds.getName() + "; name=" + ds.getName());<a name="line.322"></a>
-<FONT color="green">323</FONT>                    attachmentPart.setHeader("Content-ID", String.format("&lt;%s&gt;", ds.getName()));<a name="line.323"></a>
-<FONT color="green">324</FONT>                    attachmentPart.setDisposition(dispositionType + "; size=0");<a name="line.324"></a>
-<FONT color="green">325</FONT>                    return attachmentPart;<a name="line.325"></a>
-<FONT color="green">326</FONT>            }<a name="line.326"></a>
-<FONT color="green">327</FONT>    <a name="line.327"></a>
-<FONT color="green">328</FONT>            /**<a name="line.328"></a>
-<FONT color="green">329</FONT>             * This class conveniently wraps all necessary mimemessage parts that need to be filled with content, attachments etc. The root is<a name="line.329"></a>
-<FONT color="green">330</FONT>             * ultimately sent using JavaMail.&lt;br /&gt;<a name="line.330"></a>
-<FONT color="green">331</FONT>             * &lt;br /&gt;<a name="line.331"></a>
-<FONT color="green">332</FONT>             * The constructor creates a new email message constructed from {@link MimeMultipart} as follows:<a name="line.332"></a>
-<FONT color="green">333</FONT>             * <a name="line.333"></a>
-<FONT color="green">334</FONT>             * &lt;pre&gt;<a name="line.334"></a>
-<FONT color="green">335</FONT>             * - root<a name="line.335"></a>
-<FONT color="green">336</FONT>             *      - related<a name="line.336"></a>
-<FONT color="green">337</FONT>             *              - alternative<a name="line.337"></a>
-<FONT color="green">338</FONT>             *                      - mail tekst<a name="line.338"></a>
-<FONT color="green">339</FONT>             *                      - mail html tekst<a name="line.339"></a>
-<FONT color="green">340</FONT>             *              - embedded images<a name="line.340"></a>
-<FONT color="green">341</FONT>             *      - attachments<a name="line.341"></a>
-<FONT color="green">342</FONT>             * &lt;/pre&gt;<a name="line.342"></a>
-<FONT color="green">343</FONT>             * <a name="line.343"></a>
-<FONT color="green">344</FONT>             * @author Benny Bottema<a name="line.344"></a>
-<FONT color="green">345</FONT>             */<a name="line.345"></a>
-<FONT color="green">346</FONT>            private class MimeEmailMessageWrapper {<a name="line.346"></a>
-<FONT color="green">347</FONT>    <a name="line.347"></a>
-<FONT color="green">348</FONT>                    private final MimeMultipart multipartRoot;<a name="line.348"></a>
-<FONT color="green">349</FONT>    <a name="line.349"></a>
-<FONT color="green">350</FONT>                    private final MimeMultipart multipartRelated;<a name="line.350"></a>
-<FONT color="green">351</FONT>    <a name="line.351"></a>
-<FONT color="green">352</FONT>                    private final MimeMultipart multipartAlternativeMessages;<a name="line.352"></a>
-<FONT color="green">353</FONT>    <a name="line.353"></a>
-<FONT color="green">354</FONT>                    /**<a name="line.354"></a>
-<FONT color="green">355</FONT>                     * Creates an email skeleton structure, so that embedded images, attachments and (html) texts are being processed properly.<a name="line.355"></a>
-<FONT color="green">356</FONT>                     */<a name="line.356"></a>
-<FONT color="green">357</FONT>                    MimeEmailMessageWrapper() {<a name="line.357"></a>
-<FONT color="green">358</FONT>                            multipartRoot = new MimeMultipart("mixed");<a name="line.358"></a>
-<FONT color="green">359</FONT>                            final MimeBodyPart contentRelated = new MimeBodyPart();<a name="line.359"></a>
-<FONT color="green">360</FONT>                            multipartRelated = new MimeMultipart("related");<a name="line.360"></a>
-<FONT color="green">361</FONT>                            final MimeBodyPart contentAlternativeMessages = new MimeBodyPart();<a name="line.361"></a>
-<FONT color="green">362</FONT>                            multipartAlternativeMessages = new MimeMultipart("alternative");<a name="line.362"></a>
-<FONT color="green">363</FONT>                            try {<a name="line.363"></a>
-<FONT color="green">364</FONT>                                    // construct mail structure<a name="line.364"></a>
-<FONT color="green">365</FONT>                                    multipartRoot.addBodyPart(contentRelated);<a name="line.365"></a>
-<FONT color="green">366</FONT>                                    contentRelated.setContent(multipartRelated);<a name="line.366"></a>
-<FONT color="green">367</FONT>                                    multipartRelated.addBodyPart(contentAlternativeMessages);<a name="line.367"></a>
-<FONT color="green">368</FONT>                                    contentAlternativeMessages.setContent(multipartAlternativeMessages);<a name="line.368"></a>
-<FONT color="green">369</FONT>                            } catch (final MessagingException e) {<a name="line.369"></a>
-<FONT color="green">370</FONT>                                    logger.error(e.getMessage(), e);<a name="line.370"></a>
-<FONT color="green">371</FONT>                                    throw new RuntimeException(e.getMessage(), e);<a name="line.371"></a>
-<FONT color="green">372</FONT>                            }<a name="line.372"></a>
-<FONT color="green">373</FONT>                    }<a name="line.373"></a>
-<FONT color="green">374</FONT>            }<a name="line.374"></a>
-<FONT color="green">375</FONT>    <a name="line.375"></a>
-<FONT color="green">376</FONT>            /**<a name="line.376"></a>
-<FONT color="green">377</FONT>             * Overrides the default email address validation restrictions when validating and sending emails using the current &lt;code&gt;Mailer&lt;/code&gt;<a name="line.377"></a>
-<FONT color="green">378</FONT>             * instance.<a name="line.378"></a>
-<FONT color="green">379</FONT>             * <a name="line.379"></a>
-<FONT color="green">380</FONT>             * @param emailAddressValidationCriteria Refer to<a name="line.380"></a>
-<FONT color="green">381</FONT>             *            {@link EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)}.<a name="line.381"></a>
-<FONT color="green">382</FONT>             */<a name="line.382"></a>
-<FONT color="green">383</FONT>            public void setEmailAddressValidationCriteria(EmailAddressValidationCriteria emailAddressValidationCriteria) {<a name="line.383"></a>
-<FONT color="green">384</FONT>                    this.emailAddressValidationCriteria = emailAddressValidationCriteria;<a name="line.384"></a>
-<FONT color="green">385</FONT>            }<a name="line.385"></a>
-<FONT color="green">386</FONT>    }<a name="line.386"></a>
+<FONT color="green">227</FONT>                    logSessionSettings(session);<a name="line.227"></a>
+<FONT color="green">228</FONT>                    final Message message = new MimeMessage(session);<a name="line.228"></a>
+<FONT color="green">229</FONT>                    message.setSubject(email.getSubject());<a name="line.229"></a>
+<FONT color="green">230</FONT>                    message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName()));<a name="line.230"></a>
+<FONT color="green">231</FONT>                    message.setContent(multipartRoot);<a name="line.231"></a>
+<FONT color="green">232</FONT>                    message.setSentDate(new Date());<a name="line.232"></a>
+<FONT color="green">233</FONT>                    return message;<a name="line.233"></a>
+<FONT color="green">234</FONT>            }<a name="line.234"></a>
+<FONT color="green">235</FONT>    <a name="line.235"></a>
+<FONT color="green">236</FONT>            /**<a name="line.236"></a>
+<FONT color="green">237</FONT>             * Simply logs some debug statements about the mailing session suchs as host and username being used.<a name="line.237"></a>
+<FONT color="green">238</FONT>             */<a name="line.238"></a>
+<FONT color="green">239</FONT>            private void logSessionSettings(final Session session) {<a name="line.239"></a>
+<FONT color="green">240</FONT>                    final String host = session.getProperty("mail.smtp.host");<a name="line.240"></a>
+<FONT color="green">241</FONT>                    final String port = session.getProperty("mail.smtp.port");<a name="line.241"></a>
+<FONT color="green">242</FONT>                    final String username = session.getProperty("mail.smtp.username");<a name="line.242"></a>
+<FONT color="green">243</FONT>                    final boolean useAuthentication = Boolean.parseBoolean(session.getProperty("mail.smtp.auth"));<a name="line.243"></a>
+<FONT color="green">244</FONT>                    final String logmsg = "starting mail session (host: %s, port: %s, username: %s, using authentication: %s)";<a name="line.244"></a>
+<FONT color="green">245</FONT>                    logger.debug(String.format(logmsg, host, port, username, useAuthentication));<a name="line.245"></a>
+<FONT color="green">246</FONT>            }<a name="line.246"></a>
+<FONT color="green">247</FONT>    <a name="line.247"></a>
+<FONT color="green">248</FONT>            /**<a name="line.248"></a>
+<FONT color="green">249</FONT>             * Fills the {@link Message} instance with recipients from the {@link Email}.<a name="line.249"></a>
+<FONT color="green">250</FONT>             * <a name="line.250"></a>
+<FONT color="green">251</FONT>             * @param email The message in which the recipients are defined.<a name="line.251"></a>
+<FONT color="green">252</FONT>             * @param message The javax message that needs to be filled with recipients.<a name="line.252"></a>
+<FONT color="green">253</FONT>             * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.<a name="line.253"></a>
+<FONT color="green">254</FONT>             * @throws MessagingException See {@link Message#addRecipient(javax.mail.Message.RecipientType, Address)}<a name="line.254"></a>
+<FONT color="green">255</FONT>             */<a name="line.255"></a>
+<FONT color="green">256</FONT>            private void setRecipients(final Email email, final Message message)<a name="line.256"></a>
+<FONT color="green">257</FONT>                            throws UnsupportedEncodingException, MessagingException {<a name="line.257"></a>
+<FONT color="green">258</FONT>                    for (final Recipient recipient : email.getRecipients()) {<a name="line.258"></a>
+<FONT color="green">259</FONT>                            final Address address = new InternetAddress(recipient.getAddress(), recipient.getName());<a name="line.259"></a>
+<FONT color="green">260</FONT>                            message.addRecipient(recipient.getType(), address);<a name="line.260"></a>
+<FONT color="green">261</FONT>                    }<a name="line.261"></a>
+<FONT color="green">262</FONT>            }<a name="line.262"></a>
+<FONT color="green">263</FONT>    <a name="line.263"></a>
+<FONT color="green">264</FONT>            /**<a name="line.264"></a>
+<FONT color="green">265</FONT>             * Fills the {@link Message} instance with the content bodies (text and html).<a name="line.265"></a>
+<FONT color="green">266</FONT>             * <a name="line.266"></a>
+<FONT color="green">267</FONT>             * @param email The message in which the content is defined.<a name="line.267"></a>
+<FONT color="green">268</FONT>             * @param multipartAlternativeMessages See {@link MimeMultipart#addBodyPart(BodyPart)}<a name="line.268"></a>
+<FONT color="green">269</FONT>             * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)} and<a name="line.269"></a>
+<FONT color="green">270</FONT>             *             {@link MimeMultipart#addBodyPart(BodyPart)}.<a name="line.270"></a>
+<FONT color="green">271</FONT>             */<a name="line.271"></a>
+<FONT color="green">272</FONT>            private void setTexts(final Email email, final MimeMultipart multipartAlternativeMessages)<a name="line.272"></a>
+<FONT color="green">273</FONT>                            throws MessagingException {<a name="line.273"></a>
+<FONT color="green">274</FONT>                    if (email.getText() != null) {<a name="line.274"></a>
+<FONT color="green">275</FONT>                            final MimeBodyPart messagePart = new MimeBodyPart();<a name="line.275"></a>
+<FONT color="green">276</FONT>                            messagePart.setText(email.getText(), "UTF-8");<a name="line.276"></a>
+<FONT color="green">277</FONT>                            multipartAlternativeMessages.addBodyPart(messagePart);<a name="line.277"></a>
+<FONT color="green">278</FONT>                    }<a name="line.278"></a>
+<FONT color="green">279</FONT>                    if (email.getTextHTML() != null) {<a name="line.279"></a>
+<FONT color="green">280</FONT>                            final MimeBodyPart messagePartHTML = new MimeBodyPart();<a name="line.280"></a>
+<FONT color="green">281</FONT>                            messagePartHTML.setContent(email.getTextHTML(), "text/html; charset=\"UTF-8\"");<a name="line.281"></a>
+<FONT color="green">282</FONT>                            multipartAlternativeMessages.addBodyPart(messagePartHTML);<a name="line.282"></a>
+<FONT color="green">283</FONT>                    }<a name="line.283"></a>
+<FONT color="green">284</FONT>            }<a name="line.284"></a>
+<FONT color="green">285</FONT>    <a name="line.285"></a>
+<FONT color="green">286</FONT>            /**<a name="line.286"></a>
+<FONT color="green">287</FONT>             * Fills the {@link Message} instance with the embedded images from the {@link Email}.<a name="line.287"></a>
+<FONT color="green">288</FONT>             * <a name="line.288"></a>
+<FONT color="green">289</FONT>             * @param email The message in which the embedded images are defined.<a name="line.289"></a>
+<FONT color="green">290</FONT>             * @param multipartRelated The branch in the email structure in which we'll stuff the embedded images.<a name="line.290"></a>
+<FONT color="green">291</FONT>             * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and<a name="line.291"></a>
+<FONT color="green">292</FONT>             *             {@link #getBodyPartFromDatasource(AttachmentResource, String)}<a name="line.292"></a>
+<FONT color="green">293</FONT>             */<a name="line.293"></a>
+<FONT color="green">294</FONT>            private void setEmbeddedImages(final Email email, final MimeMultipart multipartRelated)<a name="line.294"></a>
+<FONT color="green">295</FONT>                            throws MessagingException {<a name="line.295"></a>
+<FONT color="green">296</FONT>                    for (final AttachmentResource embeddedImage : email.getEmbeddedImages()) {<a name="line.296"></a>
+<FONT color="green">297</FONT>                            multipartRelated.addBodyPart(getBodyPartFromDatasource(embeddedImage, Part.INLINE));<a name="line.297"></a>
+<FONT color="green">298</FONT>                    }<a name="line.298"></a>
+<FONT color="green">299</FONT>            }<a name="line.299"></a>
+<FONT color="green">300</FONT>    <a name="line.300"></a>
+<FONT color="green">301</FONT>            /**<a name="line.301"></a>
+<FONT color="green">302</FONT>             * Fills the {@link Message} instance with the attachments from the {@link Email}.<a name="line.302"></a>
+<FONT color="green">303</FONT>             * <a name="line.303"></a>
+<FONT color="green">304</FONT>             * @param email The message in which the attachments are defined.<a name="line.304"></a>
+<FONT color="green">305</FONT>             * @param multipartRoot The branch in the email structure in which we'll stuff the attachments.<a name="line.305"></a>
+<FONT color="green">306</FONT>             * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and<a name="line.306"></a>
+<FONT color="green">307</FONT>             *             {@link #getBodyPartFromDatasource(AttachmentResource, String)}<a name="line.307"></a>
+<FONT color="green">308</FONT>             */<a name="line.308"></a>
+<FONT color="green">309</FONT>            private void setAttachments(final Email email, final MimeMultipart multipartRoot)<a name="line.309"></a>
+<FONT color="green">310</FONT>                            throws MessagingException {<a name="line.310"></a>
+<FONT color="green">311</FONT>                    for (final AttachmentResource resource : email.getAttachments()) {<a name="line.311"></a>
+<FONT color="green">312</FONT>                            multipartRoot.addBodyPart(getBodyPartFromDatasource(resource, Part.ATTACHMENT));<a name="line.312"></a>
+<FONT color="green">313</FONT>                    }<a name="line.313"></a>
+<FONT color="green">314</FONT>            }<a name="line.314"></a>
+<FONT color="green">315</FONT>    <a name="line.315"></a>
+<FONT color="green">316</FONT>            /**<a name="line.316"></a>
+<FONT color="green">317</FONT>             * Helper method which generates a {@link BodyPart} from an {@link AttachmentResource} (from its {@link DataSource}) and a disposition<a name="line.317"></a>
+<FONT color="green">318</FONT>             * type ({@link Part#INLINE} or {@link Part#ATTACHMENT}). With this the attachment data can be converted into objects that fit in the<a name="line.318"></a>
+<FONT color="green">319</FONT>             * email structure. &lt;br /&gt;<a name="line.319"></a>
+<FONT color="green">320</FONT>             * &lt;br /&gt;<a name="line.320"></a>
+<FONT color="green">321</FONT>             * For every attachment and embedded image a header needs to be set.<a name="line.321"></a>
+<FONT color="green">322</FONT>             * <a name="line.322"></a>
+<FONT color="green">323</FONT>             * @param resource An object that describes the attachment and contains the actual content data.<a name="line.323"></a>
+<FONT color="green">324</FONT>             * @param dispositionType The type of attachment, {@link Part#INLINE} or {@link Part#ATTACHMENT} .<a name="line.324"></a>
+<FONT color="green">325</FONT>             * @return An object with the attachment data read for placement in the email structure.<a name="line.325"></a>
+<FONT color="green">326</FONT>             * @throws MessagingException All BodyPart setters.<a name="line.326"></a>
+<FONT color="green">327</FONT>             */<a name="line.327"></a>
+<FONT color="green">328</FONT>            private BodyPart getBodyPartFromDatasource(final AttachmentResource resource, final String dispositionType)<a name="line.328"></a>
+<FONT color="green">329</FONT>                            throws MessagingException {<a name="line.329"></a>
+<FONT color="green">330</FONT>                    final BodyPart attachmentPart = new MimeBodyPart();<a name="line.330"></a>
+<FONT color="green">331</FONT>                    final DataSource ds = resource.getDataSource();<a name="line.331"></a>
+<FONT color="green">332</FONT>                    // setting headers isn't working nicely using the javax mail API, so let's do that manually<a name="line.332"></a>
+<FONT color="green">333</FONT>                    attachmentPart.setDataHandler(new DataHandler(resource.getDataSource()));<a name="line.333"></a>
+<FONT color="green">334</FONT>                    attachmentPart.setFileName(resource.getName());<a name="line.334"></a>
+<FONT color="green">335</FONT>                    attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + ds.getName() + "; name=" + ds.getName());<a name="line.335"></a>
+<FONT color="green">336</FONT>                    attachmentPart.setHeader("Content-ID", String.format("&lt;%s&gt;", ds.getName()));<a name="line.336"></a>
+<FONT color="green">337</FONT>                    attachmentPart.setDisposition(dispositionType + "; size=0");<a name="line.337"></a>
+<FONT color="green">338</FONT>                    return attachmentPart;<a name="line.338"></a>
+<FONT color="green">339</FONT>            }<a name="line.339"></a>
+<FONT color="green">340</FONT>    <a name="line.340"></a>
+<FONT color="green">341</FONT>            /**<a name="line.341"></a>
+<FONT color="green">342</FONT>             * This class conveniently wraps all necessary mimemessage parts that need to be filled with content, attachments etc. The root is<a name="line.342"></a>
+<FONT color="green">343</FONT>             * ultimately sent using JavaMail.&lt;br /&gt;<a name="line.343"></a>
+<FONT color="green">344</FONT>             * &lt;br /&gt;<a name="line.344"></a>
+<FONT color="green">345</FONT>             * The constructor creates a new email message constructed from {@link MimeMultipart} as follows:<a name="line.345"></a>
+<FONT color="green">346</FONT>             * <a name="line.346"></a>
+<FONT color="green">347</FONT>             * &lt;pre&gt;<a name="line.347"></a>
+<FONT color="green">348</FONT>             * - root<a name="line.348"></a>
+<FONT color="green">349</FONT>             *      - related<a name="line.349"></a>
+<FONT color="green">350</FONT>             *              - alternative<a name="line.350"></a>
+<FONT color="green">351</FONT>             *                      - mail tekst<a name="line.351"></a>
+<FONT color="green">352</FONT>             *                      - mail html tekst<a name="line.352"></a>
+<FONT color="green">353</FONT>             *              - embedded images<a name="line.353"></a>
+<FONT color="green">354</FONT>             *      - attachments<a name="line.354"></a>
+<FONT color="green">355</FONT>             * &lt;/pre&gt;<a name="line.355"></a>
+<FONT color="green">356</FONT>             * <a name="line.356"></a>
+<FONT color="green">357</FONT>             * @author Benny Bottema<a name="line.357"></a>
+<FONT color="green">358</FONT>             */<a name="line.358"></a>
+<FONT color="green">359</FONT>            private class MimeEmailMessageWrapper {<a name="line.359"></a>
+<FONT color="green">360</FONT>    <a name="line.360"></a>
+<FONT color="green">361</FONT>                    private final MimeMultipart multipartRoot;<a name="line.361"></a>
+<FONT color="green">362</FONT>    <a name="line.362"></a>
+<FONT color="green">363</FONT>                    private final MimeMultipart multipartRelated;<a name="line.363"></a>
+<FONT color="green">364</FONT>    <a name="line.364"></a>
+<FONT color="green">365</FONT>                    private final MimeMultipart multipartAlternativeMessages;<a name="line.365"></a>
+<FONT color="green">366</FONT>    <a name="line.366"></a>
+<FONT color="green">367</FONT>                    /**<a name="line.367"></a>
+<FONT color="green">368</FONT>                     * Creates an email skeleton structure, so that embedded images, attachments and (html) texts are being processed properly.<a name="line.368"></a>
+<FONT color="green">369</FONT>                     */<a name="line.369"></a>
+<FONT color="green">370</FONT>                    MimeEmailMessageWrapper() {<a name="line.370"></a>
+<FONT color="green">371</FONT>                            multipartRoot = new MimeMultipart("mixed");<a name="line.371"></a>
+<FONT color="green">372</FONT>                            final MimeBodyPart contentRelated = new MimeBodyPart();<a name="line.372"></a>
+<FONT color="green">373</FONT>                            multipartRelated = new MimeMultipart("related");<a name="line.373"></a>
+<FONT color="green">374</FONT>                            final MimeBodyPart contentAlternativeMessages = new MimeBodyPart();<a name="line.374"></a>
+<FONT color="green">375</FONT>                            multipartAlternativeMessages = new MimeMultipart("alternative");<a name="line.375"></a>
+<FONT color="green">376</FONT>                            try {<a name="line.376"></a>
+<FONT color="green">377</FONT>                                    // construct mail structure<a name="line.377"></a>
+<FONT color="green">378</FONT>                                    multipartRoot.addBodyPart(contentRelated);<a name="line.378"></a>
+<FONT color="green">379</FONT>                                    contentRelated.setContent(multipartRelated);<a name="line.379"></a>
+<FONT color="green">380</FONT>                                    multipartRelated.addBodyPart(contentAlternativeMessages);<a name="line.380"></a>
+<FONT color="green">381</FONT>                                    contentAlternativeMessages.setContent(multipartAlternativeMessages);<a name="line.381"></a>
+<FONT color="green">382</FONT>                            } catch (final MessagingException e) {<a name="line.382"></a>
+<FONT color="green">383</FONT>                                    logger.error(e.getMessage(), e);<a name="line.383"></a>
+<FONT color="green">384</FONT>                                    throw new RuntimeException(e.getMessage(), e);<a name="line.384"></a>
+<FONT color="green">385</FONT>                            }<a name="line.385"></a>
+<FONT color="green">386</FONT>                    }<a name="line.386"></a>
+<FONT color="green">387</FONT>            }<a name="line.387"></a>
+<FONT color="green">388</FONT>    <a name="line.388"></a>
+<FONT color="green">389</FONT>            /**<a name="line.389"></a>
+<FONT color="green">390</FONT>             * Overrides the default email address validation restrictions when validating and sending emails using the current &lt;code&gt;Mailer&lt;/code&gt;<a name="line.390"></a>
+<FONT color="green">391</FONT>             * instance.<a name="line.391"></a>
+<FONT color="green">392</FONT>             * <a name="line.392"></a>
+<FONT color="green">393</FONT>             * @param emailAddressValidationCriteria Refer to<a name="line.393"></a>
+<FONT color="green">394</FONT>             *            {@link EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)}.<a name="line.394"></a>
+<FONT color="green">395</FONT>             */<a name="line.395"></a>
+<FONT color="green">396</FONT>            public void setEmailAddressValidationCriteria(EmailAddressValidationCriteria emailAddressValidationCriteria) {<a name="line.396"></a>
+<FONT color="green">397</FONT>                    this.emailAddressValidationCriteria = emailAddressValidationCriteria;<a name="line.397"></a>
+<FONT color="green">398</FONT>            }<a name="line.398"></a>
+<FONT color="green">399</FONT>    }<a name="line.399"></a>
 
 
 
