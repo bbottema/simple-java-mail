@@ -5,6 +5,7 @@ import javax.mail.Message.RecipientType;
 import org.codemonkey.simplejavamail.Email;
 import org.codemonkey.simplejavamail.MailException;
 import org.codemonkey.simplejavamail.Mailer;
+import org.codemonkey.simplejavamail.TransportStrategy;
 
 /**
  * Demonstration program for the Simple Java Mail framework.
@@ -23,6 +24,7 @@ public class MailTest {
 		final Email email = new Email();
 		email.setFromAddress("lollypop", "lol.pop@somemail.com");
 		email.addRecipient("C.Cane", "candycane@candyshop.org", RecipientType.TO);
+		email.addRecipient("C.Cane", "b.bottema@gmail.com", RecipientType.TO);
 		email.setText("We should meet up!");
 		email.setTextHTML("<b>We should meet up!</b>");
 		email.setSubject("hey");
@@ -34,6 +36,6 @@ public class MailTest {
 		final int port = System.getProperty("port") != null ? Integer.parseInt(System.getProperty("port")) : 25;
 		final String username = System.getProperty("username") != null ? System.getProperty("username") : "";
 		final String password = System.getProperty("password") != null ? System.getProperty("password") : "";
-		new Mailer(host, port, username, password).sendMail(email);
+		new Mailer(host, port, username, password, TransportStrategy.SMTP_SSL).sendMail(email);
 	}
 }
