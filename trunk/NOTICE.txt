@@ -2,8 +2,8 @@
   ==  NOTICE file for use with the Apache License, Version 2.0           ==
   =========================================================================
   
-  Vesijama - Very simpel java mail
-  Copyright 2009-2011 B. Bottema
+  Simple Java Mail
+  Copyright 2009-2012 B. Bottema
   
   This product uses no commercial products.
   

@@ -12,6 +12,11 @@ import org.codemonkey.vesijama.Mailer;
 
 /**
  * Demonstration program for the Vesijama Very Simple Java Mail framework.
+ * <p>
+ * <b>IMPORTANT</b>: <br />
+ * This testclass was designed to run from the commandline (or by Ant) and expects some system properties to be present. See
+ * <b>Readme.txt</b> for instructions. Alternatively, you can assign the host, username and password a hard value and ignore the system
+ * properties altogether.
  * 
  * @author Benny Bottema
  */
@@ -39,6 +44,7 @@ public class MailTest {
 		final String host = System.getProperty("host") != null ? System.getProperty("host") : "";
 		final String username = System.getProperty("username") != null ? System.getProperty("username") : "";
 		final String password = System.getProperty("password") != null ? System.getProperty("password") : "";
+		System.out.println(String.format("sending mail (host: %s, username: %s, password: %s)", host, username, password));
 		new Mailer(host, 25, username, password).sendMail(email);
 	}
 }
