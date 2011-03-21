@@ -4,6 +4,13 @@ http://code.google.com/p/simple-java-mail/
 RELEASE NOTES Java Simple Mail
 
 
+v1.7
+
+Added support for SSL!
+
+- improved argument validation when creating a Mailer without preconfigured Session instance
+
+
 v1.6
 
 Completed migration to Java Simple Mail project.
