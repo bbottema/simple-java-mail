@@ -2,19 +2,15 @@ package org.codemonkey.simplejavamail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
-import java.util.Properties;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.mail.Address;
-import javax.mail.Authenticator;
 import javax.mail.BodyPart;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Part;
-import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
-import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -23,13 +19,13 @@ import javax.mail.internet.MimeMultipart;
 import org.apache.log4j.Logger;
 
 /**
- * Mailing tool aimed for simplicity, for sending emails of any complexity. This includes emails with plain text and/or html content,
- * embedded images and separate attachments<br />
+ * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content,
+ * embedded images and separate attachments, SMTP, SMTPS / SSL and SMTP + SSL<br />
  * <br />
  * This mailing tool abstracts the javax.mail API to a higher level easy to use API. For public use, this tool only works with {@link Email}
  * instances. <br />
  * <br />
- * The email message structure is built to work with all email clients and has beed tested with many different webclients as well as some
+ * The e-mail message structure is built to work with all e-mail clients and has been tested with many different webclients as well as some
  * mainstream client applications such as MS Outlook or Mozilla Thunderbird.<br />
  * <br />
  * Technically, the resulting email structure is a follows:<br />
@@ -38,8 +34,8 @@ import org.apache.log4j.Logger;
  * - root
  * 	- related
  * 		- alternative
- * 			- mail tekst
- * 			- mail html tekst
+ * 			- mail text
+ * 			- mail html text
  * 		- embedded images
  * 	- attachments
  * </pre>
@@ -62,19 +58,16 @@ import org.apache.log4j.Logger;
  * @author Benny Bottema
  * @see MimeEmailMessageWrapper
  * @see Email
+ * @see MailSession
  */
 public class Mailer {
 
 	private static final Logger logger = Logger.getLogger(Mailer.class);
 
 	/**
-	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by this mailer directly,
-	 * when no <code>Session</code> was provided.
-	 * 
-	 * @see #Mailer(Session)
-	 * @see #Mailer(String, int, String, String)
+	 * Keeps track of the current {@link Session} configuration.
 	 */
-	private final Session session;
+	private final MailSession mailSession;
 
 	/**
 	 * Email address restriction flags set either by constructor or overridden by getter by user.
@@ -84,7 +77,8 @@ public class Mailer {
 	private EmailAddressValidationCriteria emailAddressValidationCriteria;
 
 	/**
-	 * Default constructor, stores the given mail session for later use.
+	 * Default constructor, stores the given mail session for later use. Assumes that *all* properties used to make a connection are
+	 * configured (host, port, authentication and transport protocol settings).
 	 * <p>
 	 * Also defines a default email address validation criteria object, which remains true to RFC 2822, meaning allowing both domain
 	 * literals and quoted identifiers (see {@link EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)}).
@@ -92,69 +86,51 @@ public class Mailer {
 	 * @param session A preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 */
 	public Mailer(final Session session) {
-		this.session = session;
+		this.mailSession = new MailSession(session);
 		this.emailAddressValidationCriteria = new EmailAddressValidationCriteria(true, true);
 	}
 
 	/**
 	 * Overloaded constructor which produces a new {@link Session} on the fly. Use this if you don't have a mail session configured in your
 	 * web container, or Spring context etc.
+	 * <p>
+	 * Also defines a default email address validation criteria object, which remains true to RFC 2822, meaning allowing both domain
+	 * literals and quoted identifiers (see {@link EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)}).
 	 * 
 	 * @param host The address of the smtp server to be used.
 	 * @param port The port of the smtp server.
 	 * @param username An optional username, may be <code>null</code>.
 	 * @param password An optional password, may be <code>null</code>.
+	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
 	 */
-	public Mailer(final String host, final int port, final String username, final String password) {
-		this(createMailSession(host, port, username, password));
+	public Mailer(final String host, final int port, final String username, final String password, final TransportStrategy transportStrategy) {
+		this.mailSession = new MailSession(host, port, username, password, transportStrategy);
+		this.emailAddressValidationCriteria = new EmailAddressValidationCriteria(true, true);
 	}
 
 	/**
-	 * Creates a {@link Session} configured with an smtp host, port and optional username and password.
+	 * Overloaded constructor which produces a new {@link Session} on the fly, using default vanilla SMTP transport protocol.
 	 * 
-	 * @param host The address of the smtp server to be used.
-	 * @param port The port of the smtp server.
-	 * @param username An optional username, may be <code>null</code>.
-	 * @param password An optional password, may be <code>null</code>.
-	 * @return A fully configured <code>Session</code> possibly with authentication set.
+	 * @see #Mailer(String, int, String, String, TransportStrategy)
 	 */
-	private static Session createMailSession(final String host, final int port, final String username, final String password) {
-		if (host == null || "".equals(host.trim())) {
-			throw new RuntimeException("Can't send an email without host");
-		} else if (password != null && (username == null || "".equals(username.trim()))) {
-			throw new RuntimeException("Can't have a password without username");
-		}
+	public Mailer(final String host, final int port, final String username, final String password) {
+		this(host, port, username, password, TransportStrategy.SMTP_SSL);
+	}
 
-		final Properties props = new Properties();
-		props.put("mail.smtp.host", host);
-		props.put("mail.smtp.port", String.valueOf(port));
-
-		if (username != null) {
-			props.put("mail.smtp.username", username);
-		}
-
-		if (password != null) {
-			// setup mail session to authenticate when connecting
-			props.put("mail.smtp.auth", "true");
-			return Session.getInstance(props, new Authenticator() {
-				@Override
-				protected PasswordAuthentication getPasswordAuthentication() {
-					return new PasswordAuthentication(username, password);
-				}
-			});
-		} else {
-			return Session.getInstance(props);
-		}
+	/**
+	 * Actually sets {@link Session#setDebug(boolean)} so that it generate debug information.
+	 */
+	public void setDebug(boolean debug) {
+		mailSession.getSession().setDebug(debug);
 	}
 
 	/**
 	 * Processes an {@link Email} instance into a completely configured {@link Message}, which in turn is being sent to all defined
-	 * recipients.
+	 * recipients using {@link MailSession#sendMessage(Message)}.
 	 * 
 	 * @param email The information for the email to be sent.
-	 * @throws MailException Can be thrown if an email isnt validating correctly, or some other problem occurs during connection, sending
+	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending
 	 *             etc.
-	 * @see {@link Email}
 	 * @see #validate(Email)
 	 * @see #prepareMessage(Email, MimeMultipart)
 	 * @see #setRecipients(Email, Message)
@@ -174,8 +150,8 @@ public class Mailer {
 				setTexts(email, messageRoot.multipartAlternativeMessages);
 				setEmbeddedImages(email, messageRoot.multipartRelated);
 				setAttachments(email, messageRoot.multipartRoot);
-				logSessionSettings(session);
-				Transport.send(message);
+				logger.debug(String.format("starting mail session (%s)", mailSession));
+				mailSession.sendMessage(message);
 			} catch (final UnsupportedEncodingException e) {
 				logger.error(e.getMessage(), e);
 				throw new MailException(String.format(MailException.INVALID_ENCODING, e.getMessage()));
@@ -228,24 +204,12 @@ public class Mailer {
 	 */
 	private Message prepareMessage(final Email email, final MimeMultipart multipartRoot)
 			throws MessagingException, UnsupportedEncodingException {
-		final Message message = new MimeMessage(session);
+		final Message message = new MimeMessage(mailSession.getSession());
 		message.setSubject(email.getSubject());
 		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName()));
 		message.setContent(multipartRoot);
 		message.setSentDate(new Date());
 		return message;
-	}
-
-	/**
-	 * Simply logs some debug statements about the mailing session suchs as host and username being used.
-	 */
-	private void logSessionSettings(final Session session) {
-		final String host = session.getProperty("mail.smtp.host");
-		final String port = session.getProperty("mail.smtp.port");
-		final String username = session.getProperty("mail.smtp.username");
-		final boolean useAuthentication = Boolean.parseBoolean(session.getProperty("mail.smtp.auth"));
-		final String logmsg = "starting mail session (host: %s, port: %s, username: %s, using authentication: %s)";
-		logger.debug(String.format(logmsg, host, port, username, useAuthentication));
 	}
 
 	/**
