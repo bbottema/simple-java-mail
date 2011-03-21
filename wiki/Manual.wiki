@@ -70,7 +70,8 @@ There are some alternatives around, such as the [http://static.springframework.o
 
 = Roadmap =
 
-  * support for SSL and TLS
+  * Support for TLS
+  * Support for proxy server
 
 = Developing Simple Java Mail =
 
