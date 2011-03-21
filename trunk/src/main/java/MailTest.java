@@ -2,10 +2,6 @@ import java.net.UnknownHostException;
 
 import javax.mail.Message.RecipientType;
 
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
 import org.codemonkey.simplejavamail.Email;
 import org.codemonkey.simplejavamail.MailException;
 import org.codemonkey.simplejavamail.Mailer;
@@ -21,13 +17,6 @@ import org.codemonkey.simplejavamail.Mailer;
  * @author Benny Bottema
  */
 public class MailTest {
-
-	static {
-		// normally you would do this in the log4j.xml
-		final Logger rootLogger = Logger.getRootLogger();
-		rootLogger.addAppender(new ConsoleAppender(new SimpleLayout()));
-		rootLogger.setLevel(Level.DEBUG);
-	}
 
 	public static void main(final String[] args)
 			throws MailException, UnknownHostException {
