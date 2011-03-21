@@ -54,7 +54,7 @@ Using SSL is simple!
 
 {{{
 new Mailer("smtp.host.com", 25, "username", "password", TransportStrategy.SMTP_SSL).sendMail(email);
-}}
+}}}
 
 As of yet, TLS has not been implemented yet, but it is coming soon.
 
