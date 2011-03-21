@@ -1,6 +1,7 @@
 <project name="Simple Java Mail" basedir="." default="run">
 
-	<property name="src.dir" value="${basedir}/src" />
+	<property name="src.dir" value="${basedir}/src/main/java" />
+	<property name="resources.dir" value="${basedir}/src/main/resources" />
 	<property name="compile.lib" value="${basedir}/lib" />
 	<property name="output.dir" value="${basedir}/target" />
 	<property name="javadoc.dir" value="${basedir}/javadoc" />
@@ -23,6 +24,9 @@
 			</classpath>
 			<src path="${src.dir}" />
 		</javac>
+		<copy todir="${output.dir}/classes">
+      <fileset dir="${resources.dir}" includes="**/*"/>
+    </copy>
 	</target>
 	
 	<target name="jar" depends="compile" description="Compiles and jars the library">
