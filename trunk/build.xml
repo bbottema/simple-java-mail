@@ -1,12 +1,12 @@
-<project name="Vesijama" basedir="." default="run">
+<project name="Simple Java Mail" basedir="." default="run">
 
 	<property name="src.dir" value="${basedir}/src" />
 	<property name="compile.lib" value="${basedir}/lib" />
 	<property name="output.dir" value="${basedir}/target" />
 	<property name="javadoc.dir" value="${basedir}/javadoc" />
-	<property name="version" value="X" />
-	<property name="dest.libfile" value="${output.dir}/vesijama v${version}.jar" />
-	<property name="dest.srcfile" value="${output.dir}/vesijama v${version}-src.jar" />
+	<property name="version" value="X.X" />
+	<property name="dest.libfile" value="${output.dir}/simple-java-mail-v${version}.jar" />
+	<property name="dest.srcfile" value="${output.dir}/simple-java-mail-v${version}-src.jar" />
 	
 	<path id="compiletime-libraries">
       <fileset dir="${compile.lib}" includes="**/*.jar"/>
@@ -61,16 +61,16 @@
 		<attribute name="private" />
 		<sequential>
 			<mkdir dir="@{dest.dir}"/>
-			<javadoc packagenames="org.codemonkey.vesijama.*"
+			<javadoc packagenames="org.codemonkey.simplejavamail.*"
 		           sourcepath="${src.dir}"
 		           destdir="@{dest.dir}"
 		           author="true"
 		           version="true"
 		           use="true"
-		           windowtitle="Vesijama API"
+		           windowtitle="Simple Java Mail API"
 							 linksource="true"
 							 Private="@{private}">
-		    <doctitle><![CDATA[<h1>Vesijama - Very Simple JavaMail</h1>]]></doctitle>
+		    <doctitle><![CDATA[<h1>Simple Java Mail</h1>]]></doctitle>
 		    <bottom><![CDATA[<i>Copyright &#169; 2009 under Apache v2 license.</i>]]></bottom>
 		    <link href="http://java.sun.com/products/javamail/javadocs/"/>
 		    <link href="http://java.sun.com/javase/6/docs/api/"/>

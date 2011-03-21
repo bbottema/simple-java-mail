@@ -6,12 +6,12 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
-import org.codemonkey.vesijama.Email;
-import org.codemonkey.vesijama.MailException;
-import org.codemonkey.vesijama.Mailer;
+import org.codemonkey.simplejavamail.Email;
+import org.codemonkey.simplejavamail.MailException;
+import org.codemonkey.simplejavamail.Mailer;
 
 /**
- * Demonstration program for the Vesijama Very Simple Java Mail framework.
+ * Demonstration program for the Simple Java Mail framework.
  * <p>
  * <b>IMPORTANT</b>: <br />
  * This testclass was designed to run from the commandline (or by Ant) and expects some system properties to be present. See

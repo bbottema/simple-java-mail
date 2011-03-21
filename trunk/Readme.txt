@@ -20,5 +20,5 @@ ant jar:
 Compiling and running the testclass from the command line:
 
 mkdir target\classes
-javac -cp lib\mailapi.jar;lib\smtp.jar;lib\log4j-1.2.15.jar;lib\activation.jar -d target\classes src\MailTest.java src\org\codemonkey\vesijama\*.java
+javac -cp lib\mailapi.jar;lib\smtp.jar;lib\log4j-1.2.15.jar;lib\activation.jar -d target\classes src\MailTest.java src\org\codemonkey\simplejavamail\*.java
 java -cp lib\mailapi.jar;lib\smtp.jar;lib\log4j-1.2.15.jar;lib\activation.jar;target\classes -Dhost=smtp.someserver.com -Dusername=joe -Dpassword=sixpack  MailTest
