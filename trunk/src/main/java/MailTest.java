@@ -24,7 +24,6 @@ public class MailTest {
 		final Email email = new Email();
 		email.setFromAddress("lollypop", "lol.pop@somemail.com");
 		email.addRecipient("C.Cane", "candycane@candyshop.org", RecipientType.TO);
-		email.addRecipient("C.Cane", "b.bottema@gmail.com", RecipientType.TO);
 		email.setText("We should meet up!");
 		email.setTextHTML("<b>We should meet up!</b>");
 		email.setSubject("hey");
