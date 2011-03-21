@@ -52,6 +52,10 @@ There are two more classes exposed for public use, concerning e-mail validation.
 
 There are some alternatives around, such as the [http://static.springframework.org/spring/docs/2.0.x/reference/mail.html Spring mailing framework] or the [http://commons.apache.org/email/userguide.html Apache Commons Mail]. However, Spring works a bit awkward with anonymous subclasses and stuff (and you need Spring in your dependencies), while Apache Commons Mail isn't as simple and straightforward as it could be.
 
+= Roadmap =
+
+  * support for SSL and TLS
+
 = Developing Simple Java Mail =
 
 The sourcecode is relatively easy to understand and well commented. When you've checked out the code from the Subversion repository, you can run a build using `ant compile`, or `ant jar` if you like to create a jar while you're at it. To run the included test class use `ant` or `ant run`, which does the same. Make sure you provide some jvm arguments to indicate which smtp server to use for sending emails.
