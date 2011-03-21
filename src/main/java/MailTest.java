@@ -31,8 +31,9 @@ public class MailTest {
 
 	private static void sendMail(final Email email) {
 		final String host = System.getProperty("host") != null ? System.getProperty("host") : "";
+		final int port = System.getProperty("port") != null ? Integer.parseInt(System.getProperty("port")) : 25;
 		final String username = System.getProperty("username") != null ? System.getProperty("username") : "";
 		final String password = System.getProperty("password") != null ? System.getProperty("password") : "";
-		new Mailer(host, 25, username, password).sendMail(email);
+		new Mailer(host, port, username, password).sendMail(email);
 	}
 }
