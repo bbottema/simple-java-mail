@@ -119,8 +119,11 @@ public class Mailer {
 	 * @return A fully configured <code>Session</code> possibly with authentication set.
 	 */
 	private static Session createMailSession(final String host, final int port, final String username, final String password) {
-		assert host != null : "Can't send an email without host";
-		assert password == null || username != null : "Can't have a password without username";
+		if (host == null || "".equals(host.trim())) {
+			throw new RuntimeException("Can't send an email without host");
+		} else if (password != null && (username == null || "".equals(username.trim()))) {
+			throw new RuntimeException("Can't have a password without username");
+		}
 
 		final Properties props = new Properties();
 		props.put("mail.smtp.host", host);
@@ -171,6 +174,7 @@ public class Mailer {
 				setTexts(email, messageRoot.multipartAlternativeMessages);
 				setEmbeddedImages(email, messageRoot.multipartRelated);
 				setAttachments(email, messageRoot.multipartRoot);
+				logSessionSettings(session);
 				Transport.send(message);
 			} catch (final UnsupportedEncodingException e) {
 				logger.error(e.getMessage(), e);
@@ -224,7 +228,6 @@ public class Mailer {
 	 */
 	private Message prepareMessage(final Email email, final MimeMultipart multipartRoot)
 			throws MessagingException, UnsupportedEncodingException {
-		logSessionSettings(session);
 		final Message message = new MimeMessage(session);
 		message.setSubject(email.getSubject());
 		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName()));
