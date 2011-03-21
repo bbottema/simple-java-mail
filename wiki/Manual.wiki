@@ -61,7 +61,7 @@ There are some alternatives around, such as the [http://static.springframework.o
 The sourcecode is relatively easy to understand and well commented. When you've checked out the code from the Subversion repository, you can run a build using `ant compile`, or `ant jar` if you like to create a jar while you're at it. To run the included test class use `ant` or `ant run`, which does the same. Make sure you provide some jvm arguments to indicate which smtp server to use for sending emails.
 
 Example:
-{{{ant -Dhost=smtp.someserver.com -Dusername=joe -Dpassword=sixpack}}}
+{{{ant -Dhost=smtp.someserver.com -Dport=25 -Dusername=joe -Dpassword=sixpack}}}
 
 Also check out the developers version of the Javadoc:
  * [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/developers/index.html Javadoc for developers]
