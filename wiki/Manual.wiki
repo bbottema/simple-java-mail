@@ -58,8 +58,7 @@ new Mailer("smtp.host.com", 25, "username", "password", TransportStrategy.SMTP_T
 }}}
 
 Note:
-As of yet, TLS has not been tested yet which means it is in beta stage.
-Also, although I've successfully used SMTP_SLL with gmail's smtp server, I'm not convinced it works with self-signed ssl certificates (such as your own smtp server at home) as well. The library may need a tweak to get that working as well. Let me know how this works out for you!
+Although I've successfully used SMTP_SLL with gmail's smtp server, I'm not convinced it works with self-signed ssl certificates as well (such as your own smtp server at home might use). The library may need a tweak to get that working as well. Let me know how this works out for you!
 
 
 === Additional validation Utilities ===
