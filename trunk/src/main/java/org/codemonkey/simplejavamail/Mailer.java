@@ -62,18 +62,17 @@ import org.apache.log4j.Logger;
  * @author Benny Bottema
  * @see MimeEmailMessageWrapper
  * @see Email
- * @see MailSession
  */
 public class Mailer {
 
 	private static final Logger logger = Logger.getLogger(Mailer.class);
 
 	/**
-	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by this
-	 * <code>MailSession</code> directly, when no <code>Session</code> instance was provided.
+	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code>
+	 * directly, when no <code>Session</code> instance was provided.
 	 * 
-	 * @see #MailSession(Session)
-	 * @see #MailSession(String, int, String, String, TransportStrategy)
+	 * @see #Mailer(Session)
+	 * @see #Mailer(String, int, String, String, TransportStrategy)
 	 */
 	private final Session session;
 
