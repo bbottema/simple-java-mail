@@ -66,6 +66,7 @@
 		<sequential>
 			<mkdir dir="@{dest.dir}"/>
 			<javadoc packagenames="org.codemonkey.simplejavamail.*"
+		           classpathref="compiletime-libraries"
 		           sourcepath="${src.dir}"
 		           destdir="@{dest.dir}"
 		           author="true"
@@ -78,6 +79,7 @@
 		    <bottom><![CDATA[<i>Copyright &#169; 2009 under Apache v2 license.</i>]]></bottom>
 		    <link href="http://java.sun.com/products/javamail/javadocs/"/>
 		    <link href="http://java.sun.com/javase/6/docs/api/"/>
+		    <link href="http://javamail.kenai.com/nonav/javadocs/"/>
 		  </javadoc>
 		</sequential>
 	</macrodef>

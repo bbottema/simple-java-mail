@@ -15,8 +15,6 @@ public enum TransportStrategy {
 	/**
 	 * Simplest possible form: only vanilla ".smtp." property names and no extra properties. Additionally the transport protocol is
 	 * explicitly set to smtp.
-	 * 
-	 * @author Benny Bottema
 	 */
 	SMTP_PLAIN {
 		/**
@@ -78,8 +76,6 @@ public enum TransportStrategy {
 	 * and the connection is immediately closed. If set to true (the default), causes the transport to wait for the response to the QUIT
 	 * command</quote><br />
 	 * <strong>- <a href="http://www.rgagnon.com/javadetails/java-0570.html">source</a></strong>
-	 * 
-	 * @author Benny Bottema
 	 */
 	SMTP_SSL {
 		/**
@@ -132,8 +128,6 @@ public enum TransportStrategy {
 	 * <p>
 	 * Uses standard ".smtp." property names (like {@link TransportStrategy#SMTP_PLAIN}). Additionally the transport protocol is explicitly
 	 * set to smtp. Finally, the property "mail.smtp.starttls.enable" is being set to true.
-	 * 
-	 * @author Benny Bottema
 	 */
 	SMTP_TLS {
 

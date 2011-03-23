@@ -38,9 +38,9 @@
 <FONT color="green">035</FONT>             * Validates an e-mail with default validation flags that remains &lt;code&gt;true&lt;/code&gt; to RFC 2822. This means allowing both domain<a name="line.35"></a>
 <FONT color="green">036</FONT>             * literals and quoted identifiers.<a name="line.36"></a>
 <FONT color="green">037</FONT>             * <a name="line.37"></a>
-<FONT color="green">038</FONT>             * @param userEnteredEmailString A complete email address.<a name="line.38"></a>
+<FONT color="green">038</FONT>             * @param email A complete email address.<a name="line.38"></a>
 <FONT color="green">039</FONT>             * @return Whether the e-mail address is compliant with RFC 2822.<a name="line.39"></a>
-<FONT color="green">040</FONT>             * @see EmailAddressValidationCriteria#EmailValidationCriteria(boolean, boolean)<a name="line.40"></a>
+<FONT color="green">040</FONT>             * @see EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)<a name="line.40"></a>
 <FONT color="green">041</FONT>             */<a name="line.41"></a>
 <FONT color="green">042</FONT>            public static boolean isValid(final String email) {<a name="line.42"></a>
 <FONT color="green">043</FONT>                    return isValid(email, new EmailAddressValidationCriteria(true, true));<a name="line.43"></a>
@@ -49,10 +49,10 @@
 <FONT color="green">046</FONT>            /**<a name="line.46"></a>
 <FONT color="green">047</FONT>             * Validates an e-mail with given validation flags.<a name="line.47"></a>
 <FONT color="green">048</FONT>             * <a name="line.48"></a>
-<FONT color="green">049</FONT>             * @param userEnteredEmailString A complete email address.<a name="line.49"></a>
+<FONT color="green">049</FONT>             * @param email A complete email address.<a name="line.49"></a>
 <FONT color="green">050</FONT>             * @param emailAddressValidationCriteria A set of flags that restrict or relax RFC 2822 compliance.<a name="line.50"></a>
 <FONT color="green">051</FONT>             * @return Whether the e-mail address is compliant with RFC 2822, configured using the passed in {@link EmailAddressValidationCriteria}.<a name="line.51"></a>
-<FONT color="green">052</FONT>             * @see EmailAddressValidationCriteria#EmailValidationCriteria(boolean, boolean)<a name="line.52"></a>
+<FONT color="green">052</FONT>             * @see EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)<a name="line.52"></a>
 <FONT color="green">053</FONT>             */<a name="line.53"></a>
 <FONT color="green">054</FONT>            public static boolean isValid(final String email, final EmailAddressValidationCriteria emailAddressValidationCriteria) {<a name="line.54"></a>
 <FONT color="green">055</FONT>                    return buildValidEmailPattern(emailAddressValidationCriteria).matcher(email).matches();<a name="line.55"></a>
