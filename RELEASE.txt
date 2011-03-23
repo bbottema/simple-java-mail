@@ -4,6 +4,11 @@ http://code.google.com/p/simple-java-mail/
 RELEASE NOTES Java Simple Mail
 
 
+v1.8
+
+Added (beta) support for TLS
+
+
 v1.7
 
 Added support for SSL!

@@ -126,9 +126,62 @@ public enum TransportStrategy {
 		String propertyNameAuthenticate() {
 			return "mail.smtps.auth";
 		};
+	},
+	/**
+	 * <strong>NOTE: this code is in untested beta state</strong>
+	 * <p>
+	 * Uses standard ".smtp." property names (like {@link TransportStrategy#SMTP_PLAIN}). Additionally the transport protocol is explicitly
+	 * set to smtp. Finally, the property "mail.smtp.starttls.enable" is being set to true.
+	 * 
+	 * @author Benny Bottema
+	 */
+	SMTP_TLS {
+
+		@Override
+		public Properties generateProperties() {
+			final Properties props = super.generateProperties();
+			props.put("mail.smtp.starttls.enable", "true");
+			return props;
+		}
+
+		/**
+		 * @return "mail.smtp.host"
+		 */
+		@Override
+		String propertyNameHost() {
+			return "mail.smtp.host";
+		};
+
+		/**
+		 * @return "mail.smtp.port"
+		 */
+		@Override
+		String propertyNamePort() {
+			return "mail.smtp.port";
+		};
+
+		/**
+		 * @return "mail.smtp.username"
+		 */
+		@Override
+		String propertyNameUsername() {
+			return "mail.smtp.username";
+		};
+
+		/**
+		 * @return "mail.smtps.auth"
+		 */
+		@Override
+		String propertyNameAuthenticate() {
+			return "mail.smtp.auth";
+		};
+
 	};
 
 	/**
+	 * Base implementation that simply returns an empty list of properties. Should be overridden by the various strategies where
+	 * appropriate.
+	 * 
 	 * @return An empty <code>Properties</code> instance.
 	 */
 	public Properties generateProperties() {
