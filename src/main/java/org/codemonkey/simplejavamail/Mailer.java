@@ -2,15 +2,19 @@ package org.codemonkey.simplejavamail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
+import java.util.Properties;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.mail.Address;
+import javax.mail.Authenticator;
 import javax.mail.BodyPart;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Part;
+import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
+import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -65,9 +69,19 @@ public class Mailer {
 	private static final Logger logger = Logger.getLogger(Mailer.class);
 
 	/**
-	 * Keeps track of the current {@link Session} configuration.
+	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by this
+	 * <code>MailSession</code> directly, when no <code>Session</code> instance was provided.
+	 * 
+	 * @see #MailSession(Session)
+	 * @see #MailSession(String, int, String, String, TransportStrategy)
 	 */
-	private final MailSession mailSession;
+	private final Session session;
+
+	/**
+	 * The transport protocol strategy enum that actually handles the session configuration. Session configuration meaning setting the right
+	 * properties for the appropriate transport type (ie. <em>"mail.smtp.host"</em> for SMTP, <em>"mail.smtps.host"</em> for SMTPS).
+	 */
+	private TransportStrategy transportStrategy;
 
 	/**
 	 * Email address restriction flags set either by constructor or overridden by getter by user.
@@ -86,7 +100,7 @@ public class Mailer {
 	 * @param session A preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 */
 	public Mailer(final Session session) {
-		this.mailSession = new MailSession(session);
+		this.session = session;
 		this.emailAddressValidationCriteria = new EmailAddressValidationCriteria(true, true);
 	}
 
@@ -97,15 +111,64 @@ public class Mailer {
 	 * Also defines a default email address validation criteria object, which remains true to RFC 2822, meaning allowing both domain
 	 * literals and quoted identifiers (see {@link EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)}).
 	 * 
-	 * @param host The address of the smtp server to be used.
-	 * @param port The port of the smtp server.
+	 * @param host The address URL of the SMTP server to be used.
+	 * @param port The port of the SMTP server.
 	 * @param username An optional username, may be <code>null</code>.
-	 * @param password An optional password, may be <code>null</code>.
+	 * @param password An optional password, may be <code>null</code>, but only if username is <code>null</code> as well.
 	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
 	 */
 	public Mailer(final String host, final int port, final String username, final String password, final TransportStrategy transportStrategy) {
-		this.mailSession = new MailSession(host, port, username, password, transportStrategy);
+		// we're doing these validations manually instead of using Apache Commons to avoid another dependency
+		if (host == null || "".equals(host.trim())) {
+			throw new RuntimeException("Can't send an email without host");
+		} else if ((password != null && !"".equals(password.trim())) && (username == null || "".equals(username.trim()))) {
+			throw new RuntimeException("Can't have a password without username");
+		}
+		this.transportStrategy = transportStrategy;
+		this.session = createMailSession(host, port, username, password);
 		this.emailAddressValidationCriteria = new EmailAddressValidationCriteria(true, true);
+	}
+
+	/**
+	 * Actually instantiates and configures the {@link Session} instance. Delegates resolving transport protocol specific properties to the
+	 * {@link #transportStrategy} in two ways:
+	 * <ol>
+	 * <li>request an initial property list which the strategy may pre-populate</li>
+	 * <li>by requesting the property names according to the respective transport protocol it handles (for the host property name it would
+	 * be <em>"mail.smtp.host"</em> for SMTP and <em>"mail.smtps.host"</em> for SMTPS)</li>
+	 * </ol>
+	 * 
+	 * @param host The address URL of the SMTP server to be used.
+	 * @param port The port of the SMTP server.
+	 * @param username An optional username, may be <code>null</code>.
+	 * @param password An optional password, may be <code>null</code>.
+	 * @return A fully configured <code>Session</code> instance complete with transport protocol settings.
+	 * @see TransportStrategy#generateProperties()
+	 * @see TransportStrategy#propertyNameHost()
+	 * @see TransportStrategy#propertyNamePort()
+	 * @see TransportStrategy#propertyNameUsername()
+	 * @see TransportStrategy#propertyNameAuthenticate()
+	 */
+	public Session createMailSession(final String host, final int port, final String username, final String password) {
+		Properties props = transportStrategy.generateProperties();
+		props.put(transportStrategy.propertyNameHost(), host);
+		props.put(transportStrategy.propertyNamePort(), String.valueOf(port));
+
+		if (username != null) {
+			props.put(transportStrategy.propertyNameUsername(), username);
+		}
+
+		if (password != null) {
+			props.put(transportStrategy.propertyNameAuthenticate(), "true");
+			return Session.getInstance(props, new Authenticator() {
+				@Override
+				protected PasswordAuthentication getPasswordAuthentication() {
+					return new PasswordAuthentication(username, password);
+				}
+			});
+		} else {
+			return Session.getInstance(props);
+		}
 	}
 
 	/**
@@ -121,12 +184,17 @@ public class Mailer {
 	 * Actually sets {@link Session#setDebug(boolean)} so that it generate debug information.
 	 */
 	public void setDebug(boolean debug) {
-		mailSession.getSession().setDebug(debug);
+		session.setDebug(debug);
 	}
 
 	/**
-	 * Processes an {@link Email} instance into a completely configured {@link Message}, which in turn is being sent to all defined
-	 * recipients using {@link MailSession#sendMessage(Message)}.
+	 * Processes an {@link Email} instance into a completely configured {@link Message}.
+	 * <p>
+	 * Sends the Sun JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming
+	 * all connection details have been configured in the provided {@link Session} instance.
+	 * <p>
+	 * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and
+	 * providing a message id.
 	 * 
 	 * @param email The information for the email to be sent.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending
@@ -150,8 +218,12 @@ public class Mailer {
 				setTexts(email, messageRoot.multipartAlternativeMessages);
 				setEmbeddedImages(email, messageRoot.multipartRelated);
 				setAttachments(email, messageRoot.multipartRoot);
-				logger.debug(String.format("starting mail session (%s)", mailSession));
-				mailSession.sendMessage(message);
+				logSession(session, transportStrategy);
+				message.saveChanges(); // some headers and id's will be set for this specific message
+				Transport transport = session.getTransport();
+				transport.connect();
+				transport.sendMessage(message, message.getAllRecipients());
+				transport.close();
 			} catch (final UnsupportedEncodingException e) {
 				logger.error(e.getMessage(), e);
 				throw new MailException(String.format(MailException.INVALID_ENCODING, e.getMessage()));
@@ -160,6 +232,17 @@ public class Mailer {
 				throw new MailException(String.format(MailException.GENERIC_ERROR, e.getMessage()), e);
 			}
 		}
+	}
+
+	/**
+	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
+	 */
+	private void logSession(Session session, TransportStrategy transportStrategy) {
+		final String logmsg = "starting mail session (host: %s, port: %s, username: %s, authenticate: %s, transport: %s)";
+		Properties properties = session.getProperties();
+		logger.debug(String.format(logmsg, properties.get(transportStrategy.propertyNameHost()),
+				properties.get(transportStrategy.propertyNamePort()), properties.get(transportStrategy.propertyNameUsername()),
+				properties.get(transportStrategy.propertyNameAuthenticate()), transportStrategy));
 	}
 
 	/**
@@ -204,7 +287,7 @@ public class Mailer {
 	 */
 	private Message prepareMessage(final Email email, final MimeMultipart multipartRoot)
 			throws MessagingException, UnsupportedEncodingException {
-		final Message message = new MimeMessage(mailSession.getSession());
+		final Message message = new MimeMessage(session);
 		message.setSubject(email.getSubject());
 		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName()));
 		message.setContent(multipartRoot);

@@ -143,62 +143,63 @@
 <FONT color="green">140</FONT>                    @Override<a name="line.140"></a>
 <FONT color="green">141</FONT>                    public Properties generateProperties() {<a name="line.141"></a>
 <FONT color="green">142</FONT>                            final Properties props = super.generateProperties();<a name="line.142"></a>
-<FONT color="green">143</FONT>                            props.put("mail.smtp.starttls.enable", "true");<a name="line.143"></a>
-<FONT color="green">144</FONT>                            return props;<a name="line.144"></a>
-<FONT color="green">145</FONT>                    }<a name="line.145"></a>
-<FONT color="green">146</FONT>    <a name="line.146"></a>
-<FONT color="green">147</FONT>                    /**<a name="line.147"></a>
-<FONT color="green">148</FONT>                     * @return "mail.smtp.host"<a name="line.148"></a>
-<FONT color="green">149</FONT>                     */<a name="line.149"></a>
-<FONT color="green">150</FONT>                    @Override<a name="line.150"></a>
-<FONT color="green">151</FONT>                    String propertyNameHost() {<a name="line.151"></a>
-<FONT color="green">152</FONT>                            return "mail.smtp.host";<a name="line.152"></a>
-<FONT color="green">153</FONT>                    };<a name="line.153"></a>
-<FONT color="green">154</FONT>    <a name="line.154"></a>
-<FONT color="green">155</FONT>                    /**<a name="line.155"></a>
-<FONT color="green">156</FONT>                     * @return "mail.smtp.port"<a name="line.156"></a>
-<FONT color="green">157</FONT>                     */<a name="line.157"></a>
-<FONT color="green">158</FONT>                    @Override<a name="line.158"></a>
-<FONT color="green">159</FONT>                    String propertyNamePort() {<a name="line.159"></a>
-<FONT color="green">160</FONT>                            return "mail.smtp.port";<a name="line.160"></a>
-<FONT color="green">161</FONT>                    };<a name="line.161"></a>
-<FONT color="green">162</FONT>    <a name="line.162"></a>
-<FONT color="green">163</FONT>                    /**<a name="line.163"></a>
-<FONT color="green">164</FONT>                     * @return "mail.smtp.username"<a name="line.164"></a>
-<FONT color="green">165</FONT>                     */<a name="line.165"></a>
-<FONT color="green">166</FONT>                    @Override<a name="line.166"></a>
-<FONT color="green">167</FONT>                    String propertyNameUsername() {<a name="line.167"></a>
-<FONT color="green">168</FONT>                            return "mail.smtp.username";<a name="line.168"></a>
-<FONT color="green">169</FONT>                    };<a name="line.169"></a>
-<FONT color="green">170</FONT>    <a name="line.170"></a>
-<FONT color="green">171</FONT>                    /**<a name="line.171"></a>
-<FONT color="green">172</FONT>                     * @return "mail.smtps.auth"<a name="line.172"></a>
-<FONT color="green">173</FONT>                     */<a name="line.173"></a>
-<FONT color="green">174</FONT>                    @Override<a name="line.174"></a>
-<FONT color="green">175</FONT>                    String propertyNameAuthenticate() {<a name="line.175"></a>
-<FONT color="green">176</FONT>                            return "mail.smtp.auth";<a name="line.176"></a>
-<FONT color="green">177</FONT>                    };<a name="line.177"></a>
-<FONT color="green">178</FONT>    <a name="line.178"></a>
-<FONT color="green">179</FONT>            };<a name="line.179"></a>
-<FONT color="green">180</FONT>    <a name="line.180"></a>
-<FONT color="green">181</FONT>            /**<a name="line.181"></a>
-<FONT color="green">182</FONT>             * Base implementation that simply returns an empty list of properties. Should be overridden by the various strategies where<a name="line.182"></a>
-<FONT color="green">183</FONT>             * appropriate.<a name="line.183"></a>
-<FONT color="green">184</FONT>             * <a name="line.184"></a>
-<FONT color="green">185</FONT>             * @return An empty &lt;code&gt;Properties&lt;/code&gt; instance.<a name="line.185"></a>
-<FONT color="green">186</FONT>             */<a name="line.186"></a>
-<FONT color="green">187</FONT>            public Properties generateProperties() {<a name="line.187"></a>
-<FONT color="green">188</FONT>                    return new Properties();<a name="line.188"></a>
-<FONT color="green">189</FONT>            }<a name="line.189"></a>
-<FONT color="green">190</FONT>    <a name="line.190"></a>
-<FONT color="green">191</FONT>            abstract String propertyNameHost();<a name="line.191"></a>
-<FONT color="green">192</FONT>    <a name="line.192"></a>
-<FONT color="green">193</FONT>            abstract String propertyNamePort();<a name="line.193"></a>
-<FONT color="green">194</FONT>    <a name="line.194"></a>
-<FONT color="green">195</FONT>            abstract String propertyNameUsername();<a name="line.195"></a>
-<FONT color="green">196</FONT>    <a name="line.196"></a>
-<FONT color="green">197</FONT>            abstract String propertyNameAuthenticate();<a name="line.197"></a>
-<FONT color="green">198</FONT>    };<a name="line.198"></a>
+<FONT color="green">143</FONT>                            props.put("mail.transport.protocol", "smtp");<a name="line.143"></a>
+<FONT color="green">144</FONT>                            props.put("mail.smtp.starttls.enable", "true");<a name="line.144"></a>
+<FONT color="green">145</FONT>                            return props;<a name="line.145"></a>
+<FONT color="green">146</FONT>                    }<a name="line.146"></a>
+<FONT color="green">147</FONT>    <a name="line.147"></a>
+<FONT color="green">148</FONT>                    /**<a name="line.148"></a>
+<FONT color="green">149</FONT>                     * @return "mail.smtp.host"<a name="line.149"></a>
+<FONT color="green">150</FONT>                     */<a name="line.150"></a>
+<FONT color="green">151</FONT>                    @Override<a name="line.151"></a>
+<FONT color="green">152</FONT>                    String propertyNameHost() {<a name="line.152"></a>
+<FONT color="green">153</FONT>                            return "mail.smtp.host";<a name="line.153"></a>
+<FONT color="green">154</FONT>                    };<a name="line.154"></a>
+<FONT color="green">155</FONT>    <a name="line.155"></a>
+<FONT color="green">156</FONT>                    /**<a name="line.156"></a>
+<FONT color="green">157</FONT>                     * @return "mail.smtp.port"<a name="line.157"></a>
+<FONT color="green">158</FONT>                     */<a name="line.158"></a>
+<FONT color="green">159</FONT>                    @Override<a name="line.159"></a>
+<FONT color="green">160</FONT>                    String propertyNamePort() {<a name="line.160"></a>
+<FONT color="green">161</FONT>                            return "mail.smtp.port";<a name="line.161"></a>
+<FONT color="green">162</FONT>                    };<a name="line.162"></a>
+<FONT color="green">163</FONT>    <a name="line.163"></a>
+<FONT color="green">164</FONT>                    /**<a name="line.164"></a>
+<FONT color="green">165</FONT>                     * @return "mail.smtp.username"<a name="line.165"></a>
+<FONT color="green">166</FONT>                     */<a name="line.166"></a>
+<FONT color="green">167</FONT>                    @Override<a name="line.167"></a>
+<FONT color="green">168</FONT>                    String propertyNameUsername() {<a name="line.168"></a>
+<FONT color="green">169</FONT>                            return "mail.smtp.username";<a name="line.169"></a>
+<FONT color="green">170</FONT>                    };<a name="line.170"></a>
+<FONT color="green">171</FONT>    <a name="line.171"></a>
+<FONT color="green">172</FONT>                    /**<a name="line.172"></a>
+<FONT color="green">173</FONT>                     * @return "mail.smtps.auth"<a name="line.173"></a>
+<FONT color="green">174</FONT>                     */<a name="line.174"></a>
+<FONT color="green">175</FONT>                    @Override<a name="line.175"></a>
+<FONT color="green">176</FONT>                    String propertyNameAuthenticate() {<a name="line.176"></a>
+<FONT color="green">177</FONT>                            return "mail.smtp.auth";<a name="line.177"></a>
+<FONT color="green">178</FONT>                    };<a name="line.178"></a>
+<FONT color="green">179</FONT>    <a name="line.179"></a>
+<FONT color="green">180</FONT>            };<a name="line.180"></a>
+<FONT color="green">181</FONT>    <a name="line.181"></a>
+<FONT color="green">182</FONT>            /**<a name="line.182"></a>
+<FONT color="green">183</FONT>             * Base implementation that simply returns an empty list of properties. Should be overridden by the various strategies where<a name="line.183"></a>
+<FONT color="green">184</FONT>             * appropriate.<a name="line.184"></a>
+<FONT color="green">185</FONT>             * <a name="line.185"></a>
+<FONT color="green">186</FONT>             * @return An empty &lt;code&gt;Properties&lt;/code&gt; instance.<a name="line.186"></a>
+<FONT color="green">187</FONT>             */<a name="line.187"></a>
+<FONT color="green">188</FONT>            public Properties generateProperties() {<a name="line.188"></a>
+<FONT color="green">189</FONT>                    return new Properties();<a name="line.189"></a>
+<FONT color="green">190</FONT>            }<a name="line.190"></a>
+<FONT color="green">191</FONT>    <a name="line.191"></a>
+<FONT color="green">192</FONT>            abstract String propertyNameHost();<a name="line.192"></a>
+<FONT color="green">193</FONT>    <a name="line.193"></a>
+<FONT color="green">194</FONT>            abstract String propertyNamePort();<a name="line.194"></a>
+<FONT color="green">195</FONT>    <a name="line.195"></a>
+<FONT color="green">196</FONT>            abstract String propertyNameUsername();<a name="line.196"></a>
+<FONT color="green">197</FONT>    <a name="line.197"></a>
+<FONT color="green">198</FONT>            abstract String propertyNameAuthenticate();<a name="line.198"></a>
+<FONT color="green">199</FONT>    };<a name="line.199"></a>
 
 
 
