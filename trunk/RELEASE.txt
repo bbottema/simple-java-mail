@@ -6,14 +6,16 @@ RELEASE NOTES Java Simple Mail
 
 v1.8
 
-Added (beta) support for TLS
+Added support for TLS (tested with gmail)
 
 
 v1.7
 
-Added support for SSL!
+Added support for SSL! (tested with gmail)
 
 - improved argument validation when creating a Mailer without preconfigured Session instance
+
+know possible issue: SSL self-signed certificates might not work (yet). Please let me know by e-mail or create a new issue
 
 
 v1.6

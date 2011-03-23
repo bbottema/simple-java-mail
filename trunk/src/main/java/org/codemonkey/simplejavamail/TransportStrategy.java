@@ -140,6 +140,7 @@ public enum TransportStrategy {
 		@Override
 		public Properties generateProperties() {
 			final Properties props = super.generateProperties();
+			props.put("mail.transport.protocol", "smtp");
 			props.put("mail.smtp.starttls.enable", "true");
 			return props;
 		}
