@@ -14,3 +14,5 @@ The problem becomes evident when testing the mail in various e-mail clients (bot
   * from/to addresses being malformed (like missing the `<name>` part in `<name> ares@domain.com`)
 
 To realize the Simple Java Mail library, the research has been done and this library is RFC compliant for simple to complex mails which furthermore has been confirmed by a professional test team to be displayed consistent and correctly in a range of known clients such as Outlook, Thunderbird, Gmail, Hotmail etc.
+
+[Manual back to the Manual]
