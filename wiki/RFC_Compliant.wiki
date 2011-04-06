@@ -1,0 +1,7 @@
+== Why Simple Java Mail being RFC compliant is important ==
+
+One thing that plagues other smaller libraries is the lack of true RFC compliance. Though fine for simple mails, this becomes a testing nightmare if for example you need to send an HTML mail (with text fall-back?) using both attachment and embedded images.
+
+The problem becomes evident when testing the mail in various e-mail clients (both desktop and web based) by the fact that the e-mails will be displayed completely inconsistent and sporadic. Symptoms include not seeing embedded images, not seeing the HTML version, not seeing attachments or attachments aren't handled correctly according to mime type or header information is missing so you can't see how long a download will take, from/to addresses being malformed.
+
+To realize the Simple Java Mail library, the research has been done and this library is RFC compliant for complex mails which furthermore has been tested by a professional test team to be displayed consistent and correctly in a range of known clients such as Outlook, Thunderbird, Gmail, Hotmail etc.
