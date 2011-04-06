@@ -7,7 +7,7 @@ This library has been specifically designed to be RFC compliant and produce e-ma
 
 [RFC_Compliant Why Simple Java Mail being RFC compliant is important]
 
- * [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/index.html Javadoc for users]
+*When using this library, you may refer to the [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/index.html Javadoc for users].*
 
 = Required libraries =
 
