@@ -6,7 +6,8 @@ One thing that plagues other smaller libraries is the lack of true RFC complianc
 The problem becomes evident when testing the mail in various e-mail clients (both desktop and web based) by the fact that the e-mails will be displayed completely inconsistent and sporadic. Symptoms include:
   * not seeing embedded images, or
   * embedded images are displayed as attachments,
-  * not seeing the HTML version, 
+  * not seeing the HTML version if a text version is present, 
+  * not seeing the text version if a HTML version is present, 
   * not seeing attachments,
   * attachments aren't handled correctly according to mime type ,or
   * header information is missing or incorrect so you can't see how long a download will take, 
