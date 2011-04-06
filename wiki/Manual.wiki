@@ -1,7 +1,7 @@
 #labels Featured,Phase-Implementation,Phase-Requirements
 = Introduction =
 
-Simple Java Mail is a lightweight wrapper framework for [http://java.sun.com/products/javamail/ Sun's JavaMail] (javax.mail API) for sending emails over smtp. Simple Java Mail is designed to be as easy to use as possible, while still being able to do everything you want when sending email.
+Simple Java Mail is a lightweight wrapper framework for [http://java.sun.com/products/javamail/ Sun's JavaMail] (javax.mail API) for sending emails over smtp. Simple Java Mail is designed to be as easy to use as possible, while still being able to do everything you want when sending email. This library has been specifically designed to be RFC compliant and produce e-mails of any complexity that are correctly interpreted by e-mail clients.
 
 [RFC_Compliant Why Simple Java Mail being RFC compliant is important]
 
