@@ -23,7 +23,7 @@ Simple Java Mail uses a couple of jars that are all opensource. These are the Ap
 
 = Example usage =
 
-For most use cases there are only three classes exposed to the public. These are [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Email.html Email], [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/Mailer.html Mailer] and [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/MailException.html MailException]. Simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
+For most use cases there are only three classes exposed to the public. These are [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/Email.html Email], [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/Mailer.html Mailer] and [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/MailException.html MailException]. Simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
 
 Here's an example:
 
@@ -67,7 +67,7 @@ Although I've successfully used SMTP_SLL with gmail's smtp server, I'm not convi
 
 === Additional validation Utilities ===
 
-There are two more classes exposed for public use, concerning e-mail validation. [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailValidationUtil.html EmailValidationUtil] can be used to validate any e-mail aside from sending them. It is used internally, but if you want you can use this tool yourself as well. The validation methods optionally accept an instance of the second available class, [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/vesijama/EmailAddressValidationCriteria.html EmailAddressValidationCriteria], which influences how strict validation works.
+There are two more classes exposed for public use, concerning e-mail validation. [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/EmailValidationUtil.html EmailValidationUtil] can be used to validate any e-mail aside from sending them. It is used internally, but if you want you can use this tool yourself as well. The validation methods optionally accept an instance of the second available class, [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/EmailAddressValidationCriteria.html EmailAddressValidationCriteria], which influences how strict validation works.
 
 [Log4jAppendersWarning Concerning the log4j warning]
 
