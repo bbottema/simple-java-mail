@@ -11,7 +11,7 @@ The problem becomes evident when testing the mail in various e-mail clients (bot
   * not seeing attachments,
   * attachments aren't handled correctly according to mime type ,or
   * header information is missing or incorrect so you can't see how long a download will take, 
-  * from/to addresses being malformed (like missing the `<name>` part in `<name> ares@domain.com`)
+  * from/to addresses being malformed (like missing the `<name>` part in '`<name> adres@domain.com`')
 
 To realize the Simple Java Mail library, the research has been done and this library is RFC compliant for simple to complex mails which furthermore has been confirmed by a professional test team to be displayed consistent and correctly in a range of known clients such as Outlook, Thunderbird, Gmail, Hotmail etc.
 
