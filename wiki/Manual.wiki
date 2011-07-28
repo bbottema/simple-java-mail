@@ -18,7 +18,7 @@ Because Simple Java Mail builds on the native JavaMail library, it has the same 
 Simple Java Mail uses a couple of jars that are all opensource. These are the Apache log4j library and Sun JavaMail API library (only the smtp sublibraries). It uses the javax.activation package as well, which is shipped with JavaEE or is available as seperate package.
 
  * [http://logging.apache.org/log4j/1.2/index.html Log4j] (download [http://simple-java-mail.googlecode.com/files/log4j-1.2.15.jar log4j.jar])
- * [http://java.sun.com/products/javamail/ JavaMail API] (download [http://simple-java-mail.googlecode.com/files/smtp.jar smtp.jar], [http://simple-java-mail.googlecode.com/files/mailapi.jar mailapi.jar])
+ * [http://www.oracle.com/technetwork/java/javamail/index.html JavaMail framework] (download 1.4.4: [http://simple-java-mail.googlecode.com/files/smtp-1.4.4.jar smtp.jar], [http://simple-java-mail.googlecode.com/files/mailapi-1.4.4.jar mailapi.jar])
  * [http://java.sun.com/javase/technologies/desktop/javabeans/jaf/index.jsp Activation framework] (included in jre1.6, or download [http://simple-java-mail.googlecode.com/files/activation.jar activation.jar])
 
 = Example usage =
