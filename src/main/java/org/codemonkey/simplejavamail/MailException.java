@@ -11,6 +11,8 @@ import javax.mail.MessagingException;
 public final class MailException extends RuntimeException {
 
 	protected static final String GENERIC_ERROR = "Generic error: %s";
+	protected static final String MISSING_HOST = "Can't send an email without host";
+	protected static final String MISSING_USERNAME = "Can't have a password without username";
 	protected static final String INVALID_ENCODING = "Encoding not accepted: %s";
 	protected static final String INVALID_RECIPIENT = "Invalid TO address: %s";
 	protected static final String INVALID_SENDER = "Invalid FROM address: %s";
