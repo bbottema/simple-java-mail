@@ -1,9 +1,6 @@
-import java.net.UnknownHostException;
-
 import javax.mail.Message.RecipientType;
 
 import org.codemonkey.simplejavamail.Email;
-import org.codemonkey.simplejavamail.MailException;
 import org.codemonkey.simplejavamail.Mailer;
 import org.codemonkey.simplejavamail.TransportStrategy;
 
@@ -19,8 +16,12 @@ import org.codemonkey.simplejavamail.TransportStrategy;
  */
 public class MailTest {
 
-	public static void main(final String[] args)
-			throws MailException, UnknownHostException {
+	/**
+	 * Just run as Java application, but remember to set the JVM arguments first.
+	 * 
+	 * @param args should be empty, this demo uses JVM arguments only (-Dhost=value etc.).
+	 */
+	public static void main(final String[] args) {
 		final Email email = new Email();
 		email.setFromAddress("lollypop", "lol.pop@somemail.com");
 		email.addRecipient("C.Cane", "candycane@candyshop.org", RecipientType.TO);

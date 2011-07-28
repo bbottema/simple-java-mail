@@ -18,7 +18,7 @@ public enum TransportStrategy {
 	 */
 	SMTP_PLAIN {
 		/**
-		 * Here protocol is set to smtp.
+		 * Here protocol "mail.transport.protocol" is set to "smtp".
 		 * 
 		 * @see TransportStrategy#SMTP_PLAIN
 		 */
@@ -54,7 +54,7 @@ public enum TransportStrategy {
 		};
 
 		/**
-		 * @return "mail.smtps.auth"
+		 * @return "mail.smtp.auth"
 		 */
 		@Override
 		String propertyNameAuthenticate() {
@@ -79,7 +79,7 @@ public enum TransportStrategy {
 	 */
 	SMTP_SSL {
 		/**
-		 * Here protocol is set to smtps and the quitwait property is set as well.
+		 * Here protocol "mail.transport.protocol" is set to "smtps" and the quitwait property "mail.smtps.quitwait" is set to "false".
 		 * 
 		 * @see TransportStrategy#SMTP_SSL
 		 */
@@ -131,6 +131,11 @@ public enum TransportStrategy {
 	 */
 	SMTP_TLS {
 
+		/**
+		 * Here protocol "mail.transport.protocol" is set to "smtp" and the tls property "mail.smtp.starttls.enable" is set to "true".
+		 * 
+		 * @see TransportStrategy#SMTP_TLS
+		 */
 		@Override
 		public Properties generateProperties() {
 			final Properties props = super.generateProperties();
@@ -164,7 +169,7 @@ public enum TransportStrategy {
 		};
 
 		/**
-		 * @return "mail.smtps.auth"
+		 * @return "mail.smtp.auth"
 		 */
 		@Override
 		String propertyNameAuthenticate() {

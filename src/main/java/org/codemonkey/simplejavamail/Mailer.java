@@ -133,8 +133,8 @@ public class Mailer {
 	 * {@link #transportStrategy} in two ways:
 	 * <ol>
 	 * <li>request an initial property list which the strategy may pre-populate</li>
-	 * <li>by requesting the property names according to the respective transport protocol it handles (for the host property name it would
-	 * be <em>"mail.smtp.host"</em> for SMTP and <em>"mail.smtps.host"</em> for SMTPS)</li>
+	 * <li>by requesting the property names according to the respective transport protocol it handles (for the host property for example it
+	 * would be <em>"mail.smtp.host"</em> for SMTP and <em>"mail.smtps.host"</em> for SMTPS)</li>
 	 * </ol>
 	 * 
 	 * @param host The address URL of the SMTP server to be used.
@@ -149,6 +149,10 @@ public class Mailer {
 	 * @see TransportStrategy#propertyNameAuthenticate()
 	 */
 	public Session createMailSession(final String host, final int port, final String username, final String password) {
+		if (transportStrategy == null) {
+			logger.warn("Transport Strategy not set, using plain SMTP strategy instead!");
+			transportStrategy = TransportStrategy.SMTP_PLAIN;
+		}
 		Properties props = transportStrategy.generateProperties();
 		props.put(transportStrategy.propertyNameHost(), host);
 		props.put(transportStrategy.propertyNamePort(), String.valueOf(port));
@@ -176,7 +180,7 @@ public class Mailer {
 	 * @see #Mailer(String, int, String, String, TransportStrategy)
 	 */
 	public Mailer(final String host, final int port, final String username, final String password) {
-		this(host, port, username, password, TransportStrategy.SMTP_SSL);
+		this(host, port, username, password, TransportStrategy.SMTP_PLAIN);
 	}
 
 	/**
