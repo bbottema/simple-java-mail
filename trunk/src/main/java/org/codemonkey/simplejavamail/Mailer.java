@@ -119,9 +119,9 @@ public class Mailer {
 	public Mailer(final String host, final int port, final String username, final String password, final TransportStrategy transportStrategy) {
 		// we're doing these validations manually instead of using Apache Commons to avoid another dependency
 		if (host == null || "".equals(host.trim())) {
-			throw new RuntimeException("Can't send an email without host");
+			throw new MailException(MailException.MISSING_HOST);
 		} else if ((password != null && !"".equals(password.trim())) && (username == null || "".equals(username.trim()))) {
-			throw new RuntimeException("Can't have a password without username");
+			throw new MailException(MailException.MISSING_USERNAME);
 		}
 		this.transportStrategy = transportStrategy;
 		this.session = createMailSession(host, port, username, password);
