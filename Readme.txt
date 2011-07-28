@@ -8,7 +8,7 @@ ant clean:
 ant compile:
 - compiles all classes to the target folder
 
-ant run -Dhost=smtp.somehost.com -Dusername=username -Dpassword=password:
+ant run -Dhost=smtp.somehost.com -Dport=port -Dusername=username -Dpassword=password
 - runs the testclass with the given smtp server and account
 
 ant jar:

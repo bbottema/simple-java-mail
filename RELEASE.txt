@@ -3,6 +3,12 @@ http://code.google.com/p/simple-java-mail/
 
 RELEASE NOTES Java Simple Mail
 
+v1.9 (unreleased)
+
+- added transport strategy default in the createSession method
+- tightened up thrown exceptions (MailException instead of RuntimeException)
+- added and fixed JavaDoc
+
 
 v1.8
 
