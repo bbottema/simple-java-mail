@@ -15,7 +15,7 @@ Also see: [http://code.google.com/p/simple-java-mail/source/browse/trunk/NOTICE.
 
 Because Simple Java Mail builds on the native JavaMail library, it has the same dependencies and adds log4j to it (although the sourcecode could be modified to use Java's built in logging framework).
 
-Simple Java Mail uses a couple of jars that are all opensource. These are the Apache log4j library and Sun JavaMail API library (only the smtp sublibraries). It uses the javax.activation package as well, which is shipped with JavaEE or is available as seperate package.
+Simple Java Mail uses a couple of jars that are all opensource. These are the Apache log4j library and Sun JavaMail API library (only the smtp sublibraries, version 1.3.2 and up including 1.4.4). It uses the javax.activation package as well, which is shipped with JavaEE or is available as seperate package.
 
  * [http://logging.apache.org/log4j/1.2/index.html Log4j] (download [http://simple-java-mail.googlecode.com/files/log4j-1.2.15.jar log4j.jar])
  * [http://www.oracle.com/technetwork/java/javamail/index.html JavaMail framework] (download 1.4.4: [http://simple-java-mail.googlecode.com/files/smtp-1.4.4.jar smtp.jar], [http://simple-java-mail.googlecode.com/files/mailapi-1.4.4.jar mailapi.jar])
