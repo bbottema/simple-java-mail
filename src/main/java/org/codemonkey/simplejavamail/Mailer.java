@@ -275,6 +275,11 @@ public class Mailer {
 					throw new MailException(String.format(MailException.INVALID_RECIPIENT, email));
 				}
 			}
+			if (email.getReplyToRecipient() != null) {
+				if (!EmailValidationUtil.isValid(email.getReplyToRecipient().getAddress(), emailAddressValidationCriteria)) {
+					throw new MailException(String.format(MailException.INVALID_REPLYTO, email));
+				}
+			}
 		}
 		return true;
 	}
@@ -293,6 +298,10 @@ public class Mailer {
 		final Message message = new MimeMessage(session);
 		message.setSubject(email.getSubject());
 		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName()));
+		if (email.getReplyToRecipient() != null) {
+			InternetAddress replyToAddress = new InternetAddress(email.getReplyToRecipient().getAddress(), email.getReplyToRecipient().getName());
+			message.setReplyTo(new Address[]{ replyToAddress });
+		}
 		message.setContent(multipartRoot);
 		message.setSentDate(new Date());
 		return message;

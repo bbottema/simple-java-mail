@@ -14,7 +14,14 @@ import javax.mail.util.ByteArrayDataSource;
  * @author Benny Bottema
  */
 public class Email {
+	/**
+	 * The sender of the email. Can be used in conjunction with {@link #replyToRecipient}.
+	 */
 	private Recipient fromRecipient;
+	/**
+	 * The reply-to-address, optional. Can be used in conjunction with {@link #fromRecipient}.
+	 */
+	private Recipient replyToRecipient;
 
 	/**
 	 * The email message body in plain text.
@@ -63,6 +70,16 @@ public class Email {
 	 */
 	public void setFromAddress(final String name, final String fromAddress) {
 		fromRecipient = new Recipient(name, fromAddress, null);
+	}
+
+	/**
+	 * Sets the reply-to address (optional).
+	 * 
+	 * @param name The replied-to-receiver name.
+	 * @param fromAddress The replied-to-receiver email address.
+	 */
+	public void setReplyToAddress(final String name, final String replyToAddress) {
+		replyToRecipient = new Recipient(name, replyToAddress, null);
 	}
 
 	/**
@@ -162,6 +179,13 @@ public class Email {
 	 */
 	public Recipient getFromRecipient() {
 		return fromRecipient;
+	}
+
+	/**
+	 * Bean getter for {@link #replyToRecipient}.
+	 */
+	public Recipient getReplyToRecipient() {
+		return replyToRecipient;
 	}
 
 	/**
