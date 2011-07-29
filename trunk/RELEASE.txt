@@ -5,6 +5,7 @@ RELEASE NOTES Java Simple Mail
 
 v1.9 (unreleased)
 
+- added reply-to address
 - added transport strategy default in the createSession method
 - tightened up thrown exceptions (MailException instead of RuntimeException)
 - added and fixed JavaDoc
