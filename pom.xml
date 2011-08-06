@@ -1,0 +1,64 @@
+<project>
+
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>7</version>
+  </parent>
+  
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.codemonkey.simplejavamail</groupId>
+  <artifactId>simple-java-mail</artifactId>
+  <packaging>jar</packaging>
+  <name>Simple Java Mail</name>
+  <version>1.9</version>
+  <description>A light weight wrapper for the JavaMail SMTP API</description>
+  <url>http://code.google.com/p/simple-java-mail/</url>
+  
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  
+  <scm>
+    <connection>scm:svn:http://simple-java-mail.googlecode.com/svn/tags/v1.9/</connection>
+    <developerConnection>scm:svn:https://simple-java-mail.googlecode.com/svn/tags/v1.9/</developerConnection>
+    <url>http://simple-java-mail.googlecode.com/svn/tags/v1.9/</url>
+  </scm>
+  
+  <developers>
+    <developer>
+      <id>benny</id>
+      <name>Benny</name>
+      <email>b.bottema@projectnibble.org</email>
+      <url>http://blog.projectnibble.org</url>
+    </developer>
+  </developers>
+  <issueManagement>
+  <url>http://code.google.com/p/simple-java-mail/issues/</url>
+  </issueManagement>
+  
+  <dependencies>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.16</version>
+    </dependency>
+	<dependency>
+		<groupId>javax.mail</groupId>
+		<artifactId>mail</artifactId>
+		<version>1.4.1</version>
+	</dependency>
+  </dependencies>
+  
+  <distributionManagement>
+    <repository>
+      <id>sonatype-nexus-staging</id>
+      <name>sonatype</name>
+      <url>https://oss.sonatype.org/content/repositories/releases/</url>
+    </repository>
+  </distributionManagement>
+</project>
