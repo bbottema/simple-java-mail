@@ -2,16 +2,16 @@
   <parent>
     <groupId>org.sonatype.oss</groupId>
     <artifactId>oss-parent</artifactId>
-    <version>3</version>
+    <version>7</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.codemonkey.vesijama</groupId>
-  <artifactId>vesijama</artifactId>
+  <groupId>org.codemonkey.simplejavamail</groupId>
+  <artifactId>simple-java-mail</artifactId>
   <packaging>jar</packaging>
-  <name>Vesijama - Very Simple Java Mail</name>
-  <version>1.3</version>
+  <name>Simple Java Mail</name>
+  <version>1.9</version>
   <description>A light weight wrapper for the JavaMail SMTP API</description>
-  <url>http://code.google.com/p/vesijama/</url>
+  <url>http://code.google.com/p/simple-java-mail/</url>
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -20,10 +20,23 @@
     </license>
   </licenses>
   <scm>
-    <url>http://vesijama.googlecode.com/svn/trunk/</url>
+    <url>http://simple-java-mail.googlecode.com/svn/tags/v1.9/</url>
   </scm>
+  <scm>
+    <connection>scm:svn:http://simple-java-mail.googlecode.com/svn/tags/v1.9/</connection>
+    <developerConnection>scm:svn:https://simple-java-mail.googlecode.com/svn/tags/v1.9/</developerConnection>
+    <url>http://simple-java-mail.googlecode.com/svn/tags/v1.9/</url>
+  </scm>
+  <developers>
+    <developer>
+      <id>benny</id>
+      <name>Benny</name>
+      <email>b.bottema@projectnibble.org</email>
+      <url>http://blog.projectnibble.org</url>
+    </developer>
+  </developers>
   <issueManagement>
-  <url>http://code.google.com/p/vesijama/issues/</url>
+  <url>http://code.google.com/p/simple-java-mail/issues/</url>
   </issueManagement>
   <dependencies>
     <dependency>
@@ -34,7 +47,7 @@
     <dependency>
       <groupId>javax.mail</groupId>
       <artifactId>mail</artifactId>
-      <version>1.4.1</version>
+      <version>1.4.4</version>
     </dependency>
   </dependencies>
   <distributionManagement>
