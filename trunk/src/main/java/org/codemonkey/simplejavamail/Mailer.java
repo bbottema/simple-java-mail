@@ -186,7 +186,7 @@ public class Mailer {
 	 * @param port The port of the SMTP server.
 	 * @param username An optional username, may be <code>null</code>.
 	 * @param password An optional password, may be <code>null</code>, but only if username is <code>null</code> as well.
-	 * @see #Mailer(String, int, String, String, TransportStrategy)
+	 * @see #Mailer(String, Integer, String, String, TransportStrategy)
 	 */
 	public Mailer(final String host, final Integer port, final String username, final String password) {
 		this(host, port, username, password, TransportStrategy.SMTP_PLAIN);
