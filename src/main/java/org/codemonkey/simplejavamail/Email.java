@@ -76,7 +76,7 @@ public class Email {
 	 * Sets the reply-to address (optional).
 	 * 
 	 * @param name The replied-to-receiver name.
-	 * @param fromAddress The replied-to-receiver email address.
+	 * @param replyToAddress The replied-to-receiver email address.
 	 */
 	public void setReplyToAddress(final String name, final String replyToAddress) {
 		replyToRecipient = new Recipient(name, replyToAddress, null);
