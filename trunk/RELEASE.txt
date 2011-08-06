@@ -3,7 +3,7 @@ http://code.google.com/p/simple-java-mail/
 
 RELEASE NOTES Java Simple Mail
 
-v1.9 (unreleased)
+v1.9
 
 - added support for JavaMail's reply-to address
 - made port optional as to support port defaulting based on protocol
