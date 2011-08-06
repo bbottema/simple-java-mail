@@ -72,7 +72,7 @@ public class Mailer {
 	 * directly, when no <code>Session</code> instance was provided.
 	 * 
 	 * @see #Mailer(Session)
-	 * @see #Mailer(String, int, String, String, TransportStrategy)
+	 * @see #Mailer(String, Integer, String, String, TransportStrategy)
 	 */
 	private final Session session;
 
@@ -116,11 +116,12 @@ public class Mailer {
 	 * @param password An optional password, may be <code>null</code>, but only if username is <code>null</code> as well.
 	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
 	 */
-	public Mailer(final String host, final int port, final String username, final String password, final TransportStrategy transportStrategy) {
+	public Mailer(final String host, final Integer port, final String username, final String password,
+			final TransportStrategy transportStrategy) {
 		// we're doing these validations manually instead of using Apache Commons to avoid another dependency
-		if (host == null || "".equals(host.trim())) {
+		if (host == null || host.trim().equals("")) {
 			throw new MailException(MailException.MISSING_HOST);
-		} else if ((password != null && !"".equals(password.trim())) && (username == null || "".equals(username.trim()))) {
+		} else if ((password != null && !password.trim().equals("")) && (username == null || username.trim().equals(""))) {
 			throw new MailException(MailException.MISSING_USERNAME);
 		}
 		this.transportStrategy = transportStrategy;
@@ -148,14 +149,18 @@ public class Mailer {
 	 * @see TransportStrategy#propertyNameUsername()
 	 * @see TransportStrategy#propertyNameAuthenticate()
 	 */
-	public Session createMailSession(final String host, final int port, final String username, final String password) {
+	public Session createMailSession(final String host, final Integer port, final String username, final String password) {
 		if (transportStrategy == null) {
 			logger.warn("Transport Strategy not set, using plain SMTP strategy instead!");
 			transportStrategy = TransportStrategy.SMTP_PLAIN;
 		}
 		Properties props = transportStrategy.generateProperties();
 		props.put(transportStrategy.propertyNameHost(), host);
-		props.put(transportStrategy.propertyNamePort(), String.valueOf(port));
+		if (port != null) {
+			props.put(transportStrategy.propertyNamePort(), String.valueOf(port));
+		} else {
+			// let JavaMail's Transport objects determine deault port base don the used protocol
+		}
 
 		if (username != null) {
 			props.put(transportStrategy.propertyNameUsername(), username);
@@ -177,14 +182,20 @@ public class Mailer {
 	/**
 	 * Overloaded constructor which produces a new {@link Session} on the fly, using default vanilla SMTP transport protocol.
 	 * 
+	 * @param host The address URL of the SMTP server to be used.
+	 * @param port The port of the SMTP server.
+	 * @param username An optional username, may be <code>null</code>.
+	 * @param password An optional password, may be <code>null</code>, but only if username is <code>null</code> as well.
 	 * @see #Mailer(String, int, String, String, TransportStrategy)
 	 */
-	public Mailer(final String host, final int port, final String username, final String password) {
+	public Mailer(final String host, final Integer port, final String username, final String password) {
 		this(host, port, username, password, TransportStrategy.SMTP_PLAIN);
 	}
 
 	/**
 	 * Actually sets {@link Session#setDebug(boolean)} so that it generate debug information.
+	 * 
+	 * @param debug Flag to indicate debug mode yes/no.
 	 */
 	public void setDebug(boolean debug) {
 		session.setDebug(debug);
