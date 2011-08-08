@@ -32,9 +32,13 @@
   <developers>
     <developer>
       <id>benny</id>
-      <name>Benny</name>
+      <name>Benny Bottema</name>
       <email>b.bottema@projectnibble.org</email>
       <url>http://blog.projectnibble.org</url>
+      <roles>
+        <role>developer</role>
+        <role>packager</role>
+      </roles>
     </developer>
   </developers>
   <issueManagement>
@@ -54,11 +58,21 @@
 	</dependency>
   </dependencies>
   
-  <distributionManagement>
-    <repository>
-      <id>sonatype-nexus-staging</id>
-      <name>sonatype</name>
-      <url>https://oss.sonatype.org/content/repositories/releases/</url>
-    </repository>
-  </distributionManagement>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-gpg-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>sign-artifacts</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 </project>
