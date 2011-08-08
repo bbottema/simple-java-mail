@@ -11,7 +11,7 @@
   <artifactId>simple-java-mail</artifactId>
   <packaging>jar</packaging>
   <name>Simple Java Mail</name>
-  <version>1.9</version>
+  <version>1.9.1</version>
   <description>A light weight wrapper for the JavaMail SMTP API</description>
   <url>http://code.google.com/p/simple-java-mail/</url>
   
@@ -41,8 +41,10 @@
       </roles>
     </developer>
   </developers>
+  
   <issueManagement>
-  <url>http://code.google.com/p/simple-java-mail/issues/</url>
+	<system>Google Code</system>
+	<url>http://code.google.com/p/simple-java-mail/issues/</url>
   </issueManagement>
   
   <dependencies>

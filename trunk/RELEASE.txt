@@ -3,6 +3,11 @@ http://code.google.com/p/simple-java-mail/
 
 RELEASE NOTES Java Simple Mail
 
+v1.9.1
+
+- updated for Maven support (library hasn't changed, but 1.9 was released incorrectly to Maven Central)
+
+
 v1.9
 
 - added support for JavaMail's reply-to address
