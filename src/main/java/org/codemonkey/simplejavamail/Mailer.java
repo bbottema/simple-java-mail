@@ -2,6 +2,7 @@ package org.codemonkey.simplejavamail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.activation.DataHandler;
@@ -19,6 +20,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+import javax.mail.internet.MimeUtility;
 
 import org.apache.log4j.Logger;
 
@@ -214,7 +216,7 @@ public class Mailer {
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending
 	 *             etc.
 	 * @see #validate(Email)
-	 * @see #prepareMessage(Email, MimeMultipart)
+	 * @see #prepareMessage(Email, MimeEmailMessageWrapper)
 	 * @see #setRecipients(Email, Message)
 	 * @see #setTexts(Email, MimeMultipart)
 	 * @see #setEmbeddedImages(Email, MimeMultipart)
@@ -227,11 +229,7 @@ public class Mailer {
 				// create new wrapper for each mail being sent (enable sending multiple emails with one mailer)
 				final MimeEmailMessageWrapper messageRoot = new MimeEmailMessageWrapper();
 				// fill and send wrapped mime message parts
-				final Message message = prepareMessage(email, messageRoot.multipartRoot);
-				setRecipients(email, message);
-				setTexts(email, messageRoot.multipartAlternativeMessages);
-				setEmbeddedImages(email, messageRoot.multipartRelated);
-				setAttachments(email, messageRoot.multipartRoot);
+				final Message message = prepareMessage(email, messageRoot);
 				logSession(session, transportStrategy);
 				message.saveChanges(); // some headers and id's will be set for this specific message
 				Transport transport = session.getTransport();
@@ -297,23 +295,29 @@ public class Mailer {
 
 	/**
 	 * Creates a new {@link MimeMessage} instance and prepares it in the email structure, so that it can be filled and send.
+	 * <p>
+	 * Fills subject, from,reply-to, content, sent-date, recipients, texts, embedded images, attachments, content and adds all headers.
 	 * 
 	 * @param email The email message from which the subject and From-address are extracted.
-	 * @param multipartRoot The root of the email which holds everything (filled with some email data).
-	 * @return Een geprepareerde {@link Message} instantie, klaar om gevuld en verzonden te worden.
+	 * @param messageRoot The root of the email which holds everything (filled with some email data).
+	 * @return A fully preparated {@link Message} instance, ready to be sent.
 	 * @throws MessagingException Kan gegooid worden als het message niet goed behandelt wordt.
 	 * @throws UnsupportedEncodingException Zie {@link InternetAddress#InternetAddress(String, String)}.
 	 */
-	private Message prepareMessage(final Email email, final MimeMultipart multipartRoot)
+	private Message prepareMessage(final Email email, final MimeEmailMessageWrapper messageRoot)
 			throws MessagingException, UnsupportedEncodingException {
 		final Message message = new MimeMessage(session);
+		// set basic email properties
 		message.setSubject(email.getSubject());
 		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName()));
-		if (email.getReplyToRecipient() != null) {
-			InternetAddress replyToAddress = new InternetAddress(email.getReplyToRecipient().getAddress(), email.getReplyToRecipient().getName());
-			message.setReplyTo(new Address[]{ replyToAddress });
-		}
-		message.setContent(multipartRoot);
+		setReplyTo(email, message);
+		setRecipients(email, message);
+		// fill multipart structure
+		setTexts(email, messageRoot.multipartAlternativeMessages);
+		setEmbeddedImages(email, messageRoot.multipartRelated);
+		setAttachments(email, messageRoot.multipartRoot);
+		message.setContent(messageRoot.multipartRoot);
+		setHeaders(email, message);
 		message.setSentDate(new Date());
 		return message;
 	}
@@ -331,6 +335,23 @@ public class Mailer {
 		for (final Recipient recipient : email.getRecipients()) {
 			final Address address = new InternetAddress(recipient.getAddress(), recipient.getName());
 			message.addRecipient(recipient.getType(), address);
+		}
+	}
+
+	/**
+	 * Fills the {@link Message} instance with reply-to address.
+	 * 
+	 * @param email The message in which the recipients are defined.
+	 * @param message The javax message that needs to be filled with reply-to address.
+	 * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.
+	 * @throws MessagingException See {@link Message#setReplyTo(Address[])}
+	 */
+	private void setReplyTo(final Email email, final Message message)
+			throws UnsupportedEncodingException, MessagingException {
+		final Recipient replyToRecipient = email.getReplyToRecipient();
+		if (replyToRecipient != null) {
+			InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName());
+			message.setReplyTo(new Address[] { replyToAddress });
 		}
 	}
 
@@ -383,6 +404,28 @@ public class Mailer {
 			throws MessagingException {
 		for (final AttachmentResource resource : email.getAttachments()) {
 			multipartRoot.addBodyPart(getBodyPartFromDatasource(resource, Part.ATTACHMENT));
+		}
+	}
+
+	/**
+	 * Sets all headers on the {@link Message} instance. Since we're not using a high-level JavaMail method, the JavaMail library says we
+	 * need to do some encoding and 'folding' manually, to get the value right for the headers (see {@link MimeUtility}.
+	 * 
+	 * @param email The message in which the headers are defined.
+	 * @param message The {@link Message} on which to set the raw, encoded and folded headers.
+	 * @throws UnsupportedEncodingException See {@link MimeUtility#encodeText(String, String, String)}
+	 * @throws MessagingException See {@link Message#addHeader(String, String)}
+	 * @see {@link MimeUtility#encodeText(String, String, String)}
+	 * @see MimeUtility#fold(int, String)
+	 */
+	private void setHeaders(final Email email, final Message message)
+			throws UnsupportedEncodingException, MessagingException {
+		// add headers (for raw message headers we need to 'fold' them using MimeUtility
+		for (Map.Entry<String, String> header : email.getHeaders().entrySet()) {
+			String headerName = header.getKey();
+			String headerValue = MimeUtility.encodeText(header.getValue(), "UTF-8", null);
+			String foldedHeaderValue = MimeUtility.fold(headerName.length() + 2, headerValue);
+			message.addHeader(header.getKey(), foldedHeaderValue);
 		}
 	}
 
