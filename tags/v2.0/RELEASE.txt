@@ -1,0 +1,46 @@
+http://code.google.com/p/simple-java-mail/
+
+
+RELEASE NOTES Java Simple Mail
+
+v2.0
+
+- added support for open headers (such as X-Priority)
+
+
+v1.9.1
+
+- updated for Maven support (library hasn't changed, but 1.9 was released incorrectly to Maven Central)
+
+
+v1.9
+
+- added support for JavaMail's reply-to address
+- made port optional as to support port defaulting based on protocol
+- added transport strategy default in the createSession method
+- tightened up thrown exceptions (MailException instead of RuntimeException)
+- added and fixed JavaDoc
+
+
+v1.8
+
+Added support for TLS (tested with gmail)
+
+
+v1.7
+
+Added support for SSL! (tested with gmail)
+
+- improved argument validation when creating a Mailer without preconfigured Session instance
+
+know possible issue: SSL self-signed certificates might not work (yet). Please let me know by e-mail or create a new issue
+
+
+v1.6
+
+Completed migration to Java Simple Mail project.
+
+- removed all Vesijama references
+- updated TestMail demonstration class for clarification
+- updated readme.txt for test run instructions
+- included log4j.properties
