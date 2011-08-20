@@ -2,7 +2,9 @@ package org.codemonkey.simplejavamail;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.activation.DataSource;
 import javax.mail.Message.RecipientType;
@@ -54,12 +56,18 @@ public class Email {
 	private final List<AttachmentResource> attachments;
 
 	/**
-	 * Constructor, instantiates all internal lists.
+	 * Map of header name and values, such as <code>X-Priority</code> etc.
+	 */
+	private final Map<String, String> headers;
+
+	/**
+	 * Constructor, creates all internal lists.
 	 */
 	public Email() {
 		recipients = new ArrayList<Recipient>();
 		embeddedImages = new ArrayList<AttachmentResource>();
 		attachments = new ArrayList<AttachmentResource>();
+		headers = new HashMap<String, String>();
 	}
 
 	/**
@@ -104,8 +112,7 @@ public class Email {
 	}
 
 	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address and recipient type (eg.
-	 * {@link RecipientType#CC}).
+	 * Adds a new {@link Recipient} to the list on account of name, address and recipient type (eg. {@link RecipientType#CC}).
 	 * 
 	 * @param name The name of the recipient.
 	 * @param address The emailadres of the recipient.
@@ -119,12 +126,11 @@ public class Email {
 	}
 
 	/**
-	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with
-	 * the given byte data. Then delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the
-	 * datasource is actually a {@link ByteArrayDataSource}.
+	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte
+	 * data. Then delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a
+	 * {@link ByteArrayDataSource}.
 	 * 
-	 * @param name The name of the image as being referred to from the message content body (eg.
-	 *            '&lt;cid:signature&gt;').
+	 * @param name The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
 	 * @param data The byte data of the image to be embedded.
 	 * @param mimetype The content type of the given data (eg. "image/gif" or "image/jpeg").
 	 * @see ByteArrayDataSource
@@ -139,8 +145,7 @@ public class Email {
 	/**
 	 * Overloaded method which sets an embedded image on account of name and {@link DataSource}.
 	 * 
-	 * @param name The name of the image as being referred to from the message content body (eg.
-	 *            '&lt;cid:embeddedimage&gt;').
+	 * @param name The name of the image as being referred to from the message content body (eg. '&lt;cid:embeddedimage&gt;').
 	 * @param imagedata The image data.
 	 */
 	public void addEmbeddedImage(final String name, final DataSource imagedata) {
@@ -148,9 +153,20 @@ public class Email {
 	}
 
 	/**
-	 * Adds an attachment to the email message and generates the necessary {@link DataSource} with the given byte data.
-	 * Then delegates to {@link #addAttachment(String, DataSource)}. At this point the datasource is actually a
-	 * {@link ByteArrayDataSource}.
+	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
+	 * <p>
+	 * example: <code>email.addHeader("X-Priority", 2)</code>
+	 * 
+	 * @param name The name of the header.
+	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
+	 */
+	public void addHeader(final String name, final Object value) {
+		headers.put(name, String.valueOf(value));
+	}
+
+	/**
+	 * Adds an attachment to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to
+	 * {@link #addAttachment(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 	 * 
 	 * @param name The name of the extension (eg. filename including extension).
 	 * @param data The byte data of the attachment.
@@ -228,5 +244,12 @@ public class Email {
 	 */
 	public List<Recipient> getRecipients() {
 		return Collections.unmodifiableList(recipients);
+	}
+
+	/**
+	 * Bean getter for {@link #headers} as unmodifiable map.
+	 */
+	public Map<String, String> getHeaders() {
+		return Collections.unmodifiableMap(headers);
 	}
 }
