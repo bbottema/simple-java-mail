@@ -3,6 +3,11 @@ http://code.google.com/p/simple-java-mail/
 
 RELEASE NOTES Java Simple Mail
 
+v2.0
+
+- added support for open headers (such as X-Priority)
+
+
 v1.9.1
 
 - updated for Maven support (library hasn't changed, but 1.9 was released incorrectly to Maven Central)
