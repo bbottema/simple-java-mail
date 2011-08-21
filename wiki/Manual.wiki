@@ -52,6 +52,8 @@ You can also pass in your own preconfigured mail _Session_ instance, so this fra
 new Mailer(yourSession).sendMail(email);
 }}}
 
+[Log4jAppendersWarning Concerning the log4j warning]
+
 === Using SSL / TLS ===
 
 Using SSL (and TLS) is easy!
@@ -74,8 +76,6 @@ email.addHeader("X-Priority", 2);
 === Additional validation Utilities ===
 
 There are two more classes exposed for public use, concerning e-mail validation. [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/EmailValidationUtil.html EmailValidationUtil] can be used to validate any e-mail aside from sending them. It is used internally, but if you want you can use this tool yourself as well. The validation methods optionally accept an instance of the second available class, [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/EmailAddressValidationCriteria.html EmailAddressValidationCriteria], which influences how strict validation works.
-
-[Log4jAppendersWarning Concerning the log4j warning]
 
 = Alternatives =
 
