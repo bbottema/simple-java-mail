@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
  * The e-mail message structure is built to work with all e-mail clients and has been tested with many different webclients as well as some
  * mainstream client applications such as MS Outlook or Mozilla Thunderbird.<br />
  * <br />
- * Technically, the resulting email structure is a follows:<br />
+ * Technically, the resulting email structure is as follows:<br />
  * 
  * <pre>
  * - root
@@ -52,7 +52,7 @@ import org.apache.log4j.Logger;
  * <pre>
  * Email email = new Email();
  * email.setFromAddress(&quot;lollypop&quot;, &quot;lolly.pop@somemail.com&quot;);
- * email.addRecipient(&quot;Sugar Cae&quot;, &quot;sugar.cane@candystore.org&quot;, RecipientType.TO);
+ * email.addRecipient(&quot;Sugar Cane&quot;, &quot;sugar.cane@candystore.org&quot;, RecipientType.TO);
  * email.setText(&quot;We should meet up!!&quot;);
  * email.setTextHTML(&quot;&lt;b&gt;We should meet up!&lt;/b&gt;&quot;);
  * email.setSubject(&quot;Hey&quot;);
@@ -195,7 +195,7 @@ public class Mailer {
 	}
 
 	/**
-	 * Actually sets {@link Session#setDebug(boolean)} so that it generate debug information.
+	 * Actually sets {@link Session#setDebug(boolean)} so that it generates debug information.
 	 * 
 	 * @param debug Flag to indicate debug mode yes/no.
 	 */
