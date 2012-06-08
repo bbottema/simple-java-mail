@@ -68,6 +68,11 @@ import org.apache.log4j.Logger;
 public class Mailer {
 
 	private static final Logger logger = Logger.getLogger(Mailer.class);
+	
+	/**
+	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@value #CHARACTER_ENCODING}).
+	 */
+	private static final String CHARACTER_ENCODING = "UTF-8";
 
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code>
@@ -306,10 +311,10 @@ public class Mailer {
 	 */
 	private Message prepareMessage(final Email email, final MimeEmailMessageWrapper messageRoot)
 			throws MessagingException, UnsupportedEncodingException {
-		final Message message = new MimeMessage(session);
+		final MimeMessage message = new MimeMessage(session);
 		// set basic email properties
-		message.setSubject(email.getSubject());
-		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName()));
+		message.setSubject(email.getSubject(), CHARACTER_ENCODING);
+		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName(), CHARACTER_ENCODING));
 		setReplyTo(email, message);
 		setRecipients(email, message);
 		// fill multipart structure
@@ -350,7 +355,7 @@ public class Mailer {
 			throws UnsupportedEncodingException, MessagingException {
 		final Recipient replyToRecipient = email.getReplyToRecipient();
 		if (replyToRecipient != null) {
-			InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName());
+			InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(), CHARACTER_ENCODING);
 			message.setReplyTo(new Address[] { replyToAddress });
 		}
 	}
@@ -367,12 +372,12 @@ public class Mailer {
 			throws MessagingException {
 		if (email.getText() != null) {
 			final MimeBodyPart messagePart = new MimeBodyPart();
-			messagePart.setText(email.getText(), "UTF-8");
+			messagePart.setText(email.getText(), CHARACTER_ENCODING);
 			multipartAlternativeMessages.addBodyPart(messagePart);
 		}
 		if (email.getTextHTML() != null) {
 			final MimeBodyPart messagePartHTML = new MimeBodyPart();
-			messagePartHTML.setContent(email.getTextHTML(), "text/html; charset=\"UTF-8\"");
+			messagePartHTML.setContent(email.getTextHTML(), "text/html; charset=\"" + CHARACTER_ENCODING + "\"");
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
 		}
 	}
@@ -423,7 +428,7 @@ public class Mailer {
 		// add headers (for raw message headers we need to 'fold' them using MimeUtility
 		for (Map.Entry<String, String> header : email.getHeaders().entrySet()) {
 			String headerName = header.getKey();
-			String headerValue = MimeUtility.encodeText(header.getValue(), "UTF-8", null);
+			String headerValue = MimeUtility.encodeText(header.getValue(), CHARACTER_ENCODING, null);
 			String foldedHeaderValue = MimeUtility.fold(headerName.length() + 2, headerValue);
 			message.addHeader(header.getKey(), foldedHeaderValue);
 		}
