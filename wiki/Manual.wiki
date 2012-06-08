@@ -23,7 +23,7 @@ Simple Java Mail uses a couple of jars that are all opensource. These are the Ap
 
 = Example usage =
 
-For most use cases there are only three classes exposed to the public. These are [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/Email.html Email], [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/Mailer.html Mailer] and [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/MailException.html MailException]. Simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime MailExceptions.
+For most use cases there are only three classes exposed to the public. These are [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/Email.html Email], [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/Mailer.html Mailer] and [http://simple-java-mail.googlecode.com/svn/trunk/javadoc/users/org/codemonkey/simplejavamail/MailException.html MailException]. Simply create and fill an email and then call {{{mailer.send(yourEmail)}}} and that's it. Optionally catch runtime !MailExceptions.
 
 Here's an example:
 
