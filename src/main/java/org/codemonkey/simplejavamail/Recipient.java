@@ -7,7 +7,7 @@ import javax.mail.Message.RecipientType;
  * 
  * @author Benny Bottema
  */
-final class Recipient {
+public final class Recipient {
 
 	private final String name;
 
