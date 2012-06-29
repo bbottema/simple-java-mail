@@ -6,6 +6,7 @@ RELEASE NOTES Java Simple Mail
 v2.1
 
 - fixed character encoding for reply-to, from, to, body text and headers (to UTF-8)
+- fixed bug where Recipient was not public resulting in uncompilable code when calling email.getRecipients()
 
 v2.0
 
