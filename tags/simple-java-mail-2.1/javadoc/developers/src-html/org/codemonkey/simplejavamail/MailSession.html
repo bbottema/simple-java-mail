@@ -1,0 +1,215 @@
+<HTML>
+<BODY BGCOLOR="white">
+<PRE>
+<FONT color="green">001</FONT>    package org.codemonkey.simplejavamail;<a name="line.1"></a>
+<FONT color="green">002</FONT>    <a name="line.2"></a>
+<FONT color="green">003</FONT>    import java.util.Properties;<a name="line.3"></a>
+<FONT color="green">004</FONT>    <a name="line.4"></a>
+<FONT color="green">005</FONT>    import javax.mail.Authenticator;<a name="line.5"></a>
+<FONT color="green">006</FONT>    import javax.mail.Message;<a name="line.6"></a>
+<FONT color="green">007</FONT>    import javax.mail.MessagingException;<a name="line.7"></a>
+<FONT color="green">008</FONT>    import javax.mail.PasswordAuthentication;<a name="line.8"></a>
+<FONT color="green">009</FONT>    import javax.mail.Session;<a name="line.9"></a>
+<FONT color="green">010</FONT>    import javax.mail.Transport;<a name="line.10"></a>
+<FONT color="green">011</FONT>    <a name="line.11"></a>
+<FONT color="green">012</FONT>    /**<a name="line.12"></a>
+<FONT color="green">013</FONT>     * Creates and initializes a {@link Session} instance based on provided host and credentials as well as a {@link TransportStrategy} instance<a name="line.13"></a>
+<FONT color="green">014</FONT>     * to apply SMTP, SMTPS or SMTP + TLS protocol semantics.<a name="line.14"></a>
+<FONT color="green">015</FONT>     * &lt;p&gt;<a name="line.15"></a>
+<FONT color="green">016</FONT>     * The &lt;code&gt;Session&lt;/code&gt; needs to be created before assembling the concerning e-mail message in the {@link Mailer} as the Sun JavaMail<a name="line.16"></a>
+<FONT color="green">017</FONT>     * API directly wires the e-mail message into the &lt;code&gt;Session&lt;/code&gt;. The session again is needed when actually sending the e-mail or when<a name="line.17"></a>
+<FONT color="green">018</FONT>     * {@link #toString()} is called.<a name="line.18"></a>
+<FONT color="green">019</FONT>     * <a name="line.19"></a>
+<FONT color="green">020</FONT>     * @author Benny Bottema<a name="line.20"></a>
+<FONT color="green">021</FONT>     */<a name="line.21"></a>
+<FONT color="green">022</FONT>    class MailSession {<a name="line.22"></a>
+<FONT color="green">023</FONT>    <a name="line.23"></a>
+<FONT color="green">024</FONT>            /**<a name="line.24"></a>
+<FONT color="green">025</FONT>             * Used to actually send the email. This session can come from being passed in the default constructor, or made by this<a name="line.25"></a>
+<FONT color="green">026</FONT>             * &lt;code&gt;MailSession&lt;/code&gt; directly, when no &lt;code&gt;Session&lt;/code&gt; instance was provided.<a name="line.26"></a>
+<FONT color="green">027</FONT>             * <a name="line.27"></a>
+<FONT color="green">028</FONT>             * @see #MailSession(Session)<a name="line.28"></a>
+<FONT color="green">029</FONT>             * @see #MailSession(String, int, String, String, TransportStrategy)<a name="line.29"></a>
+<FONT color="green">030</FONT>             */<a name="line.30"></a>
+<FONT color="green">031</FONT>            private final Session session;<a name="line.31"></a>
+<FONT color="green">032</FONT>    <a name="line.32"></a>
+<FONT color="green">033</FONT>            /**<a name="line.33"></a>
+<FONT color="green">034</FONT>             * The transport protocol strategy enum that actually handles the session configuration. Session configuration meaning setting the right<a name="line.34"></a>
+<FONT color="green">035</FONT>             * properties for the appropriate transport type (ie. &lt;em&gt;"mail.smtp.host"&lt;/em&gt; for SMTP, &lt;em&gt;"mail.smtps.host"&lt;/em&gt; for SMTPS).<a name="line.35"></a>
+<FONT color="green">036</FONT>             */<a name="line.36"></a>
+<FONT color="green">037</FONT>            private TransportStrategy transportStrategy;<a name="line.37"></a>
+<FONT color="green">038</FONT>    <a name="line.38"></a>
+<FONT color="green">039</FONT>            /**<a name="line.39"></a>
+<FONT color="green">040</FONT>             * Default constructor, stores the given mail session for later use. It is assumed all properties are set, such as host, credentials and<a name="line.40"></a>
+<FONT color="green">041</FONT>             * transport properties.<a name="line.41"></a>
+<FONT color="green">042</FONT>             * <a name="line.42"></a>
+<FONT color="green">043</FONT>             * @param session A preconfigured mail {@link Session} object with which a {@link Message} can be produced.<a name="line.43"></a>
+<FONT color="green">044</FONT>             */<a name="line.44"></a>
+<FONT color="green">045</FONT>            public MailSession(final Session session) {<a name="line.45"></a>
+<FONT color="green">046</FONT>                    this.session = session;<a name="line.46"></a>
+<FONT color="green">047</FONT>            }<a name="line.47"></a>
+<FONT color="green">048</FONT>    <a name="line.48"></a>
+<FONT color="green">049</FONT>            /**<a name="line.49"></a>
+<FONT color="green">050</FONT>             * Overloaded constructor which produces a new {@link Session} on the fly. Use this if you don't have a mail session configured in your<a name="line.50"></a>
+<FONT color="green">051</FONT>             * web container, or Spring context etc.<a name="line.51"></a>
+<FONT color="green">052</FONT>             * <a name="line.52"></a>
+<FONT color="green">053</FONT>             * @param host The address URL of the SMTP server to be used.<a name="line.53"></a>
+<FONT color="green">054</FONT>             * @param port The port of the SMTP server.<a name="line.54"></a>
+<FONT color="green">055</FONT>             * @param username An optional username, may be &lt;code&gt;null&lt;/code&gt;.<a name="line.55"></a>
+<FONT color="green">056</FONT>             * @param password An optional password, may be &lt;code&gt;null&lt;/code&gt;, but only if username is &lt;code&gt;null&lt;/code&gt; as well.<a name="line.56"></a>
+<FONT color="green">057</FONT>             */<a name="line.57"></a>
+<FONT color="green">058</FONT>            public MailSession(final String host, final int port, final String username, final String password,<a name="line.58"></a>
+<FONT color="green">059</FONT>                            final TransportStrategy transportStrategy) {<a name="line.59"></a>
+<FONT color="green">060</FONT>                    // we're doing this manually instead of using Apache Commons, to avoid another dependency<a name="line.60"></a>
+<FONT color="green">061</FONT>                    if (host == null || "".equals(host.trim())) {<a name="line.61"></a>
+<FONT color="green">062</FONT>                            throw new RuntimeException("Can't send an email without host");<a name="line.62"></a>
+<FONT color="green">063</FONT>                    } else if ((password != null &amp;&amp; !"".equals(password.trim())) &amp;&amp; (username == null || "".equals(username.trim()))) {<a name="line.63"></a>
+<FONT color="green">064</FONT>                            throw new RuntimeException("Can't have a password without username");<a name="line.64"></a>
+<FONT color="green">065</FONT>                    }<a name="line.65"></a>
+<FONT color="green">066</FONT>                    this.transportStrategy = transportStrategy;<a name="line.66"></a>
+<FONT color="green">067</FONT>                    this.session = createMailSession(host, port, username, password);<a name="line.67"></a>
+<FONT color="green">068</FONT>            }<a name="line.68"></a>
+<FONT color="green">069</FONT>    <a name="line.69"></a>
+<FONT color="green">070</FONT>            /**<a name="line.70"></a>
+<FONT color="green">071</FONT>             * Actually instantiates and configures the {@link Session} instance. Delegates resolving transport protocol specific properties to the<a name="line.71"></a>
+<FONT color="green">072</FONT>             * {@link #transportStrategy} in two ways:<a name="line.72"></a>
+<FONT color="green">073</FONT>             * &lt;ol&gt;<a name="line.73"></a>
+<FONT color="green">074</FONT>             * &lt;li&gt;request an initial property list which the strategy may pre-populate&lt;/li&gt;<a name="line.74"></a>
+<FONT color="green">075</FONT>             * &lt;li&gt;by requesting the property names according to the respective transport protocol it handles (for the host property name it would<a name="line.75"></a>
+<FONT color="green">076</FONT>             * be &lt;em&gt;"mail.smtp.host"&lt;/em&gt; for SMTP and &lt;em&gt;"mail.smtps.host"&lt;/em&gt; for SMTPS)&lt;/li&gt;<a name="line.76"></a>
+<FONT color="green">077</FONT>             * &lt;/ol&gt;<a name="line.77"></a>
+<FONT color="green">078</FONT>             * <a name="line.78"></a>
+<FONT color="green">079</FONT>             * @param host The address URL of the SMTP server to be used.<a name="line.79"></a>
+<FONT color="green">080</FONT>             * @param port The port of the SMTP server.<a name="line.80"></a>
+<FONT color="green">081</FONT>             * @param username An optional username, may be &lt;code&gt;null&lt;/code&gt;.<a name="line.81"></a>
+<FONT color="green">082</FONT>             * @param password An optional password, may be &lt;code&gt;null&lt;/code&gt;.<a name="line.82"></a>
+<FONT color="green">083</FONT>             * @return A fully configured &lt;code&gt;Session&lt;/code&gt; instance complete with transport protocol settings.<a name="line.83"></a>
+<FONT color="green">084</FONT>             * @see TransportStrategy#generateProperties()<a name="line.84"></a>
+<FONT color="green">085</FONT>             * @see TransportStrategy#propertyNameHost()<a name="line.85"></a>
+<FONT color="green">086</FONT>             * @see TransportStrategy#propertyNamePort()<a name="line.86"></a>
+<FONT color="green">087</FONT>             * @see TransportStrategy#propertyNameUsername()<a name="line.87"></a>
+<FONT color="green">088</FONT>             * @see TransportStrategy#propertyNameAuthenticate()<a name="line.88"></a>
+<FONT color="green">089</FONT>             */<a name="line.89"></a>
+<FONT color="green">090</FONT>            public Session createMailSession(final String host, final int port, final String username, final String password) {<a name="line.90"></a>
+<FONT color="green">091</FONT>                    Properties props = transportStrategy.generateProperties();<a name="line.91"></a>
+<FONT color="green">092</FONT>                    props.put(transportStrategy.propertyNameHost(), host);<a name="line.92"></a>
+<FONT color="green">093</FONT>                    props.put(transportStrategy.propertyNamePort(), String.valueOf(port));<a name="line.93"></a>
+<FONT color="green">094</FONT>    <a name="line.94"></a>
+<FONT color="green">095</FONT>                    if (username != null) {<a name="line.95"></a>
+<FONT color="green">096</FONT>                            props.put(transportStrategy.propertyNameUsername(), username);<a name="line.96"></a>
+<FONT color="green">097</FONT>                    }<a name="line.97"></a>
+<FONT color="green">098</FONT>    <a name="line.98"></a>
+<FONT color="green">099</FONT>                    if (password != null) {<a name="line.99"></a>
+<FONT color="green">100</FONT>                            props.put(transportStrategy.propertyNameAuthenticate(), "true");<a name="line.100"></a>
+<FONT color="green">101</FONT>                            return Session.getInstance(props, new Authenticator() {<a name="line.101"></a>
+<FONT color="green">102</FONT>                                    @Override<a name="line.102"></a>
+<FONT color="green">103</FONT>                                    protected PasswordAuthentication getPasswordAuthentication() {<a name="line.103"></a>
+<FONT color="green">104</FONT>                                            return new PasswordAuthentication(username, password);<a name="line.104"></a>
+<FONT color="green">105</FONT>                                    }<a name="line.105"></a>
+<FONT color="green">106</FONT>                            });<a name="line.106"></a>
+<FONT color="green">107</FONT>                    } else {<a name="line.107"></a>
+<FONT color="green">108</FONT>                            return Session.getInstance(props);<a name="line.108"></a>
+<FONT color="green">109</FONT>                    }<a name="line.109"></a>
+<FONT color="green">110</FONT>            }<a name="line.110"></a>
+<FONT color="green">111</FONT>    <a name="line.111"></a>
+<FONT color="green">112</FONT>            /**<a name="line.112"></a>
+<FONT color="green">113</FONT>             * Sends a Sun JavaMail {@link Message} object using the {@link Session#getTransport()}. It will call {@link Transport#connect()}<a name="line.113"></a>
+<FONT color="green">114</FONT>             * assuming all connection details have been configured in the provided {@link Session} instance.<a name="line.114"></a>
+<FONT color="green">115</FONT>             * &lt;p&gt;<a name="line.115"></a>
+<FONT color="green">116</FONT>             * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and<a name="line.116"></a>
+<FONT color="green">117</FONT>             * providing a message id.<a name="line.117"></a>
+<FONT color="green">118</FONT>             * <a name="line.118"></a>
+<FONT color="green">119</FONT>             * @param message The message to send. Generate by the {@link Mailer}.<a name="line.119"></a>
+<FONT color="green">120</FONT>             * @throws MessagingException Thrown by {@link Message#saveChanges()}, {@link Transport#connect()},<a name="line.120"></a>
+<FONT color="green">121</FONT>             *             {@link Transport#sendMessage(Message, javax.mail.Address[])}, {@link Transport#close()}<a name="line.121"></a>
+<FONT color="green">122</FONT>             */<a name="line.122"></a>
+<FONT color="green">123</FONT>            public void sendMessage(Message message)<a name="line.123"></a>
+<FONT color="green">124</FONT>                            throws MessagingException {<a name="line.124"></a>
+<FONT color="green">125</FONT>                    message.saveChanges(); // some headers and id's will be set for this specific message<a name="line.125"></a>
+<FONT color="green">126</FONT>                    Transport transport = session.getTransport();<a name="line.126"></a>
+<FONT color="green">127</FONT>                    transport.connect();<a name="line.127"></a>
+<FONT color="green">128</FONT>                    transport.sendMessage(message, message.getAllRecipients());<a name="line.128"></a>
+<FONT color="green">129</FONT>                    transport.close();<a name="line.129"></a>
+<FONT color="green">130</FONT>            }<a name="line.130"></a>
+<FONT color="green">131</FONT>    <a name="line.131"></a>
+<FONT color="green">132</FONT>            /**<a name="line.132"></a>
+<FONT color="green">133</FONT>             * Returns host details, credentials used and whether authentication will take place and finally the transport protocol used.<a name="line.133"></a>
+<FONT color="green">134</FONT>             */<a name="line.134"></a>
+<FONT color="green">135</FONT>            @Override<a name="line.135"></a>
+<FONT color="green">136</FONT>            public String toString() {<a name="line.136"></a>
+<FONT color="green">137</FONT>                    final String logmsg = "host: %s, port: %s, username: %s, authenticate: %s, transport: %s";<a name="line.137"></a>
+<FONT color="green">138</FONT>                    return String.format(logmsg, transportStrategy.propertyNameHost(), transportStrategy.propertyNamePort(),<a name="line.138"></a>
+<FONT color="green">139</FONT>                                    transportStrategy.propertyNameUsername(), Boolean.parseBoolean(transportStrategy.propertyNameAuthenticate()),<a name="line.139"></a>
+<FONT color="green">140</FONT>                                    transportStrategy);<a name="line.140"></a>
+<FONT color="green">141</FONT>            }<a name="line.141"></a>
+<FONT color="green">142</FONT>    <a name="line.142"></a>
+<FONT color="green">143</FONT>            /**<a name="line.143"></a>
+<FONT color="green">144</FONT>             * Bean getter for {@link #session}.<a name="line.144"></a>
+<FONT color="green">145</FONT>             */<a name="line.145"></a>
+<FONT color="green">146</FONT>            public Session getSession() {<a name="line.146"></a>
+<FONT color="green">147</FONT>                    return session;<a name="line.147"></a>
+<FONT color="green">148</FONT>            }<a name="line.148"></a>
+<FONT color="green">149</FONT>    }<a name="line.149"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</PRE>
+</BODY>
+</HTML>
