@@ -1,0 +1,47 @@
+<project>
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>3</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.codemonkey.vesijama</groupId>
+  <artifactId>vesijama</artifactId>
+  <packaging>jar</packaging>
+  <name>Vesijama - Very Simple Java Mail</name>
+  <version>1.3</version>
+  <description>A light weight wrapper for the JavaMail SMTP API</description>
+  <url>http://code.google.com/p/vesijama/</url>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <url>http://vesijama.googlecode.com/svn/trunk/</url>
+  </scm>
+  <issueManagement>
+  <url>http://code.google.com/p/vesijama/issues/</url>
+  </issueManagement>
+  <dependencies>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.15</version>
+    </dependency>
+    <dependency>
+      <groupId>javax.mail</groupId>
+      <artifactId>mail</artifactId>
+      <version>1.4.1</version>
+    </dependency>
+  </dependencies>
+  <distributionManagement>
+    <repository>
+      <id>sonatype-nexus-staging</id>
+      <name>sonatype</name>
+      <url>https://oss.sonatype.org/content/repositories/releases/</url>
+    </repository>
+  </distributionManagement>
+</project>
