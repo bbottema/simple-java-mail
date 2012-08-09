@@ -24,9 +24,9 @@
   </licenses>
   
   <scm>
-    <connection>scm:svn:http://simple-java-mail.googlecode.com/svn/tags/v2.1</connection>
-    <developerConnection>scm:svn:https://simple-java-mail.googlecode.com/svn/tags/v2.1</developerConnection>
-    <url>http://simple-java-mail.googlecode.com/svn/tags/v2.1</url>
+    <connection>scm:svn:http://simple-java-mail.googlecode.com/svn/trunk</connection>
+    <developerConnection>scm:svn:https://simple-java-mail.googlecode.com/svn/trunk</developerConnection>
+    <url>http://simple-java-mail.googlecode.com/svn/trunk</url>
   </scm>
   
   <developers>
