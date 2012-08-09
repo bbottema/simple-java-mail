@@ -43,8 +43,8 @@
   </developers>
   
   <issueManagement>
-	<system>Google Code</system>
-	<url>http://code.google.com/p/simple-java-mail/issues/</url>
+  	<system>Google Code</system>
+  	<url>http://code.google.com/p/simple-java-mail/issues/</url>
   </issueManagement>
   
   <dependencies>
