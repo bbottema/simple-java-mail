@@ -9,10 +9,10 @@ The problem becomes evident when testing the mail in various e-mail clients (bot
   * not seeing the HTML version if a text version is present, 
   * not seeing the text version if a HTML version is present, 
   * not seeing attachments,
-  * attachments aren't handled correctly according to mime type ,or
+  * attachments aren't handled correctly according to mime type, or
   * header information is missing or incorrect so you can't see how long a download will take, 
   * from/to addresses being malformed (like missing the `<name>` part in '`<name> adres@domain.com`')
 
-The research has been done and this library is RFC compliant for simple to complex mails. Furthermore, it has been confirmed by a professional test team that mails sent using Simple Java Mail are displayed consistent and correctly in a range of known clients such as Outlook, Thunderbird, Gmail, Hotmail etc.
+The research has been done and Simple Java Mail is RFC compliant for simple to complex mails. Furthermore, it has been confirmed by a professional test team that mails sent using Simple Java Mail are displayed consistent and correctly in a range of known clients such as Outlook, Thunderbird, Gmail, Hotmail etc.
 
 [Manual back to the Manual]
