@@ -22,7 +22,8 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimeUtility;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content,
@@ -67,7 +68,7 @@ import org.apache.log4j.Logger;
  */
 public class Mailer {
 
-	private static final Logger logger = Logger.getLogger(Mailer.class);
+	private static final Logger logger = LoggerFactory.getLogger(Mailer.class);
 	
 	/**
 	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@value #CHARACTER_ENCODING}).
