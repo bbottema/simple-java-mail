@@ -338,7 +338,7 @@ public class Mailer {
 	private void setRecipients(final Email email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
 		for (final Recipient recipient : email.getRecipients()) {
-			final Address address = new InternetAddress(recipient.getAddress(), recipient.getName());
+			final Address address = new InternetAddress(recipient.getAddress(), recipient.getName(), CHARACTER_ENCODING);
 			message.addRecipient(recipient.getType(), address);
 		}
 	}
