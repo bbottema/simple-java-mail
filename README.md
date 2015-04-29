@@ -10,7 +10,7 @@ The Simple Java Mail framework essentially is a wrapper around the JavaMail smtp
 ---
 
 
-Simple Java Mail is now available in Maven Central:
+Simple Java Mail is available in Maven Central:
 
 ```
 <dependency>
