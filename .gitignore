@@ -49,3 +49,8 @@ crashlytics.properties
 crashlytics-build.properties
 
 /target
+
+# Eclipse
+/.settings
+.classpath
+.project
