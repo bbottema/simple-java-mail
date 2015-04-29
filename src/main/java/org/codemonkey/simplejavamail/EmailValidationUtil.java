@@ -37,10 +37,10 @@ public final class EmailValidationUtil {
 	 * 
 	 * @param email A complete email address.
 	 * @return Whether the e-mail address is compliant with RFC 2822.
-	 * @see EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)
+	 * @see EmailAddressValidationCriteria#RFC_COMPLIANT
 	 */
 	public static boolean isValid(final String email) {
-		return isValid(email, new EmailAddressValidationCriteria(true, true));
+		return isValid(email, EmailAddressValidationCriteria.RFC_COMPLIANT);
 	}
 
 	/**
@@ -49,7 +49,7 @@ public final class EmailValidationUtil {
 	 * @param email A complete email address.
 	 * @param emailAddressValidationCriteria A set of flags that restrict or relax RFC 2822 compliance.
 	 * @return Whether the e-mail address is compliant with RFC 2822, configured using the passed in {@link EmailAddressValidationCriteria}.
-	 * @see EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)
+	 * @see EmailAddressValidationCriteria#RFC_COMPLIANT
 	 */
 	public static boolean isValid(final String email, final EmailAddressValidationCriteria emailAddressValidationCriteria) {
 		return buildValidEmailPattern(emailAddressValidationCriteria).matcher(email).matches();

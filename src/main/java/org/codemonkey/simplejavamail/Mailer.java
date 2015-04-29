@@ -69,7 +69,7 @@ import org.slf4j.LoggerFactory;
 public class Mailer {
 
 	private static final Logger logger = LoggerFactory.getLogger(Mailer.class);
-	
+
 	/**
 	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@value #CHARACTER_ENCODING}).
 	 */
@@ -101,22 +101,22 @@ public class Mailer {
 	 * Default constructor, stores the given mail session for later use. Assumes that *all* properties used to make a connection are
 	 * configured (host, port, authentication and transport protocol settings).
 	 * <p>
-	 * Also defines a default email address validation criteria object, which remains true to RFC 2822, meaning allowing both domain
-	 * literals and quoted identifiers (see {@link EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)}).
+	 * Also leaves email address validation criteria empty so that no validation is being performed. Validation errors will come from the
+	 * smtp server instead.
 	 * 
 	 * @param session A preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 */
 	public Mailer(final Session session) {
 		this.session = session;
-		this.emailAddressValidationCriteria = new EmailAddressValidationCriteria(true, true);
+		this.emailAddressValidationCriteria = null;
 	}
 
 	/**
 	 * Overloaded constructor which produces a new {@link Session} on the fly. Use this if you don't have a mail session configured in your
 	 * web container, or Spring context etc.
 	 * <p>
-	 * Also defines a default email address validation criteria object, which remains true to RFC 2822, meaning allowing both domain
-	 * literals and quoted identifiers (see {@link EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)}).
+	 * Also leaves email address validation criteria empty so that no validation is being performed. Validation errors will come from the
+	 * smtp server instead.
 	 * 
 	 * @param host The address URL of the SMTP server to be used.
 	 * @param port The port of the SMTP server.
@@ -134,7 +134,7 @@ public class Mailer {
 		}
 		this.transportStrategy = transportStrategy;
 		this.session = createMailSession(host, port, username, password);
-		this.emailAddressValidationCriteria = new EmailAddressValidationCriteria(true, true);
+		this.emailAddressValidationCriteria = null;
 	}
 
 	/**
@@ -287,7 +287,7 @@ public class Mailer {
 			throw new MailException(MailException.MISSING_RECIPIENT);
 		} else if (email.getFromRecipient() == null) {
 			throw new MailException(MailException.MISSING_SENDER);
-		} else {
+		} else if (emailAddressValidationCriteria != null) {
 			if (!EmailValidationUtil.isValid(email.getFromRecipient().getAddress(), emailAddressValidationCriteria)) {
 				throw new MailException(String.format(MailException.INVALID_SENDER, email));
 			}
@@ -362,7 +362,8 @@ public class Mailer {
 			throws UnsupportedEncodingException, MessagingException {
 		final Recipient replyToRecipient = email.getReplyToRecipient();
 		if (replyToRecipient != null) {
-			InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(), CHARACTER_ENCODING);
+			InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(),
+					CHARACTER_ENCODING);
 			message.setReplyTo(new Address[] { replyToAddress });
 		}
 	}
@@ -516,7 +517,7 @@ public class Mailer {
 
 	/**
 	 * Overrides the default email address validation restrictions when validating and sending emails using the current <code>Mailer</code>
-	 * instance.
+	 * instance. By default no validation will be performed by simple-java-mail, until a criteria object has been set.
 	 * 
 	 * @param emailAddressValidationCriteria Refer to
 	 *            {@link EmailAddressValidationCriteria#EmailAddressValidationCriteria(boolean, boolean)}.

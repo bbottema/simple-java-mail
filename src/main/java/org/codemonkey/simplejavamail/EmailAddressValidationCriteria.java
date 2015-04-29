@@ -8,8 +8,16 @@ package org.codemonkey.simplejavamail;
  * @see #EmailAddressValidationCriteria(boolean, boolean)
  */
 public class EmailAddressValidationCriteria {
+
 	private final boolean allowDomainLiterals;
 	private final boolean allowQuotedIdentifiers;
+
+	/**
+	 * Criteria which is most RFC 2822 compliant and allows all compiant address forms, including the more exotic ones.
+	 * 
+	 * @see #EmailAddressValidationCriteria(boolean, boolean)
+	 */
+	public static final EmailAddressValidationCriteria RFC_COMPLIANT = new EmailAddressValidationCriteria(true, true);
 
 	/**
 	 * @param allowDomainLiterals <ul>
@@ -25,8 +33,7 @@ public class EmailAddressValidationCriteria {
 	 *            change this constant to <tt>false</tt>.
 	 *            <p>
 	 *            Its default value is <tt>true</tt> to remain RFC 2822 compliant, but you should set it depending on what you need for your
-	 *            application.
-	 *            </li>
+	 *            application.</li>
 	 *            </ul>
 	 * @param allowQuotedIdentifiers <ul>
 	 *            <li>This flag states whether quoted identifiers are allowed (using quotes and angle brackets around the raw address) are
@@ -39,8 +46,7 @@ public class EmailAddressValidationCriteria {
 	 *            <tt>false</tt>.
 	 *            <p>
 	 *            Its default value is <tt>true</tt> to remain RFC 2822 compliant, but you should set it depending on what you need for your
-	 *            application.
-	 *            </li>
+	 *            application.</li>
 	 *            </ul>
 	 */
 	public EmailAddressValidationCriteria(boolean allowDomainLiterals, boolean allowQuotedIdentifiers) {
