@@ -4,7 +4,7 @@ Simple Java Mail aims to be the simplest to use lightweight mailing framework fo
 
 The Simple Java Mail framework essentially is a wrapper around the JavaMail smtp mailing API that allows users to define emails on a high abstraction level without having to deal with mumbo jumbo such a 'multipart' and 'mimemessage'.
 
-### [Simple Java Mail one-page manual](http://code.google.com/p/simple-java-mail/wiki/Manual) ###
+### [Simple Java Mail one-page manual](https://github.com/bbottema/simple-java-mail/wiki/Manual) ###
 
 
 ---
@@ -24,7 +24,7 @@ Simple Java Mail is available in Maven Central:
 
 v2.2 (unreleased): 
 
-  * [Fluent interface](http://en.wikipedia.org/wiki/Builder_pattern) for building emails (see [manual](Manual) for an example)
+  * [Fluent interface](http://en.wikipedia.org/wiki/Builder_pattern) for building emails (see [manual](https://github.com/bbottema/simple-java-mail/wiki/Manual) for an example)
   * Replaced log4j with slf4j
   * Various bugfixes (most importantly a `NullPointerException` when mailing using your own `Session` instance
 
