@@ -1,5 +1,10 @@
-http://code.google.com/p/simple-java-mail/
+https://github.com/bbottema/simple-java-mail/
 
+<dependency>
+    <groupId>org.codemonkey.simplejavamail</groupId>
+    <artifactId>simple-java-mail</artifactId>
+    <version>2.1</version>
+</dependency>
 
 RELEASE NOTES Java Simple Mail
 
