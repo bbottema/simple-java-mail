@@ -306,7 +306,7 @@ public class Mailer {
 	 * @param email The email message from which the subject and From-address are extracted.
 	 * @param messageRoot The root of the email which holds everything (filled with some email data).
 	 * @return A fully preparated {@link Message} instance, ready to be sent.
-	 * @throws MessagingException Kan gegooid worden als het message niet goed behandelt wordt.
+	 * @throws MessagingException May be thrown when the message couldn't be processed by JavaMail.
 	 * @throws UnsupportedEncodingException Zie {@link InternetAddress#InternetAddress(String, String)}.
 	 */
 	private Message prepareMessage(final Email email, final MimeEmailMessageWrapper messageRoot)
