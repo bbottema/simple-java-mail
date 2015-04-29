@@ -3,7 +3,7 @@
   =========================================================================
   
   Simple Java Mail
-  Copyright 2009-2013 B. Bottema
+  Copyright 2009-2015 B. Bottema
   
   This product uses no commercial products.
   
