@@ -255,11 +255,17 @@ public class Mailer {
 	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
 	 */
 	private void logSession(Session session, TransportStrategy transportStrategy) {
-		final String logmsg = "starting mail session (host: %s, port: %s, username: %s, authenticate: %s, transport: %s)";
 		Properties properties = session.getProperties();
-		logger.debug(String.format(logmsg, properties.get(transportStrategy.propertyNameHost()),
-				properties.get(transportStrategy.propertyNamePort()), properties.get(transportStrategy.propertyNameUsername()),
-				properties.get(transportStrategy.propertyNameAuthenticate()), transportStrategy));
+		final String specifics;
+		if (transportStrategy != null) {
+			final String logmsg = "starting mail session (host: %s, port: %s, username: %s, authenticate: %s, transport: %s)";
+			specifics = String.format(logmsg, properties.get(transportStrategy.propertyNameHost()),
+					properties.get(transportStrategy.propertyNamePort()), properties.get(transportStrategy.propertyNameUsername()),
+					properties.get(transportStrategy.propertyNameAuthenticate()), transportStrategy);
+		} else {
+			specifics = properties.toString();
+		}
+		logger.debug(String.format("starting mail session (%s)", specifics));
 	}
 
 	/**
