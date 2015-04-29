@@ -10,9 +10,7 @@ The Simple Java Mail framework essentially is a wrapper around the JavaMail smtp
 ---
 
 
-### Latest Progress ###
-
-Simple Java Mail is now available in Maven Central!
+Simple Java Mail is now available in Maven Central:
 
 ```
 <dependency>
@@ -21,6 +19,14 @@ Simple Java Mail is now available in Maven Central!
     <version>2.1</version>
 </dependency>
 ```
+
+### Latest Progress ###
+
+v2.2 (unreleased): 
+
+  * [Fluent interface](http://en.wikipedia.org/wiki/Builder_pattern) for building emails (see [manual](Manual) for an example)
+  * Replaced log4j with slf4j
+  * Various bugfixes (most importantly a `NullPointerException` when mailing using your own `Session` instance
 
 v2.1
 
