@@ -13,7 +13,7 @@
   <name>Simple Java Mail</name>
   <version>2.2-SNAPSHOT</version>
   <description>A light weight wrapper for the JavaMail SMTP API</description>
-  <url>http://code.google.com/p/simple-java-mail/</url>
+  <url>https://github.com/bbottema/simple-java-mail</url>
   
   <licenses>
     <license>
@@ -24,9 +24,9 @@
   </licenses>
   
   <scm>
-    <connection>scm:svn:http://simple-java-mail.googlecode.com/svn/trunk</connection>
-    <developerConnection>scm:svn:https://simple-java-mail.googlecode.com/svn/trunk</developerConnection>
-    <url>http://simple-java-mail.googlecode.com/svn/trunk</url>
+    <connection>scm:git:git://github.com/bbottema/simple-java-mail.git</connection>
+    <developerConnection>scm:git:git@github.com:bbottema/simple-java-mail.git</developerConnection>
+    <url>https://github.com/bbottema/simple-java-mail</url>
   </scm>
   
   <developers>
@@ -43,8 +43,8 @@
   </developers>
   
   <issueManagement>
-  	<system>Google Code</system>
-  	<url>http://code.google.com/p/simple-java-mail/issues/</url>
+  	<system>GitHub Issues</system>
+  	<url>https://github.com/bbottema/simple-java-mail/issues</url>
   </issueManagement>
   
   <dependencies>
