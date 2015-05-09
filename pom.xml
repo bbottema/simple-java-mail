@@ -1,65 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
-  <parent>
-    <groupId>org.sonatype.oss</groupId>
-    <artifactId>oss-parent</artifactId>
-    <version>7</version>
-  </parent>
-  
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>org.codemonkey.simplejavamail</groupId>
-  <artifactId>simple-java-mail</artifactId>
-  <packaging>jar</packaging>
-  <name>Simple Java Mail</name>
-  <version>2.2-SNAPSHOT</version>
-  <description>A light weight wrapper for the JavaMail SMTP API</description>
-  <url>https://github.com/bbottema/simple-java-mail</url>
-  
-  <licenses>
-    <license>
-      <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-  
-  <scm>
-    <connection>scm:git:git://github.com/bbottema/simple-java-mail.git</connection>
-    <developerConnection>scm:git:git@github.com:bbottema/simple-java-mail.git</developerConnection>
-    <url>https://github.com/bbottema/simple-java-mail</url>
-  </scm>
-  
-  <developers>
-    <developer>
-      <id>benny</id>
-      <name>Benny Bottema</name>
-      <email>b.bottema@projectnibble.org</email>
-      <url>http://blog.projectnibble.org</url>
-      <roles>
-        <role>developer</role>
-        <role>packager</role>
-      </roles>
-    </developer>
-  </developers>
-  
-  <issueManagement>
-  	<system>GitHub Issues</system>
-  	<url>https://github.com/bbottema/simple-java-mail/issues</url>
-  </issueManagement>
-  
-  <dependencies>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.6.1</version>
-    </dependency>
-	<dependency>
-		<groupId>javax.mail</groupId>
-		<artifactId>mail</artifactId>
-		<version>1.4.1</version>
-	</dependency>
-  </dependencies>
-  
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>org.codemonkey.simplejavamail</groupId>
+	<artifactId>simple-java-mail</artifactId>
+	<packaging>jar</packaging>
+	<name>Simple Java Mail</name>
+	<version>2.3-SNAPSHOT</version>
+	<description>A light weight wrapper for the JavaMail SMTP API</description>
+	<url>https://github.com/bbottema/simple-java-mail</url>
+
+	<licenses>
+		<license>
+			<name>The Apache Software License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git://github.com/bbottema/simple-java-mail.git</connection>
+		<developerConnection>scm:git:git@github.com:bbottema/simple-java-mail.git</developerConnection>
+		<url>https://github.com/bbottema/simple-java-mail</url>
+	</scm>
+
+	<developers>
+		<developer>
+			<id>benny</id>
+			<name>Benny Bottema</name>
+			<email>b.bottema@projectnibble.org</email>
+			<url>http://blog.projectnibble.org</url>
+			<roles>
+				<role>developer</role>
+				<role>packager</role>
+			</roles>
+		</developer>
+	</developers>
+
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/bbottema/simple-java-mail/issues</url>
+	</issueManagement>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.6.1</version>
+		</dependency>
+		<dependency>
+			<groupId>javax.mail</groupId>
+			<artifactId>mail</artifactId>
+			<version>1.4.1</version>
+		</dependency>
+	</dependencies>
+
+	<distributionManagement>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+		<repository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
+	</distributionManagement>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -71,6 +77,43 @@
 						<phase>verify</phase>
 						<goals>
 							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
+				<version>1.6.3</version>
+				<extensions>true</extensions>
+				<configuration>
+					<serverId>ossrh</serverId>
+					<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+					<autoReleaseAfterClose>false</autoReleaseAfterClose>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>2.2.1</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.9.1</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
 						</goals>
 					</execution>
 				</executions>
