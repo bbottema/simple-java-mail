@@ -22,16 +22,20 @@ Simple Java Mail is available in Maven Central:
 
 ### Latest Progress ###
 
-v2.2 (unreleased): 
+v2.2
 
-  * [Fluent interface](http://en.wikipedia.org/wiki/Builder_pattern) for building emails (see [manual](https://github.com/bbottema/simple-java-mail/wiki/Manual) for an example)
-  * Replaced log4j with slf4j
-  * Various bugfixes (most importantly a `NullPointerException` when mailing using your own `Session` instance
+  * [#3](https://github.com/bbottema/simple-java-mail/issues/3): turned off email regex validation by default, with the option to turn it back on
+  * [#7](https://github.com/bbottema/simple-java-mail/issues/7): fixed NullPointerException when using your own Session instance
+  * [#10](https://github.com/bbottema/simple-java-mail/issues/10): properly UTF-8 encode recipient addresses
+  * [#14](https://github.com/bbottema/simple-java-mail/issues/14): switched to SLF4J, so you can easily use your own selected logging framework
+  * [#17](https://github.com/bbottema/simple-java-mail/issues/17): Added [fluent interface](http://en.wikipedia.org/wiki/Builder_pattern) for building emails (see [manual](https://github.com/bbottema/simple-java-mail/wiki/Manual) for an example)
+
 
 v2.1
 
   * fixed character encoding for reply-to, from, to, body text and headers (to UTF-8)
   * fixed bug where Recipient was not public resulting in uncompilable code when calling email.getRecipients()
+
 
 v2.0
 
