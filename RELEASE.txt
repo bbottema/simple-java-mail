@@ -14,6 +14,7 @@ v2.2
 - #7: fixed NullPointerException when using your own Session instance
 - #10: properly UTF-8 encode recipient addresses
 - #14: switched to SLF4J, so you can easily use your own selected logging framework
+- #17: Added fluent interface for building emails
 
 
 v2.1
