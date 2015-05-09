@@ -16,7 +16,7 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>2.1</version>
+    <version>2.2</version>
 </dependency>
 ```
 
