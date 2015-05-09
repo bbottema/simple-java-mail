@@ -3,15 +3,24 @@ https://github.com/bbottema/simple-java-mail/
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>2.1</version>
+    <version>2.2</version>
 </dependency>
 
 RELEASE NOTES Java Simple Mail
+
+v2.2
+
+- #3: turned off email regex validation by default, with the option to turn it back on
+- #7: fixed NullPointerException when using your own Session instance
+- #10: properly UTF-8 encode recipient addresses
+- #14: switched to SLF4J, so you can easily use your own selected logging framework
+
 
 v2.1
 
 - fixed character encoding for reply-to, from, to, body text and headers (to UTF-8)
 - fixed bug where Recipient was not public resulting in uncompilable code when calling email.getRecipients()
+
 
 v2.0
 
