@@ -2,8 +2,7 @@
  2. mvn deploy / mvn release:prepare release:perform
 		server needed in settings.xml (see below)
 
-Public Key Servers:
-
+maven's settings.xml:
 
     <server>
       <id>ossrh</id>
