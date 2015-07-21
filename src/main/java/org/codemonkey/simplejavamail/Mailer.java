@@ -157,7 +157,7 @@ public class Mailer {
 	 * @see TransportStrategy#propertyNameUsername()
 	 * @see TransportStrategy#propertyNameAuthenticate()
 	 */
-	public Session createMailSession(final String host, final Integer port, final String username, final String password) {
+	protected Session createMailSession(final String host, final Integer port, final String username, final String password) {
 		if (transportStrategy == null) {
 			logger.warn("Transport Strategy not set, using plain SMTP strategy instead!");
 			transportStrategy = TransportStrategy.SMTP_PLAIN;
@@ -201,12 +201,31 @@ public class Mailer {
 	}
 
 	/**
+	 * In case Simple Java Mail falls short somehow, you can get a hold of the internal {@link Session} instance to debug or tweak. Please
+	 * let us know why you are needing this on https://github.com/bbottema/simple-java-mail/issues.
+	 */
+	public Session getSession() {
+		logger.warn("Providing access to Session instance for emergency fall-back scenario. Please let us know why you need it.");
+		logger.warn("\t>https://github.com/bbottema/simple-java-mail/issues");
+		return session;
+	}
+
+	/**
 	 * Actually sets {@link Session#setDebug(boolean)} so that it generates debug information.
 	 * 
 	 * @param debug Flag to indicate debug mode yes/no.
 	 */
-	public void setDebug(boolean debug) {
+	public void setDebug(final boolean debug) {
 		session.setDebug(debug);
+	}
+
+	/**
+	 * Copies all property entries into the {@link Session} using {@link Session#getProperties()}.
+	 * 
+	 * @param properties The source properties to add or override in the internal {@link Session} instance.
+	 */
+	public void applyProperties(final Properties properties) {
+		session.getProperties().putAll(properties);
 	}
 
 	/**
