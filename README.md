@@ -26,6 +26,7 @@ v2.3 (unreleased)
 
   * [#19](https://github.com/bbottema/simple-java-mail/issues/19): supporting custom Session Properties now and emergency access to internal Session object.
 
+
 v2.2
 
   * [#3](https://github.com/bbottema/simple-java-mail/issues/3): turned off email regex validation by default, with the option to turn it back on
