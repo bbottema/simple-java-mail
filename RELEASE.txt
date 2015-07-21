@@ -8,7 +8,7 @@ https://github.com/bbottema/simple-java-mail/
 
 RELEASE NOTES Java Simple Mail
 
-v2.3 (unreleased)
+v2.3
 
 - #19: supporting custom Session Properties now and emergency access to internal Session object.
 
