@@ -16,11 +16,15 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>2.2</version>
+    <version>2.3</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v2.3 (unreleased)
+
+  * [#19](https://github.com/bbottema/simple-java-mail/issues/19): supporting custom Session Properties now and emergency access to internal Session object.
 
 v2.2
 

@@ -10,6 +10,6 @@
   This product uses the following external (Open Source) libraries:
   
     - activation package from jre6 
-    - Apache log4j (http://logging.apache.org/log4j/)
+    - SLF4J (http://http://www.slf4j.org/)
     - Sun Java Mail API, shipped with JavaEE or as seperate download) (http://java.sun.com/products/javamail/)
     - RFC Email validation regular expressions, by Les Hazlewood (http://www.leshazlewood.com/?p=23)
