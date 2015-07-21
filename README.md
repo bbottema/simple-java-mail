@@ -22,7 +22,7 @@ Simple Java Mail is available in Maven Central:
 
 ### Latest Progress ###
 
-v2.3 (unreleased)
+v2.3
 
   * [#19](https://github.com/bbottema/simple-java-mail/issues/19): supporting custom Session Properties now and emergency access to internal Session object.
 
