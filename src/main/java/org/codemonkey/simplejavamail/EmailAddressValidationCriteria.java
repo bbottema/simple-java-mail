@@ -23,8 +23,8 @@ public class EmailAddressValidationCriteria {
 	 * @param allowDomainLiterals <ul>
 	 *            <li>This flag states whether domain literals are allowed in the email address, e.g.:
 	 *            <p>
-	 *            <tt>someone@[192.168.1.100]</tt> or <br/>
-	 *            <tt>john.doe@[23:33:A2:22:16:1F]</tt> or <br/>
+	 *            <tt>someone@[192.168.1.100]</tt> or <br>
+	 *            <tt>john.doe@[23:33:A2:22:16:1F]</tt> or <br>
 	 *            <tt>me@[my computer]</tt>
 	 *            </p>
 	 *            <p>

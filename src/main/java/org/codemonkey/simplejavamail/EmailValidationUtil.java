@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 /**
  * Validates an email address according to <a href="http://www.ietf.org/rfc/rfc2822.txt">RFC 2822</a>, using regular expressions.
  * <p>
- * From the original author: <br />
+ * From the original author: <br>
  * <blockquote> If you use this code, please keep the author information in tact and reference my site at <a
  * href="http://www.leshazlewood.com">leshazlewood.com</a>. Thanks! </blockquote>
  * <p>

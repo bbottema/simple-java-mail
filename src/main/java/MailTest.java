@@ -7,7 +7,7 @@ import org.codemonkey.simplejavamail.TransportStrategy;
 /**
  * Demonstration program for the Simple Java Mail framework.
  * <p>
- * <b>IMPORTANT</b>: <br />
+ * <b>IMPORTANT</b>: <br>
  * This testclass was designed to run from the commandline (or by Ant) and expects some system properties to be present. See
  * <b>Readme.txt</b> for instructions. Alternatively, you can assign the host, username and password a hard value and ignore the system
  * properties altogether.

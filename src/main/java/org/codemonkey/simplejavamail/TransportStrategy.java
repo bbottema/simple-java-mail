@@ -63,7 +63,7 @@ public enum TransportStrategy {
 	},
 	/**
 	 * SMTPS / SSL transport strategy, that returns the ".smtps." variation of the SMTP_PLAIN version. Additionally the transport protocol
-	 * is explicitly set to smtps. Finally, he property "mail.smtps.quitwait" is set to false, to get rid of a strange SSL exception:<br />
+	 * is explicitly set to smtps. Finally, he property "mail.smtps.quitwait" is set to false, to get rid of a strange SSL exception:<br>
 	 * 
 	 * <pre>
 	 * javax.mail.MessagingException: Exception reading response;
@@ -72,9 +72,9 @@ public enum TransportStrategy {
 	 * (..)
 	 * </pre>
 	 * 
-	 * <quote>The mail is sent but the exception is unwanted. The property <em>quitwait</em> means If set to false, the QUIT command is sent
+	 * <blockquote>The mail is sent but the exception is unwanted. The property <em>quitwait</em> means If set to false, the QUIT command is sent
 	 * and the connection is immediately closed. If set to true (the default), causes the transport to wait for the response to the QUIT
-	 * command</quote><br />
+	 * command</blockquote><br>
 	 * <strong>- <a href="http://www.rgagnon.com/javadetails/java-0570.html">source</a></strong>
 	 */
 	SMTP_SSL {

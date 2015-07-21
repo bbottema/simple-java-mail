@@ -27,15 +27,15 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content,
- * embedded images and separate attachments, SMTP, SMTPS / SSL and SMTP + SSL<br />
- * <br />
+ * embedded images and separate attachments, SMTP, SMTPS / SSL and SMTP + SSL<br>
+ * <br>
  * This mailing tool abstracts the javax.mail API to a higher level easy to use API. For public use, this tool only works with {@link Email}
- * instances. <br />
- * <br />
+ * instances. <br>
+ * <br>
  * The e-mail message structure is built to work with all e-mail clients and has been tested with many different webclients as well as some
- * mainstream client applications such as MS Outlook or Mozilla Thunderbird.<br />
- * <br />
- * Technically, the resulting email structure is as follows:<br />
+ * mainstream client applications such as MS Outlook or Mozilla Thunderbird.<br>
+ * <br>
+ * Technically, the resulting email structure is as follows:<br>
  * 
  * <pre>
  * - root
@@ -47,8 +47,8 @@ import org.slf4j.LoggerFactory;
  * 	- attachments
  * </pre>
  * 
- * <br />
- * Usage example:<br />
+ * <br>
+ * Usage example:<br>
  * 
  * <pre>
  * Email email = new Email();
@@ -464,8 +464,8 @@ public class Mailer {
 	/**
 	 * Helper method which generates a {@link BodyPart} from an {@link AttachmentResource} (from its {@link DataSource}) and a disposition
 	 * type ({@link Part#INLINE} or {@link Part#ATTACHMENT}). With this the attachment data can be converted into objects that fit in the
-	 * email structure. <br />
-	 * <br />
+	 * email structure. <br>
+	 * <br>
 	 * For every attachment and embedded image a header needs to be set.
 	 * 
 	 * @param resource An object that describes the attachment and contains the actual content data.
@@ -488,8 +488,8 @@ public class Mailer {
 
 	/**
 	 * This class conveniently wraps all necessary mimemessage parts that need to be filled with content, attachments etc. The root is
-	 * ultimately sent using JavaMail.<br />
-	 * <br />
+	 * ultimately sent using JavaMail.<br>
+	 * <br>
 	 * The constructor creates a new email message constructed from {@link MimeMultipart} as follows:
 	 * 
 	 * <pre>
