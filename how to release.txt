@@ -1,5 +1,12 @@
  1. update release notes and github readme page
- 2. mvn release:prepare
- 3. temporarily set pom.xml <version> to new release version
- 3. mvn clean repository:bundle-create
- 4. upload bundle to https://oss.sonatype.org/#staging-upload and revert pom.xml
+ 2. mvn deploy / mvn release:prepare release:perform
+		server needed in settings.xml (see below)
+
+Public Key Servers:
+
+
+    <server>
+      <id>ossrh</id>
+      <username>sonatype user</username>
+      <password>sonatype password</password>
+    </server>
