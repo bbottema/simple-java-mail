@@ -1,5 +1,5 @@
  1. update release notes and github readme page
- 2. mvn deploy / mvn release:prepare release:perform
+ 2. mvn deploy (use local pgp key password, or is it oss.sonatype's password?)
 		server needed in settings.xml (see below)
 
 maven's settings.xml:
