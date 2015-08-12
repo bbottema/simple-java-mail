@@ -410,7 +410,7 @@ public class Email {
 		 * @see Recipient
 		 */
 		public Builder cc(final Recipient recipient) {
-			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), RecipientType.TO));
+			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), RecipientType.CC));
 			return this;
 		}
 
@@ -435,7 +435,7 @@ public class Email {
 		 * @see Recipient
 		 */
 		public Builder bcc(final Recipient recipient) {
-			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), RecipientType.TO));
+			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), RecipientType.BCC));
 			return this;
 		}
 
