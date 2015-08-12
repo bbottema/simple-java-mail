@@ -16,11 +16,16 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>2.3</version>
+    <version>2.4</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v2.4
+
+  * [#21](https://github.com/bbottema/simple-java-mail/issues/21): builder API uses CC and BCC recepient types incorrectly
+
 
 v2.3
 
