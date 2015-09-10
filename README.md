@@ -24,7 +24,7 @@ Simple Java Mail is available in Maven Central:
 
 v2.4
 
-  * [#21](https://github.com/bbottema/simple-java-mail/issues/21): builder API uses CC and BCC recepient types incorrectly
+  * [#21](https://github.com/bbottema/simple-java-mail/issues/21): builder API uses CC and BCC recipient types incorrectly
 
 
 v2.3
