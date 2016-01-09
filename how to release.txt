@@ -1,6 +1,6 @@
  1. update release notes and github readme page
  2. remove SNAPSHOT version
- 3. mvn deploy (use local pgp key password, enter it 5 times, probably it finally skips this step)
+ 3. mvn deploy (use local pgp key password for which the public key must have been sent to a public key server, eg: gpg --keyserver hkp://keyserver.ubuntu.com --send-keys 05AC6403)
 		server needed in settings.xml (see below)
  4. add new SNAPSHOT version
 
@@ -11,3 +11,18 @@ maven's settings.xml:
       <username>sonatype user</username>
       <password>sonatype password</password>
     </server>
+
+To have a global gpg password so that it will use that automatically:
+
+	<profiles>
+		<profile>
+			<id>gpg</id>
+			<properties>
+				<gpg.executable>gpg</gpg.executable>
+				<gpg.passphrase>letmein</gpg.passphrase>
+			</properties>
+		</profile>
+	</profiles>
+	<activeProfiles>
+		<activeProfile>gpg</activeProfile>
+	</activeProfiles>
