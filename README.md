@@ -16,11 +16,15 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>2.4</version>
+    <version>2.5</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v2.5
+
+  * [#24](https://github.com/bbottema/simple-java-mail/issues/24): Updated dependencies SLF4J to 1.7.13 and switched to the updated javax mail package com.sun.mail:javax.mail 1.5.5
 
 v2.4
 
