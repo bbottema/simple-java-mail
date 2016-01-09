@@ -1,6 +1,8 @@
  1. update release notes and github readme page
- 2. mvn deploy (use local pgp key password, or is it oss.sonatype's password?)
+ 2. remove SNAPSHOT version
+ 3. mvn deploy (use local pgp key password, enter it 5 times, probably it finally skips this step)
 		server needed in settings.xml (see below)
+ 4. add new SNAPSHOT version
 
 maven's settings.xml:
 
