@@ -16,11 +16,15 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>2.5</version>
+    <version>2.5.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v2.5.1
+
+  * [#25](https://github.com/bbottema/simple-java-mail/issues/25): Added finally clausule that will always close socket properly in case of an exception
 
 v2.5
 
