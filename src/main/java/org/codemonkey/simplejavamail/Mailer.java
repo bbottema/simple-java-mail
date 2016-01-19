@@ -258,9 +258,12 @@ public class Mailer {
 				logSession(session, transportStrategy);
 				message.saveChanges(); // some headers and id's will be set for this specific message
 				Transport transport = session.getTransport();
-				transport.connect();
-				transport.sendMessage(message, message.getAllRecipients());
-				transport.close();
+				try {
+					transport.connect();
+					transport.sendMessage(message, message.getAllRecipients());
+				} finally {
+					transport.close();
+				}
 			} catch (final UnsupportedEncodingException e) {
 				logger.error(e.getMessage(), e);
 				throw new MailException(String.format(MailException.INVALID_ENCODING, e.getMessage()));
