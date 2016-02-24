@@ -21,12 +21,13 @@ public final class MailException extends RuntimeException {
 	protected static final String MISSING_RECIPIENT = "Email is not valid: missing recipients";
 	protected static final String MISSING_SUBJECT = "Email is not valid: missing subject";
 	protected static final String MISSING_CONTENT = "Email is not valid: missing content body";
+	protected static final String PARSE_MIMEMESSAGE_ERROR = "Error parsing MimeMessage: %s";
 
 	protected MailException(final String message) {
 		super(message);
 	}
 
-	protected MailException(final String message, final MessagingException cause) {
+	protected MailException(final String message, final Exception cause) {
 		super(message, cause);
 	}
 }

@@ -241,7 +241,7 @@ public class Mailer {
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending
 	 *             etc.
 	 * @see #validate(Email)
-	 * @see #prepareMessage(Email, MimeEmailMessageWrapper)
+	 * @see #produceMimeMessage(Email, Session)
 	 * @see #setRecipients(Email, Message)
 	 * @see #setTexts(Email, MimeMultipart)
 	 * @see #setEmbeddedImages(Email, MimeMultipart)
@@ -251,10 +251,8 @@ public class Mailer {
 			throws MailException {
 		if (validate(email)) {
 			try {
-				// create new wrapper for each mail being sent (enable sending multiple emails with one mailer)
-				final MimeEmailMessageWrapper messageRoot = new MimeEmailMessageWrapper();
 				// fill and send wrapped mime message parts
-				final Message message = prepareMessage(email, messageRoot);
+				final Message message = produceMimeMessage(email, session);
 				logSession(session, transportStrategy);
 				message.saveChanges(); // some headers and id's will be set for this specific message
 				Transport transport = session.getTransport();
@@ -333,13 +331,21 @@ public class Mailer {
 	 * Fills subject, from,reply-to, content, sent-date, recipients, texts, embedded images, attachments, content and adds all headers.
 	 * 
 	 * @param email The email message from which the subject and From-address are extracted.
-	 * @param messageRoot The root of the email which holds everything (filled with some email data).
+	 * @param session The Session to attach the MimeMessage to
 	 * @return A fully preparated {@link Message} instance, ready to be sent.
 	 * @throws MessagingException May be thrown when the message couldn't be processed by JavaMail.
 	 * @throws UnsupportedEncodingException Zie {@link InternetAddress#InternetAddress(String, String)}.
 	 */
-	private Message prepareMessage(final Email email, final MimeEmailMessageWrapper messageRoot)
+	public static MimeMessage produceMimeMessage(final Email email, final Session session)
 			throws MessagingException, UnsupportedEncodingException {
+		if (email == null) {
+			throw new IllegalStateException("email is missing");
+		}
+		if (session == null) {
+			throw new IllegalStateException("session is needed, it cannot be attached later");
+		}
+		// create new wrapper for each mail being sent (enable sending multiple emails with one mailer)
+		final MimeEmailMessageWrapper messageRoot = new MimeEmailMessageWrapper();
 		final MimeMessage message = new MimeMessage(session);
 		// set basic email properties
 		message.setSubject(email.getSubject(), CHARACTER_ENCODING);
@@ -364,7 +370,7 @@ public class Mailer {
 	 * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.
 	 * @throws MessagingException See {@link Message#addRecipient(javax.mail.Message.RecipientType, Address)}
 	 */
-	private void setRecipients(final Email email, final Message message)
+	private static void setRecipients(final Email email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
 		for (final Recipient recipient : email.getRecipients()) {
 			final Address address = new InternetAddress(recipient.getAddress(), recipient.getName(), CHARACTER_ENCODING);
@@ -380,7 +386,7 @@ public class Mailer {
 	 * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.
 	 * @throws MessagingException See {@link Message#setReplyTo(Address[])}
 	 */
-	private void setReplyTo(final Email email, final Message message)
+	private static void setReplyTo(final Email email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
 		final Recipient replyToRecipient = email.getReplyToRecipient();
 		if (replyToRecipient != null) {
@@ -398,7 +404,7 @@ public class Mailer {
 	 * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)} and
 	 *             {@link MimeMultipart#addBodyPart(BodyPart)}.
 	 */
-	private void setTexts(final Email email, final MimeMultipart multipartAlternativeMessages)
+	private static void setTexts(final Email email, final MimeMultipart multipartAlternativeMessages)
 			throws MessagingException {
 		if (email.getText() != null) {
 			final MimeBodyPart messagePart = new MimeBodyPart();
@@ -420,7 +426,7 @@ public class Mailer {
 	 * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and
 	 *             {@link #getBodyPartFromDatasource(AttachmentResource, String)}
 	 */
-	private void setEmbeddedImages(final Email email, final MimeMultipart multipartRelated)
+	private static void setEmbeddedImages(final Email email, final MimeMultipart multipartRelated)
 			throws MessagingException {
 		for (final AttachmentResource embeddedImage : email.getEmbeddedImages()) {
 			multipartRelated.addBodyPart(getBodyPartFromDatasource(embeddedImage, Part.INLINE));
@@ -435,7 +441,7 @@ public class Mailer {
 	 * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and
 	 *             {@link #getBodyPartFromDatasource(AttachmentResource, String)}
 	 */
-	private void setAttachments(final Email email, final MimeMultipart multipartRoot)
+	private static void setAttachments(final Email email, final MimeMultipart multipartRoot)
 			throws MessagingException {
 		for (final AttachmentResource resource : email.getAttachments()) {
 			multipartRoot.addBodyPart(getBodyPartFromDatasource(resource, Part.ATTACHMENT));
@@ -453,7 +459,7 @@ public class Mailer {
 	 * @see {@link MimeUtility#encodeText(String, String, String)}
 	 * @see MimeUtility#fold(int, String)
 	 */
-	private void setHeaders(final Email email, final Message message)
+	private static void setHeaders(final Email email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
 		// add headers (for raw message headers we need to 'fold' them using MimeUtility
 		for (Map.Entry<String, String> header : email.getHeaders().entrySet()) {
@@ -476,7 +482,7 @@ public class Mailer {
 	 * @return An object with the attachment data read for placement in the email structure.
 	 * @throws MessagingException All BodyPart setters.
 	 */
-	private BodyPart getBodyPartFromDatasource(final AttachmentResource resource, final String dispositionType)
+	private static BodyPart getBodyPartFromDatasource(final AttachmentResource resource, final String dispositionType)
 			throws MessagingException {
 		final BodyPart attachmentPart = new MimeBodyPart();
 		final DataSource ds = resource.getDataSource();
@@ -507,7 +513,7 @@ public class Mailer {
 	 * 
 	 * @author Benny Bottema
 	 */
-	private class MimeEmailMessageWrapper {
+	private static class MimeEmailMessageWrapper {
 
 		private final MimeMultipart multipartRoot;
 

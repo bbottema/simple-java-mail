@@ -1,5 +1,6 @@
 package org.codemonkey.simplejavamail;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -7,7 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 import javax.activation.DataSource;
+import javax.mail.Address;
 import javax.mail.Message.RecipientType;
+import javax.mail.MessagingException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 
 /**
@@ -73,7 +78,7 @@ public class Email {
 	/**
 	 * Sets the sender address.
 	 *
-	 * @param name The sender's name.
+	 * @param name        The sender's name.
 	 * @param fromAddress The sender's email address.
 	 */
 	public void setFromAddress(final String name, final String fromAddress) {
@@ -83,7 +88,7 @@ public class Email {
 	/**
 	 * Sets the reply-to address (optional).
 	 *
-	 * @param name The replied-to-receiver name.
+	 * @param name           The replied-to-receiver name.
 	 * @param replyToAddress The replied-to-receiver email address.
 	 */
 	public void setReplyToAddress(final String name, final String replyToAddress) {
@@ -114,9 +119,9 @@ public class Email {
 	/**
 	 * Adds a new {@link Recipient} to the list on account of name, address and recipient type (eg. {@link RecipientType#CC}).
 	 *
-	 * @param name The name of the recipient.
+	 * @param name    The name of the recipient.
 	 * @param address The emailadres of the recipient.
-	 * @param type The type of receiver (eg. {@link RecipientType#CC}).
+	 * @param type    The type of receiver (eg. {@link RecipientType#CC}).
 	 * @see #recipients
 	 * @see Recipient
 	 * @see RecipientType
@@ -130,8 +135,8 @@ public class Email {
 	 * data. Then delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a
 	 * {@link ByteArrayDataSource}.
 	 *
-	 * @param name The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
-	 * @param data The byte data of the image to be embedded.
+	 * @param name     The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
+	 * @param data     The byte data of the image to be embedded.
 	 * @param mimetype The content type of the given data (eg. "image/gif" or "image/jpeg").
 	 * @see ByteArrayDataSource
 	 * @see #addEmbeddedImage(String, DataSource)
@@ -145,7 +150,7 @@ public class Email {
 	/**
 	 * Overloaded method which sets an embedded image on account of name and {@link DataSource}.
 	 *
-	 * @param name The name of the image as being referred to from the message content body (eg. '&lt;cid:embeddedimage&gt;').
+	 * @param name      The name of the image as being referred to from the message content body (eg. '&lt;cid:embeddedimage&gt;').
 	 * @param imagedata The image data.
 	 */
 	public void addEmbeddedImage(final String name, final DataSource imagedata) {
@@ -154,10 +159,10 @@ public class Email {
 
 	/**
 	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
-	 * <p>
+	 * <p/>
 	 * example: <code>email.addHeader("X-Priority", 2)</code>
 	 *
-	 * @param name The name of the header.
+	 * @param name  The name of the header.
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
 	 */
 	public void addHeader(final String name, final Object value) {
@@ -168,8 +173,8 @@ public class Email {
 	 * Adds an attachment to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to
 	 * {@link #addAttachment(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 	 *
-	 * @param name The name of the extension (eg. filename including extension).
-	 * @param data The byte data of the attachment.
+	 * @param name     The name of the extension (eg. filename including extension).
+	 * @param data     The byte data of the attachment.
 	 * @param mimetype The content type of the given data (eg. "plain/text", "image/gif" or "application/pdf").
 	 * @see ByteArrayDataSource
 	 * @see #addAttachment(String, DataSource)
@@ -183,7 +188,7 @@ public class Email {
 	/**
 	 * Overloaded method which sets an attachment on account of name and {@link DataSource}.
 	 *
-	 * @param name The name of the attachment (eg. 'filename.ext').
+	 * @param name     The name of the attachment (eg. 'filename.ext').
 	 * @param filedata The attachment data.
 	 */
 	public void addAttachment(final String name, final DataSource filedata) {
@@ -255,6 +260,7 @@ public class Email {
 
 	/**
 	 * Fluent interface Builder for Emails
+	 *
 	 * @author Jared Stewart
 	 */
 	public static class Builder {
@@ -318,10 +324,10 @@ public class Email {
 		/**
 		 * Sets the sender address.
 		 *
-		 * @param name The sender's name.
+		 * @param name        The sender's name.
 		 * @param fromAddress The sender's email address.
 		 */
-		public Builder from(final String name, final String fromAddress){
+		public Builder from(final String name, final String fromAddress) {
 			this.fromRecipient = new Recipient(name, fromAddress, null);
 			return this;
 		}
@@ -329,14 +335,13 @@ public class Email {
 		/**
 		 * Sets the reply-to address (optional).
 		 *
-		 * @param name The replied-to-receiver name.
+		 * @param name           The replied-to-receiver name.
 		 * @param replyToAddress The replied-to-receiver email address.
 		 */
 		public Builder replyTo(final String name, final String replyToAddress) {
 			this.replyToRecipient = new Recipient(name, replyToAddress, null);
 			return this;
 		}
-
 
 		/**
 		 * Sets the {@link #subject}.
@@ -365,7 +370,7 @@ public class Email {
 		/**
 		 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link RecipientType#TO}.
 		 *
-		 * @param name The name of the recipient.
+		 * @param name    The name of the recipient.
 		 * @param address The emailaddress of the recipient.
 		 * @see #recipients
 		 * @see Recipient
@@ -387,12 +392,10 @@ public class Email {
 			return this;
 		}
 
-
-
 		/**
 		 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link RecipientType#CC}.
 		 *
-		 * @param name The name of the recipient.
+		 * @param name    The name of the recipient.
 		 * @param address The emailaddress of the recipient.
 		 * @see #recipients
 		 * @see Recipient
@@ -417,7 +420,7 @@ public class Email {
 		/**
 		 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link RecipientType#BCC}.
 		 *
-		 * @param name The name of the recipient.
+		 * @param name    The name of the recipient.
 		 * @param address The emailaddress of the recipient.
 		 * @see #recipients
 		 * @see Recipient
@@ -444,8 +447,8 @@ public class Email {
 		 * data. Then delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a
 		 * {@link ByteArrayDataSource}.
 		 *
-		 * @param name The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
-		 * @param data The byte data of the image to be embedded.
+		 * @param name     The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
+		 * @param data     The byte data of the image to be embedded.
 		 * @param mimetype The content type of the given data (eg. "image/gif" or "image/jpeg").
 		 * @see ByteArrayDataSource
 		 * @see #addEmbeddedImage(String, DataSource)
@@ -459,7 +462,7 @@ public class Email {
 		/**
 		 * Overloaded method which sets an embedded image on account of name and {@link DataSource}.
 		 *
-		 * @param name The name of the image as being referred to from the message content body (eg. '&lt;cid:embeddedimage&gt;').
+		 * @param name      The name of the image as being referred to from the message content body (eg. '&lt;cid:embeddedimage&gt;').
 		 * @param imagedata The image data.
 		 */
 		public Builder embedImage(final String name, final DataSource imagedata) {
@@ -469,10 +472,10 @@ public class Email {
 
 		/**
 		 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
-		 * <p>
+		 * <p/>
 		 * example: <code>email.addHeader("X-Priority", 2)</code>
 		 *
-		 * @param name The name of the header.
+		 * @param name  The name of the header.
 		 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
 		 */
 		public Builder addHeader(final String name, final Object value) {
@@ -484,8 +487,8 @@ public class Email {
 		 * Adds an attachment to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to
 		 * {@link #addAttachment(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 		 *
-		 * @param name The name of the extension (eg. filename including extension).
-		 * @param data The byte data of the attachment.
+		 * @param name     The name of the extension (eg. filename including extension).
+		 * @param data     The byte data of the attachment.
 		 * @param mimetype The content type of the given data (eg. "plain/text", "image/gif" or "application/pdf").
 		 * @see ByteArrayDataSource
 		 * @see #addAttachment(String, DataSource)
@@ -499,7 +502,7 @@ public class Email {
 		/**
 		 * Overloaded method which sets an attachment on account of name and {@link DataSource}.
 		 *
-		 * @param name The name of the attachment (eg. 'filename.ext').
+		 * @param name     The name of the attachment (eg. 'filename.ext').
 		 * @param filedata The attachment data.
 		 */
 		public void addAttachment(final String name, final DataSource filedata) {
@@ -510,6 +513,7 @@ public class Email {
 
 	/**
 	 * Constructor for the Builder class
+	 *
 	 * @param builder The builder from which to create the email.
 	 */
 	private Email(Builder builder) {
@@ -523,5 +527,49 @@ public class Email {
 		text = builder.text;
 		textHTML = builder.textHTML;
 		subject = builder.subject;
+	}
+
+	/**
+	 * Email from MimeMessage
+	 *
+	 * @author Benny Bottema
+	 */
+	public Email(MimeMessage mimeMessage) {
+		this();
+		try {
+			fillEmailFromMimeMessage(new MimeMessageParser(mimeMessage).parse());
+		} catch (MessagingException e) {
+			throw new MailException(String.format(MailException.PARSE_MIMEMESSAGE_ERROR, e.getMessage()), e);
+		} catch (IOException e) {
+			throw new MailException(String.format(MailException.PARSE_MIMEMESSAGE_ERROR, e.getMessage()), e);
+		}
+	}
+
+	private void fillEmailFromMimeMessage(MimeMessageParser parser) throws MessagingException {
+		InternetAddress from = parser.getFrom();
+		this.setFromAddress(from.getPersonal(), from.getAddress());
+		InternetAddress replyTo = parser.getReplyTo();
+		this.setReplyToAddress(replyTo.getPersonal(), replyTo.getAddress());
+		for (Map.Entry<String, Object> header : parser.getHeaders().entrySet()) {
+			this.addHeader(header.getKey(), header.getValue());
+		}
+		for (InternetAddress to : parser.getTo()) {
+			this.addRecipient(to.getPersonal(), to.getAddress(), RecipientType.TO);
+		}
+		for (InternetAddress cc : parser.getCc()) {
+			this.addRecipient(cc.getPersonal(), cc.getAddress(), RecipientType.CC);
+		}
+		for (InternetAddress bcc : parser.getBcc()) {
+			this.addRecipient(bcc.getPersonal(), bcc.getAddress(), RecipientType.BCC);
+		}
+		this.setSubject(parser.getSubject());
+		this.setText(parser.getPlainContent());
+		this.setTextHTML(parser.getHtmlContent());
+		for (Map.Entry<String, DataSource> cid : parser.getCidMap().entrySet()) {
+			this.addEmbeddedImage(cid.getKey(), cid.getValue());
+		}
+		for (Map.Entry<String, DataSource> attachment : parser.getAttachmentList().entrySet()) {
+			this.addAttachment(attachment.getKey(), attachment.getValue());
+		}
 	}
 }

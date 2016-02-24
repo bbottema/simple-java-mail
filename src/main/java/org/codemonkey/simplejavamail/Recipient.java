@@ -29,6 +29,14 @@ public final class Recipient {
 		this.type = type;
 	}
 
+	@Override public String toString() {
+		return "Recipient{" +
+				"name='" + name + '\'' +
+				", address='" + address + '\'' +
+				", type=" + type +
+				'}';
+	}
+
 	/**
 	 * Bean getter for {@link #name};
 	 */
