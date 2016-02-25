@@ -13,7 +13,7 @@ public class EmailAddressValidationCriteria {
 	private final boolean allowQuotedIdentifiers;
 
 	/**
-	 * Criteria which is most RFC 2822 compliant and allows all compiant address forms, including the more exotic ones.
+	 * Criteria which is most RFC 2822 compliant and allows all compliant address forms, including the more exotic ones.
 	 * 
 	 * @see #EmailAddressValidationCriteria(boolean, boolean)
 	 */
