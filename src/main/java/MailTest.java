@@ -24,14 +24,14 @@ public class MailTest {
         // don't forget to add your own address here ->
         emailNormal.addRecipient("C.Cane", "candycane@candyshop.org", RecipientType.TO);
         emailNormal.setText("We should meet up!");
-        emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:winksmiley'>");
+        emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
         emailNormal.setSubject("hey");
 
         // add two text files in different ways and a black thumbs up embedded image ->
         emailNormal.addAttachment("dresscode.txt", new ByteArrayDataSource("Black Tie Optional", "text/plain"));
         emailNormal.addAttachment("location.txt", "On the moon!".getBytes(), "text/plain");
         String base64String = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABeElEQVRYw2NgoAAYGxu3GxkZ7TY1NZVloDcAWq4MxH+B+D8Qv3FwcOCgtwM6oJaDMTAUXOhmuYqKCjvQ0pdoDrCnmwNMTEwakC0H4u8GBgYC9Ap6DSD+iewAoIPm0ctyLqBlp9F8/x+YE4zpYT8T0LL16JYD8U26+B7oyz4sloPwenpYno3DchCeROsUbwa05A8eB3wB4kqgIxOAuArIng7EW4H4EhC/B+JXQLwDaI4ryZaDSjeg5mt4LCcFXyIn1fdSyXJQVt1OtMWGhoai0OD8T0W8GohZifE1PxD/o7LlsPLiFNAKRrwOABWptLAcqc6QGDAHQEOAYaAc8BNotsJAOgAUAosG1AFA/AtUoY3YEFhKMAvS2AE7iC1+WaG1H6gY3gzE36hUFJ8mqzbU1dUVBBqQBzTgIDQRkWo5qCZdpaenJ0Zx1aytrc0DDB0foIG1oAYKqC0IZK8D4n1AfA6IzwPxXpCFoGoZVEUDaRGGUTAKRgEeAAA2eGJC+ETCiAAAAABJRU5ErkJggg==";
-        emailNormal.addEmbeddedImage("winksmiley", Base64.getDecoder().decode(base64String), "image/png");
+        emailNormal.addEmbeddedImage("thumbsup", Base64.getDecoder().decode(base64String), "image/png");
 
         // let's try producing and then consuming a MimeMessage ->
         final MimeMessage mimeMessage = Mailer.produceMimeMessage(emailNormal, Session.getDefaultInstance(new Properties()));
