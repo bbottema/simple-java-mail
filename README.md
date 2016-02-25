@@ -24,9 +24,10 @@ Simple Java Mail is available in Maven Central:
 
 v3.0.0 - not yet released
 
-  * [#22](https://github.com/bbottema/simple-java-mail/issues/22): Added conversion to and from MimeMessage. You can now consume and produce MimeMessage objects with simple-java-mail
-  * [#28](https://github.com/bbottema/simple-java-mail/issues/28): Re-added improved email validation facility
+  * [#30](https://github.com/bbottema/simple-java-mail/issues/30): Improved the demonstration class to include attachments and embedded images
   * [#29](https://github.com/bbottema/simple-java-mail/issues/29): The package has been restructured for future maintenance, breaking backwards compatibility
+  * [#28](https://github.com/bbottema/simple-java-mail/issues/28): Re-added improved email validation facility
+  * [#22](https://github.com/bbottema/simple-java-mail/issues/22): Added conversion to and from MimeMessage. You can now consume and produce MimeMessage objects with simple-java-mail
 
 v2.5.1
 
