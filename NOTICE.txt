@@ -3,7 +3,7 @@
   =========================================================================
   
   Simple Java Mail
-  Copyright 2009-2016 B. Bottema
+  Copyright 2009-2016 Benny Bottema
   
   This product uses no commercial products.
   
@@ -12,4 +12,4 @@
     - activation package from jre6 
     - SLF4J (http://http://www.slf4j.org/)
     - Sun Java Mail API, shipped with JavaEE or as seperate download) (http://java.sun.com/products/javamail/)
-    - RFC Email validation regular expressions, by Les Hazlewood (http://www.leshazlewood.com/?p=23)
+    - Email Validation regular expressions, by Les Hazlewood, Casey Connor (https://github.com/bbottema/email-rfc2822-validator)

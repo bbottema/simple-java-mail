@@ -16,13 +16,13 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>3.0.0</version>
+    <version>2.5.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v3.0.0
+v3.0.0 - not yet released
 
   * [#22](https://github.com/bbottema/simple-java-mail/issues/22): Added conversion to and from MimeMessage. You can now consume and produce MimeMessage objects with simple-java-mail
   * [#28](https://github.com/bbottema/simple-java-mail/issues/28): Re-added improved email validation facility
