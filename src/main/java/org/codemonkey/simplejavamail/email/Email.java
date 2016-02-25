@@ -1,4 +1,7 @@
-package org.codemonkey.simplejavamail;
+package org.codemonkey.simplejavamail.email;
+
+import org.codemonkey.simplejavamail.MailException;
+import org.codemonkey.simplejavamail.util.MimeMessageParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.activation.DataSource;
-import javax.mail.Address;
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
 import javax.mail.internet.InternetAddress;
@@ -305,8 +307,6 @@ public class Email {
 		 */
 		private final Map<String, String> headers;
 
-		private Email email;
-
 		public Builder() {
 			recipients = new ArrayList<Recipient>();
 			embeddedImages = new ArrayList<AttachmentResource>();
@@ -529,19 +529,27 @@ public class Email {
 		subject = builder.subject;
 	}
 
-	/**
+	/*
 	 * Email from MimeMessage
 	 *
 	 * @author Benny Bottema
+	 */
+
+	private static final String PARSE_MIMEMESSAGE_ERROR = "Error parsing MimeMessage: %s";
+
+	/**
+	 * Constructor for {@link javax.mail.internet.MimeMessage}.
+	 *
+	 * @param mimeMessage The MimeMessage from which to create the email.
 	 */
 	public Email(MimeMessage mimeMessage) {
 		this();
 		try {
 			fillEmailFromMimeMessage(new MimeMessageParser(mimeMessage).parse());
 		} catch (MessagingException e) {
-			throw new MailException(String.format(MailException.PARSE_MIMEMESSAGE_ERROR, e.getMessage()), e);
+			throw new MailException(String.format(PARSE_MIMEMESSAGE_ERROR, e.getMessage()), e);
 		} catch (IOException e) {
-			throw new MailException(String.format(MailException.PARSE_MIMEMESSAGE_ERROR, e.getMessage()), e);
+			throw new MailException(String.format(PARSE_MIMEMESSAGE_ERROR, e.getMessage()), e);
 		}
 	}
 

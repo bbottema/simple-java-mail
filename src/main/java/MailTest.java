@@ -1,41 +1,51 @@
-import javax.mail.Message.RecipientType;
-
-import org.codemonkey.simplejavamail.Email;
 import org.codemonkey.simplejavamail.Mailer;
 import org.codemonkey.simplejavamail.TransportStrategy;
+import org.codemonkey.simplejavamail.email.Email;
+
+import javax.mail.Message.RecipientType;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.internet.MimeMessage;
+import javax.mail.util.ByteArrayDataSource;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.Properties;
 
 /**
  * Demonstration program for the Simple Java Mail framework.
- * <p>
- * <b>IMPORTANT</b>: <br>
- * This testclass was designed to run from the commandline (or by Ant) and expects some system properties to be present. See
- * <b>Readme.txt</b> for instructions. Alternatively, you can assign the host, username and password a hard value and ignore the system
- * properties altogether.
- * 
+ *
  * @author Benny Bottema
  */
 public class MailTest {
 
-	/**
-	 * Just run as Java application, but remember to set the JVM arguments first.
-	 * 
-	 * @param args should be empty, this demo uses JVM arguments only (-Dhost=value etc.).
-	 */
-	public static void main(final String[] args) {
-		final Email email = new Email();
-		email.setFromAddress("lollypop", "lol.pop@somemail.com");
-		email.addRecipient("C.Cane", "candycane@candyshop.org", RecipientType.TO);
-		email.setText("We should meet up!");
-		email.setTextHTML("<b>We should meet up!</b>");
-		email.setSubject("hey");
-		sendMail(email);
-	}
+    public static void main(final String[] args) throws IOException, MessagingException {
+        final Email emailNormal = new Email();
+        emailNormal.setFromAddress("lollypop", "lol.pop@somemail.com");
+        // don't forget to add your own address here ->
+        emailNormal.addRecipient("C.Cane", "candycane@candyshop.org", RecipientType.TO);
+        emailNormal.setText("We should meet up!");
+        emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:winksmiley'>");
+        emailNormal.setSubject("hey");
 
-	private static void sendMail(final Email email) {
-		final String host = System.getProperty("host") != null ? System.getProperty("host") : "";
-		final int port = System.getProperty("port") != null ? Integer.parseInt(System.getProperty("port")) : 25;
-		final String username = System.getProperty("username") != null ? System.getProperty("username") : "";
-		final String password = System.getProperty("password") != null ? System.getProperty("password") : "";
-		new Mailer(host, port, username, password, TransportStrategy.SMTP_SSL).sendMail(email);
-	}
+        // add two text files in different ways and a black thumbs up embedded image ->
+        emailNormal.addAttachment("dresscode.txt", new ByteArrayDataSource("Black Tie Optional", "text/plain"));
+        emailNormal.addAttachment("location.txt", "On the moon!".getBytes(), "text/plain");
+        String base64String = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABeElEQVRYw2NgoAAYGxu3GxkZ7TY1NZVloDcAWq4MxH+B+D8Qv3FwcOCgtwM6oJaDMTAUXOhmuYqKCjvQ0pdoDrCnmwNMTEwakC0H4u8GBgYC9Ap6DSD+iewAoIPm0ctyLqBlp9F8/x+YE4zpYT8T0LL16JYD8U26+B7oyz4sloPwenpYno3DchCeROsUbwa05A8eB3wB4kqgIxOAuArIng7EW4H4EhC/B+JXQLwDaI4ryZaDSjeg5mt4LCcFXyIn1fdSyXJQVt1OtMWGhoai0OD8T0W8GohZifE1PxD/o7LlsPLiFNAKRrwOABWptLAcqc6QGDAHQEOAYaAc8BNotsJAOgAUAosG1AFA/AtUoY3YEFhKMAvS2AE7iC1+WaG1H6gY3gzE36hUFJ8mqzbU1dUVBBqQBzTgIDQRkWo5qCZdpaenJ0Zx1aytrc0DDB0foIG1oAYKqC0IZK8D4n1AfA6IzwPxXpCFoGoZVEUDaRGGUTAKRgEeAAA2eGJC+ETCiAAAAABJRU5ErkJggg==";
+        emailNormal.addEmbeddedImage("winksmiley", Base64.getDecoder().decode(base64String), "image/png");
+
+        // let's try producing and then consuming a MimeMessage ->
+        final MimeMessage mimeMessage = Mailer.produceMimeMessage(emailNormal, Session.getDefaultInstance(new Properties()));
+        final Email emailFromMimeMessage = new Email(mimeMessage);
+
+        sendMail(emailNormal);
+        sendMail(emailFromMimeMessage); // should produce the exact same result as emailNormal!
+    }
+
+    private static void sendMail(final Email email) {
+        final String host = System.getProperty("host") != null ? System.getProperty("host") : "";
+        final int port = System.getProperty("port") != null ? Integer.parseInt(System.getProperty("port")) : 25;
+        final String username = System.getProperty("username") != null ? System.getProperty("username") : "";
+        final String password = System.getProperty("password") != null ? System.getProperty("password") : "";
+        new Mailer(host, port, username, password, TransportStrategy.SMTP_SSL).sendMail(email);
+    }
 }

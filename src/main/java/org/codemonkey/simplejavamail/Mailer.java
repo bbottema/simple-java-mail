@@ -22,6 +22,11 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimeUtility;
 
+import org.codemonkey.simplejavamail.email.AttachmentResource;
+import org.codemonkey.simplejavamail.email.Email;
+import org.codemonkey.simplejavamail.email.Recipient;
+import org.codemonkey.simplejavamail.util.EmailAddressValidationCriteria;
+import org.codemonkey.simplejavamail.util.EmailValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +73,7 @@ import org.slf4j.LoggerFactory;
  */
 public class Mailer {
 
-	private static final Logger logger = LoggerFactory.getLogger(Mailer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Mailer.class);
 
 	/**
 	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@value #CHARACTER_ENCODING}).
@@ -159,7 +164,7 @@ public class Mailer {
 	 */
 	protected Session createMailSession(final String host, final Integer port, final String username, final String password) {
 		if (transportStrategy == null) {
-			logger.warn("Transport Strategy not set, using plain SMTP strategy instead!");
+			LOGGER.warn("Transport Strategy not set, using plain SMTP strategy instead!");
 			transportStrategy = TransportStrategy.SMTP_PLAIN;
 		}
 		Properties props = transportStrategy.generateProperties();
@@ -167,7 +172,7 @@ public class Mailer {
 		if (port != null) {
 			props.put(transportStrategy.propertyNamePort(), String.valueOf(port));
 		} else {
-			// let JavaMail's Transport objects determine deault port base don the used protocol
+			// let JavaMail's Transport objects determine default port base don the used protocol
 		}
 
 		if (username != null) {
@@ -205,8 +210,8 @@ public class Mailer {
 	 * let us know why you are needing this on https://github.com/bbottema/simple-java-mail/issues.
 	 */
 	public Session getSession() {
-		logger.warn("Providing access to Session instance for emergency fall-back scenario. Please let us know why you need it.");
-		logger.warn("\t>https://github.com/bbottema/simple-java-mail/issues");
+		LOGGER.warn("Providing access to Session instance for emergency fall-back scenario. Please let us know why you need it.");
+		LOGGER.warn("\t>https://github.com/bbottema/simple-java-mail/issues");
 		return session;
 	}
 
@@ -263,10 +268,10 @@ public class Mailer {
 					transport.close();
 				}
 			} catch (final UnsupportedEncodingException e) {
-				logger.error(e.getMessage(), e);
+				LOGGER.error(e.getMessage(), e);
 				throw new MailException(String.format(MailException.INVALID_ENCODING, e.getMessage()));
 			} catch (final MessagingException e) {
-				logger.error(e.getMessage(), e);
+				LOGGER.error(e.getMessage(), e);
 				throw new MailException(String.format(MailException.GENERIC_ERROR, e.getMessage()), e);
 			}
 		}
@@ -286,7 +291,7 @@ public class Mailer {
 		} else {
 			specifics = properties.toString();
 		}
-		logger.debug(String.format("starting mail session (%s)", specifics));
+		LOGGER.debug(String.format("starting mail session (%s)", specifics));
 	}
 
 	/**
@@ -537,7 +542,7 @@ public class Mailer {
 				multipartRelated.addBodyPart(contentAlternativeMessages);
 				contentAlternativeMessages.setContent(multipartAlternativeMessages);
 			} catch (final MessagingException e) {
-				logger.error(e.getMessage(), e);
+				LOGGER.error(e.getMessage(), e);
 				throw new RuntimeException(e.getMessage(), e);
 			}
 		}
