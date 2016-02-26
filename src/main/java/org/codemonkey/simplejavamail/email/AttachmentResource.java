@@ -35,14 +35,14 @@ public class AttachmentResource {
 	}
 
 	/**
-	 * Bean getter for {@link #dataSource}.
+	 * @return {@link #dataSource}
 	 */
 	public DataSource getDataSource() {
 		return dataSource;
 	}
 
 	/**
-	 * Bean getter for {@link #name}.
+	 * @return {@link #name}
 	 */
 	public String getName() {
 		return name;

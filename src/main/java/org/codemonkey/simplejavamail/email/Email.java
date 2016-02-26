@@ -161,7 +161,7 @@ public class Email {
 
 	/**
 	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
-	 * <p/>
+	 * <p>
 	 * example: <code>email.addHeader("X-Priority", 2)</code>
 	 *
 	 * @param name  The name of the header.
@@ -472,7 +472,7 @@ public class Email {
 
 		/**
 		 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
-		 * <p/>
+		 * <p>
 		 * example: <code>email.addHeader("X-Priority", 2)</code>
 		 *
 		 * @param name  The name of the header.
