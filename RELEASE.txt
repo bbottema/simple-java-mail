@@ -3,12 +3,12 @@ https://github.com/bbottema/simple-java-mail/
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>2.5.1</version>
+    <version>3.0.0</version>
 </dependency>
 
 RELEASE NOTES Java Simple Mail
 
-v3.0.0 - not yet released
+v3.0.0
 
 - #30: Improved the demonstration class to include attachments and embedded images
 - #29: The package has been restructured for future maintenance, breaking backwards compatibility

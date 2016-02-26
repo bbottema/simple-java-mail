@@ -16,13 +16,13 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>2.5.1</version>
+    <version>3.0.0</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v3.0.0 - not yet released
+v3.0.0
 
   * [#30](https://github.com/bbottema/simple-java-mail/issues/30): Improved the demonstration class to include attachments and embedded images
   * [#29](https://github.com/bbottema/simple-java-mail/issues/29): The package has been restructured for future maintenance, breaking backwards compatibility
