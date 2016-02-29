@@ -1,3 +1,5 @@
+[![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE)
+
 # Simple Java Mail #
 
 Simple Java Mail aims to be the simplest to use lightweight mailing framework for Java, while being able to send complex emails including attachments and embedded images. Just send your emails without dealing with RFC's.
