@@ -472,11 +472,12 @@ public class Mailer {
 		final BodyPart attachmentPart = new MimeBodyPart();
 		final DataSource ds = resource.getDataSource();
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
+		String contentId= resource.getName();
+		String fileName = ds.getName() != null ? ds.getName() : contentId;
 		attachmentPart.setDataHandler(new DataHandler(resource.getDataSource()));
-		attachmentPart.setFileName(resource.getName());
-		attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + ds.getName() + "; name=" + ds.getName());
-		//Content-ID should be resource name which is unique. Other filename don't have to be unique.
-		attachmentPart.setHeader("Content-ID", String.format("<%s>", resource.getName())); 
+		attachmentPart.setFileName(fileName);
+		attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + fileName + "; name=" + fileName);
+		attachmentPart.setHeader("Content-ID", contentId);
 		attachmentPart.setDisposition(dispositionType + "; size=0");
 		return attachmentPart;
 	}
