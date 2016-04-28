@@ -475,7 +475,8 @@ public class Mailer {
 		attachmentPart.setDataHandler(new DataHandler(resource.getDataSource()));
 		attachmentPart.setFileName(resource.getName());
 		attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + ds.getName() + "; name=" + ds.getName());
-		attachmentPart.setHeader("Content-ID", String.format("<%s>", ds.getName()));
+		//Content-ID should be resource name which is unique. Other filename don't have to be unique.
+		attachmentPart.setHeader("Content-ID", String.format("<%s>", resource.getName())); 
 		attachmentPart.setDisposition(dispositionType + "; size=0");
 		return attachmentPart;
 	}

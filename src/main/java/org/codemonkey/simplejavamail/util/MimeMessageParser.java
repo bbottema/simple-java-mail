@@ -201,7 +201,8 @@ public class MimeMessageParser {
                     }
                 } else {
                     final DataSource ds = createDataSource(part);
-                    if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
+                    // If the diposition is not provided, the part should be treat as attachment
+                    if (part.getDisposition() == null || Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
                         this.attachmentList.put(part.getFileName(), ds);
                     } else if (Part.INLINE.equalsIgnoreCase(part.getDisposition())) {
                         this.cidMap.put(part.getFileName(), ds);
