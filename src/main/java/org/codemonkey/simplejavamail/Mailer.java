@@ -477,7 +477,7 @@ public class Mailer {
 		attachmentPart.setDataHandler(new DataHandler(resource.getDataSource()));
 		attachmentPart.setFileName(fileName);
 		attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + fileName + "; name=" + fileName);
-		attachmentPart.setHeader("Content-ID", contentId);
+		attachmentPart.setHeader("Content-ID", String.format("<%s>", contentId));
 		attachmentPart.setDisposition(dispositionType + "; size=0");
 		return attachmentPart;
 	}
