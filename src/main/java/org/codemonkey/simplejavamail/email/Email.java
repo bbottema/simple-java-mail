@@ -574,14 +574,14 @@ public class Email {
 		this.setText(parser.getPlainContent());
 		this.setTextHTML(parser.getHtmlContent());
 		for (Map.Entry<String, DataSource> cid : parser.getCidMap().entrySet()) {
-			this.addEmbeddedImage(beautidyCID(cid.getKey()), cid.getValue());
+			this.addEmbeddedImage(beautifyCID(cid.getKey()), cid.getValue());
 		}
 		for (Map.Entry<String, DataSource> attachment : parser.getAttachmentList().entrySet()) {
-			this.addAttachment(beautidyCID(attachment.getKey()), attachment.getValue());
+			this.addAttachment(beautifyCID(attachment.getKey()), attachment.getValue());
 		}
 	}
 	
-	private String beautidyCID(String cid){
+	private String beautifyCID(String cid){
 		int len1 = 0;
 		if(cid == null || (len1 = cid.length() - 1) < 0){
 			return cid;
