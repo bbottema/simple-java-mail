@@ -1,6 +1,6 @@
 language: java
 sudo: false
-install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+install: mvn install -DskipFindBugs=true -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 script: mvn clean verify -Dmaven.javadoc.skip=true
 cache:
   directories:
