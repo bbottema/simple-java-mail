@@ -593,21 +593,14 @@ public class Email {
 		this.setText(parser.getPlainContent());
 		this.setTextHTML(parser.getHtmlContent());
 		for (Map.Entry<String, DataSource> cid : parser.getCidMap().entrySet()) {
-			this.addEmbeddedImage(beautifyCID(cid.getKey()), cid.getValue());
+			this.addEmbeddedImage(extractCID(cid.getKey()), cid.getValue());
 		}
 		for (Map.Entry<String, DataSource> attachment : parser.getAttachmentList().entrySet()) {
-			this.addAttachment(beautifyCID(attachment.getKey()), attachment.getValue());
+			this.addAttachment(extractCID(attachment.getKey()), attachment.getValue());
 		}
 	}
-	
-	private String beautifyCID(String cid){
-		int len1 = 0;
-		if(cid == null || (len1 = cid.length() - 1) < 0){
-			return cid;
-		}
-		if(cid.charAt(0) == '<' && cid.charAt(len1) == '>' ){
-			return cid.substring(1, len1);
-		}
-		return cid;
+
+	static String extractCID(String cid) {
+		return (cid != null) ? cid.replaceAll("<?([^>]*)>?", "$1") : null;
 	}
 }
