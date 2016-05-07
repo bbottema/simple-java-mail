@@ -1,4 +1,4 @@
 language: java
 sudo: false
-install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Djarsigner.skip=true -B -V
-script: mvn clean verify -Djarsigner.skip=true
+install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+script: mvn clean verify
