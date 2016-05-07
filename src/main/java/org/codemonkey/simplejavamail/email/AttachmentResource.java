@@ -48,6 +48,11 @@ public class AttachmentResource {
 	}
 
 	@Override
+	public int hashCode() {
+		return 0;
+	}
+
+	@Override
 	public boolean equals(Object o) {
 		return (this == o) || (o != null && getClass() == o.getClass() &&
 				EqualsHelper.equalsAttachmentResource(this, (AttachmentResource) o));

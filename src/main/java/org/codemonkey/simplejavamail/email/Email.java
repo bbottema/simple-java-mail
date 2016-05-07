@@ -131,9 +131,8 @@ public class Email {
 	}
 
 	/**
-	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte
-	 * data. Then delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a
-	 * {@link ByteArrayDataSource}.
+	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to
+	 * {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 	 *
 	 * @param name     The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
 	 * @param data     The byte data of the image to be embedded.
@@ -170,8 +169,8 @@ public class Email {
 	}
 
 	/**
-	 * Adds an attachment to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to
-	 * {@link #addAttachment(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
+	 * Adds an attachment to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to {@link
+	 * #addAttachment(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 	 *
 	 * @param name     The name of the extension (eg. filename including extension).
 	 * @param data     The byte data of the attachment.
@@ -256,6 +255,11 @@ public class Email {
 	 */
 	public Map<String, String> getHeaders() {
 		return Collections.unmodifiableMap(headers);
+	}
+
+	@Override
+	public int hashCode() {
+		return 0;
 	}
 
 	@Override
@@ -462,9 +466,8 @@ public class Email {
 		}
 
 		/**
-		 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte
-		 * data. Then delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a
-		 * {@link ByteArrayDataSource}.
+		 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates
+		 * to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 		 *
 		 * @param name     The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
 		 * @param data     The byte data of the image to be embedded.
@@ -503,8 +506,8 @@ public class Email {
 		}
 
 		/**
-		 * Adds an attachment to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to
-		 * {@link #addAttachment(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
+		 * Adds an attachment to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to {@link
+		 * #addAttachment(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 		 *
 		 * @param name     The name of the extension (eg. filename including extension).
 		 * @param data     The byte data of the attachment.
@@ -572,7 +575,8 @@ public class Email {
 		}
 	}
 
-	private void fillEmailFromMimeMessage(MimeMessageParser parser) throws MessagingException {
+	private void fillEmailFromMimeMessage(MimeMessageParser parser)
+			throws MessagingException {
 		InternetAddress from = parser.getFrom();
 		this.setFromAddress(from.getPersonal(), from.getAddress());
 		InternetAddress replyTo = parser.getReplyTo();

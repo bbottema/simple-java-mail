@@ -29,16 +29,16 @@ class EqualsHelper {
 			return false;
 		}
 
-		if (email1.getRecipients() != null ? !isEqualRecipientList(email1.getRecipients(), email2.getRecipients()) : email2.getRecipients() != null) {
+		if (!isEqualRecipientList(email1.getRecipients(), email2.getRecipients())) {
 			return false;
 		}
-		if (email1.getEmbeddedImages() != null ? !email1.getEmbeddedImages().containsAll(email2.getEmbeddedImages()) : email2.getEmbeddedImages() != null) {
+		if (!email1.getEmbeddedImages().containsAll(email2.getEmbeddedImages())) {
 			return false;
 		}
-		if (email1.getAttachments() != null ? !email1.getAttachments().containsAll(email2.getAttachments()) : email2.getAttachments() != null) {
+		if (!email1.getAttachments().containsAll(email2.getAttachments())) {
 			return false;
 		}
-		return email1.getHeaders() != null ? email1.getHeaders().equals(email2.getHeaders()) : email2.getHeaders() == null;
+		return email1.getHeaders().equals(email2.getHeaders());
 	}
 
 	public static boolean isEqualRecipientList(List<Recipient> recipients, List<Recipient> otherRecipients) {
