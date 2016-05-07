@@ -3,19 +3,14 @@ package org.codemonkey.simplejavamail.email;
 import org.codemonkey.simplejavamail.MailException;
 import org.codemonkey.simplejavamail.util.MimeMessageParser;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import javax.activation.DataSource;
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * Email message with all necessary data for an effective mailing action, including attachments etc.
@@ -258,6 +253,27 @@ public class Email {
 	 */
 	public Map<String, String> getHeaders() {
 		return Collections.unmodifiableMap(headers);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		return (this == o) || (o != null && getClass() == o.getClass() &&
+				EqualsHelper.equalsEmail(this, (Email) o));
+	}
+
+	@Override
+	public String toString() {
+		return "Email{" +
+				"\n\tfromRecipient=" + fromRecipient +
+				",\n\treplyToRecipient=" + replyToRecipient +
+				",\n\ttext='" + text + '\'' +
+				",\n\ttextHTML='" + textHTML + '\'' +
+				",\n\tsubject='" + subject + '\'' +
+				",\n\trecipients=" + recipients +
+				",\n\tembeddedImages=" + embeddedImages +
+				",\n\tattachments=" + attachments +
+				",\n\theaders=" + headers +
+				"\n}";
 	}
 
 	/**

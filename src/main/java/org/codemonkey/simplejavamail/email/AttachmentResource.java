@@ -3,9 +3,9 @@ package org.codemonkey.simplejavamail.email;
 import javax.activation.DataSource;
 
 /**
- * A named immutable email attachment information object. The name can be a simple name, a filename or a named embedded
- * image (eg. &lt;cid:footer&gt;). Contains a {@link DataSource} that is compatible with the javax.mail API.
- * 
+ * A named immutable email attachment information object. The name can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;). Contains
+ * a {@link DataSource} that is compatible with the javax.mail API.
+ *
  * @author Benny Bottema
  * @see DataSource
  */
@@ -23,9 +23,8 @@ public class AttachmentResource {
 
 	/**
 	 * Constructor; initializes the attachment resource with a name and data.
-	 * 
-	 * @param name The name of the attachment which can be a simple name, a filename or a named embedded image (eg.
-	 *            &lt;cid:footer&gt;)
+	 *
+	 * @param name       The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;)
 	 * @param dataSource The attachment data.
 	 * @see DataSource
 	 */
@@ -46,5 +45,20 @@ public class AttachmentResource {
 	 */
 	public String getName() {
 		return name;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		return (this == o) || (o != null && getClass() == o.getClass() &&
+				EqualsHelper.equalsAttachmentResource(this, (AttachmentResource) o));
+	}
+
+	@Override
+	public String toString() {
+		return "AttachmentResource{" +
+				"\n\t\tname='" + name + '\'' +
+				",\n\t\tdataSource.name=" + dataSource.getName() +
+				",\n\t\tdataSource.getContentType=" + dataSource.getContentType() +
+				"\n\t}";
 	}
 }
