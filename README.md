@@ -18,11 +18,18 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>3.0.1</version>
+    <version>3.0.2</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v3.0.2
+
+- [#35](https://github.com/bbottema/simple-java-mail/issues/35): added proper .equals() and .toString() methods
+- [#34](https://github.com/bbottema/simple-java-mail/issues/34): Fixed bug when disposition is missing (assume it is an attachment)
+- #00: added findbugs support internally
+
 
 v3.0.1
 
