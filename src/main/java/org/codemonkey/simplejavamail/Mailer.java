@@ -462,22 +462,23 @@ public class Mailer {
 	 * Part#INLINE} or {@link Part#ATTACHMENT}). With this the attachment data can be converted into objects that fit in the email structure. <br> <br> For
 	 * every attachment and embedded image a header needs to be set.
 	 *
-	 * @param resource        An object that describes the attachment and contains the actual content data.
+	 * @param attachmentResource        An object that describes the attachment and contains the actual content data.
 	 * @param dispositionType The type of attachment, {@link Part#INLINE} or {@link Part#ATTACHMENT} .
 	 * @return An object with the attachment data read for placement in the email structure.
 	 * @throws MessagingException All BodyPart setters.
 	 */
-	private static BodyPart getBodyPartFromDatasource(final AttachmentResource resource, final String dispositionType)
+	private static BodyPart getBodyPartFromDatasource(final AttachmentResource attachmentResource, final String dispositionType)
 			throws MessagingException {
 		final BodyPart attachmentPart = new MimeBodyPart();
-		final DataSource ds = resource.getDataSource();
+		final DataSource dataSource = attachmentResource.getDataSource();
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
-		String contentId= resource.getName();
-		String fileName = ds.getName() != null ? ds.getName() : contentId;
-		attachmentPart.setDataHandler(new DataHandler(resource.getDataSource()));
+		String resourceName = attachmentResource.getName();
+		final boolean dataSourceNameProvided = dataSource.getName() != null && !dataSource.getName().isEmpty();
+		String fileName = dataSourceNameProvided ? dataSource.getName() : resourceName;
+		attachmentPart.setDataHandler(new DataHandler(attachmentResource.getDataSource()));
 		attachmentPart.setFileName(fileName);
-		attachmentPart.setHeader("Content-Type", ds.getContentType() + "; filename=" + fileName + "; name=" + fileName);
-		attachmentPart.setHeader("Content-ID", String.format("<%s>", contentId));
+		attachmentPart.setHeader("Content-Type", dataSource.getContentType() + "; filename=" + fileName + "; name=" + fileName);
+		attachmentPart.setHeader("Content-ID", String.format("<%s>", resourceName));
 		attachmentPart.setDisposition(dispositionType + "; size=0");
 		return attachmentPart;
 	}
