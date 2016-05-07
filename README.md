@@ -1,4 +1,6 @@
-[![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE)
+[![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE) [![Build Status](https://img.shields.io/travis/bbottema/simple-java-mail.svg?style=flat)](https://travis-ci.org/bbottema/simple-java-mail) [![Latest Release](https://img.shields.io/maven-central/v/org.codemonkey.simplejavamail/simple-java-mail.svg?style=flat)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.codemonkey.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22)
+
+
 
 # Simple Java Mail #
 
