@@ -305,10 +305,9 @@ public class Mailer {
 					throw new MailException(String.format(MailException.INVALID_RECIPIENT, email));
 				}
 			}
-			if (email.getReplyToRecipient() != null) {
-				if (!EmailAddressValidator.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
-					throw new MailException(String.format(MailException.INVALID_REPLYTO, email));
-				}
+			if (email.getReplyToRecipient() != null &&
+					!EmailAddressValidator.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
+				throw new MailException(String.format(MailException.INVALID_REPLYTO, email));
 			}
 		}
 		return true;
@@ -524,7 +523,7 @@ public class Mailer {
 				contentAlternativeMessages.setContent(multipartAlternativeMessages);
 			} catch (final MessagingException e) {
 				LOGGER.error(e.getMessage(), e);
-				throw new RuntimeException(e.getMessage(), e);
+				throw new MailException(e.getMessage(), e);
 			}
 		}
 	}

@@ -1,7 +1,5 @@
 package org.codemonkey.simplejavamail;
 
-import javax.mail.MessagingException;
-
 /**
  * This exception is used to communicate errors during the sending of email.
  * 

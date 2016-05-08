@@ -472,11 +472,12 @@ public final class EmailAddressParser {
     public static String[] getMatcherParts(Matcher m, EnumSet<EmailAddressCriteria> criteria, boolean extractCfwsPersonalNames) {
         String current_localpart = null;
         String current_domainpart = null;
-        String local_part_da = null;
+        String local_part_da;
         String local_part_qs = null;
-        String domain_part_da = null;
+        String domain_part_da;
         String domain_part_dl = null;
         String personal_string = null;
+
         // see the group-ID lists in the grammar comments
         final boolean allowDomainLiterals = criteria.contains(EmailAddressCriteria.ALLOW_DOMAIN_LITERALS);
         if (criteria.contains(EmailAddressCriteria.ALLOW_QUOTED_IDENTIFIERS)) {
@@ -609,11 +610,11 @@ public final class EmailAddressParser {
      * result (if there are no embedded escaped characters) or the proper one-level-quoting result (if there are embedded escaped characters). If the string is
      * anything else, this just returns it unadulterated.
      */
-    public static String cleanupPersonalString(String text, EnumSet<EmailAddressCriteria> criteria) {
-        if (text == null) {
-            return (null);
+    public static String cleanupPersonalString(String string, EnumSet<EmailAddressCriteria> criteria) {
+        if (string == null) {
+            return null;
         }
-        text = text.trim();
+        String text = string.trim();
         final Dragons dragons = Dragons.fromCriteria(criteria);
         Matcher m = dragons.QUOTED_STRING_WO_CFWS_PATTERN.matcher(text);
         if (!m.matches()) {

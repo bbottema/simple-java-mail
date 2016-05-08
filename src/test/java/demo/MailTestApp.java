@@ -1,3 +1,5 @@
+package demo;
+
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
 import javax.mail.Message.RecipientType;

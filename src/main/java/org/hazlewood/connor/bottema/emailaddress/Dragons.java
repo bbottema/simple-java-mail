@@ -50,7 +50,7 @@ final class Dragons {
 	/**
 	 * @return Dragons based on criteria, cached if the criteria have been used before
 	 */
-	static Dragons fromCriteria(EnumSet<EmailAddressCriteria> criteria) {
+	protected static Dragons fromCriteria(EnumSet<EmailAddressCriteria> criteria) {
 		if (!cache.containsKey(criteria)) {
 			cache.put(criteria, new Dragons(criteria));
 		}
@@ -97,7 +97,7 @@ final class Dragons {
 
 		final String atom = "(?:" + cfws + ")?" + atext + "+" + "(?:" + cfws + ")?";
 		final String dotAtomText = regularAtext + "+" + "(?:" + "\\." + regularAtext + "+)*";
-		final String dotAtom = "(?:" + cfws + ")?" + dotAtomText + "(?:" + cfws + ")?";
+//		final String dotAtom = "(?:" + cfws + ")?" + dotAtomText + "(?:" + cfws + ")?";
 		final String capDotAtomNoCFWS = "(?:" + cfws + ")?(" + dotAtomText + ")(?:" + cfws + ")?";
 		final String capDotAtomTrailingCFWS = "(?:" + cfws + ")?(" + dotAtomText + ")(" + cfws + ")?";
 

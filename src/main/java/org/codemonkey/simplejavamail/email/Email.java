@@ -557,8 +557,6 @@ public class Email {
 	 * @author Benny Bottema
 	 */
 
-	private static final String PARSE_MIMEMESSAGE_ERROR = "Error parsing MimeMessage: %s";
-
 	/**
 	 * Constructor for {@link javax.mail.internet.MimeMessage}.
 	 *
@@ -569,9 +567,9 @@ public class Email {
 		try {
 			fillEmailFromMimeMessage(new MimeMessageParser(mimeMessage).parse());
 		} catch (MessagingException e) {
-			throw new MailException(String.format(PARSE_MIMEMESSAGE_ERROR, e.getMessage()), e);
+			throw new MailException(String.format("Error parsing MimeMessage: %s", e.getMessage()), e);
 		} catch (IOException e) {
-			throw new MailException(String.format(PARSE_MIMEMESSAGE_ERROR, e.getMessage()), e);
+			throw new MailException(String.format("Error parsing MimeMessage: %s", e.getMessage()), e);
 		}
 	}
 
@@ -604,7 +602,7 @@ public class Email {
 		}
 	}
 
-	static String extractCID(String cid) {
+	protected static String extractCID(String cid) {
 		return (cid != null) ? cid.replaceAll("<?([^>]*)>?", "$1") : null;
 	}
 }

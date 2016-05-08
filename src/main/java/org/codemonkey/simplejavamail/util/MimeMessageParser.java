@@ -147,7 +147,7 @@ public class MimeMessageParser {
      * @return the 'from' field of the message
      */
     public InternetAddress getFrom() throws MessagingException {
-        final javax.mail.Address[] addresses = this.mimeMessage.getFrom();
+        final Address[] addresses = this.mimeMessage.getFrom();
         if (addresses == null || addresses.length == 0) {
             return null;
         }
@@ -158,7 +158,7 @@ public class MimeMessageParser {
      * @return the 'replyTo' address of the email
      */
     public InternetAddress getReplyTo() throws MessagingException {
-        final javax.mail.Address[] addresses = this.mimeMessage.getReplyTo();
+        final Address[] addresses = this.mimeMessage.getReplyTo();
         if (addresses == null || addresses.length == 0) {
             return null;
         }
