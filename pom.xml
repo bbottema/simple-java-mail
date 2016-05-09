@@ -50,11 +50,16 @@
 			<version>1.7.13</version>
 		</dependency>
 
-		<!-- core dependency -->
+		<!-- core dependencies -->
 		<dependency>
 			<groupId>com.sun.mail</groupId>
 			<artifactId>javax.mail</artifactId>
 			<version>1.5.5</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.bbottema</groupId>
+			<artifactId>emailaddress-rfc2822</artifactId>
+			<version>1.0.0</version>
 		</dependency>
 
 		<!-- testing -->
@@ -163,6 +168,26 @@
 				<configuration>
 					<failOnError>false</failOnError>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>2.4.3</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<artifactSet>
+								<includes>
+									<include>com.github.bbottema:emailaddress-rfc2822</include>
+								</includes>
+							</artifactSet>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
