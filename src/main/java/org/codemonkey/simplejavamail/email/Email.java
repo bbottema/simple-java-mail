@@ -91,10 +91,20 @@ public class Email {
 	 * @see #signWithDomainKey(InputStream, String, String)
 	 */
 	public void signWithDomainKey(final File dkimPrivateKeyFile, final String signingDomain, final String selector) {
+		FileInputStream dkimPrivateKeyInputStream = null;
 		try {
-			signWithDomainKey(new FileInputStream(dkimPrivateKeyFile), signingDomain, selector);
+			dkimPrivateKeyInputStream = new FileInputStream(dkimPrivateKeyFile);
+			signWithDomainKey(dkimPrivateKeyInputStream, signingDomain, selector);
 		} catch (FileNotFoundException e) {
 			throw new MailException(String.format("private key not found: %s", dkimPrivateKeyFile), e);
+		} finally {
+			if (dkimPrivateKeyInputStream != null) {
+				try {
+					dkimPrivateKeyInputStream.close();
+				} catch (IOException e) {
+					throw new MailException(String.format("was unable to close InputStream: %s", e.getMessage()), e);
+				}
+			}
 		}
 	}
 
