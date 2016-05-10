@@ -118,8 +118,7 @@ public class Mailer {
 	 * @param password          An optional password, may be <code>null</code>, but only if username is <code>null</code> as well.
 	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
 	 */
-	public Mailer(final String host, final Integer port, final String username, final String password,
-			final TransportStrategy transportStrategy) {
+	public Mailer(final String host, final Integer port, final String username, final String password, final TransportStrategy transportStrategy) {
 		if (host == null || host.trim().equals("")) {
 			throw new MailException(MailException.MISSING_HOST);
 		} else if ((password != null && !password.trim().equals("")) && (username == null || username.trim().equals(""))) {
@@ -141,6 +140,7 @@ public class Mailer {
 	 * @param username An optional username, may be <code>null</code>.
 	 * @param password An optional password, may be <code>null</code>.
 	 * @return A fully configured <code>Session</code> instance complete with transport protocol settings.
+	 *
 	 * @see TransportStrategy#generateProperties()
 	 * @see TransportStrategy#propertyNameHost()
 	 * @see TransportStrategy#propertyNamePort()
@@ -269,9 +269,9 @@ public class Mailer {
 		final String specifics;
 		if (transportStrategy != null) {
 			final String logmsg = "starting mail session (host: %s, port: %s, username: %s, authenticate: %s, transport: %s)";
-			specifics = String.format(logmsg, properties.get(transportStrategy.propertyNameHost()),
-					properties.get(transportStrategy.propertyNamePort()), properties.get(transportStrategy.propertyNameUsername()),
-					properties.get(transportStrategy.propertyNameAuthenticate()), transportStrategy);
+			specifics = String.format(logmsg, properties.get(transportStrategy.propertyNameHost()), properties.get(transportStrategy.propertyNamePort()),
+									  properties.get(transportStrategy.propertyNameUsername()), properties.get(transportStrategy.propertyNameAuthenticate()),
+									  transportStrategy);
 		} else {
 			specifics = properties.toString();
 		}
@@ -283,6 +283,7 @@ public class Mailer {
 	 *
 	 * @param email The email that needs to be configured correctly.
 	 * @return Always <code>true</code> (throws a {@link MailException} exception if validation fails).
+	 *
 	 * @throws MailException Is being thrown in any of the above causes.
 	 * @see EmailAddressValidator
 	 */
@@ -305,8 +306,7 @@ public class Mailer {
 					throw new MailException(String.format(MailException.INVALID_RECIPIENT, email));
 				}
 			}
-			if (email.getReplyToRecipient() != null &&
-					!EmailAddressValidator.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
+			if (email.getReplyToRecipient() != null && !EmailAddressValidator.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
 				throw new MailException(String.format(MailException.INVALID_REPLYTO, email));
 			}
 		}
@@ -321,6 +321,7 @@ public class Mailer {
 	 * @param email   The email message from which the subject and From-address are extracted.
 	 * @param session The Session to attach the MimeMessage to
 	 * @return A fully preparated {@link Message} instance, ready to be sent.
+	 *
 	 * @throws MessagingException           May be thrown when the message couldn't be processed by JavaMail.
 	 * @throws UnsupportedEncodingException Zie {@link InternetAddress#InternetAddress(String, String)}.
 	 */
@@ -378,8 +379,7 @@ public class Mailer {
 			throws UnsupportedEncodingException, MessagingException {
 		final Recipient replyToRecipient = email.getReplyToRecipient();
 		if (replyToRecipient != null) {
-			InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(),
-					CHARACTER_ENCODING);
+			InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(), CHARACTER_ENCODING);
 			message.setReplyTo(new Address[] { replyToAddress });
 		}
 	}
@@ -464,6 +464,7 @@ public class Mailer {
 	 * @param attachmentResource        An object that describes the attachment and contains the actual content data.
 	 * @param dispositionType The type of attachment, {@link Part#INLINE} or {@link Part#ATTACHMENT} .
 	 * @return An object with the attachment data read for placement in the email structure.
+	 *
 	 * @throws MessagingException All BodyPart setters.
 	 */
 	private static BodyPart getBodyPartFromDatasource(final AttachmentResource attachmentResource, final String dispositionType)
@@ -529,7 +530,8 @@ public class Mailer {
 	}
 
 	/**
-	 * Overrides the default email address validation restrictions {@link #emailAddressCriteria} when validating and sending emails using the current <code>Mailer</code> instance.
+	 * Overrides the default email address validation restrictions {@link #emailAddressCriteria} when validating and sending emails using the current
+	 * <code>Mailer</code> instance.
 	 */
 	public void setEmailAddressCriteria(EnumSet<EmailAddressCriteria> emailAddressCriteria) {
 		this.emailAddressCriteria = emailAddressCriteria;
