@@ -9,7 +9,7 @@ import javax.mail.MessagingException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -62,6 +62,14 @@ public class Email {
 	 */
 	private final Map<String, String> headers;
 
+	/*
+	DKIM properties
+	 */
+	private boolean applyDKIMSignature = false;
+	private InputStream dkimPrivateKeyInputStream;
+	private String signingDomain;
+	private String selector;
+
 	/**
 	 * Constructor, creates all internal lists.
 	 */
@@ -70,6 +78,46 @@ public class Email {
 		embeddedImages = new ArrayList<AttachmentResource>();
 		attachments = new ArrayList<AttachmentResource>();
 		headers = new HashMap<String, String>();
+	}
+
+	/**
+	 * @see #signWithDomainKey(InputStream, String, String)
+	 */
+	public void signWithDomainKey(final byte[] dkimPrivateKey, final String signingDomain, final String selector) {
+		signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey), signingDomain, selector);
+	}
+
+	/**
+	 * @see #signWithDomainKey(InputStream, String, String)
+	 */
+	public void signWithDomainKey(final File dkimPrivateKeyFile, final String signingDomain, final String selector) {
+		try {
+			signWithDomainKey(new FileInputStream(dkimPrivateKeyFile), signingDomain, selector);
+		} catch (FileNotFoundException e) {
+			throw new MailException(String.format("private key not found: %s", dkimPrivateKeyFile), e);
+		}
+	}
+
+	/**
+	 * Primes this email for signing with a DKIM domain key. Actual signing is done when sending using a <code>Mailer</code>.
+	 * <p/>
+	 * Also see:
+	 * <pre><ul>
+	 *     <li>https://postmarkapp.com/guides/dkim</li>
+	 *     <li>https://github.com/markenwerk/java-utils-mail-dkim</li>
+	 *     <li>http://www.gettingemaildelivered.com/dkim-explained-how-to-set-up-and-use-domainkeys-identified-mail-effectively</li>
+	 *     <li>https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail</li>
+	 * </ul></pre>
+	 *
+	 * @param dkimPrivateKeyInputStream De key content used to sign for the sending party.
+	 * @param signingDomain             The domain being authorized to send.
+	 * @param selector                  Additional domain specifier.
+	 */
+	public void signWithDomainKey(final InputStream dkimPrivateKeyInputStream, final String signingDomain, final String selector) {
+		this.applyDKIMSignature = true;
+		this.dkimPrivateKeyInputStream = dkimPrivateKeyInputStream;
+		this.signingDomain = signingDomain;
+		this.selector = selector;
 	}
 
 	/**
@@ -255,6 +303,22 @@ public class Email {
 	 */
 	public Map<String, String> getHeaders() {
 		return Collections.unmodifiableMap(headers);
+	}
+
+	public boolean isApplyDKIMSignature() {
+		return applyDKIMSignature;
+	}
+
+	public InputStream getDkimPrivateKeyInputStream() {
+		return dkimPrivateKeyInputStream;
+	}
+
+	public String getSigningDomain() {
+		return signingDomain;
+	}
+
+	public String getSelector() {
+		return selector;
 	}
 
 	@Override

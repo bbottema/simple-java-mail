@@ -1,30 +1,9 @@
 package org.codemonkey.simplejavamail;
 
-import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC_COMPLIANT;
-
-import java.io.UnsupportedEncodingException;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.Properties;
-
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
-import javax.mail.Address;
-import javax.mail.Authenticator;
-import javax.mail.BodyPart;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Part;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.MimeUtility;
-
+import net.markenwerk.utils.mail.dkim.Canonicalization;
+import net.markenwerk.utils.mail.dkim.DkimMessage;
+import net.markenwerk.utils.mail.dkim.DkimSigner;
+import net.markenwerk.utils.mail.dkim.SigningAlgorithm;
 import org.codemonkey.simplejavamail.email.AttachmentResource;
 import org.codemonkey.simplejavamail.email.Email;
 import org.codemonkey.simplejavamail.email.Recipient;
@@ -32,6 +11,21 @@ import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.mail.*;
+import javax.mail.internet.*;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Properties;
+
+import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC_COMPLIANT;
 
 /**
  * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content, embedded images and
@@ -241,7 +235,10 @@ public class Mailer {
 		if (validate(email)) {
 			try {
 				// fill and send wrapped mime message parts
-				final Message message = produceMimeMessage(email, session);
+				MimeMessage message = produceMimeMessage(email, session);
+				if (email.isApplyDKIMSignature()) {
+					message = signMessageWithDKIM(message, email);
+				}
 				logSession(session, transportStrategy);
 				message.saveChanges(); // some headers and id's will be set for this specific message
 				Transport transport = session.getTransport();
@@ -461,8 +458,8 @@ public class Mailer {
 	 * Part#INLINE} or {@link Part#ATTACHMENT}). With this the attachment data can be converted into objects that fit in the email structure. <br> <br> For
 	 * every attachment and embedded image a header needs to be set.
 	 *
-	 * @param attachmentResource        An object that describes the attachment and contains the actual content data.
-	 * @param dispositionType The type of attachment, {@link Part#INLINE} or {@link Part#ATTACHMENT} .
+	 * @param attachmentResource An object that describes the attachment and contains the actual content data.
+	 * @param dispositionType    The type of attachment, {@link Part#INLINE} or {@link Part#ATTACHMENT} .
 	 * @return An object with the attachment data read for placement in the email structure.
 	 *
 	 * @throws MessagingException All BodyPart setters.
@@ -481,6 +478,35 @@ public class Mailer {
 		attachmentPart.setHeader("Content-ID", String.format("<%s>", resourceName));
 		attachmentPart.setDisposition(dispositionType + "; size=0");
 		return attachmentPart;
+	}
+
+	/**
+	 * Primes the {@link MimeMessage} instance for signing with DKIM. The signing itself is performed by {@link DkimMessage} and {@link DkimSigner} during the
+	 * physical sending of the message.
+	 *
+	 * @param message The message to be signed when sent.
+	 * @param email   The {@link Email} that contains the relevant signing information
+	 * @return The original mime message wrapped in a new one that performs signing when sent.
+	 */
+	protected static MimeMessage signMessageWithDKIM(MimeMessage message, Email email) {
+		try {
+			final DkimSigner dkimSigner = new DkimSigner(email.getSigningDomain(), email.getSelector(), email.getDkimPrivateKeyInputStream());
+			dkimSigner.setIdentity(email.getFromRecipient().getAddress());
+			dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
+			dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
+			dkimSigner.setSigningAlgorithm(SigningAlgorithm.SHA256_WITH_RSA);
+			dkimSigner.setLengthParam(true);
+			dkimSigner.setZParam(false);
+			return new DkimMessage(message, dkimSigner);
+		} catch (IOException e) {
+			throw new MailException(String.format("Error signing MimeMessage with DKIM: %s", e.getMessage()), e);
+		} catch (NoSuchAlgorithmException e) {
+			throw new MailException(String.format("Error signing MimeMessage with DKIM: %s", e.getMessage()), e);
+		} catch (InvalidKeySpecException e) {
+			throw new MailException(String.format("Error signing MimeMessage with DKIM: %s", e.getMessage()), e);
+		} catch (MessagingException e) {
+			throw new MailException(String.format("Error signing MimeMessage with DKIM: %s", e.getMessage()), e);
+		}
 	}
 
 	/**
