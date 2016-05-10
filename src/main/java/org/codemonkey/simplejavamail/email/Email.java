@@ -515,10 +515,11 @@ public class Email {
 		 * @see ByteArrayDataSource
 		 * @see #addAttachment(String, DataSource)
 		 */
-		public void addAttachment(final String name, final byte[] data, final String mimetype) {
+		public Builder addAttachment(final String name, final byte[] data, final String mimetype) {
 			final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 			dataSource.setName(name);
 			addAttachment(name, dataSource);
+			return this;
 		}
 
 		/**
