@@ -402,6 +402,31 @@ public class Email {
 		 */
 		private final Map<String, String> headers;
 
+		/**
+		 * A file reference to the private key to be used for signing with DKIM.
+		 */
+		private File dkimPrivateKeyFile;
+
+		/**
+		 * An input stream containg the private key data to be used for signing with DKIM.
+		 */
+		private InputStream dkimPrivateKeyInputStream;
+
+		/**
+		 * A byte array containg the private key data to be used for signing with DKIM.
+		 */
+		private byte[] dkimPrivateKey;
+
+		/**
+		 * The domain used for signing with DKIM.
+		 */
+		private String signingDomain;
+
+		/**
+		 * The selector to be used in combination with the domain.
+		 */
+		private String selector;
+
 		public Builder() {
 			recipients = new ArrayList<Recipient>();
 			embeddedImages = new ArrayList<AttachmentResource>();
@@ -600,10 +625,40 @@ public class Email {
 		 * @param name     The name of the attachment (eg. 'filename.ext').
 		 * @param filedata The attachment data.
 		 */
-		public void addAttachment(final String name, final DataSource filedata) {
+		public Builder addAttachment(final String name, final DataSource filedata) {
 			attachments.add(new AttachmentResource(name, filedata));
+			return this;
 		}
 
+		/**
+		 * Sets all info needed for DKIM, using a byte array for private key data.
+		 */
+		public Builder signWithDomainKey(final byte[] dkimPrivateKey, final String signingDomain, final String selector) {
+			this.dkimPrivateKey = dkimPrivateKey;
+			this.signingDomain = signingDomain;
+			this.selector = selector;
+			return this;
+		}
+
+		/**
+		 * Sets all info needed for DKIM, using a file reference for private key data.
+		 */
+		public Builder signWithDomainKey(final File dkimPrivateKeyFile, final String signingDomain, final String selector) {
+			this.dkimPrivateKeyFile = dkimPrivateKeyFile;
+			this.signingDomain = signingDomain;
+			this.selector = selector;
+			return this;
+		}
+
+		/**
+		 * Sets all info needed for DKIM, using an input stream for private key data.
+		 */
+		public Builder signWithDomainKey(final InputStream dkimPrivateKeyInputStream, final String signingDomain, final String selector) {
+			this.dkimPrivateKeyInputStream = dkimPrivateKeyInputStream;
+			this.signingDomain = signingDomain;
+			this.selector = selector;
+			return this;
+		}
 	}
 
 	/**
@@ -622,6 +677,14 @@ public class Email {
 		text = builder.text;
 		textHTML = builder.textHTML;
 		subject = builder.subject;
+
+		if (builder.dkimPrivateKey != null) {
+			signWithDomainKey(builder.dkimPrivateKey, builder.signingDomain, builder.selector);
+		} else if (builder.dkimPrivateKeyFile != null) {
+			signWithDomainKey(builder.dkimPrivateKeyFile, builder.signingDomain, builder.selector);
+		} else if (builder.dkimPrivateKeyInputStream != null) {
+			signWithDomainKey(builder.dkimPrivateKeyInputStream, builder.signingDomain, builder.selector);
+		}
 	}
 
 	/*
