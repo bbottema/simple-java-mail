@@ -80,9 +80,6 @@ public class Email {
 	 */
 	public void setFromAddress(final String name, final String fromAddress) {
 		fromRecipient = new Recipient(name, fromAddress, null);
-		if (replyToRecipient == null) {
-			setReplyToAddress(name, fromAddress);
-		}
 	}
 
 	/**
