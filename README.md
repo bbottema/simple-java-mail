@@ -36,13 +36,13 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>3.1.0</version>
+    <version>3.1.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v3.1.0
+v3.1.1
 
 Major feature: DKIM support!
 

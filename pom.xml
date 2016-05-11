@@ -6,7 +6,7 @@
 	<artifactId>simple-java-mail</artifactId>
 	<packaging>jar</packaging>
 	<name>Simple Java Mail</name>
-	<version>3.1.0</version>
+	<version>3.1.2-SNAPSHOT</version>
 	<description>A light weight wrapper for the JavaMail SMTP API</description>
 	<url>https://github.com/bbottema/simple-java-mail</url>
 
