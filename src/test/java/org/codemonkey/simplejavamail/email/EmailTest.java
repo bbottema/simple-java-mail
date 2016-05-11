@@ -44,6 +44,9 @@ public class EmailTest {
 			throws IOException {
 		final Email emailNormal = new Email();
 		emailNormal.setFromAddress("lollypop", "lol.pop@somemail.com");
+		// normally not needed, but for the test it is because the MimeMessage will
+		// have it added automatically as well, so the parsed Email will also have it then
+		emailNormal.setReplyToAddress("lollypop", "lol.pop@somemail.com");
 		// don't forget to add your own address here ->
 		emailNormal.addRecipient("C.Cane", "candycane@candyshop.org", Message.RecipientType.TO);
 		emailNormal.setText("We should meet up!");

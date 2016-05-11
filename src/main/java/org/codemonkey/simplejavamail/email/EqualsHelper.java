@@ -63,7 +63,9 @@ class EqualsHelper {
 	}
 
 	public static boolean isEqualRecipient(Recipient recipient, Recipient otherRecipient) {
-		if (recipient.getName() != null ? !recipient.getName().equals(otherRecipient.getName()) : otherRecipient.getName() != null) {
+		String name = recipient != null ? recipient.getName() : null;
+		String otherName = otherRecipient != null ? otherRecipient.getName() : null;
+		if (name != null ? !name.equals(otherName) : otherName != null) {
 			return false;
 		}
 		if (recipient.getAddress() != null ? !recipient.getAddress().equals(otherRecipient.getAddress()) : otherRecipient.getAddress() != null) {
