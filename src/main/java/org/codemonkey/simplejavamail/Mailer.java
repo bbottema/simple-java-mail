@@ -25,6 +25,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Properties;
 
+import static java.lang.String.format;
 import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC_COMPLIANT;
 
 /**
@@ -250,10 +251,10 @@ public class Mailer {
 				}
 			} catch (final UnsupportedEncodingException e) {
 				LOGGER.error(e.getMessage(), e);
-				throw new MailException(String.format(MailException.INVALID_ENCODING, e.getMessage()));
+				throw new MailException(format(MailException.INVALID_ENCODING, e.getMessage()));
 			} catch (final MessagingException e) {
 				LOGGER.error(e.getMessage(), e);
-				throw new MailException(String.format(MailException.GENERIC_ERROR, e.getMessage()), e);
+				throw new MailException(format(MailException.GENERIC_ERROR, e.getMessage()), e);
 			}
 		}
 	}
@@ -266,13 +267,13 @@ public class Mailer {
 		final String specifics;
 		if (transportStrategy != null) {
 			final String logmsg = "starting mail session (host: %s, port: %s, username: %s, authenticate: %s, transport: %s)";
-			specifics = String.format(logmsg, properties.get(transportStrategy.propertyNameHost()), properties.get(transportStrategy.propertyNamePort()),
+			specifics = format(logmsg, properties.get(transportStrategy.propertyNameHost()), properties.get(transportStrategy.propertyNamePort()),
 									  properties.get(transportStrategy.propertyNameUsername()), properties.get(transportStrategy.propertyNameAuthenticate()),
 									  transportStrategy);
 		} else {
 			specifics = properties.toString();
 		}
-		LOGGER.debug(String.format("starting mail session (%s)", specifics));
+		LOGGER.debug(format("starting mail session (%s)", specifics));
 	}
 
 	/**
@@ -296,15 +297,15 @@ public class Mailer {
 			throw new MailException(MailException.MISSING_SENDER);
 		} else if (emailAddressCriteria != null) {
 			if (!EmailAddressValidator.isValid(email.getFromRecipient().getAddress(), emailAddressCriteria)) {
-				throw new MailException(String.format(MailException.INVALID_SENDER, email));
+				throw new MailException(format(MailException.INVALID_SENDER, email));
 			}
 			for (final Recipient recipient : email.getRecipients()) {
 				if (!EmailAddressValidator.isValid(recipient.getAddress(), emailAddressCriteria)) {
-					throw new MailException(String.format(MailException.INVALID_RECIPIENT, email));
+					throw new MailException(format(MailException.INVALID_RECIPIENT, email));
 				}
 			}
 			if (email.getReplyToRecipient() != null && !EmailAddressValidator.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
-				throw new MailException(String.format(MailException.INVALID_REPLYTO, email));
+				throw new MailException(format(MailException.INVALID_REPLYTO, email));
 			}
 		}
 		return true;
@@ -475,7 +476,7 @@ public class Mailer {
 		attachmentPart.setDataHandler(new DataHandler(attachmentResource.getDataSource()));
 		attachmentPart.setFileName(fileName);
 		attachmentPart.setHeader("Content-Type", dataSource.getContentType() + "; filename=" + fileName + "; name=" + fileName);
-		attachmentPart.setHeader("Content-ID", String.format("<%s>", resourceName));
+		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
 		attachmentPart.setDisposition(dispositionType + "; size=0");
 		return attachmentPart;
 	}
@@ -499,13 +500,13 @@ public class Mailer {
 			dkimSigner.setZParam(false);
 			return new DkimMessage(message, dkimSigner);
 		} catch (IOException e) {
-			throw new MailException(String.format("Error signing MimeMessage with DKIM: %s", e.getMessage()), e);
+			throw new MailException(format(MailException.INVALID_DOMAINKEY, e.getMessage()), e);
 		} catch (NoSuchAlgorithmException e) {
-			throw new MailException(String.format("Error signing MimeMessage with DKIM: %s", e.getMessage()), e);
+			throw new MailException(format(MailException.INVALID_DOMAINKEY, e.getMessage()), e);
 		} catch (InvalidKeySpecException e) {
-			throw new MailException(String.format("Error signing MimeMessage with DKIM: %s", e.getMessage()), e);
+			throw new MailException(format(MailException.INVALID_DOMAINKEY, e.getMessage()), e);
 		} catch (MessagingException e) {
-			throw new MailException(String.format("Error signing MimeMessage with DKIM: %s", e.getMessage()), e);
+			throw new MailException(format(MailException.INVALID_DOMAINKEY, e.getMessage()), e);
 		}
 	}
 

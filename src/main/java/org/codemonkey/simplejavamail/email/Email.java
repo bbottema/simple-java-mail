@@ -1,6 +1,5 @@
 package org.codemonkey.simplejavamail.email;
 
-import org.codemonkey.simplejavamail.MailException;
 import org.codemonkey.simplejavamail.util.MimeMessageParser;
 
 import javax.activation.DataSource;
@@ -11,6 +10,8 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.*;
 import java.util.*;
+
+import static java.lang.String.format;
 
 /**
  * Email message with all necessary data for an effective mailing action, including attachments etc.
@@ -96,13 +97,13 @@ public class Email {
 			dkimPrivateKeyInputStream = new FileInputStream(dkimPrivateKeyFile);
 			signWithDomainKey(dkimPrivateKeyInputStream, signingDomain, selector);
 		} catch (FileNotFoundException e) {
-			throw new MailException(String.format("private key not found: %s", dkimPrivateKeyFile), e);
+			throw new EmailException(format(EmailException.DKIM_ERROR_INVALID_FILE, dkimPrivateKeyFile), e);
 		} finally {
 			if (dkimPrivateKeyInputStream != null) {
 				try {
 					dkimPrivateKeyInputStream.close();
 				} catch (IOException e) {
-					throw new MailException(String.format("was unable to close InputStream: %s", e.getMessage()), e);
+					throw new EmailException(format(EmailException.DKIM_ERROR_UNCLOSABLE_INPUTSTREAM, e.getMessage()), e);
 				}
 			}
 		}
@@ -639,9 +640,9 @@ public class Email {
 		try {
 			fillEmailFromMimeMessage(new MimeMessageParser(mimeMessage).parse());
 		} catch (MessagingException e) {
-			throw new MailException(String.format("Error parsing MimeMessage: %s", e.getMessage()), e);
+			throw new EmailException(format(EmailException.PARSE_ERROR_MIMEMESSAGE, e.getMessage()), e);
 		} catch (IOException e) {
-			throw new MailException(String.format("Error parsing MimeMessage: %s", e.getMessage()), e);
+			throw new EmailException(format(EmailException.PARSE_ERROR_MIMEMESSAGE, e.getMessage()), e);
 		}
 	}
 

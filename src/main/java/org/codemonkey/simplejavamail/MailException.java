@@ -6,7 +6,7 @@ package org.codemonkey.simplejavamail;
  * @author Benny Bottema
  */
 @SuppressWarnings("serial")
-public final class MailException extends RuntimeException {
+public class MailException extends RuntimeException {
 
 	protected static final String GENERIC_ERROR = "Third party error: %s";
 	protected static final String MISSING_HOST = "Can't send an email without host";
@@ -19,6 +19,7 @@ public final class MailException extends RuntimeException {
 	protected static final String MISSING_RECIPIENT = "Email is not valid: missing recipients";
 	protected static final String MISSING_SUBJECT = "Email is not valid: missing subject";
 	protected static final String MISSING_CONTENT = "Email is not valid: missing content body";
+	protected static final String INVALID_DOMAINKEY = "Error signing MimeMessage with DKIM: %s";
 
 	protected MailException(final String message) {
 		super(message);
