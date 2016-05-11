@@ -21,6 +21,7 @@ Email email = new Email.Builder()
     .embedImage("wink2", imageDatesource)
     .addAttachment("invitation", pdfByteArray, "application/pdf")
     .addAttachment("dresscode", odfDatasource)
+    .signWithDomainKey(privateKeyData, "somemail.com", "selector")
     .build();
 
 new Mailer().sendMail(email);
