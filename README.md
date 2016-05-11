@@ -1,6 +1,5 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE) [![Latest Release](https://img.shields.io/maven-central/v/org.codemonkey.simplejavamail/simple-java-mail.svg?style=flat)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.codemonkey.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22) [![Build Status](https://img.shields.io/travis/bbottema/simple-java-mail.svg?style=flat)](https://travis-ci.org/bbottema/simple-java-mail) [![Codacy](https://img.shields.io/codacy/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
 
-
 # Simple Java Mail #
 
 Simple Java Mail is the simplest to use lightweight mailing library for Java, while being able to send complex emails including attachments, embedded images, custom headers and properties, address validation and even DKIM signing. Just send your emails without dealing with RFC's.
@@ -9,6 +8,23 @@ The Simple Java Mail library essentially is a wrapper around the JavaMail smtp m
 
 ### [Simple Java Mail one-page manual](https://github.com/bbottema/simple-java-mail/wiki/Manual) ###
 
+```java
+Email email = new Email.Builder()
+    .from("lollypop", "lolly.pop@somemail.com")
+    .replyTo("lollypop", "lolly.pop@othermail.com")
+    .to("C. Cane", "candycane@candyshop.org")
+    .cc("C. Bo", "chocobo@candyshop.org")
+    .subject("hey")
+    .text("We should meet up! ;)")
+    .textHTML("<img src='cid:wink1'><b>We should meet up!</b><img src='cid:wink2'>")
+    .embedImage("wink1", imageByteArray, "image/png");
+    .embedImage("wink2", imageDatesource);
+    .embedAttachment("invitation", pdfByteArray, "application/pdf");
+    .embedAttachment("dresscode", odfDatasource);
+    .build();
+
+new Mailer().sendMail(email);
+```
 
 ---
 
