@@ -634,7 +634,7 @@ public class Email {
 		 * Sets all info needed for DKIM, using a byte array for private key data.
 		 */
 		public Builder signWithDomainKey(final byte[] dkimPrivateKey, final String signingDomain, final String selector) {
-			this.dkimPrivateKey = dkimPrivateKey;
+			this.dkimPrivateKey = dkimPrivateKey.clone();
 			this.signingDomain = signingDomain;
 			this.selector = selector;
 			return this;
