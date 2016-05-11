@@ -17,10 +17,10 @@ Email email = new Email.Builder()
     .subject("hey")
     .text("We should meet up! ;)")
     .textHTML("<img src='cid:wink1'><b>We should meet up!</b><img src='cid:wink2'>")
-    .embedImage("wink1", imageByteArray, "image/png");
-    .embedImage("wink2", imageDatesource);
-    .embedAttachment("invitation", pdfByteArray, "application/pdf");
-    .embedAttachment("dresscode", odfDatasource);
+    .embedImage("wink1", imageByteArray, "image/png")
+    .embedImage("wink2", imageDatesource)
+    .addAttachment("invitation", pdfByteArray, "application/pdf")
+    .addAttachment("dresscode", odfDatasource)
     .build();
 
 new Mailer().sendMail(email);
