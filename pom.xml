@@ -188,6 +188,7 @@
 							<artifactSet>
 								<includes>
 									<include>com.github.bbottema:emailaddress-rfc2822</include>
+									<include>net.markenwerk:utils-mail-dkim</include>
 								</includes>
 							</artifactSet>
 						</configuration>
