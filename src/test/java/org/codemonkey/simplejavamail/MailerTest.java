@@ -1,27 +1,16 @@
 package org.codemonkey.simplejavamail;
 
-import net.markenwerk.utils.data.fetcher.BufferedFetcher;
 import org.codemonkey.simplejavamail.email.Email;
 import org.codemonkey.simplejavamail.email.EmailTest;
 import org.junit.Test;
 
-import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
-import javax.xml.bind.DatatypeConverter;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Properties;
 
-import static java.nio.file.Files.readAllBytes;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
-import static javax.xml.bind.DatatypeConverter.printBase64Binary;
-import static org.junit.Assert.*;
 
 public class MailerTest {
 
