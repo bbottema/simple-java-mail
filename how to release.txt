@@ -1,6 +1,6 @@
  1. update release notes and github readme page (don't commit)
  2. remove SNAPSHOT version
- 3. mvn -DperformRelease=true deploy
+ 3. mvn -DperformRelease=true clean deploy
             (set password in settings.xml or use local pgp key password, for which the public key must have been sent to a public key server,
             eg: gpg --keyserver hkp://keyserver.ubuntu.com --send-keys 05AC6403)
 		    server needed in settings.xml (see below)
