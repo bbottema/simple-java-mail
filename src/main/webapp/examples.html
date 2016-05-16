@@ -11,6 +11,24 @@
 
 <body class="language-javascript">
 
+<div class="index-demo">
+	<h1>Simple Java Mail</h1>
+	<h2>Simple API, Complex Emails</h2>
+
+	<div class="quick">
+<pre><code>Email email = new Email.Builder()
+    .from("lollypop", "lolly.pop@pretzelfun.com")
+    .to("C. Cane", "candycane@candyshop.org")
+    .to("C. Bo", "chocobo@candyshop.org")
+    .subject("hey")
+    .text("We should meet up! ;)")
+    .build();
+
+new Mailer().sendMail(email);
+</code></pre>
+		<a href="download.html" class="index-demo-dl">Download Simple Java Mail</a>
+	</div>
+</div>
 
 <div class="bar-group">
 	<a class="bar-link" href="index.html">About</a>
