@@ -1,5 +1,6 @@
 var webpack = require('webpack');
 var path = require('path');
+var glob = require('glob');
 
 
 // Webpack Config
@@ -21,7 +22,10 @@ var webpackConfig = {
   module: {
     loaders: [
       // .ts files for TypeScript
-      { test: /\.ts$/, loader: 'awesome-typescript-loader' }
+      { test: /\.ts$/, loader: 'awesome-typescript-loader' },
+      { test: /\.less$/, loader: 'raw!style!css!less' },
+      { test: /\.(jpe?g|png|gif|svg)$/i, loader: 'url' },
+      { test: /\.html$/, loader: 'html' }
     ]
   }
 };

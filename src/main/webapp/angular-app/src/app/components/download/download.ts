@@ -1,7 +1,7 @@
 import {Component} from '@angular/core';
 
 @Component({
-  templateUrl: 'app/components/download/download.html'
+  template: require('app/components/download/download.html')
 })
 
 export class Download { }

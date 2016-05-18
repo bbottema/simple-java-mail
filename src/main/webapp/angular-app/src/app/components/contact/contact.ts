@@ -1,7 +1,7 @@
 import {Component} from '@angular/core';
 
 @Component({
-  templateUrl: 'app/components/contact/contact.html'
+  template: require('app/components/contact/contact.html')
 })
 
 export class Contact { }
