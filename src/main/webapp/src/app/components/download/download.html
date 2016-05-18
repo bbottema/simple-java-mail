@@ -1,41 +1,47 @@
 <div class="content">
 
-  <h1>Download noUiSlider</h1>
+  <h1>Download Simple Java Mail</h1>
 
   <section>
-
     <div class="view">
+      <p>Simple Java Mail is open source, and you can use it <strong>for free</strong> in any personal or commercial product under the <strong>Apache
+        v2 license</strong>.</p>
 
-      <p>noUiSlider is open source, and you can use it <strong>for free</strong> in any personal or commercial product. No attribution required. Both the uncompressed and compressed version of noUiSlider are available in a <code>.zip</code> release, which is hosted by Github and available over <code>https</code>.</p>
+      <p>Simple Java Mail is available in Maven central as dependency and you can also download the jar distribution directly from there.</p>
 
-      <a class="button" href="https://github.com/leongersen/noUiSlider/releases/download/8.5.1/noUiSlider.8.5.1.zip">Download noUiSlider from Github</a>
+      <pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.codemonkey.simplejavamail&lt;/groupId&gt;
+    &lt;artifactId&gt;simple-java-mail&lt;/artifactId&gt;
+    &lt;version&gt;3.1.1&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+
+      <a class="button" href="http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.codemonkey.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22">
+        Download sources, javadoc, distribution directly from Maven Central</a>
 
       <div class="share">
-        <iframe src="https://ghbtns.com/github-btn.html?user=leongersen&amp;repo=noUiSlider&amp;type=star&amp;count=true&amp;size=large" frameborder="0" scrolling="0" width="160px" height="30px"></iframe>
-
-        <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://refreshless.com/nouislider/" data-text="Check out this responsive JavaScript range slider with touch support: #noUiSlider" data-size="large">Tweet</a>
+        <iframe src="https://ghbtns.com/github-btn.html?user=bbottema&amp;repo=simple-java-mail&amp;type=star&amp;count=true&amp;size=large"
+                frameborder="0" scrolling="0" width="160px" height="30px"></iframe>
       </div>
-
     </div>
   </section>
 
 
   <section>
-    <a href="contact.html">Help and contact</a>
-    <br>
-    <a href="../new-version/index.html">Release information about the latest Version</a>
-    <br>
-    Run the unit tests: <a href="../tests/range.html">range</a> and <a href="../tests/slider.html">slider</a>.
+    <a [routerLink]=" ['/Contact'] ">Help and contact</a><br/>
+    <a href="https://github.com/bbottema/simple-java-mail/releases/latest">Release information about the latest version</a><br/>
+    <a href="https://github.com/bbottema/simple-java-mail/blob/master/RELEASE.txt">Complete changelist</a>
   </section>
 
 
   <h2>License</h2>
 
   <section>
-
     <div class="view">
-
-      <p>You can use noUiSlider for free, under the terms of the <a href="http://www.wtfpl.net/about/">WTFPL</a>, which allows everything and has no additional restrictions.</p>
+      <p>
+        Simple Java Mail is released under <a href="https://github.com/bbottema/simple-java-mail/blob/master/LICENSE-2.0.txt">Apache v2 license</a>
+      </p>
+      <p>In short <a href="https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)">this means</a> you can do whatever you want as long as you
+        include the same license, the original (possibly ammended) notice, copyright and that state your changes.</p>
     </div>
   </section>
 
@@ -43,24 +49,8 @@
   <h2>Repository</h2>
 
   <section>
-
     <div class="view">
-
-      <p>You can also visit the repository: <a href="https://github.com/leongersen/noUiSlider/">noUiSlider on gitHub</a>. If you need help implementing noUiSlider in your website, or if you'd like to see a new feature, feel free to ask me on twitter: <a href="https://twitter.com/LeonGersen">@LeonGersen</a>.</p>
+      <p>You can visit the repository <a href="https://github.com/bbottema/simple-java-mail/">Simple Java Mail on gitHub</a>.</p>
     </div>
   </section>
-
-  <script src="../../../platform.twitter.com/widgets.js"></script>
 </div>
-
-<script>
-
-  var headers = document.getElementsByClassName('viewer-header');
-
-  for ( var i = 0; i < headers.length; i++ ) {
-    headers[i].addEventListener('click', function(){
-      this.classList.toggle('open');
-    });
-  }
-
-</script>

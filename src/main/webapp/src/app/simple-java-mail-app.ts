@@ -3,7 +3,6 @@ import {Router, RouteConfig, ROUTER_DIRECTIVES} from '@angular/router-deprecated
 
 import {About} from './components/about/about';
 import {Features} from './components/features/features';
-import {Examples} from './components/examples/examples';
 import {Download} from './components/download/download';
 import {Contact} from './components/contact/contact';
 
@@ -18,7 +17,6 @@ import {Contact} from './components/contact/contact';
 @RouteConfig([
   {path: '/about', component: About, name: 'About', useAsDefault: true},
   {path: '/features', component: Features, name: 'Features'},
-  {path: '/examples', component: Examples, name: 'Examples'},
   {path: '/download', component: Download, name: 'Download'},
   {path: '/contact', component: Contact, name: 'Contact'}
 ])
