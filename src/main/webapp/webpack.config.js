@@ -23,7 +23,7 @@ var webpackConfig = {
     loaders: [
       // .ts files for TypeScript
       { test: /\.ts$/, loader: 'awesome-typescript-loader' },
-      { test: /\.less$/, loader: 'raw!style!css!less' },
+      { test: /\.less$/, loader: 'raw!less' },
       { test: /\.(jpe?g|png|gif|svg)$/i, loader: 'url' },
       { test: /\.html$/, loader: 'html' }
     ]
@@ -64,7 +64,7 @@ var defaultConfig = {
 
   resolve: {
     root: [ path.join(__dirname, 'src') ],
-    extensions: ['', '.ts', '.js'],
+    extensions: ['', '.ts', '.js', '.json', '.css', '.html', '.less'],
     alias: {
       'angular2/testing': path.join(__dirname, 'node_modules', '@angular', 'core', 'testing.js'),
       '@angular/testing': path.join(__dirname, 'node_modules', '@angular', 'core', 'testing.js'),

@@ -1,4 +1,4 @@
-import {Component, AfterViewChecked} from '@angular/core';
+import {Component, ViewEncapsulation} from '@angular/core';
 import {Router, RouteConfig, ROUTER_DIRECTIVES} from '@angular/router-deprecated';
 
 import {About} from './components/about/about';
@@ -11,7 +11,8 @@ import {Contact} from './components/contact/contact';
   selector: 'simple-java-mail-app',
   directives: [ROUTER_DIRECTIVES],
   template: require('app/simple-java-mail-app.html'),
-  styles: [require('app/simple-java-mail-app.less')]
+  styles: [require('app/simple-java-mail-app.less')],
+  encapsulation: ViewEncapsulation.None
 })
 
 @RouteConfig([
