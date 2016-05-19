@@ -18,10 +18,12 @@
 
   <section class="toc">
     <ul>
-      <li><a pageScroll href="#section-basic-usage">Basic usage</a></li>
+      <li><a href="#section-basic-usage">Basic usage</a></li>
       <li><a href="#section-custom-session">Sending with your own Session instance</a></li>
       <li><a href="#section-ssl-tls">Sending with SSL and TLS</a></li>
       <li><a href="#section-gmail">SSL and TLS with Google mail</a></li>
+      <li><a href="#section-attachments">Adding attachments</a></li>
+      <li><a href="#section-embedding">Embedding images</a></li>
       <li><a href="#section-custom-headers">Setting custom headers</a></li>
       <li><a href="#section-custom-properties">Setting custom properties on the internal Session</a></li>
       <li><a href="#section-session-access">Direct access to the internal Session</a></li>
@@ -79,35 +81,6 @@ new Mailer("server", "25", "username", "password").sendMail(email);
     .build();
 
 new Mailer("server", "25", "username", "password").sendMail(email);
-</code></pre>
-    </div>
-  </section>
-
-
-  <a href="#section-emailexception" id="section-emailexception" class="section-link">&sect;</a>
-  <h3>Catching exceptions</h3>
-
-  <section>
-    <div class="view">
-      <p>
-        Simple Java Mail throws a <code class="inline">MailException</code> if something goes wrong and logs these by default using SLF4J. This
-        includes checked exceptions thrown by underlying frameworks. An exception might be thrown when:
-      </p>
-      <ol>
-        <li>1. sending an email</li>
-        <li>2. signing an email with DKIM</li>
-        <li>3. converting from MimeMessage to Email</li>
-      </ol>
-    </div>
-
-    <div class="side">
-<pre><code>Email email = new Email();
-
-try {
-   new Mailer().sendMail(email);
-} catch (MailException e) {
-   // handle the exception (but it is already logged through SLF4J)
-}
 </code></pre>
     </div>
   </section>
@@ -172,6 +145,57 @@ new Mailer().sendMail(email, TransportStrategy.SMTP_TLS);
 <pre><code>new Mailer("smtp.gmail.com", 25, "your user", "your password", TransportStrategy.SMTP_TLS).sendMail(email);
 new Mailer("smtp.gmail.com", 587, "your user", "your password", TransportStrategy.SMTP_TLS).sendMail(email);
 new Mailer("smtp.gmail.com", 465, "your user", "your password", TransportStrategy.SMTP_SSL).sendMail(email);
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-attachments" id="section-attachments" class="section-link">&sect;</a>
+  <h2>Adding attachments</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        You can add attachments very easily, but you'll have to provide the data yourself. Simple Java Mail accepts <code class="inline">byte[]</code>
+        and <code class="inline">DataSource</code> objects.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>Email email = new Email();
+
+email.addAttachment("dresscode.txt", new ByteArrayDataSource("Black Tie Optional", "text/plain"));
+email.addAttachment("location.txt", "On the moon!".getBytes(Charset.defaultCharset()), "text/plain");
+
+// ofcourse it can be anything: a pdf, doc, image, csv or anything else
+
+email.addAttachment("invitation.pdf", new FileDataSource("invitation_v8.3.pdf"));
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-embedding" id="section-embedding" class="section-link">&sect;</a>
+  <h2>Embedding images</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Embedding images is simple, but you have to add the placeholders in the HTML yourself.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>Email email = new Email();
+
+email.addEmbeddedImage("smiley", new FileDataSource("smiley.jpg"));
+// this example is included in the demo package in MailTestApp.java
+String base64String = "iVBORw0KGgoAAAANSUhEUgAAA ...snip";
+email.addEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png");
+
+// the corresponding HTML should contain the placeholders
+&lt;p&gt;Let&#39;s go!&lt;/p&gt;&lt;img src=&#39;cid:thumbsup&#39;&gt;&lt;br/&gt;
+&lt;p&gt;Smile!&lt;/p&gt;&lt;img src=&#39;cid:smiley&#39;&gt;
 </code></pre>
     </div>
   </section>
@@ -336,8 +360,3 @@ new Mailer().sendMail(email);
   </section>
 
 </div>
-
-
-- emailSession.setDebug(true);
-- logging
-- examples using embedded images / attachments

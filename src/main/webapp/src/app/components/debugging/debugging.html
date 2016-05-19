@@ -1,0 +1,102 @@
+<div class="content">
+
+  <h1>Logging & Debugging</h1>
+
+  <section class="toc">
+    <ul>
+      <li><a href="#section-logging">Logging output</a></li>
+      <li><a href="#section-debug-logging">Enable javax.mail debug logging</a></li>
+      <li><a href="#section-mailexception">Catching exceptions</a></li>
+    </ul>
+  </section>
+
+  <a href="#section-logging" id="section-logging" class="section-link">&sect;</a>
+  <h2>Logging output</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Simple Java Mail uses <a href="http://www.slf4j.org/">SLF4J</a> to log, which means you can use any logging framework you like that supports
+        it. Also read this excellent summary of <a href="http://learnjava-soa.blogspot.nl/2015/06/slf4j-with-log4j2-example.html">how to configure
+        slf4j with log4j2</a>.
+      </p>
+      <p>
+        Here's an example configuration for <a href="http://logging.apache.org/log4j/2.x/index.html">log4j2</a>, make sure you have the slf4j-to-log4j
+        impl included on the classpath as well as log4j itself.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code class="small">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;Configuration&gt;
+  &lt;Appenders&gt;
+    &lt;Console name=&quot;STDOUT&quot; target=&quot;SYSTEM_OUT&quot;&gt;
+        &lt;PatternLayoutpattern=&quot;current date-%d LEVEL-%-5p Thread-[%t]
+                            Method-%M() Class name-%C Message-%m%n&quot;/&gt;
+    &lt;/Console&gt;
+  &lt;/Appenders&gt;
+   &lt;loggers&gt;
+  &lt;Logger name=&quot;org.codemonkey.simplejavamail&quot; level=&quot;all&quot;/&gt;
+    &lt;root level=&quot;all&quot;&gt;
+      &lt;appender-ref ref=&quot;STDOUT&quot;/&gt;
+    &lt;/root&gt;
+  &lt;/loggers&gt;
+&lt;/Configuration&gt;
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-debug-logging" id="section-debug-logging" class="section-link">&sect;</a>
+  <h2>Enable javax.mail debug logging</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        By default javax.mail's debug logging is turned off, but you can turn it on for more diagnostic info. All this does is enabling debug mode on the internal Session instance.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>Mailer mailer = new Mailer(...);
+mailer.setDebug(true);
+
+// or
+mailer.getSession().setDebug(true);
+
+// or
+yourSession.setDebug(true);
+Mailer mailer = new Mailer(yourSession);
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-mailexception" id="section-mailexception" class="section-link">&sect;</a>
+  <h2>Catching exceptions</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Simple Java Mail throws a <code class="inline">MailException</code> if something goes wrong and logs these by default using SLF4J. This
+        includes checked exceptions thrown by underlying frameworks. An exception might be thrown when:
+      </p>
+      <ol>
+        <li>1. sending an email</li>
+        <li>2. signing an email with DKIM</li>
+        <li>3. converting from MimeMessage to Email</li>
+      </ol>
+    </div>
+
+    <div class="side">
+<pre><code>Email email = new Email();
+
+try {
+   new Mailer().sendMail(email);
+} catch (MailException e) {
+   // handle the exception (but it is already logged through SLF4J)
+}
+</code></pre>
+    </div>
+  </section>
+</div>
