@@ -1,397 +1,327 @@
 <div class="content">
 
-  <h1>Slider values</h1>
+  <h1>Simple Java Mail Features</h1>
 
+  <div class="introduction">
+    <p class="wide">
+      Creating and sending emails is very simple with Simple Java Mail; you don't need to know about the mailing RFC, MimeMessage or any other low
+      level <code class="inline">javax.mail</code> API. No anonymous inner classes needed and no <a
+      href="http://docs.spring.io/spring/docs/current/spring-framework-reference/html/mail.html">large frameworks</a> needed nor XML.
+    </p>
 
-  <a href="#section-handles" id="section-handles" class="section-link">&sect;</a>
-  <h2>Handles</h2>
+    <p class="wide">
+      On top of that, Simple Java Mail will do some basic validation checks so that your email is always populated with enough data. It even verifies
+      email addresses against <a href="https://tools.ietf.org/html/rfc2822">RFC-2822</a> using the only complete <a
+      href="https://github.com/bbottema/email-rfc2822-validator">rfc2822 validator in java</a> in the world.
+    </p>
+  </div>
+
+  <a href="#section-basic-usage" id="section-basic-usage" class="section-link">&sect;</a>
+  <h2>Basic usage</h2>
 
   <section>
-
     <div class="view">
-
-      <p>The number of handles can be set using the <code>start</code> option. This option accepts an array of initial handle positions. Set one
-        value for one handle, two values for two handles.</p>
-
-      <div class="example">
-        <div id="slider-handles"></div>
-
-        <script>
-          var handlesSlider = document.getElementById('slider-handles');
-
-          noUiSlider.create(handlesSlider, {
-            start: [4000, 8000],
-            range: {
-              'min': [2000],
-              'max': [10000]
-            }
-          });
-        </script>
-      </div>
+      <p>
+        Simply create an <code class="inline">Email</code>, populate it with your data, create a <code class="inline">Mailer</code> and send the <code
+        class="inline">Email</code> instance. The mailer can be created with your own <code class="inline">Session</code> instance as well (see
+        below).
+      </p>
     </div>
 
     <div class="side">
+<pre><code>Email email = new Email();
 
-<pre><code>var handlesSlider = document.getElementById('slider-handles');
+email.setFromAddress("Michel Baker", "m.baker@mbakery.com");
+email.addRecipient("mom", "jean.baker@hotmail.com", RecipientType.TO);
+email.addRecipient("dad", "StevenOakly1963@hotmail.com", RecipientType.TO);
+email.setSubject("My Bakery is finally open!");
+email.setText("Mom, Dad. We did the opening ceremony of our bakery!!!");
 
-noUiSlider.create(handlesSlider, {
-	start: [ 4000, 8000 ],
-	range: {
-		'min': [  2000 ],
-		'max': [ 10000 ]
-	}
-});
+new Mailer("server", "25", "username", "password").sendMail(email);
 </code></pre>
     </div>
   </section>
 
 
-  <a href="#section-range" id="section-range" class="section-link">&sect;</a>
-  <h2>Range</h2>
+  <a href="#section-builder-api" id="section-builder-api" class="section-link">&sect;</a>
+  <h3>Using the fluent API with the Builder pattern</h3>
 
   <section>
-
     <div class="view">
-      <p>All values on the slider are part of a range. The range has a minimum and maximum value.</p>
-
-      <div class="example">
-        <div id="slider-range"></div>
-        <span class="example-val" id="slider-range-value"></span>
-
-        <script>
-          var rangeSlider = document.getElementById('slider-range');
-
-          noUiSlider.create(rangeSlider, {
-            start: [4000],
-            range: {
-              'min': [2000],
-              'max': [10000]
-            }
-          });
-        </script>
-        <script>
-          var rangeSliderValueElement = document.getElementById('slider-range-value');
-
-          rangeSlider.noUiSlider.on('update', function (values, handle) {
-            rangeSliderValueElement.innerHTML = values[handle];
-          });
-        </script>
-      </div>
+      <p>
+        The previous example becomes even more succinct by using the fluent API.
+      </p>
     </div>
 
     <div class="side">
+<pre><code>Email email = new Email.Builder()
+    .from("Michel Baker", "m.baker@mbakery.com")
+    .to("mom", "jean.baker@hotmail.com")
+    .to("dad", "StevenOakly1963@hotmail.com")
+    .subject("My Bakery is finally open!")
+    .text("Mom, Dad. We did the opening ceremony of our bakery!!!")
+    .build();
 
-<pre><code>var rangeSlider = document.getElementById('slider-range');
-
-noUiSlider.create(rangeSlider, {
-	start: [ 4000 ],
-	range: {
-		'min': [  2000 ],
-		'max': [ 10000 ]
-	}
-});
+new Mailer("server", "25", "username", "password").sendMail(email);
 </code></pre>
-      <div class="viewer-header">Display the slider value</div>
-
-      <div class="viewer-content">
-
-<pre><code>var rangeSliderValueElement = document.getElementById('slider-range-value');
-
-rangeSlider.noUiSlider.on('update', function( values, handle ) {
-	rangeSliderValueElement.innerHTML = values[handle];
-});
-</code></pre>
-      </div>
     </div>
   </section>
 
 
-  <a href="#section-step" id="section-step" class="section-link">&sect;</a>
-  <h3>Stepping and snapping to values</h3>
+  <a href="#section-emailexception" id="section-emailexception" class="section-link">&sect;</a>
+  <h3>Catching exceptions</h3>
 
   <section>
-
     <div class="view">
-      <p>The amount the slider changes on movement can be set using the <code>step</code> option.</p>
-      <div class="example">
-        <div id="slider-step"></div>
-        <span class="example-val" id="slider-step-value"></span>
-
-        <script>
-          var stepSlider = document.getElementById('slider-step');
-
-          noUiSlider.create(stepSlider, {
-            start: [4000],
-            step: 1000,
-            range: {
-              'min': [2000],
-              'max': [10000]
-            }
-          });
-        </script>
-        <script>
-          var stepSliderValueElement = document.getElementById('slider-step-value');
-
-          stepSlider.noUiSlider.on('update', function (values, handle) {
-            stepSliderValueElement.innerHTML = values[handle];
-          });
-        </script>
-      </div>
+      <p>
+        Simple Java Mail throws a <code class="inline">MailException</code> if something goes wrong and logs these by default using SLF4J. This
+        includes checked exceptions thrown by underlying frameworks. An exception might be thrown when:
+      </p>
+      <ol>
+        <li>1. sending an email</li>
+        <li>2. signing an email with DKIM</li>
+        <li>3. converting from MimeMessage to Email</li>
+      </ol>
     </div>
 
     <div class="side">
+<pre><code>Email email = new Email();
 
-<pre><code>var stepSlider = document.getElementById('slider-step');
-
-noUiSlider.create(stepSlider, {
-	start: [ 4000 ],
-	step: 1000,
-	range: {
-		'min': [  2000 ],
-		'max': [ 10000 ]
-	}
-});
+try {
+   new Mailer().sendMail(email);
+} catch (MailException e) {
+   // handle the exception (but it is already logged through SLF4J)
+}
 </code></pre>
-      <div class="viewer-header">Display the slider value</div>
-
-      <div class="viewer-content">
-
-<pre><code>var stepSliderValueElement = document.getElementById('slider-step-value');
-
-stepSlider.noUiSlider.on('update', function( values, handle ) {
-	stepSliderValueElement.innerHTML = values[handle];
-});
-</code></pre>
-      </div>
     </div>
   </section>
 
 
-  <a href="#section-non-linear" id="section-non-linear" class="section-link">&sect;</a>
-  <h2>Non-linear sliders</h2>
+  <a href="#section-custom-session" id="section-custom-session" class="section-link">&sect;</a>
+  <h2>Sending with your own Session instance</h2>
 
   <section>
-
     <div class="view">
-
-      <p>noUiSlider offers some powerful mechanisms that allow a slider to behave in a non-linear fashion. You can create sliders with
-        ever-increasing increments by specifying the value for the slider at certain intervals. Note how the handle in the example below
-        starts at 30% of the slider width, even though <code>4000</code> is not 30% of the span between <code>2000</code> and
-        <code>10000</code>.</p>
-
-      <div class="example">
-        <div id="slider-non-linear"></div>
-        <span class="example-val" id="slider-non-linear-value"></span>
-
-        <script>
-          var nonLinearSlider = document.getElementById('slider-non-linear');
-
-          noUiSlider.create(nonLinearSlider, {
-            start: [4000],
-            range: {
-              'min': [2000],
-              '30%': [4000],
-              '70%': [8000],
-              'max': [10000]
-            }
-          });
-        </script>
-        <script>
-          var nonLinearSliderValueElement = document.getElementById('slider-non-linear-value');
-
-          // Show the value for the *last* moved handle.
-          nonLinearSlider.noUiSlider.on('update', function (values, handle) {
-            nonLinearSliderValueElement.innerHTML = values[handle];
-          });
-        </script>
-      </div>
+      <p>
+        If you prefer to use your own preconfigured <code class="inline">Session</code> instance, you can!
+      </p>
     </div>
 
     <div class="side">
+<pre><code>Email email = new Email();
+...
 
-<pre><code>var nonLinearSlider = document.getElementById('slider-non-linear');
-
-noUiSlider.create(nonLinearSlider, {
-	start: [ 4000 ],
-	range: {
-		'min': [  2000 ],
-		'30%': [  4000 ],
-		'70%': [  8000 ],
-		'max': [ 10000 ]
-	}
-});
+new Mailer(yourSession).sendMail(email);
 </code></pre>
-      <div class="viewer-header">Display the slider value</div>
-
-      <div class="viewer-content">
-
-<pre><code>var nonLinearSliderValueElement = document.getElementById('slider-non-linear-value');
-
-// Show the value for the *last* moved handle.
-nonLinearSlider.noUiSlider.on('update', function( values, handle ) {
-	nonLinearSliderValueElement.innerHTML = values[handle];
-});
-</code></pre>
-      </div>
     </div>
   </section>
 
 
-  <a href="#section-non-linear-step" id="section-non-linear-step" class="section-link">&sect;</a>
-  <h3>Stepping in non-linear sliders</h3>
+  <a href="#section-ssl-tls" id="section-ssl-tls" class="section-link">&sect;</a>
+  <h2>Sending with SSL and TLS</h2>
 
   <section>
-
     <div class="view">
-      <p>For every subrange in a non-linear slider, stepping can be set. Note how in the example below the slider doesn't step until it reaches
-        <code>500</code>. From there on, it changes in increments of <code>500</code>, until it reaches <code>4000</code>, where increments
-        now span <code>1000</code>.</p>
-
-      <div class="example">
-        <div id="slider-non-linear-step"></div>
-        <span class="example-val" id="slider-non-linear-step-value"></span>
-
-        <script>
-          var nonLinearStepSlider = document.getElementById('slider-non-linear-step');
-
-          noUiSlider.create(nonLinearStepSlider, {
-            start: [500, 4000],
-            range: {
-              'min': [0],
-              '10%': [500, 500],
-              '50%': [4000, 1000],
-              'max': [10000]
-            }
-          });
-        </script>
-        <script>
-          var nonLinearStepSliderValueElement = document.getElementById('slider-non-linear-step-value');
-
-          nonLinearStepSlider.noUiSlider.on('update', function (values, handle) {
-            nonLinearStepSliderValueElement.innerHTML = values[handle];
-          });
-        </script>
-      </div>
+      <p>
+        Activating SSL or TLS is super easy. Just use the appropriate <code> class="inline">TransportStrategy</code> enum.
+      </p>
     </div>
 
     <div class="side">
+<pre><code>Email email = new Email();
 
-<pre><code>var nonLinearStepSlider = document.getElementById('slider-non-linear-step');
-
-noUiSlider.create(nonLinearStepSlider, {
-	start: [ 500, 4000 ],
-	range: {
-		'min': [     0 ],
-		'10%': [   500,  500 ],
-		'50%': [  4000, 1000 ],
-		'max': [ 10000 ]
-	}
-});
+new Mailer().sendMail(email, TransportStrategy.SMTP_PLAIN); // default if omitted
+new Mailer().sendMail(email, TransportStrategy.SMTP_SSL);
+new Mailer().sendMail(email, TransportStrategy.SMTP_TLS);
 </code></pre>
-      <div class="viewer-header">Display the slider value</div>
-
-      <div class="viewer-content">
-
-<pre><code>var nonLinearStepSliderValueElement = document.getElementById('slider-non-linear-step-value');
-
-nonLinearStepSlider.noUiSlider.on('update', function( values, handle ) {
-	nonLinearStepSliderValueElement.innerHTML = values[handle];
-});
-</code></pre>
-      </div>
     </div>
   </section>
 
 
-  <a href="#section-snap" id="section-snap" class="section-link">&sect;</a>
-  <h3>Snapping between steps</h3>
+  <a href="#section-gmail" id="section-gmail" class="section-link">&sect;</a>
+  <h3>SSL and TLS with Google mail</h3>
 
   <section>
-
     <div class="view">
-      <p>When a non-linear slider has been configured, the <code>snap</code> option can be set to <code>true</code> to force the slider to jump
-        between the specified values.</p>
-
-      <div class="example">
-        <div id="slider-snap"></div>
-        <span class="example-val" id="slider-snap-value-lower"></span>
-        <span class="example-val" id="slider-snap-value-upper"></span>
-
-        <script>
-          var snapSlider = document.getElementById('slider-snap');
-
-          noUiSlider.create(snapSlider, {
-            start: [0, 500],
-            snap: true,
-            connect: true,
-            range: {
-              'min': 0,
-              '10%': 50,
-              '20%': 100,
-              '30%': 150,
-              '40%': 500,
-              '50%': 800,
-              'max': 1000
-            }
-          });
-        </script>
-        <script>
-          var snapValues = [
-            document.getElementById('slider-snap-value-lower'),
-            document.getElementById('slider-snap-value-upper')
-          ];
-
-          snapSlider.noUiSlider.on('update', function (values, handle) {
-            snapValues[handle].innerHTML = values[handle];
-          });
-        </script>
-      </div>
+      <p>
+        Here's an example of SSL and TLS using gMail.
+      </p>
+      <p>
+        If you have two-factor login turned on, you need to generate an <a href="https://security.google.com/settings/security/apppasswords">application
+        specific password</a> from your Google account.
+      </p>
     </div>
 
     <div class="side">
-
-<pre><code>var snapSlider = document.getElementById('slider-snap');
-
-noUiSlider.create(snapSlider, {
-	start: [ 0, 500 ],
-	snap: true,
-	connect: true,
-	range: {
-		'min': 0,
-		'10%': 50,
-		'20%': 100,
-		'30%': 150,
-		'40%': 500,
-		'50%': 800,
-		'max': 1000
-	}
-});
+<pre><code>new Mailer("smtp.gmail.com", 25, "your user", "your password", TransportStrategy.SMTP_TLS).sendMail(email);
+new Mailer("smtp.gmail.com", 587, "your user", "your password", TransportStrategy.SMTP_TLS).sendMail(email);
+new Mailer("smtp.gmail.com", 465, "your user", "your password", TransportStrategy.SMTP_SSL).sendMail(email);
 </code></pre>
-      <div class="viewer-header">Display the slider value</div>
-
-      <div class="viewer-content">
-
-<pre><code>var snapValues = [
-	document.getElementById('slider-snap-value-lower'),
-	document.getElementById('slider-snap-value-upper')
-];
-
-snapSlider.noUiSlider.on('update', function( values, handle ) {
-	snapValues[handle].innerHTML = values[handle];
-});
-</code></pre>
-      </div>
     </div>
   </section>
+
+
+  <a href="#section-custom-headers" id="section-custom-headers" class="section-link">&sect;</a>
+  <h2>Setting custom headers</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Sometimes you need extra headers in your email because your email server, recipient server or your email client needs it. Or perhaps you have
+        a proxy or monitoring setup in between mail servers. Whatever the case, adding headers is easy.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>Email email = new Email();
+
+email.addHeader("X-Priority", 2);
+email.addHeader("X-MC-GoogleAnalyticsCampaign", "halloween_sale");
+email.addHeader("X-MEETUP-RECIP-ID", "71415272");
+email.addHeader("X-my-custom-header", "foo");
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-custom-properties" id="section-custom-properties" class="section-link">&sect;</a>
+  <h2>Setting custom properties on the internal Session</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        In case you need to modify the internal Session object itself, because you need a tailored configuration that is supported by the underlying
+        <code class="inline">javax.mail</code>, that too is very easy.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>Properties props = new Properties();
+props.setProperty("mail.smtp.timeout", 30 * 1000);
+props.setProperty("mail.smtp.connectiontimeout", 10 * 1000);
+
+Mailer mailer = new Mailer();
+mailer.applyProperties(props);
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-session-access" id="section-session-access" class="section-link">&sect;</a>
+  <h2>Direct access to the internal Session</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        For emergencies, you can also get a hold of the internal Session instance itself. You should never need this however and if you do it means
+        Simple Java Mail failed to simplify the configuration process for you. Please let us know how we can help alleviate this need.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>Mailer mailer = new Mailer();
+
+Session session = mailer.getSession();
+// do your thing with session
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-dkim" id="section-dkim" class="section-link">&sect;</a>
+  <h2>Signing emails with DKIM</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Simple Java Mail also supports signing with <a href="http://blog.endpoint.com/2014/04/spf-dkim-and-dmarc-brief-explanation.html">DKIM</a>
+        domain keys. It uses <a href="https://github.com/markenwerk/java-utils-mail-dkim">java-utils-mail-dkim</a> (dependency packaged along) to
+        perform the DNS DKIM record check on the given domain.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>Email signedEmail = new Email();
+
+signedEmail.signWithDomainKey(
+   privateKey byte[] / File / InputStream,
+   "your_domain.org",
+   "your_selector");
+
+new Mailer().sendMail(signedEmail);
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-email-validation" id="section-email-validation" class="section-link">&sect;</a>
+  <h2>Validating Email Addresses</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Simple Java Mail can validate your email addresses. It's not just a simple regex check, but a complete and robust full validation against <a
+        href="https://tools.ietf.org/html/rfc2822">RFC-2822</a>. It does this by including <a
+        href="https://github.com/bbottema/email-rfc2822-validator">email-rfc2822-validator</a> in the library.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>EmailAddressValidator.isValid("your_address@domain.com",
+   EmailAddressCriteria.RFC_COMPLIANT);
+
+// or, fine-tuned to be less strict:
+EmailAddressValidator.isValid("your_address@domain.com",
+   of(ALLOW_QUOTED_IDENTIFIERS, ALLOW_PARENS_IN_LOCALPART));
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-generate-mimemessage" id="section-generate-mimemessage" class="section-link">&sect;</a>
+  <h2>Generating a MimeMessage from an Email</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        If, for some reason, you need a MimeMessage, you can still benefit from the easy API Simple Java Mail offers. Behold.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>Email email = new Email()
+// populate email
+
+MimeMessage message = Mailer.produceMimeMessage(email, yourSession);
+// in future also: new Mailer(...).produceMimeMessage(email);
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-parse-mimemessage" id="section-parse-mimemessage" class="section-link">&sect;</a>
+  <h2>Generating an Email from a MimeMessage</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        If you already have a MimeMessage, you can easily convert it into a ready-to-use Email instance, complete with embedded images and attachment
+        intact.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>MimeMessage mimeMessage = ...;
+Email email = new Email(mimeMessage);
+
+new Mailer().sendMail(email);
+</code></pre>
+    </div>
+  </section>
+
 </div>
 
-<script>
-  var headers = document.getElementsByClassName('viewer-header');
 
-  for (var i = 0; i < headers.length; i++) {
-    headers[i].addEventListener('click', function () {
-      this.classList.toggle('open');
-    });
-  }
-
-</script>
+- emailSession.setDebug(true);
+- logging
+- examples using embedded images / attachments
