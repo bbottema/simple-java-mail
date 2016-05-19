@@ -2,7 +2,7 @@
 
   <h1>Simple Java Mail Features</h1>
 
-  <div class="introduction">
+  <section class="introduction">
     <p class="wide">
       Creating and sending emails is very simple with Simple Java Mail; you don't need to know about the mailing RFC, MimeMessage or any other low
       level <code class="inline">javax.mail</code> API. No anonymous inner classes needed and no <a
@@ -14,7 +14,23 @@
       email addresses against <a href="https://tools.ietf.org/html/rfc2822">RFC-2822</a> using the only complete <a
       href="https://github.com/bbottema/email-rfc2822-validator">rfc2822 validator in java</a> in the world.
     </p>
-  </div>
+  </section>
+
+  <section class="toc">
+    <ul>
+      <li><a pageScroll href="#section-basic-usage">Basic usage</a></li>
+      <li><a href="#section-custom-session">Sending with your own Session instance</a></li>
+      <li><a href="#section-ssl-tls">Sending with SSL and TLS</a></li>
+      <li><a href="#section-gmail">SSL and TLS with Google mail</a></li>
+      <li><a href="#section-custom-headers">Setting custom headers</a></li>
+      <li><a href="#section-custom-properties">Setting custom properties on the internal Session</a></li>
+      <li><a href="#section-session-access">Direct access to the internal Session</a></li>
+      <li><a href="#section-dkim">Signing emails with DKIM</a></li>
+      <li><a href="#section-email-validation">Validating Email Addresses</a></li>
+      <li><a href="#section-generate-mimemessage">Generating a MimeMessage from an Email</a></li>
+      <li><a href="#section-parse-mimemessage">Generating an Email from a MimeMessage</a></li>
+    </ul>
+  </section>
 
   <a href="#section-basic-usage" id="section-basic-usage" class="section-link">&sect;</a>
   <h2>Basic usage</h2>
