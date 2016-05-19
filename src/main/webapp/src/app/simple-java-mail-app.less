@@ -10,6 +10,14 @@ html {
   font: 400 18px/1.75 'Open Sans';
 }
 
+.content a:link, .content a:visited {
+  color: #888888;
+}
+
+.content a.button:link, .content a.button:visited {
+  color: white;
+}
+
 pre {
   overflow: auto;
 }
@@ -28,14 +36,16 @@ button {
   text-transform: uppercase;
   padding: 0 15px;
   border-radius: 4px;
-  border-bottom: 2px solid rgba(0,0,0,0.1);
-  color: #fff;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+  color: white;
   cursor: pointer;
   margin: 15px 5px 0 0;
 }
+
 input {
   padding: 10px;
 }
+
 input, select {
   border: 1px solid #bfbfbf;
   margin: 15px 10px 10px 0;
@@ -46,14 +56,17 @@ h1 {
   letter-spacing: -3px;
   margin-bottom: 30px;
 }
+
 h2 {
   font: 400 30px "Open Sans";
   letter-spacing: -2px;
 }
+
 h3 {
   font: 600 20px "Open Sans";
   letter-spacing: -1px;
 }
+
 h4 {
   font: 600 20px "Open Sans";
   letter-spacing: -1px;
@@ -78,6 +91,7 @@ section {
   padding-bottom: 30px;
   border-bottom: 1px solid #ddd;
 }
+
 section, .jump {
   clear: both;
   overflow: hidden;
@@ -99,41 +113,48 @@ section, .jump {
   background: #3498db;
   margin-bottom: 40px;
 }
+
 .bar-link {
   color: #FFF;
   text-decoration: none;
   padding: 20px 15px;
   display: inline-block;
 }
+
 .bar-link:hover, .bar-link.active {
-  background: rgba(255,255,255,0.4);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .viewer-header {
   cursor: pointer;
   display: block;
-  border-bottom: 5px solid rgba(0,0,0,0.1);
+  border-bottom: 5px solid rgba(0, 0, 0, 0.1);
   background: #BDCDCD;
   margin-top: 10px;
   font: 700 14px 'Open Sans';
   padding: 10px;
 }
+
 .viewer-header:before {
   content: "(Click to show code) ";
   font: 400 12px Arial;
 }
+
 .viewer-content {
   overflow: hidden;
   max-height: 0;
   -webkit-transition: max-height 300ms;
   transition: max-height 300ms;
 }
+
 .viewer-header.open {
   background: #95C4B0;
 }
+
 .viewer-header.open:before {
   content: "";
 }
+
 .viewer-header.open + .viewer-content {
   max-height: 2000px;
 }
@@ -141,6 +162,7 @@ section, .jump {
 .options {
   padding: 0 30px 10px 10px;
 }
+
 .options > strong {
   display: block;
   margin-top: 10px;
@@ -152,22 +174,27 @@ section, .jump {
   margin: 20px 0;
   overflow: hidden;
 }
+
 .example.overflow {
   overflow: visible;
 }
+
 .example-val {
   font: 400 12px Arial;
   color: #888;
   display: block;
   margin: 15px 0;
 }
+
 .example-val:before {
   content: "Value: ";
   font: 700 12px Arial;
 }
+
 .example.vertical {
   width: 120px;
 }
+
 .example.vertical .noUi-target {
   height: 150px;
 }
@@ -175,6 +202,7 @@ section, .jump {
 .before-example ~ .example {
   margin-top: 0;
 }
+
 .before-example ~ .example.vertical .noUi-target {
   height: 220px;
 }
@@ -183,10 +211,12 @@ section, .jump {
   max-width: 550px;
   margin: 0 auto;
 }
+
 .quick .noUi-target {
   max-width: 300px;
   margin: 20px auto 30px;
 }
+
 .quick pre {
   background: #F3F3F3 !important;
   padding: 10px 30px 25px;
@@ -199,6 +229,7 @@ section, .jump {
   margin-top: 20px;
   text-align: center;
 }
+
 .logger div {
   background-color: #FFF;
   -webkit-transition: all 0.25s;
@@ -213,10 +244,12 @@ section, .jump {
   border-radius: 4px;
   border: 1px solid #ddd;
 }
+
 .logger div.tShow {
   background-color: #008CBA;
   color: #FFF;
 }
+
 .logger button {
   display: inline-block;
   margin: 2px;
@@ -229,12 +262,14 @@ section, .jump {
   list-style: none;
   padding: 0;
 }
+
 .pro-list li {
   margin-bottom: 5px;
   position: relative;
 }
+
 .pro-list li:before {
-  content:"\2713\0020";
+  content: "\2713\0020";
   display: block;
   font-size: 21px;
   position: absolute;
@@ -248,6 +283,7 @@ section, .jump {
   padding: 10px;
   vertical-align: top;
 }
+
 .data-table td:first-child,
 .data-table th:first-child {
   text-align: right;
@@ -258,6 +294,7 @@ section, .jump {
   width: 80%;
   text-align: left;
 }
+
 .styling-table th {
   padding: 10px;
 }
@@ -267,12 +304,15 @@ section, .jump {
   table-layout: fixed;
   text-align: center;
 }
+
 .events-no {
   color: #fff;
 }
+
 .events-yes {
   text-indent: -9999px;
 }
+
 .events-yes span {
   display: block;
   border-radius: 999px;
@@ -290,6 +330,7 @@ section, .jump {
   font-size: 32px;
   text-decoration: none;
 }
+
 .section-link:hover {
   color: #333;
 }
@@ -305,14 +346,11 @@ section, .jump {
   clear: left;
   color: #FFF;
 }
+
 .button:active {
-  box-shadow: inset 0 3px 5px rgba(0,0,0,0.125);
+  box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
 }
 
-.share {
-  margin: 30px auto;
-  width: 300px;
-}
 .quotable {
   font-style: italic;
   color: #00A0B0;
@@ -322,8 +360,9 @@ section, .jump {
 
 .index-demo {
   padding: 50px 30px;
-  background: #2980b9;
+  background: #444444;
 }
+
 .index-demo h1 {
   text-align: center;
   font-weight: 700;
@@ -331,10 +370,12 @@ section, .jump {
   color: #fff;
   margin: 0;
 }
+
 .index-demo h2 {
   text-align: center;
   color: #fff;
 }
+
 .index-demo-dl {
   color: #FFF;
   font-size: 22px;
@@ -343,7 +384,7 @@ section, .jump {
   display: table;
   border-bottom: 1px solid #FFF;
   margin: 30px auto 10px;
-  text-shadow: 0 1px rgba(0,0,0,0.3);
+  text-shadow: 0 1px rgba(0, 0, 0, 0.3);
 }
 
 .index-demo, .bar-group, .button {
@@ -359,12 +400,14 @@ section, .jump {
   .index-demo {
     padding: 100px 0 60px;
   }
+
   .index-demo h1 {
     line-height: 100%;
     font-family: Trebuchet MS;
     font-size: 100px;
     margin: 0 auto;
   }
+
   .index-demo h2 {
     text-align: right;
     font-size: 28px;
@@ -382,13 +425,16 @@ section, .jump {
     display: table-cell;
     vertical-align: top;
   }
+
   .view {
     width: 490px;
     padding: 10px 70px 10px 0;
   }
+
   .view p {
     max-width: 690px;
   }
+
   .view-more {
     width: 690px;
     padding: 10px 70px 10px 0;
