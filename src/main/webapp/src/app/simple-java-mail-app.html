@@ -2,7 +2,7 @@
   <h1>Simple Java Mail</h1>
   <h2>Simple API, Complex Emails</h2>
 
-  <div [hidden]="!router.isRouteActive(router.generate(['/About']))">
+  <div [hidden]="!router.urlTree.contains(router.createUrlTree(['/about']))">
     <div class="quick">
 <pre><code>Email email = new Email.Builder()
     .from("lollypop", "lolly.pop@pretzelfun.com")
@@ -14,18 +14,18 @@
 
 new Mailer().sendMail(email);
 </code></pre>
-      <a [routerLink]=" ['/Download'] " class="index-demo-dl">Download Simple Java Mail</a>
+      <a [routerLink]=" ['/download'] " class="index-demo-dl">Download Simple Java Mail</a>
     </div>
   </div>
 </div>
 
 <div class="bar-group">
-  <a class="bar-link" [class.active]="router.isRouteActive(router.generate(['/About']))" [routerLink]=" ['/About'] ">About</a>
-  <a class="bar-link" [class.active]="router.isRouteActive(router.generate(['/Features']))" [routerLink]=" ['/Features'] ">Features & Examples</a>
-  <a class="bar-link" [class.active]="router.isRouteActive(router.generate(['/Debugging']))" [routerLink]=" ['/Debugging'] ">Logging & Debugging</a>
-  <a class="bar-link" [class.active]="router.isRouteActive(router.generate(['/Download']))" [routerLink]=" ['/Download'] ">Download Simple Java
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/about']))" [routerLink]=" ['/about'] ">About</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/features']))" [routerLink]=" ['/features'] ">Features & Examples</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/debugging']))" [routerLink]=" ['/debugging'] ">Logging & Debugging</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/download']))" [routerLink]=" ['/download'] ">Download Simple Java
     Mail</a>
-  <a class="bar-link" [class.active]="router.isRouteActive(router.generate(['/Contact']))" [routerLink]=" ['/Contact'] ">Contact</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/contact']))" [routerLink]=" ['/contact'] ">Contact</a>
 </div>
 
 <main>

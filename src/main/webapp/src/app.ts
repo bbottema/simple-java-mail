@@ -1,7 +1,7 @@
 import {LocationStrategy, HashLocationStrategy} from '@angular/common';
 import {bootstrap} from '@angular/platform-browser-dynamic';
 import {provide, enableProdMode} from '@angular/core';
-import {ROUTER_PROVIDERS} from '@angular/router-deprecated';
+import {ROUTER_PROVIDERS} from '@angular/router';
 
 import {SimpleJavaMailApp} from './app/simple-java-mail-app';
 

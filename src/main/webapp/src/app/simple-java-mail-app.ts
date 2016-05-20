@@ -1,7 +1,7 @@
 declare var Prism:any;
 
 import {Component, ViewEncapsulation, AfterViewChecked} from '@angular/core';
-import {Router, RouteConfig, ROUTER_DIRECTIVES} from '@angular/router-deprecated';
+import {Router, Routes, ROUTER_DIRECTIVES} from '@angular/router';
 
 import {About} from './components/about/about';
 import {Features} from './components/features/features';
@@ -17,13 +17,13 @@ import {Contact} from './components/contact/contact';
   encapsulation: ViewEncapsulation.None
 })
 
-@RouteConfig([
-  {path: '/about', component: About, name: 'About', useAsDefault: true},
-  {path: '/features', component: Features, name: 'Features'},
-  {path: '/debugging', component: Debugging, name: 'Debugging'},
-  {path: '/download', component: Download, name: 'Download'},
-  {path: '/contact', component: Contact, name: 'Contact'}/*,
-  {path: '/**', redirectTo: ['About']}*/
+@Routes([
+  {path: '/about', component: About},
+  {path: '/features', component: Features},
+  {path: '/debugging', component: Debugging},
+  {path: '/download', component: Download},
+  {path: '/contact', component: Contact},
+  {path: '', component: About}
 ])
 
 export class SimpleJavaMailApp implements AfterViewChecked {
