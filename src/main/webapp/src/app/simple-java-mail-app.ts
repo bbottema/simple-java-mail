@@ -1,8 +1,8 @@
-declare var Prism: any;
-declare var console: any;
+declare var Prism:any;
+declare var console:any;
 
-import {Component, ViewEncapsulation} from '@angular/core';
-import {Router, RouteConfig, ROUTER_DIRECTIVES, OnActivate, ComponentInstruction} from '@angular/router-deprecated';
+import {Component, ViewEncapsulation, AfterViewChecked} from '@angular/core';
+import {Router, RouteConfig, ROUTER_DIRECTIVES} from '@angular/router-deprecated';
 
 import {About} from './components/about/about';
 import {Features} from './components/features/features';
@@ -23,16 +23,15 @@ import {Contact} from './components/contact/contact';
   {path: '/features', component: Features, name: 'Features'},
   {path: '/debugging', component: Debugging, name: 'Debugging'},
   {path: '/download', component: Download, name: 'Download'},
-  {path: '/contact', component: Contact, name: 'Contact'},
-  { path: '/**', redirectTo: ['About'] }
+  {path: '/contact', component: Contact, name: 'Contact'}/*,
+  {path: '/**', redirectTo: ['About']}*/
 ])
 
-export class SimpleJavaMailApp implements OnActivate {
+export class SimpleJavaMailApp implements AfterViewChecked {
+  constructor(private router:Router) {
+  }
 
-  constructor(private router: Router) {}
-
-  routerOnActivate(nextInstruction:ComponentInstruction, prevInstruction:ComponentInstruction):any|Promise<any> {
-    console.debug('doit');
+  ngAfterViewChecked():any {
     return Prism.highlightAll();
   }
 }
