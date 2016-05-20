@@ -1,7 +1,8 @@
+declare var Prism: any;
+declare var console: any;
+
 import {Component, ViewEncapsulation} from '@angular/core';
-import {Router, RouteConfig, ROUTER_DIRECTIVES} from '@angular/router-deprecated';
-import {Codeblock} from 'ng2-prism/codeblock';
-import {Java} from 'ng2-prism/languages';
+import {Router, RouteConfig, ROUTER_DIRECTIVES, OnActivate, ComponentInstruction} from '@angular/router-deprecated';
 
 import {About} from './components/about/about';
 import {Features} from './components/features/features';
@@ -11,7 +12,7 @@ import {Contact} from './components/contact/contact';
 
 @Component({
   selector: 'simple-java-mail-app',
-  directives: [ROUTER_DIRECTIVES, Codeblock, Java],
+  directives: [ROUTER_DIRECTIVES],
   template: require('app/simple-java-mail-app.html'),
   styles: [require('app/simple-java-mail-app.less')],
   encapsulation: ViewEncapsulation.None
@@ -22,9 +23,16 @@ import {Contact} from './components/contact/contact';
   {path: '/features', component: Features, name: 'Features'},
   {path: '/debugging', component: Debugging, name: 'Debugging'},
   {path: '/download', component: Download, name: 'Download'},
-  {path: '/contact', component: Contact, name: 'Contact'}
+  {path: '/contact', component: Contact, name: 'Contact'},
+  { path: '/**', redirectTo: ['About'] }
 ])
 
-export class SimpleJavaMailApp {
+export class SimpleJavaMailApp implements OnActivate {
+
   constructor(private router: Router) {}
+
+  routerOnActivate(nextInstruction:ComponentInstruction, prevInstruction:ComponentInstruction):any|Promise<any> {
+    console.debug('doit');
+    return Prism.highlightAll();
+  }
 }
