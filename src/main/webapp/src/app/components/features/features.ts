@@ -1,15 +1,13 @@
 import {Component} from '@angular/core';
-import {PageScroll, PageScrollConfig} from 'ng2-page-scroll';
+import {SimplePageScroll, SimplePageScrollConfig} from 'ng2-simple-page-scroll';
 
 @Component({
   template: require('app/components/features/features.html'),
-  directives: [PageScroll]
+  directives: [SimplePageScroll]
 })
 
 export class Features {
   constructor() {
-    // PageScrollConfig.defaultScrollOffset = 200;
-    // PageScrollConfig.defaultDuration = 50;
-    // PageScrollConfig._interval = 1000;
+    SimplePageScrollConfig.defaultScrollOffset = 0;
   }
 }
