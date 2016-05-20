@@ -1,5 +1,4 @@
 declare var Prism:any;
-declare var console:any;
 
 import {Component, ViewEncapsulation, AfterViewChecked} from '@angular/core';
 import {Router, RouteConfig, ROUTER_DIRECTIVES} from '@angular/router-deprecated';
