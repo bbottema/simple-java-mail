@@ -1,6 +1,6 @@
 declare var Prism:any;
 
-import {Component, ViewEncapsulation, AfterViewChecked} from '@angular/core';
+import {Component, ViewEncapsulation, AfterViewChecked, ElementRef} from '@angular/core';
 import {Router, Routes, ROUTER_DIRECTIVES} from '@angular/router';
 
 import {About} from './components/about/about';
@@ -27,7 +27,13 @@ import {Contact} from './components/contact/contact';
 ])
 
 export class SimpleJavaMailApp implements AfterViewChecked {
-  constructor(private router:Router) {
+  // router is used by the template
+  constructor(private router:Router, private el:ElementRef) {
+  }
+
+  // scrollToTop is used by the template
+  scrollToTop():void {
+    this.el.nativeElement.ownerDocument.body.scrollTop = 0;
   }
 
   ngAfterViewChecked():any {

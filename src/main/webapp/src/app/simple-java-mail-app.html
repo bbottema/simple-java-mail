@@ -14,18 +14,17 @@
 
 new Mailer().sendMail(email);
 </code></pre>
-      <a [routerLink]=" ['/download'] " class="index-demo-dl">Download Simple Java Mail</a>
+      <a [routerLink]="['/download']" class="index-demo-dl">Download Simple Java Mail</a>
     </div>
   </div>
 </div>
 
-<div class="bar-group">
-  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/about']))" [routerLink]=" ['/about'] ">About</a>
-  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/features']))" [routerLink]=" ['/features'] ">Features & Examples</a>
-  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/debugging']))" [routerLink]=" ['/debugging'] ">Logging & Debugging</a>
-  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/download']))" [routerLink]=" ['/download'] ">Download Simple Java
-    Mail</a>
-  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/contact']))" [routerLink]=" ['/contact'] ">Contact</a>
+<div id="navigation" class="bar-group">
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/about']))" [routerLink]="['/about']" (click)="scrollToTop()">About</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/features']))" [routerLink]="['/features']">Features & Examples</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/debugging']))" [routerLink]="['/debugging']">Logging & Debugging</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/download']))" [routerLink]="['/download']">Download Simple Java Mail</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/contact']))" [routerLink]="['/contact']">Contact</a>
 </div>
 
 <main>
@@ -34,5 +33,5 @@ new Mailer().sendMail(email);
 
 
 <footer>
-  © 2016
+  © 2016 by <a class="copyright" href="http://www.bennybottema.com">bennybottema.com</a>
 </footer>
