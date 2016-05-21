@@ -5,6 +5,8 @@ import {ROUTER_PROVIDERS} from '@angular/router';
 
 import {SimpleJavaMailApp} from './app/simple-java-mail-app';
 
+require('./index.html');
+
 // enableProdMode()
 
 bootstrap(SimpleJavaMailApp, [

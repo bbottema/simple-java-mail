@@ -21,10 +21,10 @@ new Mailer().sendMail(email);
 
 <div id="navigation" class="bar-group">
   <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/about']))" [routerLink]="['/about']" (click)="scrollToTop()">About</a>
-  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/features']))" [routerLink]="['/features']">Features & Examples</a>
-  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/debugging']))" [routerLink]="['/debugging']">Logging & Debugging</a>
-  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/download']))" [routerLink]="['/download']">Download Simple Java Mail</a>
-  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/contact']))" [routerLink]="['/contact']">Contact</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/features']))" [routerLink]="['/features']" simplePageScroll href="#navigation">Features & Examples</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/debugging']))" [routerLink]="['/debugging']" simplePageScroll href="#navigation">Logging & Debugging</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/download']))" [routerLink]="['/download']" simplePageScroll href="#navigation">Download Simple Java Mail</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/contact']))" [routerLink]="['/contact']" simplePageScroll href="#navigation">Contact</a>
 </div>
 
 <main>

@@ -1,13 +1,16 @@
 var webpack = require('webpack');
 var path = require('path');
 var glob = require('glob');
+var HtmlWebpackPlugin = require('html-webpack-plugin');
 
+var PROD = false;
 
 // Webpack Config
 var webpackConfig = {
   entry: {
     'polyfills': './src/polyfills.ts',
     'vendor':    './src/vendor.ts',
+    'external':    './src/external.ts',
     'app':       './src/app.ts'
   },
 
@@ -15,15 +18,21 @@ var webpackConfig = {
     path: './dist'
   },
 
-  plugins: [
-    new webpack.optimize.CommonsChunkPlugin({ name: ['app', 'vendor', 'polyfills'], minChunks: Infinity }),
-  ],
+  plugins: (PROD ? [
+    new webpack.optimize.UglifyJsPlugin({ compress: { warnings: false } })
+  ] : []).concat([
+    new webpack.optimize.CommonsChunkPlugin({ name: ['app', 'external', 'vendor', 'polyfills'], minChunks: Infinity }),
+    new HtmlWebpackPlugin({
+      template: 'src/index.html'
+    })
+  ]),
 
   module: {
     loaders: [
       // .ts files for TypeScript
       { test: /\.ts$/, loader: 'awesome-typescript-loader' },
       { test: /\.less$/, loader: 'raw!less' },
+      { test: /\.css$/, loader: 'style!css' },
       { test: /\.(jpe?g|png|gif|svg)$/i, loader: 'url' },
       { test: /\.html$/, loader: 'html' }
     ]
