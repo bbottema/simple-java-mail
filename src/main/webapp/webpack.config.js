@@ -34,7 +34,7 @@ var webpackConfig = {
       { test: /\.less$/, loader: 'raw!less' },
       { test: /\.css$/, loader: 'style!css' },
       { test: /\.(jpe?g|png|gif|svg)$/i, loader: 'url' },
-      { test: /\.html$/, loader: 'html' }
+      { test: /\.html$/, loader: 'html?-minimize' }
     ]
   }
 };
