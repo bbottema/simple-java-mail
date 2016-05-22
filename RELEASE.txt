@@ -1,4 +1,4 @@
-https://github.com/bbottema/simple-java-mail/
+http://www.simple-java-mail.org
 
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>
