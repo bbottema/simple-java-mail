@@ -6,7 +6,7 @@ Simple Java Mail is the simplest to use lightweight mailing library for Java, wh
 
 The Simple Java Mail library essentially is a wrapper around the JavaMail smtp mailing API that allows users to define emails on a high abstraction level without having to deal with mumbo jumbo such a 'multipart' and 'mimemessage'.
 
-### [www.simple-java-mail.org](http://www.simple-java-mail.org) ###
+### [simple-java-mail.org](http://www.simple-java-mail.org) ###
 
 ```java
 Email email = new Email.Builder()
