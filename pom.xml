@@ -7,8 +7,8 @@
 	<packaging>jar</packaging>
 	<name>Simple Java Mail</name>
 	<version>3.1.2-SNAPSHOT</version>
-	<description>A light weight wrapper for the JavaMail SMTP API</description>
-	<url>https://github.com/bbottema/simple-java-mail</url>
+	<description>Simple API, Complex Emails. A light weight wrapper for the JavaMail SMTP API</description>
+	<url>http://http://www.simple-java-mail.org/</url>
 
 	<licenses>
 		<license>
@@ -28,8 +28,8 @@
 		<developer>
 			<id>benny</id>
 			<name>Benny Bottema</name>
-			<email>b.bottema@projectnibble.org</email>
-			<url>http://blog.projectnibble.org</url>
+			<email>benny@bennybottema.com</email>
+			<url>http://www.bennybottema.com</url>
 			<roles>
 				<role>developer</role>
 				<role>packager</role>
