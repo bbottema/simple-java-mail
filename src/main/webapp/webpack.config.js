@@ -9,9 +9,9 @@ var PROD = false;
 var webpackConfig = {
   entry: {
     'polyfills': './src/polyfills.ts',
-    'vendor':    './src/vendor.ts',
-    'external':    './src/external.ts',
-    'app':       './src/app.ts'
+    'vendor': './src/vendor.ts',
+    'external': './src/external.ts',
+    'app': './src/app.ts'
   },
 
   output: {
@@ -19,9 +19,9 @@ var webpackConfig = {
   },
 
   plugins: (PROD ? [
-    new webpack.optimize.UglifyJsPlugin({ compress: { warnings: false } })
+    new webpack.optimize.UglifyJsPlugin({compress: {warnings: false}})
   ] : []).concat([
-    new webpack.optimize.CommonsChunkPlugin({ name: ['app', 'external', 'vendor', 'polyfills'], minChunks: Infinity }),
+    new webpack.optimize.CommonsChunkPlugin({name: ['app', 'external', 'vendor', 'polyfills'], minChunks: Infinity}),
     new HtmlWebpackPlugin({
       template: 'src/index.html'
     })
@@ -30,15 +30,20 @@ var webpackConfig = {
   module: {
     loaders: [
       // .ts files for TypeScript
-      { test: /\.ts$/, loader: 'awesome-typescript-loader' },
-      { test: /\.less$/, loader: 'raw!less' },
-      { test: /\.css$/, loader: 'style!css' },
-      { test: /\.(jpe?g|png|gif|svg)$/i, loader: 'url' },
-      { test: /\.html$/, loader: 'html?-minimize' }
+      {test: /\.ts$/, loader: 'awesome-typescript-loader'},
+      {test: /\.less$/, loader: 'raw!less'},
+      {test: /\.css$/, loader: 'style!css'},
+      {test: /\.(jpe?g|png|gif|svg)$/i, loader: 'url'},
+      {test: /\.html$/, loader: 'html?-minimize'}
     ]
+  },
+
+  resolve: {
+    alias: {
+      'services': path.resolve('src/app/services')
+    }
   }
 };
-
 
 
 // Our Webpack Defaults
@@ -72,7 +77,7 @@ var defaultConfig = {
   },
 
   resolve: {
-    root: [ path.join(__dirname, 'src') ],
+    root: [path.join(__dirname, 'src')],
     extensions: ['', '.ts', '.js', '.json', '.css', '.html', '.less'],
     alias: {
       'angular2/testing': path.join(__dirname, 'node_modules', '@angular', 'core', 'testing.js'),
@@ -88,7 +93,7 @@ var defaultConfig = {
 
   devServer: {
     historyApiFallback: true,
-    watchOptions: { aggregateTimeout: 300, poll: 1000 }
+    watchOptions: {aggregateTimeout: 300, poll: 1000}
   },
 
   node: {
