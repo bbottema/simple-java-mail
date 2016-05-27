@@ -16,3 +16,4 @@ import '@angular/router';
 // Also see src/typings.d.ts as you also need to run `typings install x` where `x` is your module
 
 import 'ng2-simple-page-scroll';
+import 'sprintf-js';

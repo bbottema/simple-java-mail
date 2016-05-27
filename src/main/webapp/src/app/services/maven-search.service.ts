@@ -1,20 +1,25 @@
 import {Injectable} from '@angular/core';
 import {Http, Response} from '@angular/http';
 import 'rxjs/add/operator/map';
-import 'rxjs/add/operator/toPromise';
+import {Observable} from "rxjs/Observable";
+import {Subject} from "rxjs/Subject";
+
+var sprintf:any = require("sprintf-js").sprintf;
 
 @Injectable()
 export class MavenSearchService {
-  // private endpoint:string = 'http://search.maven.org/solrsearch/select?q=g:%22org.codemonkey.simplejavamail%22+AND+a:%simple-java-mail%22&core=gav&rows=1&wt=json';
-  private endpoint:string = 'https://repository.sonatype.org/service/local/artifact/maven/resolve?r=central-proxy&g=org.codemonkey.simplejavamail&a=simple-java-mail&v=LATEST';
+  private static endpoint:string = 'https://img.shields.io/maven-central/v/%s/%s.json';
+
+  private latestVersion = new Subject();
 
   constructor(private http:Http) {
   }
 
-  getLatestVersion(groupId:string, artifact:string) {
-    return this.http
-      .get(this.endpoint)
-      .map((res:Response) => res.json().response.docs[0].v)
-      .toPromise();
+  public fetchLatestVersion(groupId:string, artifact:string):Observable<string> {
+    this.http
+      .get(sprintf(MavenSearchService.endpoint, groupId, artifact))
+      .map((res:Response) => res.json().value.replace('v', ''))
+      .subscribe((latestVersion:string) => this.latestVersion.next(latestVersion));
+    return this.latestVersion;
   }
 }

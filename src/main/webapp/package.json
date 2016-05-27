@@ -47,6 +47,7 @@
     "core-js": "^2.2.0",
     "ng2-simple-page-scroll": "^1.0.1",
     "rxjs": "5.0.0-beta.6",
+    "sprintf-js": "^1.0.3",
     "zone.js": "~0.6.12"
   },
   "keywords": [

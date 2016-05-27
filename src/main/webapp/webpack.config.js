@@ -40,7 +40,8 @@ var webpackConfig = {
 
   resolve: {
     alias: {
-      'services': path.resolve('src/app/services')
+      'services': path.resolve('src/app/services'),
+      'components': path.resolve('src/app/components')
     }
   }
 };
