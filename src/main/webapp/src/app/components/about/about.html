@@ -12,9 +12,10 @@
       <p>This library relieves you of having to deal with low level API such as MimeMessage, fuzzy try
         catch constructions, inner classes and other nonsense. You just want to send an email!</p>
       <br/>
-      <p>But don't let looks deceive you, this library does everything:
-        it is a <strong>feature complete</strong> mailing library, yet it is <strong>small</strong> and <strong>lightweight</strong>. It is
-        fully <strong>RFC compliant</strong> and looks good in all email clients.</p>
+      <p>But don't let looks deceive you, this library does everything: it is a <strong>feature complete</strong>
+        mailing library, yet it is <strong>small</strong> and <strong>lightweight</strong>. It is fully <strong><a
+          simplePageScroll [routerLink]="['/rfc']" href="#navigation">RFC compliant</a></strong> and looks good in all
+        email clients.</p>
     </div>
 
     <div class="side">
@@ -44,14 +45,17 @@ new Mailer().sendMail(email);
 
   <section>
     <div class="view">
-      <p>Simple Java Mail is a thin layer on top of Oracle's SMTP JavaMail API. For logging purposes, SLF4J is used so you can use whatever
+      <p>Simple Java Mail is a thin layer on top of Oracle's SMTP JavaMail API. For logging purposes, SLF4J is used so
+        you can use whatever
         logging framework you prefer.</p>
-      <p>These dependencies come along automatically with Maven, but you can download them here if you plan to maintain your own
+      <p>These dependencies come along automatically with Maven, but you can download them here if you plan to maintain
+        your own
         dependencies.</p>
       <p>Once the dependencies are set up, simply copy the above examples and start mailing!</p>
       <p class="button-group">
         <a class="button" [routerLink]="['/features']" simplePageScroll href="#navigation">Show Examples</a>
-        <a class="button" href="http://www.javadoc.io/doc/org.codemonkey.simplejavamail/simple-java-mail">API Javadoc</a>
+        <a class="button" href="http://www.javadoc.io/doc/org.codemonkey.simplejavamail/simple-java-mail">API
+          Javadoc</a>
       </p>
     </div>
   </section>

@@ -7,6 +7,7 @@ import {SimplePageScroll} from 'ng2-simple-page-scroll';
 import {About} from './components/about/about';
 import {Features} from './components/features/features';
 import {Debugging} from './components/debugging/debugging';
+import {RfcCompliant} from './components/rfc/rfc';
 import {Download} from './components/download/download';
 import {Contact} from './components/contact/contact';
 
@@ -24,6 +25,7 @@ require('./lib/prism.ts');
   {path: '/about', component: About},
   {path: '/features', component: Features},
   {path: '/debugging', component: Debugging},
+  {path: '/rfc', component: RfcCompliant},
   {path: '/download', component: Download},
   {path: '/contact', component: Contact},
   {path: '', component: About}
