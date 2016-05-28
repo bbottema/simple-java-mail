@@ -3,7 +3,7 @@ var path = require('path');
 var glob = require('glob');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 
-var PROD = false;
+var PROD = true;
 
 // Webpack Config
 var webpackConfig = {
