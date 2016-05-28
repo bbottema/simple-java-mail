@@ -10,9 +10,7 @@ import {Debugging} from './components/debugging/debugging';
 import {Download} from './components/download/download';
 import {Contact} from './components/contact/contact';
 
-require('./lib/prism.js');
-require('./lib/prism.css');
-require('./lib/fonts.googleapis.com.Open+Sans+300.400.600.700.css');
+require('./lib/prism.ts');
 
 @Component({
   selector: 'simple-java-mail-app',
