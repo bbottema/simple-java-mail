@@ -40,9 +40,13 @@
   <section>
     <div class="view">
       <p>
-        Simply create an <code class="inline">Email</code>, populate it with your data, create a <code class="inline">Mailer</code> and send the Email
-        instance. The mailer can be created with your own <code class="inline">Session</code> instance as well (<a simplePageScroll href="#section-custom-session">see
+        Simply create an <code class="inline">Email</code>, populate it with your data, create a <code class="inline">Mailer</code> and send the
+        Email instance. The mailer can be created with your own <code class="inline">Session</code> instance as well (<a simplePageScroll
+                                                                                                                         href="#section-custom-session">see
         below</a>).
+      </p>
+      <p>
+        A Mailer instance is reusable.
       </p>
     </div>
 
@@ -81,6 +85,34 @@ new Mailer("server", "25", "username", "password").sendMail(email);
     .build();
 
 new Mailer("server", "25", "username", "password").sendMail(email);
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-reusable-mailer" id="section-reusable-mailer" class="section-link h3">&sect;</a>
+  <h3>Configure once, reuse many times</h3>
+
+  <section>
+    <div class="view">
+      <p>
+        You can preconfigure a <code class="inline">Mailer</code> and use it many times.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>Mailer inhouseMailer = new Mailer("server", "25", "username", "password");
+
+inhouseMailer.sendMail(email);
+inhouseMailer.sendMail(anotherEmail);
+
+// or as preconfigured Spring bean:
+&lt;bean id=&quot;inhouseMailer&quot; class=&quot;org.codemonkey.simplejavamail.Mailer&quot;&gt;
+   &lt;constructor-arg value=&quot;server&quot; /&gt;
+   &lt;constructor-arg value=&quot;25&quot; /&gt;
+   &lt;constructor-arg value=&quot;username&quot; /&gt;
+   &lt;constructor-arg value=&quot;password&quot; /&gt;
+&lt;/bean&gt;
 </code></pre>
     </div>
   </section>
