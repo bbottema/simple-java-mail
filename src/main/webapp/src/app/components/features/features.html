@@ -34,7 +34,7 @@
     </ul>
   </section>
 
-  <a href="#section-basic-usage" id="section-basic-usage" class="section-link">&sect;</a>
+  <a href="#section-basic-usage" id="section-basic-usage" class="section-link h2">&sect;</a>
   <h2>Basic usage</h2>
 
   <section>
@@ -61,7 +61,7 @@ new Mailer("server", "25", "username", "password").sendMail(email);
   </section>
 
 
-  <a href="#section-builder-api" id="section-builder-api" class="section-link">&sect;</a>
+  <a href="#section-builder-api" id="section-builder-api" class="section-link h3">&sect;</a>
   <h3>Using the fluent API with the Builder pattern</h3>
 
   <section>
@@ -86,7 +86,7 @@ new Mailer("server", "25", "username", "password").sendMail(email);
   </section>
 
 
-  <a href="#section-custom-session" id="section-custom-session" class="section-link">&sect;</a>
+  <a href="#section-custom-session" id="section-custom-session" class="section-link h2">&sect;</a>
   <h2>Sending with your own Session instance</h2>
 
   <section>
@@ -106,7 +106,7 @@ new Mailer(yourSession).sendMail(email);
   </section>
 
 
-  <a href="#section-ssl-tls" id="section-ssl-tls" class="section-link">&sect;</a>
+  <a href="#section-ssl-tls" id="section-ssl-tls" class="section-link h2">&sect;</a>
   <h2>Sending with SSL and TLS</h2>
 
   <section>
@@ -127,7 +127,7 @@ new Mailer().sendMail(email, TransportStrategy.SMTP_TLS);
   </section>
 
 
-  <a href="#section-gmail" id="section-gmail" class="section-link">&sect;</a>
+  <a href="#section-gmail" id="section-gmail" class="section-link h3">&sect;</a>
   <h3>SSL and TLS with Google mail</h3>
 
   <section>
@@ -150,7 +150,7 @@ new Mailer("smtp.gmail.com", 465, "your user", "your password", TransportStrateg
   </section>
 
 
-  <a href="#section-attachments" id="section-attachments" class="section-link">&sect;</a>
+  <a href="#section-attachments" id="section-attachments" class="section-link h2">&sect;</a>
   <h2>Adding attachments</h2>
 
   <section>
@@ -175,7 +175,7 @@ email.addAttachment("invitation.pdf", new FileDataSource("invitation_v8.3.pdf"))
   </section>
 
 
-  <a href="#section-embedding" id="section-embedding" class="section-link">&sect;</a>
+  <a href="#section-embedding" id="section-embedding" class="section-link h2">&sect;</a>
   <h2>Embedding images</h2>
 
   <section>
@@ -201,7 +201,7 @@ email.addEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png")
   </section>
 
 
-  <a href="#section-custom-headers" id="section-custom-headers" class="section-link">&sect;</a>
+  <a href="#section-custom-headers" id="section-custom-headers" class="section-link h2">&sect;</a>
   <h2>Setting custom headers</h2>
 
   <section>
@@ -224,7 +224,7 @@ email.addHeader("X-my-custom-header", "foo");
   </section>
 
 
-  <a href="#section-custom-properties" id="section-custom-properties" class="section-link">&sect;</a>
+  <a href="#section-custom-properties" id="section-custom-properties" class="section-link h2">&sect;</a>
   <h2>Setting custom properties on the internal Session</h2>
 
   <section>
@@ -247,7 +247,7 @@ mailer.applyProperties(props);
   </section>
 
 
-  <a href="#section-session-access" id="section-session-access" class="section-link">&sect;</a>
+  <a href="#section-session-access" id="section-session-access" class="section-link h2">&sect;</a>
   <h2>Direct access to the internal Session</h2>
 
   <section>
@@ -268,7 +268,7 @@ Session session = mailer.getSession();
   </section>
 
 
-  <a href="#section-dkim" id="section-dkim" class="section-link">&sect;</a>
+  <a href="#section-dkim" id="section-dkim" class="section-link h2">&sect;</a>
   <h2>Signing emails with DKIM</h2>
 
   <section>
@@ -294,7 +294,7 @@ new Mailer().sendMail(signedEmail);
   </section>
 
 
-  <a href="#section-email-validation" id="section-email-validation" class="section-link">&sect;</a>
+  <a href="#section-email-validation" id="section-email-validation" class="section-link h2">&sect;</a>
   <h2>Validating Email Addresses</h2>
 
   <section>
@@ -318,7 +318,7 @@ EmailAddressValidator.isValid("your_address@domain.com",
   </section>
 
 
-  <a href="#section-generate-mimemessage" id="section-generate-mimemessage" class="section-link">&sect;</a>
+  <a href="#section-generate-mimemessage" id="section-generate-mimemessage" class="section-link h2">&sect;</a>
   <h2>Generating a MimeMessage from an Email</h2>
 
   <section>
@@ -339,7 +339,7 @@ MimeMessage message = Mailer.produceMimeMessage(email, yourSession);
   </section>
 
 
-  <a href="#section-parse-mimemessage" id="section-parse-mimemessage" class="section-link">&sect;</a>
+  <a href="#section-parse-mimemessage" id="section-parse-mimemessage" class="section-link h2">&sect;</a>
   <h2>Generating an Email from a MimeMessage</h2>
 
   <section>
