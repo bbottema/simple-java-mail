@@ -159,6 +159,9 @@ public class Mailer {
 			props.put(transportStrategy.propertyNameUsername(), username);
 		}
 
+		props.put("mail.smtp.socks.host", "localhost");
+		props.put("mail.smtp.socks.port", "1080");
+
 		if (password != null) {
 			props.put(transportStrategy.propertyNameAuthenticate(), "true");
 			return Session.getInstance(props, new Authenticator() {

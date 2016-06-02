@@ -26,7 +26,7 @@ public class MailTestApp {
         final Email emailNormal = new Email();
         emailNormal.setFromAddress("lollypop", "lol.pop@somemail.com");
         // don't forget to add your own address here ->
-        emailNormal.addRecipient("C.Cane", "candycane@candyshop.org", RecipientType.TO);
+        emailNormal.addRecipient("C.Cane", "b.bottema@gmail.com", RecipientType.TO);
         emailNormal.setText("We should meet up!");
         emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
         emailNormal.setSubject("hey");
@@ -42,14 +42,12 @@ public class MailTestApp {
         final Email emailFromMimeMessage = new Email(mimeMessage);
 
         sendMail(emailNormal);
-        sendMail(emailFromMimeMessage); // should produce the exact same result as emailNormal!
+//        sendMail(emailFromMimeMessage); // should produce the exact same result as emailNormal!
     }
 
     private static void sendMail(final Email email) {
-        final String host = System.getProperty("host") != null ? System.getProperty("host") : "";
-        final int port = System.getProperty("port") != null ? Integer.parseInt(System.getProperty("port")) : 25;
-        final String username = System.getProperty("username") != null ? System.getProperty("username") : "";
-        final String password = System.getProperty("password") != null ? System.getProperty("password") : "";
-        new Mailer(host, port, username, password, TransportStrategy.SMTP_SSL).sendMail(email);
+        new Mailer("smtp.gmail.com", 25, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_TLS).sendMail(email);
+        new Mailer("smtp.gmail.com", 587, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_TLS).sendMail(email);
+        new Mailer("smtp.gmail.com", 465, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_SSL).sendMail(email);
     }
 }
