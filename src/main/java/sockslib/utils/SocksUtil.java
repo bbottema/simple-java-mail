@@ -14,10 +14,8 @@ public class SocksUtil {
 		if (bytes.length != 2) {
 			throw new IllegalArgumentException("byte array size must be 2");
 		}
-		return bytesToInt(bytes[0], bytes[1]);
+		// bytes to int
+		return ((bytes[0] & 0xFF) << 8) | bytes[1] & 0xFF;
 	}
 
-	private static int bytesToInt(byte b1, byte b2) {
-		return ((b1 & 0xFF) << 8) | b2 & 0xFF;
-	}
 }

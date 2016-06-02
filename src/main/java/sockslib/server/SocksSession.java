@@ -13,7 +13,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-public class SocksSession implements Session {
+public class SocksSession {
 
 	private static final Logger logger = LoggerFactory.getLogger(SocksSession.class);
 
@@ -46,7 +46,6 @@ public class SocksSession implements Session {
 		clientAddress = socket.getRemoteSocketAddress();
 	}
 
-	@Override
 	public Socket getSocket() {
 		return socket;
 	}
@@ -56,24 +55,20 @@ public class SocksSession implements Session {
 		write(bytes, bytes.length);
 	}
 
-	@Override
 	public void write(WritableMessage message)
 			throws IOException {
 		write(message.getBytes());
 	}
 
-	@Override
 	public void read(ReadableMessage message)
 			throws IOException {
 		message.read(inputStream);
 	}
 
-	@Override
 	public long getId() {
 		return id;
 	}
 
-	@Override
 	public void close() {
 		try {
 			if (inputStream != null) {

@@ -36,8 +36,8 @@ public class BasicSocksProxyServer implements Runnable {
 				Socket socket = serverSocket.accept();
 				socket = new MonitorSocketWrapper(socket, networkMonitor);
 				socket.setSoTimeout(10000);
-				Session session = new SocksSession(socket);
-				SocksHandler socksHandler = new Socks5Handler();
+				SocksSession session = new SocksSession(socket);
+				Socks5Handler socksHandler = new Socks5Handler();
 				// initialize socks handler
 				socksHandler.setSession(session);
 				socksHandler.setBufferSize(1024 * 1024 * 5);

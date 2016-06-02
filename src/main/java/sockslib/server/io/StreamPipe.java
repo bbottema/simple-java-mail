@@ -20,7 +20,7 @@ public class StreamPipe implements Runnable, Pipe {
 	 */
 	private static final int BUFFER_SIZE = 1024 * 1024 * 5;
 
-	private final List<PipeListener> pipeListeners;
+	private final List<SocketPipe.PipeListener> pipeListeners;
 
 	private final InputStream source;
 
@@ -63,7 +63,7 @@ public class StreamPipe implements Runnable, Pipe {
 			if (runningThread != null) {
 				runningThread.interrupt();
 			}
-			for (PipeListener listener : pipeListeners) {
+			for (SocketPipe.PipeListener listener : pipeListeners) {
 				listener.onStop(this);
 			}
 		}
@@ -91,7 +91,7 @@ public class StreamPipe implements Runnable, Pipe {
 			}
 
 		} catch (IOException e) {
-			for (PipeListener pipeListener : pipeListeners) {
+			for (SocketPipe.PipeListener pipeListener : pipeListeners) {
 				pipeListener.onError(e);
 			}
 			stop();
@@ -111,12 +111,12 @@ public class StreamPipe implements Runnable, Pipe {
 	}
 
 	@Override
-	public void addPipeListener(PipeListener pipeListener) {
+	public void addPipeListener(SocketPipe.PipeListener pipeListener) {
 		pipeListeners.add(pipeListener);
 	}
 
 	@Override
-	public void removePipeListener(PipeListener pipeListener) {
+	public void removePipeListener(SocketPipe.PipeListener pipeListener) {
 		pipeListeners.remove(pipeListener);
 	}
 

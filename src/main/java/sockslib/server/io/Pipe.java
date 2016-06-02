@@ -16,9 +16,9 @@ public interface Pipe {
 
   boolean isRunning();
 
-  void addPipeListener(PipeListener pipeListener);
+  void addPipeListener(SocketPipe.PipeListener pipeListener);
 
-  void removePipeListener(PipeListener pipeListener);
+  void removePipeListener(SocketPipe.PipeListener pipeListener);
 
   void setName(String name);
 

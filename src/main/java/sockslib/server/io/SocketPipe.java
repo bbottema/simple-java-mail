@@ -32,7 +32,7 @@ public class SocketPipe implements Pipe {
 
   private boolean running = false;
 
-  private final PipeListener listener = new PipeListenerImp();
+  private final PipeListener listener = new PipeListener();
 
   /**
    * Constructs SocketPipe instance by tow connected sockets.
@@ -107,16 +107,14 @@ public class SocketPipe implements Pipe {
     this.name = name;
   }
 
-  private class PipeListenerImp implements PipeListener {
+  public class PipeListener {
 
-    @Override
     public void onStop(Pipe pipe) {
       StreamPipe streamPipe = (StreamPipe) pipe;
       logger.trace("Pipe[{}] stopped", streamPipe.getName());
       close();
     }
 
-    @Override
     public void onError(Exception exception) {
       logger.info("{} {}", name, exception.getMessage());
     }

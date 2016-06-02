@@ -13,19 +13,19 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class Socks5Handler implements SocksHandler {
+public class Socks5Handler implements Runnable {
 
 	private static final Logger logger = LoggerFactory.getLogger(Socks5Handler.class);
 
 	public static final int VERSION = 0x5;
 
-	private Session session;
+	private SocksSession session;
 
 	private int bufferSize;
 
 	private final int idleTime = 2000;
 
-	private void handle(Session session)
+	private void handle(SocksSession session)
 			throws Exception {
 		MethodSelectionMessage msg = new MethodSelectionMessage();
 		session.read(msg);
@@ -60,7 +60,7 @@ public class Socks5Handler implements SocksHandler {
 		}
 	}
 
-	private void doConnect(Session session, CommandMessage commandMessage)
+	private void doConnect(SocksSession session, CommandMessage commandMessage)
 			throws IOException {
 
 		ServerReply reply;
@@ -121,7 +121,7 @@ public class Socks5Handler implements SocksHandler {
 
 	}
 
-	private void doBind(Session session, CommandMessage commandMessage)
+	private void doBind(SocksSession session, CommandMessage commandMessage)
 			throws IOException {
 		ServerSocket serverSocket = new ServerSocket(commandMessage.getPort());
 		int bindPort = serverSocket.getLocalPort();
@@ -149,8 +149,7 @@ public class Socks5Handler implements SocksHandler {
 		// throw new NotImplementException("Not implement BIND command");
 	}
 
-	@Override
-	public void setSession(Session session) {
+	public void setSession(SocksSession session) {
 		this.session = session;
 	}
 
@@ -165,7 +164,6 @@ public class Socks5Handler implements SocksHandler {
 		}
 	}
 
-	@Override
 	public void setBufferSize(int bufferSize) {
 		this.bufferSize = bufferSize;
 	}
