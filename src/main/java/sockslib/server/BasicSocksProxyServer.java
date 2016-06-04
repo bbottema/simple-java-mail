@@ -3,7 +3,6 @@ package sockslib.server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sockslib.common.net.MonitorSocketWrapper;
-import sockslib.common.net.NetworkMonitor;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -25,8 +24,6 @@ public class BasicSocksProxyServer implements Runnable {
 	@SuppressWarnings("FieldCanBeLocal")
 	private Thread thread;
 
-	private final NetworkMonitor networkMonitor = new NetworkMonitor();
-
 	@Override
 	public void run() {
 		logger.info("Start proxy server at port:{}", 1080);
@@ -34,7 +31,7 @@ public class BasicSocksProxyServer implements Runnable {
 		while (true) {
 			try {
 				Socket socket = serverSocket.accept();
-				socket = new MonitorSocketWrapper(socket, networkMonitor);
+				socket = new MonitorSocketWrapper(socket);
 				socket.setSoTimeout(10000);
 				SocksSession session = new SocksSession(socket);
 				Socks5Handler socksHandler = new Socks5Handler();

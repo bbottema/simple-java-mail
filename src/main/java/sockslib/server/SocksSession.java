@@ -2,8 +2,6 @@ package sockslib.server;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.common.net.MonitorSocketWrapper;
-import sockslib.common.net.NetworkMonitor;
 import sockslib.server.msg.ReadableMessage;
 import sockslib.server.msg.WritableMessage;
 
@@ -32,9 +30,6 @@ class SocksSession {
 	public SocksSession(Socket socket) {
 		if (!socket.isConnected()) {
 			throw new IllegalArgumentException("Socket should be a connected socket");
-		}
-		if (socket instanceof MonitorSocketWrapper) {
-			((MonitorSocketWrapper) socket).setNetworkMonitor(new NetworkMonitor());
 		}
 		this.socket = socket;
 		try {

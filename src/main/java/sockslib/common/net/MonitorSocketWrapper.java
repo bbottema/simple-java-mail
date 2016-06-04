@@ -14,17 +14,11 @@ import static sockslib.utils.Utils.Assert.checkNotNull;
 public class MonitorSocketWrapper extends Socket {
 
   private final Socket originalSocket;
-  private NetworkMonitor networkMonitor;
   private InputStream inputStream = null;
   private OutputStream outputStream = null;
 
-  public MonitorSocketWrapper(Socket socket, NetworkMonitor networkMonitor) {
+  public MonitorSocketWrapper(Socket socket) {
     originalSocket = checkNotNull(socket, "Argument [socket] may not be null");
-    this.networkMonitor = networkMonitor;
-  }
-
-  public void setNetworkMonitor(NetworkMonitor networkMonitor) {
-    this.networkMonitor = networkMonitor;
   }
 
   @Override
@@ -80,25 +74,17 @@ public class MonitorSocketWrapper extends Socket {
   @Override
   public InputStream getInputStream() throws IOException {
     if (inputStream == null) {
-      inputStream = getInputStreamFromSocket();
+      inputStream = originalSocket.getInputStream();
     }
     return inputStream;
-  }
-
-  private InputStream getInputStreamFromSocket() throws IOException {
-    return MonitorInputStreamWrapper.wrap(originalSocket.getInputStream(), networkMonitor);
   }
 
   @Override
   public OutputStream getOutputStream() throws IOException {
     if (outputStream == null) {
-      outputStream = getOutputStreamFromSocket();
+      outputStream = originalSocket.getOutputStream();
     }
     return outputStream;
-  }
-
-  private OutputStream getOutputStreamFromSocket() throws IOException {
-    return MonitorOutputStreamWrapper.wrap(originalSocket.getOutputStream(), networkMonitor);
   }
 
   @Override

@@ -1,21 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration>
-    <Appenders>
-        <Console name="STDOUT" target="SYSTEM_OUT">
-            <PatternLayout pattern="current date-%d LEVEL-%-5p Thread-[%t]
-            Method-%M() Class name-%C Message-%m%n"/>
-        </Console>
-    </Appenders>
-    <loggers>
-        <Logger name="org.codemonkey.simplejavamail" level="all"/>
-        <root level="all">
-            <appender-ref ref="STDOUT"/>
-        </root>
-    </loggers>
-    <loggers>
-        <Logger name="sockslib.*" level="all"/>
-        <root level="all">
-            <appender-ref ref="STDOUT"/>
-        </root>
-    </loggers>
-</Configuration>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/" debug="false">
+
+    <appender name="console" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d [%t] %-5p %c - %m%n"/>
+        </layout>
+    </appender>
+
+    <root>
+        <priority value="debug"/>
+        <appender-ref ref="console"/>
+    </root>
+</log4j:configuration>

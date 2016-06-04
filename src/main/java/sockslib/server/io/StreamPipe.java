@@ -1,5 +1,8 @@
 package sockslib.server.io;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -15,10 +18,9 @@ import static sockslib.utils.Utils.Assert.checkNotNull;
  */
 public class StreamPipe implements Runnable, Pipe {
 
-	/**
-	 * Default buffer size.
-	 */
-	private static final int BUFFER_SIZE = 1024 * 1024 * 5;
+	private static final Logger logger = LoggerFactory.getLogger(StreamPipe.class);
+
+	private static final int DEFAULT_BUFFER_SIZE = 1024 * 1024 * 5;
 
 	private final List<SocketPipe.PipeListener> pipeListeners;
 
@@ -26,7 +28,7 @@ public class StreamPipe implements Runnable, Pipe {
 
 	private final OutputStream destination;
 
-	private int bufferSize = BUFFER_SIZE;
+	private int bufferSize = DEFAULT_BUFFER_SIZE;
 
 	private Thread runningThread;
 
@@ -63,8 +65,10 @@ public class StreamPipe implements Runnable, Pipe {
 			if (runningThread != null) {
 				runningThread.interrupt();
 			}
-			for (SocketPipe.PipeListener listener : pipeListeners) {
-				listener.onStop(this);
+			synchronized (this) {
+				for (SocketPipe.PipeListener listener : new ArrayList<>(pipeListeners)) {
+					listener.onStop(this);
+				}
 			}
 		}
 	}
@@ -91,8 +95,10 @@ public class StreamPipe implements Runnable, Pipe {
 			}
 
 		} catch (IOException e) {
-			for (SocketPipe.PipeListener pipeListener : pipeListeners) {
-				pipeListener.onError(e);
+			synchronized (this) {
+				for (SocketPipe.PipeListener pipeListener : new ArrayList<>(pipeListeners)) {
+					logger.info("{} {}", pipeListener.getName(), e.getMessage());
+				}
 			}
 			stop();
 		}
@@ -111,12 +117,12 @@ public class StreamPipe implements Runnable, Pipe {
 	}
 
 	@Override
-	public void addPipeListener(SocketPipe.PipeListener pipeListener) {
+	public synchronized void addPipeListener(SocketPipe.PipeListener pipeListener) {
 		pipeListeners.add(pipeListener);
 	}
 
 	@Override
-	public void removePipeListener(SocketPipe.PipeListener pipeListener) {
+	public synchronized void removePipeListener(SocketPipe.PipeListener pipeListener) {
 		pipeListeners.remove(pipeListener);
 	}
 
