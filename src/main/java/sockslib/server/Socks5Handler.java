@@ -20,8 +20,6 @@ public class Socks5Handler implements Runnable {
 
 	private SocksSession session;
 
-	private int bufferSize;
-
 	private final int idleTime = 2000;
 
 	private void handle(SocksSession session)
@@ -104,7 +102,6 @@ public class Socks5Handler implements Runnable {
 
 		Pipe pipe = new SocketPipe(session.getSocket(), socket);
 		pipe.setName("SESSION[" + session.getId() + "]");
-		pipe.setBufferSize(bufferSize);
 		pipe.start(); // This method will build tow thread to run tow internal pipes.
 
 		// wait for pipe exit.
@@ -131,7 +128,6 @@ public class Socks5Handler implements Runnable {
 		session.write(new CommandResponseMessage(ServerReply.SUCCEEDED, socket.getLocalAddress(), socket.getLocalPort()));
 
 		Pipe pipe = new SocketPipe(session.getSocket(), socket);
-		pipe.setBufferSize(bufferSize);
 		pipe.start();
 
 		// wait for pipe exit.
@@ -162,9 +158,4 @@ public class Socks5Handler implements Runnable {
 			session.close();
 		}
 	}
-
-	public void setBufferSize(int bufferSize) {
-		this.bufferSize = bufferSize;
-	}
-
 }

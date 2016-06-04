@@ -1,5 +1,7 @@
 package sockslib.server.msg;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sockslib.common.AddressType;
 import sockslib.common.SocksCommand;
 import sockslib.common.SocksException;
@@ -18,6 +20,8 @@ import static sockslib.utils.StreamUtil.checkEnd;
  * The class <code>RequestCommandMessage</code> represents a SOCKS5 command message.
  */
 public class CommandMessage implements ReadableMessage, WritableMessage {
+
+	private static final Logger logger = LoggerFactory.getLogger(CommandMessage.class);
 
 	private static final int CMD_CONNECT = 0x01;
 
@@ -41,6 +45,8 @@ public class CommandMessage implements ReadableMessage, WritableMessage {
 
 	@Override
 	public byte[] getBytes() {
+		logger.trace("CommandMessage.getBytes");
+
 		final byte[] bytes;
 
 		switch (addressType) {
@@ -85,6 +91,7 @@ public class CommandMessage implements ReadableMessage, WritableMessage {
 	@Override
 	public void read(InputStream inputStream)
 			throws IOException {
+		logger.trace("CommandMessage.read");
 
 		version = checkEnd(inputStream.read());
 		int cmd = checkEnd(inputStream.read());

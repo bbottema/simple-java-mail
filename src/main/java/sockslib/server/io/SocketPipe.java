@@ -82,12 +82,6 @@ public class SocketPipe implements Pipe {
 	}
 
 	@Override
-	public void setBufferSize(int bufferSize) {
-		pipe1.setBufferSize(bufferSize);
-		pipe2.setBufferSize(bufferSize);
-	}
-
-	@Override
 	public boolean isRunning() {
 		return running;
 	}

@@ -47,6 +47,7 @@ public class CommandResponseMessage implements WritableMessage {
 
 	@Override
 	public byte[] getBytes() {
+		logger.trace("CommandResponseMessage.getBytes");
 		final byte[] bytes;
 
 		switch (addressType) {

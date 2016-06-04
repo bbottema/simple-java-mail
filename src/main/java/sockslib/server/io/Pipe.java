@@ -12,8 +12,6 @@ public interface Pipe {
    */
   void stop();
 
-  void setBufferSize(int bufferSize);
-
   boolean isRunning();
 
   void addPipeListener(SocketPipe.PipeListener pipeListener);

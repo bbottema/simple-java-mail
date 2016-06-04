@@ -28,8 +28,6 @@ public class StreamPipe implements Runnable, Pipe {
 
 	private final OutputStream destination;
 
-	private int bufferSize = DEFAULT_BUFFER_SIZE;
-
 	private Thread runningThread;
 
 	private boolean running = false;
@@ -75,7 +73,7 @@ public class StreamPipe implements Runnable, Pipe {
 
 	@Override
 	public void run() {
-		byte[] buffer = new byte[bufferSize];
+		byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
 		while (running) {
 			int size = doTransfer(buffer);
 			if (size == -1) {
@@ -104,11 +102,6 @@ public class StreamPipe implements Runnable, Pipe {
 		}
 
 		return length;
-	}
-
-	@Override
-	public void setBufferSize(int bufferSize) {
-		this.bufferSize = bufferSize;
 	}
 
 	@Override

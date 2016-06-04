@@ -2,7 +2,6 @@ package sockslib.server;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.common.net.MonitorSocketWrapper;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -31,13 +30,11 @@ public class BasicSocksProxyServer implements Runnable {
 		while (true) {
 			try {
 				Socket socket = serverSocket.accept();
-				socket = new MonitorSocketWrapper(socket);
 				socket.setSoTimeout(10000);
 				SocksSession session = new SocksSession(socket);
 				Socks5Handler socksHandler = new Socks5Handler();
 				// initialize socks handler
 				socksHandler.setSession(session);
-				socksHandler.setBufferSize(1024 * 1024 * 5);
 
 				executorService.execute(socksHandler);
 
