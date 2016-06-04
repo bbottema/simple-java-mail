@@ -1,16 +1,14 @@
 package sockslib.common.net;
 
-public class NetworkMonitor implements SocketMonitor {
+public class NetworkMonitor {
 
   private long receiveTCP = 0;
   private long sendTCP = 0;
 
-  @Override
   public void onRead(byte[] bytes) {
     receiveTCP += bytes.length;
   }
 
-  @Override
   public void onWrite(byte[] bytes) {
     sendTCP += bytes.length;
   }

@@ -2,7 +2,6 @@ package sockslib.server;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.common.ProtocolErrorException;
 import sockslib.server.io.Pipe;
 import sockslib.server.io.SocketPipe;
 import sockslib.server.msg.*;
@@ -31,7 +30,7 @@ public class Socks5Handler implements Runnable {
 		session.read(msg);
 
 		if (msg.getVersion() != VERSION) {
-			throw new ProtocolErrorException();
+			throw new RuntimeException("Protocol error");
 		}
 
 		logger.debug("SESSION[{}]", session.getId());

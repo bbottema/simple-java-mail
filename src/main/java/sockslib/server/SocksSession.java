@@ -13,7 +13,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-public class SocksSession {
+class SocksSession {
 
 	private static final Logger logger = LoggerFactory.getLogger(SocksSession.class);
 
@@ -50,14 +50,11 @@ public class SocksSession {
 		return socket;
 	}
 
-	private void write(byte[] bytes)
-			throws IOException {
-		write(bytes, bytes.length);
-	}
-
 	public void write(WritableMessage message)
 			throws IOException {
-		write(message.getBytes());
+		byte[] bytes = message.getBytes();
+		outputStream.write(bytes, 0, bytes.length);
+		outputStream.flush();
 	}
 
 	public void read(ReadableMessage message)
@@ -83,12 +80,6 @@ public class SocksSession {
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 		}
-	}
-
-	private void write(byte[] bytes, int length)
-			throws IOException {
-		outputStream.write(bytes, 0, length);
-		outputStream.flush();
 	}
 
 	@Override

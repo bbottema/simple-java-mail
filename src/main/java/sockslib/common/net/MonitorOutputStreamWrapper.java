@@ -3,7 +3,6 @@ package sockslib.common.net;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.List;
 
 import static sockslib.utils.Utils.Assert.checkNotNull;
 

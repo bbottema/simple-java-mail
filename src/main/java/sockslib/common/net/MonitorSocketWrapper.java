@@ -8,8 +8,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.List;
 
 import static sockslib.utils.Utils.Assert.checkNotNull;
 
