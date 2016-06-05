@@ -2,7 +2,6 @@ package sockslib.server.msg;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.utils.SocksUtil;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -29,11 +28,18 @@ public class CommandResponseMessage {
 		bytes[5] = bindAddress.getAddress()[1];
 		bytes[6] = bindAddress.getAddress()[2];
 		bytes[7] = bindAddress.getAddress()[3];
-		bytes[8] = SocksUtil.getFirstByteFromInt(bindPort);
-		bytes[9] = SocksUtil.getSecondByteFromInt(bindPort);
+		bytes[8] = getFirstByteFromInt(bindPort);
+		bytes[9] = getSecondByteFromInt(bindPort);
 
 		logger.trace("CommandResponseMessage.getBytes");
 		return bytes;
 	}
 
+	private static byte getFirstByteFromInt(int bindPort) {
+		return (byte) ((bindPort & 0xff00) >> 8);
+	}
+
+	private static byte getSecondByteFromInt(int bindPort) {
+		return (byte) (bindPort & 0xff);
+	}
 }

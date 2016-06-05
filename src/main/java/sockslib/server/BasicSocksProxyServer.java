@@ -9,23 +9,24 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class BasicSocksProxyServer implements Runnable {
+public class BasicSocksProxyServer extends Thread {
 
 	private static final Logger logger = LoggerFactory.getLogger(BasicSocksProxyServer.class);
 
-	/**
-	 * Thread pool used to process each connection.
-	 */
-	private final ExecutorService executorService = Executors.newFixedThreadPool(100);
+	private final ExecutorService threadPool = Executors.newFixedThreadPool(100);
 
-	private ServerSocket serverSocket;
+	private final ServerSocket serverSocket;
 
-	@SuppressWarnings("FieldCanBeLocal")
-	private Thread thread;
+	public BasicSocksProxyServer(@SuppressWarnings("SameParameterValue") int port)
+			throws IOException  {
+		serverSocket = new ServerSocket(port);
+		setName("fs-thread");
+		setDaemon(false);
+	}
 
 	@Override
 	public void run() {
-		logger.info("Start proxy server at port:{}", 1080);
+		logger.info("Start proxy server at port:{}", serverSocket.getLocalPort());
 		//noinspection InfiniteLoopStatement
 		while (true) {
 			try {
@@ -37,20 +38,11 @@ public class BasicSocksProxyServer implements Runnable {
 				// initialize socks handler
 				socksHandler.setSession(session);
 
-				executorService.execute(socksHandler);
+				threadPool.execute(socksHandler);
 
 			} catch (IOException e) {
 				logger.debug(e.getMessage(), e);
 			}
 		}
-	}
-
-	public void start()
-			throws IOException {
-		serverSocket = new ServerSocket(1080);
-		thread = new Thread(this);
-		thread.setName("fs-thread");
-		thread.setDaemon(false);
-		thread.start();
 	}
 }

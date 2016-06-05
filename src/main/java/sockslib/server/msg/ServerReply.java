@@ -18,8 +18,6 @@ public enum ServerReply {
 
 	TTL_EXPIRED(0x06, "TTL expired"),
 
-	COMMAND_NOT_SUPPORTED(0x07, "Command not supported"),
-
 	ADDRESS_TYPE_NOT_SUPPORTED(0x08, "Address type not supported");
 
 	private final byte value;

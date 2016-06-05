@@ -2,7 +2,6 @@ package sockslib.server;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.common.SocksCommand;
 import sockslib.server.io.SocketPipe;
 import sockslib.server.msg.CommandMessage;
 import sockslib.server.msg.CommandResponseMessage;
@@ -18,6 +17,7 @@ public class Socks5Handler implements Runnable {
 
 	private static final Logger logger = LoggerFactory.getLogger(Socks5Handler.class);
 	private static final byte[] METHOD_SELECTION_RESPONSE = { (byte) 0x5, (byte) 0x00 };
+	private static final int CONNECT_COMMAND = 0x01;
 
 	public static final int VERSION = 0x5;
 
@@ -44,8 +44,7 @@ public class Socks5Handler implements Runnable {
 			return;
 		}
 
-		/**************************** DO COMMAND ******************************************/
-		if (commandMessage.getCommand() != SocksCommand.CONNECT) {
+		if (commandMessage.getCommand() != CONNECT_COMMAND) {
 			throw new RuntimeException("Only CONNECT command is supported");
 		}
 		doConnect(session, commandMessage);

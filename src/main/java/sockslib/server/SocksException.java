@@ -1,4 +1,4 @@
-package sockslib.common;
+package sockslib.server;
 
 import sockslib.server.msg.ServerReply;
 

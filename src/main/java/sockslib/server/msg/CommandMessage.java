@@ -2,10 +2,8 @@ package sockslib.server.msg;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.common.AddressType;
-import sockslib.common.SocksCommand;
-import sockslib.common.SocksException;
-import sockslib.utils.StreamUtil;
+import sockslib.server.AddressType;
+import sockslib.server.SocksException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,7 +11,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 
-import static sockslib.utils.StreamUtil.checkEnd;
+import static sockslib.server.StreamUtil.checkEnd;
 
 public class CommandMessage {
 
@@ -23,7 +21,7 @@ public class CommandMessage {
 
 	private int port;
 
-	private SocksCommand command;
+	private int command;
 
 	private SocksException socksException;
 
@@ -32,11 +30,7 @@ public class CommandMessage {
 		logger.trace("CommandMessage.read");
 
 		checkEnd(inputStream.read()); // version, unused
-		int cmd = checkEnd(inputStream.read());
-
-		if ((command = SocksCommand.fromCmd(cmd)) == null) {
-			socksException = new SocksException(ServerReply.COMMAND_NOT_SUPPORTED);
-		}
+		command = checkEnd(inputStream.read());
 
 		checkEnd(inputStream.read());
 		int addressType = checkEnd(inputStream.read());
@@ -48,7 +42,7 @@ public class CommandMessage {
 		// read address
 		switch (addressType) {
 			case AddressType.IPV4:
-				byte[] addressBytes = StreamUtil.read(inputStream, 4);
+				byte[] addressBytes = read(inputStream, 4);
 				inetAddress = InetAddress.getByAddress(addressBytes);
 				break;
 
@@ -57,7 +51,7 @@ public class CommandMessage {
 				if (domainLength < 1) {
 					throw new SocksException("Length of domain must great than 0");
 				}
-				byte[] domainBytes = StreamUtil.read(inputStream, domainLength);
+				byte[] domainBytes = read(inputStream, domainLength);
 				String host = new String(domainBytes, Charset.forName("UTF-8"));
 				try {
 					inetAddress = InetAddress.getByName(host);
@@ -72,7 +66,7 @@ public class CommandMessage {
 				break;
 		}
 
-		port = bytesToInt(StreamUtil.read(inputStream, 2));
+		port = bytesToInt(read(inputStream, 2));
 	}
 
 	private int bytesToInt(byte[] portBytes) {
@@ -80,6 +74,15 @@ public class CommandMessage {
 			throw new IllegalArgumentException("byte array size must be 2");
 		}
 		return ((portBytes[0] & 0xFF) << 8) | portBytes[1] & 0xFF;
+	}
+
+	private static byte[] read(InputStream inputStream, int length)
+			throws IOException {
+		byte[] bytes = new byte[length];
+		for (int i = 0; i < length; i++) {
+			bytes[i] = (byte) checkEnd(inputStream.read());
+		}
+		return bytes;
 	}
 
 	public boolean hasSocksException() {
@@ -94,7 +97,7 @@ public class CommandMessage {
 		return port;
 	}
 
-	public SocksCommand getCommand() {
+	public int getCommand() {
 		return command;
 	}
 

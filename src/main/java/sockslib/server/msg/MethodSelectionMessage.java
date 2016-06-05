@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static sockslib.utils.StreamUtil.checkEnd;
+import static sockslib.server.StreamUtil.checkEnd;
 
 public class MethodSelectionMessage {
 
