@@ -1,4 +1,4 @@
-package sockslib.server.msg;
+package org.codemonkey.simplejavamail.socksserver.msg;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +16,7 @@ public class CommandResponseMessage {
 
 	public static byte[] getBytes(ServerReply reply, InetAddress bindAddress, int bindPort) {
 		int addressType = (bindAddress.getAddress().length == 4) ? 0x01 : 0x0;
-		int version = sockslib.server.Socks5Handler.VERSION;
+		int version = org.codemonkey.simplejavamail.socksserver.Socks5Handler.VERSION;
 
 		final byte[] bytes = new byte[10];
 

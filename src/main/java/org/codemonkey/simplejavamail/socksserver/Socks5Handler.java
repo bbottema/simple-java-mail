@@ -1,12 +1,12 @@
-package sockslib.server;
+package org.codemonkey.simplejavamail.socksserver;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.server.io.SocketPipe;
-import sockslib.server.msg.CommandMessage;
-import sockslib.server.msg.CommandResponseMessage;
-import sockslib.server.msg.MethodSelectionMessage;
-import sockslib.server.msg.ServerReply;
+import org.codemonkey.simplejavamail.socksserver.io.SocketPipe;
+import org.codemonkey.simplejavamail.socksserver.msg.CommandMessage;
+import org.codemonkey.simplejavamail.socksserver.msg.CommandResponseMessage;
+import org.codemonkey.simplejavamail.socksserver.msg.MethodSelectionMessage;
+import org.codemonkey.simplejavamail.socksserver.msg.ServerReply;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -21,7 +21,22 @@ public class Socks5Handler implements Runnable {
 
 	public static final int VERSION = 0x5;
 
-	private SocksSession session;
+	private final SocksSession session;
+
+	public Socks5Handler(SocksSession session) {
+		this.session = session;
+	}
+
+	@Override
+	public void run() {
+		try {
+			handle(session);
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			session.close();
+		}
+	}
 
 	private void handle(SocksSession session)
 			throws Exception {
@@ -107,20 +122,5 @@ public class Socks5Handler implements Runnable {
 			}
 		}
 
-	}
-
-	public void setSession(SocksSession session) {
-		this.session = session;
-	}
-
-	@Override
-	public void run() {
-		try {
-			handle(session);
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-		} finally {
-			session.close();
-		}
 	}
 }

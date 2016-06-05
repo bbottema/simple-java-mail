@@ -1,4 +1,4 @@
-package sockslib.server.msg;
+package org.codemonkey.simplejavamail.socksserver.msg;
 
 /**
  * The enumeration <code>ServerReply</code> represents reply of servers will SOCKS client send a

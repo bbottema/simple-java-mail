@@ -1,4 +1,4 @@
-package sockslib.server;
+package org.codemonkey.simplejavamail.socksserver;
 
 import java.io.IOException;
 

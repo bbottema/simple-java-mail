@@ -1,4 +1,4 @@
-package sockslib.server.msg;
+package org.codemonkey.simplejavamail.socksserver.msg;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static sockslib.server.StreamUtil.checkEnd;
+import static org.codemonkey.simplejavamail.socksserver.StreamUtil.checkEnd;
 
 public class MethodSelectionMessage {
 
