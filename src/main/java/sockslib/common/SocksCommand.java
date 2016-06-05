@@ -10,11 +10,7 @@ public enum SocksCommand {
 	/**
 	 * Supported by SOCKS4 and SOCKS5 protocol.
 	 */
-	CONNECT(0x01),
-	/**
-	 * Supported by SOCKS4 and SOCKS5 protocol.
-	 */
-	BIND(0x02);
+	CONNECT(0x01);
 
 	private final int command;
 

@@ -14,7 +14,7 @@ import java.util.List;
  * stream destination
  * a output stream.
  */
-public class StreamPipe implements Runnable, Pipe {
+class StreamPipe implements Runnable {
 
 	private static final Logger logger = LoggerFactory.getLogger(StreamPipe.class);
 
@@ -39,7 +39,6 @@ public class StreamPipe implements Runnable, Pipe {
 		this.name = name;
 	}
 
-	@Override
 	public boolean start() {
 		if (!running) { // If the pipe is not running, run it.
 			running = true;
@@ -51,7 +50,6 @@ public class StreamPipe implements Runnable, Pipe {
 		return false;
 	}
 
-	@Override
 	public void stop() {
 		if (running) { // if the pipe is working, stop it.
 			running = false;
@@ -98,9 +96,8 @@ public class StreamPipe implements Runnable, Pipe {
 		return length;
 	}
 
-	@Override
-	public boolean isRunning() {
-		return running;
+	public boolean isStopped() {
+		return !running;
 	}
 
 	public synchronized void addPipeListener(SocketPipe.PipeListener pipeListener) {

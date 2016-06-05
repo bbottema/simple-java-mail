@@ -11,7 +11,7 @@ import java.net.Socket;
  * another socket. The tow socket should be connected sockets. If any of the them occurred error the
  * pipe will close all of them.
  */
-public class SocketPipe implements Pipe {
+public class SocketPipe {
 
 	private static final Logger logger = LoggerFactory.getLogger(SocketPipe.class);
 
@@ -46,17 +46,15 @@ public class SocketPipe implements Pipe {
 		pipe2.addPipeListener(listener);
 	}
 
-	@Override
-	public boolean start() {
-		return running = pipe1.start() && pipe2.start();
+	public void start() {
+		running = pipe1.start() && pipe2.start();
 	}
 
-	@Override
 	public void stop() {
 		if (running) {
 			pipe1.stop();
 			pipe2.stop();
-			if (!pipe1.isRunning() && !pipe2.isRunning()) {
+			if (pipe1.isStopped() && pipe2.isStopped()) {
 				running = false;
 			}
 		}
@@ -78,7 +76,6 @@ public class SocketPipe implements Pipe {
 		}
 	}
 
-	@Override
 	public boolean isRunning() {
 		return running;
 	}
@@ -92,8 +89,7 @@ public class SocketPipe implements Pipe {
 			return name;
 		}
 
-		public void onStop(Pipe pipe) {
-			StreamPipe streamPipe = (StreamPipe) pipe;
+		public void onStop(StreamPipe streamPipe) {
 			logger.trace("Pipe[{}] stopped", streamPipe.getName());
 			close();
 		}

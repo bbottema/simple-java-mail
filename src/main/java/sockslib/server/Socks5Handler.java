@@ -2,7 +2,7 @@ package sockslib.server;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.server.io.Pipe;
+import sockslib.common.SocksCommand;
 import sockslib.server.io.SocketPipe;
 import sockslib.server.msg.CommandMessage;
 import sockslib.server.msg.CommandResponseMessage;
@@ -12,7 +12,6 @@ import sockslib.server.msg.ServerReply;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Socks5Handler implements Runnable {
@@ -23,8 +22,6 @@ public class Socks5Handler implements Runnable {
 	public static final int VERSION = 0x5;
 
 	private SocksSession session;
-
-	private final int idleTime = 2000;
 
 	private void handle(SocksSession session)
 			throws Exception {
@@ -48,16 +45,10 @@ public class Socks5Handler implements Runnable {
 		}
 
 		/**************************** DO COMMAND ******************************************/
-		switch (commandMessage.getCommand()) {
-			case BIND:
-				logger.info("DO BIND");
-				doBind(session, commandMessage);
-				break;
-			case CONNECT:
-				logger.info("DO CONNECT");
-				doConnect(session, commandMessage);
-				break;
+		if (commandMessage.getCommand() != SocksCommand.CONNECT) {
+			throw new RuntimeException("Only CONNECT command is supported");
 		}
+		doConnect(session, commandMessage);
 	}
 
 	private void doConnect(SocksSession session, CommandMessage commandMessage)
@@ -109,7 +100,7 @@ public class Socks5Handler implements Runnable {
 		// wait for pipe exit.
 		while (pipe.isRunning()) {
 			try {
-				Thread.sleep(idleTime);
+				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 				pipe.stop();
 				session.close();
@@ -117,32 +108,6 @@ public class Socks5Handler implements Runnable {
 			}
 		}
 
-	}
-
-	private void doBind(SocksSession session, CommandMessage commandMessage)
-			throws IOException {
-		ServerSocket serverSocket = new ServerSocket(commandMessage.getPort());
-		int bindPort = serverSocket.getLocalPort();
-		logger.info("Create TCP server bind at {} for session[{}]", serverSocket.getLocalSocketAddress(), session.getId());
-		session.write(CommandResponseMessage.getBytes(ServerReply.SUCCEEDED, serverSocket.getInetAddress(), bindPort));
-
-		Socket socket = serverSocket.accept();
-		session.write(CommandResponseMessage.getBytes(ServerReply.SUCCEEDED, socket.getLocalAddress(), socket.getLocalPort()));
-
-		Pipe pipe = new SocketPipe(session.getSocket(), socket);
-		pipe.start();
-
-		// wait for pipe exit.
-		while (pipe.isRunning()) {
-			try {
-				Thread.sleep(idleTime);
-			} catch (InterruptedException e) {
-				pipe.stop();
-				session.close();
-				logger.info("Session[{}] closed", session.getId());
-			}
-		}
-		serverSocket.close();
 	}
 
 	public void setSession(SocksSession session) {
