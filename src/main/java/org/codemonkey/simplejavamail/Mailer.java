@@ -241,28 +241,42 @@ public class Mailer {
 	public final void sendMail(final Email email)
 			throws MailException {
 		if (validate(email)) {
-			try {
-				// fill and send wrapped mime message parts
-				MimeMessage message = produceMimeMessage(email, session);
-				if (email.isApplyDKIMSignature()) {
-					message = signMessageWithDKIM(message, email);
-				}
-				logSession(session, transportStrategy);
-				message.saveChanges(); // some headers and id's will be set for this specific message
-				Transport transport = session.getTransport();
-				try {
-					transport.connect();
-					transport.sendMessage(message, message.getAllRecipients());
-				} finally {
-					transport.close();
-				}
-			} catch (final UnsupportedEncodingException e) {
-				LOGGER.error(e.getMessage(), e);
-				throw new MailException(format(MailException.INVALID_ENCODING, e.getMessage()));
-			} catch (final MessagingException e) {
-				LOGGER.error(e.getMessage(), e);
-				throw new MailException(format(MailException.GENERIC_ERROR, e.getMessage()), e);
+			boolean async = false;
+			if (async) {
+				new Thread() {
+					@Override
+					public void run() {
+						sendMailClosure(email);
+					}
+				}.start();
+			} else {
+				sendMailClosure(email);
 			}
+		}
+	}
+
+	private void sendMailClosure(Email email) {
+		try {
+			// fill and send wrapped mime message parts
+			MimeMessage message = produceMimeMessage(email, session);
+			if (email.isApplyDKIMSignature()) {
+				message = signMessageWithDKIM(message, email);
+			}
+			logSession(session, transportStrategy);
+			message.saveChanges(); // some headers and id's will be set for this specific message
+			Transport transport = session.getTransport();
+			try {
+				transport.connect();
+				transport.sendMessage(message, message.getAllRecipients());
+			} finally {
+				transport.close();
+			}
+		} catch (final UnsupportedEncodingException e) {
+			LOGGER.error(e.getMessage(), e);
+			throw new MailException(format(MailException.INVALID_ENCODING, e.getMessage()));
+		} catch (final MessagingException e) {
+			LOGGER.error(e.getMessage(), e);
+			throw new MailException(format(MailException.GENERIC_ERROR, e.getMessage()), e);
 		}
 	}
 
