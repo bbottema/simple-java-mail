@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.socksserver.msg;
+package org.codemonkey.simplejavamail.socksrelayserver.msg;
 
 /**
  * The enumeration <code>ServerReply</code> represents reply of servers will SOCKS client send a

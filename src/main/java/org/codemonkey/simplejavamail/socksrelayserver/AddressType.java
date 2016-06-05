@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.socksserver;
+package org.codemonkey.simplejavamail.socksrelayserver;
 
 public class AddressType {
 

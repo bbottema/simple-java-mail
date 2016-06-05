@@ -1,12 +1,12 @@
-package org.codemonkey.simplejavamail.socksserver;
+package org.codemonkey.simplejavamail.socksrelayserver;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.codemonkey.simplejavamail.socksserver.io.SocketPipe;
-import org.codemonkey.simplejavamail.socksserver.msg.CommandMessage;
-import org.codemonkey.simplejavamail.socksserver.msg.CommandResponseMessage;
-import org.codemonkey.simplejavamail.socksserver.msg.MethodSelectionMessage;
-import org.codemonkey.simplejavamail.socksserver.msg.ServerReply;
+import org.codemonkey.simplejavamail.socksrelayserver.io.SocketPipe;
+import org.codemonkey.simplejavamail.socksrelayserver.msg.CommandMessage;
+import org.codemonkey.simplejavamail.socksrelayserver.msg.CommandResponseMessage;
+import org.codemonkey.simplejavamail.socksrelayserver.msg.MethodSelectionMessage;
+import org.codemonkey.simplejavamail.socksrelayserver.msg.ServerReply;
 
 import java.io.IOException;
 import java.net.InetAddress;

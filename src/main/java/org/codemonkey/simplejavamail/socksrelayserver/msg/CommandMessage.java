@@ -1,9 +1,9 @@
-package org.codemonkey.simplejavamail.socksserver.msg;
+package org.codemonkey.simplejavamail.socksrelayserver.msg;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.codemonkey.simplejavamail.socksserver.AddressType;
-import org.codemonkey.simplejavamail.socksserver.SocksException;
+import org.codemonkey.simplejavamail.socksrelayserver.AddressType;
+import org.codemonkey.simplejavamail.socksrelayserver.SocksException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,7 +11,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 
-import static org.codemonkey.simplejavamail.socksserver.StreamUtil.checkEnd;
+import static org.codemonkey.simplejavamail.socksrelayserver.StreamUtil.checkEnd;
 
 public class CommandMessage {
 

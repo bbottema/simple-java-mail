@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.socksserver.io;
+package org.codemonkey.simplejavamail.socksrelayserver.io;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

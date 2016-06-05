@@ -14,7 +14,7 @@ import java.util.Properties;
 import org.codemonkey.simplejavamail.Mailer;
 import org.codemonkey.simplejavamail.TransportStrategy;
 import org.codemonkey.simplejavamail.email.Email;
-import org.codemonkey.simplejavamail.socksserver.BasicSocksProxyServer;
+import org.codemonkey.simplejavamail.socksrelayserver.AnonymousToAuthenticatedSocksRelayServer;
 
 /**
  * Demonstration program for the Simple Java Mail framework.
@@ -48,7 +48,7 @@ public class MailTestApp {
 	}
 
 	private static void sendMail(final Email email) {
-		BasicSocksProxyServer proxyServer = new BasicSocksProxyServer(1080);
+		AnonymousToAuthenticatedSocksRelayServer proxyServer = new AnonymousToAuthenticatedSocksRelayServer(1080);
 		proxyServer.start();
 
 		new Mailer("smtp.gmail.com", 25, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_TLS).sendMail(email);

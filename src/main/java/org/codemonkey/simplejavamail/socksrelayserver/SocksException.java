@@ -1,6 +1,6 @@
-package org.codemonkey.simplejavamail.socksserver;
+package org.codemonkey.simplejavamail.socksrelayserver;
 
-import org.codemonkey.simplejavamail.socksserver.msg.ServerReply;
+import org.codemonkey.simplejavamail.socksrelayserver.msg.ServerReply;
 
 import java.io.IOException;
 

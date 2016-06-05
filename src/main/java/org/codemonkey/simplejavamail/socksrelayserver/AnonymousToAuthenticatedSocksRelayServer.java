@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.socksserver;
+package org.codemonkey.simplejavamail.socksrelayserver;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,20 +6,25 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class BasicSocksProxyServer implements Runnable {
+/**
+ * SOCKS server that accepts anonymous connections from JavaMail.
+ * <p>
+ * Java Mail only support anonymous SOCKS proxies; in order to support authenticated proxies, we need to create a man-in-the-middle: which
+ * is the BasicSocksProxyServer.
+ */
+public class AnonymousToAuthenticatedSocksRelayServer implements Runnable {
 
-	private static final Logger logger = LoggerFactory.getLogger(BasicSocksProxyServer.class);
+	private static final Logger logger = LoggerFactory.getLogger(AnonymousToAuthenticatedSocksRelayServer.class);
 
 	private final ExecutorService threadPool = Executors.newFixedThreadPool(100);
 
 	private final ServerSocket serverSocket;
 	private boolean stop = false;
 
-	public BasicSocksProxyServer(@SuppressWarnings("SameParameterValue") int port) {
+	public AnonymousToAuthenticatedSocksRelayServer(@SuppressWarnings("SameParameterValue") int port) {
 		try {
 			serverSocket = new ServerSocket(port);
 		} catch (IOException e) {
