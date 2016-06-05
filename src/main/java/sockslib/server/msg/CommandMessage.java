@@ -35,14 +35,14 @@ public class CommandMessage {
 		int cmd = checkEnd(inputStream.read());
 
 		if ((command = SocksCommand.fromCmd(cmd)) == null) {
-			socksException = SocksException.serverReplyException(ServerReply.COMMAND_NOT_SUPPORTED);
+			socksException = new SocksException(ServerReply.COMMAND_NOT_SUPPORTED);
 		}
 
 		checkEnd(inputStream.read());
 		int addressType = checkEnd(inputStream.read());
 
 		if (!AddressType.isSupport(addressType) && socksException == null) {
-			socksException = SocksException.serverReplyException(ServerReply.ADDRESS_TYPE_NOT_SUPPORTED);
+			socksException = new SocksException(ServerReply.ADDRESS_TYPE_NOT_SUPPORTED);
 		}
 
 		// read address
@@ -63,7 +63,7 @@ public class CommandMessage {
 					inetAddress = InetAddress.getByName(host);
 				} catch (UnknownHostException e) {
 					if (socksException == null) {
-						socksException = SocksException.serverReplyException(ServerReply.HOST_UNREACHABLE);
+						socksException = new SocksException(ServerReply.HOST_UNREACHABLE);
 					}
 				}
 				break;

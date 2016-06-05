@@ -18,7 +18,7 @@ import java.net.Socket;
 public class Socks5Handler implements Runnable {
 
 	private static final Logger logger = LoggerFactory.getLogger(Socks5Handler.class);
-	private static final byte[] METHOD_SELECTION_RESPONSE = new byte[] { (byte) 0x5, (byte) 0x00 };
+	private static final byte[] METHOD_SELECTION_RESPONSE = { (byte) 0x5, (byte) 0x00 };
 
 	public static final int VERSION = 0x5;
 
@@ -28,10 +28,7 @@ public class Socks5Handler implements Runnable {
 
 	private void handle(SocksSession session)
 			throws Exception {
-		MethodSelectionMessage msg = new MethodSelectionMessage();
-		msg.read(session.getInputStream());
-
-		if (msg.getVersion() != VERSION) {
+		if (MethodSelectionMessage.readVersion(session.getInputStream()) != VERSION) {
 			throw new RuntimeException("Protocol error");
 		}
 
@@ -45,20 +42,21 @@ public class Socks5Handler implements Runnable {
 		// If there is a SOCKS exception in command message, It will send a right response to client.
 		if (commandMessage.hasSocksException()) {
 			ServerReply serverReply = commandMessage.getSocksException().getServerReply();
-			CommandResponseMessage commandResponseMessage = new CommandResponseMessage(serverReply);
-			session.write(commandResponseMessage.getBytes());
+			session.write(CommandResponseMessage.getBytes(serverReply));
 			logger.info("SESSION[{}] will close, because {}", session.getId(), serverReply);
 			return;
 		}
 
 		/**************************** DO COMMAND ******************************************/
 		switch (commandMessage.getCommand()) {
-		case BIND:
-			doBind(session, commandMessage);
-			break;
-		case CONNECT:
-			doConnect(session, commandMessage);
-			break;
+			case BIND:
+				logger.info("DO BIND");
+				doBind(session, commandMessage);
+				break;
+			case CONNECT:
+				logger.info("DO CONNECT");
+				doConnect(session, commandMessage);
+				break;
 		}
 	}
 
@@ -72,8 +70,7 @@ public class Socks5Handler implements Runnable {
 		int remoteServerPort = commandMessage.getPort();
 
 		// set default bind address.
-		byte[] defaultAddress = { 0, 0, 0, 0 };
-		InetAddress bindAddress = InetAddress.getByAddress(defaultAddress);
+		InetAddress bindAddress = new InetSocketAddress(0).getAddress();
 		// DO connect
 		try {
 			// Connect directly.
@@ -98,8 +95,8 @@ public class Socks5Handler implements Runnable {
 					new InetSocketAddress(remoteServerAddress, remoteServerPort), reply, e.getMessage());
 		}
 
-		CommandResponseMessage responseMessage = new CommandResponseMessage(reply, bindAddress, bindPort);
-		session.write(responseMessage.getBytes());
+		session.write(CommandResponseMessage.getBytes(reply, bindAddress, bindPort));
+
 		if (reply != ServerReply.SUCCEEDED) {
 			session.close();
 			return;
@@ -127,13 +124,10 @@ public class Socks5Handler implements Runnable {
 		ServerSocket serverSocket = new ServerSocket(commandMessage.getPort());
 		int bindPort = serverSocket.getLocalPort();
 		logger.info("Create TCP server bind at {} for session[{}]", serverSocket.getLocalSocketAddress(), session.getId());
-		final CommandResponseMessage message = new CommandResponseMessage(ServerReply.SUCCEEDED, serverSocket.getInetAddress(), bindPort);
-		session.write(message.getBytes());
+		session.write(CommandResponseMessage.getBytes(ServerReply.SUCCEEDED, serverSocket.getInetAddress(), bindPort));
 
 		Socket socket = serverSocket.accept();
-		CommandResponseMessage commandResponseMessage = new CommandResponseMessage(ServerReply.SUCCEEDED, socket.getLocalAddress(),
-				socket.getLocalPort());
-		session.write(commandResponseMessage.getBytes());
+		session.write(CommandResponseMessage.getBytes(ServerReply.SUCCEEDED, socket.getLocalAddress(), socket.getLocalPort()));
 
 		Pipe pipe = new SocketPipe(session.getSocket(), socket);
 		pipe.start();
@@ -149,7 +143,6 @@ public class Socks5Handler implements Runnable {
 			}
 		}
 		serverSocket.close();
-		// throw new NotImplementException("Not implement BIND command");
 	}
 
 	public void setSession(SocksSession session) {

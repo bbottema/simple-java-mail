@@ -12,19 +12,14 @@ public class MethodSelectionMessage {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodSelectionMessage.class);
 
-	private int version;
-
-	public void read(InputStream inputStream)
+	public static int readVersion(InputStream inputStream)
 			throws IOException {
 		logger.trace("MethodSelectionMessage.read");
-		version = checkEnd(inputStream.read());
+		int version = checkEnd(inputStream.read());
 		int methodNum = checkEnd(inputStream.read());
 		for (int i = 0; i < methodNum; i++) {
 			checkEnd(inputStream.read()); // read method byte
 		}
-	}
-
-	public int getVersion() {
 		return version;
 	}
 }

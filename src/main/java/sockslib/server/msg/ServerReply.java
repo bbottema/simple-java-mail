@@ -6,30 +6,36 @@ package sockslib.server.msg;
  */
 public enum ServerReply {
 
-  SUCCEEDED(0x00),
+	SUCCEEDED(0x00, null),
 
-  GENERAL_SOCKS_SERVER_FAILURE(0x01),
+	GENERAL_SOCKS_SERVER_FAILURE(0x01, "General SOCKS server failure"),
 
-  NETWORK_UNREACHABLE(0x03),
+	NETWORK_UNREACHABLE(0x03, "Network unreachable"),
 
-  HOST_UNREACHABLE(0x04),
+	HOST_UNREACHABLE(0x04, "Host unreachable"),
 
-  CONNECTION_REFUSED(0x05),
+	CONNECTION_REFUSED(0x05, "Connection refused"),
 
-  TTL_EXPIRED(0x06),
+	TTL_EXPIRED(0x06, "TTL expired"),
 
-  COMMAND_NOT_SUPPORTED(0x07),
+	COMMAND_NOT_SUPPORTED(0x07, "Command not supported"),
 
-  ADDRESS_TYPE_NOT_SUPPORTED(0x08);
+	ADDRESS_TYPE_NOT_SUPPORTED(0x08, "Address type not supported");
 
-  private final byte value;
+	private final byte value;
 
-  ServerReply(int value) {
-    this.value = (byte) value;
-  }
+	private final String errorMessage;
 
-  public byte getValue() {
-    return value;
-  }
+	ServerReply(int value, String errorMessage) {
+		this.value = (byte) value;
+		this.errorMessage = errorMessage;
+	}
 
+	public byte getValue() {
+		return value;
+	}
+
+	public String getErrorMessage() {
+		return errorMessage;
+	}
 }
