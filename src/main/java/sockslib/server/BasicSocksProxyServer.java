@@ -30,6 +30,7 @@ public class BasicSocksProxyServer implements Runnable {
 		while (true) {
 			try {
 				Socket socket = serverSocket.accept();
+				logger.trace("new session ----------------------------------------------------------------");
 				socket.setSoTimeout(10000);
 				SocksSession session = new SocksSession(socket);
 				Socks5Handler socksHandler = new Socks5Handler();

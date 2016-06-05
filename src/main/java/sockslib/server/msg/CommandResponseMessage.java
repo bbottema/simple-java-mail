@@ -8,7 +8,7 @@ import sockslib.utils.SocksUtil;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class CommandResponseMessage implements WritableMessage {
+public class CommandResponseMessage {
 
 	private static final Logger logger = LoggerFactory.getLogger(CommandResponseMessage.class);
 
@@ -45,9 +45,7 @@ public class CommandResponseMessage implements WritableMessage {
 		}
 	}
 
-	@Override
 	public byte[] getBytes() {
-		logger.trace("CommandResponseMessage.getBytes");
 		final byte[] bytes;
 
 		switch (addressType) {
@@ -78,6 +76,7 @@ public class CommandResponseMessage implements WritableMessage {
 		bytes[2] = (byte) 0x00;
 		bytes[3] = (byte) addressType;
 
+		logger.trace("CommandResponseMessage.getBytes");
 		return bytes;
 	}
 

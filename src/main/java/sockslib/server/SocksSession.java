@@ -2,8 +2,6 @@ package sockslib.server;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.server.msg.ReadableMessage;
-import sockslib.server.msg.WritableMessage;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,16 +43,10 @@ class SocksSession {
 		return socket;
 	}
 
-	public void write(WritableMessage message)
+	public void write(byte[] bytes)
 			throws IOException {
-		byte[] bytes = message.getBytes();
 		outputStream.write(bytes, 0, bytes.length);
 		outputStream.flush();
-	}
-
-	public void read(ReadableMessage message)
-			throws IOException {
-		message.read(inputStream);
 	}
 
 	public long getId() {
@@ -75,6 +67,10 @@ class SocksSession {
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 		}
+	}
+
+	public InputStream getInputStream() {
+		return inputStream;
 	}
 
 	@Override

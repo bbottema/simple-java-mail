@@ -6,8 +6,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.Socket;
 
-import static sockslib.utils.Utils.Assert.checkNotNull;
-
 /**
  * The class <code>SocketPipe</code> represents pipe that can transfer data from one socket to
  * another socket. The tow socket should be connected sockets. If any of the them occurred error the
@@ -20,9 +18,9 @@ public class SocketPipe implements Pipe {
 	private static final String INPUT_PIPE_NAME = "INPUT_PIPE";
 	private static final String OUTPUT_PIPE_NAME = "OUTPUT_PIPE";
 
-	private final Pipe pipe1;
+	private final StreamPipe pipe1;
 
-	private final Pipe pipe2;
+	private final StreamPipe pipe2;
 
 	private final Socket socket1;
 
@@ -39,8 +37,8 @@ public class SocketPipe implements Pipe {
 	 */
 	public SocketPipe(Socket socket1, Socket socket2)
 			throws IOException {
-		this.socket1 = checkNotNull(socket1, "Argument [socks1] may not be null");
-		this.socket2 = checkNotNull(socket2, "Argument [socks1] may not be null");
+		this.socket1 = socket1;
+		this.socket2 = socket2;
 		pipe1 = new StreamPipe(socket1.getInputStream(), socket2.getOutputStream(), OUTPUT_PIPE_NAME);
 		pipe2 = new StreamPipe(socket2.getInputStream(), socket1.getOutputStream(), INPUT_PIPE_NAME);
 
@@ -50,8 +48,7 @@ public class SocketPipe implements Pipe {
 
 	@Override
 	public boolean start() {
-		running = pipe1.start() && pipe2.start();
-		return running;
+		return running = pipe1.start() && pipe2.start();
 	}
 
 	@Override
@@ -86,18 +83,6 @@ public class SocketPipe implements Pipe {
 		return running;
 	}
 
-	@Override
-	public void addPipeListener(PipeListener pipeListener) {
-		pipe1.addPipeListener(pipeListener);
-		pipe2.addPipeListener(pipeListener);
-	}
-
-	@Override
-	public void removePipeListener(PipeListener pipeListener) {
-
-	}
-
-	@Override
 	public void setName(String name) {
 		this.name = name;
 	}

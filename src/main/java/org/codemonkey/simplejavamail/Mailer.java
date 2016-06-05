@@ -162,6 +162,10 @@ public class Mailer {
 		props.put("mail.smtp.socks.host", "localhost");
 		props.put("mail.smtp.socks.port", "1080");
 
+		if (transportStrategy == TransportStrategy.SMTP_SSL) {
+			LOGGER.warn("Proxy is ignored for SSL connections (this is a limitation by the underlying JavaMail framework)");
+		}
+
 		if (password != null) {
 			props.put(transportStrategy.propertyNameAuthenticate(), "true");
 			return Session.getInstance(props, new Authenticator() {

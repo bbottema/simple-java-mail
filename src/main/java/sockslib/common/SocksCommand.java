@@ -7,25 +7,27 @@ package sockslib.common;
  */
 public enum SocksCommand {
 
-  /**
-   * Supported by SOCKS4 and SOCKS5 protocol.
-   */
-  CONNECT(0x01),
-  /**
-   * Supported by SOCKS4 and SOCKS5 protocol.
-   */
-  BIND(0x02);
+	/**
+	 * Supported by SOCKS4 and SOCKS5 protocol.
+	 */
+	CONNECT(0x01),
+	/**
+	 * Supported by SOCKS4 and SOCKS5 protocol.
+	 */
+	BIND(0x02);
 
-  /**
-   * the unsigned byte that represents the command.
-   */
-  private final int value;
+	private final int command;
 
-  SocksCommand(int value) {
-    this.value = value;
-  }
+	SocksCommand(int command) {
+		this.command = command;
+	}
 
-  public int getValue() {
-    return value;
-  }
+	public static SocksCommand fromCmd(int cmd) {
+		for (SocksCommand socksCommand : SocksCommand.values()) {
+			if (socksCommand.command == cmd) {
+				return socksCommand;
+			}
+		}
+		return null;
+	}
 }

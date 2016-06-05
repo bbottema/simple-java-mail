@@ -9,8 +9,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import static sockslib.utils.Utils.Assert.checkNotNull;
-
 /**
  * The class <code>StreamPipe</code> represents a pipe the can transfer data source a input
  * stream destination
@@ -32,14 +30,11 @@ public class StreamPipe implements Runnable, Pipe {
 
 	private boolean running = false;
 
-	/**
-	 * Name of the pipe.
-	 */
-	private String name;
+	private final String name;
 
 	public StreamPipe(InputStream source, OutputStream destination, String name) {
-		this.source = checkNotNull(source, "Argument [source] may not be null");
-		this.destination = checkNotNull(destination, "Argument [destination] may not be null");
+		this.source = source;
+		this.destination = destination;
 		pipeListeners = new ArrayList<>();
 		this.name = name;
 	}
@@ -83,7 +78,6 @@ public class StreamPipe implements Runnable, Pipe {
 	}
 
 	private int doTransfer(byte[] buffer) {
-
 		int length = -1;
 		try {
 			length = source.read(buffer);
@@ -109,23 +103,16 @@ public class StreamPipe implements Runnable, Pipe {
 		return running;
 	}
 
-	@Override
 	public synchronized void addPipeListener(SocketPipe.PipeListener pipeListener) {
 		pipeListeners.add(pipeListener);
 	}
 
-	@Override
 	public synchronized void removePipeListener(SocketPipe.PipeListener pipeListener) {
 		pipeListeners.remove(pipeListener);
 	}
 
 	public String getName() {
 		return name;
-	}
-
-	@Override
-	public void setName(String name) {
-		this.name = name;
 	}
 
 }

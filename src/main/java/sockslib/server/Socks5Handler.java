@@ -4,7 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sockslib.server.io.Pipe;
 import sockslib.server.io.SocketPipe;
-import sockslib.server.msg.*;
+import sockslib.server.msg.CommandMessage;
+import sockslib.server.msg.CommandResponseMessage;
+import sockslib.server.msg.MethodSelectionMessage;
+import sockslib.server.msg.ServerReply;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -15,6 +18,7 @@ import java.net.Socket;
 public class Socks5Handler implements Runnable {
 
 	private static final Logger logger = LoggerFactory.getLogger(Socks5Handler.class);
+	private static final byte[] METHOD_SELECTION_RESPONSE = new byte[] { (byte) 0x5, (byte) 0x00 };
 
 	public static final int VERSION = 0x5;
 
@@ -25,23 +29,24 @@ public class Socks5Handler implements Runnable {
 	private void handle(SocksSession session)
 			throws Exception {
 		MethodSelectionMessage msg = new MethodSelectionMessage();
-		session.read(msg);
+		msg.read(session.getInputStream());
 
 		if (msg.getVersion() != VERSION) {
 			throw new RuntimeException("Protocol error");
 		}
 
-		logger.debug("SESSION[{}]", session.getId());
+		logger.info("SESSION[{}]", session.getId());
 		// send select method.
-		session.write(new MethodSelectionResponseMessage());
+		session.write(METHOD_SELECTION_RESPONSE);
 
 		CommandMessage commandMessage = new CommandMessage();
-		session.read(commandMessage); // Read command request.
+		commandMessage.read(session.getInputStream());
 
 		// If there is a SOCKS exception in command message, It will send a right response to client.
 		if (commandMessage.hasSocksException()) {
 			ServerReply serverReply = commandMessage.getSocksException().getServerReply();
-			session.write(new CommandResponseMessage(serverReply));
+			CommandResponseMessage commandResponseMessage = new CommandResponseMessage(serverReply);
+			session.write(commandResponseMessage.getBytes());
 			logger.info("SESSION[{}] will close, because {}", session.getId(), serverReply);
 			return;
 		}
@@ -94,13 +99,13 @@ public class Socks5Handler implements Runnable {
 		}
 
 		CommandResponseMessage responseMessage = new CommandResponseMessage(reply, bindAddress, bindPort);
-		session.write(responseMessage);
+		session.write(responseMessage.getBytes());
 		if (reply != ServerReply.SUCCEEDED) {
 			session.close();
 			return;
 		}
 
-		Pipe pipe = new SocketPipe(session.getSocket(), socket);
+		SocketPipe pipe = new SocketPipe(session.getSocket(), socket);
 		pipe.setName("SESSION[" + session.getId() + "]");
 		pipe.start(); // This method will build tow thread to run tow internal pipes.
 
@@ -122,10 +127,13 @@ public class Socks5Handler implements Runnable {
 		ServerSocket serverSocket = new ServerSocket(commandMessage.getPort());
 		int bindPort = serverSocket.getLocalPort();
 		logger.info("Create TCP server bind at {} for session[{}]", serverSocket.getLocalSocketAddress(), session.getId());
-		session.write(new CommandResponseMessage(ServerReply.SUCCEEDED, serverSocket.getInetAddress(), bindPort));
+		final CommandResponseMessage message = new CommandResponseMessage(ServerReply.SUCCEEDED, serverSocket.getInetAddress(), bindPort);
+		session.write(message.getBytes());
 
 		Socket socket = serverSocket.accept();
-		session.write(new CommandResponseMessage(ServerReply.SUCCEEDED, socket.getLocalAddress(), socket.getLocalPort()));
+		CommandResponseMessage commandResponseMessage = new CommandResponseMessage(ServerReply.SUCCEEDED, socket.getLocalAddress(),
+				socket.getLocalPort());
+		session.write(commandResponseMessage.getBytes());
 
 		Pipe pipe = new SocketPipe(session.getSocket(), socket);
 		pipe.start();
@@ -153,7 +161,7 @@ public class Socks5Handler implements Runnable {
 		try {
 			handle(session);
 		} catch (Exception e) {
-			logger.error(e. getMessage(), e);
+			logger.error(e.getMessage(), e);
 		} finally {
 			session.close();
 		}
