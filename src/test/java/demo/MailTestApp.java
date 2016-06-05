@@ -14,7 +14,7 @@ import java.util.Properties;
 import org.codemonkey.simplejavamail.Mailer;
 import org.codemonkey.simplejavamail.TransportStrategy;
 import org.codemonkey.simplejavamail.email.Email;
-import org.codemonkey.simplejavamail.socksrelayserver.AnonymousToAuthenticatedSocksRelayServer;
+import org.codemonkey.simplejavamail.internal.socksrelayserver.AnonymousToAuthenticatedSocksRelayServer;
 
 /**
  * Demonstration program for the Simple Java Mail framework.
