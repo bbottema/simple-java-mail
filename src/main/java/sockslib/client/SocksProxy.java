@@ -111,12 +111,4 @@ public interface SocksProxy {
    */
   SocksProxy getChainProxy();
 
-  /**
-   * Returns the instance of <code>SocksProxy</code>.
-   *
-   * @param chainProxy chain proxy.
-   * @return the instance of <code>SocksProxy</code>.
-   */
-  SocksProxy setChainProxy(SocksProxy chainProxy);
-
 }

@@ -3,6 +3,7 @@ package sockslib;
 import sockslib.client.SSLSocks5;
 import sockslib.client.Socks5;
 import sockslib.client.SocksSocket;
+import sockslib.common.KeyStoreInfo;
 import sockslib.common.SSLConfiguration;
 
 import java.io.BufferedReader;
@@ -15,23 +16,20 @@ import java.net.Socket;
 public class DoIt {
 	public static void main(String[] args)
 			throws IOException {
-		Socket socket1 = test1(new Socks5(new InetSocketAddress("localhost", 1030)));
-//		Socket socket2 = test1(new SSLSocks5(new InetSocketAddress("localhost", 1081),
-//				new SSLConfiguration("client-trust-keystore.jks")));
+//		Socket socket = test1(new Socks5(new InetSocketAddress("localhost", 1030)));
+		Socket socket = test1(new SSLSocks5(new InetSocketAddress("localhost", 1030),
+				new SSLConfiguration(null, new KeyStoreInfo("client-trust-keystore.jks", "123456", "JKS"))));
 
-		InputStreamReader isr = new InputStreamReader(socket1.getInputStream());
+		InputStreamReader isr = new InputStreamReader(socket.getInputStream());
 		BufferedReader in = new BufferedReader(isr);
 
-		PrintWriter out = new PrintWriter(socket1.getOutputStream(), true);
+		PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 		out.println("google.com");
 
 		String line;
 		while ((line = in.readLine()) != null) {
 			System.out.println(line);
 		}
-
-		System.out.println(socket1);
-//		System.out.println(socket2);
 	}
 
 	private static SocksSocket test1(Socks5 socks5)

@@ -68,7 +68,7 @@ public class Socks5 implements SocksProxy {
 		this(new InetSocketAddress(inetAddress, port));
 	}
 
-	public Socks5(SocketAddress socketAddress) {
+	Socks5(SocketAddress socketAddress) {
 		if (socketAddress instanceof InetSocketAddress) {
 			inetAddress = ((InetSocketAddress) socketAddress).getAddress();
 			port = ((InetSocketAddress) socketAddress).getPort();
@@ -147,8 +147,7 @@ public class Socks5 implements SocksProxy {
 		return chainProxy;
 	}
 
-	@Override
-	public SocksProxy setChainProxy(SocksProxy chainProxy) {
+	SocksProxy setChainProxy(SocksProxy chainProxy) {
 		this.chainProxy = chainProxy;
 		return this;
 	}
@@ -179,7 +178,7 @@ public class Socks5 implements SocksProxy {
 		return stringBuffer.toString();
 	}
 
-	private Socket createProxySocket(InetAddress address, int port)
+	Socket createProxySocket(InetAddress address, int port)
 			throws IOException {
 		return new Socket(address, port);
 	}

@@ -1,14 +1,14 @@
 package sockslib.client;
 
 import sockslib.common.SSLConfiguration;
+import sockslib.common.SSLConfigurationException;
+import sockslib.common.SocksException;
 
+import java.io.IOException;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.SocketAddress;
 
-/**
- * The class <code>SSLSocks5</code> represents a SSL based SOCKS5 proxy. It will build a SSL based connection between the client and SOCKS5
- * server.
- */
 public class SSLSocks5 extends Socks5 {
 
 	private final SSLConfiguration configuration;
@@ -21,6 +21,16 @@ public class SSLSocks5 extends Socks5 {
 	private SSLSocks5(InetAddress address, int port, SSLConfiguration configuration) {
 		super(address, port);
 		this.configuration = configuration;
+	}
+
+	@Override
+	public Socket createProxySocket(InetAddress address, int port)
+			throws IOException {
+		try {
+			return configuration.getSSLSocketFactory().createSocket(address, port);
+		} catch (SSLConfigurationException e) {
+			throw new SocksException(e.getMessage());
+		}
 	}
 
 	@Override
