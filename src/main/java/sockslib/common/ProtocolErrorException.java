@@ -20,14 +20,12 @@ package sockslib.common;
  *
  * @author Youchao Feng
  * @version 1.0
- * @date Apr 18, 2015 11:19:50 PM
  */
 public class ProtocolErrorException extends SocksException {
 
   /**
    * Serial version UID.
    */
-  private static final long serialVersionUID = 1L;
 
   /**
    * Constructs an instance of {@link ProtocolErrorException} with a message.
@@ -36,10 +34,6 @@ public class ProtocolErrorException extends SocksException {
    */
   public ProtocolErrorException(String msg) {
     super(msg);
-  }
-
-  public ProtocolErrorException() {
-    this("Protocol error");
   }
 
 }

@@ -15,37 +15,27 @@
 package sockslib.client;
 
 import sockslib.common.SocksException;
-import sockslib.common.methods.SocksMethod;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.List;
 
 /**
- * The interface <code>SocksMethodRequester</code> is a tool that can send request message from
- * SOCKS server and get a method that server accepted.
+ * The interface <code>SocksMethodRequester</code> is a tool that can send request message from SOCKS server and get a method that server
+ * accepted.
  *
  * @author Youchao Feng
  * @version 1.0
- * @date Mar 19, 2015 10:43:41 AM
- * @see GenericSocksMethodRequester
  */
-public interface SocksMethodRequester {
+interface SocksMethodRequester {
 
-  /**
-   * Send request message to server.<br>
-   * <p>
-   * This method will send list of methods to SOCKS server and receive the method that SOCKS server
-   * selected.
-   * </p>
-   *
-   * @param acceptableMethods Methods that client can handle.
-   * @param socket            The socket instance that has connected SOCKS server.
-   * @param socksVersion      SOCKS protocol version
-   * @return Method that server accepted.
-   * @throws SocksException If any errors about SOCKS protocol occurred.
-   * @throws IOException    if any IO errors occurred.
-   */
-  public SocksMethod doRequest(List<SocksMethod> acceptableMethods, Socket socket, int
-      socksVersion) throws SocksException, IOException;
+	/**
+	 * Send request message to server.<br> <p> This method will send list of methods to SOCKS server and receive the method that SOCKS
+	 * server selected. </p>
+	 *
+	 * @param socket       The socket instance that has connected SOCKS server.
+	 * @throws SocksException If any errors about SOCKS protocol occurred.
+	 * @throws IOException    if any IO errors occurred.
+	 */
+	void doRequest(Socket socket)
+			throws IOException;
 }

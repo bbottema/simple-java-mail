@@ -22,41 +22,12 @@ package sockslib.common;
  *
  * @author Youchao Feng
  * @version 1.0
- * @date May 17, 2015 7:57:28 PM
  */
 public class SSLConfigurationException extends Exception {
-
-  /**
-   *
-   */
-  private static final long serialVersionUID = 1L;
-
-  public SSLConfigurationException() {
-    super();
-    // TODO Auto-generated constructor stub
-  }
-
-  public SSLConfigurationException(String message, Throwable cause, boolean enableSuppression,
-                                   boolean writableStackTrace) {
-    super(message, cause, enableSuppression, writableStackTrace);
-    // TODO Auto-generated constructor stub
-  }
-
-  public SSLConfigurationException(String message, Throwable cause) {
-    super(message, cause);
-    // TODO Auto-generated constructor stub
-  }
 
   public SSLConfigurationException(String message) {
     super(message);
     // TODO Auto-generated constructor stub
   }
-
-  public SSLConfigurationException(Throwable cause) {
-    super(cause);
-    // TODO Auto-generated constructor stub
-  }
-
-
 
 }

@@ -19,32 +19,9 @@ package sockslib.utils;
  *
  * @author Youchao Feng
  * @version 1.0
- * @date Mar 20, 2015 9:24:58 AM
  */
 public final class UnsignedByte {
 
-  /**
-   * the byte in signed value.
-   */
-  private byte num;
-
-  /**
-   * Constructs a UnsignedByte instance by an integer.
-   *
-   * @param num an integer.
-   */
-  public UnsignedByte(int num) {
-    this.num = (byte) num;
-  }
-
-  /**
-   * Constructs a UsingedByte instance by a byte.
-   *
-   * @param b A byte.
-   */
-  public UnsignedByte(byte b) {
-    num = b;
-  }
 
   /**
    * Gets unsigned byte from a signed byte.
@@ -56,45 +33,6 @@ public final class UnsignedByte {
     return b & 0xFF;
   }
 
-  /**
-   * Gets hex string of a byte.
-   *
-   * @param b byte
-   * @return Byte as Hex string.
-   */
-  public static String toHexString(byte b) {
-    return Integer.toHexString(toInt(b));
-  }
 
-  /**
-   * Gets unsigned value as an integer.
-   *
-   * @return Unsigned value as an integer.
-   */
-  public int getUnsignedValue() {
-    return num & 0xFF;
-  }
-
-  /**
-   * Gets unsigned value as an integer.
-   *
-   * @return value as a normal Java byte.
-   */
-  public byte getSignedValue() {
-    return num;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof UnsignedByte) {
-      return num == ((UnsignedByte) obj).getSignedValue();
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return new Integer(num).hashCode();
-  }
 
 }
