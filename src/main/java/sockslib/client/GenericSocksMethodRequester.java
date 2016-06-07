@@ -15,8 +15,11 @@
 package sockslib.client;
 
 import sockslib.common.SocksException;
+import sockslib.common.methods.SocksMethod;
+import sockslib.common.methods.SocksMethodRegistry;
 import sockslib.utils.LogMessageBuilder;
 import sockslib.utils.LogMessageBuilder.MsgType;
+import sockslib.utils.StreamUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,12 +27,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.List;
 
 /**
  * The class <code>GenericSocksMethodRequester</code> implements {@link SocksMethodRequester}.
  *
  * @author Youchao Feng
  * @version 1.0
+ * @date Mar 19, 2015 10:48:42 AM
  * @see <a href="http://www.ietf.org/rfc/rfc1928.txt">SOCKS Protocol Version 5</a>
  */
 public class GenericSocksMethodRequester implements SocksMethodRequester {
@@ -37,17 +42,20 @@ public class GenericSocksMethodRequester implements SocksMethodRequester {
   /**
    * Logger that subclasses also can use.
    */
-  private static final Logger logger = LoggerFactory.getLogger(GenericSocksMethodRequester.class);
+  protected static final Logger logger = LoggerFactory.getLogger(GenericSocksMethodRequester.class);
 
   @Override
-  public void doRequest(Socket socket) throws IOException {
+  public SocksMethod doRequest(List<SocksMethod> acceptableMethods, Socket socket, int
+      socksVersion) throws SocksException, IOException {
     InputStream inputStream = socket.getInputStream();
     OutputStream outputStream = socket.getOutputStream();
-    byte[] bufferSent = new byte[3];
+    byte[] bufferSent = new byte[2 + acceptableMethods.size()];
 
-    bufferSent[0] = (byte) 0x05;
-    bufferSent[1] = (byte) 1;
-    bufferSent[2] = (byte) 0x00;
+    bufferSent[0] = (byte) socksVersion;
+    bufferSent[1] = (byte) acceptableMethods.size();
+    for (int i = 0; i < acceptableMethods.size(); i++) {
+      bufferSent[2 + i] = (byte) acceptableMethods.get(i).getByte();
+    }
 
     outputStream.write(bufferSent);
     outputStream.flush();
@@ -55,25 +63,14 @@ public class GenericSocksMethodRequester implements SocksMethodRequester {
     logger.debug("{}", LogMessageBuilder.build(bufferSent, MsgType.SEND));
 
     // Received data.
-    byte[] receivedData = readData(inputStream);
+    byte[] receivedData = StreamUtil.read(inputStream, 2);
     logger.debug("{}", LogMessageBuilder.build(receivedData, MsgType.RECEIVE));
 
-    if (receivedData[0] != 0x05) {
+    if (receivedData[0] != socksVersion) {
       throw new SocksException("Remote server don't support SOCKS5");
     }
-  }
 
-  private byte[] readData(InputStream inputStream)
-          throws IOException {
-    byte[] bytes = new byte[2];
-    for (int i = 0; i < 2; i++) {
-		int b = inputStream.read();
-		if (b < 0) {
-			throw new IOException("End of stream");
-		}
-		bytes[i] = (byte) b;
-	}
-    return bytes;
+    return SocksMethodRegistry.getByByte(receivedData[1]);
   }
 
 }
