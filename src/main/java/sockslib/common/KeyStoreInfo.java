@@ -24,13 +24,11 @@ import static sockslib.utils.Util.checkNotNull;
  */
 public class KeyStoreInfo {
 
-  private String keyStorePath;
-  private String password;
+  private final String keyStorePath;
+  private final String password;
   private String type = "JKS";
 
-  public KeyStoreInfo() {
-  }
-
+  @SuppressWarnings("SameParameterValue")
   public KeyStoreInfo(String keyStorePath, String password, String type) {
     this.keyStorePath = checkNotNull(keyStorePath, "Argument [keyStorePath] may not be null");
     this.password = checkNotNull(password, "Argument [password] may not be null");
@@ -45,26 +43,12 @@ public class KeyStoreInfo {
     return keyStorePath;
   }
 
-  public KeyStoreInfo setKeyStorePath(String keyStorePath) {
-    this.keyStorePath = checkNotNull(keyStorePath);
-    return this;
-  }
-
   public String getPassword() {
     return password;
   }
 
-  public KeyStoreInfo setPassword(String password) {
-    this.password = password;
-    return this;
-  }
-
   public String getType() {
     return type;
-  }
-
-  public void setType(String type) {
-    this.type = checkNotNull(type);
   }
 
   @Override

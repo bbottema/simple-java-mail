@@ -6,7 +6,7 @@ import sockslib.client.SocksProxy;
 import sockslib.client.SocksSocket;
 import sockslib.common.KeyStoreInfo;
 import sockslib.common.SSLConfiguration;
-import sockslib.common.UsernamePasswordCredentials;
+import sockslib.common.ProxyCredentials;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -45,7 +45,7 @@ public class DoIt {
 		try {
 			SSLSocks5 socksProxySSLAuth = new SSLSocks5(new InetSocketAddress("localhost", 1030),
 					new SSLConfiguration(null, new KeyStoreInfo("client-trust-keystore.jks", "123456", "JKS")));
-			socksProxySSLAuth.setCredentials(new UsernamePasswordCredentials("PANCAKE", "letmein"));
+			socksProxySSLAuth.setProxyCredentials(new ProxyCredentials("PANCAKE", "letmein"));
 			return new SocksSocket(socksProxySSLAuth, new InetSocketAddress("whois.internic.net", 43));
 		} catch (Exception e) {
 			System.out.println("socketSSLAuth failed");
@@ -69,7 +69,7 @@ public class DoIt {
 	private static Socket createSocketAuthenticated() {
 		try {
 			SocksProxy proxyAuth = new Socks5(new InetSocketAddress("localhost", 1080));
-			proxyAuth.setCredentials(new UsernamePasswordCredentials("PANCAKE", "letmein"));
+			proxyAuth.setProxyCredentials(new ProxyCredentials("PANCAKE", "letmein"));
 			Socket socketAuth = new SocksSocket(
 					proxyAuth); // refactor to: new SocksSocket(proxy1, new InetSocketAddress("whois.internic.net", 43))
 			socketAuth.connect(new InetSocketAddress("whois.internic.net", 43)); // refactor out (see line above)
