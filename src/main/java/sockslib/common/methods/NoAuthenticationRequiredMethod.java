@@ -15,10 +15,21 @@
 package sockslib.common.methods;
 
 import sockslib.client.SocksProxy;
+import sockslib.common.SocksException;
 
 import java.io.IOException;
 
 
+/**
+ * The class <code>NoAuthenticationRequiredMethod</code> represents method which mean NO
+ * AUTHENTICATION REQUIRED. This indicates that the server does not require the client to provide
+ * authentication information.
+ *
+ * @author Youchao Feng
+ * @version 1.0
+ * @date Mar 17, 2015 11:34:01 AM
+ * @see <a href="http://www.ietf.org/rfc/rfc1928.txt">SOCKS Protocol Version 5</a>
+ */
 public class NoAuthenticationRequiredMethod extends AbstractSocksMethod {
 
   @Override
@@ -27,7 +38,7 @@ public class NoAuthenticationRequiredMethod extends AbstractSocksMethod {
   }
 
   @Override
-  public void doMethod(SocksProxy socksProxy) throws IOException {
+  public void doMethod(SocksProxy socksProxy) throws SocksException, IOException {
     // Do nothing.
   }
 
