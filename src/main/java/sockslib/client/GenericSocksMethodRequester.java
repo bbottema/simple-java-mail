@@ -17,39 +17,37 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.List;
 
-
 public class GenericSocksMethodRequester implements SocksMethodRequester {
 
+	private static final Logger logger = LoggerFactory.getLogger(GenericSocksMethodRequester.class);
 
-  protected static final Logger logger = LoggerFactory.getLogger(GenericSocksMethodRequester.class);
+	@Override
+	public SocksMethod doRequest(List<SocksMethod> acceptableMethods, Socket socket, int socksVersion)
+			throws IOException {
+		InputStream inputStream = socket.getInputStream();
+		OutputStream outputStream = socket.getOutputStream();
+		byte[] bufferSent = new byte[2 + acceptableMethods.size()];
 
-  @Override
-  public SocksMethod doRequest(List<SocksMethod> acceptableMethods, Socket socket, int
-      socksVersion) throws  IOException {
-    InputStream inputStream = socket.getInputStream();
-    OutputStream outputStream = socket.getOutputStream();
-    byte[] bufferSent = new byte[2 + acceptableMethods.size()];
+		bufferSent[0] = (byte) socksVersion;
+		bufferSent[1] = (byte) acceptableMethods.size();
+		for (int i = 0; i < acceptableMethods.size(); i++) {
+			bufferSent[2 + i] = (byte) acceptableMethods.get(i).getByte();
+		}
 
-    bufferSent[0] = (byte) socksVersion;
-    bufferSent[1] = (byte) acceptableMethods.size();
-    for (int i = 0; i < acceptableMethods.size(); i++) {
-      bufferSent[2 + i] = (byte) acceptableMethods.get(i).getByte();
-    }
+		outputStream.write(bufferSent);
+		outputStream.flush();
 
-    outputStream.write(bufferSent);
-    outputStream.flush();
+		logger.debug("{}", LogMessageBuilder.build(bufferSent, MsgType.SEND));
 
-    logger.debug("{}", LogMessageBuilder.build(bufferSent, MsgType.SEND));
+		// Received data.
+		byte[] receivedData = StreamUtil.read(inputStream, 2);
+		logger.debug("{}", LogMessageBuilder.build(receivedData, MsgType.RECEIVE));
 
-    // Received data.
-    byte[] receivedData = StreamUtil.read(inputStream, 2);
-    logger.debug("{}", LogMessageBuilder.build(receivedData, MsgType.RECEIVE));
+		if (receivedData[0] != socksVersion) {
+			throw new SocksException("Remote server don't support SOCKS5");
+		}
 
-    if (receivedData[0] != socksVersion) {
-      throw new SocksException("Remote server don't support SOCKS5");
-    }
-
-    return SocksMethodRegistry.getByByte(receivedData[1]);
-  }
+		return SocksMethodRegistry.getByByte(receivedData[1]);
+	}
 
 }

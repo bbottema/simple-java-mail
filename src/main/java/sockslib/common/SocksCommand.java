@@ -2,27 +2,17 @@
 
 package sockslib.common;
 
-
 public enum SocksCommand {
 
+	CONNECT(0x01);
 
-  CONNECT(0x01),
+	private final int value;
 
-  BIND(0x02),
+	SocksCommand(int value) {
+		this.value = value;
+	}
 
-
-  UDP_ASSOCIATE(0x03);
-
-
-  private int value;
-
-
-  SocksCommand(int value) {
-    this.value = value;
-  }
-
-
-  public int getValue() {
-    return value;
-  }
+	public int getValue() {
+		return value;
+	}
 }

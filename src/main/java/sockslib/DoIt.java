@@ -2,11 +2,10 @@ package sockslib;
 
 import sockslib.client.SSLSocks5;
 import sockslib.client.Socks5;
-import sockslib.client.SocksProxy;
 import sockslib.client.SocksSocket;
 import sockslib.common.KeyStoreInfo;
-import sockslib.common.SSLConfiguration;
 import sockslib.common.ProxyCredentials;
+import sockslib.common.SSLConfiguration;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,7 +28,7 @@ public class DoIt {
 		}
 		if (socketAuth != null) {
 			System.out.println("socketAuth: " + socketAuth);
-//			testSocket(socketAuth);
+			//			testSocket(socketAuth);
 		}
 		if (socketSSLAnonymous != null) {
 			System.out.println("socketSSLAnonymous: " + socketSSLAnonymous);
@@ -68,7 +67,7 @@ public class DoIt {
 
 	private static Socket createSocketAuthenticated() {
 		try {
-			SocksProxy proxyAuth = new Socks5(new InetSocketAddress("localhost", 1080));
+			Socks5 proxyAuth = new Socks5(new InetSocketAddress("localhost", 1080));
 			proxyAuth.setCredentials(new ProxyCredentials("PANCAKE", "letmein"));
 			Socket socketAuth = new SocksSocket(
 					proxyAuth); // refactor to: new SocksSocket(proxy1, new InetSocketAddress("whois.internic.net", 43))

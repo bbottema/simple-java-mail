@@ -19,9 +19,9 @@ import static sockslib.utils.Util.checkNotNull;
 
 public class SocksSocket extends Socket {
 
-	protected static final Logger logger = LoggerFactory.getLogger(SocksSocket.class);
+	private static final Logger logger = LoggerFactory.getLogger(SocksSocket.class);
 
-	private SocksProxy proxy;
+	private final Socks5 proxy;
 
 	private String remoteServerHost;
 
@@ -29,8 +29,8 @@ public class SocksSocket extends Socket {
 
 	private Socket proxySocket;
 
-	public SocksSocket(SocksProxy proxy, String remoteServerHost, int remoteServerPort)
-			throws SocksException, IOException {
+	private SocksSocket(Socks5 proxy, String remoteServerHost, int remoteServerPort)
+			throws IOException {
 		this.proxy = checkNotNull(proxy, "Argument [proxy] may not be null").copy();
 		this.proxy.setProxySocket(proxySocket);
 		this.remoteServerHost = checkNotNull(remoteServerHost, "Argument [remoteServerHost] may not be null");
@@ -41,13 +41,13 @@ public class SocksSocket extends Socket {
 		this.proxy.requestConnect(remoteServerHost, remoteServerPort);
 	}
 
-	public SocksSocket(SocksProxy proxy, InetAddress address, int port)
-			throws SocksException, IOException {
+	private SocksSocket(Socks5 proxy, InetAddress address, int port)
+			throws IOException {
 		this(proxy, new InetSocketAddress(address, port));
 	}
 
-	public SocksSocket(SocksProxy proxy, SocketAddress socketAddress)
-			throws SocksException, IOException {
+	public SocksSocket(Socks5 proxy, SocketAddress socketAddress)
+			throws IOException {
 		checkNotNull(proxy, "Argument [proxy] may not be null");
 		checkNotNull(socketAddress, "Argument [socketAddress] may not be null");
 		checkArgument(socketAddress instanceof InetSocketAddress, "Unsupported address type");
@@ -62,12 +62,12 @@ public class SocksSocket extends Socket {
 
 	}
 
-	public SocksSocket(SocksProxy proxy)
+	public SocksSocket(Socks5 proxy)
 			throws IOException {
 		this(proxy, proxy.createProxySocket());
 	}
 
-	public SocksSocket(SocksProxy proxy, Socket proxySocket) {
+	private SocksSocket(Socks5 proxy, Socket proxySocket) {
 		checkNotNull(proxy, "Argument [proxy] may not be null");
 		checkNotNull(proxySocket, "Argument [proxySocket] may not be null");
 		checkArgument(!proxySocket.isConnected(), "Proxy socket should be unconnected");
@@ -78,8 +78,8 @@ public class SocksSocket extends Socket {
 
 	private void initProxyChain()
 			throws IOException {
-		List<SocksProxy> proxyChain = new ArrayList<SocksProxy>();
-		SocksProxy temp = proxy;
+		List<Socks5> proxyChain = new ArrayList<>();
+		Socks5 temp = proxy;
 		while (temp.getChainProxy() != null) {
 			temp.getChainProxy().setProxySocket(proxySocket);
 			proxyChain.add(temp.getChainProxy());
@@ -87,9 +87,9 @@ public class SocksSocket extends Socket {
 		}
 		logger.debug("Proxy chain has:{} proxy", proxyChain.size());
 		if (proxyChain.size() > 0) {
-			SocksProxy pre = proxy;
+			Socks5 pre = proxy;
 			for (int i = 0; i < proxyChain.size(); i++) {
-				SocksProxy chain = proxyChain.get(i);
+				Socks5 chain = proxyChain.get(i);
 				pre.requestConnect(chain.getInetAddress(), chain.getPort());
 				proxy.getChainProxy().buildConnection();
 				pre = chain;
@@ -145,8 +145,8 @@ public class SocksSocket extends Socket {
 		try {
 			return InetAddress.getByName(remoteServerHost);
 		} catch (UnknownHostException e) {
+			throw new SocksException(e.getMessage(), e);
 		}
-		return null;
 	}
 
 	@Override

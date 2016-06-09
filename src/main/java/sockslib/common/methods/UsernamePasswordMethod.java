@@ -5,9 +5,8 @@ package sockslib.common.methods;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sockslib.client.Socks5;
-import sockslib.client.SocksProxy;
-import sockslib.common.SocksException;
 import sockslib.common.ProxyCredentials;
+import sockslib.common.SocksException;
 import sockslib.utils.LogMessageBuilder;
 import sockslib.utils.LogMessageBuilder.MsgType;
 
@@ -30,7 +29,7 @@ public class UsernamePasswordMethod extends AbstractSocksMethod {
 	}
 
 	@Override
-	public void doMethod(SocksProxy socksProxy)
+	public void doMethod(Socks5 socksProxy)
 			throws IOException {
 		checkNotNull(socksProxy, "Argument [socksProxy] may not be null");
 		ProxyCredentials credentials = socksProxy.getCredentials();

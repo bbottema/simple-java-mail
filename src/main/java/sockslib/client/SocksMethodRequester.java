@@ -8,10 +8,8 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
 
+interface SocksMethodRequester {
 
-public interface SocksMethodRequester {
-
-
-  SocksMethod doRequest(List<SocksMethod> acceptableMethods, Socket socket, int
-      socksVersion) throws  IOException;
+	SocksMethod doRequest(List<SocksMethod> acceptableMethods, Socket socket, int socksVersion)
+			throws IOException;
 }

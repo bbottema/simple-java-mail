@@ -2,21 +2,17 @@
 
 package sockslib.common.methods;
 
-import sockslib.client.SocksProxy;
+import sockslib.client.Socks5;
 
 import java.io.IOException;
 
-
-
 public interface SocksMethod {
 
+	int getByte();
 
-  int getByte();
+	String getMethodName();
 
-
-  String getMethodName();
-
-
-  void doMethod(SocksProxy socksProxy) throws IOException;
+	void doMethod(Socks5 socksProxy)
+			throws IOException;
 
 }

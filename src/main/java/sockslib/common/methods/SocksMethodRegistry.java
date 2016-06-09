@@ -13,31 +13,27 @@ import static sockslib.utils.Util.checkNotNull;
 
 public class SocksMethodRegistry {
 
+	private static final Logger logger = LoggerFactory.getLogger(SocksMethodRegistry.class);
 
-  private static final Logger logger = LoggerFactory.getLogger(SocksMethodRegistry.class);
+	private static final Map<Byte, SocksMethod> methods = new HashMap<Byte, SocksMethod>();
 
-  private static final Map<Byte, SocksMethod> methods = new HashMap<Byte, SocksMethod>();
+	private SocksMethodRegistry() {
+	}
 
+	private static void putMethod(SocksMethod socksMethod) {
+		checkNotNull(socksMethod, "Argument [socksMethod] may not be null");
+		logger.debug("Register {}[{}]", socksMethod.getMethodName(), socksMethod.getByte());
+		methods.put((byte) socksMethod.getByte(), socksMethod);
+	}
 
-  private SocksMethodRegistry() {
-  }
+	public static void overWriteRegistry(List<SocksMethod> socksMethods) {
+		checkNotNull(socksMethods, "Argument [socksMethods] may not be null");
+		for (SocksMethod socksMethod : socksMethods) {
+			putMethod(socksMethod);
+		}
+	}
 
-
-  public static void putMethod(SocksMethod socksMethod) {
-    checkNotNull(socksMethod, "Argument [socksMethod] may not be null");
-    logger.debug("Register {}[{}]", socksMethod.getMethodName(), socksMethod.getByte());
-    methods.put((byte) socksMethod.getByte(), socksMethod);
-  }
-
-  public static void overWriteRegistry(List<SocksMethod> socksMethods) {
-    checkNotNull(socksMethods, "Argument [socksMethods] may not be null");
-    for (SocksMethod socksMethod : socksMethods) {
-      putMethod(socksMethod);
-    }
-  }
-
-
-  public static SocksMethod getByByte(byte b) {
-    return methods.get(b);
-  }
+	public static SocksMethod getByByte(byte b) {
+		return methods.get(b);
+	}
 }
