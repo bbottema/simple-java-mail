@@ -15,7 +15,7 @@ public class SocksMethodRegistry {
 
 	private static final Logger logger = LoggerFactory.getLogger(SocksMethodRegistry.class);
 
-	private static final Map<Byte, SocksMethod> methods = new HashMap<Byte, SocksMethod>();
+	private static final Map<Byte, SocksMethod> methods = new HashMap<>();
 
 	private SocksMethodRegistry() {
 	}

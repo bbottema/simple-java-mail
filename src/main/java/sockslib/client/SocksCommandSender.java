@@ -2,8 +2,6 @@
 
 package sockslib.client;
 
-import sockslib.common.SocksCommand;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -17,13 +15,13 @@ interface SocksCommandSender {
 	byte ATYPE_IPV6 = 0x04;
 	int REP_SUCCEEDED = 0x00;
 
-	void send(Socket socket, SocksCommand command, InetAddress address, int port, int version)
+	void send(Socket socket, InetAddress address, int port, int version)
 			throws IOException;
 
-	void send(Socket socket, SocksCommand command, SocketAddress address, int version)
+	void send(Socket socket, SocketAddress address, int version)
 			throws IOException;
 
-	void send(Socket socket, SocksCommand command, String host, int port, int version)
+	void send(Socket socket, String host, int port, int version)
 			throws IOException;
 
 }

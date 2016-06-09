@@ -3,7 +3,6 @@
 package sockslib.client;
 
 import sockslib.common.ProxyCredentials;
-import sockslib.common.SocksCommand;
 import sockslib.common.methods.NoAuthenticationRequiredMethod;
 import sockslib.common.methods.SocksMethod;
 import sockslib.common.methods.SocksMethodRegistry;
@@ -59,6 +58,7 @@ public class Socks5 {
 		this(null, socketAddress);
 	}
 
+	@SuppressWarnings("SameParameterValue")
 	private Socks5(Socks5 chainProxy, SocketAddress socketAddress) {
 		init();
 		if (socketAddress instanceof InetSocketAddress) {
@@ -103,23 +103,23 @@ public class Socks5 {
 			throws IOException {
 		if (!alwaysResolveAddressLocally) {
 			// resolve address in SOCKS server
-			socksCmdSender.send(proxySocket, SocksCommand.CONNECT, host, port, SOCKS_VERSION);
+			socksCmdSender.send(proxySocket, host, port, SOCKS_VERSION);
 
 		} else {
 			// resolve address in local.
 			InetAddress address = InetAddress.getByName(host);
-			socksCmdSender.send(proxySocket, SocksCommand.CONNECT, address, port, SOCKS_VERSION);
+			socksCmdSender.send(proxySocket, address, port, SOCKS_VERSION);
 		}
 	}
 
 	public void requestConnect(InetAddress address, int port)
 			throws IOException {
-		socksCmdSender.send(proxySocket, SocksCommand.CONNECT, address, port, SOCKS_VERSION);
+		socksCmdSender.send(proxySocket, address, port, SOCKS_VERSION);
 	}
 
 	public void requestConnect(SocketAddress address)
 			throws IOException {
-		socksCmdSender.send(proxySocket, SocksCommand.CONNECT, address, SOCKS_VERSION);
+		socksCmdSender.send(proxySocket, address, SOCKS_VERSION);
 	}
 
 	public int getPort() {

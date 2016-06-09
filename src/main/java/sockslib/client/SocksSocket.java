@@ -88,8 +88,7 @@ public class SocksSocket extends Socket {
 		logger.debug("Proxy chain has:{} proxy", proxyChain.size());
 		if (proxyChain.size() > 0) {
 			Socks5 pre = proxy;
-			for (int i = 0; i < proxyChain.size(); i++) {
-				Socks5 chain = proxyChain.get(i);
+			for (Socks5 chain : proxyChain) {
 				pre.requestConnect(chain.getInetAddress(), chain.getPort());
 				proxy.getChainProxy().buildConnection();
 				pre = chain;

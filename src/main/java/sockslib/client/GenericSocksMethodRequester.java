@@ -9,7 +9,6 @@ import sockslib.common.methods.SocksMethod;
 import sockslib.common.methods.SocksMethodRegistry;
 import sockslib.utils.LogMessageBuilder;
 import sockslib.utils.LogMessageBuilder.MsgType;
-import sockslib.utils.StreamUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,7 +39,7 @@ public class GenericSocksMethodRequester implements SocksMethodRequester {
 		logger.debug("{}", LogMessageBuilder.build(bufferSent, MsgType.SEND));
 
 		// Received data.
-		byte[] receivedData = StreamUtil.read(inputStream, 2);
+		byte[] receivedData = read2Bytes(inputStream);
 		logger.debug("{}", LogMessageBuilder.build(receivedData, MsgType.RECEIVE));
 
 		if (receivedData[0] != socksVersion) {
@@ -48,6 +47,23 @@ public class GenericSocksMethodRequester implements SocksMethodRequester {
 		}
 
 		return SocksMethodRegistry.getByByte(receivedData[1]);
+	}
+
+	private byte[] read2Bytes(InputStream inputStream)
+			throws IOException {
+		byte[] bytes = new byte[2];
+		bytes[0] = (byte) checkEnd(inputStream.read());
+		bytes[1] = (byte) checkEnd(inputStream.read());
+		return bytes;
+	}
+
+	private static int checkEnd(int b)
+			throws IOException {
+		if (b < 0) {
+			throw new IOException("End of stream");
+		} else {
+			return b;
+		}
 	}
 
 }

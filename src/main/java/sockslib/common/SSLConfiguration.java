@@ -21,6 +21,7 @@ public class SSLConfiguration {
 	private final KeyStoreInfo keyStoreInfo;
 	private final KeyStoreInfo trustKeyStoreInfo;
 
+	@SuppressWarnings("SameParameterValue")
 	public SSLConfiguration(KeyStoreInfo keyStoreInfo, KeyStoreInfo trustKeyStoreInfo) {
 		this.keyStoreInfo = keyStoreInfo;
 		this.trustKeyStoreInfo = trustKeyStoreInfo;

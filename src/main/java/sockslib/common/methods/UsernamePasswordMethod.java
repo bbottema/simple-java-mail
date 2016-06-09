@@ -33,7 +33,7 @@ public class UsernamePasswordMethod extends AbstractSocksMethod {
 			throws IOException {
 		checkNotNull(socksProxy, "Argument [socksProxy] may not be null");
 		ProxyCredentials credentials = socksProxy.getCredentials();
-		if (credentials == null || !(credentials instanceof ProxyCredentials)) {
+		if (credentials == null) {
 			throw new SocksException("Need Username/Password authentication");
 		}
 		// UsernamePasswordAuthentication authentication = (UsernamePasswordAuthentication) auth;
@@ -61,6 +61,7 @@ public class UsernamePasswordMethod extends AbstractSocksMethod {
 		logger.debug("{}", LogMessageBuilder.build(bufferSent, MsgType.SEND));
 
 		byte[] authenticationResult = new byte[2];
+		//noinspection ResultOfMethodCallIgnored
 		inputStream.read(authenticationResult);
 		// logger
 		logger.debug("{}", LogMessageBuilder.build(authenticationResult, MsgType.RECEIVE));

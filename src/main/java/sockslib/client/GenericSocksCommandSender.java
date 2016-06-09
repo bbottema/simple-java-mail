@@ -5,7 +5,6 @@ package sockslib.client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sockslib.common.AddressType;
-import sockslib.common.SocksCommand;
 import sockslib.common.SocksException;
 import sockslib.utils.LogMessageBuilder;
 import sockslib.utils.LogMessageBuilder.MsgType;
@@ -24,18 +23,20 @@ public class GenericSocksCommandSender implements SocksCommandSender {
 
 	private static final Logger logger = LoggerFactory.getLogger(GenericSocksCommandSender.class);
 
+	private static final int COMMAND_CONNECT = 0x01;
+
 	private static final int LENGTH_OF_IPV4 = 4;
 
 	private static final int LENGTH_OF_IPV6 = 16;
 
 	@Override
-	public void send(Socket socket, SocksCommand command, InetAddress address, int port, int version)
+	public void send(Socket socket, InetAddress address, int port, int version)
 			throws IOException {
-		send(socket, command, new InetSocketAddress(address, port), version);
+		send(socket, new InetSocketAddress(address, port), version);
 	}
 
 	@Override
-	public void send(Socket socket, SocksCommand command, SocketAddress socketAddress, int version)
+	public void send(Socket socket, SocketAddress socketAddress, int version)
 			throws IOException {
 		if (!(socketAddress instanceof InetSocketAddress)) {
 			throw new IllegalArgumentException("Unsupported address type");
@@ -61,7 +62,7 @@ public class GenericSocksCommandSender implements SocksCommandSender {
 		}
 
 		bufferSent[0] = (byte) version;
-		bufferSent[1] = (byte) command.getValue();
+		bufferSent[1] = (byte) COMMAND_CONNECT;
 		bufferSent[2] = RESERVED;
 		bufferSent[3] = addressType;
 		System.arraycopy(bytesOfAddress, 0, bufferSent, 4, ADDRESS_LENGTH);// copy address bytes
@@ -76,7 +77,7 @@ public class GenericSocksCommandSender implements SocksCommandSender {
 	}
 
 	@Override
-	public void send(Socket socket, SocksCommand command, String host, int port, int version)
+	public void send(Socket socket, String host, int port, int version)
 			throws IOException {
 		final InputStream inputStream = socket.getInputStream();
 		final OutputStream outputStream = socket.getOutputStream();
@@ -84,7 +85,7 @@ public class GenericSocksCommandSender implements SocksCommandSender {
 		final byte[] bufferSent = new byte[7 + lengthOfHost];
 
 		bufferSent[0] = (byte) version;
-		bufferSent[1] = (byte) command.getValue();
+		bufferSent[1] = (byte) COMMAND_CONNECT;
 		bufferSent[2] = RESERVED;
 		bufferSent[3] = ATYPE_DOMAINNAME;
 		bufferSent[4] = (byte) lengthOfHost;
@@ -102,7 +103,6 @@ public class GenericSocksCommandSender implements SocksCommandSender {
 
 	private void checkServerReply(InputStream inputStream)
 			throws IOException {
-		byte serverReply = -1;
 		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 		int temp = 0;
 		for (int i = 0; i < 4; i++) {
@@ -161,16 +161,12 @@ public class GenericSocksCommandSender implements SocksCommandSender {
 			logger.debug("Server replied:Address as host:{}, port:{}", new String(addressBytes),
 					(UnsignedByte.toInt(portBytes[0]) << 8) | (UnsignedByte.toInt(portBytes[1])));
 		} else if (receivedData[3] == AddressType.IPV6) {
-			int size = receivedData[4];
-			size = size & 0xFF;
 			addressBytes = new byte[16];
-			for (int i = 0; i < addressBytes.length; i++) {
-				addressBytes[i] = receivedData[4 + i];
-			}
+			System.arraycopy(receivedData, 4, addressBytes, 0, addressBytes.length);
 			logger.debug("Server replied:Address as IPv6:{}", new String(addressBytes));
 		}
 
-		serverReply = receivedData[1];
+		final byte serverReply = receivedData[1];
 
 		if (serverReply != REP_SUCCEEDED) {
 			throw SocksException.serverReplyException(serverReply);

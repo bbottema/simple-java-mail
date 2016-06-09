@@ -4,6 +4,7 @@ package sockslib.common;
 
 import static sockslib.utils.Util.checkNotNull;
 
+@SuppressWarnings("SameParameterValue")
 public class KeyStoreInfo {
 
 	private String keyStorePath;
