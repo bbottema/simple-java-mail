@@ -1,16 +1,4 @@
-/*
- * Copyright 2015-2025 the original author or authors.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
+
 
 package sockslib.server.io;
 
@@ -24,20 +12,10 @@ import java.util.Map;
 
 import static sockslib.utils.Util.checkNotNull;
 
-/**
- * The class <code>SocketPipe</code> represents pipe that can transfer data from one socket to
- * another socket. The tow socket should be connected sockets. If any of the them occurred error the
- * pipe will close all of them.
- *
- * @author Youchao Feng
- * @version 1.0
- * @date Apr 15, 2015 10:46:03 AM
- */
+
 public class SocketPipe implements Pipe {
 
-  /**
-   * Logger
-   */
+
   protected static final Logger logger = LoggerFactory.getLogger(SocketPipe.class);
 
   public static final String INPUT_PIPE_NAME = "INPUT_PIPE";
@@ -46,44 +24,28 @@ public class SocketPipe implements Pipe {
   public static final String ATTR_DESTINATION_SOCKET = "DESTINATION_SOCKET";
   public static final String ATTR_PARENT_PIPE = "PARENT_PIPE";
 
-  /**
-   * Pipe one.
-   */
+
   private Pipe pipe1;
 
-  /**
-   * Pipe tow.
-   */
+
   private Pipe pipe2;
 
-  /**
-   * Socket one.
-   */
+
   private Socket socket1;
 
-  /**
-   * Socket two.
-   */
+
   private Socket socket2;
 
   private String name;
 
   private Map<String, Object> attributes = new HashMap<>();
 
-  /**
-   * flag.
-   */
+
   private boolean running = false;
 
   private PipeListener listener = new PipeListenerImp();
 
-  /**
-   * Constructs SocketPipe instance by tow connected sockets.
-   *
-   * @param socket1 A connected socket.
-   * @param socket2 Another connected socket.
-   * @throws IOException If an I/O error occurred.
-   */
+
   public SocketPipe(Socket socket1, Socket socket2) throws IOException {
     this.socket1 = checkNotNull(socket1, "Argument [socks1] may not be null");
     this.socket2 = checkNotNull(socket2, "Argument [socks1] may not be null");
@@ -138,11 +100,6 @@ public class SocketPipe implements Pipe {
   }
 
   @Override
-  public int getBufferSize() {
-    return 0;
-  }
-
-  @Override
   public void setBufferSize(int bufferSize) {
     pipe1.setBufferSize(bufferSize);
     pipe2.setBufferSize(bufferSize);
@@ -179,25 +136,6 @@ public class SocketPipe implements Pipe {
     attributes.put(name, value);
   }
 
-  @Override
-  public Object getAttribute(String name) {
-    return attributes.get(name);
-  }
-
-  @Override
-  public Map<String, Object> getAttributes() {
-    return attributes;
-  }
-
-
-
-  /**
-   * The class <code>PipeListenerImp</code> is a pipe listener.
-   *
-   * @author Youchao Feng
-   * @version 1.0
-   * @date Apr 15, 2015 9:05:45 PM
-   */
   private class PipeListenerImp implements PipeListener {
 
     @Override

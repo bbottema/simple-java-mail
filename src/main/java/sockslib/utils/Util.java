@@ -1,8 +1,6 @@
 package sockslib.utils;
 
-/**
- * Created by Plantface on 7-6-2016.
- */
+
 public class Util {
 	public static void checkArgument(boolean value, String msg) {
 		if (!value) {
@@ -24,7 +22,4 @@ public class Util {
 		return value;
 	}
 
-	public static boolean isNullOrEmpty(String value) {
-		return (value == null || value.length() == 0);
-	}
 }

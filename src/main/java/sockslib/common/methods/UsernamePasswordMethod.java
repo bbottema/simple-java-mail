@@ -1,16 +1,4 @@
-/*
- * Copyright 2015-2025 the original author or authors.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
+
 
 package sockslib.common.methods;
 
@@ -31,27 +19,13 @@ import java.io.OutputStream;
 
 import static sockslib.utils.Util.checkNotNull;
 
-/**
- * The class <code>UsernamePasswordMethod</code> represents the method that need USERNAME/PASSWORD
- * authentication.<br>
- * <b>Notice:</b> This method is only supported by SOCKS5 protocol. It will be used in client and
- * server.
- *
- * @author Youchao Feng
- * @version 1.0
- * @date Mar 17, 2015 5:09:23 PM
- * @see <a href="http://www.ietf.org/rfc/rfc1928.txt">SOCKS Protocol Version 5</a>
- */
+
 public class UsernamePasswordMethod extends AbstractSocksMethod {
 
-  /**
-   * Logger.
-   */
+
   private static final Logger logger = LoggerFactory.getLogger(UsernamePasswordMethod.class);
 
-  /**
-   * Constructs an instance of {@link UsernamePasswordMethod}.
-   */
+
   public UsernamePasswordMethod() {
   }
 
@@ -60,9 +34,7 @@ public class UsernamePasswordMethod extends AbstractSocksMethod {
     return 0x02;
   }
 
-  /**
-   * Do authentication.
-   */
+
   @Override
   public void doMethod(SocksProxy socksProxy) throws SocksException, IOException {
     checkNotNull(socksProxy, "Argument [socksProxy] may not be null");
@@ -76,18 +48,7 @@ public class UsernamePasswordMethod extends AbstractSocksMethod {
     String password = credentials.getPassword();
     InputStream inputStream = socksProxy.getInputStream();
     OutputStream outputStream = socksProxy.getOutputStream();
-    /*
-     * RFC 1929
-     * 
-     * +----+------+----------+------+----------+
-     * |VER | ULEN | UNAME | PLEN | PASSWD | |
-     * +----+------+----------+------+----------+ | 1 | 1 | 1 to 255 | 1 | 1 to 255 |
-     * +----+------+----------+------+----------+ The VER field contains the current version of the
-     * subnegotiation, which is X’01’. The ULEN field contains the length of the UNAME field that
-     * follows. The UNAME field contains the username as known to the source operating system. The
-     * PLEN field contains the length of the PASSWD field that follows. The PASSWD field contains
-     * the password association with the given UNAME.
-     */
+
     final int USERNAME_LENGTH = username.getBytes().length;
     final int PASSWORD_LENGTH = password.getBytes().length;
     final byte[] bytesOfUsername = username.getBytes();

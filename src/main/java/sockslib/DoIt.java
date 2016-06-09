@@ -25,11 +25,11 @@ public class DoIt {
 
 		if (socketAnonymous != null) {
 			System.out.println("socketAnonymous: " + socketAnonymous);
-			testSocket(socketAnonymous);
+//			testSocket(socketAnonymous);
 		}
 		if (socketAuth != null) {
 			System.out.println("socketAuth: " + socketAuth);
-			testSocket(socketAuth);
+//			testSocket(socketAuth);
 		}
 		if (socketSSLAnonymous != null) {
 			System.out.println("socketSSLAnonymous: " + socketSSLAnonymous);

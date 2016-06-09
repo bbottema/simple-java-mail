@@ -1,60 +1,25 @@
-/*
- * Copyright 2015-2025 the original author or authors.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
+
 
 package sockslib.client;
 
-import sockslib.common.AnonymousCredentials;
-import sockslib.common.Credentials;
-import sockslib.common.SocksCommand;
-import sockslib.common.SocksException;
-import sockslib.common.UsernamePasswordCredentials;
-import sockslib.common.methods.GssApiMethod;
-import sockslib.common.methods.NoAuthenticationRequiredMethod;
-import sockslib.common.methods.SocksMethod;
-import sockslib.common.methods.SocksMethodRegistry;
-import sockslib.common.methods.UsernamePasswordMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sockslib.common.*;
+import sockslib.common.methods.*;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * The class <code>Socks5</code> has implements SOCKS5 protocol.
- *
- * @author Youchao Feng
- * @version 1.0
- * @date Mar 16, 2015 4:57:32 PM
- * @see <a href="http://www.ietf.org/rfc/rfc1928.txt">SOCKS Protocol Version 5</a>
- */
+
 public class Socks5 implements SocksProxy {
 
-  /**
-   * Version of SOCKS protocol.
-   */
+
   public static final byte SOCKS_VERSION = 0x05;
-  /**
-   * Reserved field.
-   */
+
   public static final byte RESERVED = 0x00;
   public static final int REP_SUCCEEDED = 0x00;
   public static final int REP_GENERAL_SOCKS_SERVER_FAILURE = 0x01;
@@ -65,86 +30,45 @@ public class Socks5 implements SocksProxy {
   public static final int REP_TTL_EXPIRED = 0x06;
   public static final int REP_COMMAND_NOT_SUPPORTED = 0x07;
   public static final int REP_ADDRESS_TYPE_NOT_SUPPORTED = 0x08;
-  /**
-   * Authentication succeeded code.
-   */
+
   public static final byte AUTHENTICATION_SUCCEEDED = 0x00;
-  /**
-   * Logger.
-   */
+
   protected static final Logger logger = LoggerFactory.getLogger(Socks5.class);
   private SocksProxy chainProxy;
-  /**
-   * Authentication.
-   */
+
   private Credentials credentials = new AnonymousCredentials();
-  /**
-   * SOCKS5 server's address. IPv4 or IPv6 address.
-   */
+
   private InetAddress inetAddress;
-  /**
-   * SOCKS5 server's port;
-   */
+
   private int port = SOCKS_DEFAULT_PORT;
-  /**
-   * The socket that will connect to SOCKS5 server.
-   */
+
   private Socket proxySocket;
-  /**
-   * SOCKS5 client acceptable methods.
-   */
+
   private List<SocksMethod> acceptableMethods;
-  /**
-   * Use to send a request to SOCKS server and receive a method that SOCKS server selected .
-   */
+
   private SocksMethodRequester socksMethodRequester = new GenericSocksMethodRequester();
-  /**
-   * Use to send command to SOCKS5 sever
-   */
+
   private SocksCommandSender socksCmdSender = new GenericSocksCommandSender();
-  /**
-   * Resolve remote server's domain name in SOCKS server if it's false. It's default false.
-   */
+
   private boolean alwaysResolveAddressLocally = false;
 
-  /**
-   * Constructs a Socks5 instance.
-   *
-   * @param socketAddress SOCKS5 server's address.
-   * @param username      Username of the authentication.
-   * @param password      Password of the authentication.
-   */
+
   public Socks5(SocketAddress socketAddress, String username, String password) {
     this(socketAddress);
     setCredentials(new UsernamePasswordCredentials(username, password));
   }
 
-  /**
-   * Constructs a Socks5 instance.
-   *
-   * @param host SOCKS5's server host.
-   * @param port SOCKS5's server port.
-   * @throws UnknownHostException If the host can't be resolved.
-   */
+
   public Socks5(String host, int port) throws UnknownHostException {
     this(InetAddress.getByName(host), port);
   }
 
-  /**
-   * Constructs a Socks5 instance.
-   *
-   * @param inetAddress SOCKS5 server's address.
-   * @param port        SOCKS5 server's port.
-   */
+
   public Socks5(InetAddress inetAddress, int port) {
     this(new InetSocketAddress(inetAddress, port));
   }
 
-  /**
-   * Constructs a Socks5 instance with a java.net.SocketAddress instance.
-   *
-   * @param socketAddress SOCKS5 server's address.
-   */
+
   public Socks5(SocketAddress socketAddress) {
     this(null, socketAddress);
   }
@@ -160,14 +84,7 @@ public class Socks5 implements SocksProxy {
     }
   }
 
-  /**
-   * Constructs a Socks instance.
-   *
-   * @param host        SOCKS5 server's host.
-   * @param port        SOCKS5 server's port.
-   * @param credentials credentials.
-   * @throws UnknownHostException If the host can't be resolved.
-   */
+
   public Socks5(String host, int port, Credentials credentials) throws UnknownHostException {
     init();
     this.inetAddress = InetAddress.getByName(host);
@@ -175,9 +92,7 @@ public class Socks5 implements SocksProxy {
     this.credentials = credentials;
   }
 
-  /**
-   * Constructs a Socks5 instance without any parameter.
-   */
+
   private void init() {
     acceptableMethods = new ArrayList<>();
     acceptableMethods.add(new NoAuthenticationRequiredMethod());
@@ -366,12 +281,7 @@ public class Socks5 implements SocksProxy {
     return inetAddress;
   }
 
-  /**
-   * Sets SOCKS5 proxy server's IP address.
-   *
-   * @param inetAddress IP address of SOCKS5 proxy server.
-   * @return The instance of {@link Socks5}.
-   */
+
   public Socks5 setInetAddress(InetAddress inetAddress) {
     this.inetAddress = inetAddress;
     return this;

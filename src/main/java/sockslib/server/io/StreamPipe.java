@@ -1,16 +1,4 @@
-/*
- * Copyright 2015-2025 the original author or authors.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
+
 
 package sockslib.server.io;
 
@@ -26,84 +14,47 @@ import java.util.List;
 import java.util.Map;
 
 import static sockslib.utils.Util.checkNotNull;
-/**
- * The class <code>StreamPipe</code> represents a pipe the can transfer data source a input
- * stream destination
- * a output stream.
- *
- * @author Youchao Feng
- * @version 1.0
- * @date Apr 6, 2015 11:37:16 PM
- */
+
 public class StreamPipe implements Runnable, Pipe {
 
-  /**
-   * Logger that subclasses also can use.
-   */
+
   protected static final Logger logger = LoggerFactory.getLogger(StreamPipe.class);
 
-  /**
-   * Default buffer size.
-   */
+
   private static final int BUFFER_SIZE = 1024 * 1024 * 5;
 
   private Map<String, Object> attributes = new HashMap<>();
 
-  /**
-   * Listeners
-   */
+
   private List<PipeListener> pipeListeners;
 
-  /**
-   * Input stream.
-   */
+
   private InputStream source;
 
-  /**
-   * Output stream.
-   */
+
   private OutputStream destination;
 
-  /**
-   * Buffer size.
-   */
+
   private int bufferSize = BUFFER_SIZE;
 
-  /**
-   * Running thread.
-   */
+
   private Thread runningThread;
 
-  /**
-   * A flag.
-   */
+
   private boolean running = false;
 
-  /**
-   * Name of the pipe.
-   */
+
   private String name;
 
   private boolean daemon = false;
 
 
-  /**
-   * Constructs a Pipe instance with a input stream and a output stream.
-   *
-   * @param source      stream where it comes source.
-   * @param destination stream where it will be transferred destination.
-   */
+
   public StreamPipe(InputStream source, OutputStream destination) {
     this(source, destination, null);
   }
 
-  /**
-   * Constructs an instance of {@link StreamPipe}.
-   *
-   * @param source      stream where it comes source.
-   * @param destination stream where it will be transferred destination.
-   * @param name        Name of {@link StreamPipe}.
-   */
+
   public StreamPipe(InputStream source, OutputStream destination,  String name) {
     this.source = checkNotNull(source, "Argument [source] may not be null");
     this.destination = checkNotNull(destination, "Argument [destination] may not be null");
@@ -154,12 +105,7 @@ public class StreamPipe implements Runnable, Pipe {
     }
   }
 
-  /**
-   * Transfer a buffer.
-   *
-   * @param buffer Buffer that transfer once.
-   * @return number of byte that transferred.
-   */
+
   protected int doTransfer(byte[] buffer) {
 
     int length = -1;
@@ -198,11 +144,6 @@ public class StreamPipe implements Runnable, Pipe {
   }
 
   @Override
-  public int getBufferSize() {
-    return bufferSize;
-  }
-
-  @Override
   public void setBufferSize(int bufferSize) {
     this.bufferSize = bufferSize;
   }
@@ -222,39 +163,23 @@ public class StreamPipe implements Runnable, Pipe {
     pipeListeners.remove(pipeListener);
   }
 
-  /**
-   * Returns all {@link PipeListener}.
-   *
-   * @return All {@link PipeListener}.
-   */
+
   public List<PipeListener> getPipeListeners() {
     return pipeListeners;
   }
 
-  /**
-   * Sets {@link PipeListener}.
-   *
-   * @param pipeListeners a List of {@link PipeListener}.
-   */
+
   public void setPipeListeners(List<PipeListener> pipeListeners) {
     this.pipeListeners = pipeListeners;
   }
 
-  /**
-   * Returns name of {@link StreamPipe}.
-   *
-   * @return Name of {@link StreamPipe}.
-   */
+
   @Override
   public String getName() {
     return name;
   }
 
-  /**
-   * Sets a name.
-   *
-   * @param name Name of {@link StreamPipe}.
-   */
+
   @Override
   public void setName(String name) {
     this.name = name;
@@ -263,16 +188,6 @@ public class StreamPipe implements Runnable, Pipe {
   @Override
   public void setAttribute(String name, Object value) {
     attributes.put(name, value);
-  }
-
-  @Override
-  public Object getAttribute(String name) {
-    return attributes.get(name);
-  }
-
-  @Override
-  public Map<String, Object> getAttributes() {
-    return attributes;
   }
 
   public Thread getRunningThread() {
