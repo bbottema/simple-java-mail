@@ -17,9 +17,4 @@ public class AddressType {
   private AddressType() {
   }
 
-
-  public static boolean isSupport(int type) {
-    return type == IPV4 || type == DOMAIN_NAME || type == IPV6;
-  }
-
 }

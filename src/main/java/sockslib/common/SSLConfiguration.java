@@ -33,7 +33,7 @@ public class SSLConfiguration {
     this.needClientAuth = clientAuth;
   }
 
-  public SSLSocketFactory getSSLSocketFactory() throws SSLConfigurationException {
+  public SSLSocketFactory getSSLSocketFactory() throws SocksException {
     checkNotNull(trustKeyStoreInfo, "trustKeyStoreInfo may not be null");
     KeyStore keyStore = null;
     try {
@@ -64,7 +64,7 @@ public class SSLConfiguration {
       return context.getSocketFactory();
     } catch (Exception e) {
       logger.error(e.getMessage(), e);
-      throw new SSLConfigurationException(e.getMessage());
+      throw new SocksException(e.getMessage());
     }
   }
 

@@ -20,17 +20,6 @@ public class Socks5 implements SocksProxy {
 
   public static final byte SOCKS_VERSION = 0x05;
 
-  public static final byte RESERVED = 0x00;
-  public static final int REP_SUCCEEDED = 0x00;
-  public static final int REP_GENERAL_SOCKS_SERVER_FAILURE = 0x01;
-  public static final int REP_CONNECTION_NOT_ALLOWED_BY_RULESET = 0x02;
-  public static final int REP_NETWORK_UNREACHABLE = 0x03;
-  public static final int REP_HOST_UNREACHABLE = 0x04;
-  public static final int REP_CONNECTION_REFUSED = 0x05;
-  public static final int REP_TTL_EXPIRED = 0x06;
-  public static final int REP_COMMAND_NOT_SUPPORTED = 0x07;
-  public static final int REP_ADDRESS_TYPE_NOT_SUPPORTED = 0x08;
-
   public static final byte AUTHENTICATION_SUCCEEDED = 0x00;
 
   protected static final Logger logger = LoggerFactory.getLogger(Socks5.class);

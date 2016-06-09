@@ -5,7 +5,6 @@ package sockslib.client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sockslib.common.AddressType;
-import sockslib.common.ProtocolErrorException;
 import sockslib.common.SocksCommand;
 import sockslib.common.SocksException;
 import sockslib.utils.LogMessageBuilder;
@@ -35,13 +34,13 @@ public class GenericSocksCommandSender implements SocksCommandSender {
 
   @Override
   public CommandReplyMessage send(Socket socket, SocksCommand command, InetAddress address, int
-      port, int version) throws SocksException, IOException {
+      port, int version) throws  IOException {
     return send(socket, command, new InetSocketAddress(address, port), version);
   }
 
   @Override
   public CommandReplyMessage send(Socket socket, SocksCommand command, SocketAddress
-      socketAddress, int version) throws SocksException, IOException {
+      socketAddress, int version) throws  IOException {
     if (!(socketAddress instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Unsupported address type");
     }
@@ -52,8 +51,8 @@ public class GenericSocksCommandSender implements SocksCommandSender {
     final byte[] bytesOfAddress = address.getAddress().getAddress();
     final int ADDRESS_LENGTH = bytesOfAddress.length;
     final int port = address.getPort();
-    byte addressType = -1;
-    byte[] bufferSent = null;
+    final byte addressType;
+    final byte[] bufferSent;
 
     if (ADDRESS_LENGTH == LENGTH_OF_IPV4) {
       addressType = ATYPE_IPV4;
@@ -82,7 +81,7 @@ public class GenericSocksCommandSender implements SocksCommandSender {
 
   @Override
   public CommandReplyMessage send(Socket socket, SocksCommand command, String host, int port, int
-      version) throws SocksException, IOException {
+      version) throws  IOException {
     final InputStream inputStream = socket.getInputStream();
     final OutputStream outputStream = socket.getOutputStream();
     final int lengthOfHost = host.getBytes().length;
@@ -106,7 +105,7 @@ public class GenericSocksCommandSender implements SocksCommandSender {
   }
 
   @Override
-  public CommandReplyMessage checkServerReply(InputStream inputStream) throws SocksException,
+  public CommandReplyMessage checkServerReply(InputStream inputStream) throws
       IOException {
     byte serverReply = -1;
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -136,12 +135,12 @@ public class GenericSocksCommandSender implements SocksCommandSender {
         }
         break;
       default:
-        throw new ProtocolErrorException("Address type not support, type value: " + addressType);
+        throw new SocksException("Address type not support, type value: " + addressType);
     }
     byte[] receivedData = byteArrayOutputStream.toByteArray();
     int length = receivedData.length;
     logger.debug("{}", LogMessageBuilder.build(receivedData, length, MsgType.RECEIVE));
-    byte[] addressBytes = null;
+    final byte[] addressBytes;
     byte[] portBytes = new byte[2];
 
     if (receivedData[3] == AddressType.IPV4) {

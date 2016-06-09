@@ -2,7 +2,6 @@
 
 package sockslib.client;
 
-import sockslib.common.Credentials;
 import sockslib.common.ProxyCredentials;
 import sockslib.common.SocksException;
 import sockslib.common.methods.SocksMethod;

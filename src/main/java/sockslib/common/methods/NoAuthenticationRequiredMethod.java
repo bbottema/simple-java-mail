@@ -3,7 +3,6 @@
 package sockslib.common.methods;
 
 import sockslib.client.SocksProxy;
-import sockslib.common.SocksException;
 
 import java.io.IOException;
 
@@ -17,7 +16,7 @@ public class NoAuthenticationRequiredMethod extends AbstractSocksMethod {
   }
 
   @Override
-  public void doMethod(SocksProxy socksProxy) throws SocksException, IOException {
+  public void doMethod(SocksProxy socksProxy) throws  IOException {
     // Do nothing.
   }
 

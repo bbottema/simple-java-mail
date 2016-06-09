@@ -25,7 +25,7 @@ public class GenericSocksMethodRequester implements SocksMethodRequester {
 
   @Override
   public SocksMethod doRequest(List<SocksMethod> acceptableMethods, Socket socket, int
-      socksVersion) throws SocksException, IOException {
+      socksVersion) throws  IOException {
     InputStream inputStream = socket.getInputStream();
     OutputStream outputStream = socket.getOutputStream();
     byte[] bufferSent = new byte[2 + acceptableMethods.size()];

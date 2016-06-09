@@ -27,18 +27,8 @@ public class KeyStoreInfo {
     return keyStorePath;
   }
 
-  public KeyStoreInfo setKeyStorePath(String keyStorePath) {
-    this.keyStorePath = checkNotNull(keyStorePath);
-    return this;
-  }
-
   public String getPassword() {
     return password;
-  }
-
-  public KeyStoreInfo setPassword(String password) {
-    this.password = password;
-    return this;
   }
 
   public String getType() {
