@@ -7,9 +7,8 @@ import org.slf4j.LoggerFactory;
 import sockslib.client.Socks5;
 import sockslib.client.SocksProxy;
 import sockslib.common.AuthenticationException;
-import sockslib.common.Credentials;
 import sockslib.common.SocksException;
-import sockslib.common.UsernamePasswordCredentials;
+import sockslib.common.ProxyCredentials;
 import sockslib.utils.LogMessageBuilder;
 import sockslib.utils.LogMessageBuilder.MsgType;
 
@@ -36,15 +35,15 @@ public class UsernamePasswordMethod extends AbstractSocksMethod {
 
 
   @Override
-  public void doMethod(SocksProxy socksProxy) throws SocksException, IOException {
+  public void doMethod(SocksProxy socksProxy) throws  IOException {
     checkNotNull(socksProxy, "Argument [socksProxy] may not be null");
-    Credentials credentials = socksProxy.getCredentials();
-    if (credentials == null || !(credentials instanceof UsernamePasswordCredentials)) {
+    ProxyCredentials credentials = socksProxy.getCredentials();
+    if (credentials == null || !(credentials instanceof ProxyCredentials)) {
       throw new SocksException("Need Username/Password authentication");
     }
     // UsernamePasswordAuthentication authentication = (UsernamePasswordAuthentication) auth;
 
-    String username = credentials.getUserPrincipal().getName();
+    String username = credentials.getUsername();
     String password = credentials.getPassword();
     InputStream inputStream = socksProxy.getInputStream();
     OutputStream outputStream = socksProxy.getOutputStream();

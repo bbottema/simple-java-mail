@@ -3,6 +3,7 @@
 package sockslib.client;
 
 import sockslib.common.Credentials;
+import sockslib.common.ProxyCredentials;
 import sockslib.common.SocksException;
 import sockslib.common.methods.SocksMethod;
 
@@ -76,10 +77,10 @@ public interface SocksProxy {
   OutputStream getOutputStream() throws IOException;
 
 
-  Credentials getCredentials();
+  ProxyCredentials getCredentials();
 
 
-  SocksProxy setCredentials(Credentials credentials);
+  SocksProxy setCredentials(ProxyCredentials credentials);
 
 
   List<SocksMethod> getAcceptableMethods();

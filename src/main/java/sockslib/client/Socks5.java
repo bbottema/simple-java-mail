@@ -36,7 +36,7 @@ public class Socks5 implements SocksProxy {
   protected static final Logger logger = LoggerFactory.getLogger(Socks5.class);
   private SocksProxy chainProxy;
 
-  private Credentials credentials = new AnonymousCredentials();
+  private ProxyCredentials credentials = new ProxyCredentials();
 
   private InetAddress inetAddress;
 
@@ -55,7 +55,7 @@ public class Socks5 implements SocksProxy {
 
   public Socks5(SocketAddress socketAddress, String username, String password) {
     this(socketAddress);
-    setCredentials(new UsernamePasswordCredentials(username, password));
+    setCredentials(new ProxyCredentials(username, password));
   }
 
 
@@ -85,7 +85,7 @@ public class Socks5 implements SocksProxy {
   }
 
 
-  public Socks5(String host, int port, Credentials credentials) throws UnknownHostException {
+  public Socks5(String host, int port, ProxyCredentials credentials) throws UnknownHostException {
     init();
     this.inetAddress = InetAddress.getByName(host);
     this.port = port;
@@ -96,12 +96,11 @@ public class Socks5 implements SocksProxy {
   private void init() {
     acceptableMethods = new ArrayList<>();
     acceptableMethods.add(new NoAuthenticationRequiredMethod());
-    acceptableMethods.add(new GssApiMethod());
     acceptableMethods.add(new UsernamePasswordMethod());
   }
 
   @Override
-  public void buildConnection() throws SocksException, IOException {
+  public void buildConnection() throws  IOException {
     if (inetAddress == null) {
       throw new IllegalArgumentException("Please set inetAddress before calling buildConnection.");
     }
@@ -117,7 +116,7 @@ public class Socks5 implements SocksProxy {
   }
 
   @Override
-  public CommandReplyMessage requestConnect(String host, int port) throws SocksException,
+  public CommandReplyMessage requestConnect(String host, int port) throws
       IOException {
     if (!alwaysResolveAddressLocally) {
       // resolve address in SOCKS server
@@ -131,19 +130,19 @@ public class Socks5 implements SocksProxy {
   }
 
   @Override
-  public CommandReplyMessage requestConnect(InetAddress address, int port) throws SocksException,
+  public CommandReplyMessage requestConnect(InetAddress address, int port) throws
       IOException {
     return socksCmdSender.send(proxySocket, SocksCommand.CONNECT, address, port, SOCKS_VERSION);
   }
 
   @Override
-  public CommandReplyMessage requestConnect(SocketAddress address) throws SocksException,
+  public CommandReplyMessage requestConnect(SocketAddress address) throws
       IOException {
     return socksCmdSender.send(proxySocket, SocksCommand.CONNECT, address, SOCKS_VERSION);
   }
 
   @Override
-  public CommandReplyMessage requestBind(String host, int port) throws SocksException, IOException {
+  public CommandReplyMessage requestBind(String host, int port) throws  IOException {
     return socksCmdSender.send(proxySocket, SocksCommand.BIND, host, port, SOCKS_VERSION);
   }
 
@@ -154,7 +153,7 @@ public class Socks5 implements SocksProxy {
   }
 
   @Override
-  public Socket accept() throws SocksException, IOException {
+  public Socket accept() throws  IOException {
     CommandReplyMessage messge = socksCmdSender.checkServerReply(proxySocket.getInputStream());
     logger.debug("accept a connection from:{}", messge.getSocketAddress());
     return this.proxySocket;
@@ -219,12 +218,12 @@ public class Socks5 implements SocksProxy {
   }
 
   @Override
-  public Credentials getCredentials() {
+  public ProxyCredentials getCredentials() {
     return credentials;
   }
 
   @Override
-  public Socks5 setCredentials(Credentials credentials) {
+  public Socks5 setCredentials(ProxyCredentials credentials) {
     this.credentials = credentials;
     return this;
   }
