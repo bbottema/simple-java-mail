@@ -1,19 +1,15 @@
 
 
-package sockslib.client;
+package org.codemonkey.simplejavamail.internal.socks.socksclient;
 
+import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.common.ProxyCredentials;
-import sockslib.common.SocksException;
-import sockslib.utils.Util;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-
-import static sockslib.utils.Util.checkNotNull;
 
 class SocksAuthenticationHelper {
 	private static final Logger logger = LoggerFactory.getLogger(SocksAuthenticationHelper.class);
@@ -59,7 +55,7 @@ class SocksAuthenticationHelper {
 
 	public static void performUserPasswordAuthentication(Socks5 socksProxy)
 			throws IOException {
-		checkNotNull(socksProxy, "Argument [socksProxy] may not be null");
+		Util.checkNotNull(socksProxy, "Argument [socksProxy] may not be null");
 		ProxyCredentials credentials = socksProxy.getCredentials();
 		if (credentials == null) {
 			throw new SocksException("Need Username/Password authentication");

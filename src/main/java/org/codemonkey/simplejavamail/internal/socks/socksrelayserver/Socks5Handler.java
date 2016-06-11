@@ -1,12 +1,12 @@
-package org.codemonkey.simplejavamail.internal.socksrelayserver;
+package org.codemonkey.simplejavamail.internal.socks.socksrelayserver;
 
+import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.io.SocketPipe;
+import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg.CommandMessage;
+import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg.CommandResponseMessage;
+import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg.MethodSelectionMessage;
+import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg.ServerReply;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.codemonkey.simplejavamail.internal.socksrelayserver.io.SocketPipe;
-import org.codemonkey.simplejavamail.internal.socksrelayserver.msg.CommandMessage;
-import org.codemonkey.simplejavamail.internal.socksrelayserver.msg.CommandResponseMessage;
-import org.codemonkey.simplejavamail.internal.socksrelayserver.msg.MethodSelectionMessage;
-import org.codemonkey.simplejavamail.internal.socksrelayserver.msg.ServerReply;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -53,7 +53,7 @@ public class Socks5Handler implements Runnable {
 
 		// If there is a SOCKS exception in command message, It will send a right response to client.
 		if (commandMessage.hasSocksException()) {
-			ServerReply serverReply = commandMessage.getSocksException().getServerReply();
+			ServerReply serverReply = commandMessage.getSocksServerReplyException().getServerReply();
 			session.write(CommandResponseMessage.getBytes(serverReply));
 			logger.info("SESSION[{}] will close, because {}", session.getId(), serverReply);
 			return;

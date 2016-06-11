@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.internal.socksrelayserver;
+package org.codemonkey.simplejavamail.internal.socks.socksrelayserver;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +56,7 @@ public class AnonymousToAuthenticatedSocksRelayServer implements Runnable {
 				socket.setSoTimeout(10000);
 				threadPool.execute(new Socks5Handler(new SocksSession(socket)));
 			} catch (IOException e) {
-				if (e instanceof IOException && e.getMessage().equals("socket closed")) {
+				if (e.getMessage().equals("socket closed")) {
 					logger.debug("socket closed");
 				} else {
 					throw new RuntimeException("server crashed...", e);

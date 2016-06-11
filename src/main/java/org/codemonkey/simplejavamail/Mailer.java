@@ -18,6 +18,7 @@ import javax.mail.*;
 import javax.mail.internet.*;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Date;
@@ -68,9 +69,9 @@ public class Mailer {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Mailer.class);
 
 	/**
-	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@value #CHARACTER_ENCODING}).
+	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@link StandardCharsets#UTF_8}).
 	 */
-	private static final String CHARACTER_ENCODING = "UTF-8";
+	private static final String CHARACTER_ENCODING = StandardCharsets.UTF_8.name();
 
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly, when no
@@ -99,6 +100,7 @@ public class Mailer {
 	 *
 	 * @param session A preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 */
+	@SuppressWarnings("WeakerAccess")
 	public Mailer(final Session session) {
 		this.session = session;
 	}
@@ -142,6 +144,7 @@ public class Mailer {
 	 * @see TransportStrategy#propertyNameUsername()
 	 * @see TransportStrategy#propertyNameAuthenticate()
 	 */
+	@SuppressWarnings("WeakerAccess")
 	protected Session createMailSession(final String host, final Integer port, final String username, final String password) {
 		if (transportStrategy == null) {
 			LOGGER.warn("Transport Strategy not set, using plain SMTP strategy instead!");
@@ -149,6 +152,7 @@ public class Mailer {
 		}
 		Properties props = transportStrategy.generateProperties();
 		props.put(transportStrategy.propertyNameHost(), host);
+		//noinspection StatementWithEmptyBody
 		if (port != null) {
 			props.put(transportStrategy.propertyNamePort(), String.valueOf(port));
 		} else {
@@ -160,7 +164,7 @@ public class Mailer {
 		}
 
 		props.put("mail.smtp.socks.host", "localhost");
-		props.put("mail.smtp.socks.port", "1080");
+		props.put("mail.smtp.socks.port", "1050");
 
 		if (transportStrategy == TransportStrategy.SMTP_SSL) {
 			LOGGER.warn("Proxy is ignored for SSL connections (this is a limitation by the underlying JavaMail framework)");
@@ -188,6 +192,7 @@ public class Mailer {
 	 * @param password An optional password, may be <code>null</code>, but only if username is <code>null</code> as well.
 	 * @see #Mailer(String, Integer, String, String, TransportStrategy)
 	 */
+	@SuppressWarnings("WeakerAccess")
 	public Mailer(final String host, final Integer port, final String username, final String password) {
 		this(host, port, username, password, TransportStrategy.SMTP_PLAIN);
 	}
@@ -269,6 +274,7 @@ public class Mailer {
 				transport.connect();
 				transport.sendMessage(message, message.getAllRecipients());
 			} finally {
+				//noinspection ThrowFromFinallyBlock
 				transport.close();
 			}
 		} catch (final UnsupportedEncodingException e) {
@@ -306,6 +312,7 @@ public class Mailer {
 	 * @throws MailException Is being thrown in any of the above causes.
 	 * @see EmailAddressValidator
 	 */
+	@SuppressWarnings({ "SameReturnValue", "WeakerAccess" })
 	public boolean validate(final Email email)
 			throws MailException {
 		if (email.getText() == null && email.getTextHTML() == null) {
@@ -510,7 +517,7 @@ public class Mailer {
 	 * @param email   The {@link Email} that contains the relevant signing information
 	 * @return The original mime message wrapped in a new one that performs signing when sent.
 	 */
-	protected static MimeMessage signMessageWithDKIM(MimeMessage message, Email email) {
+	static MimeMessage signMessageWithDKIM(MimeMessage message, Email email) {
 		try {
 			final DkimSigner dkimSigner = new DkimSigner(email.getSigningDomain(), email.getSelector(), email.getDkimPrivateKeyInputStream());
 			dkimSigner.setIdentity(email.getFromRecipient().getAddress());
@@ -520,13 +527,7 @@ public class Mailer {
 			dkimSigner.setLengthParam(true);
 			dkimSigner.setZParam(false);
 			return new DkimMessage(message, dkimSigner);
-		} catch (IOException e) {
-			throw new MailException(format(MailException.INVALID_DOMAINKEY, e.getMessage()), e);
-		} catch (NoSuchAlgorithmException e) {
-			throw new MailException(format(MailException.INVALID_DOMAINKEY, e.getMessage()), e);
-		} catch (InvalidKeySpecException e) {
-			throw new MailException(format(MailException.INVALID_DOMAINKEY, e.getMessage()), e);
-		} catch (MessagingException e) {
+		} catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException | MessagingException e) {
 			throw new MailException(format(MailException.INVALID_DOMAINKEY, e.getMessage()), e);
 		}
 	}

@@ -34,7 +34,7 @@ import java.util.*;
  */
 public class MimeMessageParser {
 
-    private static final List<String> DEFAULT_HEADERS = new ArrayList<String>();
+    private static final List<String> DEFAULT_HEADERS = new ArrayList<>();
 
     static {
         // taken from: protected javax.mail.internet.InternetHeaders constructor
@@ -80,11 +80,11 @@ public class MimeMessageParser {
         DEFAULT_HEADERS.add("From");
     }
 
-    private final Map<String, DataSource> attachmentList = new HashMap<String, DataSource>();
+    private final Map<String, DataSource> attachmentList = new HashMap<>();
 
-    private final Map<String, DataSource> cidMap = new HashMap<String, DataSource>();
+    private final Map<String, DataSource> cidMap = new HashMap<>();
 
-    private final Map<String, Object> headers = new HashMap<String, Object>();
+    private final Map<String, Object> headers = new HashMap<>();
 
     private final MimeMessage mimeMessage;
 
@@ -134,7 +134,7 @@ public class MimeMessageParser {
 
     private List<InternetAddress> getInternetAddresses(Address[] recipients) {
         List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<Address>();
-        List<InternetAddress> mailAddresses = new ArrayList<InternetAddress>();
+        List<InternetAddress> mailAddresses = new ArrayList<>();
         for (Address address : addresses) {
             if (address instanceof InternetAddress) {
                 mailAddresses.add((InternetAddress) address);
@@ -179,7 +179,7 @@ public class MimeMessageParser {
      * @throws MessagingException parsing the MimeMessage failed
      * @throws IOException        parsing the MimeMessage failed
      */
-    protected void parse(final MimePart part)
+    private void parse(final MimePart part)
             throws MessagingException, IOException {
         extractCustomUserHeaders(part);
 
@@ -238,10 +238,9 @@ public class MimeMessageParser {
      * @param mimeType the mime type to check
      * @return {@code true} if the MimePart matches the given mime type, {@code false} otherwise
      * @throws MessagingException parsing the MimeMessage failed
-     * @throws IOException        parsing the MimeMessage failed
      */
     private boolean isMimeType(final MimePart part, final String mimeType)
-            throws MessagingException, IOException {
+            throws MessagingException {
         // Do not use part.isMimeType(String) as it is broken for MimeBodyPart
         // and does not really check the actual content type.
 
@@ -261,7 +260,7 @@ public class MimeMessageParser {
      * @throws MessagingException creating the DataSource failed
      * @throws IOException        creating the DataSource failed
      */
-    protected DataSource createDataSource(final MimePart part)
+    private DataSource createDataSource(final MimePart part)
             throws MessagingException, IOException {
         final DataHandler dataHandler = part.getDataHandler();
         final DataSource dataSource = dataHandler.getDataSource();
@@ -283,7 +282,7 @@ public class MimeMessageParser {
      * @throws MessagingException           accessing the part failed
      * @throws UnsupportedEncodingException decoding the text failed
      */
-    protected String getDataSourceName(final Part part, final DataSource dataSource)
+    private String getDataSourceName(final Part part, final DataSource dataSource)
             throws MessagingException, UnsupportedEncodingException {
         String result = dataSource.getName();
 

@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.internal.socksrelayserver.msg;
+package org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static org.codemonkey.simplejavamail.internal.socksrelayserver.StreamUtil.checkEnd;
+import static org.codemonkey.simplejavamail.internal.socks.socksrelayserver.StreamUtil.checkEnd;
 
 public class MethodSelectionMessage {
 

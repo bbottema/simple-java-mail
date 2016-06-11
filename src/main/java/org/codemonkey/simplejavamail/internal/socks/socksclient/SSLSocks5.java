@@ -1,8 +1,6 @@
 
 
-package sockslib.client;
-
-import sockslib.common.SSLConfiguration;
+package org.codemonkey.simplejavamail.internal.socks.socksclient;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -42,9 +40,8 @@ public class SSLSocks5 extends Socks5 {
 
 	private Socks5 copyWithoutChainProxy() {
 		SSLSocks5 socks5 = new SSLSocks5(getInetAddress(), getPort(), configuration);
-		socks5.setAlwaysResolveAddressLocally(isAlwaysResolveAddressLocally())
-				.setCredentials(getCredentials()).setInetAddress(getInetAddress()).setPort(getPort())
-				.setSocksAuthenticationHelper(getSocksAuthenticationHelper());
+		socks5.setAlwaysResolveAddressLocally(isAlwaysResolveAddressLocally()).setCredentials(getCredentials())
+				.setInetAddress(getInetAddress()).setPort(getPort()).setSocksAuthenticationHelper(getSocksAuthenticationHelper());
 		return socks5;
 	}
 

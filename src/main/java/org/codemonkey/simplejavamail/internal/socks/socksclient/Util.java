@@ -1,8 +1,8 @@
-package sockslib.utils;
+package org.codemonkey.simplejavamail.internal.socks.socksclient;
 
 import static java.lang.Integer.toHexString;
 
-public class Util {
+class Util {
 
 	public static <T> T checkNotNull(T value, String msg) {
 		if (value == null) {

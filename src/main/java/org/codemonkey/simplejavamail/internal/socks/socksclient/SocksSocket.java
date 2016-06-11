@@ -1,10 +1,10 @@
 
 
-package sockslib.client;
+package org.codemonkey.simplejavamail.internal.socks.socksclient;
 
+import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.common.SocksException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,8 +13,6 @@ import java.net.*;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
-
-import static sockslib.utils.Util.checkNotNull;
 
 public class SocksSocket extends Socket {
 
@@ -30,9 +28,9 @@ public class SocksSocket extends Socket {
 
 	private SocksSocket(Socks5 proxy, String remoteServerHost, int remoteServerPort)
 			throws IOException {
-		this.proxy = checkNotNull(proxy, "Argument [proxy] may not be null").copy();
+		this.proxy = Util.checkNotNull(proxy, "Argument [proxy] may not be null").copy();
 		this.proxy.setProxySocket(proxySocket);
-		this.remoteServerHost = checkNotNull(remoteServerHost, "Argument [remoteServerHost] may not be null");
+		this.remoteServerHost = Util.checkNotNull(remoteServerHost, "Argument [remoteServerHost] may not be null");
 		this.remoteServerPort = remoteServerPort;
 		this.proxy.buildConnection();
 		proxySocket = this.proxy.getProxySocket();
@@ -47,8 +45,8 @@ public class SocksSocket extends Socket {
 
 	public SocksSocket(Socks5 proxy, InetSocketAddress socketAddress)
 			throws IOException {
-		checkNotNull(proxy, "Argument [proxy] may not be null");
-		checkNotNull(socketAddress, "Argument [socketAddress] may not be null");
+		Util.checkNotNull(proxy, "Argument [proxy] may not be null");
+		Util.checkNotNull(socketAddress, "Argument [socketAddress] may not be null");
 		this.proxy = proxy.copy();
 		this.remoteServerHost = socketAddress.getHostString();
 		this.remoteServerPort = socketAddress.getPort();
@@ -65,8 +63,8 @@ public class SocksSocket extends Socket {
 	}
 
 	private SocksSocket(Socks5 proxy, Socket proxySocket) {
-		checkNotNull(proxy, "Argument [proxy] may not be null");
-		checkNotNull(proxySocket, "Argument [proxySocket] may not be null");
+		Util.checkNotNull(proxy, "Argument [proxy] may not be null");
+		Util.checkNotNull(proxySocket, "Argument [proxySocket] may not be null");
 		if (proxySocket.isConnected()) {
 			throw new IllegalArgumentException("Proxy socket should be unconnected");
 		}

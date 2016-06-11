@@ -1,8 +1,6 @@
 
 
-package sockslib.common;
-
-import static sockslib.utils.Util.checkNotNull;
+package org.codemonkey.simplejavamail.internal.socks.socksclient;
 
 @SuppressWarnings("SameParameterValue")
 public class KeyStoreInfo {
@@ -15,9 +13,9 @@ public class KeyStoreInfo {
 	}
 
 	public KeyStoreInfo(String keyStorePath, String password, String type) {
-		this.keyStorePath = checkNotNull(keyStorePath, "Argument [keyStorePath] may not be null");
-		this.password = checkNotNull(password, "Argument [password] may not be null");
-		this.type = checkNotNull(type, "Argument [type] may not be null");
+		this.keyStorePath = Util.checkNotNull(keyStorePath, "Argument [keyStorePath] may not be null");
+		this.password = Util.checkNotNull(password, "Argument [password] may not be null");
+		this.type = Util.checkNotNull(type, "Argument [type] may not be null");
 	}
 
 	public KeyStoreInfo(String keyStorePath, String password) {

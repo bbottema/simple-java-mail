@@ -1,6 +1,6 @@
 
 
-package sockslib.common;
+package org.codemonkey.simplejavamail.internal.socks.common;
 
 public class SocksException extends RuntimeException {
 

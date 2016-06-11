@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.internal.socksrelayserver.io;
+package org.codemonkey.simplejavamail.internal.socks.socksrelayserver.io;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,9 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The class <code>StreamPipe</code> represents a pipe the can transfer data source a input
- * stream destination
- * a output stream.
+ * The class <code>StreamPipe</code> represents a pipe the can transfer data source a input stream destination a output stream.
  */
 class StreamPipe implements Runnable {
 

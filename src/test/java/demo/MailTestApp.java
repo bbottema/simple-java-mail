@@ -1,6 +1,9 @@
 package demo;
 
-import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
+import org.codemonkey.simplejavamail.Mailer;
+import org.codemonkey.simplejavamail.TransportStrategy;
+import org.codemonkey.simplejavamail.email.Email;
+import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.AnonymousToAuthenticatedSocksRelayServer;
 
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
@@ -11,16 +14,14 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Properties;
 
-import org.codemonkey.simplejavamail.Mailer;
-import org.codemonkey.simplejavamail.TransportStrategy;
-import org.codemonkey.simplejavamail.email.Email;
-import org.codemonkey.simplejavamail.internal.socksrelayserver.AnonymousToAuthenticatedSocksRelayServer;
+import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
 /**
  * Demonstration program for the Simple Java Mail framework.
  *
  * @author Benny Bottema
  */
+@SuppressWarnings({ "WeakerAccess", "UnusedAssignment" })
 public class MailTestApp {
 
 	public static void main(final String[] args)
@@ -48,7 +49,7 @@ public class MailTestApp {
 	}
 
 	private static void sendMail(final Email email) {
-		AnonymousToAuthenticatedSocksRelayServer proxyServer = new AnonymousToAuthenticatedSocksRelayServer(1080);
+		AnonymousToAuthenticatedSocksRelayServer proxyServer = new AnonymousToAuthenticatedSocksRelayServer(1050);
 		proxyServer.start();
 
 		new Mailer("smtp.gmail.com", 25, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_TLS).sendMail(email);

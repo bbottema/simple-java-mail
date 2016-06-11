@@ -1,18 +1,18 @@
-package org.codemonkey.simplejavamail.internal.socksrelayserver.msg;
+package org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg;
 
+import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
+import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.AddressType;
+import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.SocksServerReplyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.codemonkey.simplejavamail.internal.socksrelayserver.AddressType;
-import org.codemonkey.simplejavamail.internal.socksrelayserver.SocksException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-import static org.codemonkey.simplejavamail.internal.socksrelayserver.StreamUtil.checkEnd;
+import static org.codemonkey.simplejavamail.internal.socks.socksrelayserver.StreamUtil.checkEnd;
 
 public class CommandMessage {
 
@@ -24,7 +24,7 @@ public class CommandMessage {
 
 	private int command;
 
-	private SocksException socksException;
+	private SocksServerReplyException socksServerReplyException;
 
 	public void read(InputStream inputStream)
 			throws IOException {
@@ -36,8 +36,8 @@ public class CommandMessage {
 		checkEnd(inputStream.read());
 		int addressType = checkEnd(inputStream.read());
 
-		if (!AddressType.isSupport(addressType) && socksException == null) {
-			socksException = new SocksException(ServerReply.ADDRESS_TYPE_NOT_SUPPORTED);
+		if (!AddressType.isSupport(addressType) && socksServerReplyException == null) {
+			socksServerReplyException = new SocksServerReplyException(ServerReply.ADDRESS_TYPE_NOT_SUPPORTED);
 		}
 
 		// read address
@@ -57,8 +57,8 @@ public class CommandMessage {
 				try {
 					inetAddress = InetAddress.getByName(host);
 				} catch (UnknownHostException e) {
-					if (socksException == null) {
-						socksException = new SocksException(ServerReply.HOST_UNREACHABLE);
+					if (socksServerReplyException == null) {
+						socksServerReplyException = new SocksServerReplyException(ServerReply.HOST_UNREACHABLE);
 					}
 				}
 				break;
@@ -87,7 +87,7 @@ public class CommandMessage {
 	}
 
 	public boolean hasSocksException() {
-		return socksException != null;
+		return socksServerReplyException != null;
 	}
 
 	public InetAddress getInetAddress() {
@@ -102,8 +102,8 @@ public class CommandMessage {
 		return command;
 	}
 
-	public SocksException getSocksException() {
-		return socksException;
+	public SocksServerReplyException getSocksServerReplyException() {
+		return socksServerReplyException;
 	}
 
 }

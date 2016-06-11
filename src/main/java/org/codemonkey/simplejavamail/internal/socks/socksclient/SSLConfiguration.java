@@ -1,7 +1,8 @@
 
 
-package sockslib.common;
+package org.codemonkey.simplejavamail.internal.socks.socksclient;
 
+import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,8 +12,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.security.KeyStore;
-
-import static sockslib.utils.Util.checkNotNull;
 
 public class SSLConfiguration {
 
@@ -29,7 +28,7 @@ public class SSLConfiguration {
 
 	public SSLSocketFactory getSSLSocketFactory()
 			throws SocksException {
-		checkNotNull(trustKeyStoreInfo, "trustKeyStoreInfo may not be null");
+		Util.checkNotNull(trustKeyStoreInfo, "trustKeyStoreInfo may not be null");
 		KeyStore keyStore = null;
 		try {
 			SSLContext context = SSLContext.getInstance("SSL");

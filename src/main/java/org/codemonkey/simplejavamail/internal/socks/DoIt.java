@@ -1,11 +1,6 @@
-package sockslib;
+package org.codemonkey.simplejavamail.internal.socks;
 
-import sockslib.client.SSLSocks5;
-import sockslib.client.Socks5;
-import sockslib.client.SocksSocket;
-import sockslib.common.KeyStoreInfo;
-import sockslib.common.ProxyCredentials;
-import sockslib.common.SSLConfiguration;
+import org.codemonkey.simplejavamail.internal.socks.socksclient.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,6 +9,7 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
+@SuppressWarnings("WeakerAccess")
 public class DoIt {
 	public static void main(String[] args)
 			throws IOException {

@@ -1,11 +1,10 @@
 
 
-package sockslib.client;
+package org.codemonkey.simplejavamail.internal.socks.socksclient;
 
+import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sockslib.common.SocksException;
-import sockslib.utils.Util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

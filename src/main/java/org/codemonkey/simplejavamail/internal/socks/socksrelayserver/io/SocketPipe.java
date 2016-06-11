@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.internal.socksrelayserver.io;
+package org.codemonkey.simplejavamail.internal.socks.socksrelayserver.io;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,9 +7,8 @@ import java.io.IOException;
 import java.net.Socket;
 
 /**
- * The class <code>SocketPipe</code> represents pipe that can transfer data from one socket to
- * another socket. The tow socket should be connected sockets. If any of the them occurred error the
- * pipe will close all of them.
+ * The class <code>SocketPipe</code> represents pipe that can transfer data from one socket to another socket. The tow socket should be
+ * connected sockets. If any of the them occurred error the pipe will close all of them.
  */
 public class SocketPipe {
 

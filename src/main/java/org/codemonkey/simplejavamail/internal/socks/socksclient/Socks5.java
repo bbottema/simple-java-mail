@@ -1,8 +1,6 @@
 
 
-package sockslib.client;
-
-import sockslib.common.ProxyCredentials;
+package org.codemonkey.simplejavamail.internal.socks.socksclient;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -153,8 +151,8 @@ public class Socks5 {
 
 	public Socks5 copy() {
 		Socks5 socks5 = new Socks5(inetAddress, port);
-		socks5.setAlwaysResolveAddressLocally(alwaysResolveAddressLocally)
-				.setCredentials(credentials).setSocksAuthenticationHelper(socksAuthenticationHelper).setChainProxy(chainProxy);
+		socks5.setAlwaysResolveAddressLocally(alwaysResolveAddressLocally).setCredentials(credentials)
+				.setSocksAuthenticationHelper(socksAuthenticationHelper).setChainProxy(chainProxy);
 		return socks5;
 	}
 

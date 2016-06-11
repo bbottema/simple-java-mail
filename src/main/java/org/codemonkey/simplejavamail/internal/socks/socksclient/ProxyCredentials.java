@@ -1,8 +1,6 @@
 
 
-package sockslib.common;
-
-import static sockslib.utils.Util.checkNotNull;
+package org.codemonkey.simplejavamail.internal.socks.socksclient;
 
 public class ProxyCredentials {
 
@@ -15,7 +13,7 @@ public class ProxyCredentials {
 
 	public ProxyCredentials(String username, String password) {
 		this.username = username;
-		this.password = checkNotNull(password, "Argument [password] may not be null");
+		this.password = Util.checkNotNull(password, "Argument [password] may not be null");
 	}
 
 	public String getUsername() {
