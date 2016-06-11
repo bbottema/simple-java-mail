@@ -42,9 +42,9 @@ public class SSLSocks5 extends Socks5 {
 
 	private Socks5 copyWithoutChainProxy() {
 		SSLSocks5 socks5 = new SSLSocks5(getInetAddress(), getPort(), configuration);
-		socks5.setAcceptableMethods(getAcceptableMethods()).setAlwaysResolveAddressLocally(isAlwaysResolveAddressLocally())
+		socks5.setAlwaysResolveAddressLocally(isAlwaysResolveAddressLocally())
 				.setCredentials(getCredentials()).setInetAddress(getInetAddress()).setPort(getPort())
-				.setSocksMethodRequester(getSocksMethodRequester());
+				.setSocksAuthenticationHelper(getSocksAuthenticationHelper());
 		return socks5;
 	}
 

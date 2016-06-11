@@ -14,7 +14,6 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 
-import static sockslib.utils.Util.checkArgument;
 import static sockslib.utils.Util.checkNotNull;
 
 public class SocksSocket extends Socket {
@@ -46,19 +45,17 @@ public class SocksSocket extends Socket {
 		this(proxy, new InetSocketAddress(address, port));
 	}
 
-	public SocksSocket(Socks5 proxy, SocketAddress socketAddress)
+	public SocksSocket(Socks5 proxy, InetSocketAddress socketAddress)
 			throws IOException {
 		checkNotNull(proxy, "Argument [proxy] may not be null");
 		checkNotNull(socketAddress, "Argument [socketAddress] may not be null");
-		checkArgument(socketAddress instanceof InetSocketAddress, "Unsupported address type");
-		InetSocketAddress address = (InetSocketAddress) socketAddress;
 		this.proxy = proxy.copy();
-		this.remoteServerHost = address.getHostString();
-		this.remoteServerPort = address.getPort();
+		this.remoteServerHost = socketAddress.getHostString();
+		this.remoteServerPort = socketAddress.getPort();
 		this.proxy.buildConnection();
 		proxySocket = this.proxy.getProxySocket();
 		initProxyChain();
-		this.proxy.requestConnect(address.getAddress(), address.getPort());
+		this.proxy.requestConnect(socketAddress.getAddress(), socketAddress.getPort());
 
 	}
 
@@ -70,7 +67,9 @@ public class SocksSocket extends Socket {
 	private SocksSocket(Socks5 proxy, Socket proxySocket) {
 		checkNotNull(proxy, "Argument [proxy] may not be null");
 		checkNotNull(proxySocket, "Argument [proxySocket] may not be null");
-		checkArgument(!proxySocket.isConnected(), "Proxy socket should be unconnected");
+		if (proxySocket.isConnected()) {
+			throw new IllegalArgumentException("Proxy socket should be unconnected");
+		}
 		this.proxySocket = proxySocket;
 		this.proxy = proxy.copy();
 		this.proxy.setProxySocket(proxySocket);

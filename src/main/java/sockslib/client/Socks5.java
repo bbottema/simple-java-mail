@@ -3,22 +3,15 @@
 package sockslib.client;
 
 import sockslib.common.ProxyCredentials;
-import sockslib.common.methods.NoAuthenticationRequiredMethod;
-import sockslib.common.methods.SocksMethod;
-import sockslib.common.methods.SocksMethodRegistry;
-import sockslib.common.methods.UsernamePasswordMethod;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Socks5 {
-	private final int SOCKS_DEFAULT_PORT = 1080;
 
-	private static final byte SOCKS_VERSION = 0x05;
+	private final int SOCKS_DEFAULT_PORT = 1080;
 
 	public static final byte AUTHENTICATION_SUCCEEDED = 0x00;
 
@@ -32,11 +25,9 @@ public class Socks5 {
 
 	private Socket proxySocket;
 
-	private List<SocksMethod> acceptableMethods;
+	private SocksAuthenticationHelper socksAuthenticationHelper = new SocksAuthenticationHelper();
 
-	private SocksMethodRequester socksMethodRequester = new GenericSocksMethodRequester();
-
-	private final SocksCommandSender socksCmdSender = new GenericSocksCommandSender();
+	private final SocksCommandSender socksCmdSender = new SocksCommandSender();
 
 	private boolean alwaysResolveAddressLocally = false;
 
@@ -60,7 +51,6 @@ public class Socks5 {
 
 	@SuppressWarnings("SameParameterValue")
 	private Socks5(Socks5 chainProxy, SocketAddress socketAddress) {
-		init();
 		if (socketAddress instanceof InetSocketAddress) {
 			inetAddress = ((InetSocketAddress) socketAddress).getAddress();
 			port = ((InetSocketAddress) socketAddress).getPort();
@@ -72,16 +62,9 @@ public class Socks5 {
 
 	public Socks5(String host, int port, ProxyCredentials credentials)
 			throws UnknownHostException {
-		init();
 		this.inetAddress = InetAddress.getByName(host);
 		this.port = port;
 		this.credentials = credentials;
-	}
-
-	private void init() {
-		acceptableMethods = new ArrayList<>();
-		acceptableMethods.add(new NoAuthenticationRequiredMethod());
-		acceptableMethods.add(new UsernamePasswordMethod());
 	}
 
 	public void buildConnection()
@@ -95,31 +78,32 @@ public class Socks5 {
 			proxySocket.connect(new InetSocketAddress(inetAddress, port));
 		}
 
-		SocksMethod method = socksMethodRequester.doRequest(acceptableMethods, proxySocket, SOCKS_VERSION);
-		method.doMethod(this);
+		if (SocksAuthenticationHelper.shouldAuthenticate(proxySocket)) {
+			SocksAuthenticationHelper.performUserPasswordAuthentication(this);
+		}
 	}
 
 	public void requestConnect(String host, int port)
 			throws IOException {
 		if (!alwaysResolveAddressLocally) {
 			// resolve address in SOCKS server
-			socksCmdSender.send(proxySocket, host, port, SOCKS_VERSION);
+			socksCmdSender.send(proxySocket, host, port);
 
 		} else {
 			// resolve address in local.
 			InetAddress address = InetAddress.getByName(host);
-			socksCmdSender.send(proxySocket, address, port, SOCKS_VERSION);
+			socksCmdSender.send(proxySocket, address, port);
 		}
 	}
 
 	public void requestConnect(InetAddress address, int port)
 			throws IOException {
-		socksCmdSender.send(proxySocket, address, port, SOCKS_VERSION);
+		socksCmdSender.send(proxySocket, address, port);
 	}
 
 	public void requestConnect(SocketAddress address)
 			throws IOException {
-		socksCmdSender.send(proxySocket, address, SOCKS_VERSION);
+		socksCmdSender.send(proxySocket, address);
 	}
 
 	public int getPort() {
@@ -149,16 +133,6 @@ public class Socks5 {
 		return proxySocket.getOutputStream();
 	}
 
-	List<SocksMethod> getAcceptableMethods() {
-		return acceptableMethods;
-	}
-
-	Socks5 setAcceptableMethods(List<SocksMethod> acceptableMethods) {
-		this.acceptableMethods = acceptableMethods;
-		SocksMethodRegistry.overWriteRegistry(acceptableMethods);
-		return this;
-	}
-
 	public ProxyCredentials getCredentials() {
 		return credentials;
 	}
@@ -168,19 +142,19 @@ public class Socks5 {
 		return this;
 	}
 
-	SocksMethodRequester getSocksMethodRequester() {
-		return socksMethodRequester;
+	SocksAuthenticationHelper getSocksAuthenticationHelper() {
+		return socksAuthenticationHelper;
 	}
 
-	Socks5 setSocksMethodRequester(SocksMethodRequester requester) {
-		this.socksMethodRequester = requester;
+	Socks5 setSocksAuthenticationHelper(SocksAuthenticationHelper requester) {
+		this.socksAuthenticationHelper = requester;
 		return this;
 	}
 
 	public Socks5 copy() {
 		Socks5 socks5 = new Socks5(inetAddress, port);
-		socks5.setAcceptableMethods(acceptableMethods).setAlwaysResolveAddressLocally(alwaysResolveAddressLocally)
-				.setCredentials(credentials).setSocksMethodRequester(socksMethodRequester).setChainProxy(chainProxy);
+		socks5.setAlwaysResolveAddressLocally(alwaysResolveAddressLocally)
+				.setCredentials(credentials).setSocksAuthenticationHelper(socksAuthenticationHelper).setChainProxy(chainProxy);
 		return socks5;
 	}
 
