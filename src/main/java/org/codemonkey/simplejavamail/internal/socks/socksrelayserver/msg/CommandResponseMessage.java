@@ -8,7 +8,7 @@ import java.net.InetSocketAddress;
 
 public class CommandResponseMessage {
 
-	private static final Logger logger = LoggerFactory.getLogger(CommandResponseMessage.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(CommandResponseMessage.class);
 
 	public static byte[] getBytes(ServerReply reply) {
 		return getBytes(reply, new InetSocketAddress(0).getAddress(), 0);
@@ -31,7 +31,7 @@ public class CommandResponseMessage {
 		bytes[8] = getFirstByteFromInt(bindPort);
 		bytes[9] = getSecondByteFromInt(bindPort);
 
-		logger.trace("CommandResponseMessage.getBytes");
+		LOGGER.trace("CommandResponseMessage.getBytes");
 		return bytes;
 	}
 

@@ -15,7 +15,7 @@ import java.security.KeyStore;
 
 public class SSLConfiguration {
 
-	private static final Logger logger = LoggerFactory.getLogger(SSLConfiguration.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SSLConfiguration.class);
 
 	private final KeyStoreInfo keyStoreInfo;
 	private final KeyStoreInfo trustKeyStoreInfo;
@@ -49,12 +49,12 @@ public class SSLConfiguration {
 			}
 
 			if (keyStore != null) {
-				logger.info("SSL: Key store:{}", keyStoreInfo.getKeyStorePath());
+				LOGGER.info("SSL: Key store:{}", keyStoreInfo.getKeyStorePath());
 			}
-			logger.info("SSL: Trust key store:{}", trustKeyStoreInfo.getKeyStorePath());
+			LOGGER.info("SSL: Trust key store:{}", trustKeyStoreInfo.getKeyStorePath());
 			return context.getSocketFactory();
 		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
+			LOGGER.error(e.getMessage(), e);
 			throw new SocksException(e.getMessage());
 		}
 	}

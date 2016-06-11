@@ -12,7 +12,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 
 class SocksAuthenticationHelper {
-	private static final Logger logger = LoggerFactory.getLogger(SocksAuthenticationHelper.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SocksAuthenticationHelper.class);
 
 	private static final byte SOCKS_VERSION = 0x05;
 	private static final int ACCEPTABLE_METHODS = 2; // anonymous & user / password
@@ -37,12 +37,12 @@ class SocksAuthenticationHelper {
 		outputStream.write(bufferSent);
 		outputStream.flush();
 
-		logger.debug("{}", Util.buildLogString(bufferSent, false));
+		LOGGER.debug("{}", Util.buildLogString(bufferSent, false));
 
 		// Received data.
 		InputStream inputStream = socket.getInputStream();
 		byte[] receivedData = read2Bytes(inputStream);
-		logger.debug("{}", Util.buildLogString(receivedData, true));
+		LOGGER.debug("{}", Util.buildLogString(receivedData, true));
 		if (receivedData[0] != (int) SOCKS_VERSION) {
 			throw new SocksException("Remote server don't support SOCKS5");
 		}
@@ -80,13 +80,13 @@ class SocksAuthenticationHelper {
 		outputStream.write(bufferSent);
 		outputStream.flush();
 		// logger send bytes
-		logger.debug("{}", Util.buildLogString(bufferSent, false));
+		LOGGER.debug("{}", Util.buildLogString(bufferSent, false));
 
 		byte[] authenticationResult = new byte[2];
 		//noinspection ResultOfMethodCallIgnored
 		inputStream.read(authenticationResult);
 		// logger
-		logger.debug("{}", Util.buildLogString(authenticationResult, true));
+		LOGGER.debug("{}", Util.buildLogString(authenticationResult, true));
 
 		if (authenticationResult[1] != Socks5.AUTHENTICATION_SUCCEEDED) {
 			// Close connection if authentication is failed.

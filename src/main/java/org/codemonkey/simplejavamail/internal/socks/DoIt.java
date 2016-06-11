@@ -24,7 +24,7 @@ public class DoIt {
 		}
 		if (socketAuth != null) {
 			System.out.println("socketAuth: " + socketAuth);
-			//			testSocket(socketAuth);
+			testSocket(socketAuth);
 		}
 		if (socketSSLAnonymous != null) {
 			System.out.println("socketSSLAnonymous: " + socketSSLAnonymous);

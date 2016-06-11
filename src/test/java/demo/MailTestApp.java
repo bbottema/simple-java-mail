@@ -3,7 +3,6 @@ package demo;
 import org.codemonkey.simplejavamail.Mailer;
 import org.codemonkey.simplejavamail.TransportStrategy;
 import org.codemonkey.simplejavamail.email.Email;
-import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.AnonymousToAuthenticatedSocksRelayServer;
 
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
@@ -49,13 +48,8 @@ public class MailTestApp {
 	}
 
 	private static void sendMail(final Email email) {
-		AnonymousToAuthenticatedSocksRelayServer proxyServer = new AnonymousToAuthenticatedSocksRelayServer(1050);
-		proxyServer.start();
-
 		new Mailer("smtp.gmail.com", 25, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_TLS).sendMail(email);
 		new Mailer("smtp.gmail.com", 587, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_TLS).sendMail(email);
 		new Mailer("smtp.gmail.com", 465, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_SSL).sendMail(email);
-
-		proxyServer.stop();
 	}
 }

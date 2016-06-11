@@ -1,5 +1,6 @@
 package org.codemonkey.simplejavamail.internal.socks.socksrelayserver;
 
+import org.codemonkey.simplejavamail.ProxyConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,18 +16,19 @@ import java.util.concurrent.Executors;
  * Java Mail only support anonymous SOCKS proxies; in order to support authenticated proxies, we need to create a man-in-the-middle: which
  * is the BasicSocksProxyServer.
  */
-public class AnonymousToAuthenticatedSocksRelayServer implements Runnable {
+public class Socks5Bridge implements Runnable {
 
-	private static final Logger logger = LoggerFactory.getLogger(AnonymousToAuthenticatedSocksRelayServer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Socks5Bridge.class);
 
+	private final ProxyConfig proxyConfig;
 	private final ExecutorService threadPool = Executors.newFixedThreadPool(100);
-
 	private final ServerSocket serverSocket;
 	private boolean stop = false;
 
-	public AnonymousToAuthenticatedSocksRelayServer(@SuppressWarnings("SameParameterValue") int port) {
+	public Socks5Bridge(ProxyConfig proxyConfig) {
+		this.proxyConfig = proxyConfig;
 		try {
-			serverSocket = new ServerSocket(port);
+			serverSocket = new ServerSocket(proxyConfig.getProxyBridgePort());
 		} catch (IOException e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}
@@ -47,23 +49,22 @@ public class AnonymousToAuthenticatedSocksRelayServer implements Runnable {
 
 	@Override
 	public void run() {
-		logger.info("Start proxy server at port:{}", serverSocket.getLocalPort());
+		LOGGER.info("Starting proxy server at port {}", serverSocket.getLocalPort());
 		while (!stop) {
 			try {
-				logger.info("waiting for new connection...");
+				LOGGER.info("waiting for new connection...");
 				Socket socket = serverSocket.accept();
-				logger.trace("new session ----------------------------------------------------------------");
 				socket.setSoTimeout(10000);
-				threadPool.execute(new Socks5Handler(new SocksSession(socket)));
+				threadPool.execute(new Socks5Handler(new SocksSession(socket), proxyConfig));
 			} catch (IOException e) {
 				if (e.getMessage().equals("socket closed")) {
-					logger.debug("socket closed");
+					LOGGER.debug("socket closed");
 				} else {
 					throw new RuntimeException("server crashed...", e);
 				}
 			}
 		}
-		logger.debug("shutting down...");
+		LOGGER.debug("shutting down...");
 		threadPool.shutdownNow();
 	}
 }

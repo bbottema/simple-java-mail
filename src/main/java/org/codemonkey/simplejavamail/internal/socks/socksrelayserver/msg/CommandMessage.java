@@ -16,7 +16,7 @@ import static org.codemonkey.simplejavamail.internal.socks.socksrelayserver.Stre
 
 public class CommandMessage {
 
-	private static final Logger logger = LoggerFactory.getLogger(CommandMessage.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(CommandMessage.class);
 
 	private InetAddress inetAddress;
 
@@ -28,7 +28,7 @@ public class CommandMessage {
 
 	public void read(InputStream inputStream)
 			throws IOException {
-		logger.trace("CommandMessage.read");
+		LOGGER.trace("CommandMessage.read");
 
 		checkEnd(inputStream.read()); // version, unused
 		command = checkEnd(inputStream.read());

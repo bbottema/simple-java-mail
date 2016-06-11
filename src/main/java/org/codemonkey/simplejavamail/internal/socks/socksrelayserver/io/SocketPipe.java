@@ -12,7 +12,7 @@ import java.net.Socket;
  */
 public class SocketPipe {
 
-	private static final Logger logger = LoggerFactory.getLogger(SocketPipe.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SocketPipe.class);
 
 	private static final String INPUT_PIPE_NAME = "INPUT_PIPE";
 	private static final String OUTPUT_PIPE_NAME = "OUTPUT_PIPE";
@@ -71,7 +71,7 @@ public class SocketPipe {
 				socket2.close();
 			}
 		} catch (IOException e) {
-			logger.error(e.getMessage(), e);
+			LOGGER.error(e.getMessage(), e);
 		}
 	}
 
@@ -89,7 +89,7 @@ public class SocketPipe {
 		}
 
 		public void onStop(StreamPipe streamPipe) {
-			logger.trace("Pipe[{}] stopped", streamPipe.getName());
+			LOGGER.trace("Pipe[{}] stopped", streamPipe.getName());
 			close();
 		}
 

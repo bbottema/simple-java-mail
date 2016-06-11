@@ -11,7 +11,7 @@ import java.net.SocketAddress;
 
 class SocksSession {
 
-	private static final Logger logger = LoggerFactory.getLogger(SocksSession.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SocksSession.class);
 
 	private static int nextSessionId = 0;
 
@@ -34,9 +34,10 @@ class SocksSession {
 			inputStream = this.socket.getInputStream();
 			outputStream = this.socket.getOutputStream();
 		} catch (IOException e) {
-			logger.error(e.getMessage(), e);
+			LOGGER.error(e.getMessage(), e);
 		}
 		clientAddress = socket.getRemoteSocketAddress();
+		LOGGER.info("SESSION[{}] opened from {}", getId(), clientAddress);
 	}
 
 	public Socket getSocket() {
@@ -53,6 +54,10 @@ class SocksSession {
 		return id;
 	}
 
+	public SocketAddress getClientAddress() {
+		return clientAddress;
+	}
+
 	public void close() {
 		try {
 			if (inputStream != null) {
@@ -65,7 +70,7 @@ class SocksSession {
 				socket.close();
 			}
 		} catch (IOException e) {
-			logger.error(e.getMessage(), e);
+			LOGGER.error(e.getMessage(), e);
 		}
 	}
 

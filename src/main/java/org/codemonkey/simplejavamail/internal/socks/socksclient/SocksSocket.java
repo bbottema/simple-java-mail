@@ -16,7 +16,7 @@ import java.util.List;
 
 public class SocksSocket extends Socket {
 
-	private static final Logger logger = LoggerFactory.getLogger(SocksSocket.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SocksSocket.class);
 
 	private final Socks5 proxy;
 
@@ -82,7 +82,7 @@ public class SocksSocket extends Socket {
 			proxyChain.add(temp.getChainProxy());
 			temp = temp.getChainProxy();
 		}
-		logger.debug("Proxy chain has:{} proxy", proxyChain.size());
+		LOGGER.debug("Proxy chain has:{} proxy", proxyChain.size());
 		if (proxyChain.size() > 0) {
 			Socks5 pre = proxy;
 			for (Socks5 chain : proxyChain) {

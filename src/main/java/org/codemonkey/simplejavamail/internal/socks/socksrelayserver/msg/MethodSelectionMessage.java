@@ -10,11 +10,11 @@ import static org.codemonkey.simplejavamail.internal.socks.socksrelayserver.Stre
 
 public class MethodSelectionMessage {
 
-	private static final Logger logger = LoggerFactory.getLogger(MethodSelectionMessage.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(MethodSelectionMessage.class);
 
 	public static int readVersion(InputStream inputStream)
 			throws IOException {
-		logger.trace("MethodSelectionMessage.read");
+		LOGGER.trace("MethodSelectionMessage.read");
 		int version = checkEnd(inputStream.read());
 		int methodNum = checkEnd(inputStream.read());
 		for (int i = 0; i < methodNum; i++) {

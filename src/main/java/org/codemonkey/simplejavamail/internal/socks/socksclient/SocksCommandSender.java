@@ -17,7 +17,7 @@ import java.net.SocketAddress;
 
 class SocksCommandSender {
 
-	private static final Logger logger = LoggerFactory.getLogger(SocksCommandSender.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SocksCommandSender.class);
 
 	private static final byte SOCKS_VERSION = 0x05;
 	private static final int ADDRESS_TYPE_IPV4 = 0x01;
@@ -76,7 +76,7 @@ class SocksCommandSender {
 
 		outputStream.write(bufferSent);
 		outputStream.flush();
-		logger.debug("{}", Util.buildLogString(bufferSent, false));
+		LOGGER.debug("{}", Util.buildLogString(bufferSent, false));
 
 		checkServerReply(inputStream);
 	}
@@ -100,7 +100,7 @@ class SocksCommandSender {
 
 		outputStream.write(bufferSent);
 		outputStream.flush();
-		logger.debug("{}", Util.buildLogString(bufferSent, false));
+		LOGGER.debug("{}", Util.buildLogString(bufferSent, false));
 
 		checkServerReply(inputStream);
 	}
@@ -137,7 +137,7 @@ class SocksCommandSender {
 				throw new SocksException("Address type not support, type value: " + addressType);
 		}
 		byte[] receivedData = byteArrayOutputStream.toByteArray();
-		logger.debug("{}", Util.buildLogString(receivedData, true));
+		LOGGER.debug("{}", Util.buildLogString(receivedData, true));
 		final byte[] addressBytes;
 		byte[] portBytes = new byte[2];
 
@@ -151,7 +151,7 @@ class SocksCommandSender {
 			portBytes[0] = receivedData[8];
 			portBytes[1] = receivedData[9];
 
-			logger.debug("Server replied:Address as IPv4:{}.{}.{}.{}, port:{}", a, b, c, d,
+			LOGGER.debug("Server replied:Address as IPv4:{}.{}.{}.{}, port:{}", a, b, c, d,
 					(Util.toInt(portBytes[0]) << 8) | (Util.toInt(portBytes[1])));
 
 		} else if (receivedData[3] == ADDRESS_TYPE_DOMAIN_NAME) {
@@ -161,12 +161,12 @@ class SocksCommandSender {
 			System.arraycopy(receivedData, 4, addressBytes, 0, size);
 			portBytes[0] = receivedData[4 + size];
 			portBytes[1] = receivedData[5 + size];
-			logger.debug("Server replied:Address as host:{}, port:{}", new String(addressBytes),
+			LOGGER.debug("Server replied:Address as host:{}, port:{}", new String(addressBytes),
 					(Util.toInt(portBytes[0]) << 8) | (Util.toInt(portBytes[1])));
 		} else if (receivedData[3] == ADDRESS_TYPE_IPV6) {
 			addressBytes = new byte[16];
 			System.arraycopy(receivedData, 4, addressBytes, 0, addressBytes.length);
-			logger.debug("Server replied:Address as IPv6:{}", new String(addressBytes));
+			LOGGER.debug("Server replied:Address as IPv6:{}", new String(addressBytes));
 		}
 
 		final byte serverReply = receivedData[1];
@@ -175,7 +175,7 @@ class SocksCommandSender {
 			throw SocksException.serverReplyException(serverReply);
 		}
 
-		logger.debug("SOCKS server response success");
+		LOGGER.debug("SOCKS server response success");
 	}
 
 }

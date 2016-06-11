@@ -7,6 +7,7 @@ import net.markenwerk.utils.mail.dkim.SigningAlgorithm;
 import org.codemonkey.simplejavamail.email.AttachmentResource;
 import org.codemonkey.simplejavamail.email.Email;
 import org.codemonkey.simplejavamail.email.Recipient;
+import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.Socks5Bridge;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 import org.slf4j.Logger;
@@ -30,12 +31,16 @@ import static java.lang.String.format;
 import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC_COMPLIANT;
 
 /**
- * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content, embedded images and
- * separate attachments, SMTP, SMTPS / SSL and SMTP + SSL<br> <br> This mailing tool abstracts the javax.mail API to a higher level easy to use API. For public
- * use, this tool only works with {@link Email} instances. <br> <br> The e-mail message structure is built to work with all e-mail clients and has been tested
- * with many different webclients as well as some mainstream client applications such as MS Outlook or Mozilla Thunderbird.<br> <br> Technically, the resulting
- * email structure is as follows:<br>
- * <p/>
+ * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content,
+ * embedded images and separate attachments, SMTP, SMTPS / SSL and SMTP + SSL
+ * <p>
+ * This mailing tool abstracts the javax.mail API to a higher level easy to use API. For public use, this tool only works with {@link Email}
+ * instances.
+ * <p>
+ * The e-mail message structure is built to work with all e-mail clients and has been tested with many different webclients as well as some
+ * mainstream client applications such as MS Outlook or Mozilla Thunderbird.<br> <br> Technically, the resulting email structure is as
+ * follows:<br>
+ * <p>
  * <pre>
  * - root
  * 	- related
@@ -74,8 +79,8 @@ public class Mailer {
 	private static final String CHARACTER_ENCODING = StandardCharsets.UTF_8.name();
 
 	/**
-	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly, when no
-	 * <code>Session</code> instance was provided.
+	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code>
+	 * directly, when no <code>Session</code> instance was provided.
 	 *
 	 * @see #Mailer(Session)
 	 * @see #Mailer(String, Integer, String, String, TransportStrategy)
@@ -83,10 +88,27 @@ public class Mailer {
 	private final Session session;
 
 	/**
-	 * The transport protocol strategy enum that actually handles the session configuration. Session configuration meaning setting the right properties for the
-	 * appropriate transport type (ie. <em>"mail.smtp.host"</em> for SMTP, <em>"mail.smtps.host"</em> for SMTPS).
+	 * The transport protocol strategy enum that actually handles the session configuration. Session configuration meaning setting the right
+	 * properties for the appropriate transport type (ie. <em>"mail.smtp.host"</em> for SMTP, <em>"mail.smtps.host"</em> for SMTPS).
 	 */
 	private TransportStrategy transportStrategy;
+
+	/**
+	 * The proxy configuration that indicates whether the connections should be routed through a proxy.
+	 * <p>
+	 * In case a proxy is required, the properties <em>"mail.smtp.socks.host"</em> and <em>"mail.smtp.socks.port"</em> will be set.
+	 * <p>
+	 * As the underlying JavaMail framework only support anonymous SOCKS proxy servers for non-ssl connections, authenticated SOCKS5 proxy
+	 * is made possible using an intermediary anonymous proxy server which relays the connection through an authenticated remote proxy
+	 * server.
+	 */
+	private ProxyConfig proxyConfig = new ProxyConfig("localhost", 1080, "PANCAKE", "letmein");
+
+	/**
+	 * Intermediary SOCKS5 relay server that acts as bridge between JavaMail and remote proxy (since JavaMail only supports anonymous SOCKS
+	 * proxies). Only set when {@link #proxyConfig} is present.
+	 */
+	private Socks5Bridge proxyServer = null;
 
 	/**
 	 * Email address restriction flags set to {@link EmailAddressCriteria#RFC_COMPLIANT} or overridden by by user with {@link
@@ -95,8 +117,8 @@ public class Mailer {
 	private EnumSet<EmailAddressCriteria> emailAddressCriteria = RFC_COMPLIANT;
 
 	/**
-	 * Default constructor, stores the given mail session for later use. Assumes that *all* properties used to make a connection are configured (host, port,
-	 * authentication and transport protocol settings).
+	 * Default constructor, stores the given mail session for later use. Assumes that *all* properties used to make a connection are
+	 * configured (host, port, authentication and transport protocol settings).
 	 *
 	 * @param session A preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 */
@@ -106,8 +128,8 @@ public class Mailer {
 	}
 
 	/**
-	 * Overloaded constructor which produces a new {@link Session} on the fly. Use this if you don't have a mail session configured in your web container, or
-	 * Spring context etc.
+	 * Overloaded constructor which produces a new {@link Session} on the fly. Use this if you don't have a mail session configured in your
+	 * web container, or Spring context etc.
 	 *
 	 * @param host              The address URL of the SMTP server to be used.
 	 * @param port              The port of the SMTP server.
@@ -115,7 +137,8 @@ public class Mailer {
 	 * @param password          An optional password, may be <code>null</code>, but only if username is <code>null</code> as well.
 	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
 	 */
-	public Mailer(final String host, final Integer port, final String username, final String password, final TransportStrategy transportStrategy) {
+	public Mailer(final String host, final Integer port, final String username, final String password,
+			final TransportStrategy transportStrategy) {
 		if (host == null || host.trim().equals("")) {
 			throw new MailException(MailException.MISSING_HOST);
 		} else if ((password != null && !password.trim().equals("")) && (username == null || username.trim().equals(""))) {
@@ -127,17 +150,16 @@ public class Mailer {
 	}
 
 	/**
-	 * Actually instantiates and configures the {@link Session} instance. Delegates resolving transport protocol specific properties to the {@link
-	 * #transportStrategy} in two ways: <ol> <li>request an initial property list which the strategy may pre-populate</li> <li>by requesting the property names
-	 * according to the respective transport protocol it handles (for the host property for example it would be <em>"mail.smtp.host"</em> for SMTP and
-	 * <em>"mail.smtps.host"</em> for SMTPS)</li> </ol>
+	 * Actually instantiates and configures the {@link Session} instance. Delegates resolving transport protocol specific properties to the
+	 * {@link #transportStrategy} in two ways: <ol> <li>request an initial property list which the strategy may pre-populate</li> <li>by
+	 * requesting the property names according to the respective transport protocol it handles (for the host property for example it would
+	 * be <em>"mail.smtp.host"</em> for SMTP and <em>"mail.smtps.host"</em> for SMTPS)</li> </ol>
 	 *
 	 * @param host     The address URL of the SMTP server to be used.
 	 * @param port     The port of the SMTP server.
 	 * @param username An optional username, may be <code>null</code>.
 	 * @param password An optional password, may be <code>null</code>.
 	 * @return A fully configured <code>Session</code> instance complete with transport protocol settings.
-	 *
 	 * @see TransportStrategy#generateProperties()
 	 * @see TransportStrategy#propertyNameHost()
 	 * @see TransportStrategy#propertyNamePort()
@@ -147,7 +169,7 @@ public class Mailer {
 	@SuppressWarnings("WeakerAccess")
 	protected Session createMailSession(final String host, final Integer port, final String username, final String password) {
 		if (transportStrategy == null) {
-			LOGGER.warn("Transport Strategy not set, using plain SMTP strategy instead!");
+			LOGGER.warn("Transport Strategy not set, using plain SMTP strategy instead.");
 			transportStrategy = TransportStrategy.SMTP_PLAIN;
 		}
 		Properties props = transportStrategy.generateProperties();
@@ -163,11 +185,15 @@ public class Mailer {
 			props.put(transportStrategy.propertyNameUsername(), username);
 		}
 
-		props.put("mail.smtp.socks.host", "localhost");
-		props.put("mail.smtp.socks.port", "1050");
-
-		if (transportStrategy == TransportStrategy.SMTP_SSL) {
-			LOGGER.warn("Proxy is ignored for SSL connections (this is a limitation by the underlying JavaMail framework)");
+		if (proxyConfig == null) {
+			LOGGER.debug("Proxy configuration not set, skipping proxy.");
+		} else {
+			if (transportStrategy == TransportStrategy.SMTP_SSL) {
+				throw new MailException(MailException.INVALID_PROXY_SLL_COMBINATION);
+			}
+			props.put("mail.smtp.socks.host", "localhost");
+			props.put("mail.smtp.socks.port", proxyConfig.getProxyBridgePort()); // 1050
+			proxyServer = new Socks5Bridge(proxyConfig);
 		}
 
 		if (password != null) {
@@ -198,8 +224,8 @@ public class Mailer {
 	}
 
 	/**
-	 * In case Simple Java Mail falls short somehow, you can get a hold of the internal {@link Session} instance to debug or tweak. Please let us know why you
-	 * are needing this on https://github.com/bbottema/simple-java-mail/issues.
+	 * In case Simple Java Mail falls short somehow, you can get a hold of the internal {@link Session} instance to debug or tweak. Please
+	 * let us know why you are needing this on https://github.com/bbottema/simple-java-mail/issues.
 	 */
 	public Session getSession() {
 		LOGGER.warn("Providing access to Session instance for emergency fall-back scenario. Please let us know why you need it.");
@@ -228,14 +254,15 @@ public class Mailer {
 	/**
 	 * Processes an {@link Email} instance into a completely configured {@link Message}.
 	 * <p/>
-	 * Sends the Sun JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all connection
-	 * details have been configured in the provided {@link Session} instance.
+	 * Sends the Sun JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming
+	 * all connection details have been configured in the provided {@link Session} instance.
 	 * <p/>
-	 * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and providing a message
-	 * id.
+	 * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and
+	 * providing a message id.
 	 *
 	 * @param email The information for the email to be sent.
-	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
+	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending
+	 *                       etc.
 	 * @see #validate(Email)
 	 * @see #produceMimeMessage(Email, Session)
 	 * @see #setRecipients(Email, Message)
@@ -270,18 +297,26 @@ public class Mailer {
 			logSession(session, transportStrategy);
 			message.saveChanges(); // some headers and id's will be set for this specific message
 			Transport transport = session.getTransport();
+
 			try {
-				transport.connect();
-				transport.sendMessage(message, message.getAllRecipients());
+				if (proxyServer != null) {
+					proxyServer.start();
+				}
+				try {
+					transport.connect();
+					transport.sendMessage(message, message.getAllRecipients());
+				} finally {
+					//noinspection ThrowFromFinallyBlock
+					transport.close();
+				}
 			} finally {
-				//noinspection ThrowFromFinallyBlock
-				transport.close();
+				if (proxyServer != null) {
+					proxyServer.stop();
+				}
 			}
 		} catch (final UnsupportedEncodingException e) {
-			LOGGER.error(e.getMessage(), e);
 			throw new MailException(format(MailException.INVALID_ENCODING, e.getMessage()));
 		} catch (final MessagingException e) {
-			LOGGER.error(e.getMessage(), e);
 			throw new MailException(format(MailException.GENERIC_ERROR, e.getMessage()), e);
 		}
 	}
@@ -294,9 +329,9 @@ public class Mailer {
 		final String specifics;
 		if (transportStrategy != null) {
 			final String logmsg = "starting mail session (host: %s, port: %s, username: %s, authenticate: %s, transport: %s)";
-			specifics = format(logmsg, properties.get(transportStrategy.propertyNameHost()), properties.get(transportStrategy.propertyNamePort()),
-									  properties.get(transportStrategy.propertyNameUsername()), properties.get(transportStrategy.propertyNameAuthenticate()),
-									  transportStrategy);
+			specifics = format(logmsg, properties.get(transportStrategy.propertyNameHost()),
+					properties.get(transportStrategy.propertyNamePort()), properties.get(transportStrategy.propertyNameUsername()),
+					properties.get(transportStrategy.propertyNameAuthenticate()), transportStrategy);
 		} else {
 			specifics = properties.toString();
 		}
@@ -308,7 +343,6 @@ public class Mailer {
 	 *
 	 * @param email The email that needs to be configured correctly.
 	 * @return Always <code>true</code> (throws a {@link MailException} exception if validation fails).
-	 *
 	 * @throws MailException Is being thrown in any of the above causes.
 	 * @see EmailAddressValidator
 	 */
@@ -332,7 +366,8 @@ public class Mailer {
 					throw new MailException(format(MailException.INVALID_RECIPIENT, email));
 				}
 			}
-			if (email.getReplyToRecipient() != null && !EmailAddressValidator.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
+			if (email.getReplyToRecipient() != null && !EmailAddressValidator
+					.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
 				throw new MailException(format(MailException.INVALID_REPLYTO, email));
 			}
 		}
@@ -347,7 +382,6 @@ public class Mailer {
 	 * @param email   The email message from which the subject and From-address are extracted.
 	 * @param session The Session to attach the MimeMessage to
 	 * @return A fully preparated {@link Message} instance, ready to be sent.
-	 *
 	 * @throws MessagingException           May be thrown when the message couldn't be processed by JavaMail.
 	 * @throws UnsupportedEncodingException Zie {@link InternetAddress#InternetAddress(String, String)}.
 	 */
@@ -405,7 +439,8 @@ public class Mailer {
 			throws UnsupportedEncodingException, MessagingException {
 		final Recipient replyToRecipient = email.getReplyToRecipient();
 		if (replyToRecipient != null) {
-			InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(), CHARACTER_ENCODING);
+			InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(),
+					CHARACTER_ENCODING);
 			message.setReplyTo(new Address[] { replyToAddress });
 		}
 	}
@@ -437,7 +472,8 @@ public class Mailer {
 	 *
 	 * @param email            The message in which the embedded images are defined.
 	 * @param multipartRelated The branch in the email structure in which we'll stuff the embedded images.
-	 * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and {@link #getBodyPartFromDatasource(AttachmentResource, String)}
+	 * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and {@link #getBodyPartFromDatasource(AttachmentResource,
+	 *                            String)}
 	 */
 	private static void setEmbeddedImages(final Email email, final MimeMultipart multipartRelated)
 			throws MessagingException {
@@ -451,7 +487,8 @@ public class Mailer {
 	 *
 	 * @param email         The message in which the attachments are defined.
 	 * @param multipartRoot The branch in the email structure in which we'll stuff the attachments.
-	 * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and {@link #getBodyPartFromDatasource(AttachmentResource, String)}
+	 * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and {@link #getBodyPartFromDatasource(AttachmentResource,
+	 *                            String)}
 	 */
 	private static void setAttachments(final Email email, final MimeMultipart multipartRoot)
 			throws MessagingException {
@@ -461,8 +498,8 @@ public class Mailer {
 	}
 
 	/**
-	 * Sets all headers on the {@link Message} instance. Since we're not using a high-level JavaMail method, the JavaMail library says we need to do some
-	 * encoding and 'folding' manually, to get the value right for the headers (see {@link MimeUtility}.
+	 * Sets all headers on the {@link Message} instance. Since we're not using a high-level JavaMail method, the JavaMail library says we
+	 * need to do some encoding and 'folding' manually, to get the value right for the headers (see {@link MimeUtility}.
 	 *
 	 * @param email   The message in which the headers are defined.
 	 * @param message The {@link Message} on which to set the raw, encoded and folded headers.
@@ -483,14 +520,13 @@ public class Mailer {
 	}
 
 	/**
-	 * Helper method which generates a {@link BodyPart} from an {@link AttachmentResource} (from its {@link DataSource}) and a disposition type ({@link
-	 * Part#INLINE} or {@link Part#ATTACHMENT}). With this the attachment data can be converted into objects that fit in the email structure. <br> <br> For
-	 * every attachment and embedded image a header needs to be set.
+	 * Helper method which generates a {@link BodyPart} from an {@link AttachmentResource} (from its {@link DataSource}) and a disposition
+	 * type ({@link Part#INLINE} or {@link Part#ATTACHMENT}). With this the attachment data can be converted into objects that fit in the
+	 * email structure. <br> <br> For every attachment and embedded image a header needs to be set.
 	 *
 	 * @param attachmentResource An object that describes the attachment and contains the actual content data.
 	 * @param dispositionType    The type of attachment, {@link Part#INLINE} or {@link Part#ATTACHMENT} .
 	 * @return An object with the attachment data read for placement in the email structure.
-	 *
 	 * @throws MessagingException All BodyPart setters.
 	 */
 	private static BodyPart getBodyPartFromDatasource(final AttachmentResource attachmentResource, final String dispositionType)
@@ -510,8 +546,8 @@ public class Mailer {
 	}
 
 	/**
-	 * Primes the {@link MimeMessage} instance for signing with DKIM. The signing itself is performed by {@link DkimMessage} and {@link DkimSigner} during the
-	 * physical sending of the message.
+	 * Primes the {@link MimeMessage} instance for signing with DKIM. The signing itself is performed by {@link DkimMessage} and {@link
+	 * DkimSigner} during the physical sending of the message.
 	 *
 	 * @param message The message to be signed when sent.
 	 * @param email   The {@link Email} that contains the relevant signing information
@@ -519,7 +555,8 @@ public class Mailer {
 	 */
 	static MimeMessage signMessageWithDKIM(MimeMessage message, Email email) {
 		try {
-			final DkimSigner dkimSigner = new DkimSigner(email.getSigningDomain(), email.getSelector(), email.getDkimPrivateKeyInputStream());
+			final DkimSigner dkimSigner = new DkimSigner(email.getSigningDomain(), email.getSelector(),
+					email.getDkimPrivateKeyInputStream());
 			dkimSigner.setIdentity(email.getFromRecipient().getAddress());
 			dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
 			dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
@@ -533,8 +570,9 @@ public class Mailer {
 	}
 
 	/**
-	 * This class conveniently wraps all necessary mimemessage parts that need to be filled with content, attachments etc. The root is ultimately sent using
-	 * JavaMail.<br> <br> The constructor creates a new email message constructed from {@link MimeMultipart} as follows:
+	 * This class conveniently wraps all necessary mimemessage parts that need to be filled with content, attachments etc. The root is
+	 * ultimately sent using JavaMail.<br> <br> The constructor creates a new email message constructed from {@link MimeMultipart} as
+	 * follows:
 	 * <p/>
 	 * <pre>
 	 * - root
@@ -572,15 +610,14 @@ public class Mailer {
 				multipartRelated.addBodyPart(contentAlternativeMessages);
 				contentAlternativeMessages.setContent(multipartAlternativeMessages);
 			} catch (final MessagingException e) {
-				LOGGER.error(e.getMessage(), e);
 				throw new MailException(e.getMessage(), e);
 			}
 		}
 	}
 
 	/**
-	 * Overrides the default email address validation restrictions {@link #emailAddressCriteria} when validating and sending emails using the current
-	 * <code>Mailer</code> instance.
+	 * Overrides the default email address validation restrictions {@link #emailAddressCriteria} when validating and sending emails using
+	 * the current <code>Mailer</code> instance.
 	 */
 	public void setEmailAddressCriteria(EnumSet<EmailAddressCriteria> emailAddressCriteria) {
 		this.emailAddressCriteria = emailAddressCriteria;

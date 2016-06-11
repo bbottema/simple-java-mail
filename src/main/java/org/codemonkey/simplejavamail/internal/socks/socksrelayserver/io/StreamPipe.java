@@ -14,7 +14,7 @@ import java.util.List;
  */
 class StreamPipe implements Runnable {
 
-	private static final Logger logger = LoggerFactory.getLogger(StreamPipe.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(StreamPipe.class);
 
 	private static final int DEFAULT_BUFFER_SIZE = 1024 * 1024 * 5;
 
@@ -85,7 +85,7 @@ class StreamPipe implements Runnable {
 		} catch (IOException e) {
 			synchronized (this) {
 				for (SocketPipe.PipeListener pipeListener : new ArrayList<>(pipeListeners)) {
-					logger.info("{} {}", pipeListener.getName(), e.getMessage());
+					LOGGER.debug("{} {}", pipeListener.getName(), e.getMessage());
 				}
 			}
 			stop();
