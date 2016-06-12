@@ -1,6 +1,7 @@
 package demo;
 
 import org.codemonkey.simplejavamail.Mailer;
+import org.codemonkey.simplejavamail.ServerConfig;
 import org.codemonkey.simplejavamail.TransportStrategy;
 import org.codemonkey.simplejavamail.email.Email;
 
@@ -17,11 +18,16 @@ import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
 /**
  * Demonstration program for the Simple Java Mail framework.
+ * <p>
+ * <a href="http://www.simplejavamail.org">simplejavamail.org</a>
  *
  * @author Benny Bottema
  */
-@SuppressWarnings({ "WeakerAccess", "UnusedAssignment" })
 public class MailTestApp {
+
+	private static final ServerConfig serverConfigSMTP = new ServerConfig("smtp.host.com", 25, "your.user@gmail.com", "password");
+	private static final ServerConfig serverConfigTLS = new ServerConfig("smtp.host.com", 587, "your.user@gmail.com", "password");
+	private static final ServerConfig serverConfigSSL = new ServerConfig("smtp.host.com", 465, "your.user@gmail.com", "password");
 
 	public static void main(final String[] args)
 			throws IOException, MessagingException {
@@ -44,12 +50,13 @@ public class MailTestApp {
 		final Email emailFromMimeMessage = new Email(mimeMessage);
 
 		sendMail(emailNormal);
-		//        sendMail(emailFromMimeMessage); // should produce the exact same result as emailNormal!
+		sendMail(emailFromMimeMessage); // should produce the exact same result as emailNormal!
 	}
 
 	private static void sendMail(final Email email) {
-		new Mailer("smtp.gmail.com", 25, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_TLS).sendMail(email);
-		new Mailer("smtp.gmail.com", 587, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_TLS).sendMail(email);
-		new Mailer("smtp.gmail.com", 465, "b.bottema@gmail.com", "etiftesjjrdreebk", TransportStrategy.SMTP_SSL).sendMail(email);
+		// ProxyConfig proxyconfig = new ProxyConfig("the.proxyhost.com", 1080, "proxyUser", "proxyPassword"); // username/password optional
+		new Mailer(serverConfigSMTP, TransportStrategy.SMTP_TLS/*, proxyconfig*/).sendMail(email);
+		new Mailer(serverConfigTLS, TransportStrategy.SMTP_TLS/*, proxyconfig*/).sendMail(email);
+		new Mailer(serverConfigSSL, TransportStrategy.SMTP_SSL/*, proxyconfig*/).sendMail(email);
 	}
 }

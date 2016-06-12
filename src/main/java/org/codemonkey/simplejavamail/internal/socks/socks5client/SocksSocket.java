@@ -1,8 +1,9 @@
 
 
-package org.codemonkey.simplejavamail.internal.socks.socksclient;
+package org.codemonkey.simplejavamail.internal.socks.socks5client;
 
 import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
+import org.codemonkey.simplejavamail.internal.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +55,6 @@ public class SocksSocket extends Socket {
 		proxySocket = this.proxy.getProxySocket();
 		initProxyChain();
 		this.proxy.requestConnect(socketAddress.getAddress(), socketAddress.getPort());
-
 	}
 
 	public SocksSocket(Socks5 proxy)
@@ -62,7 +62,13 @@ public class SocksSocket extends Socket {
 		this(proxy, proxy.createProxySocket());
 	}
 
-	private SocksSocket(Socks5 proxy, Socket proxySocket) {
+	public SocksSocket(Socks5 proxy, Socket proxySocket, InetSocketAddress socketAddress)
+			throws IOException {
+		this(proxy, proxySocket);
+		connect(socketAddress);
+	}
+
+	public SocksSocket(Socks5 proxy, Socket proxySocket) {
 		Util.checkNotNull(proxy, "Argument [proxy] may not be null");
 		Util.checkNotNull(proxySocket, "Argument [proxySocket] may not be null");
 		if (proxySocket.isConnected()) {
@@ -292,8 +298,10 @@ public class SocksSocket extends Socket {
 	@Override
 	public synchronized void close()
 			throws IOException {
-		proxy.getProxySocket().close();
-		proxy.setProxySocket(null);
+		if (proxy.getProxySocket() != null) {
+			proxy.getProxySocket().close();
+			proxy.setProxySocket(null);
+		}
 	}
 
 	@Override

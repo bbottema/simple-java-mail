@@ -21,6 +21,8 @@ public class MailException extends RuntimeException {
 	static final String MISSING_CONTENT = "Email is not valid: missing content body";
 	static final String INVALID_DOMAINKEY = "Error signing MimeMessage with DKIM: %s";
 	static final String INVALID_PROXY_SLL_COMBINATION = "Proxy is not supported for SSL connections (this is a limitation by the underlying JavaMail framework)";
+	static final String MISSING_PROXY_USERNAME = "Missing proxy username";
+	static final String MISSING_PROXY_PASSWORD = "Missing proxy password";
 
 	MailException(final String message) {
 		super(message);

@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.internal.socks.socksrelayserver.io;
+package org.codemonkey.simplejavamail.internal.socks.socks5server.io;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,10 +54,8 @@ class StreamPipe implements Runnable {
 			if (runningThread != null) {
 				runningThread.interrupt();
 			}
-			synchronized (this) {
-				for (SocketPipe.PipeListener listener : new ArrayList<>(pipeListeners)) {
-					listener.onStop(this);
-				}
+			for (SocketPipe.PipeListener listener : new ArrayList<>(pipeListeners)) {
+				listener.onStop(this);
 			}
 		}
 	}

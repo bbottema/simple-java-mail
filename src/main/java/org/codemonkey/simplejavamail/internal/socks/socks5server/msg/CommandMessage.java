@@ -1,8 +1,8 @@
-package org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg;
+package org.codemonkey.simplejavamail.internal.socks.socks5server.msg;
 
 import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
-import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.AddressType;
-import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.SocksServerReplyException;
+import org.codemonkey.simplejavamail.internal.socks.socks5server.AddressType;
+import org.codemonkey.simplejavamail.internal.socks.socks5server.SocksServerReplyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +12,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
-import static org.codemonkey.simplejavamail.internal.socks.socksrelayserver.StreamUtil.checkEnd;
+import static org.codemonkey.simplejavamail.internal.socks.socks5server.StreamUtil.checkEnd;
 
 public class CommandMessage {
 

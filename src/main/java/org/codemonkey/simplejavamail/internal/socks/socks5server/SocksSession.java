@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.internal.socks.socksrelayserver;
+package org.codemonkey.simplejavamail.internal.socks.socks5server;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

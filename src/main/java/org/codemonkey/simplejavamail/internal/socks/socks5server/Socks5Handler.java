@@ -1,14 +1,11 @@
-package org.codemonkey.simplejavamail.internal.socks.socksrelayserver;
+package org.codemonkey.simplejavamail.internal.socks.socks5server;
 
-import org.codemonkey.simplejavamail.ProxyConfig;
-import org.codemonkey.simplejavamail.internal.socks.socksclient.ProxyCredentials;
-import org.codemonkey.simplejavamail.internal.socks.socksclient.Socks5;
-import org.codemonkey.simplejavamail.internal.socks.socksclient.SocksSocket;
-import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.io.SocketPipe;
-import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg.CommandMessage;
-import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg.CommandResponseMessage;
-import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg.MethodSelectionMessage;
-import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg.ServerReply;
+import org.codemonkey.simplejavamail.internal.socks.common.Socks5Bridge;
+import org.codemonkey.simplejavamail.internal.socks.socks5server.io.SocketPipe;
+import org.codemonkey.simplejavamail.internal.socks.socks5server.msg.CommandMessage;
+import org.codemonkey.simplejavamail.internal.socks.socks5server.msg.CommandResponseMessage;
+import org.codemonkey.simplejavamail.internal.socks.socks5server.msg.MethodSelectionMessage;
+import org.codemonkey.simplejavamail.internal.socks.socks5server.msg.ServerReply;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,24 +17,24 @@ import java.net.Socket;
 public class Socks5Handler implements Runnable {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Socks5Handler.class);
-	private static final Logger FRIENDLY_LOGGER = LoggerFactory.getLogger("socksrelay");
+	private static final Logger SOCKS5BRIDGE_LOGGER = LoggerFactory.getLogger("socks5bridge");
 	private static final byte[] METHOD_SELECTION_RESPONSE = { (byte) 0x5, (byte) 0x00 };
 	private static final int CONNECT_COMMAND = 0x01;
 
 	public static final int VERSION = 0x5;
 
 	private final SocksSession session;
-	private final ProxyConfig proxyConfig;
+	private final Socks5Bridge socks5Bridge;
 
-	public Socks5Handler(SocksSession session, ProxyConfig proxyConfig) {
+	public Socks5Handler(SocksSession session, Socks5Bridge socks5Bridge) {
 		this.session = session;
-		this.proxyConfig = proxyConfig;
+		this.socks5Bridge = socks5Bridge;
 	}
 
 	@Override
 	public void run() {
 		try {
-			handle(session, proxyConfig);
+			handle(session, socks5Bridge);
 		} catch (Exception e) {
 			LOGGER.error(e.getMessage(), e);
 		} finally {
@@ -45,7 +42,7 @@ public class Socks5Handler implements Runnable {
 		}
 	}
 
-	private void handle(SocksSession session, ProxyConfig proxyConfig)
+	private void handle(SocksSession session, Socks5Bridge socks5Bridge)
 			throws IOException {
 		if (MethodSelectionMessage.readVersion(session.getInputStream()) != VERSION) {
 			throw new RuntimeException("Protocol error");
@@ -69,10 +66,10 @@ public class Socks5Handler implements Runnable {
 		if (commandMessage.getCommand() != CONNECT_COMMAND) {
 			throw new RuntimeException("Only CONNECT command is supported");
 		}
-		doConnect(session, commandMessage, proxyConfig);
+		doConnect(session, commandMessage, socks5Bridge);
 	}
 
-	private void doConnect(SocksSession session, CommandMessage commandMessage, ProxyConfig proxyConfig)
+	private void doConnect(SocksSession session, CommandMessage commandMessage, Socks5Bridge socks5Bridge)
 			throws IOException {
 		ServerReply reply;
 		Socket socket = null;
@@ -84,7 +81,8 @@ public class Socks5Handler implements Runnable {
 		InetAddress bindAddress = new InetSocketAddress(0).getAddress();
 		// DO connect
 		try {
-			socket = connectToRemoteProxy(proxyConfig, targetServerAddress, targetServerPort);
+			// the magic happens here...
+			socket = socks5Bridge.connect(String.valueOf(this.session.getId()), targetServerAddress, targetServerPort);
 			bindAddress = socket.getLocalAddress();
 			bindPort = socket.getLocalPort();
 			reply = ServerReply.SUCCEEDED;
@@ -105,7 +103,7 @@ public class Socks5Handler implements Runnable {
 			if (e.getMessage().equals("Permission denied: connect")) {
 				String msg = "Permission denied - unable to establish outbound connection to proxy. Perhaps blocked by a firewall?";
 				LOGGER.info("connect {} [{}] exception: {}", session.getId(), remoteAddress, msg);
-				FRIENDLY_LOGGER.error("connecting to {}: {}", remoteAddress, msg);
+				SOCKS5BRIDGE_LOGGER.error("connecting to {}: {}", remoteAddress, msg);
 			} else {
 				LOGGER.info("SESSION[{}] connect {} [{}] exception: {}", session.getId(), remoteAddress, reply, e.getMessage());
 			}
@@ -132,20 +130,5 @@ public class Socks5Handler implements Runnable {
 				LOGGER.info("SESSION[{}] closed from", session.getId(), session.getClientAddress());
 			}
 		}
-
 	}
-
-	private Socket connectToRemoteProxy(ProxyConfig proxyConfig, InetAddress remoteServerAddress, int remoteServerPort)
-			throws IOException {
-		FRIENDLY_LOGGER.info("SESSION[{}] bridging to remote proxy {}:{} (username: {})", session.getId(), proxyConfig.getRemoteProxyHost(),
-				proxyConfig.getRemoteProxyPort(), proxyConfig.getUsername());
-		Socks5 proxyAuth = new Socks5(new InetSocketAddress(proxyConfig.getRemoteProxyHost(), proxyConfig.getRemoteProxyPort()));
-		proxyAuth.setCredentials(new ProxyCredentials(proxyConfig.getUsername(), proxyConfig.getPassword()));
-		Socket socketAuth = new SocksSocket(proxyAuth);
-		// refactor to: new SocksSocket(proxy1, new InetSocketAddress("whois.internic.net", 43))
-		socketAuth.connect(new InetSocketAddress(remoteServerAddress, remoteServerPort)); // refactor out (see line above)
-		return socketAuth;
-		//		return new Socket(remoteServerAddress, remoteServerPort);
-	}
-
 }

@@ -1,17 +1,17 @@
 
 
-package org.codemonkey.simplejavamail.internal.socks.socksclient;
+package org.codemonkey.simplejavamail.internal.socks.socks5client;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
 
 public class SSLSocks5 extends Socks5 {
 
 	private final SSLConfiguration configuration;
 
-	public SSLSocks5(SocketAddress address, SSLConfiguration configuration) {
+	public SSLSocks5(InetSocketAddress address, SSLConfiguration configuration) {
 		super(address);
 		this.configuration = configuration;
 	}

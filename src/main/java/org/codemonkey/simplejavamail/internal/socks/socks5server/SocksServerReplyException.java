@@ -1,7 +1,7 @@
-package org.codemonkey.simplejavamail.internal.socks.socksrelayserver;
+package org.codemonkey.simplejavamail.internal.socks.socks5server;
 
 import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
-import org.codemonkey.simplejavamail.internal.socks.socksrelayserver.msg.ServerReply;
+import org.codemonkey.simplejavamail.internal.socks.socks5server.msg.ServerReply;
 
 public class SocksServerReplyException extends SocksException {
 

@@ -13,7 +13,7 @@
         </layout>
     </appender>
 
-    <logger name="socksrelay" additivity="false">
+    <logger name="socks5bridge" additivity="false">
         <level value="info"/>
         <appender-ref ref="simpleConsole"/>
     </logger>

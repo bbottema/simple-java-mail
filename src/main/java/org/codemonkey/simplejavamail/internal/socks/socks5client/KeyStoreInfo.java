@@ -1,6 +1,8 @@
 
 
-package org.codemonkey.simplejavamail.internal.socks.socksclient;
+package org.codemonkey.simplejavamail.internal.socks.socks5client;
+
+import org.codemonkey.simplejavamail.internal.Util;
 
 @SuppressWarnings("SameParameterValue")
 public class KeyStoreInfo {

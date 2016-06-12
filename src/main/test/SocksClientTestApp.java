@@ -1,6 +1,4 @@
-package org.codemonkey.simplejavamail.internal.socks;
-
-import org.codemonkey.simplejavamail.internal.socks.socksclient.*;
+import org.codemonkey.simplejavamail.internal.socks.socks5client.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,8 +7,7 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-@SuppressWarnings("WeakerAccess")
-public class DoIt {
+public class SocksClientTestApp {
 	public static void main(String[] args)
 			throws IOException {
 		Socket socketAnonymous = createSocketPlainAnonymous();

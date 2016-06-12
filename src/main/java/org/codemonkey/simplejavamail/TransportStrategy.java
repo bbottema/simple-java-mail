@@ -59,6 +59,14 @@ public enum TransportStrategy {
 		String propertyNameAuthenticate() {
 			return "mail.smtp.auth";
 		}
+
+		/**
+		 * @return Whether Session is configured for vanilla SMTP.
+		 */
+		@Override
+		public boolean sessionConfigured(Session session) {
+			return "smtp".equals(session.getProperties().getProperty("mail.transport.protocol"));
+		}
 	},
 	/**
 	 * SMTPS / SSL transport strategy, that returns the ".smtps." variation of the SMTP_PLAIN version. Additionally the transport protocol
@@ -121,6 +129,14 @@ public enum TransportStrategy {
 		String propertyNameAuthenticate() {
 			return "mail.smtps.auth";
 		}
+
+		/**
+		 * @return Whether Session is configured for SSL.
+		 */
+		@Override
+		public boolean sessionConfigured(Session session) {
+			return "smtps".equals(session.getProperties().getProperty("mail.transport.protocol"));
+		}
 	},
 	/**
 	 * <strong>NOTE: this code is in untested beta state</strong>
@@ -175,6 +191,14 @@ public enum TransportStrategy {
 			return "mail.smtp.auth";
 		}
 
+		/**
+		 * @return Whether Session is configured for TLS.
+		 */
+		@Override
+		public boolean sessionConfigured(Session session) {
+			return "smtp".equals(session.getProperties().getProperty("mail.transport.protocol")) &&
+					"true".equals(session.getProperties().getProperty("mail.smtp.starttls.enable"));
+		}
 	};
 
 	/**
@@ -194,4 +218,23 @@ public enum TransportStrategy {
 	abstract String propertyNameUsername();
 
 	abstract String propertyNameAuthenticate();
+
+	/**
+	 * @return Whether Session is configured with a strategy pattern.
+	 */
+	abstract boolean sessionConfigured(Session session);
+
+	/**
+	 * @param session The session to determine the current transport strategy for
+	 * @return Which strategy matches the current Session properties.
+	 * @see #sessionConfigured(Session)
+	 */
+	public static TransportStrategy findStrategyForSession(Session session) {
+		for (TransportStrategy strategy : TransportStrategy.values()) {
+			if (strategy.sessionConfigured(session)) {
+				return strategy;
+			}
+		}
+		return null;
+	}
 }

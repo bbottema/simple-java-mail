@@ -1,6 +1,6 @@
 
 
-package org.codemonkey.simplejavamail.internal.socks.socksclient;
+package org.codemonkey.simplejavamail.internal.socks.socks5client;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +29,7 @@ public class Socks5 {
 
 	private boolean alwaysResolveAddressLocally = false;
 
-	public Socks5(SocketAddress socketAddress, String username, String password) {
+	public Socks5(InetSocketAddress socketAddress, String username, String password) {
 		this(socketAddress);
 		setCredentials(new ProxyCredentials(username, password));
 	}
@@ -43,19 +43,15 @@ public class Socks5 {
 		this(new InetSocketAddress(inetAddress, port));
 	}
 
-	public Socks5(SocketAddress socketAddress) {
+	public Socks5(InetSocketAddress socketAddress) {
 		this(null, socketAddress);
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private Socks5(Socks5 chainProxy, SocketAddress socketAddress) {
-		if (socketAddress instanceof InetSocketAddress) {
-			inetAddress = ((InetSocketAddress) socketAddress).getAddress();
-			port = ((InetSocketAddress) socketAddress).getPort();
-			this.setChainProxy(chainProxy);
-		} else {
-			throw new IllegalArgumentException("Only supports java.net.InetSocketAddress");
-		}
+	private Socks5(Socks5 chainProxy, InetSocketAddress socketAddress) {
+		inetAddress = socketAddress.getAddress();
+		port = socketAddress.getPort();
+		this.setChainProxy(chainProxy);
 	}
 
 	public Socks5(String host, int port, ProxyCredentials credentials)

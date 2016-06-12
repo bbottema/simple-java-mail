@@ -1,4 +1,4 @@
-package org.codemonkey.simplejavamail.internal.socks.socksrelayserver;
+package org.codemonkey.simplejavamail.internal.socks.socks5server;
 
 import java.io.IOException;
 

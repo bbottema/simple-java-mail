@@ -1,8 +1,9 @@
 
 
-package org.codemonkey.simplejavamail.internal.socks.socksclient;
+package org.codemonkey.simplejavamail.internal.socks.socks5client;
 
 import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
+import org.codemonkey.simplejavamail.internal.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
