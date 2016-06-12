@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="OFF">
+    <appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss} [%t] %-5level %c{1} - %msg%n" />
+        </Console>
+        <Console name="simpleConsole" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d Simple Java Mail SOCKS5 bridge - %level %m%n" />
+        </Console>
+    </appenders>
+    <Loggers>
+        <Logger name="socks5bridge" level="info" additivity="false">
+            <AppenderRef ref="simpleConsole" />
+        </Logger>
+        <Logger name="org.codemonkey.simplejavamail" level="trace"/>
+        <Logger name="org.codemonkey.simplejavamail.internal.socks" level="warn"/>
+
+        <Root level="warn">
+            <AppenderRef ref="console" />
+        </Root>
+    </Loggers>
+</configuration>
