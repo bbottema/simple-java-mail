@@ -47,9 +47,20 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.13</version>
+			<version>1.7.21</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId><!-- or log4j2 or logback or whatever-->
+			<version>1.7.21</version>
 		</dependency>
 
+		<!-- special dependency to fix liquibase's logging fetish -->
+		<dependency>
+			<groupId>com.mattbertolini</groupId>
+			<artifactId>liquibase-slf4j</artifactId>
+			<version>1.2.1</version>
+		</dependency>
 		<!-- core dependencies -->
 		<dependency>
 			<groupId>com.sun.mail</groupId>
@@ -107,8 +118,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.5.1</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<source>1.7</source>
+					<target>1.7</target>
 				</configuration>
 			</plugin>
 			<plugin>

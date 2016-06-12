@@ -18,6 +18,7 @@ import static java.lang.String.format;
  *
  * @author Benny Bottema
  */
+@SuppressWarnings("SameParameterValue")
 public class Email {
 	/**
 	 * The sender of the email. Can be used in conjunction with {@link #replyToRecipient}.
@@ -75,10 +76,10 @@ public class Email {
 	 * Constructor, creates all internal lists.
 	 */
 	public Email() {
-		recipients = new ArrayList<Recipient>();
-		embeddedImages = new ArrayList<AttachmentResource>();
-		attachments = new ArrayList<AttachmentResource>();
-		headers = new HashMap<String, String>();
+		recipients = new ArrayList<>();
+		embeddedImages = new ArrayList<>();
+		attachments = new ArrayList<>();
+		headers = new HashMap<>();
 	}
 
 	/**
@@ -91,6 +92,7 @@ public class Email {
 	/**
 	 * @see #signWithDomainKey(InputStream, String, String)
 	 */
+	@SuppressWarnings("WeakerAccess")
 	public void signWithDomainKey(final File dkimPrivateKeyFile, final String signingDomain, final String selector) {
 		FileInputStream dkimPrivateKeyInputStream = null;
 		try {
@@ -103,6 +105,7 @@ public class Email {
 				try {
 					dkimPrivateKeyInputStream.close();
 				} catch (IOException e) {
+					//noinspection ThrowFromFinallyBlock
 					throw new EmailException(format(EmailException.DKIM_ERROR_UNCLOSABLE_INPUTSTREAM, e.getMessage()), e);
 				}
 			}
@@ -124,6 +127,7 @@ public class Email {
 	 * @param signingDomain             The domain being authorized to send.
 	 * @param selector                  Additional domain specifier.
 	 */
+	@SuppressWarnings("WeakerAccess")
 	public void signWithDomainKey(final InputStream dkimPrivateKeyInputStream, final String signingDomain, final String selector) {
 		this.applyDKIMSignature = true;
 		this.dkimPrivateKeyInputStream = dkimPrivateKeyInputStream;
@@ -208,6 +212,7 @@ public class Email {
 	 * @param name      The name of the image as being referred to from the message content body (eg. '&lt;cid:embeddedimage&gt;').
 	 * @param imagedata The image data.
 	 */
+	@SuppressWarnings("WeakerAccess")
 	public void addEmbeddedImage(final String name, final DataSource imagedata) {
 		embeddedImages.add(new AttachmentResource(name, imagedata));
 	}
@@ -220,6 +225,7 @@ public class Email {
 	 * @param name  The name of the header.
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
 	 */
+	@SuppressWarnings("WeakerAccess")
 	public void addHeader(final String name, final Object value) {
 		headers.put(name, String.valueOf(value));
 	}
@@ -360,6 +366,7 @@ public class Email {
 	 *
 	 * @author Jared Stewart
 	 */
+	@SuppressWarnings("UnusedReturnValue")
 	public static class Builder {
 		private Recipient fromRecipient;
 		/**
@@ -428,10 +435,10 @@ public class Email {
 		private String selector;
 
 		public Builder() {
-			recipients = new ArrayList<Recipient>();
-			embeddedImages = new ArrayList<AttachmentResource>();
-			attachments = new ArrayList<AttachmentResource>();
-			headers = new HashMap<String, String>();
+			recipients = new ArrayList<>();
+			embeddedImages = new ArrayList<>();
+			attachments = new ArrayList<>();
+			headers = new HashMap<>();
 		}
 
 		/**
@@ -702,9 +709,7 @@ public class Email {
 		this();
 		try {
 			fillEmailFromMimeMessage(new MimeMessageParser(mimeMessage).parse());
-		} catch (MessagingException e) {
-			throw new EmailException(format(EmailException.PARSE_ERROR_MIMEMESSAGE, e.getMessage()), e);
-		} catch (IOException e) {
+		} catch (MessagingException | IOException e) {
 			throw new EmailException(format(EmailException.PARSE_ERROR_MIMEMESSAGE, e.getMessage()), e);
 		}
 	}
@@ -738,7 +743,7 @@ public class Email {
 		}
 	}
 
-	protected static String extractCID(String cid) {
+	static String extractCID(String cid) {
 		return (cid != null) ? cid.replaceAll("<?([^>]*)>?", "$1") : null;
 	}
 }

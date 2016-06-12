@@ -1,8 +1,7 @@
 package org.codemonkey.simplejavamail;
 
-import java.util.Properties;
-
 import javax.mail.Session;
+import java.util.Properties;
 
 /**
  * Defines the various types of transport protocols and implements respective properties so that a {@link Session} may be configured using a
@@ -27,7 +26,7 @@ public enum TransportStrategy {
 			final Properties props = super.generateProperties();
 			props.put("mail.transport.protocol", "smtp");
 			return props;
-		};
+		}
 
 		/**
 		 * @return "mail.smtp.host"
@@ -35,7 +34,7 @@ public enum TransportStrategy {
 		@Override
 		String propertyNameHost() {
 			return "mail.smtp.host";
-		};
+		}
 
 		/**
 		 * @return "mail.smtp.port"
@@ -43,7 +42,7 @@ public enum TransportStrategy {
 		@Override
 		String propertyNamePort() {
 			return "mail.smtp.port";
-		};
+		}
 
 		/**
 		 * @return "mail.smtp.username"
@@ -51,7 +50,7 @@ public enum TransportStrategy {
 		@Override
 		String propertyNameUsername() {
 			return "mail.smtp.username";
-		};
+		}
 
 		/**
 		 * @return "mail.smtp.auth"
@@ -59,7 +58,15 @@ public enum TransportStrategy {
 		@Override
 		String propertyNameAuthenticate() {
 			return "mail.smtp.auth";
-		};
+		}
+
+		/**
+		 * @return Whether Session is configured for vanilla SMTP.
+		 */
+		@Override
+		public boolean sessionConfigured(Session session) {
+			return "smtp".equals(session.getProperties().getProperty("mail.transport.protocol"));
+		}
 	},
 	/**
 	 * SMTPS / SSL transport strategy, that returns the ".smtps." variation of the SMTP_PLAIN version. Additionally the transport protocol
@@ -89,7 +96,7 @@ public enum TransportStrategy {
 			props.put("mail.transport.protocol", "smtps");
 			props.put("mail.smtps.quitwait", "false");
 			return props;
-		};
+		}
 
 		/**
 		 * @return "mail.smtps.host"
@@ -97,7 +104,7 @@ public enum TransportStrategy {
 		@Override
 		String propertyNameHost() {
 			return "mail.smtps.host";
-		};
+		}
 
 		/**
 		 * @return "mail.smtps.port"
@@ -105,7 +112,7 @@ public enum TransportStrategy {
 		@Override
 		String propertyNamePort() {
 			return "mail.smtps.port";
-		};
+		}
 
 		/**
 		 * @return "mail.smtps.username"
@@ -113,7 +120,7 @@ public enum TransportStrategy {
 		@Override
 		String propertyNameUsername() {
 			return "mail.smtps.username";
-		};
+		}
 
 		/**
 		 * @return "mail.smtps.auth"
@@ -121,7 +128,15 @@ public enum TransportStrategy {
 		@Override
 		String propertyNameAuthenticate() {
 			return "mail.smtps.auth";
-		};
+		}
+
+		/**
+		 * @return Whether Session is configured for SSL.
+		 */
+		@Override
+		public boolean sessionConfigured(Session session) {
+			return "smtps".equals(session.getProperties().getProperty("mail.transport.protocol"));
+		}
 	},
 	/**
 	 * <strong>NOTE: this code is in untested beta state</strong>
@@ -150,7 +165,7 @@ public enum TransportStrategy {
 		@Override
 		String propertyNameHost() {
 			return "mail.smtp.host";
-		};
+		}
 
 		/**
 		 * @return "mail.smtp.port"
@@ -158,7 +173,7 @@ public enum TransportStrategy {
 		@Override
 		String propertyNamePort() {
 			return "mail.smtp.port";
-		};
+		}
 
 		/**
 		 * @return "mail.smtp.username"
@@ -166,7 +181,7 @@ public enum TransportStrategy {
 		@Override
 		String propertyNameUsername() {
 			return "mail.smtp.username";
-		};
+		}
 
 		/**
 		 * @return "mail.smtp.auth"
@@ -174,8 +189,16 @@ public enum TransportStrategy {
 		@Override
 		String propertyNameAuthenticate() {
 			return "mail.smtp.auth";
-		};
+		}
 
+		/**
+		 * @return Whether Session is configured for TLS.
+		 */
+		@Override
+		public boolean sessionConfigured(Session session) {
+			return "smtp".equals(session.getProperties().getProperty("mail.transport.protocol")) &&
+					"true".equals(session.getProperties().getProperty("mail.smtp.starttls.enable"));
+		}
 	};
 
 	/**
@@ -195,4 +218,23 @@ public enum TransportStrategy {
 	abstract String propertyNameUsername();
 
 	abstract String propertyNameAuthenticate();
-};
+
+	/**
+	 * @return Whether Session is configured with a strategy pattern.
+	 */
+	abstract boolean sessionConfigured(Session session);
+
+	/**
+	 * @param session The session to determine the current transport strategy for
+	 * @return Which strategy matches the current Session properties.
+	 * @see #sessionConfigured(Session)
+	 */
+	public static TransportStrategy findStrategyForSession(Session session) {
+		for (TransportStrategy strategy : TransportStrategy.values()) {
+			if (strategy.sessionConfigured(session)) {
+				return strategy;
+			}
+		}
+		return null;
+	}
+}
