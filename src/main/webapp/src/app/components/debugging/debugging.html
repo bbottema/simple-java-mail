@@ -4,46 +4,13 @@
 
   <section class="toc">
     <ul>
-      <li><a simplePageScroll href="#section-logging">Logging output</a></li>
       <li><a simplePageScroll href="#section-debug-logging">Enable javax.mail debug logging</a></li>
       <li><a simplePageScroll href="#section-mailexception">Catching exceptions</a></li>
+      <li><a simplePageScroll href="#section-logging">Logging output</a></li>
+      <li><a simplePageScroll href="#section-log4j12">Example with log4j12</a></li>
+      <li><a simplePageScroll href="#section-log4j2">Example with log4j2</a></li>
+      <li><a simplePageScroll href="#section-logback">Example with logback</a></li>
     </ul>
-  </section>
-
-  <a href="#section-logging" id="section-logging" class="section-link h2">&sect;</a>
-  <h2>Logging output</h2>
-
-  <section>
-    <div class="view">
-      <p>
-        Simple Java Mail uses <a href="http://www.slf4j.org/">SLF4J</a> to log, which means you can use any logging framework you like that supports
-        it. Also read this excellent summary of <a href="http://learnjava-soa.blogspot.nl/2015/06/slf4j-with-log4j2-example.html">how to configure
-        slf4j with log4j2</a>.
-      </p>
-      <p>
-        Here's an example configuration for <a href="http://logging.apache.org/log4j/2.x/index.html">log4j2</a>, make sure you have the slf4j-to-log4j
-        impl included on the classpath as well as log4j itself.
-      </p>
-    </div>
-
-    <div class="side">
-<pre><code class="language-markup">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;Configuration&gt;
-  &lt;Appenders&gt;
-    &lt;Console name=&quot;STDOUT&quot; target=&quot;SYSTEM_OUT&quot;&gt;
-        &lt;PatternLayout pattern=&quot;current date-%d LEVEL-%-5p Thread-[%t]
-                            Method-%M() Class name-%C Message-%m%n&quot;/&gt;
-    &lt;/Console&gt;
-  &lt;/Appenders&gt;
-   &lt;loggers&gt;
-  &lt;Logger name=&quot;org.codemonkey.simplejavamail&quot; level=&quot;all&quot;/&gt;
-    &lt;root level=&quot;all&quot;&gt;
-      &lt;appender-ref ref=&quot;STDOUT&quot;/&gt;
-    &lt;/root&gt;
-  &lt;/loggers&gt;
-&lt;/Configuration&gt;
-</code></pre>
-    </div>
   </section>
 
 
@@ -53,7 +20,13 @@
   <section>
     <div class="view">
       <p>
-        By default javax.mail's debug logging is turned off, but you can turn it on for more diagnostic info. All this does is enabling debug mode on the internal Session instance.
+        By default javax.mail's debug logging is turned off, but you can turn it on for more diagnostic info. All this does is enabling debug mode on
+        the internal Session instance.
+      </p>
+      <p>
+        There are three parts of Simple Java Mail that may produce logging: "org.codemonkey.simplejavamail", "socks5bridge" and
+        "org.codemonkey.simplejavamail.internal.socks". The latter two are for the proxy bridge that is used for
+        <a [routerLink]="['/proxy']" simplePageScroll href="#navigation">authenticated proxy connections</a>.
       </p>
     </div>
 
@@ -99,4 +72,141 @@ try {
 </code></pre>
     </div>
   </section>
+
+  <a href="#section-logging" id="section-logging" class="section-link h2">&sect;</a>
+  <h2>Logging output</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Simple Java Mail uses <a href="http://www.slf4j.org/">SLF4J</a> to log, which means you can use any logging framework you like that supports
+        it. Also read this excellent summary of <a href="http://learnjava-soa.blogspot.nl/2015/06/slf4j-with-log4j2-example.html">how to configure
+        slf4j with log4j2</a>.
+      </p>
+    </div>
+  </section>
+
+  <a href="#section-log4j12" id="section-log4j12" class="section-link h3">&sect;</a>
+  <h3>Example with log4j12</h3>
+
+  <section>
+    <div class="view">
+      <p>
+        Here's an example configuration for <a href="http://logging.apache.org/log4j/2.x/index.html">log4j12</a>, make sure you have the
+        slf4j-to-log4j
+        impl included on the classpath as well as log4j12 itself and the log4j.xml with the config.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code class="language-markup small">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE log4j:configuration SYSTEM &quot;log4j.dtd&quot;&gt;
+&lt;log4j:configuration xmlns:log4j=&quot;http://jakarta.apache.org/log4j/&quot; debug=&quot;false&quot;&gt;
+
+    &lt;appender name=&quot;console&quot; class=&quot;org.apache.log4j.ConsoleAppender&quot;&gt;
+        &lt;layout class=&quot;org.apache.log4j.PatternLayout&quot;&gt;
+            &lt;param name=&quot;ConversionPattern&quot; value=&quot;%d [%t] %-5p %c{1} - %m%n&quot;/&gt;
+        &lt;/layout&gt;
+    &lt;/appender&gt;
+    &lt;appender name=&quot;simpleConsole&quot; class=&quot;org.apache.log4j.ConsoleAppender&quot;&gt;
+        &lt;layout class=&quot;org.apache.log4j.PatternLayout&quot;&gt;
+            &lt;param name=&quot;ConversionPattern&quot; value=&quot;%d Simple Java Mail SOCKS5 bridge - %p %m%n&quot;/&gt;
+        &lt;/layout&gt;
+    &lt;/appender&gt;
+
+    &lt;logger name=&quot;socks5bridge&quot; additivity=&quot;false&quot;&gt;
+        &lt;level value=&quot;info&quot;/&gt;
+        &lt;appender-ref ref=&quot;simpleConsole&quot;/&gt;
+    &lt;/logger&gt;
+    &lt;logger name=&quot;org.codemonkey.simplejavamail.internal.socks&quot;&gt;
+        &lt;level value=&quot;warn&quot;/&gt;
+    &lt;/logger&gt;
+    &lt;logger name=&quot;org.codemonkey.simplejavamail&quot;&gt;
+        &lt;level value=&quot;trace&quot;/&gt;
+        &lt;appender-ref ref=&quot;console&quot;/&gt;
+    &lt;/logger&gt;
+
+&lt;/log4j:configuration&gt;
+</code></pre>
+    </div>
+  </section>
+
+  <a href="#section-log4j2" id="section-log4j2" class="section-link h3">&sect;</a>
+  <h3>Example with log4j2</h3>
+
+  <section>
+    <div class="view">
+      <p>
+        Here's an example configuration for <a href="http://logging.apache.org/log4j/2.x/">log4j2</a>, make sure you have the
+        log4j-slf4j-impl
+        impl included on the classpath as well as log4j2 itself and the log4j2.xml with the config.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code class="language-markup small">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;configuration status=&quot;OFF&quot;&gt;
+    &lt;appenders&gt;
+        &lt;Console name=&quot;console&quot; target=&quot;SYSTEM_OUT&quot;&gt;
+            &lt;PatternLayout pattern=&quot;%d{HH:mm:ss} [%t] %-5level %c{1} - %msg%n&quot; /&gt;
+        &lt;/Console&gt;
+        &lt;Console name=&quot;simpleConsole&quot; target=&quot;SYSTEM_OUT&quot;&gt;
+            &lt;PatternLayout pattern=&quot;%d Simple Java Mail SOCKS5 bridge - %level %m%n&quot; /&gt;
+        &lt;/Console&gt;
+    &lt;/appenders&gt;
+    &lt;Loggers&gt;
+        &lt;Logger name=&quot;socks5bridge&quot; level=&quot;info&quot; additivity=&quot;false&quot;&gt;
+            &lt;AppenderRef ref=&quot;simpleConsole&quot; /&gt;
+        &lt;/Logger&gt;
+        &lt;Logger name=&quot;org.codemonkey.simplejavamail&quot; level=&quot;trace&quot;/&gt;
+        &lt;Logger name=&quot;org.codemonkey.simplejavamail.internal.socks&quot; level=&quot;warn&quot;/&gt;
+
+        &lt;Root level=&quot;warn&quot;&gt;
+            &lt;AppenderRef ref=&quot;console&quot; /&gt;
+        &lt;/Root&gt;
+    &lt;/Loggers&gt;
+&lt;/configuration&gt;
+</code></pre>
+    </div>
+  </section>
+
+  <a href="#section-logback" id="section-logback" class="section-link h3">&sect;</a>
+  <h3>Example with logback</h3>
+
+  <section>
+    <div class="view">
+      <p>
+        Here's an example configuration for <a href="http://logback.qos.ch/">logback</a>, make sure you have the
+        logback-classic included on the classpath as well as logback-core and the logback.xml with the config.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code class="language-markup small">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;configuration&gt;
+    &lt;appender name=&quot;console&quot; class=&quot;ch.qos.logback.core.ConsoleAppender&quot;&gt;
+        &lt;encoder&gt;
+            &lt;pattern&gt;%d{HH:mm:ss.SSS} [%thread] %-5level %c{1} - %msg%n&lt;/pattern&gt;
+        &lt;/encoder&gt;
+    &lt;/appender&gt;
+    &lt;appender name=&quot;simpleConsole&quot; class=&quot;ch.qos.logback.core.ConsoleAppender&quot;&gt;
+        &lt;encoder&gt;
+            &lt;pattern&gt;%d Simple Java Mail SOCKS5 bridge - %level %m%n&lt;/pattern&gt;
+        &lt;/encoder&gt;
+    &lt;/appender&gt;
+
+    &lt;logger name=&quot;socks5bridge&quot; level=&quot;INFO&quot; additivity=&quot;false&quot;&gt;
+        &lt;appender-ref ref=&quot;simpleConsole&quot; /&gt;
+    &lt;/logger&gt;
+    &lt;logger name=&quot;org.codemonkey.simplejavamail&quot; level=&quot;TRACE&quot;/&gt;
+    &lt;logger name=&quot;org.codemonkey.simplejavamail.internal.socks&quot; level=&quot;WARN&quot;/&gt;
+
+    &lt;root level=&quot;WARN&quot;&gt;
+        &lt;appender-ref ref=&quot;console&quot; /&gt;
+    &lt;/root&gt;
+&lt;/configuration&gt;
+</code></pre>
+    </div>
+  </section>
+
 </div>
