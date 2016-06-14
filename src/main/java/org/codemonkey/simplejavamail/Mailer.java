@@ -75,6 +75,7 @@ import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC
  * @see Mailer.MimeEmailMessageWrapper
  * @see Email
  */
+@SuppressWarnings("WeakerAccess")
 public class Mailer {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Mailer.class);
@@ -130,6 +131,7 @@ public class Mailer {
 	 * @param session     A preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 * @param proxyConfig Remote proxy server details, if the connection should be run through a SOCKS proxy.
 	 */
+	@SuppressWarnings("SameParameterValue")
 	public Mailer(final Session session, ProxyConfig proxyConfig) {
 		this.session = session;
 		configureSessionWithProxy(proxyConfig, session.getProperties(), findStrategyForSession(session));
@@ -387,9 +389,9 @@ public class Mailer {
 				}
 			}
 		} catch (final UnsupportedEncodingException e) {
-			throw new MailException(format(MailException.INVALID_ENCODING, e.getMessage()));
+			throw new MailException(MailException.INVALID_ENCODING, e);
 		} catch (final MessagingException e) {
-			throw new MailException(format(MailException.GENERIC_ERROR, e.getMessage()), e);
+			throw new MailException(MailException.GENERIC_ERROR, e);
 		}
 	}
 

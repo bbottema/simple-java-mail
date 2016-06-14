@@ -23,6 +23,7 @@ public class ProxyConfig {
 	 * The temporary intermediary SOCKS5 relay server bridge is a server that sits in between JavaMail and the remote proxy. Default port is
 	 * {@value #DEFAULT_PROXY_BRIDGE_PORT}.
 	 */
+	@SuppressWarnings("JavaDoc")
 	private static final int DEFAULT_PROXY_BRIDGE_PORT = 1081;
 
 	private int proxyBridgePort = DEFAULT_PROXY_BRIDGE_PORT;
@@ -59,6 +60,7 @@ public class ProxyConfig {
 	 * @param username        Username is mandatory when authentication is required.
 	 * @param password        Password is mandatory when authentication is required.
 	 */
+	@SuppressWarnings({ "WeakerAccess", "SameParameterValue" })
 	public ProxyConfig(String remoteProxyHost, int remoteProxyPort, String username, String password) {
 		this.remoteProxyHost = checkNotNull(remoteProxyHost, "remoteProxyHost missing");
 		this.remoteProxyPort = checkNotNull(remoteProxyPort, "remoteProxyPort missing");

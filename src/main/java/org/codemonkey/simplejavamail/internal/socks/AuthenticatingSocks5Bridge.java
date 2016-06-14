@@ -24,7 +24,7 @@ public class AuthenticatingSocks5Bridge implements Socks5Bridge {
 	}
 
 	/**
-	 * Please refer to {@link #connect(String, InetAddress, int)}.
+	 * Refer to {@link Socks5Bridge#connect(String, InetAddress, int)}.
 	 */
 	@Override
 	public Socket connect(String sessionId, InetAddress remoteServerAddress, int remoteServerPort)
@@ -50,6 +50,7 @@ public class AuthenticatingSocks5Bridge implements Socks5Bridge {
 		return new SocksSocket(socksProxyAnonymous, new InetSocketAddress(remoteServerAddress, remoteServerPort));
 	}
 
+	@SuppressWarnings("unused")
 	private Socket createSocketSSLAuthenticated(String sessionId, InetAddress remoteServerAddress, int remoteServerPort)
 			throws IOException {
 		LOGGER.info("SESSION[{}] bridging with SSL to remote proxy {}", sessionId, proxyConfig);
@@ -59,6 +60,7 @@ public class AuthenticatingSocks5Bridge implements Socks5Bridge {
 		return new SocksSocket(socksProxySSLAuth, new InetSocketAddress(remoteServerAddress, remoteServerPort));
 	}
 
+	@SuppressWarnings("unused")
 	private Socket createSocketSSL(String sessionId, InetAddress remoteServerAddress, int remoteServerPort)
 			throws IOException {
 		LOGGER.info("SESSION[{}] bridging with SSL anonymously to remote proxy {}:{}", sessionId, proxyConfig.getRemoteProxyHost(),

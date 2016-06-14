@@ -12,6 +12,7 @@ import java.util.Properties;
 
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
+@SuppressWarnings("unused")
 public class MailerTest {
 
 	@Test

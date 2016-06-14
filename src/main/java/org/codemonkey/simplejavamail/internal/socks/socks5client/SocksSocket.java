@@ -57,6 +57,7 @@ public class SocksSocket extends Socket {
 		this.proxy.requestConnect(socketAddress.getAddress(), socketAddress.getPort());
 	}
 
+	@SuppressWarnings("WeakerAccess")
 	public SocksSocket(Socks5 proxy)
 			throws IOException {
 		this(proxy, proxy.createProxySocket());
@@ -68,6 +69,7 @@ public class SocksSocket extends Socket {
 		connect(socketAddress);
 	}
 
+	@SuppressWarnings("WeakerAccess")
 	public SocksSocket(Socks5 proxy, Socket proxySocket) {
 		Util.checkNotNull(proxy, "Argument [proxy] may not be null");
 		Util.checkNotNull(proxySocket, "Argument [proxySocket] may not be null");
