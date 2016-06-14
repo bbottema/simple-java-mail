@@ -1,9 +1,9 @@
 package demo;
 
-import org.codemonkey.simplejavamail.Mailer;
-import org.codemonkey.simplejavamail.ServerConfig;
-import org.codemonkey.simplejavamail.TransportStrategy;
-import org.codemonkey.simplejavamail.email.Email;
+import org.simplejavamail.Mailer;
+import org.simplejavamail.ServerConfig;
+import org.simplejavamail.TransportStrategy;
+import org.simplejavamail.email.Email;
 
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
