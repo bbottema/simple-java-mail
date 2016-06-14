@@ -3,7 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.codemonkey.simplejavamail</groupId>
+    <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail</name>
@@ -50,6 +50,7 @@
             <artifactId>slf4j-api</artifactId>
             <version>1.7.21</version>
         </dependency>
+        <!-- exclude the below logging dependencies if you want to switch implementations -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId><!-- or log4j2 or logback or whatever-->
