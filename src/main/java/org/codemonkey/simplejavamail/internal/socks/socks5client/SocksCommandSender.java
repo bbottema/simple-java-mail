@@ -2,8 +2,8 @@
 
 package org.codemonkey.simplejavamail.internal.socks.socks5client;
 
-import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
 import org.codemonkey.simplejavamail.internal.Util;
+import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +15,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.charset.StandardCharsets;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 

@@ -1,6 +1,7 @@
 package org.codemonkey.simplejavamail.internal.socks.socks5server;
 
 import org.codemonkey.simplejavamail.internal.socks.common.Socks5Bridge;
+import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +31,7 @@ public class AnonymousSocks5Server implements Runnable {
 		try {
 			serverSocket = new ServerSocket(proxyBridgePort);
 		} catch (IOException e) {
-			throw new RuntimeException(e.getMessage(), e);
+			throw new SocksException(e.getMessage(), e);
 		}
 	}
 
@@ -43,7 +44,7 @@ public class AnonymousSocks5Server implements Runnable {
 		try {
 			serverSocket.close();
 		} catch (IOException e) {
-			throw new RuntimeException(e.getMessage(), e);
+			throw new SocksException(e.getMessage(), e);
 		}
 	}
 
@@ -60,7 +61,7 @@ public class AnonymousSocks5Server implements Runnable {
 				if (e.getMessage().equals("socket closed")) {
 					LOGGER.debug("socket closed");
 				} else {
-					throw new RuntimeException("server crashed...", e);
+					throw new SocksException("server crashed...", e);
 				}
 			}
 		}

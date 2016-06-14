@@ -1,6 +1,7 @@
 package org.codemonkey.simplejavamail.internal.socks.socks5server;
 
 import org.codemonkey.simplejavamail.internal.socks.common.Socks5Bridge;
+import org.codemonkey.simplejavamail.internal.socks.common.SocksException;
 import org.codemonkey.simplejavamail.internal.socks.socks5server.io.SocketPipe;
 import org.codemonkey.simplejavamail.internal.socks.socks5server.msg.CommandMessage;
 import org.codemonkey.simplejavamail.internal.socks.socks5server.msg.CommandResponseMessage;
@@ -45,7 +46,7 @@ public class Socks5Handler implements Runnable {
 	private void handle(SocksSession session, Socks5Bridge socks5Bridge)
 			throws IOException {
 		if (MethodSelectionMessage.readVersion(session.getInputStream()) != VERSION) {
-			throw new RuntimeException("Protocol error");
+			throw new SocksException("Protocol error");
 		}
 
 		LOGGER.debug("SESSION[{}]", session.getId());
@@ -64,7 +65,7 @@ public class Socks5Handler implements Runnable {
 		}
 
 		if (commandMessage.getCommand() != CONNECT_COMMAND) {
-			throw new RuntimeException("Only CONNECT command is supported");
+			throw new SocksException("Only CONNECT command is supported");
 		}
 		doConnect(session, commandMessage, socks5Bridge);
 	}
