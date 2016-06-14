@@ -8,12 +8,12 @@ http://www.simple-java-mail.org
 
 RELEASE NOTES Java Simple Mail
 
-v4.0.0 (unrelease)
+v4.0.0 (unreleased)
 
-- added support for config files
-- switched to log4j2 including default config
-- added support for anonymous proxy through JavaMail's own API
-- added support for authenticated proxy through Simple Java Mail's proxy bridge
+- #42: added support for config files
+- #43: switched to log4j2 including default config
+- #38: added support for anonymous proxy through JavaMail's own API
+- #38: added support for authenticated proxy through Simple Java Mail's proxy bridge
 
 
 v3.1.1

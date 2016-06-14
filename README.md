@@ -42,6 +42,14 @@ Simple Java Mail is available in Maven Central:
 
 ### Latest Progress ###
 
+v4.0.0 (unreleased)
+
+- [#42](https://github.com/bbottema/simple-java-mail/issues/42): added support for config files
+- [#43](https://github.com/bbottema/simple-java-mail/issues/43): switched to log4j2 including default config
+- [#38](https://github.com/bbottema/simple-java-mail/issues/38): added support for anonymous proxy through JavaMail's own API
+- [#38](https://github.com/bbottema/simple-java-mail/issues/38): added support for authenticated proxy through Simple Java Mail's proxy 
+
+
 v3.1.1
 
 Major feature: DKIM support!
