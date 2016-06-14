@@ -12,6 +12,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 class SocksAuthenticationHelper {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocksAuthenticationHelper.class);
 
@@ -67,10 +69,10 @@ class SocksAuthenticationHelper {
 		InputStream inputStream = socksProxy.getInputStream();
 		OutputStream outputStream = socksProxy.getOutputStream();
 
-		final int USERNAME_LENGTH = username.getBytes().length;
-		final int PASSWORD_LENGTH = password.getBytes().length;
-		final byte[] bytesOfUsername = username.getBytes();
-		final byte[] bytesOfPassword = password.getBytes();
+		final int USERNAME_LENGTH = username.getBytes(UTF_8).length;
+		final int PASSWORD_LENGTH = password.getBytes(UTF_8).length;
+		final byte[] bytesOfUsername = username.getBytes(UTF_8);
+		final byte[] bytesOfPassword = password.getBytes(UTF_8);
 		final byte[] bufferSent = new byte[3 + USERNAME_LENGTH + PASSWORD_LENGTH];
 
 		bufferSent[0] = 0x01; // VER
@@ -84,8 +86,7 @@ class SocksAuthenticationHelper {
 		LOGGER.debug("{}", Util.buildLogString(bufferSent, false));
 
 		byte[] authenticationResult = new byte[2];
-		//noinspection ResultOfMethodCallIgnored
-		inputStream.read(authenticationResult);
+		checkEnd(inputStream.read(authenticationResult));
 		// logger
 		LOGGER.debug("{}", Util.buildLogString(authenticationResult, true));
 

@@ -12,6 +12,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.codemonkey.simplejavamail.internal.socks.socks5server.StreamUtil.checkEnd;
 
 public class CommandMessage {
@@ -53,7 +54,7 @@ public class CommandMessage {
 					throw new SocksException("Length of domain must great than 0");
 				}
 				byte[] domainBytes = read(inputStream, domainLength);
-				String host = new String(domainBytes, StandardCharsets.UTF_8);
+				String host = new String(domainBytes, UTF_8);
 				try {
 					inetAddress = InetAddress.getByName(host);
 				} catch (UnknownHostException e) {

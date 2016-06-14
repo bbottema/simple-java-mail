@@ -9,7 +9,7 @@ import java.net.*;
 
 public class Socks5 {
 
-	private final int SOCKS_DEFAULT_PORT = 1080;
+	private static final int SOCKS_DEFAULT_PORT = 1080;
 
 	public static final byte AUTHENTICATION_SUCCEEDED = 0x00;
 

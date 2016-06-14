@@ -15,6 +15,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.nio.charset.StandardCharsets;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 class SocksCommandSender {
 
@@ -86,7 +89,7 @@ class SocksCommandSender {
 			throws IOException {
 		final InputStream inputStream = socket.getInputStream();
 		final OutputStream outputStream = socket.getOutputStream();
-		final int lengthOfHost = host.getBytes().length;
+		final int lengthOfHost = host.getBytes(UTF_8).length;
 		final byte[] bufferSent = new byte[7 + lengthOfHost];
 
 		bufferSent[0] = SOCKS_VERSION;
@@ -94,7 +97,7 @@ class SocksCommandSender {
 		bufferSent[2] = RESERVED;
 		bufferSent[3] = ATYPE_DOMAINNAME;
 		bufferSent[4] = (byte) lengthOfHost;
-		byte[] bytesOfHost = host.getBytes();
+		byte[] bytesOfHost = host.getBytes(UTF_8);
 		System.arraycopy(bytesOfHost, 0, bufferSent, 5, lengthOfHost);// copy host bytes.
 		bufferSent[5 + host.length()] = (byte) ((port & 0xff00) >> 8);
 		bufferSent[6 + host.length()] = (byte) (port & 0xff);
@@ -162,12 +165,12 @@ class SocksCommandSender {
 			System.arraycopy(receivedData, 4, addressBytes, 0, size);
 			portBytes[0] = receivedData[4 + size];
 			portBytes[1] = receivedData[5 + size];
-			LOGGER.debug("Server replied:Address as host:{}, port:{}", new String(addressBytes),
+			LOGGER.debug("Server replied:Address as host:{}, port:{}", new String(addressBytes, UTF_8),
 					(Util.toInt(portBytes[0]) << 8) | (Util.toInt(portBytes[1])));
 		} else if (receivedData[3] == ADDRESS_TYPE_IPV6) {
 			addressBytes = new byte[16];
 			System.arraycopy(receivedData, 4, addressBytes, 0, addressBytes.length);
-			LOGGER.debug("Server replied:Address as IPv6:{}", new String(addressBytes));
+			LOGGER.debug("Server replied:Address as IPv6:{}", new String(addressBytes, UTF_8));
 		}
 
 		final byte serverReply = receivedData[1];

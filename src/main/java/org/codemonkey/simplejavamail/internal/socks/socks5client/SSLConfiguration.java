@@ -12,6 +12,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.security.KeyStore;
 
 public class SSLConfiguration {
@@ -30,18 +31,20 @@ public class SSLConfiguration {
 	public SSLSocketFactory getSSLSocketFactory()
 			throws SocksException {
 		Util.checkNotNull(trustKeyStoreInfo, "trustKeyStoreInfo may not be null");
-		KeyStore keyStore = null;
+		FileInputStream s1 = null;
+		FileInputStream s2 = null;
 		try {
 			SSLContext context = SSLContext.getInstance("SSL");
 			TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
 			KeyStore trustKeyStore = KeyStore.getInstance(trustKeyStoreInfo.getType());
-			trustKeyStore.load(new FileInputStream(trustKeyStoreInfo.getKeyStorePath()), trustKeyStoreInfo.getPassword().toCharArray());
+			trustKeyStore.load(s1 = new FileInputStream(trustKeyStoreInfo.getKeyStorePath()), trustKeyStoreInfo.getPassword().toCharArray());
 			trustManagerFactory.init(trustKeyStore);
+			KeyStore keyStore = null;
 
 			if (keyStoreInfo != null && keyStoreInfo.getKeyStorePath() != null) {
 				KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
 				keyStore = KeyStore.getInstance(keyStoreInfo.getType());
-				keyStore.load(new FileInputStream(keyStoreInfo.getKeyStorePath()), keyStoreInfo.getPassword().toCharArray());
+				keyStore.load(s2 = new FileInputStream(keyStoreInfo.getKeyStorePath()), keyStoreInfo.getPassword().toCharArray());
 				keyManagerFactory.init(keyStore, keyStoreInfo.getPassword().toCharArray());
 
 				context.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
@@ -57,6 +60,19 @@ public class SSLConfiguration {
 		} catch (Exception e) {
 			LOGGER.error(e.getMessage(), e);
 			throw new SocksException(e.getMessage());
+		} finally {
+			tryCloseStream(s1);
+			tryCloseStream(s2);
+		}
+	}
+
+	private void tryCloseStream(FileInputStream s1) {
+		if (s1 != null) {
+			try {
+				s1.close();
+			} catch (IOException e) {
+				LOGGER.error("unable to close stream", e);
+			}
 		}
 	}
 
