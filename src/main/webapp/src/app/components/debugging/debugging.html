@@ -118,16 +118,17 @@ try {
         &lt;/layout&gt;
     &lt;/appender&gt;
 
+    &lt;logger name=&quot;org.codemonkey.simplejavamail&quot;&gt;
+        &lt;level value=&quot;trace&quot;/&gt;
+        &lt;appender-ref ref=&quot;console&quot;/&gt;
+    &lt;/logger
+    &lt;!-- in case you&#39;re using authenticated proxy --&gt;
     &lt;logger name=&quot;socks5bridge&quot; additivity=&quot;false&quot;&gt;
         &lt;level value=&quot;info&quot;/&gt;
         &lt;appender-ref ref=&quot;simpleConsole&quot;/&gt;
     &lt;/logger&gt;
     &lt;logger name=&quot;org.codemonkey.simplejavamail.internal.socks&quot;&gt;
         &lt;level value=&quot;warn&quot;/&gt;
-    &lt;/logger&gt;
-    &lt;logger name=&quot;org.codemonkey.simplejavamail&quot;&gt;
-        &lt;level value=&quot;trace&quot;/&gt;
-        &lt;appender-ref ref=&quot;console&quot;/&gt;
     &lt;/logger&gt;
 
 &lt;/log4j:configuration&gt;
@@ -159,10 +160,11 @@ try {
         &lt;/Console&gt;
     &lt;/appenders&gt;
     &lt;Loggers&gt;
+        &lt;Logger name=&quot;org.codemonkey.simplejavamail&quot; level=&quot;trace&quot;/&gt;
+        &lt;!-- in case you&#39;re using authenticated proxy --&gt;
         &lt;Logger name=&quot;socks5bridge&quot; level=&quot;info&quot; additivity=&quot;false&quot;&gt;
             &lt;AppenderRef ref=&quot;simpleConsole&quot; /&gt;
         &lt;/Logger&gt;
-        &lt;Logger name=&quot;org.codemonkey.simplejavamail&quot; level=&quot;trace&quot;/&gt;
         &lt;Logger name=&quot;org.codemonkey.simplejavamail.internal.socks&quot; level=&quot;warn&quot;/&gt;
 
         &lt;Root level=&quot;warn&quot;&gt;
@@ -199,10 +201,11 @@ try {
         &lt;/encoder&gt;
     &lt;/appender&gt;
 
+    &lt;logger name=&quot;org.codemonkey.simplejavamail&quot; level=&quot;TRACE&quot;/&gt;
+    &lt;!-- in case you&#39;re using authenticated proxy --&gt;
     &lt;logger name=&quot;socks5bridge&quot; level=&quot;INFO&quot; additivity=&quot;false&quot;&gt;
         &lt;appender-ref ref=&quot;simpleConsole&quot; /&gt;
     &lt;/logger&gt;
-    &lt;logger name=&quot;org.codemonkey.simplejavamail&quot; level=&quot;TRACE&quot;/&gt;
     &lt;logger name=&quot;org.codemonkey.simplejavamail.internal.socks&quot; level=&quot;WARN&quot;/&gt;
 
     &lt;root level=&quot;WARN&quot;&gt;
