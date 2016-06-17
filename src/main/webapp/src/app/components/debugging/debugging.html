@@ -20,7 +20,8 @@
   <section>
     <div class="view">
       <p>
-        By default javax.mail's debug logging is turned off, but you can turn it on for more diagnostic info. All this does is enabling debug mode on
+        By default javax.mail's debug logging is turned off, but you can turn it on for more diagnostic info. All this
+        does is enabling debug mode on
         the internal Session instance.
       </p>
     </div>
@@ -46,7 +47,8 @@ Mailer mailer = new Mailer(yourSession);
   <section>
     <div class="view">
       <p>
-        Simple Java Mail throws a <code class="inline">MailException</code> if something goes wrong and logs these by default using SLF4J. This
+        Simple Java Mail throws a <code class="inline">MailException</code> if something goes wrong and logs these by
+        default using SLF4J. This
         includes checked exceptions thrown by underlying frameworks. An exception might be thrown when:
       </p>
       <ol>
@@ -74,18 +76,21 @@ try {
   <section>
     <div class="view">
       <p>
-        Simple Java Mail uses <a href="http://www.slf4j.org/">SLF4J</a> to log, which means you can use any logging framework you like that supports
-        it. Also read this excellent summary of <a href="http://learnjava-soa.blogspot.nl/2015/06/slf4j-with-log4j2-example.html">how to configure
+        Simple Java Mail uses <a href="http://www.slf4j.org/">SLF4J</a> to log, which means you can use any logging
+        framework you like that supports
+        it. Also read this excellent summary of <a
+        href="http://learnjava-soa.blogspot.nl/2015/06/slf4j-with-log4j2-example.html">how to configure
         slf4j with log4j2</a>.
       </p>
       <p>
-        There are three parts of Simple Java Mail that may produce logging: "org.codemonkey.simplejavamail", "socks5bridge" and
+        There are three parts of Simple Java Mail that may produce logging: "org.codemonkey.simplejavamail",
+        "socks5bridge" and
         "org.codemonkey.simplejavamail.internal.socks". The latter two are for the proxy bridge that is used for
         <a [routerLink]="['/proxy']" simplePageScroll href="#navigation">authenticated proxy connections</a>.
       </p>
       <p>
-        When using maven, Simple Java Mail defaults to log4j2, but you can easily exclude this in your own pom and switch to something else. Below are
-        some examples.
+        When using maven, Simple Java Mail provides some default XML configuration for log4j2, but you can easily
+        switch to something else. Below are some examples.
       </p>
     </div>
   </section>
@@ -96,7 +101,8 @@ try {
   <section>
     <div class="view">
       <p>
-        Here's an example configuration for <a href="http://logging.apache.org/log4j/2.x/index.html">log4j12</a>, make sure you have the
+        Here's an example configuration for <a href="http://logging.apache.org/log4j/2.x/index.html">log4j12</a>, make
+        sure you have the
         slf4j-to-log4j
         impl included on the classpath as well as log4j12 itself and the log4j.xml with the config.
       </p>
@@ -142,7 +148,8 @@ try {
   <section>
     <div class="view">
       <p>
-        Here's an example configuration for <a href="http://logging.apache.org/log4j/2.x/">log4j2</a>, make sure you have the
+        Here's an example configuration for <a href="http://logging.apache.org/log4j/2.x/">log4j2</a>, make sure you
+        have the
         log4j-slf4j-impl
         impl included on the classpath as well as log4j2 itself and the log4j2.xml with the config.
       </p>
