@@ -362,6 +362,7 @@ public class Mailer {
 	}
 
 	private void sendMailClosure(Email email) {
+		LOGGER.trace("sending email...");
 		try {
 			// fill and send wrapped mime message parts
 			MimeMessage message = produceMimeMessage(email, session);
@@ -374,17 +375,20 @@ public class Mailer {
 
 			try {
 				if (proxyServer != null) {
+					LOGGER.trace("starting proxy bridge");
 					proxyServer.start();
 				}
 				try {
-				transport.connect();
-				transport.sendMessage(message, message.getAllRecipients());
-			} finally {
+					transport.connect();
+					transport.sendMessage(message, message.getAllRecipients());
+				} finally {
+					LOGGER.trace("closing transport");
 					//noinspection ThrowFromFinallyBlock
-				transport.close();
-			}
+					transport.close();
+				}
 			} finally {
 				if (proxyServer != null) {
+					LOGGER.trace("stopping proxy bridge");
 					proxyServer.stop();
 				}
 			}

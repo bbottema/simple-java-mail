@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--suppress XmlUnboundNsPrefix -->
-<configuration status="OFF">
+<configuration status="INFO">
     <appenders>
         <Console name="console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss} [%t] %-5level %c{1} - %msg%n" />
@@ -17,7 +17,7 @@
         </Logger>
         <Logger name="org.codemonkey.simplejavamail.internal.socks" level="warn"/>
 
-        <Root level="warn">
+        <Root level="debug">
             <AppenderRef ref="console" />
         </Root>
     </Loggers>
