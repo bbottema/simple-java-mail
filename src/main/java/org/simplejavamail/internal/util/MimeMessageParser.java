@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.simplejavamail.util;
+package org.simplejavamail.internal.util;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;

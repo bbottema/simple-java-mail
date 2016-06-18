@@ -1,28 +1,32 @@
 package org.simplejavamail;
 
-import org.simplejavamail.internal.Util;
+import org.simplejavamail.internal.util.ConfigLoader;
+import org.simplejavamail.internal.util.MiscUtil;
 
 import static java.lang.String.format;
+import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
+import static org.simplejavamail.internal.util.ConfigLoader.getProperty;
+import static org.simplejavamail.internal.util.ConfigLoader.hasProperty;
 
 /**
  * The proxy configuration that indicates whether the connections should be routed through a proxy.
  * <p>
  * In case a proxy is required, the properties <em>"mail.smtp.socks.host"</em> and <em>"mail.smtp.socks.port"</em> will be set.
  * <p>
- * As the underlying JavaMail framework only support anonymous SOCKS proxy servers for non-ssl connections, authenticated SOCKS5 proxy is
- * made possible using an intermediary anonymous proxy server which relays the connection through an authenticated remote proxy server.
- * Anonymous proxies are still handled by JavaMail's own time-tested proxy client implementation.
+ * As the underlying JavaMail framework only support anonymous SOCKS proxy servers for non-ssl connections, authenticated SOCKS5 proxy is made possible using an
+ * intermediary anonymous proxy server which relays the connection through an authenticated remote proxy server. Anonymous proxies are still handled by
+ * JavaMail's own time-tested proxy client implementation.
  * <p>
- * Attempting to use a proxy and SSL SMTP authentication will result in an error, as the underlying JavaMail framework ignores any proxy
- * settings for SSL connections.
+ * Attempting to use a proxy and SSL SMTP authentication will result in an error, as the underlying JavaMail framework ignores any proxy settings for SSL
+ * connections.
  */
 public class ProxyConfig {
 
-	static final ProxyConfig SKIP_PROXY_CONFIG = new ProxyConfig();
+	public static final ProxyConfig SKIP_PROXY_CONFIG = new ProxyConfig(true);
 
 	/**
-	 * The temporary intermediary SOCKS5 relay server bridge is a server that sits in between JavaMail and the remote proxy. Default port is
-	 * {@value #DEFAULT_PROXY_BRIDGE_PORT}.
+	 * The temporary intermediary SOCKS5 relay server bridge is a server that sits in between JavaMail and the remote proxy. Default port is {@value
+	 * #DEFAULT_PROXY_BRIDGE_PORT}.
 	 */
 	@SuppressWarnings("JavaDoc")
 	private static final int DEFAULT_PROXY_BRIDGE_PORT = 1081;
@@ -36,11 +40,15 @@ public class ProxyConfig {
 	/**
 	 * 'Skip proxy' constructor.
 	 */
-	private ProxyConfig() {
-		remoteProxyHost = null;
-		remoteProxyPort = -1;
-		username = null;
-		password = null;
+	private ProxyConfig(boolean ignoreConfig) {
+		boolean useConfigProxyHost = !ignoreConfig && hasProperty(PROXY_HOST);
+		boolean useConfigProxyPort = !ignoreConfig && hasProperty(PROXY_PORT);
+		boolean useConfigProxyUsername = !ignoreConfig && hasProperty(PROXY_USERNAME);
+		boolean useConfigProxyPassword = !ignoreConfig && hasProperty(PROXY_PASSWORD);
+		remoteProxyHost = useConfigProxyHost ? (String) getProperty(PROXY_HOST) : null;
+		remoteProxyPort = useConfigProxyPort ? (Integer) getProperty(PROXY_PORT) : -1;
+		username = useConfigProxyUsername ? (String) getProperty(PROXY_USERNAME) : null;
+		password = useConfigProxyPassword ? (String) getProperty(PROXY_PASSWORD) : null;
 	}
 
 	/**
@@ -63,8 +71,8 @@ public class ProxyConfig {
 	 */
 	@SuppressWarnings({ "WeakerAccess", "SameParameterValue" })
 	public ProxyConfig(String remoteProxyHost, int remoteProxyPort, String username, String password) {
-		this.remoteProxyHost = Util.checkNotNull(remoteProxyHost, "remoteProxyHost missing");
-		this.remoteProxyPort = Util.checkNotNull(remoteProxyPort, "remoteProxyPort missing");
+		this.remoteProxyHost = MiscUtil.checkNotNull(remoteProxyHost, "remoteProxyHost missing");
+		this.remoteProxyPort = MiscUtil.checkNotNull(remoteProxyPort, "remoteProxyPort missing");
 		this.username = username;
 		this.password = password;
 		if (username != null && password == null) {
@@ -100,8 +108,7 @@ public class ProxyConfig {
 	}
 
 	/**
-	 * @param proxyBridgePort Port override for the temporary intermediary SOCKS5 relay server bridge (default is {@value
-	 *                        #DEFAULT_PROXY_BRIDGE_PORT}).
+	 * @param proxyBridgePort Port override for the temporary intermediary SOCKS5 relay server bridge (default is {@value #DEFAULT_PROXY_BRIDGE_PORT}).
 	 */
 	public void setProxyBridgePort(int proxyBridgePort) {
 		this.proxyBridgePort = proxyBridgePort;

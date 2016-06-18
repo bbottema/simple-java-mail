@@ -1,6 +1,7 @@
 package org.simplejavamail.email;
 
-import org.simplejavamail.util.MimeMessageParser;
+import org.simplejavamail.internal.util.ConfigLoader;
+import org.simplejavamail.internal.util.MimeMessageParser;
 
 import javax.activation.DataSource;
 import javax.mail.Message.RecipientType;
@@ -12,6 +13,9 @@ import java.io.*;
 import java.util.*;
 
 import static java.lang.String.format;
+import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
+import static org.simplejavamail.internal.util.ConfigLoader.getProperty;
+import static org.simplejavamail.internal.util.ConfigLoader.hasProperty;
 
 /**
  * Email message with all necessary data for an effective mailing action, including attachments etc.
@@ -73,13 +77,29 @@ public class Email {
 	private String selector;
 
 	/**
-	 * Constructor, creates all internal lists.
+	 * Constructor, creates all internal lists. Populates default from, reply-to, to, cc and bcc if provided in the config file.
 	 */
 	public Email() {
 		recipients = new ArrayList<>();
 		embeddedImages = new ArrayList<>();
 		attachments = new ArrayList<>();
 		headers = new HashMap<>();
+
+		if (hasProperty(DEFAULT_FROM_ADDRESS)) {
+			setFromAddress((String) getProperty(DEFAULT_FROM_NAME), (String) getProperty(DEFAULT_FROM_ADDRESS));
+		}
+		if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
+			setReplyToAddress((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
+		}
+		if (hasProperty(DEFAULT_TO_ADDRESS)) {
+			addRecipient((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
+		}
+		if (hasProperty(DEFAULT_CC_ADDRESS)) {
+			addRecipient((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
+		}
+		if (hasProperty(DEFAULT_BCC_ADDRESS)) {
+			addRecipient((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
+		}
 	}
 
 	/**
@@ -219,7 +239,6 @@ public class Email {
 
 	/**
 	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
-	 * <p>
 	 * example: <code>email.addHeader("X-Priority", 2)</code>
 	 *
 	 * @param name  The name of the header.
@@ -439,6 +458,22 @@ public class Email {
 			embeddedImages = new ArrayList<>();
 			attachments = new ArrayList<>();
 			headers = new HashMap<>();
+
+			if (hasProperty(DEFAULT_FROM_ADDRESS)) {
+				from((String) getProperty(DEFAULT_FROM_NAME), (String) getProperty(DEFAULT_FROM_ADDRESS));
+			}
+			if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
+				replyTo((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
+			}
+			if (hasProperty(DEFAULT_TO_ADDRESS)) {
+				to((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS));
+			}
+			if (hasProperty(DEFAULT_CC_ADDRESS)) {
+				cc((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS));
+			}
+			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
+				bcc((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS));
+			}
 		}
 
 		/**
@@ -598,7 +633,6 @@ public class Email {
 
 		/**
 		 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
-		 * <p>
 		 * example: <code>email.addHeader("X-Priority", 2)</code>
 		 *
 		 * @param name  The name of the header.

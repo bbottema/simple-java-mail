@@ -1,8 +1,8 @@
-package org.simplejavamail.internal;
+package org.simplejavamail.internal.util;
 
 import static java.lang.Integer.toHexString;
 
-public class Util {
+public class MiscUtil {
 
 	public static <T> T checkNotNull(T value, String msg) {
 		if (value == null) {

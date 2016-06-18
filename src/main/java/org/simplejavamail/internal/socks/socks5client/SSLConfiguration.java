@@ -3,7 +3,7 @@
 package org.simplejavamail.internal.socks.socks5client;
 
 import org.simplejavamail.internal.socks.common.SocksException;
-import org.simplejavamail.internal.Util;
+import org.simplejavamail.internal.util.MiscUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +30,7 @@ public class SSLConfiguration {
 
 	public SSLSocketFactory getSSLSocketFactory()
 			throws SocksException {
-		Util.checkNotNull(trustKeyStoreInfo, "trustKeyStoreInfo may not be null");
+		MiscUtil.checkNotNull(trustKeyStoreInfo, "trustKeyStoreInfo may not be null");
 		FileInputStream s1 = null;
 		FileInputStream s2 = null;
 		try {

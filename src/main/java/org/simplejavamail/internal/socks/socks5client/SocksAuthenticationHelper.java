@@ -3,7 +3,7 @@
 package org.simplejavamail.internal.socks.socks5client;
 
 import org.simplejavamail.internal.socks.common.SocksException;
-import org.simplejavamail.internal.Util;
+import org.simplejavamail.internal.util.MiscUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,12 +40,12 @@ class SocksAuthenticationHelper {
 		outputStream.write(bufferSent);
 		outputStream.flush();
 
-		LOGGER.debug("{}", Util.buildLogString(bufferSent, false));
+		LOGGER.debug("{}", MiscUtil.buildLogString(bufferSent, false));
 
 		// Received data.
 		InputStream inputStream = socket.getInputStream();
 		byte[] receivedData = read2Bytes(inputStream);
-		LOGGER.debug("{}", Util.buildLogString(receivedData, true));
+		LOGGER.debug("{}", MiscUtil.buildLogString(receivedData, true));
 		if (receivedData[0] != (int) SOCKS_VERSION) {
 			throw new SocksException("Remote server don't support SOCKS5");
 		}
@@ -58,7 +58,7 @@ class SocksAuthenticationHelper {
 
 	public static void performUserPasswordAuthentication(Socks5 socksProxy)
 			throws IOException {
-		Util.checkNotNull(socksProxy, "Argument [socksProxy] may not be null");
+		MiscUtil.checkNotNull(socksProxy, "Argument [socksProxy] may not be null");
 		ProxyCredentials credentials = socksProxy.getCredentials();
 		if (credentials == null) {
 			throw new SocksException("Need Username/Password authentication");
@@ -83,12 +83,12 @@ class SocksAuthenticationHelper {
 		outputStream.write(bufferSent);
 		outputStream.flush();
 		// logger send bytes
-		LOGGER.debug("{}", Util.buildLogString(bufferSent, false));
+		LOGGER.debug("{}", MiscUtil.buildLogString(bufferSent, false));
 
 		byte[] authenticationResult = new byte[2];
 		checkEnd(inputStream.read(authenticationResult));
 		// logger
-		LOGGER.debug("{}", Util.buildLogString(authenticationResult, true));
+		LOGGER.debug("{}", MiscUtil.buildLogString(authenticationResult, true));
 
 		if (authenticationResult[1] != Socks5.AUTHENTICATION_SUCCEEDED) {
 			// Close connection if authentication is failed.
