@@ -33,8 +33,7 @@ import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC
 import static org.simplejavamail.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.internal.util.ConfigLoader.Property.JAVAXMAIL_DEBUG;
 import static org.simplejavamail.internal.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
-import static org.simplejavamail.internal.util.ConfigLoader.getProperty;
-import static org.simplejavamail.internal.util.ConfigLoader.hasProperty;
+import static org.simplejavamail.internal.util.ConfigLoader.*;
 
 /**
  * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content, embedded images and
@@ -123,7 +122,7 @@ public class Mailer {
 	 * @see #Mailer(Session, ProxyConfig)
 	 */
 	public Mailer(final Session session) {
-		this(session, null);
+		this(session, ProxyConfig.SKIP_PROXY_CONFIG);
 	}
 
 	/**
@@ -140,11 +139,9 @@ public class Mailer {
 	@SuppressWarnings("SameParameterValue")
 	public Mailer(final Session session, ProxyConfig proxyConfig) {
 		this.session = session;
-
 		if (hasProperty(JAVAXMAIL_DEBUG)) {
 			setDebug((Boolean) getProperty(JAVAXMAIL_DEBUG));
 		}
-
 		configureSessionWithProxy(proxyConfig, session.getProperties(), findStrategyForSession(session));
 	}
 
@@ -221,30 +218,13 @@ public class Mailer {
 	 * @param proxyConfig       Remote proxy server details, if the connection should be run through a SOCKS proxy.
 	 */
 	public Mailer(ServerConfig serverConfig, final TransportStrategy transportStrategy, ProxyConfig proxyConfig) {
-		this.transportStrategy = determineStrategy(transportStrategy);
+		this.transportStrategy = valueOrProperty(transportStrategy, TRANSPORT_STRATEGY, TransportStrategy.SMTP_PLAIN);
 		this.session = createMailSession(serverConfig, proxyConfig);
 		this.emailAddressCriteria = null;
 
 		if (hasProperty(JAVAXMAIL_DEBUG)) {
 			setDebug((Boolean) getProperty(JAVAXMAIL_DEBUG));
 		}
-	}
-
-	/**
-	 * @return Given strategy if provided or from config file if not provided, or {@link TransportStrategy#SMTP_PLAIN} if not configured.
-	 */
-	private TransportStrategy determineStrategy(TransportStrategy transportStrategy) {
-		if (transportStrategy != null) {
-			LOGGER.trace("using passed in TransportStrategy " + transportStrategy);
-			return transportStrategy;
-		}
-		if (hasProperty(TRANSPORT_STRATEGY)) {
-			String transportStrategyName = (String) getProperty(TRANSPORT_STRATEGY);
-			LOGGER.trace("using TransportStrategy from config file" + transportStrategyName);
-			return TransportStrategy.valueOf(transportStrategyName);
-		}
-		LOGGER.trace("no TransportStrategy given or configured in config file, defaulting to " + TransportStrategy.SMTP_PLAIN);
-		return TransportStrategy.SMTP_PLAIN;
 	}
 
 	/**
@@ -268,8 +248,9 @@ public class Mailer {
 	@SuppressWarnings("WeakerAccess")
 	protected Session createMailSession(final ServerConfig serverConfig, final ProxyConfig proxyConfig) {
 		if (transportStrategy == null) {
-			LOGGER.warn("Transport Strategy not set, using plain SMTP strategy instead.");
-			transportStrategy = TransportStrategy.SMTP_PLAIN;
+			// this can happen if a Mailer was created with custom Session object and then createMailSession was invoked
+			LOGGER.warn("Transport Strategy not set, using strategy from config file or plain SMTP strategy instead.");
+			transportStrategy = valueOrProperty(null, TRANSPORT_STRATEGY, TransportStrategy.SMTP_PLAIN);
 		}
 		Properties props = transportStrategy.generateProperties();
 		props.put(transportStrategy.propertyNameHost(), serverConfig.getHost());
@@ -311,18 +292,19 @@ public class Mailer {
 	 *                          underlying JavaMail framework).
 	 */
 	private void configureSessionWithProxy(ProxyConfig proxyConfig, Properties sessionProperties, TransportStrategy transportStrategy) {
-		if (!proxyConfig.requiresProxy()) {
+		ProxyConfig effectiveProxyConfig = (proxyConfig != null) ? proxyConfig : ProxyConfig.SKIP_PROXY_CONFIG;
+		if (!effectiveProxyConfig.requiresProxy()) {
 			LOGGER.debug("No proxy set, skipping proxy.");
 		} else {
 			if (transportStrategy == TransportStrategy.SMTP_SSL) {
 				throw new MailException(MailException.INVALID_PROXY_SLL_COMBINATION);
 			}
-			sessionProperties.put("mail.smtp.socks.host", proxyConfig.getRemoteProxyHost());
-			sessionProperties.put("mail.smtp.socks.port", proxyConfig.getRemoteProxyPort());
-			if (proxyConfig.requiresAuthentication()) {
+			sessionProperties.put("mail.smtp.socks.host", effectiveProxyConfig.getRemoteProxyHost());
+			sessionProperties.put("mail.smtp.socks.port", effectiveProxyConfig.getRemoteProxyPort());
+			if (effectiveProxyConfig.requiresAuthentication()) {
 				sessionProperties.put("mail.smtp.socks.host", "localhost");
-				sessionProperties.put("mail.smtp.socks.port", proxyConfig.getProxyBridgePort());
-				proxyServer = new AnonymousSocks5Server(new AuthenticatingSocks5Bridge(proxyConfig), proxyConfig.getProxyBridgePort());
+				sessionProperties.put("mail.smtp.socks.port", effectiveProxyConfig.getProxyBridgePort());
+				proxyServer = new AnonymousSocks5Server(new AuthenticatingSocks5Bridge(effectiveProxyConfig), effectiveProxyConfig.getProxyBridgePort());
 			}
 		}
 	}

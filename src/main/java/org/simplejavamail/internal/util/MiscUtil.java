@@ -11,6 +11,17 @@ public class MiscUtil {
 		return value;
 	}
 
+	public static <T> T checkArgumentNotEmpty(T value, String msg) {
+		if (valueNullOrEmpty(value)) {
+			throw new IllegalArgumentException(msg);
+		}
+		return value;
+	}
+
+	public static <T> boolean valueNullOrEmpty(T value) {
+		return value == null || (value instanceof String && ((String) value).isEmpty());
+	}
+
 	public static String buildLogString(byte[] bytes, boolean isReceived) {
 		StringBuilder debugMsg = new StringBuilder();
 		debugMsg.append(isReceived ? "Received: " : "Sent: ");

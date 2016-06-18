@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.util;
 
+import org.simplejavamail.TransportStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,8 +11,8 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Contains list of possible properties names and can produce a map of property values, if provided as file "{@value #FILENAME}" on
- * the classpath or as environment property.
+ * Contains list of possible properties names and can produce a map of property values, if provided as file "{@value #FILENAME}" on the classpath or
+ * as environment property.
  */
 public class ConfigLoader {
 
@@ -20,6 +21,30 @@ public class ConfigLoader {
 	private static final String FILENAME = "simplejavamail.properties";
 
 	private static final Map<String, Object> RESOLVED_PROPERTIES = loadProperties();
+
+	/**
+	 * @return The value if not null or else the value from config file if provided or else <code>null</code>.
+	 */
+	public static <T> T valueOrProperty(T value, Property propertyName) {
+		return valueOrProperty(value, propertyName, null);
+	}
+
+	/**
+	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
+	 */
+	public static <T> T valueOrProperty(T value, Property propertyName, T defaultValue) {
+		if (value != null) {
+			LOGGER.trace("using provided argument value {} for property {}", value, propertyName);
+			return value;
+		} else if (hasProperty(propertyName)) {
+			final T propertyValue = getProperty(propertyName);
+			LOGGER.trace("using value {} from config file for property {}", propertyValue, propertyName);
+			return propertyValue;
+		} else {
+			LOGGER.trace("no value provided as argument or in config file for property {}, using default value {}", propertyName, defaultValue);
+			return defaultValue;
+		}
+	}
 
 	public enum Property {
 		JAVAXMAIL_DEBUG("simplejavamail.javaxmail.debug"),
@@ -72,7 +97,7 @@ public class ConfigLoader {
 				prop.load(input);
 				return readProperties(prop);
 			} else {
-				LOGGER.debug("Property file not found on classpath");
+				LOGGER.debug("Property file not found on classpath, skipping config file");
 			}
 		} catch (IOException e) {
 			LOGGER.error("error reading properties file from classpath: " + FILENAME, e);
@@ -125,6 +150,12 @@ public class ConfigLoader {
 			return Integer.valueOf(propertyValue);
 		} catch (NumberFormatException nfe) {
 			// ok, so not a number
+		}
+		// read TransportStrategy value
+		try {
+			return TransportStrategy.valueOf(propertyValue);
+		} catch (IllegalArgumentException nfe) {
+			// ok, so not a TransportStrategy either
 		}
 		// return value as string
 		return propertyValue;

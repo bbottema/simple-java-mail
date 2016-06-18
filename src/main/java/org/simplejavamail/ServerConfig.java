@@ -1,5 +1,10 @@
 package org.simplejavamail;
 
+import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
+import static org.simplejavamail.internal.util.ConfigLoader.valueOrProperty;
+import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+
 public class ServerConfig {
 	private final String host;
 	private final Integer port;
@@ -13,14 +18,19 @@ public class ServerConfig {
 	 * @param password An optional password, may be <code>null</code>.
 	 */
 	public ServerConfig(String host, Integer port, String username, String password) {
-		this.host = host;
-		this.port = port;
-		this.username = username;
-		this.password = password;
-		if (host == null || host.trim().equals("")) {
-			throw new MailException(MailException.MISSING_HOST);
-		} else if ((password != null && !password.trim().equals("")) && (username == null || username.trim().equals(""))) {
-			throw new MailException(MailException.MISSING_USERNAME);
+		this.host = valueOrProperty(host, SMTP_HOST);
+		this.port = valueOrProperty(port, SMTP_PORT);
+		this.username = valueOrProperty(username, SMTP_USERNAME);
+		this.password = valueOrProperty(password, SMTP_PASSWORD);
+
+		checkArgumentNotEmpty(this.host, "smtp host not given and not configured in config file");
+		checkArgumentNotEmpty(this.port, "smtp host port not given and not configured in config file");
+
+		if (!valueNullOrEmpty(username) && valueNullOrEmpty(password)) {
+			throw new IllegalArgumentException("Username provided but no password given as argument or in config file");
+		}
+		if (valueNullOrEmpty(username) && !valueNullOrEmpty(password)) {
+			throw new IllegalArgumentException("Password provided but no username given as argument or in config file");
 		}
 	}
 
