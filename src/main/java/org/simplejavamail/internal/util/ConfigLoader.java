@@ -20,31 +20,7 @@ public class ConfigLoader {
 
 	private static final String FILENAME = "simplejavamail.properties";
 
-	private static final Map<String, Object> RESOLVED_PROPERTIES = loadProperties();
-
-	/**
-	 * @return The value if not null or else the value from config file if provided or else <code>null</code>.
-	 */
-	public static <T> T valueOrProperty(T value, Property propertyName) {
-		return valueOrProperty(value, propertyName, null);
-	}
-
-	/**
-	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
-	 */
-	public static <T> T valueOrProperty(T value, Property propertyName, T defaultValue) {
-		if (value != null) {
-			LOGGER.trace("using provided argument value {} for property {}", value, propertyName);
-			return value;
-		} else if (hasProperty(propertyName)) {
-			final T propertyValue = getProperty(propertyName);
-			LOGGER.trace("using value {} from config file for property {}", propertyValue, propertyName);
-			return propertyValue;
-		} else {
-			LOGGER.trace("no value provided as argument or in config file for property {}, using default value {}", propertyName, defaultValue);
-			return defaultValue;
-		}
-	}
+	private static final Map<Property, Object> RESOLVED_PROPERTIES = loadProperties(FILENAME);
 
 	public enum Property {
 		JAVAXMAIL_DEBUG("simplejavamail.javaxmail.debug"),
@@ -69,29 +45,53 @@ public class ConfigLoader {
 		DEFAULT_BCC_NAME("simplejavamail.defaults.bcc.name"),
 		DEFAULT_BCC_ADDRESS("simplejavamail.defaults.bcc.address");
 
-		private final String propertyName;
+		private final String key;
 
-		Property(String propertyName) {
-			this.propertyName = propertyName;
+		Property(String key) {
+			this.key = key;
+		}
+	}
+
+	/**
+	 * @return The value if not null or else the value from config file if provided or else <code>null</code>.
+	 */
+	public static <T> T valueOrProperty(T value, Property property) {
+		return valueOrProperty(value, property, null);
+	}
+
+	/**
+	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
+	 */
+	public static <T> T valueOrProperty(T value, Property property, T defaultValue) {
+		if (value != null) {
+			LOGGER.trace("using provided argument value {} for property {}", value, property);
+			return value;
+		} else if (hasProperty(property)) {
+			final T propertyValue = getProperty(property);
+			LOGGER.trace("using value {} from config file for property {}", propertyValue, property);
+			return propertyValue;
+		} else {
+			LOGGER.trace("no value provided as argument or in config file for property {}, using default value {}", property, defaultValue);
+			return defaultValue;
 		}
 	}
 
 	public static boolean hasProperty(Property property) {
-		return RESOLVED_PROPERTIES.containsKey(property.propertyName);
+		return RESOLVED_PROPERTIES.containsKey(property);
 	}
 
 	public static <T> T getProperty(Property property) {
-		return (T) RESOLVED_PROPERTIES.get(property.propertyName);
+		return (T) RESOLVED_PROPERTIES.get(property);
 	}
 
 	/**
 	 * Loads properties from property file on the classpath, if provided.
 	 */
-	public static Map<String, Object> loadProperties() {
+	static Map<Property, Object> loadProperties(String filename) {
 		InputStream input = null;
 
 		try {
-			input = ConfigLoader.class.getClassLoader().getResourceAsStream(FILENAME);
+			input = ConfigLoader.class.getClassLoader().getResourceAsStream(filename);
 			if (input != null) {
 				Properties prop = new Properties();
 				prop.load(input);
@@ -100,7 +100,7 @@ public class ConfigLoader {
 				LOGGER.debug("Property file not found on classpath, skipping config file");
 			}
 		} catch (IOException e) {
-			LOGGER.error("error reading properties file from classpath: " + FILENAME, e);
+			throw new IllegalStateException("error reading properties file from classpath: " + filename, e);
 		} finally {
 			if (input != null) {
 				try {
@@ -116,21 +116,27 @@ public class ConfigLoader {
 	/**
 	 * @return All properties in priority of System property > File properties.
 	 */
-	private static Map<String, Object> readProperties(Properties fileProperties) {
-		Map<String, Object> resolvedProps = new HashMap<>();
+	private static Map<Property, Object> readProperties(Properties fileProperties) {
+		Map<Property, Object> resolvedProps = new HashMap<>();
 		for (Property prop : Property.values()) {
-			resolvedProps.put(prop.propertyName, parsePropertyValue(System.getProperty(prop.propertyName)));
-			if (resolvedProps.get(prop.propertyName) == null) {
-				resolvedProps.put(prop.propertyName, parsePropertyValue(fileProperties.getProperty(prop.propertyName)));
+			resolvedProps.put(prop, parsePropertyValue(System.getProperty(prop.key)));
+			if (resolvedProps.get(prop) == null) {
+				String rawValue = (String) fileProperties.remove(prop.key);
+				resolvedProps.put(prop, parsePropertyValue(rawValue));
 			}
 		}
+
+		if (!fileProperties.isEmpty()) {
+			throw new IllegalArgumentException("unknown properties provided " + fileProperties);
+		}
+
 		return resolvedProps;
 	}
 
 	/**
 	 * @return The property value in boolean, integer or as original string value.
 	 */
-	private static Object parsePropertyValue(String propertyValue) {
+	static Object parsePropertyValue(String propertyValue) {
 		if (propertyValue == null) {
 			return null;
 		}
@@ -143,7 +149,7 @@ public class ConfigLoader {
 		booleanConversionMap.put("no", false);
 		booleanConversionMap.put("yes", true);
 		if (booleanConversionMap.containsKey(propertyValue)) {
-			return booleanConversionMap.get(propertyValue);
+			return booleanConversionMap.get(propertyValue.toLowerCase());
 		}
 		// read number value
 		try {
@@ -157,7 +163,7 @@ public class ConfigLoader {
 		} catch (IllegalArgumentException nfe) {
 			// ok, so not a TransportStrategy either
 		}
-		// return value as string
+		// return value as is (which should be string)
 		return propertyValue;
 	}
 }
