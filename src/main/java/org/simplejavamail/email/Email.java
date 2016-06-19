@@ -1,6 +1,6 @@
 package org.simplejavamail.email;
 
-import org.simplejavamail.util.MimeMessageParser;
+import org.simplejavamail.internal.util.MimeMessageParser;
 
 import javax.activation.DataSource;
 import javax.mail.Message.RecipientType;
@@ -12,6 +12,9 @@ import java.io.*;
 import java.util.*;
 
 import static java.lang.String.format;
+import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
+import static org.simplejavamail.internal.util.ConfigLoader.getProperty;
+import static org.simplejavamail.internal.util.ConfigLoader.hasProperty;
 
 /**
  * Email message with all necessary data for an effective mailing action, including attachments etc.
@@ -73,20 +76,29 @@ public class Email {
 	private String selector;
 
 	/**
-	 * Constructor, creates all internal lists.
+	 * Constructor, creates all internal lists. Populates default from, reply-to, to, cc and bcc if provided in the config file.
 	 */
 	public Email() {
 		recipients = new ArrayList<>();
 		embeddedImages = new ArrayList<>();
 		attachments = new ArrayList<>();
 		headers = new HashMap<>();
-	}
 
-	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
-	 */
-	public void signWithDomainKey(final byte[] dkimPrivateKey, final String signingDomain, final String selector) {
-		signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey), signingDomain, selector);
+		if (hasProperty(DEFAULT_FROM_ADDRESS)) {
+			setFromAddress((String) getProperty(DEFAULT_FROM_NAME), (String) getProperty(DEFAULT_FROM_ADDRESS));
+		}
+		if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
+			setReplyToAddress((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
+		}
+		if (hasProperty(DEFAULT_TO_ADDRESS)) {
+			addRecipient((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
+		}
+		if (hasProperty(DEFAULT_CC_ADDRESS)) {
+			addRecipient((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
+		}
+		if (hasProperty(DEFAULT_BCC_ADDRESS)) {
+			addRecipient((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
+		}
 	}
 
 	/**
@@ -191,8 +203,8 @@ public class Email {
 	}
 
 	/**
-	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to
-	 * {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
+	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then
+	 * delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 	 *
 	 * @param name     The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
 	 * @param data     The byte data of the image to be embedded.
@@ -218,9 +230,8 @@ public class Email {
 	}
 
 	/**
-	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
-	 * <p>
-	 * example: <code>email.addHeader("X-Priority", 2)</code>
+	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>. example: <code>email.addHeader("X-Priority",
+	 * 2)</code>
 	 *
 	 * @param name  The name of the header.
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
@@ -362,335 +373,26 @@ public class Email {
 	}
 
 	/**
-	 * Fluent interface Builder for Emails
-	 *
-	 * @author Jared Stewart
-	 */
-	@SuppressWarnings("UnusedReturnValue")
-	public static class Builder {
-		private Recipient fromRecipient;
-		/**
-		 * The reply-to-address, optional. Can be used in conjunction with {@link #fromRecipient}.
-		 */
-		private Recipient replyToRecipient;
-
-		/**
-		 * The email message body in plain text.
-		 */
-		private String text;
-
-		/**
-		 * The email message body in html.
-		 */
-		private String textHTML;
-
-		/**
-		 * The subject of the email message.
-		 */
-		private String subject;
-
-		/**
-		 * List of {@link Recipient}.
-		 */
-		private final List<Recipient> recipients;
-
-		/**
-		 * List of {@link AttachmentResource}.
-		 */
-		private final List<AttachmentResource> embeddedImages;
-
-		/**
-		 * List of {@link AttachmentResource}.
-		 */
-		private final List<AttachmentResource> attachments;
-
-		/**
-		 * Map of header name and values, such as <code>X-Priority</code> etc.
-		 */
-		private final Map<String, String> headers;
-
-		/**
-		 * A file reference to the private key to be used for signing with DKIM.
-		 */
-		private File dkimPrivateKeyFile;
-
-		/**
-		 * An input stream containg the private key data to be used for signing with DKIM.
-		 */
-		private InputStream dkimPrivateKeyInputStream;
-
-		/**
-		 * A byte array containg the private key data to be used for signing with DKIM.
-		 */
-		private byte[] dkimPrivateKey;
-
-		/**
-		 * The domain used for signing with DKIM.
-		 */
-		private String signingDomain;
-
-		/**
-		 * The selector to be used in combination with the domain.
-		 */
-		private String selector;
-
-		public Builder() {
-			recipients = new ArrayList<>();
-			embeddedImages = new ArrayList<>();
-			attachments = new ArrayList<>();
-			headers = new HashMap<>();
-		}
-
-		/**
-		 *
-		 */
-		public Email build() {
-			return new Email(this);
-		}
-
-		/**
-		 * Sets the sender address.
-		 *
-		 * @param name        The sender's name.
-		 * @param fromAddress The sender's email address.
-		 */
-		public Builder from(final String name, final String fromAddress) {
-			this.fromRecipient = new Recipient(name, fromAddress, null);
-			return this;
-		}
-
-		/**
-		 * Sets the reply-to address (optional).
-		 *
-		 * @param name           The replied-to-receiver name.
-		 * @param replyToAddress The replied-to-receiver email address.
-		 */
-		public Builder replyTo(final String name, final String replyToAddress) {
-			this.replyToRecipient = new Recipient(name, replyToAddress, null);
-			return this;
-		}
-
-		/**
-		 * Sets the {@link #subject}.
-		 */
-		public Builder subject(final String subject) {
-			this.subject = subject;
-			return this;
-		}
-
-		/**
-		 * Sets the {@link #text}.
-		 */
-		public Builder text(final String text) {
-			this.text = text;
-			return this;
-		}
-
-		/**
-		 * Sets the {@link #textHTML}.
-		 */
-		public Builder textHTML(final String textHTML) {
-			this.textHTML = textHTML;
-			return this;
-		}
-
-		/**
-		 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link RecipientType#TO}.
-		 *
-		 * @param name    The name of the recipient.
-		 * @param address The emailaddress of the recipient.
-		 * @see #recipients
-		 * @see Recipient
-		 */
-		public Builder to(final String name, final String address) {
-			recipients.add(new Recipient(name, address, RecipientType.TO));
-			return this;
-		}
-
-		/**
-		 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link RecipientType#TO}.
-		 *
-		 * @param recipient The recipent whose name and address to use
-		 * @see #recipients
-		 * @see Recipient
-		 */
-		public Builder to(final Recipient recipient) {
-			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), RecipientType.TO));
-			return this;
-		}
-
-		/**
-		 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link RecipientType#CC}.
-		 *
-		 * @param name    The name of the recipient.
-		 * @param address The emailaddress of the recipient.
-		 * @see #recipients
-		 * @see Recipient
-		 */
-		public Builder cc(final String name, final String address) {
-			recipients.add(new Recipient(name, address, RecipientType.CC));
-			return this;
-		}
-
-		/**
-		 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link RecipientType#CC}.
-		 *
-		 * @param recipient The recipent whose name and address to use
-		 * @see #recipients
-		 * @see Recipient
-		 */
-		public Builder cc(final Recipient recipient) {
-			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), RecipientType.CC));
-			return this;
-		}
-
-		/**
-		 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link RecipientType#BCC}.
-		 *
-		 * @param name    The name of the recipient.
-		 * @param address The emailaddress of the recipient.
-		 * @see #recipients
-		 * @see Recipient
-		 */
-		public Builder bcc(final String name, final String address) {
-			recipients.add(new Recipient(name, address, RecipientType.BCC));
-			return this;
-		}
-
-		/**
-		 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link RecipientType#BCC}.
-		 *
-		 * @param recipient The recipent whose name and address to use
-		 * @see #recipients
-		 * @see Recipient
-		 */
-		public Builder bcc(final Recipient recipient) {
-			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), RecipientType.BCC));
-			return this;
-		}
-
-		/**
-		 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates
-		 * to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
-		 *
-		 * @param name     The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
-		 * @param data     The byte data of the image to be embedded.
-		 * @param mimetype The content type of the given data (eg. "image/gif" or "image/jpeg").
-		 * @see ByteArrayDataSource
-		 * @see #addEmbeddedImage(String, DataSource)
-		 */
-		public Builder embedImage(final String name, final byte[] data, final String mimetype) {
-			final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
-			dataSource.setName(name);
-			return embedImage(name, dataSource);
-		}
-
-		/**
-		 * Overloaded method which sets an embedded image on account of name and {@link DataSource}.
-		 *
-		 * @param name      The name of the image as being referred to from the message content body (eg. '&lt;cid:embeddedimage&gt;').
-		 * @param imagedata The image data.
-		 */
-		public Builder embedImage(final String name, final DataSource imagedata) {
-			embeddedImages.add(new AttachmentResource(name, imagedata));
-			return this;
-		}
-
-		/**
-		 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
-		 * <p>
-		 * example: <code>email.addHeader("X-Priority", 2)</code>
-		 *
-		 * @param name  The name of the header.
-		 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
-		 */
-		public Builder addHeader(final String name, final Object value) {
-			headers.put(name, String.valueOf(value));
-			return this;
-		}
-
-		/**
-		 * Adds an attachment to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to {@link
-		 * #addAttachment(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
-		 *
-		 * @param name     The name of the extension (eg. filename including extension).
-		 * @param data     The byte data of the attachment.
-		 * @param mimetype The content type of the given data (eg. "plain/text", "image/gif" or "application/pdf").
-		 * @see ByteArrayDataSource
-		 * @see #addAttachment(String, DataSource)
-		 */
-		public Builder addAttachment(final String name, final byte[] data, final String mimetype) {
-			final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
-			dataSource.setName(name);
-			addAttachment(name, dataSource);
-			return this;
-		}
-
-		/**
-		 * Overloaded method which sets an attachment on account of name and {@link DataSource}.
-		 *
-		 * @param name     The name of the attachment (eg. 'filename.ext').
-		 * @param filedata The attachment data.
-		 */
-		public Builder addAttachment(final String name, final DataSource filedata) {
-			attachments.add(new AttachmentResource(name, filedata));
-			return this;
-		}
-
-		/**
-		 * Sets all info needed for DKIM, using a byte array for private key data.
-		 */
-		public Builder signWithDomainKey(final byte[] dkimPrivateKey, final String signingDomain, final String selector) {
-			this.dkimPrivateKey = dkimPrivateKey.clone();
-			this.signingDomain = signingDomain;
-			this.selector = selector;
-			return this;
-		}
-
-		/**
-		 * Sets all info needed for DKIM, using a file reference for private key data.
-		 */
-		public Builder signWithDomainKey(final File dkimPrivateKeyFile, final String signingDomain, final String selector) {
-			this.dkimPrivateKeyFile = dkimPrivateKeyFile;
-			this.signingDomain = signingDomain;
-			this.selector = selector;
-			return this;
-		}
-
-		/**
-		 * Sets all info needed for DKIM, using an input stream for private key data.
-		 */
-		public Builder signWithDomainKey(final InputStream dkimPrivateKeyInputStream, final String signingDomain, final String selector) {
-			this.dkimPrivateKeyInputStream = dkimPrivateKeyInputStream;
-			this.signingDomain = signingDomain;
-			this.selector = selector;
-			return this;
-		}
-	}
-
-	/**
 	 * Constructor for the Builder class
 	 *
 	 * @param builder The builder from which to create the email.
 	 */
-	private Email(Builder builder) {
-		recipients = builder.recipients;
-		embeddedImages = builder.embeddedImages;
-		attachments = builder.attachments;
-		headers = builder.headers;
+	Email(EmailBuilder builder) {
+		recipients = builder.getRecipients();
+		embeddedImages = builder.getEmbeddedImages();
+		attachments = builder.getAttachments();
+		headers = builder.getHeaders();
 
-		fromRecipient = builder.fromRecipient;
-		replyToRecipient = builder.replyToRecipient;
-		text = builder.text;
-		textHTML = builder.textHTML;
-		subject = builder.subject;
+		fromRecipient = builder.getFromRecipient();
+		replyToRecipient = builder.getReplyToRecipient();
+		text = builder.getText();
+		textHTML = builder.getTextHTML();
+		subject = builder.getSubject();
 
-		if (builder.dkimPrivateKey != null) {
-			signWithDomainKey(builder.dkimPrivateKey, builder.signingDomain, builder.selector);
-		} else if (builder.dkimPrivateKeyFile != null) {
-			signWithDomainKey(builder.dkimPrivateKeyFile, builder.signingDomain, builder.selector);
-		} else if (builder.dkimPrivateKeyInputStream != null) {
-			signWithDomainKey(builder.dkimPrivateKeyInputStream, builder.signingDomain, builder.selector);
+		if (builder.getDkimPrivateKeyFile() != null) {
+			signWithDomainKey(builder.getDkimPrivateKeyFile(), builder.getSigningDomain(), builder.getSelector());
+		} else if (builder.getDkimPrivateKeyInputStream() != null) {
+			signWithDomainKey(builder.getDkimPrivateKeyInputStream(), builder.getSigningDomain(), builder.getSelector());
 		}
 	}
 
@@ -702,11 +404,17 @@ public class Email {
 
 	/**
 	 * Constructor for {@link javax.mail.internet.MimeMessage}.
+	 * <p>
+	 * <strong>Doen add default recipient that may have been provided in a config file.</strong>
 	 *
 	 * @param mimeMessage The MimeMessage from which to create the email.
 	 */
 	public Email(MimeMessage mimeMessage) {
-		this();
+		recipients = new ArrayList<>();
+		embeddedImages = new ArrayList<>();
+		attachments = new ArrayList<>();
+		headers = new HashMap<>();
+
 		try {
 			fillEmailFromMimeMessage(new MimeMessageParser(mimeMessage).parse());
 		} catch (MessagingException | IOException e) {
