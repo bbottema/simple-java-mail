@@ -22,7 +22,7 @@ public class ProxyConfigTest {
 				+ "simplejavamail.proxy.username=username proxy\n"
 				+ "simplejavamail.proxy.password=password proxy\n"
 				+ "simplejavamail.proxy.socks5bridge.port=1081\n";
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()));
+		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 	}
 
 	@Test

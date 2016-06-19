@@ -20,7 +20,7 @@ public class ServerConfigTest {
 				+ "simplejavamail.smtp.port=25\n"
 				+ "simplejavamail.smtp.username=username smtp\n"
 				+ "simplejavamail.smtp.password=password smtp";
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()));
+		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 	}
 
 	@Test

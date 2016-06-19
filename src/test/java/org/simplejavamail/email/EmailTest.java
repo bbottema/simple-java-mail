@@ -32,7 +32,7 @@ public class EmailTest {
 				+ "simplejavamail.defaults.cc.address=cc@default.com\n"
 				+ "simplejavamail.defaults.bcc.name=BCC Default\n"
 				+ "simplejavamail.defaults.bcc.address=bcc@default.com";
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()));
+		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 	}
 
 	@Test

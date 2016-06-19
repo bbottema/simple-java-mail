@@ -19,7 +19,7 @@ public class ConfigLoaderTest {
 
 	@Before
 	public void restoreOriginalStaticProperties() {
-		ConfigLoader.loadProperties("simplejavamail.properties");
+		ConfigLoader.loadProperties("simplejavamail.properties", false);
 	}
 
 	@Test
@@ -94,9 +94,9 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesFromFile()
+	public void loadPropertiesFromFileClassPath()
 			throws Exception {
-		ConfigLoader.loadProperties("simplejavamail.properties");
+		ConfigLoader.loadProperties("simplejavamail.properties", false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
 		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
 		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
@@ -121,6 +121,26 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
+	public void loadPropertiesAddingMode()
+			throws Exception {
+		String s1 = "simplejavamail.javaxmail.debug=true\n"
+				+ "simplejavamail.transportstrategy=SMTP_SSL";
+		String s2 = "simplejavamail.defaults.to.name=To Default\n"
+				+ "simplejavamail.defaults.to.address=to@default.com";
+
+		ConfigLoader.loadProperties(new ByteArrayInputStream(s1.getBytes()), false);
+		ConfigLoader.loadProperties(new ByteArrayInputStream(s2.getBytes()), true);
+
+		// some checks from the config file
+		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTP_SSL);
+		// now check if the extra properties were added
+		assertThat(ConfigLoader.getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
+		assertThat(ConfigLoader.getProperty(DEFAULT_TO_ADDRESS)).isEqualTo("to@default.com");
+
+	}
+
+	@Test
 	public void loadPropertiesFromInputStream()
 			throws IOException {
 
@@ -131,7 +151,7 @@ public class ConfigLoaderTest {
 				+ "simplejavamail.smtp.username=username\n"
 				+ "simplejavamail.smtp.password=password\n";
 
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()));
+		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
 		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
 		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
@@ -142,13 +162,13 @@ public class ConfigLoaderTest {
 
 	@Test
 	public void loadPropertiesFileNotAvailable() {
-		ConfigLoader.loadProperties("non-existent.properties");
+		ConfigLoader.loadProperties("non-existent.properties", false);
 		// success: no error occurred while config file was missing
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void loadPropertiesFileMalformed() {
-		ConfigLoader.loadProperties("malformed.properties");
+		ConfigLoader.loadProperties("malformed.properties", false);
 		// error: unknown properties should cause an illegal argument exception
 	}
 

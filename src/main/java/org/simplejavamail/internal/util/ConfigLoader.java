@@ -4,8 +4,7 @@ import org.simplejavamail.mailer.TransportStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -14,17 +13,17 @@ import static java.util.Collections.unmodifiableMap;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 
 /**
- * Contains list of possible properties names and can produce a map of property values, if provided as file "{@value #FILENAME}" on the classpath or
- * as environment property.
+ * Contains list of possible properties names and can produce a map of property values, if provided as file "{@value #DEFAULT_CONFIG_FILENAME}" on the
+ * classpath or as environment property.
  */
 public class ConfigLoader {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
 
-	private static final String FILENAME = "simplejavamail.properties";
+	private static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
 
 	/**
-	 * Initially try to load properties from "{@value #FILENAME}".
+	 * Initially try to load properties from "{@value #DEFAULT_CONFIG_FILENAME}".
 	 *
 	 * @see #loadProperties(String)
 	 * @see #loadProperties(InputStream)
@@ -34,8 +33,8 @@ public class ConfigLoader {
 	static {
 		// static initializer block, because loadProperties needs to modify RESOLVED_PROPERTIES while loading
 		// this is not possible when we are initializing the same field.
-		// RESOLVED_PROPERTIES = loadProperties(FILENAME); <-- not possible
-		loadProperties(FILENAME);
+		// RESOLVED_PROPERTIES = loadProperties(DEFAULT_CONFIG_FILENAME); <-- not possible
+		loadProperties(DEFAULT_CONFIG_FILENAME, false);
 	}
 
 	public enum Property {
@@ -106,39 +105,64 @@ public class ConfigLoader {
 	 * this.
 	 * <p>
 	 * This method the internal list of properties and also returns the list to the caller.
+	 *
+	 * @param filename      Any file that is on the classpath that holds a list of key=value pairs.
+	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
+	 * @return The updated properties map that is used internally.
 	 */
-	public static Map<Property, Object> loadProperties(String filename) {
-		InputStream input = null;
+	public static Map<Property, Object> loadProperties(String filename, boolean addProperties) {
+		InputStream input = ConfigLoader.class.getClassLoader().getResourceAsStream(filename);
+		if (input != null) {
+			return loadProperties(input, addProperties);
+		}
+		LOGGER.debug("Property file not found on classpath, skipping config file");
+		return new HashMap<>();
+	}
+
+	/**
+	 * Loads properties from property {@link File}, if provided. Calling this method only has effect on new Email and Mailer instances after this.
+	 * <p>
+	 * This method the internal list of properties and also returns the list to the caller.
+	 *
+	 * @param filename      Any file reference that holds a properties list.
+	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
+	 * @return The updated properties map that is used internally.
+	 */
+	public static Map<Property, Object> loadProperties(File filename, boolean addProperties) {
+		try {
+			return loadProperties(new FileInputStream(filename), addProperties);
+		} catch (FileNotFoundException e) {
+			throw new IllegalStateException("error reading properties file from File", e);
+		}
+	}
+
+	/**
+	 * Loads properties from {@link InputStream}. Calling this method only has effect on new Email and Mailer instances after this.
+	 *
+	 * @param inputStream   Source of property key=value pairs separated by newline \n characters.
+	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
+	 * @return The updated properties map that is used internally.
+	 */
+	public static synchronized Map<Property, Object> loadProperties(InputStream inputStream, boolean addProperties) {
+		Properties prop = new Properties();
 
 		try {
-			input = ConfigLoader.class.getClassLoader().getResourceAsStream(filename);
-			if (input != null) {
-				return loadProperties(input);
-			} else {
-				LOGGER.debug("Property file not found on classpath, skipping config file");
-			}
+			prop.load(checkArgumentNotEmpty(inputStream, "InputStream was null"));
 		} catch (IOException e) {
-			throw new IllegalStateException("error reading properties file from classpath: " + filename, e);
+			throw new IllegalStateException("error reading properties file from inputstream", e);
 		} finally {
-			if (input != null) {
+			if (inputStream != null) {
 				try {
-					input.close();
+					inputStream.close();
 				} catch (IOException e) {
 					LOGGER.error(e.getMessage(), e);
 				}
 			}
 		}
-		return new HashMap<>();
-	}
 
-	/**
-	 * Loads properties from {@link InputStream}. Calling this method only has effect on new Email and Mailer instances after this.
-	 */
-	public static synchronized Map<Property, Object> loadProperties(InputStream input)
-			throws IOException {
-		Properties prop = new Properties();
-		prop.load(checkArgumentNotEmpty(input, "InputStream was null"));
-		RESOLVED_PROPERTIES.clear();
+		if (!addProperties) {
+			RESOLVED_PROPERTIES.clear();
+		}
 		RESOLVED_PROPERTIES.putAll(readProperties(prop));
 		return unmodifiableMap(RESOLVED_PROPERTIES);
 	}
@@ -147,17 +171,23 @@ public class ConfigLoader {
 	 * @return All properties in priority of System property > File properties.
 	 */
 	private static Map<Property, Object> readProperties(Properties fileProperties) {
+		Properties filePropertiesLeft = new Properties();
+		filePropertiesLeft.putAll(fileProperties);
 		Map<Property, Object> resolvedProps = new HashMap<>();
 		for (Property prop : Property.values()) {
-			resolvedProps.put(prop, parsePropertyValue(System.getProperty(prop.key)));
-			if (resolvedProps.get(prop) == null) {
-				String rawValue = (String) fileProperties.remove(prop.key);
-				resolvedProps.put(prop, parsePropertyValue(rawValue));
+			Object asSystemProperty = parsePropertyValue(System.getProperty(prop.key));
+			if (asSystemProperty != null) {
+				resolvedProps.put(prop, asSystemProperty);
+			} else {
+				String rawValue = (String) filePropertiesLeft.remove(prop.key);
+				if (rawValue != null) {
+					resolvedProps.put(prop, parsePropertyValue(rawValue));
+				}
 			}
 		}
 
-		if (!fileProperties.isEmpty()) {
-			throw new IllegalArgumentException("unknown properties provided " + fileProperties);
+		if (!filePropertiesLeft.isEmpty()) {
+			throw new IllegalArgumentException("unknown properties provided " + filePropertiesLeft);
 		}
 
 		return resolvedProps;
