@@ -2,9 +2,9 @@
 
 # Simple Java Mail #
 
-Simple Java Mail is the simplest to use lightweight mailing library for Java, while being able to send complex emails including attachments, embedded images, custom headers and properties, address validation and even DKIM signing. Just send your emails without dealing with RFC's.
+Simple Java Mail is the simplest to use lightweight mailing library for Java, while being able to send complex emails including **authenticated socks proxy**(!), **attachments**, **embedded images**, **custom headers and properties**, **robust address validation**, **build pattern** and even **DKIM signing** and **external configuration files**. Just send your emails without dealing with RFC's.
 
-The Simple Java Mail library essentially is a wrapper around the JavaMail smtp mailing API that allows users to define emails on a high abstraction level without having to deal with mumbo jumbo such a 'multipart' and 'mimemessage'.
+The Simple Java Mail library is a thin layer on top of the JavaMail smtp mailing API that allows users to define emails on a high abstraction level without having to deal with mumbo jumbo such a 'multipart' and 'mimemessage'.
 
 ### [simplejavamail.org](http://www.simplejavamail.org) ###
 
