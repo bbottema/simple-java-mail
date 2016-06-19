@@ -1,79 +1,80 @@
 package org.simplejavamail.internal.util;
 
+import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.TransportStrategy;
+import org.simplejavamail.mailer.TransportStrategy;
+import org.simplejavamail.internal.util.ConfigLoader.Property;
+import testutil.ConfigHelper;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.TransportStrategy.SMTP_SSL;
+import static org.simplejavamail.mailer.TransportStrategy.SMTP_SSL;
 import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
 
 public class ConfigLoaderTest {
 
+	@Before
+	public void restoreOriginalStaticProperties() {
+		ConfigLoader.loadProperties("simplejavamail.properties");
+	}
+
 	@Test
 	public void valueOrProperty()
 			throws Exception {
-		HashMap<Object, Object> properties = new HashMap<>();
+		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
-		setResolvedProperties(properties);
+		ConfigHelper.setResolvedProperties(properties);
 
 		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY)).isEqualTo("value");
 		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY)).isEqualTo("preconfiguredValue");
 		assertThat(ConfigLoader.valueOrProperty(null, SMTP_HOST)).isNull();
-
-		restoreResolvedProperties();
 	}
 
 	@Test
 	public void valueOrPropertyDefaultValue()
 			throws Exception {
-		HashMap<Object, Object> properties = new HashMap<>();
+		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
-		setResolvedProperties(properties);
+		ConfigHelper.setResolvedProperties(properties);
 
 		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
 		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("preconfiguredValue");
 		assertThat(ConfigLoader.valueOrProperty(null, SMTP_HOST, "backup")).isEqualTo("backup");
 		assertThat(ConfigLoader.valueOrProperty(null, SMTP_HOST, null)).isNull();
-
-		restoreResolvedProperties();
 	}
 
 	@Test
 	public void hasProperty()
 			throws Exception {
-		HashMap<Object, Object> properties = new HashMap<>();
+		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue1");
 		properties.put(DEFAULT_FROM_ADDRESS, "preconfiguredValue2");
 		properties.put(DEFAULT_BCC_NAME, null);
-		setResolvedProperties(properties);
+		ConfigHelper.setResolvedProperties(properties);
 
 		assertThat(ConfigLoader.hasProperty(TRANSPORT_STRATEGY)).isTrue();
 		assertThat(ConfigLoader.hasProperty(DEFAULT_FROM_ADDRESS)).isTrue();
 		assertThat(ConfigLoader.hasProperty(DEFAULT_BCC_NAME)).isTrue();
 		assertThat(ConfigLoader.hasProperty(PROXY_HOST)).isFalse();
-
-		restoreResolvedProperties();
 	}
 
 	@Test
 	public void getProperty()
 			throws Exception {
-		HashMap<Object, Object> properties = new HashMap<>();
+		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue1");
 		properties.put(DEFAULT_FROM_ADDRESS, "preconfiguredValue2");
 		properties.put(DEFAULT_BCC_NAME, null);
-		setResolvedProperties(properties);
+		ConfigHelper.setResolvedProperties(properties);
 
 		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isEqualTo("preconfiguredValue1");
 		assertThat(ConfigLoader.getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("preconfiguredValue2");
 		assertThat(ConfigLoader.getProperty(DEFAULT_BCC_NAME)).isNull();
 		assertThat(ConfigLoader.getProperty(PROXY_HOST)).isNull();
-
-		restoreResolvedProperties();
 	}
 
 	@Test
@@ -93,8 +94,9 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadProperties() {
-		// no need to call ConfigLoader.loadProperties, already done during class loading
+	public void loadPropertiesFromFile()
+			throws Exception {
+		ConfigLoader.loadProperties("simplejavamail.properties");
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
 		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
 		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
@@ -119,40 +121,35 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesFileNotAvailable()
-			throws Exception {
+	public void loadPropertiesFromInputStream()
+			throws IOException {
+
+		String s = "simplejavamail.javaxmail.debug=true\n"
+				+ "simplejavamail.transportstrategy=SMTP_SSL\n"
+				+ "simplejavamail.smtp.host=smtp.default.com\n"
+				+ "simplejavamail.smtp.port=25\n"
+				+ "simplejavamail.smtp.username=username\n"
+				+ "simplejavamail.smtp.password=password\n";
+
+		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()));
+		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
+		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
+		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
+		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
+		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
+	}
+
+	@Test
+	public void loadPropertiesFileNotAvailable() {
 		ConfigLoader.loadProperties("non-existent.properties");
 		// success: no error occurred while config file was missing
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void loadPropertiesFileMalformed()
-			throws Exception {
+	public void loadPropertiesFileMalformed() {
 		ConfigLoader.loadProperties("malformed.properties");
 		// error: unknown properties should cause an illegal argument exception
 	}
 
-	private Object originalValue;
-
-	private void setResolvedProperties(Object value)
-			throws Exception {
-		Field field = makeAccessible(ConfigLoader.class.getDeclaredField("RESOLVED_PROPERTIES"));
-		originalValue = field.get(null);
-		field.set(null, value);
-	}
-
-	private void restoreResolvedProperties()
-			throws Exception {
-		Field field = makeAccessible(ConfigLoader.class.getDeclaredField("RESOLVED_PROPERTIES"));
-		field.set(null, originalValue);
-	}
-
-	private static Field makeAccessible(Field field)
-			throws NoSuchFieldException, IllegalAccessException {
-		field.setAccessible(true);
-		Field modifiersField = Field.class.getDeclaredField("modifiers");
-		modifiersField.setAccessible(true);
-		modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-		return field;
-	}
 }

@@ -1,8 +1,8 @@
 package demo;
 
-import org.simplejavamail.Mailer;
-import org.simplejavamail.ServerConfig;
-import org.simplejavamail.TransportStrategy;
+import org.simplejavamail.mailer.Mailer;
+import org.simplejavamail.mailer.ServerConfig;
+import org.simplejavamail.mailer.TransportStrategy;
 import org.simplejavamail.email.Email;
 
 import javax.mail.Message.RecipientType;

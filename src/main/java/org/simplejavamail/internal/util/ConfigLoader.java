@@ -1,6 +1,6 @@
 package org.simplejavamail.internal.util;
 
-import org.simplejavamail.TransportStrategy;
+import org.simplejavamail.mailer.TransportStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,6 +9,9 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+
+import static java.util.Collections.unmodifiableMap;
+import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 
 /**
  * Contains list of possible properties names and can produce a map of property values, if provided as file "{@value #FILENAME}" on the classpath or
@@ -20,7 +23,20 @@ public class ConfigLoader {
 
 	private static final String FILENAME = "simplejavamail.properties";
 
-	private static final Map<Property, Object> RESOLVED_PROPERTIES = loadProperties(FILENAME);
+	/**
+	 * Initially try to load properties from "{@value #FILENAME}".
+	 *
+	 * @see #loadProperties(String)
+	 * @see #loadProperties(InputStream)
+	 */
+	private static final Map<Property, Object> RESOLVED_PROPERTIES = new HashMap<>();
+
+	static {
+		// static initializer block, because loadProperties needs to modify RESOLVED_PROPERTIES while loading
+		// this is not possible when we are initializing the same field.
+		// RESOLVED_PROPERTIES = loadProperties(FILENAME); <-- not possible
+		loadProperties(FILENAME);
+	}
 
 	public enum Property {
 		JAVAXMAIL_DEBUG("simplejavamail.javaxmail.debug"),
@@ -76,26 +92,28 @@ public class ConfigLoader {
 		}
 	}
 
-	public static boolean hasProperty(Property property) {
+	public static synchronized boolean hasProperty(Property property) {
 		return RESOLVED_PROPERTIES.containsKey(property);
 	}
 
-	public static <T> T getProperty(Property property) {
+	public static synchronized <T> T getProperty(Property property) {
+		//noinspection unchecked
 		return (T) RESOLVED_PROPERTIES.get(property);
 	}
 
 	/**
-	 * Loads properties from property file on the classpath, if provided.
+	 * Loads properties from property file on the classpath, if provided. Calling this method only has effect on new Email and Mailer instances after
+	 * this.
+	 * <p>
+	 * This method the internal list of properties and also returns the list to the caller.
 	 */
-	static Map<Property, Object> loadProperties(String filename) {
+	public static Map<Property, Object> loadProperties(String filename) {
 		InputStream input = null;
 
 		try {
 			input = ConfigLoader.class.getClassLoader().getResourceAsStream(filename);
 			if (input != null) {
-				Properties prop = new Properties();
-				prop.load(input);
-				return readProperties(prop);
+				return loadProperties(input);
 			} else {
 				LOGGER.debug("Property file not found on classpath, skipping config file");
 			}
@@ -111,6 +129,18 @@ public class ConfigLoader {
 			}
 		}
 		return new HashMap<>();
+	}
+
+	/**
+	 * Loads properties from {@link InputStream}. Calling this method only has effect on new Email and Mailer instances after this.
+	 */
+	public static synchronized Map<Property, Object> loadProperties(InputStream input)
+			throws IOException {
+		Properties prop = new Properties();
+		prop.load(checkArgumentNotEmpty(input, "InputStream was null"));
+		RESOLVED_PROPERTIES.clear();
+		RESOLVED_PROPERTIES.putAll(readProperties(prop));
+		return unmodifiableMap(RESOLVED_PROPERTIES);
 	}
 
 	/**

@@ -1,6 +1,5 @@
 package org.simplejavamail.email;
 
-import org.simplejavamail.internal.util.ConfigLoader;
 import org.simplejavamail.internal.util.MimeMessageParser;
 
 import javax.activation.DataSource;
@@ -13,6 +12,7 @@ import java.io.*;
 import java.util.*;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
 import static org.simplejavamail.internal.util.ConfigLoader.getProperty;
 import static org.simplejavamail.internal.util.ConfigLoader.hasProperty;
@@ -100,13 +100,6 @@ public class Email {
 		if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 			addRecipient((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
 		}
-	}
-
-	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
-	 */
-	public void signWithDomainKey(final byte[] dkimPrivateKey, final String signingDomain, final String selector) {
-		signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey), signingDomain, selector);
 	}
 
 	/**
@@ -211,8 +204,8 @@ public class Email {
 	}
 
 	/**
-	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to
-	 * {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
+	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then
+	 * delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 	 *
 	 * @param name     The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
 	 * @param data     The byte data of the image to be embedded.
@@ -238,8 +231,8 @@ public class Email {
 	}
 
 	/**
-	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
-	 * example: <code>email.addHeader("X-Priority", 2)</code>
+	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>. example: <code>email.addHeader("X-Priority",
+	 * 2)</code>
 	 *
 	 * @param name  The name of the header.
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
@@ -439,11 +432,6 @@ public class Email {
 		private InputStream dkimPrivateKeyInputStream;
 
 		/**
-		 * A byte array containg the private key data to be used for signing with DKIM.
-		 */
-		private byte[] dkimPrivateKey;
-
-		/**
 		 * The domain used for signing with DKIM.
 		 */
 		private String signingDomain;
@@ -605,8 +593,8 @@ public class Email {
 		}
 
 		/**
-		 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates
-		 * to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
+		 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then
+		 * delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 		 *
 		 * @param name     The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
 		 * @param data     The byte data of the image to be embedded.
@@ -632,8 +620,8 @@ public class Email {
 		}
 
 		/**
-		 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>.
-		 * example: <code>email.addHeader("X-Priority", 2)</code>
+		 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>. example: <code>email.addHeader("X-Priority",
+		 * 2)</code>
 		 *
 		 * @param name  The name of the header.
 		 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
@@ -675,7 +663,17 @@ public class Email {
 		 * Sets all info needed for DKIM, using a byte array for private key data.
 		 */
 		public Builder signWithDomainKey(final byte[] dkimPrivateKey, final String signingDomain, final String selector) {
-			this.dkimPrivateKey = dkimPrivateKey.clone();
+			this.dkimPrivateKeyInputStream = new ByteArrayInputStream(dkimPrivateKey);
+			this.signingDomain = signingDomain;
+			this.selector = selector;
+			return this;
+		}
+
+		/**
+		 * Sets all info needed for DKIM, using a byte array for private key data.
+		 */
+		public Builder signWithDomainKey(final String dkimPrivateKey, final String signingDomain, final String selector) {
+			this.dkimPrivateKeyInputStream = new ByteArrayInputStream(dkimPrivateKey.getBytes(UTF_8));
 			this.signingDomain = signingDomain;
 			this.selector = selector;
 			return this;
@@ -719,9 +717,7 @@ public class Email {
 		textHTML = builder.textHTML;
 		subject = builder.subject;
 
-		if (builder.dkimPrivateKey != null) {
-			signWithDomainKey(builder.dkimPrivateKey, builder.signingDomain, builder.selector);
-		} else if (builder.dkimPrivateKeyFile != null) {
+		if (builder.dkimPrivateKeyFile != null) {
 			signWithDomainKey(builder.dkimPrivateKeyFile, builder.signingDomain, builder.selector);
 		} else if (builder.dkimPrivateKeyInputStream != null) {
 			signWithDomainKey(builder.dkimPrivateKeyInputStream, builder.signingDomain, builder.selector);
@@ -736,11 +732,17 @@ public class Email {
 
 	/**
 	 * Constructor for {@link javax.mail.internet.MimeMessage}.
+	 * <p>
+	 * <strong>Doen add default recipient that may have been provided in a config file.</strong>
 	 *
 	 * @param mimeMessage The MimeMessage from which to create the email.
 	 */
 	public Email(MimeMessage mimeMessage) {
-		this();
+		recipients = new ArrayList<>();
+		embeddedImages = new ArrayList<>();
+		attachments = new ArrayList<>();
+		headers = new HashMap<>();
+
 		try {
 			fillEmailFromMimeMessage(new MimeMessageParser(mimeMessage).parse());
 		} catch (MessagingException | IOException e) {
