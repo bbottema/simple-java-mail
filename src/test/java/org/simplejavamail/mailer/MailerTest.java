@@ -1,11 +1,11 @@
 package org.simplejavamail.mailer;
 
 import org.junit.Before;
-import org.simplejavamail.email.Email;
-import org.simplejavamail.email.EmailTest;
 import org.junit.Test;
+import org.simplejavamail.email.Email;
 import org.simplejavamail.internal.util.ConfigLoader;
 import testutil.ConfigHelper;
+import testutil.EmailHelper;
 
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -41,7 +41,7 @@ public class MailerTest {
 	@Test
 	public void testDKIMPriming()
 			throws IOException, MessagingException {
-		final Email email = EmailTest.createDummyEmail();
+		final Email email = EmailHelper.createDummyEmail();
 
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
 		String privateDERkeyBase64 =
