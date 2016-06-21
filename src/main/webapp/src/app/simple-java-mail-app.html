@@ -8,7 +8,7 @@
 
   <div [hidden]="!router.urlTree.contains(router.createUrlTree(['/about']))">
     <div class="quick">
-<pre><code>Email email = new Email.Builder()
+<pre><code>Email email = new EmailBuilder()
     .from("lollypop", "lolly.pop@pretzelfun.com")
     .to("C. Cane", "candycane@candyshop.org")
     .to("C. Bo", "chocobo@candyshop.org")
@@ -25,7 +25,8 @@ new Mailer().sendMail(email);
 
 <div id="navigation" class="bar-group">
   <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/about']))" [routerLink]="['/about']" (click)="scrollToTop()">About</a>
-  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/features']))" [routerLink]="['/features']" simplePageScroll href="#navigation">Features & Examples</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/features']))" [routerLink]="['/features']" simplePageScroll href="#navigation">Features</a>
+  <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/configuration']))" [routerLink]="['/configuration']" simplePageScroll href="#navigation">Configuration</a>
   <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/debugging']))" [routerLink]="['/debugging']" simplePageScroll href="#navigation">Logging & Debugging</a>
   <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/rfc-compliant']))" [routerLink]="['/rfc']" simplePageScroll href="#navigation">RFC Compliant</a>
   <a class="bar-link" [class.active]="router.urlTree.contains(router.createUrlTree(['/download']))" [routerLink]="['/download']" simplePageScroll href="#navigation">Download</a>

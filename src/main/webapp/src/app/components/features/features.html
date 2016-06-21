@@ -21,7 +21,7 @@
       <li><a simplePageScroll href="#section-basic-usage">Basic usage</a></li>
       <li><a simplePageScroll href="#section-custom-session">Sending with your own Session instance</a></li>
       <li><a simplePageScroll href="#section-ssl-tls">Sending with SSL and TLS</a></li>
-      <li><a simplePageScroll href="#section-gmail">SSL and TLS with Google mail</a></li>
+      <li><a simplePageScroll href="#section-gmail" class="indent">SSL and TLS with Google mail</a></li>
       <li><a simplePageScroll href="#section-attachments">Adding attachments</a></li>
       <li><a simplePageScroll href="#section-embedding">Embedding images</a></li>
       <li><a simplePageScroll href="#section-custom-headers">Setting custom headers</a></li>
@@ -37,7 +37,6 @@
   <section class="roadmap">
     <h2>Roadmap</h2>
     <ul>
-      <li>Support for (authenticated) SOCKS proxy servers</li>
       <li>Asynchronous (threaded) mailing for batches</li>
     </ul>
   </section>
@@ -48,10 +47,9 @@
   <section>
     <div class="view">
       <p>
-        Simply create an <code class="inline">Email</code>, populate it with your data, create a <code class="inline">Mailer</code> and send the
-        Email instance. The mailer can be created with your own <code class="inline">Session</code> instance as well (<a simplePageScroll
-                                                                                                                         href="#section-custom-session">see
-        below</a>).
+        Simply create an <code class="inline">Email</code>, populate it with your data, create a <code class="inline">Mailer</code> and send the Email
+        instance. The mailer can be <a simplePageScroll
+        href="#section-custom-session">created with your own <code class="inline">Session</code> instance as well</a>.
       </p>
       <p>
         A Mailer instance is reusable.
@@ -84,7 +82,7 @@ new Mailer("server", "25", "username", "password").sendMail(email);
     </div>
 
     <div class="side">
-<pre><code>Email email = new Email.Builder()
+<pre><code>Email email = new EmailBuilder()
     .from("Michel Baker", "m.baker@mbakery.com")
     .to("mom", "jean.baker@hotmail.com")
     .to("dad", "StevenOakly1963@hotmail.com")
@@ -113,8 +111,9 @@ new Mailer("server", "25", "username", "password").sendMail(email);
 
 inhouseMailer.sendMail(email);
 inhouseMailer.sendMail(anotherEmail);
-
-// or as preconfigured Spring bean:
+</code></pre>
+      Or as preconfigured Spring bean:
+<pre><code>
 &lt;bean id=&quot;inhouseMailer&quot; class=&quot;org.codemonkey.simplejavamail.Mailer&quot;&gt;
    &lt;constructor-arg value=&quot;server&quot; /&gt;
    &lt;constructor-arg value=&quot;25&quot; /&gt;
@@ -132,7 +131,7 @@ inhouseMailer.sendMail(anotherEmail);
   <section>
     <div class="view">
       <p>
-        If you prefer to use your own preconfigured <code class="inline">Session</code> instance, you can!
+        If you prefer to use your own preconfigured <code class="inline">Session</code> instance and still benefit from Simple Java Mail, you can!
       </p>
     </div>
 
@@ -159,9 +158,9 @@ new Mailer(yourSession).sendMail(email);
     <div class="side">
 <pre><code>Email email = new Email();
 
-new Mailer().sendMail(email, TransportStrategy.SMTP_PLAIN); // default if omitted
-new Mailer().sendMail(email, TransportStrategy.SMTP_SSL);
-new Mailer().sendMail(email, TransportStrategy.SMTP_TLS);
+mailer.sendMail(email, TransportStrategy.SMTP_PLAIN); // default if omitted
+mailer.sendMail(email, TransportStrategy.SMTP_SSL);
+mailer.sendMail(email, TransportStrategy.SMTP_TLS);
 </code></pre>
     </div>
   </section>
@@ -177,7 +176,9 @@ new Mailer().sendMail(email, TransportStrategy.SMTP_TLS);
       </p>
       <p>
         If you have two-factor login turned on, you need to generate an <a href="https://security.google.com/settings/security/apppasswords">application
-        specific password</a> from your Google account.
+                                                                                                                                             specific
+                                                                                                                                             password</a>
+        from your Google account.
       </p>
     </div>
 
@@ -293,8 +294,9 @@ mailer.applyProperties(props);
   <section>
     <div class="view">
       <p>
-        For emergencies, you can also get a hold of the internal Session instance itself. You should never need this however and if you do it means
-        Simple Java Mail failed to simplify the configuration process for you. Please let us know how we can help alleviate this need.
+        For emergencies, you can also get a hold of the internal Session instance itself. <strong>You should never need this however</strong> and if
+        you do it means Simple Java Mail failed to simplify the configuration process for you. <strong>Please let us know how we can help alleviate
+                                                                                                       this need</strong>.
       </p>
     </div>
 
@@ -364,16 +366,18 @@ EmailAddressValidator.isValid("your_address@domain.com",
   <section>
     <div class="view">
       <p>
-        If, for some reason, you need a MimeMessage, you can still benefit from the easy API Simple Java Mail offers. Behold.
+        If for some reason you need a MimeMessage, you can still benefit from the easy API Simple Java Mail offers. Behold.
       </p>
     </div>
 
     <div class="side">
 <pre><code>Email email = new Email()
-// populate email
+// populate email, the builder is great for this
 
+// then
+MimeMessage message = Mailer.produceMimeMessage(email);
+// or
 MimeMessage message = Mailer.produceMimeMessage(email, yourSession);
-// in future also: new Mailer(...).produceMimeMessage(email);
 </code></pre>
     </div>
   </section>

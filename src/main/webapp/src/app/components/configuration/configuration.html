@@ -1,0 +1,256 @@
+<div class="content">
+
+  <h1>Configuration</h1>
+
+  <section class="introduction">
+    <p class="wide">
+      Simple Java Mail provides full configuration through <strong>programmatic API</strong> as well as <strong>properties files</strong>. For each
+      level of configuration detail, a constructor is available keep it simple.
+    </p>
+    <p class="wide">
+      The Java API and config files complement each other; the more you configure in a properties file, the less you can provide through the
+      programmatic API. If you provide the overlapping configuration, the programmatic API takes priority, overriding property values.
+    </p>
+  </section>
+
+  <section class="toc">
+    <ul>
+      <li><a simplePageScroll href="#section-programmatic-api">Programmatic API</a></li>
+      <li><a simplePageScroll href="#section-other-settings" class="indent">Other settings</a></li>
+      <li><a simplePageScroll href="#section-config-properties">Properties files</a></li>
+      <li><a simplePageScroll href="#section-available-properties" class="indent">Available properties</a></li>
+      <li><a simplePageScroll href="#section-combine-config">Combining both for multiple environments</a></li>
+    </ul>
+  </section>
+
+
+  <a href="#section-programmatic-api" id="section-programmatic-api" class="section-link h2">&sect;</a>
+  <h2>Programmatic API</h2>
+
+  <section>
+    <div class="wide">
+      <p>
+        Everything can be configured through the java API.
+      </p>
+    </div>
+
+    <div class="wide">
+<pre><code class="small">// the simplest constructor, this is how the library started!
+new Mailer("smtp.host.com", 25, "username", "password");
+</code></pre>
+<pre><code class="small">
+// the same as the basic constructor, but with a config object
+new Mailer(new ServerConfig("smtp.host.com", 25, "username", "password"));
+
+// you can even leave out some details for an anonymous SMTP server
+new Mailer(new ServerConfig("smtp.host.com", 25));
+
+// adding the transport strategy...
+new Mailer("smtp.host.com", 587, "username", "password", TransportStrategy.SMTP_TLS);
+new Mailer(serverConfig, TransportStrategy.SMTP_TLS);
+
+// or instead adding anonymous proxy configuration
+new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080));
+
+// or authenticated proxy
+new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username", "proxy password"));
+</code></pre>
+<pre><code class="small">
+// anonymous smtp + anonymous proxy + default SMTP_PLAIN strategy
+new Mailer(new ServerConfig("smtp.host.com", 25), new ProxyConfig("proxy.host.com", 1080));
+</code></pre>
+<pre><code class="small">
+// configure everything!
+new Mailer(
+		new ServerConfig("smtp.host.com", 587, "user@host.com", "password"),
+		TransportStrategy.SMTP_TLS,
+		new ProxyConfig("socksproxy.host.com", 1080, "proxy user", "proxy password")
+).sendMail(email);
+</code></pre>
+<pre><code class="small">
+// preconfigured Session?
+new Mailer(session);
+
+// preconfigured but you need anonymous proxy?
+new Mailer(session, new ProxyConfig("proxy.host.com", 1080));
+
+// preconfigured but you need authenticated proxy?
+new Mailer(session, new ProxyConfig("proxy.host.com", 1080, "proxy user", "proxy password"));
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-other-settings" id="section-other-settings" class="section-link h3">&sect;</a>
+  <h3>Other settings</h3>
+
+  <section>
+    <div class="view">
+      <p>
+        Aside from the constructors, there are a few other settings.
+      </p>
+    </div>
+
+    <div class="side">
+      <pre><code>// make javax.mail produce more logging
+mailer.setDebug(true);
+</code></pre>
+<pre><code>
+// change email validation strategy, or deactivate completely
+mailer.setEmailAddressCriteria(EmailAddressCriteria.DEFAULT);
+mailer.setEmailAddressCriteria(EmailAddressCriteria.RFC_COMPLIANT);
+mailer.setEmailAddressCriteria(EnumSet
+       .of(ALLOW_QUOTED_IDENTIFIERS, ALLOW_PARENS_IN_LOCALPART));
+mailer.setEmailAddressCriteria(null);
+</code></pre>
+<pre><code>
+// change SOCKS5 bridge port in case of authenticated proxy
+Proxyconfig proxyConfig = new ProxyConfig(...);
+proxyConfig.setProxyBridgePort(1081); // is always localhost
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-config-properties" id="section-config-properties" class="section-link h2">&sect;</a>
+  <h2>Properties files</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        With properties files you can define defaults and overrides.
+      </p>
+      <p>
+        Simple Java Mail will automatically load properties from <code class="inline">simplejavamail.properties</code>, if available on the classpath.
+        Alternatively, you can manually load additional properties files in a number of ways.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code class="small">ConfigLoader.loadProperties("overrides-on-classpath.properties", /* addProperties = */ true);
+ConfigLoader.loadProperties(new File("d:/replace-from-environment.properties"), /* addProperties = */ false);
+ConfigLoader.loadProperties(usingMyOwnInputStream, addProperties);
+</code></pre>
+    </div>
+  </section>
+
+  <a href="#section-available-properties" id="section-available-properties" class="section-link h3">&sect;</a>
+  <h3>Available properties</h3>
+
+  <section>
+    <div class="view">
+      <p>
+        The default recipients are like admin features, where you notify a person whenever a mail goes out from a certain mailer.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>simplejavamail.javaxmail.debug=true
+simplejavamail.transportstrategy=SMTP_SSL
+simplejavamail.smtp.host=smtp.default.com
+simplejavamail.smtp.port=25
+simplejavamail.smtp.username=username
+simplejavamail.smtp.password=password
+simplejavamail.proxy.host=proxy.default.com
+simplejavamail.proxy.port=1080
+simplejavamail.proxy.username=username proxy
+simplejavamail.proxy.password=password proxy
+simplejavamail.proxy.socks5bridge.port=1081
+simplejavamail.defaults.subject=Sweet News
+simplejavamail.defaults.from.name=From Default
+simplejavamail.defaults.from.address=from@default.com
+simplejavamail.defaults.replyto.name=Reply-To Default
+simplejavamail.defaults.replyto.address=reply-to@default.com
+simplejavamail.defaults.to.name=To Default
+simplejavamail.defaults.to.address=to@default.com
+simplejavamail.defaults.cc.name=CC Default
+simplejavamail.defaults.cc.address=cc@default.com
+simplejavamail.defaults.bcc.name=BCC Default
+simplejavamail.defaults.bcc.address=bcc@default.com
+</code></pre>
+    </div>
+  </section>
+
+  <a href="#section-combine-config" id="section-combine-config" class="section-link h2">&sect;</a>
+  <h2>Combining both for multiple environments</h2>
+
+  <section>
+    <div class="wide">
+      <p>
+        Let's set up configuration for a <strong>test</strong>, <strong>acceptance</strong> and <strong>production</strong> environment.
+      </p>
+      <h3>Properties for the environments</h3>
+    </div>
+    <div class="wide">
+<pre><code class="small">/* global default properties (simplejavamail.properties on classpath) */
+
+    // anonoymous SMTP inside 'safe' DMZ
+    simplejavamail.smtp.host=dmz.smtp.candyshop.com
+    simplejavamail.smtp.port=25
+
+    // default sender and reply-to address
+    simplejavamail.defaults.from.name=The Candy App
+    simplejavamail.defaults.from.address=candyapp@candystore.com
+    simplejavamail.defaults.replyto.name=Candystore Helpdesk
+    simplejavamail.defaults.replyto.address=helpdesk@candystore.com
+</code></pre>
+<pre><code class="small">/* overrides from TEST and UAT .../config/candystore/simplejavamail.properties */
+
+    // always send a copy to test archive
+    simplejavamail.defaults.bcc.name=Archive TST UAT
+    simplejavamail.defaults.bcc.address=test-archive@candyshop.com
+</code></pre>
+<pre><code class="small">/* overrides from PRODUCTION .../config/candystore/simplejavamail.properties */
+
+    // always send a copy to production archive
+    simplejavamail.defaults.bcc.name=Archive PRODUCTION
+    simplejavamail.defaults.bcc.address=prod-archive@candyshop.com
+
+    // smtp server in production is protected
+    simplejavamail.smtp.username=creamcake
+    simplejavamail.smtp.password=crusty_l0llyp0p
+
+    // sending mails in production must go through proxy
+    simplejavamail.proxy.host=proxy.candyshop.com
+    simplejavamail.proxy.port=1080
+    simplejavamail.proxy.username=candyman
+    simplejavamail.proxy.password=I has the sugarcanes!!1!
+</code></pre>
+    </div>
+
+    <h3>Now for the programmatic part</h3>
+
+    <div class="wide">
+<pre><code>// simplejavamail.properties is automatically loaded
+
+// assume that every environment provides its own property file
+ConfigLoader.loadProperties(new File(".../config/candystore/simplejavamail.properties"));
+</code></pre>
+<pre><code>
+// see if we need to do some specific override for some reason
+if (someSpecialCondition) {
+  ConfigLoader.loadProperties("special-override.properties", true);
+}
+</code></pre>
+<pre><code>
+// or maybe we want to ditch all defaults and trust someone else's config completely
+if (ditchOwnAndTrustOtherSource) {
+  ConfigLoader.loadProperties(someFileOrInputSource, false);
+}
+</code></pre>
+<pre><code>
+// maybe the config service has something?
+ConfigLoader.loadProperties(socket.getInpuStream(), true);
+</code></pre>
+
+      <p>
+        Maybe we want to connect slightly different for some reason:
+      </p>
+
+<pre><code>// override only the port and connection type, leave everything else to config files
+Mailer mailer = new Mailer(new ServerConfig(null, 587), TransportStrategy.SMTP_TLS);
+</code></pre>
+    </div>
+  </section>
+
+</div>

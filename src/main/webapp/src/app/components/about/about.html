@@ -16,10 +16,17 @@
         mailing library, yet it is <strong>small</strong> and <strong>lightweight</strong>. It is fully <strong><a
           simplePageScroll [routerLink]="['/rfc']" href="#navigation">RFC compliant</a></strong> and looks good in all
         email clients.</p>
+      <br/>
+      <p>It's also the only java mailing library in the world that can send through authenticated SOCKS proxy.</p>
     </div>
 
     <div class="side">
-<pre><code class="small">Email email = new Email();
+<pre><code class="small">// Everything together:
+
+ConfigLoader.loadProperties("simplejavamail.properties"); // optional!
+ConfigLoader.loadProperties("overrides.properties");
+
+Email email = new Email();
 
 email.addRecipient("lollypop", "lolly.pop@somemail.com", Message.RecipientType.TO);
 email.setReplyToAddress("lollypop", "lolly.pop@othermail.com");
@@ -32,9 +39,14 @@ email.addEmbeddedImage("wink1", imageByteArray, "image/png");
 email.addEmbeddedImage("wink2", imageDatesource);
 email.addAttachment("invitation", pdfByteArray, "application/pdf");
 email.addAttachment("dresscode", odfDatasource);
+
 email.signWithDomainKey(privateKeyData, "somemail.com", "selector");
 
-new Mailer().sendMail(email);
+new Mailer(
+		new ServerConfig("smtp.host.com", 587, "user@host.com", "password"),
+		TransportStrategy.SMTP_TLS,
+		new ProxyConfig("socksproxy.host.com", 1080, "proxy user", "proxy password")
+).sendMail(email);
 </code></pre>
     </div>
   </section>
@@ -48,9 +60,6 @@ new Mailer().sendMail(email);
       <p>Simple Java Mail is a thin layer on top of Oracle's SMTP JavaMail API. For logging purposes, SLF4J is used so
         you can use whatever
         logging framework you prefer.</p>
-      <p>These dependencies come along automatically with Maven, but you can download them here if you plan to maintain
-        your own
-        dependencies.</p>
       <p>Once the dependencies are set up, simply copy the above examples and start mailing!</p>
       <p class="button-group">
         <a class="button" [routerLink]="['/features']" simplePageScroll href="#navigation">Show Examples</a>
