@@ -4,7 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.internal.util.ConfigLoader;
-import testutil.ConfigHelper;
+import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
 import javax.mail.MessagingException;
@@ -62,7 +62,7 @@ public class MailerTest {
 	@Test
 	public void createMailSession_MinimalConstructor_WithoutConfig()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 
 		Mailer mailer = new Mailer("host", 25, null, null);
 		Session session = mailer.getSession();
@@ -95,7 +95,7 @@ public class MailerTest {
 	@Test
 	public void createMailSession_AnonymousProxyConstructor_WithoutConfig()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 
 		Mailer mailer = createFullyConfiguredMailer(false, "");
 
@@ -117,7 +117,7 @@ public class MailerTest {
 	@Test
 	public void createMailSession_MaximumConstructor_WithoutConfig()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 
 		Mailer mailer = createFullyConfiguredMailer(true, "");
 

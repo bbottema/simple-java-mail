@@ -4,7 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.internal.util.ConfigLoader;
 import org.simplejavamail.mailer.Mailer;
-import testutil.ConfigHelper;
+import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
 import javax.mail.internet.MimeMessage;
@@ -36,7 +36,7 @@ public class EmailTest {
 	@Test
 	public void emailConstructor_WithoutConfig()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		Email email = new Email();
 		assertThat(email.getFromRecipient()).isNull();
 		assertThat(email.getReplyToRecipient()).isNull();

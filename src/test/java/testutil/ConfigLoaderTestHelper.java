@@ -8,7 +8,7 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ConfigHelper {
+public class ConfigLoaderTestHelper {
 	public static void setResolvedProperties(Map<Property, Object> value)
 			throws Exception {
 		Field field = makeAccessible(ConfigLoader.class.getDeclaredField("RESOLVED_PROPERTIES"));

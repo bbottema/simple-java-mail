@@ -3,7 +3,7 @@ package org.simplejavamail.mailer;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.internal.util.ConfigLoader;
-import testutil.ConfigHelper;
+import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -28,7 +28,7 @@ public class ProxyConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_WithoutHost()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		ProxyConfig emptyProxyConfig = new ProxyConfig();
 		verifyProxyConfig(emptyProxyConfig, null, null, null, null, DEFAULT_PROXY_BRIDGE_PORT);
 		assertThat(emptyProxyConfig.requiresProxy()).isFalse();
@@ -38,7 +38,7 @@ public class ProxyConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_WithoutPort()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
 			new ProxyConfig("host", null);
 			fail("IllegalArgumentException expected for proxy port");
@@ -56,7 +56,7 @@ public class ProxyConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_AnonymousLogin()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		ProxyConfig proxyConfig = new ProxyConfig("host", 1234);
 		ProxyConfig proxyConfigAlternative = new ProxyConfig("host", 1234, null, null);
 		assertThat(proxyConfig).isEqualToComparingFieldByField(proxyConfigAlternative);
@@ -68,7 +68,7 @@ public class ProxyConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 
 		try {
 			new ProxyConfig("host", 1234, "username", null);
@@ -87,7 +87,7 @@ public class ProxyConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_Authenticated()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		ProxyConfig proxyConfig = new ProxyConfig("host", 1234, "username", "password");
 		verifyProxyConfig(proxyConfig, "host", 1234, "username", "password", DEFAULT_PROXY_BRIDGE_PORT);
 		assertThat(proxyConfig.requiresProxy()).isTrue();
@@ -145,7 +145,7 @@ public class ProxyConfigTest {
 	@Test
 	public void testToString()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		ProxyConfig proxyConfig = new ProxyConfig();
 		assertThat(proxyConfig.toString()).isEqualTo("no-proxy");
 		proxyConfig = new ProxyConfig("host", 1234, null, null);

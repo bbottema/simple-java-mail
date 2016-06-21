@@ -3,7 +3,7 @@ package org.simplejavamail.mailer;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.internal.util.ConfigLoader;
-import testutil.ConfigHelper;
+import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -26,7 +26,7 @@ public class ServerConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_WithoutHost()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
 			new ServerConfig();
 			fail("IllegalArgumentException expected for host");
@@ -56,7 +56,7 @@ public class ServerConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_WithoutPort()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
 			new ServerConfig("host", null);
 			fail("IllegalArgumentException expected for port");
@@ -80,7 +80,7 @@ public class ServerConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_AnonymousLogin()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfig("host", 1234);
 		ServerConfig serverConfigAlternative1 = new ServerConfig("host", 1234, null);
 		ServerConfig serverConfigAlternative2 = new ServerConfig("host", 1234, null, null);
@@ -91,7 +91,7 @@ public class ServerConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfig("host", 1234, "username", null);
 		ServerConfig serverConfigAlternative = new ServerConfig("host", 1234, "username");
 		assertThat(serverConfig).isEqualToComparingFieldByField(serverConfigAlternative);
@@ -108,7 +108,7 @@ public class ServerConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_Authenticated()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfig("host", 1234, "username", "password");
 		verifyServerConfig(serverConfig, "host", 1234, "username", "password");
 	}
@@ -155,7 +155,7 @@ public class ServerConfigTest {
 	@Test
 	public void testToString()
 			throws Exception {
-		ConfigHelper.clearConfigProperties();
+		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfig("host", 1234, null, null);
 		assertThat(serverConfig.toString()).isEqualTo("host:1234");
 		serverConfig = new ServerConfig("host", 1234, "username", null);

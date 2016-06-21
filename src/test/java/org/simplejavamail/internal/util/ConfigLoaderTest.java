@@ -4,7 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.mailer.TransportStrategy;
 import org.simplejavamail.internal.util.ConfigLoader.Property;
-import testutil.ConfigHelper;
+import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -27,7 +27,7 @@ public class ConfigLoaderTest {
 			throws Exception {
 		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
-		ConfigHelper.setResolvedProperties(properties);
+		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
 		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY)).isEqualTo("value");
 		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY)).isEqualTo("preconfiguredValue");
@@ -39,7 +39,7 @@ public class ConfigLoaderTest {
 			throws Exception {
 		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
-		ConfigHelper.setResolvedProperties(properties);
+		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
 		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
 		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("preconfiguredValue");
@@ -54,7 +54,7 @@ public class ConfigLoaderTest {
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue1");
 		properties.put(DEFAULT_FROM_ADDRESS, "preconfiguredValue2");
 		properties.put(DEFAULT_BCC_NAME, null);
-		ConfigHelper.setResolvedProperties(properties);
+		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
 		assertThat(ConfigLoader.hasProperty(TRANSPORT_STRATEGY)).isTrue();
 		assertThat(ConfigLoader.hasProperty(DEFAULT_FROM_ADDRESS)).isTrue();
@@ -69,7 +69,7 @@ public class ConfigLoaderTest {
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue1");
 		properties.put(DEFAULT_FROM_ADDRESS, "preconfiguredValue2");
 		properties.put(DEFAULT_BCC_NAME, null);
-		ConfigHelper.setResolvedProperties(properties);
+		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
 		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isEqualTo("preconfiguredValue1");
 		assertThat(ConfigLoader.getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("preconfiguredValue2");
