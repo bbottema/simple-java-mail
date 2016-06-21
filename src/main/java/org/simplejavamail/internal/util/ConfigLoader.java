@@ -49,6 +49,7 @@ public final class ConfigLoader {
 		PROXY_USERNAME("simplejavamail.proxy.username"),
 		PROXY_PASSWORD("simplejavamail.proxy.password"),
 		PROXY_SOCKS5BRIDGE_PORT("simplejavamail.proxy.socks5bridge.port"),
+		DEFAULT_SUBJECT("simplejavamail.defaults.subject"),
 		DEFAULT_FROM_NAME("simplejavamail.defaults.from.name"),
 		DEFAULT_FROM_ADDRESS("simplejavamail.defaults.from.address"),
 		DEFAULT_REPLYTO_NAME("simplejavamail.defaults.replyto.name"),

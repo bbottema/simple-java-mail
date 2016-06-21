@@ -118,6 +118,7 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.getProperty(DEFAULT_CC_ADDRESS)).isEqualTo("cc@default.com");
 		assertThat(ConfigLoader.getProperty(DEFAULT_BCC_NAME)).isEqualTo("BCC Default");
 		assertThat(ConfigLoader.getProperty(DEFAULT_BCC_ADDRESS)).isEqualTo("bcc@default.com");
+		assertThat(ConfigLoader.getProperty(DEFAULT_SUBJECT)).isEqualTo("Default Subject");
 	}
 
 	@Test

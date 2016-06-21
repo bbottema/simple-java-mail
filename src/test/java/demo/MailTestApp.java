@@ -2,7 +2,6 @@ package demo;
 
 import org.simplejavamail.email.Email;
 import org.simplejavamail.mailer.Mailer;
-import org.simplejavamail.mailer.ProxyConfig;
 import org.simplejavamail.mailer.ServerConfig;
 import org.simplejavamail.mailer.TransportStrategy;
 
@@ -52,38 +51,6 @@ public class MailTestApp {
 	}
 
 	private static void sendMail(final Email email) {
-// the simplest constructor, this is how the library started!
-new Mailer("smtp.host.com", 25, "username", "password");
-
-// the same but with a config object
-new Mailer(new ServerConfig("smtp.host.com", 25, "username", "password"));
-// you can even leave out some details for an anonymous SMTP server
-new Mailer(new ServerConfig("smtp.host.com", 25));
-// adding the transport strategy...
-new Mailer("smtp.host.com", 587, "username", "password", TransportStrategy.SMTP_TLS);
-new Mailer(serverConfig, TransportStrategy.SMTP_TLS);
-// or instead adding anonymous proxy configuration
-new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080));
-// or authenticated proxy
-new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username", "proxy password"));
-
-// anonymous smtp + anonymous proxy + default SMTP_PLAIN strategy
-new Mailer(new ServerConfig("smtp.host.com", 25), new ProxyConfig("proxy.host.com", 1080));
-
-// configure everything!
-new Mailer(
-		new ServerConfig("smtp.host.com", 587, "user@host.com", "password"),
-		TransportStrategy.SMTP_TLS,
-		new ProxyConfig("socksproxy.host.com", 1080, "proxy user", "proxy password")
-).sendMail(email);
-
-// preconfigured Session?
-new Mailer(session);
-// preconfigured but you need anonymous proxy?
-new Mailer(session, new ProxyConfig("proxy.host.com", 1080));
-// preconfigured but you need authenticated proxy?
-new Mailer(session, new ProxyConfig("proxy.host.com", 1080, "proxy user", "proxy password"));
-
 		//		ProxyConfig proxyconfig = new ProxyConfig("localhost", 1030);
 		new Mailer(serverConfigSMTP, TransportStrategy.SMTP_TLS).sendMail(email);
 		new Mailer(serverConfigTLS, TransportStrategy.SMTP_TLS).sendMail(email);

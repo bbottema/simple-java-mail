@@ -100,6 +100,9 @@ public class Email {
 		if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 			addRecipient((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
 		}
+		if (hasProperty(DEFAULT_SUBJECT)) {
+			setSubject((String) getProperty(DEFAULT_SUBJECT));
+		}
 	}
 
 	/**

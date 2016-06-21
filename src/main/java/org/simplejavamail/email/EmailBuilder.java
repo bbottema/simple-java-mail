@@ -105,6 +105,9 @@ public class EmailBuilder {
 		if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 			bcc((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS));
 		}
+		if (hasProperty(DEFAULT_SUBJECT)) {
+			subject((String) getProperty(DEFAULT_SUBJECT));
+		}
 	}
 
 	/**
