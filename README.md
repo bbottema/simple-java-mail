@@ -9,8 +9,6 @@ The Simple Java Mail library is a thin layer on top of the JavaMail smtp mailing
 ### [simplejavamail.org](http://www.simplejavamail.org) ###
 
 ```java
-// Everything together:
-
 ConfigLoader.loadProperties("simplejavamail.properties"); // optional default
 ConfigLoader.loadProperties("overrides.properties"); // optional extra
 
