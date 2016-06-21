@@ -275,7 +275,8 @@ public class Mailer {
 	 * @param transportStrategy Used to verify if the current combination with proxy is allowed (SMTP with SSL trategy doesn't support any proxy,
 	 *                          virtue of the underlying JavaMail framework).
 	 */
-	private void configureSessionWithProxy(final ProxyConfig proxyConfig, final Properties sessionProperties, final TransportStrategy transportStrategy) {
+	private void configureSessionWithProxy(final ProxyConfig proxyConfig, final Properties sessionProperties,
+			final TransportStrategy transportStrategy) {
 		final ProxyConfig effectiveProxyConfig = (proxyConfig != null) ? proxyConfig : new ProxyConfig();
 		if (!effectiveProxyConfig.requiresProxy()) {
 			LOGGER.debug("No proxy set, skipping proxy.");
@@ -452,7 +453,18 @@ public class Mailer {
 	}
 
 	/**
-	 * Creates a new {@link MimeMessage} instance and prepares it in the email structure, so that it can be filled and send.
+	 * Delegates to {@link #produceMimeMessage(Email, Session)}, using a new empty {@link Session} instance.
+	 *
+	 * @see #produceMimeMessage(Email, Session)
+	 */
+	public static MimeMessage produceMimeMessage(final Email email)
+			throws UnsupportedEncodingException, MessagingException {
+		return produceMimeMessage(email, Session.getDefaultInstance(new Properties()));
+	}
+
+	/**
+	 * Creates a new {@link MimeMessage} instance coupled to a specific {@link Session} instance and prepares it in the email structure, so that it
+	 * can be filled and send.
 	 * <p/>
 	 * Fills subject, from,reply-to, content, sent-date, recipients, texts, embedded images, attachments, content and adds all headers.
 	 *

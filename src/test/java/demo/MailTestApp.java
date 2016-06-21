@@ -1,18 +1,16 @@
 package demo;
 
+import org.simplejavamail.email.Email;
 import org.simplejavamail.mailer.Mailer;
 import org.simplejavamail.mailer.ServerConfig;
 import org.simplejavamail.mailer.TransportStrategy;
-import org.simplejavamail.email.Email;
 
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
-import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Properties;
 
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
@@ -45,7 +43,7 @@ public class MailTestApp {
 		emailNormal.addEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png");
 
 		// let's try producing and then consuming a MimeMessage ->
-		final MimeMessage mimeMessage = Mailer.produceMimeMessage(emailNormal, Session.getDefaultInstance(new Properties()));
+		final MimeMessage mimeMessage = Mailer.produceMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = new Email(mimeMessage);
 
 		sendMail(emailNormal);

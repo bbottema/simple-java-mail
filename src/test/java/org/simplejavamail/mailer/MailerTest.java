@@ -54,7 +54,7 @@ public class MailerTest {
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
 
 		email.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
-		MimeMessage mimeMessage = Mailer.produceMimeMessage(email, Session.getDefaultInstance(new Properties()));
+		MimeMessage mimeMessage = Mailer.produceMimeMessage(email);
 		Mailer.signMessageWithDKIM(mimeMessage, email);
 		// success, signing did not produce an error
 	}

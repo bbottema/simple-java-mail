@@ -7,11 +7,9 @@ import org.simplejavamail.mailer.Mailer;
 import testutil.ConfigHelper;
 import testutil.EmailHelper;
 
-import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Properties;
 
 import static javax.mail.Message.RecipientType.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,7 +61,7 @@ public class EmailTest {
 		final Email emailNormal = EmailHelper.createDummyEmail();
 
 		// let's try producing and then consuming a MimeMessage ->
-		final MimeMessage mimeMessage = Mailer.produceMimeMessage(emailNormal, Session.getDefaultInstance(new Properties()));
+		final MimeMessage mimeMessage = Mailer.produceMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = new Email(mimeMessage);
 
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
