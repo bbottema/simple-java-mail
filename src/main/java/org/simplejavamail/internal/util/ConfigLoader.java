@@ -16,7 +16,7 @@ import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
  * Contains list of possible properties names and can produce a map of property values, if provided as file "{@value #DEFAULT_CONFIG_FILENAME}" on the
  * classpath or as environment property.
  */
-public class ConfigLoader {
+public final class ConfigLoader {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
 
@@ -25,8 +25,8 @@ public class ConfigLoader {
 	/**
 	 * Initially try to load properties from "{@value #DEFAULT_CONFIG_FILENAME}".
 	 *
-	 * @see #loadProperties(String)
-	 * @see #loadProperties(InputStream)
+	 * @see #loadProperties(String, boolean)
+	 * @see #loadProperties(InputStream, boolean)
 	 */
 	private static final Map<Property, Object> RESOLVED_PROPERTIES = new HashMap<>();
 
@@ -62,7 +62,7 @@ public class ConfigLoader {
 
 		private final String key;
 
-		Property(String key) {
+		Property(final String key) {
 			this.key = key;
 		}
 	}
@@ -70,14 +70,14 @@ public class ConfigLoader {
 	/**
 	 * @return The value if not null or else the value from config file if provided or else <code>null</code>.
 	 */
-	public static <T> T valueOrProperty(T value, Property property) {
+	public static <T> T valueOrProperty(final T value, final Property property) {
 		return valueOrProperty(value, property, null);
 	}
 
 	/**
 	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
 	 */
-	public static <T> T valueOrProperty(T value, Property property, T defaultValue) {
+	public static <T> T valueOrProperty(final T value, final Property property, final T defaultValue) {
 		if (value != null) {
 			LOGGER.trace("using provided argument value {} for property {}", value, property);
 			return value;
@@ -91,11 +91,11 @@ public class ConfigLoader {
 		}
 	}
 
-	public static synchronized boolean hasProperty(Property property) {
+	public static synchronized boolean hasProperty(final Property property) {
 		return RESOLVED_PROPERTIES.containsKey(property);
 	}
 
-	public static synchronized <T> T getProperty(Property property) {
+	public static synchronized <T> T getProperty(final Property property) {
 		//noinspection unchecked
 		return (T) RESOLVED_PROPERTIES.get(property);
 	}
@@ -110,8 +110,8 @@ public class ConfigLoader {
 	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
 	 * @return The updated properties map that is used internally.
 	 */
-	public static Map<Property, Object> loadProperties(String filename, boolean addProperties) {
-		InputStream input = ConfigLoader.class.getClassLoader().getResourceAsStream(filename);
+	public static Map<Property, Object> loadProperties(final String filename, final boolean addProperties) {
+		final InputStream input = ConfigLoader.class.getClassLoader().getResourceAsStream(filename);
 		if (input != null) {
 			return loadProperties(input, addProperties);
 		}
@@ -128,10 +128,10 @@ public class ConfigLoader {
 	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
 	 * @return The updated properties map that is used internally.
 	 */
-	public static Map<Property, Object> loadProperties(File filename, boolean addProperties) {
+	public static Map<Property, Object> loadProperties(final File filename, final boolean addProperties) {
 		try {
 			return loadProperties(new FileInputStream(filename), addProperties);
-		} catch (FileNotFoundException e) {
+		} catch (final FileNotFoundException e) {
 			throw new IllegalStateException("error reading properties file from File", e);
 		}
 	}
@@ -143,18 +143,18 @@ public class ConfigLoader {
 	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
 	 * @return The updated properties map that is used internally.
 	 */
-	public static synchronized Map<Property, Object> loadProperties(InputStream inputStream, boolean addProperties) {
-		Properties prop = new Properties();
+	public static synchronized Map<Property, Object> loadProperties(final InputStream inputStream, final boolean addProperties) {
+		final Properties prop = new Properties();
 
 		try {
 			prop.load(checkArgumentNotEmpty(inputStream, "InputStream was null"));
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new IllegalStateException("error reading properties file from inputstream", e);
 		} finally {
 			if (inputStream != null) {
 				try {
 					inputStream.close();
-				} catch (IOException e) {
+				} catch (final IOException e) {
 					LOGGER.error(e.getMessage(), e);
 				}
 			}
@@ -170,16 +170,16 @@ public class ConfigLoader {
 	/**
 	 * @return All properties in priority of System property > File properties.
 	 */
-	private static Map<Property, Object> readProperties(Properties fileProperties) {
-		Properties filePropertiesLeft = new Properties();
+	private static Map<Property, Object> readProperties(final Properties fileProperties) {
+		final Properties filePropertiesLeft = new Properties();
 		filePropertiesLeft.putAll(fileProperties);
-		Map<Property, Object> resolvedProps = new HashMap<>();
-		for (Property prop : Property.values()) {
-			Object asSystemProperty = parsePropertyValue(System.getProperty(prop.key));
+		final Map<Property, Object> resolvedProps = new HashMap<>();
+		for (final Property prop : Property.values()) {
+			final Object asSystemProperty = parsePropertyValue(System.getProperty(prop.key));
 			if (asSystemProperty != null) {
 				resolvedProps.put(prop, asSystemProperty);
 			} else {
-				String rawValue = (String) filePropertiesLeft.remove(prop.key);
+				final String rawValue = (String) filePropertiesLeft.remove(prop.key);
 				if (rawValue != null) {
 					resolvedProps.put(prop, parsePropertyValue(rawValue));
 				}
@@ -196,7 +196,7 @@ public class ConfigLoader {
 	/**
 	 * @return The property value in boolean, integer or as original string value.
 	 */
-	static Object parsePropertyValue(String propertyValue) {
+	static Object parsePropertyValue(final String propertyValue) {
 		if (propertyValue == null) {
 			return null;
 		}
@@ -214,13 +214,13 @@ public class ConfigLoader {
 		// read number value
 		try {
 			return Integer.valueOf(propertyValue);
-		} catch (NumberFormatException nfe) {
+		} catch (final NumberFormatException nfe) {
 			// ok, so not a number
 		}
 		// read TransportStrategy value
 		try {
 			return TransportStrategy.valueOf(propertyValue);
-		} catch (IllegalArgumentException nfe) {
+		} catch (final IllegalArgumentException nfe) {
 			// ok, so not a TransportStrategy either
 		}
 		// return value as is (which should be string)

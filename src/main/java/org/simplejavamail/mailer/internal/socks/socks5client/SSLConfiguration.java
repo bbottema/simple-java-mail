@@ -23,7 +23,7 @@ public class SSLConfiguration {
 	private final KeyStoreInfo trustKeyStoreInfo;
 
 	@SuppressWarnings("SameParameterValue")
-	public SSLConfiguration(KeyStoreInfo keyStoreInfo, KeyStoreInfo trustKeyStoreInfo) {
+	public SSLConfiguration(final KeyStoreInfo keyStoreInfo, final KeyStoreInfo trustKeyStoreInfo) {
 		this.keyStoreInfo = keyStoreInfo;
 		this.trustKeyStoreInfo = trustKeyStoreInfo;
 	}
@@ -34,15 +34,15 @@ public class SSLConfiguration {
 		FileInputStream s1 = null;
 		FileInputStream s2 = null;
 		try {
-			SSLContext context = SSLContext.getInstance("SSL");
-			TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
-			KeyStore trustKeyStore = KeyStore.getInstance(trustKeyStoreInfo.getType());
+			final SSLContext context = SSLContext.getInstance("SSL");
+			final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
+			final KeyStore trustKeyStore = KeyStore.getInstance(trustKeyStoreInfo.getType());
 			trustKeyStore.load(s1 = new FileInputStream(trustKeyStoreInfo.getKeyStorePath()), trustKeyStoreInfo.getPassword().toCharArray());
 			trustManagerFactory.init(trustKeyStore);
 			KeyStore keyStore = null;
 
 			if (keyStoreInfo != null && keyStoreInfo.getKeyStorePath() != null) {
-				KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+				final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
 				keyStore = KeyStore.getInstance(keyStoreInfo.getType());
 				keyStore.load(s2 = new FileInputStream(keyStoreInfo.getKeyStorePath()), keyStoreInfo.getPassword().toCharArray());
 				keyManagerFactory.init(keyStore, keyStoreInfo.getPassword().toCharArray());
@@ -57,7 +57,7 @@ public class SSLConfiguration {
 			}
 			LOGGER.info("SSL: Trust key store:{}", trustKeyStoreInfo.getKeyStorePath());
 			return context.getSocketFactory();
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			LOGGER.error(e.getMessage(), e);
 			throw new SocksException(e.getMessage());
 		} finally {
@@ -66,11 +66,11 @@ public class SSLConfiguration {
 		}
 	}
 
-	private void tryCloseStream(FileInputStream s1) {
+	private static void tryCloseStream(final FileInputStream s1) {
 		if (s1 != null) {
 			try {
 				s1.close();
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				LOGGER.error("unable to close stream", e);
 			}
 		}

@@ -8,15 +8,15 @@ import java.io.InputStream;
 
 import static org.simplejavamail.mailer.internal.socks.socks5server.msg.StreamUtil.checkEnd;
 
-public class MethodSelectionMessage {
+public final class MethodSelectionMessage {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MethodSelectionMessage.class);
 
-	public static int readVersion(InputStream inputStream)
+	public static int readVersion(final InputStream inputStream)
 			throws IOException {
 		LOGGER.trace("MethodSelectionMessage.read");
-		int version = checkEnd(inputStream.read());
-		int methodNum = checkEnd(inputStream.read());
+		final int version = checkEnd(inputStream.read());
+		final int methodNum = checkEnd(inputStream.read());
 		for (int i = 0; i < methodNum; i++) {
 			checkEnd(inputStream.read()); // read method byte
 		}

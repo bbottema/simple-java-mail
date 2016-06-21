@@ -27,7 +27,7 @@ public class Socks5Handler implements Runnable {
 	private final SocksSession session;
 	private final Socks5Bridge socks5Bridge;
 
-	public Socks5Handler(SocksSession session, Socks5Bridge socks5Bridge) {
+	public Socks5Handler(final SocksSession session, final Socks5Bridge socks5Bridge) {
 		this.session = session;
 		this.socks5Bridge = socks5Bridge;
 	}
@@ -36,14 +36,14 @@ public class Socks5Handler implements Runnable {
 	public void run() {
 		try {
 			handle(session, socks5Bridge);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			LOGGER.error(e.getMessage(), e);
 		} finally {
 			session.close();
 		}
 	}
 
-	private void handle(SocksSession session, Socks5Bridge socks5Bridge)
+	private void handle(final SocksSession session, final Socks5Bridge socks5Bridge)
 			throws IOException {
 		if (MethodSelectionMessage.readVersion(session.getInputStream()) != VERSION) {
 			throw new SocksException("Protocol error");
@@ -53,12 +53,12 @@ public class Socks5Handler implements Runnable {
 		// send select method.
 		session.write(METHOD_SELECTION_RESPONSE);
 
-		CommandMessage commandMessage = new CommandMessage();
+		final CommandMessage commandMessage = new CommandMessage();
 		commandMessage.read(session.getInputStream());
 
 		// If there is a SOCKS exception in command message, It will send a right response to client.
 		if (commandMessage.hasSocksException()) {
-			ServerReply serverReply = commandMessage.getSocksServerReplyException().getServerReply();
+			final ServerReply serverReply = commandMessage.getSocksServerReplyException().getServerReply();
 			session.write(CommandResponseMessage.getBytes(serverReply));
 			LOGGER.debug("SESSION[{}] will close, because {}", session.getId(), serverReply);
 			return;
@@ -70,13 +70,13 @@ public class Socks5Handler implements Runnable {
 		doConnect(session, commandMessage, socks5Bridge);
 	}
 
-	private void doConnect(SocksSession session, CommandMessage commandMessage, Socks5Bridge socks5Bridge)
+	private void doConnect(final SocksSession session, final CommandMessage commandMessage, final Socks5Bridge socks5Bridge)
 			throws IOException {
 		ServerReply reply;
 		Socket socket = null;
 		int bindPort = 0;
-		InetAddress targetServerAddress = commandMessage.getInetAddress();
-		int targetServerPort = commandMessage.getPort();
+		final InetAddress targetServerAddress = commandMessage.getInetAddress();
+		final int targetServerPort = commandMessage.getPort();
 
 		// set default bind address.
 		InetAddress bindAddress = new InetSocketAddress(0).getAddress();
@@ -87,7 +87,7 @@ public class Socks5Handler implements Runnable {
 			bindAddress = socket.getLocalAddress();
 			bindPort = socket.getLocalPort();
 			reply = ServerReply.SUCCEEDED;
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			if (e.getMessage().equals("Connection refused")) {
 				reply = ServerReply.CONNECTION_REFUSED;
 			} else if (e.getMessage().equals("Operation timed out")) {
@@ -99,10 +99,10 @@ public class Socks5Handler implements Runnable {
 			} else {
 				reply = ServerReply.GENERAL_SOCKS_SERVER_FAILURE;
 			}
-			InetSocketAddress remoteAddress = new InetSocketAddress(targetServerAddress, targetServerPort);
+			final InetSocketAddress remoteAddress = new InetSocketAddress(targetServerAddress, targetServerPort);
 
 			if (e.getMessage().equals("Permission denied: connect")) {
-				String msg = "Permission denied - unable to establish outbound connection to proxy. Perhaps blocked by a firewall?";
+				final String msg = "Permission denied - unable to establish outbound connection to proxy. Perhaps blocked by a firewall?";
 				LOGGER.info("connect {} [{}] exception: {}", session.getId(), remoteAddress, msg);
 				SOCKS5BRIDGE_LOGGER.error("connecting to {}: {}", remoteAddress, msg);
 			} else {
@@ -117,7 +117,7 @@ public class Socks5Handler implements Runnable {
 			return;
 		}
 
-		SocketPipe pipe = new SocketPipe(session.getSocket(), socket);
+		final SocketPipe pipe = new SocketPipe(session.getSocket(), socket);
 		pipe.setName("SESSION[" + session.getId() + "]");
 		pipe.start(); // This method will build tow thread to run tow internal pipes.
 
@@ -125,7 +125,7 @@ public class Socks5Handler implements Runnable {
 		while (pipe.isRunning()) {
 			try {
 				Thread.sleep(2000);
-			} catch (InterruptedException e) {
+			} catch (final InterruptedException e) {
 				pipe.stop();
 				session.close();
 				LOGGER.info("SESSION[{}] closed from", session.getId(), session.getClientAddress());

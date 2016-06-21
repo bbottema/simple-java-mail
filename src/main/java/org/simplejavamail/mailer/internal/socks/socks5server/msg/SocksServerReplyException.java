@@ -6,7 +6,7 @@ public class SocksServerReplyException extends SocksException {
 
 	private final ServerReply serverReply;
 
-	public SocksServerReplyException(ServerReply serverReply) {
+	public SocksServerReplyException(final ServerReply serverReply) {
 		super(serverReply.getErrorMessage());
 		this.serverReply = serverReply;
 	}

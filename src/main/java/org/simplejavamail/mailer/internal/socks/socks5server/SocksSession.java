@@ -25,7 +25,7 @@ class SocksSession {
 
 	private final SocketAddress clientAddress;
 
-	public SocksSession(Socket socket) {
+	public SocksSession(final Socket socket) {
 		if (!socket.isConnected()) {
 			throw new IllegalArgumentException("Socket should be a connected socket");
 		}
@@ -33,7 +33,7 @@ class SocksSession {
 		try {
 			inputStream = this.socket.getInputStream();
 			outputStream = this.socket.getOutputStream();
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			LOGGER.error(e.getMessage(), e);
 		}
 		clientAddress = socket.getRemoteSocketAddress();
@@ -44,7 +44,7 @@ class SocksSession {
 		return socket;
 	}
 
-	public void write(byte[] bytes)
+	public void write(final byte[] bytes)
 			throws IOException {
 		outputStream.write(bytes, 0, bytes.length);
 		outputStream.flush();
@@ -69,7 +69,7 @@ class SocksSession {
 			if (socket != null && !socket.isClosed()) {
 				socket.close();
 			}
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			LOGGER.error(e.getMessage(), e);
 		}
 	}

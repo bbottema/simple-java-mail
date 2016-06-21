@@ -18,7 +18,7 @@ import java.net.SocketAddress;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-class SocksCommandSender {
+final class SocksCommandSender {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocksCommandSender.class);
 
@@ -39,12 +39,12 @@ class SocksCommandSender {
 	private static final byte ATYPE_IPV6 = 0x04;
 	private static final int REP_SUCCEEDED = 0x00;
 
-	public void send(Socket socket, InetAddress address, int port)
+	public static void send(final Socket socket, final InetAddress address, final int port)
 			throws IOException {
 		send(socket, new InetSocketAddress(address, port));
 	}
 
-	public void send(Socket socket, SocketAddress socketAddress)
+	public static void send(final Socket socket, final SocketAddress socketAddress)
 			throws IOException {
 		if (!(socketAddress instanceof InetSocketAddress)) {
 			throw new IllegalArgumentException("Unsupported address type");
@@ -84,7 +84,7 @@ class SocksCommandSender {
 		checkServerReply(inputStream);
 	}
 
-	public void send(Socket socket, String host, int port)
+	public static void send(final Socket socket, final String host, final int port)
 			throws IOException {
 		final InputStream inputStream = socket.getInputStream();
 		final OutputStream outputStream = socket.getOutputStream();
@@ -96,7 +96,7 @@ class SocksCommandSender {
 		bufferSent[2] = RESERVED;
 		bufferSent[3] = ATYPE_DOMAINNAME;
 		bufferSent[4] = (byte) lengthOfHost;
-		byte[] bytesOfHost = host.getBytes(UTF_8);
+		final byte[] bytesOfHost = host.getBytes(UTF_8);
 		System.arraycopy(bytesOfHost, 0, bufferSent, 5, lengthOfHost);// copy host bytes.
 		bufferSent[5 + host.length()] = (byte) ((port & 0xff00) >> 8);
 		bufferSent[6 + host.length()] = (byte) (port & 0xff);
@@ -108,16 +108,16 @@ class SocksCommandSender {
 		checkServerReply(inputStream);
 	}
 
-	private void checkServerReply(InputStream inputStream)
+	private static void checkServerReply(final InputStream inputStream)
 			throws IOException {
-		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+		final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 		int temp = 0;
 		for (int i = 0; i < 4; i++) {
 			temp = inputStream.read();
 			byteArrayOutputStream.write(temp);
 		}
 
-		byte addressType = (byte) temp;
+		final byte addressType = (byte) temp;
 		switch (addressType) {
 			case ADDRESS_TYPE_IPV4:
 				for (int i = 0; i < 6; i++) {
@@ -139,18 +139,18 @@ class SocksCommandSender {
 			default:
 				throw new SocksException("Address type not support, type value: " + addressType);
 		}
-		byte[] receivedData = byteArrayOutputStream.toByteArray();
+		final byte[] receivedData = byteArrayOutputStream.toByteArray();
 		LOGGER.debug("{}", MiscUtil.buildLogString(receivedData, true));
 		final byte[] addressBytes;
-		byte[] portBytes = new byte[2];
+		final byte[] portBytes = new byte[2];
 
 		if (receivedData[3] == ADDRESS_TYPE_IPV4) {
 			addressBytes = new byte[4];
 			System.arraycopy(receivedData, 4, addressBytes, 0, addressBytes.length);
-			int a = MiscUtil.toInt(addressBytes[0]);
-			int b = MiscUtil.toInt(addressBytes[1]);
-			int c = MiscUtil.toInt(addressBytes[2]);
-			int d = MiscUtil.toInt(addressBytes[3]);
+			final int a = MiscUtil.toInt(addressBytes[0]);
+			final int b = MiscUtil.toInt(addressBytes[1]);
+			final int c = MiscUtil.toInt(addressBytes[2]);
+			final int d = MiscUtil.toInt(addressBytes[3]);
 			portBytes[0] = receivedData[8];
 			portBytes[1] = receivedData[9];
 

@@ -45,7 +45,7 @@ public class ProxyConfig extends SocksProxyConfig {
 	 * @param remoteProxyPort The port of the remote proxy.
 	 * @see #ProxyConfig(String, Integer, String, String)
 	 */
-	public ProxyConfig(String remoteProxyHost, Integer remoteProxyPort) {
+	public ProxyConfig(final String remoteProxyHost, final Integer remoteProxyPort) {
 		this(remoteProxyHost, remoteProxyPort, null, null);
 	}
 
@@ -59,7 +59,7 @@ public class ProxyConfig extends SocksProxyConfig {
 	 * @param password        Password is mandatory when authentication is required.
 	 */
 	@SuppressWarnings({ "WeakerAccess", "SameParameterValue" })
-	public ProxyConfig(String remoteProxyHost, Integer remoteProxyPort, String username, String password) {
+	public ProxyConfig(final String remoteProxyHost, final Integer remoteProxyPort, final String username, final String password) {
 		super(
 				valueOrProperty(remoteProxyHost, PROXY_HOST),
 				valueOrProperty(remoteProxyPort, PROXY_PORT),
@@ -119,7 +119,7 @@ public class ProxyConfig extends SocksProxyConfig {
 	 * @param proxyBridgePort Port override for the temporary intermediary SOCKS5 relay server bridge (default is {@value
 	 *                        #DEFAULT_PROXY_BRIDGE_PORT}).
 	 */
-	public void setProxyBridgePort(int proxyBridgePort) {
+	public void setProxyBridgePort(final int proxyBridgePort) {
 		this.proxyBridgePort = proxyBridgePort;
 	}
 

@@ -8,7 +8,7 @@ public class SocksProxyConfig {
 	protected final String password;
 	protected int proxyBridgePort;
 
-	public SocksProxyConfig(String remoteProxyHost, Integer remoteProxyPort, String username, String password, int proxyBridgePort) {
+	protected SocksProxyConfig(final String remoteProxyHost, final Integer remoteProxyPort, final String username, final String password, final int proxyBridgePort) {
 		this.remoteProxyHost = remoteProxyHost;
 		this.remoteProxyPort = remoteProxyPort;
 		this.username = username;

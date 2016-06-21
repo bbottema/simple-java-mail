@@ -132,10 +132,10 @@ public class MimeMessageParser {
         return getInternetAddresses(this.mimeMessage.getRecipients(Message.RecipientType.BCC));
     }
 
-    private List<InternetAddress> getInternetAddresses(Address[] recipients) {
-        List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<Address>();
-        List<InternetAddress> mailAddresses = new ArrayList<>();
-        for (Address address : addresses) {
+    private static List<InternetAddress> getInternetAddresses(final Address[] recipients) {
+        final List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<Address>();
+        final List<InternetAddress> mailAddresses = new ArrayList<>();
+        for (final Address address : addresses) {
             if (address instanceof InternetAddress) {
                 mailAddresses.add((InternetAddress) address);
             }
@@ -214,12 +214,12 @@ public class MimeMessageParser {
         }
     }
 
-    private void extractCustomUserHeaders(MimePart part) throws MessagingException {
-        Enumeration e = part.getAllHeaders();
+    private void extractCustomUserHeaders(final MimePart part) throws MessagingException {
+        final Enumeration e = part.getAllHeaders();
         while (e.hasMoreElements()) {
-            Object headerObj = e.nextElement();
+            final Object headerObj = e.nextElement();
             if (headerObj instanceof Header) {
-                Header header = (Header) headerObj;
+                final Header header = (Header) headerObj;
                 if (isCustomUserHeader(header)) {
                     headers.put(header.getName(), header.getValue());
                 }
@@ -227,7 +227,7 @@ public class MimeMessageParser {
         }
     }
 
-    private boolean isCustomUserHeader(Header header) {
+    private static boolean isCustomUserHeader(final Header header) {
         return !DEFAULT_HEADERS.contains(header.getName());
     }
 
@@ -239,7 +239,7 @@ public class MimeMessageParser {
      * @return {@code true} if the MimePart matches the given mime type, {@code false} otherwise
      * @throws MessagingException parsing the MimeMessage failed
      */
-    private boolean isMimeType(final MimePart part, final String mimeType)
+    private static boolean isMimeType(final MimePart part, final String mimeType)
             throws MessagingException {
         // Do not use part.isMimeType(String) as it is broken for MimeBodyPart
         // and does not really check the actual content type.
@@ -260,12 +260,12 @@ public class MimeMessageParser {
      * @throws MessagingException creating the DataSource failed
      * @throws IOException        creating the DataSource failed
      */
-    private DataSource createDataSource(final MimePart part)
+    private static DataSource createDataSource(final MimePart part)
             throws MessagingException, IOException {
         final DataHandler dataHandler = part.getDataHandler();
         final DataSource dataSource = dataHandler.getDataSource();
         final String contentType = getBaseMimeType(dataSource.getContentType());
-        final byte[] content = this.getContent(dataSource.getInputStream());
+        final byte[] content = MimeMessageParser.getContent(dataSource.getInputStream());
         final ByteArrayDataSource result = new ByteArrayDataSource(content, contentType);
         final String dataSourceName = getDataSourceName(part, dataSource);
 
@@ -282,7 +282,7 @@ public class MimeMessageParser {
      * @throws MessagingException           accessing the part failed
      * @throws UnsupportedEncodingException decoding the text failed
      */
-    private String getDataSourceName(final Part part, final DataSource dataSource)
+    private static String getDataSourceName(final Part part, final DataSource dataSource)
             throws MessagingException, UnsupportedEncodingException {
         String result = dataSource.getName();
 
@@ -306,10 +306,10 @@ public class MimeMessageParser {
      * @return the content of the input stream
      * @throws IOException reading the input stream failed
      */
-    private byte[] getContent(final InputStream is)
+    private static byte[] getContent(final InputStream is)
             throws IOException {
         int ch;
-        byte[] result;
+        final byte[] result;
 
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
         final BufferedInputStream isReader = new BufferedInputStream(is);
@@ -332,7 +332,7 @@ public class MimeMessageParser {
      * @param fullMimeType the mime type from the mail api
      * @return the real mime type
      */
-    private String getBaseMimeType(final String fullMimeType) {
+    private static String getBaseMimeType(final String fullMimeType) {
         final int pos = fullMimeType.indexOf(';');
         if (pos >= 0) {
             return fullMimeType.substring(0, pos);

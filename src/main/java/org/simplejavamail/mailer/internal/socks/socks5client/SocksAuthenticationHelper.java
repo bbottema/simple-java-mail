@@ -14,7 +14,7 @@ import java.net.Socket;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-class SocksAuthenticationHelper {
+final class SocksAuthenticationHelper {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocksAuthenticationHelper.class);
 
 	private static final byte SOCKS_VERSION = 0x05;
@@ -27,47 +27,47 @@ class SocksAuthenticationHelper {
 	 * Performs an authentication method request to see how the proxy server wants to authenticate. GSSAPI is not supported, only anonymous
 	 * and user / password authentication.
 	 */
-	public static boolean shouldAuthenticate(Socket socket)
+	public static boolean shouldAuthenticate(final Socket socket)
 			throws IOException {
 		// send data
-		byte[] bufferSent = new byte[4];
+		final byte[] bufferSent = new byte[4];
 		bufferSent[0] = SOCKS_VERSION;
 		bufferSent[1] = (byte) ACCEPTABLE_METHODS;
 		bufferSent[2] = (byte) NO_AUTHENTICATION_REQUIRED_METHOD;
 		bufferSent[3] = (byte) USERNAME_PASSWORD_METHOD;
 
-		OutputStream outputStream = socket.getOutputStream();
+		final OutputStream outputStream = socket.getOutputStream();
 		outputStream.write(bufferSent);
 		outputStream.flush();
 
 		LOGGER.debug("{}", MiscUtil.buildLogString(bufferSent, false));
 
 		// Received data.
-		InputStream inputStream = socket.getInputStream();
-		byte[] receivedData = read2Bytes(inputStream);
+		final InputStream inputStream = socket.getInputStream();
+		final byte[] receivedData = read2Bytes(inputStream);
 		LOGGER.debug("{}", MiscUtil.buildLogString(receivedData, true));
 		if (receivedData[0] != (int) SOCKS_VERSION) {
 			throw new SocksException("Remote server don't support SOCKS5");
 		}
-		byte command = receivedData[1];
+		final byte command = receivedData[1];
 		if (command != NO_AUTHENTICATION_REQUIRED_METHOD && command != USERNAME_PASSWORD_METHOD) {
 			throw new SocksException("requested authentication method not supported: " + command);
 		}
 		return command == USERNAME_PASSWORD_METHOD;
 	}
 
-	public static void performUserPasswordAuthentication(Socks5 socksProxy)
+	public static void performUserPasswordAuthentication(final Socks5 socksProxy)
 			throws IOException {
 		MiscUtil.checkNotNull(socksProxy, "Argument [socksProxy] may not be null");
-		ProxyCredentials credentials = socksProxy.getCredentials();
+		final ProxyCredentials credentials = socksProxy.getCredentials();
 		if (credentials == null) {
 			throw new SocksException("Need Username/Password authentication");
 		}
 
-		String username = credentials.getUsername();
-		String password = credentials.getPassword();
-		InputStream inputStream = socksProxy.getInputStream();
-		OutputStream outputStream = socksProxy.getOutputStream();
+		final String username = credentials.getUsername();
+		final String password = credentials.getPassword();
+		final InputStream inputStream = socksProxy.getInputStream();
+		final OutputStream outputStream = socksProxy.getOutputStream();
 
 		final int USERNAME_LENGTH = username.getBytes(UTF_8).length;
 		final int PASSWORD_LENGTH = password.getBytes(UTF_8).length;
@@ -85,7 +85,7 @@ class SocksAuthenticationHelper {
 		// logger send bytes
 		LOGGER.debug("{}", MiscUtil.buildLogString(bufferSent, false));
 
-		byte[] authenticationResult = new byte[2];
+		final byte[] authenticationResult = new byte[2];
 		checkEnd(inputStream.read(authenticationResult));
 		// logger
 		LOGGER.debug("{}", MiscUtil.buildLogString(authenticationResult, true));
@@ -99,15 +99,15 @@ class SocksAuthenticationHelper {
 		}
 	}
 
-	private static byte[] read2Bytes(InputStream inputStream)
+	private static byte[] read2Bytes(final InputStream inputStream)
 			throws IOException {
-		byte[] bytes = new byte[2];
+		final byte[] bytes = new byte[2];
 		bytes[0] = (byte) checkEnd(inputStream.read());
 		bytes[1] = (byte) checkEnd(inputStream.read());
 		return bytes;
 	}
 
-	private static int checkEnd(int b)
+	private static int checkEnd(final int b)
 			throws IOException {
 		if (b < 0) {
 			throw new IOException("End of stream");

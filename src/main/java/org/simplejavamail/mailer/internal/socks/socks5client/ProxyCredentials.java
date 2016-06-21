@@ -13,7 +13,7 @@ public class ProxyCredentials {
 	public ProxyCredentials() {
 	}
 
-	public ProxyCredentials(String username, String password) {
+	public ProxyCredentials(final String username, final String password) {
 		this.username = username;
 		this.password = MiscUtil.checkNotNull(password, "Argument [password] may not be null");
 	}

@@ -8,15 +8,15 @@ public class SocksException extends RuntimeException {
 			"Network " + "unreachable", "Host unreachable", "Connection refused", "TTL expired", "Command not " + "supported",
 			"Address type not supported" };
 
-	public SocksException(String msg) {
+	public SocksException(final String msg) {
 		super(msg);
 	}
 
-	public SocksException(String msg, Exception e) {
+	public SocksException(final String msg, final Exception e) {
 		super(msg, e);
 	}
 
-	public static SocksException serverReplyException(byte reply) {
+	public static SocksException serverReplyException(final byte reply) {
 		int code = reply;
 		code = code & 0xff;
 		if (code < 0 || code > 0x08) {

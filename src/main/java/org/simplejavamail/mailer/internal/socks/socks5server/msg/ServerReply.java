@@ -23,7 +23,7 @@ public enum ServerReply {
 
 	private final String errorMessage;
 
-	ServerReply(int value, String errorMessage) {
+	ServerReply(final int value, final String errorMessage) {
 		this.value = (byte) value;
 		this.errorMessage = errorMessage;
 	}

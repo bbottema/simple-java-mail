@@ -25,36 +25,34 @@ public class Socks5 {
 
 	private SocksAuthenticationHelper socksAuthenticationHelper = new SocksAuthenticationHelper();
 
-	private final SocksCommandSender socksCmdSender = new SocksCommandSender();
-
 	private boolean alwaysResolveAddressLocally = false;
 
-	public Socks5(InetSocketAddress socketAddress, String username, String password) {
+	public Socks5(final InetSocketAddress socketAddress, final String username, final String password) {
 		this(socketAddress);
 		setCredentials(new ProxyCredentials(username, password));
 	}
 
-	public Socks5(String host, int port)
+	public Socks5(final String host, final int port)
 			throws UnknownHostException {
 		this(InetAddress.getByName(host), port);
 	}
 
-	Socks5(InetAddress inetAddress, int port) {
+	Socks5(final InetAddress inetAddress, final int port) {
 		this(new InetSocketAddress(inetAddress, port));
 	}
 
-	public Socks5(InetSocketAddress socketAddress) {
+	public Socks5(final InetSocketAddress socketAddress) {
 		this(null, socketAddress);
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private Socks5(Socks5 chainProxy, InetSocketAddress socketAddress) {
+	private Socks5(final Socks5 chainProxy, final InetSocketAddress socketAddress) {
 		inetAddress = socketAddress.getAddress();
 		port = socketAddress.getPort();
 		this.setChainProxy(chainProxy);
 	}
 
-	public Socks5(String host, int port, ProxyCredentials credentials)
+	public Socks5(final String host, final int port, final ProxyCredentials credentials)
 			throws UnknownHostException {
 		this.inetAddress = InetAddress.getByName(host);
 		this.port = port;
@@ -77,34 +75,34 @@ public class Socks5 {
 		}
 	}
 
-	public void requestConnect(String host, int port)
+	public void requestConnect(final String host, final int port)
 			throws IOException {
 		if (!alwaysResolveAddressLocally) {
 			// resolve address in SOCKS server
-			socksCmdSender.send(proxySocket, host, port);
+			SocksCommandSender.send(proxySocket, host, port);
 
 		} else {
 			// resolve address in local.
-			InetAddress address = InetAddress.getByName(host);
-			socksCmdSender.send(proxySocket, address, port);
+			final InetAddress address = InetAddress.getByName(host);
+			SocksCommandSender.send(proxySocket, address, port);
 		}
 	}
 
-	public void requestConnect(InetAddress address, int port)
+	public void requestConnect(final InetAddress address, final int port)
 			throws IOException {
-		socksCmdSender.send(proxySocket, address, port);
+		SocksCommandSender.send(proxySocket, address, port);
 	}
 
-	public void requestConnect(SocketAddress address)
+	public void requestConnect(final SocketAddress address)
 			throws IOException {
-		socksCmdSender.send(proxySocket, address);
+		SocksCommandSender.send(proxySocket, address);
 	}
 
 	public int getPort() {
 		return port;
 	}
 
-	Socks5 setPort(int port) {
+	Socks5 setPort(final int port) {
 		this.port = port;
 		return this;
 	}
@@ -113,7 +111,7 @@ public class Socks5 {
 		return proxySocket;
 	}
 
-	public void setProxySocket(Socket proxySocket) {
+	public void setProxySocket(final Socket proxySocket) {
 		this.proxySocket = proxySocket;
 	}
 
@@ -131,7 +129,7 @@ public class Socks5 {
 		return credentials;
 	}
 
-	public Socks5 setCredentials(ProxyCredentials credentials) {
+	public Socks5 setCredentials(final ProxyCredentials credentials) {
 		this.credentials = credentials;
 		return this;
 	}
@@ -140,13 +138,13 @@ public class Socks5 {
 		return socksAuthenticationHelper;
 	}
 
-	Socks5 setSocksAuthenticationHelper(SocksAuthenticationHelper requester) {
+	Socks5 setSocksAuthenticationHelper(final SocksAuthenticationHelper requester) {
 		this.socksAuthenticationHelper = requester;
 		return this;
 	}
 
 	public Socks5 copy() {
-		Socks5 socks5 = new Socks5(inetAddress, port);
+		final Socks5 socks5 = new Socks5(inetAddress, port);
 		socks5.setAlwaysResolveAddressLocally(alwaysResolveAddressLocally).setCredentials(credentials)
 				.setSocksAuthenticationHelper(socksAuthenticationHelper).setChainProxy(chainProxy);
 		return socks5;
@@ -156,7 +154,7 @@ public class Socks5 {
 		return chainProxy;
 	}
 
-	Socks5 setChainProxy(Socks5 chainProxy) {
+	Socks5 setChainProxy(final Socks5 chainProxy) {
 		this.chainProxy = chainProxy;
 		return this;
 	}
@@ -165,14 +163,14 @@ public class Socks5 {
 		return inetAddress;
 	}
 
-	Socks5 setInetAddress(InetAddress inetAddress) {
+	Socks5 setInetAddress(final InetAddress inetAddress) {
 		this.inetAddress = inetAddress;
 		return this;
 	}
 
 	@Override
 	public String toString() {
-		StringBuilder stringBuffer = new StringBuilder("[SOCKS5:");
+		final StringBuilder stringBuffer = new StringBuilder("[SOCKS5:");
 		stringBuffer.append(new InetSocketAddress(inetAddress, port)).append("]");
 		if (getChainProxy() != null) {
 			return stringBuffer.append(" --> ").append(getChainProxy()).toString();
@@ -180,7 +178,7 @@ public class Socks5 {
 		return stringBuffer.toString();
 	}
 
-	Socket createProxySocket(InetAddress address, int port)
+	Socket createProxySocket(final InetAddress address, final int port)
 			throws IOException {
 		return new Socket(address, port);
 	}
@@ -194,7 +192,7 @@ public class Socks5 {
 		return alwaysResolveAddressLocally;
 	}
 
-	Socks5 setAlwaysResolveAddressLocally(boolean alwaysResolveAddressLocally) {
+	Socks5 setAlwaysResolveAddressLocally(final boolean alwaysResolveAddressLocally) {
 		this.alwaysResolveAddressLocally = alwaysResolveAddressLocally;
 		return this;
 	}

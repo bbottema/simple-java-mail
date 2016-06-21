@@ -30,7 +30,7 @@ class StreamPipe implements Runnable {
 
 	private final String name;
 
-	public StreamPipe(InputStream source, OutputStream destination, String name) {
+	public StreamPipe(final InputStream source, final OutputStream destination, final String name) {
 		this.source = source;
 		this.destination = destination;
 		pipeListeners = new ArrayList<>();
@@ -54,7 +54,7 @@ class StreamPipe implements Runnable {
 			if (runningThread != null) {
 				runningThread.interrupt();
 			}
-			for (SocketPipe.PipeListener listener : new ArrayList<>(pipeListeners)) {
+			for (final SocketPipe.PipeListener listener : new ArrayList<>(pipeListeners)) {
 				listener.onStop(this);
 			}
 		}
@@ -62,16 +62,16 @@ class StreamPipe implements Runnable {
 
 	@Override
 	public void run() {
-		byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+		final byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
 		while (running) {
-			int size = doTransfer(buffer);
+			final int size = doTransfer(buffer);
 			if (size == -1) {
 				stop();
 			}
 		}
 	}
 
-	private int doTransfer(byte[] buffer) {
+	private int doTransfer(final byte[] buffer) {
 		int length = -1;
 		try {
 			length = source.read(buffer);
@@ -80,9 +80,9 @@ class StreamPipe implements Runnable {
 				destination.flush();
 			}
 
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			synchronized (this) {
-				for (SocketPipe.PipeListener pipeListener : new ArrayList<>(pipeListeners)) {
+				for (final SocketPipe.PipeListener pipeListener : new ArrayList<>(pipeListeners)) {
 					LOGGER.debug("{} {}", pipeListener.getName(), e.getMessage());
 				}
 			}
@@ -96,11 +96,11 @@ class StreamPipe implements Runnable {
 		return !running;
 	}
 
-	public synchronized void addPipeListener(SocketPipe.PipeListener pipeListener) {
+	public synchronized void addPipeListener(final SocketPipe.PipeListener pipeListener) {
 		pipeListeners.add(pipeListener);
 	}
 
-	public synchronized void removePipeListener(SocketPipe.PipeListener pipeListener) {
+	public synchronized void removePipeListener(final SocketPipe.PipeListener pipeListener) {
 		pipeListeners.remove(pipeListener);
 	}
 

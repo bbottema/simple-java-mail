@@ -14,13 +14,13 @@ public class KeyStoreInfo {
 	public KeyStoreInfo() {
 	}
 
-	public KeyStoreInfo(String keyStorePath, String password, String type) {
+	public KeyStoreInfo(final String keyStorePath, final String password, final String type) {
 		this.keyStorePath = MiscUtil.checkNotNull(keyStorePath, "Argument [keyStorePath] may not be null");
 		this.password = MiscUtil.checkNotNull(password, "Argument [password] may not be null");
 		this.type = MiscUtil.checkNotNull(type, "Argument [type] may not be null");
 	}
 
-	public KeyStoreInfo(String keyStorePath, String password) {
+	public KeyStoreInfo(final String keyStorePath, final String password) {
 		this(keyStorePath, password, "JKS");
 	}
 

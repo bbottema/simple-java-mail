@@ -24,7 +24,7 @@ public class CommandMessage {
 
 	private SocksServerReplyException socksServerReplyException;
 
-	public void read(InputStream inputStream)
+	public void read(final InputStream inputStream)
 			throws IOException {
 		LOGGER.trace("CommandMessage.read");
 
@@ -32,7 +32,7 @@ public class CommandMessage {
 		command = checkEnd(inputStream.read());
 
 		checkEnd(inputStream.read());
-		int addressType = checkEnd(inputStream.read());
+		final int addressType = checkEnd(inputStream.read());
 
 		if (!AddressType.isSupport(addressType) && socksServerReplyException == null) {
 			socksServerReplyException = new SocksServerReplyException(ServerReply.ADDRESS_TYPE_NOT_SUPPORTED);
@@ -41,20 +41,20 @@ public class CommandMessage {
 		// read address
 		switch (addressType) {
 			case AddressType.IPV4:
-				byte[] addressBytes = read(inputStream, 4);
+				final byte[] addressBytes = read(inputStream, 4);
 				inetAddress = InetAddress.getByAddress(addressBytes);
 				break;
 
 			case AddressType.DOMAIN_NAME:
-				int domainLength = checkEnd(inputStream.read());
+				final int domainLength = checkEnd(inputStream.read());
 				if (domainLength < 1) {
 					throw new SocksException("Length of domain must great than 0");
 				}
-				byte[] domainBytes = read(inputStream, domainLength);
-				String host = new String(domainBytes, UTF_8);
+				final byte[] domainBytes = read(inputStream, domainLength);
+				final String host = new String(domainBytes, UTF_8);
 				try {
 					inetAddress = InetAddress.getByName(host);
-				} catch (UnknownHostException e) {
+				} catch (final UnknownHostException e) {
 					if (socksServerReplyException == null) {
 						socksServerReplyException = new SocksServerReplyException(ServerReply.HOST_UNREACHABLE);
 					}
@@ -68,16 +68,16 @@ public class CommandMessage {
 		port = bytesToInt(read(inputStream, 2));
 	}
 
-	private int bytesToInt(byte[] portBytes) {
+	private static int bytesToInt(final byte[] portBytes) {
 		if (portBytes.length != 2) {
 			throw new IllegalArgumentException("byte array size must be 2");
 		}
 		return ((portBytes[0] & 0xFF) << 8) | portBytes[1] & 0xFF;
 	}
 
-	private static byte[] read(InputStream inputStream, int length)
+	private static byte[] read(final InputStream inputStream, final int length)
 			throws IOException {
-		byte[] bytes = new byte[length];
+		final byte[] bytes = new byte[length];
 		for (int i = 0; i < length; i++) {
 			bytes[i] = (byte) checkEnd(inputStream.read());
 		}

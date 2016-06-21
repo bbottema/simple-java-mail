@@ -53,7 +53,7 @@ public class AttachmentResource {
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(final Object o) {
 		return (this == o) || (o != null && getClass() == o.getClass() &&
 				EqualsHelper.equalsAttachmentResource(this, (AttachmentResource) o));
 	}

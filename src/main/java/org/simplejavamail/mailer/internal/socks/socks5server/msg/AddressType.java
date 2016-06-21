@@ -1,6 +1,6 @@
 package org.simplejavamail.mailer.internal.socks.socks5server.msg;
 
-public class AddressType {
+final class AddressType {
 
 	public static final int IPV4 = 0x01;
 
@@ -9,7 +9,7 @@ public class AddressType {
 	private AddressType() {
 	}
 
-	public static boolean isSupport(int type) {
+	public static boolean isSupport(final int type) {
 		return type == IPV4 || type == DOMAIN_NAME;
 	}
 }

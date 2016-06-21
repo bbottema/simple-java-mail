@@ -190,7 +190,7 @@ public enum TransportStrategy {
 	 * @return An empty <code>Properties</code> instance.
 	 */
 	public Properties generateProperties() {
-		Properties properties = new Properties();
+		final Properties properties = new Properties();
 		properties.put(TRANSPORT_STRATEGY_MARKER, name());
 		return properties;
 	}
@@ -208,8 +208,8 @@ public enum TransportStrategy {
 	 * @return Which strategy matches the current Session properties.
 	 * @see #generateProperties()
 	 */
-	public static TransportStrategy findStrategyForSession(Session session) {
-		String transportStrategyMarker = session.getProperty(TRANSPORT_STRATEGY_MARKER);
+	public static TransportStrategy findStrategyForSession(final Session session) {
+		final String transportStrategyMarker = session.getProperty(TRANSPORT_STRATEGY_MARKER);
 		if (transportStrategyMarker != null) {
 			return TransportStrategy.valueOf(transportStrategyMarker);
 		}

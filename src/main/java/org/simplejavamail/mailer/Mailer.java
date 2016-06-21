@@ -132,7 +132,7 @@ public class Mailer {
 	 * @param proxyConfig Remote proxy server details, if the connection should be run through a SOCKS proxy.
 	 */
 	@SuppressWarnings("SameParameterValue")
-	public Mailer(final Session session, ProxyConfig proxyConfig) {
+	public Mailer(final Session session, final ProxyConfig proxyConfig) {
 		this.session = session;
 		if (hasProperty(JAVAXMAIL_DEBUG)) {
 			setDebug((Boolean) getProperty(JAVAXMAIL_DEBUG));
@@ -167,7 +167,7 @@ public class Mailer {
 	 * @param serverConfig Remote SMTP server details.
 	 * @see #Mailer(ServerConfig, TransportStrategy, ProxyConfig)
 	 */
-	public Mailer(ServerConfig serverConfig) {
+	public Mailer(final ServerConfig serverConfig) {
 		this(serverConfig, null, null);
 	}
 
@@ -189,7 +189,7 @@ public class Mailer {
 	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
 	 * @see #Mailer(ServerConfig, TransportStrategy, ProxyConfig)
 	 */
-	public Mailer(ServerConfig serverConfig, final TransportStrategy transportStrategy) {
+	public Mailer(final ServerConfig serverConfig, final TransportStrategy transportStrategy) {
 		this(serverConfig, transportStrategy, null);
 	}
 
@@ -198,7 +198,7 @@ public class Mailer {
 	 * @param proxyConfig  Remote proxy server details, if the connection should be run through a SOCKS proxy.
 	 * @see #Mailer(ServerConfig, TransportStrategy, ProxyConfig)
 	 */
-	public Mailer(ServerConfig serverConfig, final ProxyConfig proxyConfig) {
+	public Mailer(final ServerConfig serverConfig, final ProxyConfig proxyConfig) {
 		this(serverConfig, null, proxyConfig);
 	}
 
@@ -212,7 +212,7 @@ public class Mailer {
 	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
 	 * @param proxyConfig       Remote proxy server details, if the connection should be run through a SOCKS proxy.
 	 */
-	public Mailer(ServerConfig serverConfig, final TransportStrategy transportStrategy, ProxyConfig proxyConfig) {
+	public Mailer(final ServerConfig serverConfig, final TransportStrategy transportStrategy, final ProxyConfig proxyConfig) {
 		this.session = createMailSession(serverConfig, proxyConfig, transportStrategy);
 		this.emailAddressCriteria = null;
 
@@ -243,9 +243,9 @@ public class Mailer {
 	 * @see #configureSessionWithProxy(ProxyConfig, Properties, TransportStrategy)
 	 */
 	@SuppressWarnings("WeakerAccess")
-	protected Session createMailSession(final ServerConfig serverConfig, final ProxyConfig proxyConfig, TransportStrategy transportStrategy) {
-		TransportStrategy effectiveTransportStrategy = valueOrProperty(transportStrategy, TRANSPORT_STRATEGY, TransportStrategy.SMTP_PLAIN);
-		Properties props = effectiveTransportStrategy.generateProperties();
+	protected Session createMailSession(final ServerConfig serverConfig, final ProxyConfig proxyConfig, final TransportStrategy transportStrategy) {
+		final TransportStrategy effectiveTransportStrategy = valueOrProperty(transportStrategy, TRANSPORT_STRATEGY, TransportStrategy.SMTP_PLAIN);
+		final Properties props = effectiveTransportStrategy.generateProperties();
 		props.put(effectiveTransportStrategy.propertyNameHost(), serverConfig.getHost());
 		props.put(effectiveTransportStrategy.propertyNamePort(), String.valueOf(serverConfig.getPort()));
 
@@ -257,12 +257,7 @@ public class Mailer {
 
 		if (serverConfig.getPassword() != null) {
 			props.put(effectiveTransportStrategy.propertyNameAuthenticate(), "true");
-			return Session.getInstance(props, new Authenticator() {
-				@Override
-				protected PasswordAuthentication getPasswordAuthentication() {
-					return new PasswordAuthentication(serverConfig.getUsername(), serverConfig.getPassword());
-				}
-			});
+			return Session.getInstance(props, new SmtpAuthenticator(serverConfig));
 		} else {
 			return Session.getInstance(props);
 		}
@@ -280,8 +275,8 @@ public class Mailer {
 	 * @param transportStrategy Used to verify if the current combination with proxy is allowed (SMTP with SSL trategy doesn't support any proxy,
 	 *                          virtue of the underlying JavaMail framework).
 	 */
-	private void configureSessionWithProxy(ProxyConfig proxyConfig, Properties sessionProperties, TransportStrategy transportStrategy) {
-		ProxyConfig effectiveProxyConfig = (proxyConfig != null) ? proxyConfig : new ProxyConfig();
+	private void configureSessionWithProxy(final ProxyConfig proxyConfig, final Properties sessionProperties, final TransportStrategy transportStrategy) {
+		final ProxyConfig effectiveProxyConfig = (proxyConfig != null) ? proxyConfig : new ProxyConfig();
 		if (!effectiveProxyConfig.requiresProxy()) {
 			LOGGER.debug("No proxy set, skipping proxy.");
 		} else {
@@ -350,7 +345,7 @@ public class Mailer {
 	public final void sendMail(final Email email)
 			throws MailException {
 		if (validate(email)) {
-			boolean async = false;
+			final boolean async = false;
 			if (async) {
 				new Thread() {
 					@Override
@@ -364,7 +359,7 @@ public class Mailer {
 		}
 	}
 
-	private void sendMailClosure(Email email) {
+	private void sendMailClosure(final Email email) {
 		LOGGER.trace("sending email...");
 		try {
 			// fill and send wrapped mime message parts
@@ -374,7 +369,7 @@ public class Mailer {
 			}
 			logSession(session);
 			message.saveChanges(); // some headers and id's will be set for this specific message
-			Transport transport = session.getTransport();
+			final Transport transport = session.getTransport();
 
 			try {
 				if (proxyServer != null) {
@@ -405,9 +400,9 @@ public class Mailer {
 	/**
 	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
 	 */
-	private void logSession(Session session) {
-		TransportStrategy transportStrategy = TransportStrategy.findStrategyForSession(session);
-		Properties properties = session.getProperties();
+	private static void logSession(final Session session) {
+		final TransportStrategy transportStrategy = TransportStrategy.findStrategyForSession(session);
+		final Properties properties = session.getProperties();
 		if (transportStrategy != null) {
 			LOGGER.debug(format("starting mail session (host: %s, port: %s, username: %s, authenticate: %s, transport: %s)",
 					properties.get(transportStrategy.propertyNameHost()),
@@ -521,7 +516,7 @@ public class Mailer {
 			throws UnsupportedEncodingException, MessagingException {
 		final Recipient replyToRecipient = email.getReplyToRecipient();
 		if (replyToRecipient != null) {
-			InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(),
+			final InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(),
 					CHARACTER_ENCODING);
 			message.setReplyTo(new Address[] { replyToAddress });
 		}
@@ -591,10 +586,10 @@ public class Mailer {
 	private static void setHeaders(final Email email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
 		// add headers (for raw message headers we need to 'fold' them using MimeUtility
-		for (Map.Entry<String, String> header : email.getHeaders().entrySet()) {
-			String headerName = header.getKey();
-			String headerValue = MimeUtility.encodeText(header.getValue(), CHARACTER_ENCODING, null);
-			String foldedHeaderValue = MimeUtility.fold(headerName.length() + 2, headerValue);
+		for (final Map.Entry<String, String> header : email.getHeaders().entrySet()) {
+			final String headerName = header.getKey();
+			final String headerValue = MimeUtility.encodeText(header.getValue(), CHARACTER_ENCODING, null);
+			final String foldedHeaderValue = MimeUtility.fold(headerName.length() + 2, headerValue);
 			message.addHeader(header.getKey(), foldedHeaderValue);
 		}
 	}
@@ -614,9 +609,9 @@ public class Mailer {
 		final BodyPart attachmentPart = new MimeBodyPart();
 		final DataSource dataSource = attachmentResource.getDataSource();
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
-		String resourceName = attachmentResource.getName();
+		final String resourceName = attachmentResource.getName();
 		final boolean dataSourceNameProvided = dataSource.getName() != null && !dataSource.getName().isEmpty();
-		String fileName = dataSourceNameProvided ? dataSource.getName() : resourceName;
+		final String fileName = dataSourceNameProvided ? dataSource.getName() : resourceName;
 		attachmentPart.setDataHandler(new DataHandler(attachmentResource.getDataSource()));
 		attachmentPart.setFileName(fileName);
 		attachmentPart.setHeader("Content-Type", dataSource.getContentType() + "; filename=" + fileName + "; name=" + fileName);
@@ -633,7 +628,7 @@ public class Mailer {
 	 * @param email   The {@link Email} that contains the relevant signing information
 	 * @return The original mime message wrapped in a new one that performs signing when sent.
 	 */
-	static MimeMessage signMessageWithDKIM(MimeMessage message, Email email) {
+	static MimeMessage signMessageWithDKIM(final MimeMessage message, final Email email) {
 		try {
 			final DkimSigner dkimSigner = new DkimSigner(email.getSigningDomain(), email.getSelector(),
 					email.getDkimPrivateKeyInputStream());
@@ -699,7 +694,23 @@ public class Mailer {
 	 * Overrides the default email address validation restrictions {@link #emailAddressCriteria} when validating and sending emails using the current
 	 * <code>Mailer</code> instance.
 	 */
-	public void setEmailAddressCriteria(EnumSet<EmailAddressCriteria> emailAddressCriteria) {
+	public void setEmailAddressCriteria(final EnumSet<EmailAddressCriteria> emailAddressCriteria) {
 		this.emailAddressCriteria = emailAddressCriteria;
+	}
+
+	/**
+	 * Simple Authenticator used to create a {@link Session} object with in {@link #createMailSession(ServerConfig, ProxyConfig, TransportStrategy)}.
+	 */
+	private static class SmtpAuthenticator extends Authenticator {
+		private final ServerConfig serverConfig;
+
+		public SmtpAuthenticator(final ServerConfig serverConfig) {
+			this.serverConfig = serverConfig;
+		}
+
+		@Override
+		protected PasswordAuthentication getPasswordAuthentication() {
+			return new PasswordAuthentication(serverConfig.getUsername(), serverConfig.getPassword());
+		}
 	}
 }

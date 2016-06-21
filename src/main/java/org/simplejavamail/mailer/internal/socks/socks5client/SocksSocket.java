@@ -27,7 +27,7 @@ public class SocksSocket extends Socket {
 
 	private Socket proxySocket;
 
-	private SocksSocket(Socks5 proxy, String remoteServerHost, int remoteServerPort)
+	private SocksSocket(final Socks5 proxy, final String remoteServerHost, final int remoteServerPort)
 			throws IOException {
 		this.proxy = MiscUtil.checkNotNull(proxy, "Argument [proxy] may not be null").copy();
 		this.proxy.setProxySocket(proxySocket);
@@ -39,12 +39,12 @@ public class SocksSocket extends Socket {
 		this.proxy.requestConnect(remoteServerHost, remoteServerPort);
 	}
 
-	private SocksSocket(Socks5 proxy, InetAddress address, int port)
+	private SocksSocket(final Socks5 proxy, final InetAddress address, final int port)
 			throws IOException {
 		this(proxy, new InetSocketAddress(address, port));
 	}
 
-	public SocksSocket(Socks5 proxy, InetSocketAddress socketAddress)
+	public SocksSocket(final Socks5 proxy, final InetSocketAddress socketAddress)
 			throws IOException {
 		MiscUtil.checkNotNull(proxy, "Argument [proxy] may not be null");
 		MiscUtil.checkNotNull(socketAddress, "Argument [socketAddress] may not be null");
@@ -58,19 +58,19 @@ public class SocksSocket extends Socket {
 	}
 
 	@SuppressWarnings("WeakerAccess")
-	public SocksSocket(Socks5 proxy)
+	public SocksSocket(final Socks5 proxy)
 			throws IOException {
 		this(proxy, proxy.createProxySocket());
 	}
 
-	public SocksSocket(Socks5 proxy, Socket proxySocket, InetSocketAddress socketAddress)
+	public SocksSocket(final Socks5 proxy, final Socket proxySocket, final InetSocketAddress socketAddress)
 			throws IOException {
 		this(proxy, proxySocket);
 		connect(socketAddress);
 	}
 
 	@SuppressWarnings("WeakerAccess")
-	public SocksSocket(Socks5 proxy, Socket proxySocket) {
+	public SocksSocket(final Socks5 proxy, final Socket proxySocket) {
 		MiscUtil.checkNotNull(proxy, "Argument [proxy] may not be null");
 		MiscUtil.checkNotNull(proxySocket, "Argument [proxySocket] may not be null");
 		if (proxySocket.isConnected()) {
@@ -83,7 +83,7 @@ public class SocksSocket extends Socket {
 
 	private void initProxyChain()
 			throws IOException {
-		List<Socks5> proxyChain = new ArrayList<>();
+		final List<Socks5> proxyChain = new ArrayList<>();
 		Socks5 temp = proxy;
 		while (temp.getChainProxy() != null) {
 			temp.getChainProxy().setProxySocket(proxySocket);
@@ -93,7 +93,7 @@ public class SocksSocket extends Socket {
 		LOGGER.debug("Proxy chain has:{} proxy", proxyChain.size());
 		if (proxyChain.size() > 0) {
 			Socks5 pre = proxy;
-			for (Socks5 chain : proxyChain) {
+			for (final Socks5 chain : proxyChain) {
 				pre.requestConnect(chain.getInetAddress(), chain.getPort());
 				proxy.getChainProxy().buildConnection();
 				pre = chain;
@@ -103,13 +103,13 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public void connect(SocketAddress endpoint)
+	public void connect(final SocketAddress endpoint)
 			throws IOException {
 		connect(endpoint, 0);
 	}
 
 	@Override
-	public void connect(SocketAddress endpoint, int timeout)
+	public void connect(final SocketAddress endpoint, final int timeout)
 			throws IOException {
 
 		if (!(endpoint instanceof InetSocketAddress)) {
@@ -139,7 +139,7 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public void bind(SocketAddress bindpoint)
+	public void bind(final SocketAddress bindpoint)
 			throws IOException {
 		proxy.getProxySocket().bind(bindpoint);
 	}
@@ -148,7 +148,7 @@ public class SocksSocket extends Socket {
 	public InetAddress getInetAddress() {
 		try {
 			return InetAddress.getByName(remoteServerHost);
-		} catch (UnknownHostException e) {
+		} catch (final UnknownHostException e) {
 			throw new SocksException(e.getMessage(), e);
 		}
 	}
@@ -158,6 +158,7 @@ public class SocksSocket extends Socket {
 		return proxy.getProxySocket().getLocalAddress();
 	}
 
+	@SuppressWarnings("SuspiciousGetterSetter")
 	@Override
 	public int getPort() {
 		return remoteServerPort;
@@ -190,13 +191,13 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public void setTcpNoDelay(boolean on)
+	public void setTcpNoDelay(final boolean on)
 			throws SocketException {
 		proxy.getProxySocket().setTcpNoDelay(on);
 	}
 
 	@Override
-	public void setSoLinger(boolean on, int linger)
+	public void setSoLinger(final boolean on, final int linger)
 			throws SocketException {
 		proxy.getProxySocket().setSoLinger(on, linger);
 	}
@@ -208,7 +209,7 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public void sendUrgentData(int data)
+	public void sendUrgentData(final int data)
 			throws IOException {
 		proxy.getProxySocket().sendUrgentData(data);
 	}
@@ -220,7 +221,7 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public void setOOBInline(boolean on)
+	public void setOOBInline(final boolean on)
 			throws SocketException {
 		proxy.getProxySocket().setOOBInline(on);
 	}
@@ -232,7 +233,7 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public synchronized void setSoTimeout(int timeout)
+	public synchronized void setSoTimeout(final int timeout)
 			throws SocketException {
 		proxy.getProxySocket().setSoTimeout(timeout);
 	}
@@ -244,7 +245,7 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public synchronized void setSendBufferSize(int size)
+	public synchronized void setSendBufferSize(final int size)
 			throws SocketException {
 		proxy.getProxySocket().setSendBufferSize(size);
 	}
@@ -256,7 +257,7 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public synchronized void setReceiveBufferSize(int size)
+	public synchronized void setReceiveBufferSize(final int size)
 			throws SocketException {
 		proxy.getProxySocket().setReceiveBufferSize(size);
 	}
@@ -268,7 +269,7 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public void setKeepAlive(boolean on)
+	public void setKeepAlive(final boolean on)
 			throws SocketException {
 		proxy.getProxySocket().setKeepAlive(on);
 	}
@@ -280,7 +281,7 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public void setTrafficClass(int tc)
+	public void setTrafficClass(final int tc)
 			throws SocketException {
 		proxy.getProxySocket().setTrafficClass(tc);
 	}
@@ -292,7 +293,7 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public void setReuseAddress(boolean on)
+	public void setReuseAddress(final boolean on)
 			throws SocketException {
 		proxy.getProxySocket().setReuseAddress(on);
 	}
@@ -344,7 +345,7 @@ public class SocksSocket extends Socket {
 	}
 
 	@Override
-	public void setPerformancePreferences(int connectionTime, int latency, int bandwidth) {
+	public void setPerformancePreferences(final int connectionTime, final int latency, final int bandwidth) {
 		proxy.getProxySocket().setPerformancePreferences(connectionTime, latency, bandwidth);
 	}
 

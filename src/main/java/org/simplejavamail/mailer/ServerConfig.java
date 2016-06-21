@@ -28,7 +28,7 @@ public class ServerConfig {
 	 * @param port The port of the SMTP server.
 	 * @see #ServerConfig(String, Integer, String, String)
 	 */
-	public ServerConfig(String host, Integer port) {
+	public ServerConfig(final String host, final Integer port) {
 		this(host, port, null, null);
 	}
 
@@ -40,7 +40,7 @@ public class ServerConfig {
 	 * @param username An optional username, may be <code>null</code>.
 	 * @see #ServerConfig(String, Integer, String, String)
 	 */
-	public ServerConfig(String host, Integer port, String username) {
+	public ServerConfig(final String host, final Integer port, final String username) {
 		this(host, port, username, null);
 	}
 
@@ -52,7 +52,7 @@ public class ServerConfig {
 	 * @param username An optional username, may be <code>null</code>.
 	 * @param password An optional password, may be <code>null</code>.
 	 */
-	public ServerConfig(String host, Integer port, String username, String password) {
+	public ServerConfig(final String host, final Integer port, final String username, final String password) {
 		this.host = valueOrProperty(host, SMTP_HOST);
 		this.port = valueOrProperty(port, SMTP_PORT);
 		this.username = valueOrProperty(username, SMTP_USERNAME);

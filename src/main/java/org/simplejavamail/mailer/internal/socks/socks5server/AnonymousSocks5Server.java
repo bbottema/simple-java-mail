@@ -28,12 +28,12 @@ public class AnonymousSocks5Server implements Runnable {
 	private final int proxyBridgePort;
 	private boolean stop = false;
 
-	public AnonymousSocks5Server(Socks5Bridge socks5Bridge, int proxyBridgePort) {
+	public AnonymousSocks5Server(final Socks5Bridge socks5Bridge, final int proxyBridgePort) {
 		this.socks5Bridge = socks5Bridge;
 		this.proxyBridgePort = proxyBridgePort;
 		try {
 			this.serverSocket = new ServerSocket();
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new SocksException("error preparing socks5bridge server for authenticated proxy session", e);
 		}
 	}
@@ -44,7 +44,7 @@ public class AnonymousSocks5Server implements Runnable {
 	public void start() {
 		try {
 			this.serverSocket.bind(new InetSocketAddress(proxyBridgePort));
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new SocksException("error preparing socks5bridge server for authenticated proxy session", e);
 		}
 		new Thread(this).start();
@@ -54,7 +54,7 @@ public class AnonymousSocks5Server implements Runnable {
 		stop = true;
 		try {
 			serverSocket.close();
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new SocksException(e.getMessage(), e);
 		}
 	}
@@ -65,18 +65,28 @@ public class AnonymousSocks5Server implements Runnable {
 		while (!stop) {
 			try {
 				LOGGER.info("waiting for new connection...");
-				Socket socket = serverSocket.accept();
+				final Socket socket = serverSocket.accept();
 				socket.setSoTimeout(10000);
 				threadPool.execute(new Socks5Handler(new SocksSession(socket), socks5Bridge));
-			} catch (IOException e) {
-				if (e.getMessage().equals("socket closed")) {
-					LOGGER.debug("socket closed");
-				} else {
-					throw new SocksException("server crashed...", e);
+			} catch (final IOException e) {
+				checkIoException(e);
+			} finally {
+				try {
+					serverSocket.close();
+				} catch (final IOException e) {
+					checkIoException(e);
 				}
 			}
 		}
 		LOGGER.debug("shutting down...");
 		threadPool.shutdownNow();
+	}
+
+	private static void checkIoException(final IOException e) {
+		if (e.getMessage().equals("socket closed")) {
+			LOGGER.debug("socket closed");
+		} else {
+			throw new SocksException("server crashed...", e);
+		}
 	}
 }

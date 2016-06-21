@@ -34,7 +34,7 @@ public class SocketPipe {
 	/**
 	 * Constructs SocketPipe instance by tow connected sockets.
 	 */
-	public SocketPipe(Socket socket1, Socket socket2)
+	public SocketPipe(final Socket socket1, final Socket socket2)
 			throws IOException {
 		this.socket1 = socket1;
 		this.socket2 = socket2;
@@ -70,7 +70,7 @@ public class SocketPipe {
 			if (socket2 != null && !socket2.isClosed()) {
 				socket2.close();
 			}
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			LOGGER.error(e.getMessage(), e);
 		}
 	}
@@ -79,7 +79,7 @@ public class SocketPipe {
 		return running;
 	}
 
-	public void setName(String name) {
+	public void setName(final String name) {
 		this.name = name;
 	}
 
@@ -88,7 +88,7 @@ public class SocketPipe {
 			return name;
 		}
 
-		public void onStop(StreamPipe streamPipe) {
+		public void onStop(final StreamPipe streamPipe) {
 			LOGGER.trace("Pipe[{}] stopped", streamPipe.getName());
 			close();
 		}

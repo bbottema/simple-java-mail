@@ -7,17 +7,17 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-public class CommandResponseMessage {
+public final class CommandResponseMessage {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(CommandResponseMessage.class);
 
-	public static byte[] getBytes(ServerReply reply) {
+	public static byte[] getBytes(final ServerReply reply) {
 		return getBytes(reply, new InetSocketAddress(0).getAddress(), 0);
 	}
 
-	public static byte[] getBytes(ServerReply reply, InetAddress bindAddress, int bindPort) {
-		int addressType = (bindAddress.getAddress().length == 4) ? 0x01 : 0x0;
-		int version = Socks5Handler.VERSION;
+	public static byte[] getBytes(final ServerReply reply, final InetAddress bindAddress, final int bindPort) {
+		final int addressType = (bindAddress.getAddress().length == 4) ? 0x01 : 0x0;
+		final int version = Socks5Handler.VERSION;
 
 		final byte[] bytes = new byte[10];
 
@@ -36,11 +36,11 @@ public class CommandResponseMessage {
 		return bytes;
 	}
 
-	private static byte getFirstByteFromInt(int bindPort) {
+	private static byte getFirstByteFromInt(final int bindPort) {
 		return (byte) ((bindPort & 0xff00) >> 8);
 	}
 
-	private static byte getSecondByteFromInt(int bindPort) {
+	private static byte getSecondByteFromInt(final int bindPort) {
 		return (byte) (bindPort & 0xff);
 	}
 }

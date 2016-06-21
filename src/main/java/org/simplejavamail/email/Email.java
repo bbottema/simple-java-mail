@@ -10,6 +10,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
@@ -110,13 +111,13 @@ public class Email {
 		try {
 			dkimPrivateKeyInputStream = new FileInputStream(dkimPrivateKeyFile);
 			signWithDomainKey(dkimPrivateKeyInputStream, signingDomain, selector);
-		} catch (FileNotFoundException e) {
+		} catch (final FileNotFoundException e) {
 			throw new EmailException(format(EmailException.DKIM_ERROR_INVALID_FILE, dkimPrivateKeyFile), e);
 		} finally {
 			if (dkimPrivateKeyInputStream != null) {
 				try {
 					dkimPrivateKeyInputStream.close();
-				} catch (IOException e) {
+				} catch (final IOException e) {
 					//noinspection ThrowFromFinallyBlock
 					throw new EmailException(format(EmailException.DKIM_ERROR_UNCLOSABLE_INPUTSTREAM, e.getMessage()), e);
 				}
@@ -352,7 +353,7 @@ public class Email {
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(final Object o) {
 		return (this == o) || (o != null && getClass() == o.getClass() &&
 				EqualsHelper.equalsEmail(this, (Email) o));
 	}
@@ -377,7 +378,7 @@ public class Email {
 	 *
 	 * @param builder The builder from which to create the email.
 	 */
-	Email(EmailBuilder builder) {
+	Email(final EmailBuilder builder) {
 		recipients = builder.getRecipients();
 		embeddedImages = builder.getEmbeddedImages();
 		attachments = builder.getAttachments();
@@ -409,7 +410,7 @@ public class Email {
 	 *
 	 * @param mimeMessage The MimeMessage from which to create the email.
 	 */
-	public Email(MimeMessage mimeMessage) {
+	public Email(final MimeMessage mimeMessage) {
 		recipients = new ArrayList<>();
 		embeddedImages = new ArrayList<>();
 		attachments = new ArrayList<>();
@@ -422,36 +423,39 @@ public class Email {
 		}
 	}
 
-	private void fillEmailFromMimeMessage(MimeMessageParser parser)
+	private void fillEmailFromMimeMessage(final MimeMessageParser parser)
 			throws MessagingException {
-		InternetAddress from = parser.getFrom();
+		final InternetAddress from = parser.getFrom();
 		this.setFromAddress(from.getPersonal(), from.getAddress());
-		InternetAddress replyTo = parser.getReplyTo();
+		final InternetAddress replyTo = parser.getReplyTo();
 		this.setReplyToAddress(replyTo.getPersonal(), replyTo.getAddress());
-		for (Map.Entry<String, Object> header : parser.getHeaders().entrySet()) {
+		for (final Map.Entry<String, Object> header : parser.getHeaders().entrySet()) {
 			this.addHeader(header.getKey(), header.getValue());
 		}
-		for (InternetAddress to : parser.getTo()) {
+		for (final InternetAddress to : parser.getTo()) {
 			this.addRecipient(to.getPersonal(), to.getAddress(), RecipientType.TO);
 		}
-		for (InternetAddress cc : parser.getCc()) {
+		//noinspection QuestionableName
+		for (final InternetAddress cc : parser.getCc()) {
 			this.addRecipient(cc.getPersonal(), cc.getAddress(), RecipientType.CC);
 		}
-		for (InternetAddress bcc : parser.getBcc()) {
+		for (final InternetAddress bcc : parser.getBcc()) {
 			this.addRecipient(bcc.getPersonal(), bcc.getAddress(), RecipientType.BCC);
 		}
 		this.setSubject(parser.getSubject());
 		this.setText(parser.getPlainContent());
 		this.setTextHTML(parser.getHtmlContent());
-		for (Map.Entry<String, DataSource> cid : parser.getCidMap().entrySet()) {
+		for (final Map.Entry<String, DataSource> cid : parser.getCidMap().entrySet()) {
 			this.addEmbeddedImage(extractCID(cid.getKey()), cid.getValue());
 		}
-		for (Map.Entry<String, DataSource> attachment : parser.getAttachmentList().entrySet()) {
+		for (final Map.Entry<String, DataSource> attachment : parser.getAttachmentList().entrySet()) {
 			this.addAttachment(extractCID(attachment.getKey()), attachment.getValue());
 		}
 	}
 
-	static String extractCID(String cid) {
-		return (cid != null) ? cid.replaceAll("<?([^>]*)>?", "$1") : null;
+	private static final Pattern MATCH_INSIDE_CIDBRACKETS = Pattern.compile("<?([^>]*)>?");
+
+	static String extractCID(final String cid) {
+		return (cid != null) ?  MATCH_INSIDE_CIDBRACKETS.matcher(cid).replaceAll("$1") : null;
 	}
 }

@@ -193,6 +193,7 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
+	@SuppressWarnings({ "WeakerAccess", "QuestionableName" })
 	public EmailBuilder cc(final String name, final String address) {
 		recipients.add(new Recipient(name, address, Message.RecipientType.CC));
 		return this;
@@ -205,6 +206,7 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
+	@SuppressWarnings("QuestionableName")
 	public EmailBuilder cc(final Recipient recipient) {
 		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.CC));
 		return this;
@@ -218,6 +220,7 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
+	@SuppressWarnings("WeakerAccess")
 	public EmailBuilder bcc(final String name, final String address) {
 		recipients.add(new Recipient(name, address, Message.RecipientType.BCC));
 		return this;
@@ -257,6 +260,7 @@ public class EmailBuilder {
 	 * @param name      The name of the image as being referred to from the message content body (eg. '&lt;cid:embeddedimage&gt;').
 	 * @param imagedata The image data.
 	 */
+	@SuppressWarnings("WeakerAccess")
 	public EmailBuilder embedImage(final String name, final DataSource imagedata) {
 		embeddedImages.add(new AttachmentResource(name, imagedata));
 		return this;
