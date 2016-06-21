@@ -9,22 +9,32 @@ The Simple Java Mail library is a thin layer on top of the JavaMail smtp mailing
 ### [simplejavamail.org](http://www.simplejavamail.org) ###
 
 ```java
-Email email = new Email.Builder()
-    .from("lollypop", "lolly.pop@somemail.com")
-    .replyTo("lollypop", "lolly.pop@othermail.com")
-    .to("C. Cane", "candycane@candyshop.org")
-    .cc("C. Bo", "chocobo@candyshop.org")
-    .subject("hey")
-    .text("We should meet up! ;)")
-    .textHTML("<img src='cid:wink1'><b>We should meet up!</b><img src='cid:wink2'>")
-    .embedImage("wink1", imageByteArray, "image/png")
-    .embedImage("wink2", imageDatesource)
-    .addAttachment("invitation", pdfByteArray, "application/pdf")
-    .addAttachment("dresscode", odfDatasource)
-    .signWithDomainKey(privateKeyData, "somemail.com", "selector")
-    .build();
+// Everything together:
 
-new Mailer().sendMail(email);
+ConfigLoader.loadProperties("simplejavamail.properties"); // optional default
+ConfigLoader.loadProperties("overrides.properties"); // optional extra
+
+Email email = new Email();
+
+email.addRecipient("lollypop", "lolly.pop@somemail.com", Message.RecipientType.TO);
+email.setReplyToAddress("lollypop", "lolly.pop@othermail.com");
+email.addRecipient("C. Cane", "candycane@candyshop.org", Message.RecipientType.TO);
+email.addRecipient("C. Bo", "chocobo@candyshop.org", Message.RecipientType.CC);
+email.setSubject("hey");
+email.setText("We should meet up! ;)");
+email.setTextHTML("&lt;img src=&#39;cid:wink1&#39;&gt;&lt;b&gt;We should meet up!&lt;/b&gt;&lt;img src=&#39;cid:wink2&#39;&gt;");
+email.addEmbeddedImage("wink1", imageByteArray, "image/png");
+email.addEmbeddedImage("wink2", imageDatesource);
+email.addAttachment("invitation", pdfByteArray, "application/pdf");
+email.addAttachment("dresscode", odfDatasource);
+
+email.signWithDomainKey(privateKeyData, "somemail.com", "selector");
+
+new Mailer(
+		new ServerConfig("smtp.host.com", 587, "user@host.com", "password"),
+		TransportStrategy.SMTP_TLS,
+		new ProxyConfig("socksproxy.host.com", 1080, "proxy user", "proxy password")
+).sendMail(email);
 ```
 
 ---
