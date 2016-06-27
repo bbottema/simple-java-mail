@@ -55,6 +55,7 @@ v4.0.0 (unreleased)
 - [#41](https://github.com/bbottema/simple-java-mail/issues/41): added support for fast parallel batch processing
 - [#42](https://github.com/bbottema/simple-java-mail/issues/42): **added support for config files**
 - [#43](https://github.com/bbottema/simple-java-mail/issues/43): removed logging implementation dependencies from distribution and documented various sample configs
+- [#39](https://github.com/bbottema/simple-java-mail/issues/39): simplified and renamed packages to reflect the domain name of the new website: simplejavamail.org
 - [#38](https://github.com/bbottema/simple-java-mail/issues/38): added support for anonymous proxy
 - [#38](https://github.com/bbottema/simple-java-mail/issues/38): **added support for authenticated proxy** 
 
