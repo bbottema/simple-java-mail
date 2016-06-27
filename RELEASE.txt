@@ -10,9 +10,9 @@ RELEASE NOTES Java Simple Mail
 
 v4.0.0 (unreleased)
 
-- #41: added support for parallel batch processing
+- #41: added support for fast parallel batch processing
 - #42: **added support for config files**
-- #43: switched to log4j2 including default config
+- #43: removed logging implementation dependencies from distribution and documented various sample configs
 - #38: added support for anonymous proxy
 - #38: **added support for authenticated proxy**
 
