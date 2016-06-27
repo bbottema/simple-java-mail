@@ -4,12 +4,11 @@ import org.simplejavamail.email.Email;
 import org.simplejavamail.mailer.Mailer;
 import org.simplejavamail.mailer.ServerConfig;
 import org.simplejavamail.mailer.TransportStrategy;
+import testutil.ConfigLoaderTestHelper;
 
 import javax.mail.Message.RecipientType;
-import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
-import java.io.IOException;
 import java.nio.charset.Charset;
 
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
@@ -22,16 +21,24 @@ import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 @SuppressWarnings({ "WeakerAccess", "UnusedAssignment" })
 public class MailTestApp {
 
-	private static final ServerConfig serverConfigSMTP = new ServerConfig("smtp.gmail.com", 25, "b.bottema@gmail.com", "etiftesjjrdreebk");
-	private static final ServerConfig serverConfigTLS = new ServerConfig("smtp.gmail.com", 587, "b.bottema@gmail.com", "etiftesjjrdreebk");
-	private static final ServerConfig serverConfigSSL = new ServerConfig("smtp.gmail.com", 465, "b.bottema@gmail.com", "etiftesjjrdreebk");
+	private static final String YOUR_GMAIL_ADDRESS = "b.bottema@gmail.com";
+
+	// if you have 2-factor login turned on, you need to generate a once-per app password
+	// https://security.google.com/settings/security/apppasswords
+	private static final String YOUR_GMAIL_PASSWORD = "your_gmail_password";
+
+	private static final ServerConfig serverConfigSMTP = new ServerConfig("smtp.gmail.com", 25, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD);
+	private static final ServerConfig serverConfigTLS = new ServerConfig("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD);
+	private static final ServerConfig serverConfigSSL = new ServerConfig("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD);
 
 	public static void main(final String[] args)
-			throws IOException, MessagingException {
+			throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
 		final Email emailNormal = new Email();
 		emailNormal.setFromAddress("lollypop", "lol.pop@somemail.com");
 		// don't forget to add your own address here ->
-		emailNormal.addRecipient("C.Cane", "b.bottema@gmail.com", RecipientType.TO);
+		emailNormal.addRecipient("C.Cane", YOUR_GMAIL_ADDRESS, RecipientType.TO);
 		emailNormal.setText("We should meet up!");
 		emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
 		emailNormal.setSubject("hey");
@@ -46,12 +53,13 @@ public class MailTestApp {
 		final MimeMessage mimeMessage = Mailer.produceMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = new Email(mimeMessage);
 
+		// note: the following statements will produce 6 new emails!
 		sendMail(emailNormal);
-		//        sendMail(emailFromMimeMessage); // should produce the exact same result as emailNormal!
+		sendMail(emailFromMimeMessage); // should produce the exact same result as emailNormal!
 	}
 
 	private static void sendMail(final Email email) {
-		//		ProxyConfig proxyconfig = new ProxyConfig("localhost", 1030);
+		// ProxyConfig proxyconfig = new ProxyConfig("localhost", 1030);
 		new Mailer(serverConfigSMTP, TransportStrategy.SMTP_TLS).sendMail(email);
 		new Mailer(serverConfigTLS, TransportStrategy.SMTP_TLS).sendMail(email);
 		new Mailer(serverConfigSSL, TransportStrategy.SMTP_SSL).sendMail(email);
