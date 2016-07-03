@@ -10,12 +10,14 @@
         </Console>
     </appenders>
     <Loggers>
-        <Logger name="org.codemonkey.simplejavamail" level="trace"/>
+        <Logger name="org.simplejavamail" level="debug"/>
+        <Logger name="org.simplejavamail.mailer.Mailer" level="trace"/>
+
         <!-- in case you're using authenticated proxy -->
         <Logger name="socks5bridge" level="info" additivity="false">
             <AppenderRef ref="simpleConsole" />
         </Logger>
-        <Logger name="org.codemonkey.simplejavamail.internal.socks" level="warn"/>
+        <Logger name="org.simplejavamail.mailer.internal.socks" level="info"/>
 
         <Root level="debug">
             <AppenderRef ref="console" />
