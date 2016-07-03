@@ -109,7 +109,7 @@ public class Mailer {
 	/**
 	 * Used to keep track of running SMTP requests, so that we know when to close down the proxy bridging server (if used).
 	 */
-	private final Phaser smtpRequestsPhaser = new Phaser();
+	private Phaser smtpRequestsPhaser;
 
 	/**
 	 * Allows us to manage how many thread we run at the same time using a thread pool.
@@ -369,20 +369,21 @@ public class Mailer {
 	 * @see #setEmbeddedImages(Email, MimeMultipart)
 	 * @see #setAttachments(Email, MimeMultipart)
 	 */
-	public final void sendMail(final Email email, final boolean async) {
+	public final synchronized void sendMail(final Email email, final boolean async) {
 		if (validate(email)) {
+			// we need to track even non-async emails to prevent async emails from shutting down
+			// the proxy bridge server while a non-async email is still being processed
+			if (proxyServer != null) {
+				// phaser auto-terminates each time the all parties have arrived, so re-initialize when needed
+				if (smtpRequestsPhaser == null || smtpRequestsPhaser.isTerminated()) {
+					smtpRequestsPhaser = new Phaser();
+				}
+				smtpRequestsPhaser.register();
+			}
 			if (async) {
-				// register unarrived party before starting thread, because starting might be delayed by thread pool
-				synchronized (this) {
-					// start up threadpool pool if nescesary
-					if (executor == null || executor.isTerminated()) {
-						// FIXME make thread count a property
-						executor = Executors.newFixedThreadPool(10);
-					}
-					// we only care about manually counting threads using the phaser if we need to shutdown a proxy bridging server at the end
-					if (proxyServer != null) {
-						smtpRequestsPhaser.register();
-					}
+				// start up threadpool pool if nescesary
+				if (executor == null || executor.isTerminated()) {
+					executor = Executors.newFixedThreadPool(10); // FIXME make thread count a property
 				}
 				executor.execute(new Thread("sendMail process") {
 					@Override
@@ -440,13 +441,10 @@ public class Mailer {
 	 */
 	private synchronized void checkShutDownProxyBridge() {
 		if (proxyServer != null) {
-			final boolean shouldManageThreads = smtpRequestsPhaser.getRegisteredParties() > 0;
-			if (shouldManageThreads) {
-				smtpRequestsPhaser.arriveAndDeregister();
-				LOGGER.trace("SMTP request threads left: {}", smtpRequestsPhaser.getUnarrivedParties());
-			}
-			// if no threads needed or this thread is the last one finishing
-			if (!shouldManageThreads || smtpRequestsPhaser.getUnarrivedParties() == 0) {
+			smtpRequestsPhaser.arriveAndDeregister();
+			LOGGER.trace("SMTP request threads left: {}", smtpRequestsPhaser.getUnarrivedParties());
+			// if this thread is the last one finishing
+			if (smtpRequestsPhaser.getUnarrivedParties() == 0) {
 				LOGGER.trace("all threads have finished processing");
 				if (proxyServer.isRunning() && !proxyServer.isStopping()) {
 					LOGGER.trace("stopping proxy bridge...");
