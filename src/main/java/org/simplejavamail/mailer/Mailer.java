@@ -28,6 +28,9 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Phaser;
 
 import static java.lang.String.format;
 import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC_COMPLIANT;
@@ -102,6 +105,19 @@ public class Mailer {
 	 * Only set when {@link ProxyConfig} is provided.
 	 */
 	private AnonymousSocks5Server proxyServer = null;
+
+	/**
+	 * Used to keep track of running SMTP requests, so that we know when to close down the proxy bridging server (if used).
+	 */
+	private final Phaser smtpRequestsPhaser = new Phaser();
+
+	/**
+	 * Allows us to manage how many thread we run at the same time using a thread pool.
+	 * <p>
+	 * Can't be initialized in the field, because we need to reinitialize whenever the pool was closed after a batch of emails and the Mailer instance
+	 * is again engaged.
+	 */
+	private ExecutorService executor;
 
 	/**
 	 * Email address restriction flags set to {@link EmailAddressCriteria#RFC_COMPLIANT} or overridden by by user with {@link
@@ -326,6 +342,14 @@ public class Mailer {
 	}
 
 	/**
+	 * Delegates to {@link #sendMail(Email, boolean)}, with <code>async = false</code>. This method returns only when the email has been processed by
+	 * the target SMTP server.
+	 */
+	public final void sendMail(final Email email) {
+		sendMail(email, false);
+	}
+
+	/**
 	 * Processes an {@link Email} instance into a completely configured {@link Message}.
 	 * <p/>
 	 * Sends the Sun JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all
@@ -335,6 +359,8 @@ public class Mailer {
 	 * a message id.
 	 *
 	 * @param email The information for the email to be sent.
+	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
+	 *              send the email and this method returns immediately.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
 	 * @see #validate(Email)
 	 * @see #produceMimeMessage(Email, Session)
@@ -343,17 +369,27 @@ public class Mailer {
 	 * @see #setEmbeddedImages(Email, MimeMultipart)
 	 * @see #setAttachments(Email, MimeMultipart)
 	 */
-	public final void sendMail(final Email email)
-			throws MailException {
+	public final void sendMail(final Email email, final boolean async) {
 		if (validate(email)) {
-			final boolean async = false;
 			if (async) {
-				new Thread() {
+				// register unarrived party before starting thread, because starting might be delayed by thread pool
+				synchronized (this) {
+					// start up threadpool pool if nescesary
+					if (executor == null || executor.isTerminated()) {
+						// FIXME make thread count a property
+						executor = Executors.newFixedThreadPool(10);
+					}
+					// we only care about manually counting threads using the phaser if we need to shutdown a proxy bridging server at the end
+					if (proxyServer != null) {
+						smtpRequestsPhaser.register();
+					}
+				}
+				executor.execute(new Thread("sendMail process") {
 					@Override
 					public void run() {
 						sendMailClosure(email);
 					}
-				}.start();
+				});
 			} else {
 				sendMailClosure(email);
 			}
@@ -373,9 +409,11 @@ public class Mailer {
 			final Transport transport = session.getTransport();
 
 			try {
-				if (proxyServer != null) {
-					LOGGER.trace("starting proxy bridge");
-					proxyServer.start();
+				synchronized (this) {
+					if (proxyServer != null && !proxyServer.isRunning()) {
+						LOGGER.trace("starting proxy bridge");
+						proxyServer.start();
+					}
 				}
 				try {
 					transport.connect();
@@ -386,15 +424,40 @@ public class Mailer {
 					transport.close();
 				}
 			} finally {
-				if (proxyServer != null) {
-					LOGGER.trace("stopping proxy bridge");
-					proxyServer.stop();
-				}
+				checkShutDownProxyBridge();
 			}
 		} catch (final UnsupportedEncodingException e) {
 			throw new MailerException(MailerException.INVALID_ENCODING, e);
 		} catch (final MessagingException e) {
 			throw new MailerException(MailerException.GENERIC_ERROR, e);
+		}
+	}
+
+	/**
+	 * we need to keep a count of running threads only if we need to shutdown the proxy bridging server at the end in async mode.
+	 * <p>
+	 * proxyServer != null means we need to shut down server, registered parties means we're running in async (batch) mode
+	 */
+	private synchronized void checkShutDownProxyBridge() {
+		if (proxyServer != null) {
+			final boolean shouldManageThreads = smtpRequestsPhaser.getRegisteredParties() > 0;
+			if (shouldManageThreads) {
+				smtpRequestsPhaser.arriveAndDeregister();
+				LOGGER.trace("SMTP request threads left: {}", smtpRequestsPhaser.getUnarrivedParties());
+			}
+			// if no threads needed or this thread is the last one finishing
+			if (!shouldManageThreads || smtpRequestsPhaser.getUnarrivedParties() == 0) {
+				LOGGER.trace("all threads have finished processing");
+				if (proxyServer.isRunning() && !proxyServer.isStopping()) {
+					LOGGER.trace("stopping proxy bridge...");
+					proxyServer.stop();
+				}
+				// shutdown the threadpool, or else the Mailer will keep any JVM alive forever
+				// executor is only available in async mode
+				if (executor != null) {
+					executor.shutdown();
+				}
+			}
 		}
 	}
 
