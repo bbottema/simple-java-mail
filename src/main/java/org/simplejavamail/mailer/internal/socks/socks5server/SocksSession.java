@@ -63,10 +63,19 @@ class SocksSession {
 			if (inputStream != null) {
 				inputStream.close();
 			}
+		} catch (final IOException e) {
+			LOGGER.error(e.getMessage(), e);
+		}
+		try {
 			if (outputStream != null) {
 				outputStream.close();
 			}
+		} catch (final IOException e) {
+			LOGGER.error(e.getMessage(), e);
+		}
+		try {
 			if (socket != null && !socket.isClosed()) {
+				LOGGER.trace("closing client socket");
 				socket.close();
 			}
 		} catch (final IOException e) {
