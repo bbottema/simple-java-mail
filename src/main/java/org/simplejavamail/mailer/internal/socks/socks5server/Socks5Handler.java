@@ -80,7 +80,6 @@ public class Socks5Handler implements Runnable {
 
 		// set default bind address.
 		InetAddress bindAddress = new InetSocketAddress(0).getAddress();
-		// DO connect
 		try {
 			// the magic happens here...
 			socket = socks5Bridge.connect(String.valueOf(this.session.getId()), targetServerAddress, targetServerPort);
@@ -124,11 +123,11 @@ public class Socks5Handler implements Runnable {
 		// wait for pipe exit.
 		while (pipe.isRunning()) {
 			try {
-				Thread.sleep(2000);
+				Thread.sleep(500);
 			} catch (final InterruptedException e) {
 				pipe.stop();
 				session.close();
-				LOGGER.info("SESSION[{}] closed from", session.getId(), session.getClientAddress());
+				LOGGER.info("SESSION[{}] closed from {}", session.getId(), session.getClientAddress());
 			}
 		}
 	}
