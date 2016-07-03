@@ -23,26 +23,30 @@ public class AnonymousSocks5Server implements Runnable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(AnonymousSocks5Server.class);
 
 	private final Socks5Bridge socks5Bridge;
-	private final ExecutorService threadPool = Executors.newFixedThreadPool(100);
-	private final ServerSocket serverSocket;
 	private final int proxyBridgePort;
-	private boolean stop = false;
+
+	private ExecutorService threadPool;
+	private ServerSocket serverSocket;
+	private boolean stopping = false;
+	private boolean running = false;
 
 	public AnonymousSocks5Server(final Socks5Bridge socks5Bridge, final int proxyBridgePort) {
 		this.socks5Bridge = socks5Bridge;
 		this.proxyBridgePort = proxyBridgePort;
-		try {
-			this.serverSocket = new ServerSocket();
-		} catch (final IOException e) {
-			throw new SocksException("error preparing socks5bridge server for authenticated proxy session", e);
-		}
 	}
 
 	/**
 	 * Binds the port and starts a thread to listen to incoming proxy connections from JavaMail.
 	 */
 	public void start() {
+		if (running) {
+			throw new IllegalStateException("server already running!");
+		}
+		running = true;
 		try {
+			this.threadPool = Executors.newFixedThreadPool(100);
+			this.serverSocket = new ServerSocket();
+			this.serverSocket.setReuseAddress(true);
 			this.serverSocket.bind(new InetSocketAddress(proxyBridgePort));
 		} catch (final IOException e) {
 			throw new SocksException("error preparing socks5bridge server for authenticated proxy session", e);
@@ -51,7 +55,7 @@ public class AnonymousSocks5Server implements Runnable {
 	}
 
 	public void stop() {
-		stop = true;
+		stopping = true;
 		try {
 			serverSocket.close();
 		} catch (final IOException e) {
@@ -62,7 +66,7 @@ public class AnonymousSocks5Server implements Runnable {
 	@Override
 	public void run() {
 		LOGGER.info("Starting proxy server at port {}", serverSocket.getLocalPort());
-		while (!stop) {
+		while (!stopping) {
 			try {
 				LOGGER.info("waiting for new connection...");
 				final Socket socket = serverSocket.accept();
@@ -74,13 +78,25 @@ public class AnonymousSocks5Server implements Runnable {
 		}
 		LOGGER.debug("shutting down...");
 		threadPool.shutdownNow();
+		running = false;
+		stopping = false;
 	}
 
-	private static void checkIoException(final IOException e) {
+	private void checkIoException(final Exception e) {
 		if (e.getMessage().equals("socket closed")) {
 			LOGGER.debug("socket closed");
 		} else {
+			running = false;
+			stopping = false;
 			throw new SocksException("server crashed...", e);
 		}
+	}
+
+	public boolean isStopping() {
+		return stopping;
+	}
+
+	public boolean isRunning() {
+		return running;
 	}
 }
