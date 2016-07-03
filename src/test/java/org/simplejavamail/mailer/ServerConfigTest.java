@@ -3,6 +3,7 @@ package org.simplejavamail.mailer;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.internal.util.ConfigLoader;
+import org.simplejavamail.mailer.config.ServerConfig;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;

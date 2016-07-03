@@ -56,18 +56,6 @@ public class EmailTest {
 	}
 
 	@Test
-	public void testParser()
-			throws Exception {
-		final Email emailNormal = EmailHelper.createDummyEmail();
-
-		// let's try producing and then consuming a MimeMessage ->
-		final MimeMessage mimeMessage = Mailer.produceMimeMessage(emailNormal);
-		final Email emailFromMimeMessage = new Email(mimeMessage);
-
-		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
-	}
-
-	@Test
 	public void testBeautifyCID() {
 		assertThat(Email.extractCID(null)).isNull();
 		assertThat(Email.extractCID("")).isEqualTo("");

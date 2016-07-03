@@ -1,7 +1,7 @@
 package org.simplejavamail;
 
 /**
- * This exception is used to communicate errors during the sending of email.
+ * This exception is used to communicate errors during the creation, validation and sending of email.
  *
  * @author Benny Bottema
  */

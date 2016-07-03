@@ -1,4 +1,4 @@
-package org.simplejavamail.mailer;
+package org.simplejavamail.mailer.config;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.ConfigLoader.Property.*;

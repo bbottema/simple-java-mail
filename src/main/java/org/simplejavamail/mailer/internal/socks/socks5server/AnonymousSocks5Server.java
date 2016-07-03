@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
  * SOCKS server that accepts anonymous connections from JavaMail.
  * <p>
  * Java Mail only support anonymous SOCKS proxies; in order to support authenticated proxies, we need to create a man-in-the-middle: which is the
- * BasicSocksProxyServer.
+ * {@link AnonymousSocks5Server}.
  */
 public class AnonymousSocks5Server implements Runnable {
 

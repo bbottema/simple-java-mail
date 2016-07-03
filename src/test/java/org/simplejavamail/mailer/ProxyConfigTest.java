@@ -3,6 +3,7 @@ package org.simplejavamail.mailer;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.internal.util.ConfigLoader;
+import org.simplejavamail.mailer.config.ProxyConfig;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
@@ -10,7 +11,7 @@ import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.simplejavamail.mailer.ProxyConfig.DEFAULT_PROXY_BRIDGE_PORT;
+import static org.simplejavamail.mailer.config.ProxyConfig.DEFAULT_PROXY_BRIDGE_PORT;
 
 public class ProxyConfigTest {
 

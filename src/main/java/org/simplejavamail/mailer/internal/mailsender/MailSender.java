@@ -1,0 +1,243 @@
+package org.simplejavamail.mailer.internal.mailsender;
+
+import org.simplejavamail.MailException;
+import org.simplejavamail.email.Email;
+import org.simplejavamail.mailer.config.ProxyConfig;
+import org.simplejavamail.mailer.config.TransportStrategy;
+import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
+import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5Server;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.mail.*;
+import javax.mail.internet.MimeMessage;
+import java.io.UnsupportedEncodingException;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Phaser;
+
+/**
+ * Class that performs the actual javax.mail SMTP integration.
+ * <p>
+ * Refer to {@link #send(Email, boolean)} for details.
+ * <p>
+ * <hr/>
+ * <p>
+ * On a technical note, this is the most complex class in the library (aside from the SOCKS5 bridging server), because it deals with optional
+ * asynchronous mailing requests and an optional proxy server that needs to be started and stopped on the fly depending on how many emails are being
+ * sent. Especially the combination of asynchronous emails and synchronous emails needs to be managed properly.
+ */
+public class MailSender {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(MailSender.class);
+
+	/**
+	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly,
+	 * when no <code>Session</code> instance was provided.
+	 */
+	private final Session session;
+
+	/**
+	 * Intermediary SOCKS5 relay server that acts as bridge between JavaMail and remote proxy (since JavaMail only supports anonymous SOCKS proxies).
+	 * Only set when {@link ProxyConfig} is provided.
+	 */
+	private AnonymousSocks5Server proxyServer = null;
+
+	/**
+	 * Allows us to manage how many thread we run at the same time using a thread pool.
+	 * <p>
+	 * Can't be initialized in the field, because we need to reinitialize it whenever the threadpool was closed after a batch of emails and this
+	 * MailSender instance is again engaged.
+	 */
+	private ExecutorService executor;
+
+	/**
+	 * Used to keep track of running SMTP requests, so that we know when to close down the proxy bridging server (if used).
+	 * <p>
+	 * Can't be initialized in the field, because we need to reinitialize phaser was terminated after a batch of emails and this MailSender instance
+	 * is again engaged.
+	 */
+	private Phaser smtpRequestsPhaser;
+
+	/**
+	 * @see #configureSessionWithProxy(ProxyConfig, Session, TransportStrategy)
+	 */
+	public MailSender(final Session session, final ProxyConfig proxyConfig, final TransportStrategy transportStrategy) {
+		this.session = session;
+		this.proxyServer = configureSessionWithProxy(proxyConfig, session, transportStrategy);
+	}
+
+	/**
+	 * If a {@link ProxyConfig} was provided with a host address, then the appropriate properties are set, overriding any SOCKS properties already
+	 * there.
+	 * <p>
+	 * These properties are <em>"mail.smtp.socks.host"</em> and <em>"mail.smtp.socks.port"</em>, which are set to "localhost" and {@link
+	 * ProxyConfig#getProxyBridgePort()}.
+	 *
+	 * @param proxyConfig       Proxy server details, optionally with username / password.
+	 * @param session           The session with properties to add the new configuration to.
+	 * @param transportStrategy Used to verify if the current combination with proxy is allowed (SMTP with SSL trategy doesn't support any proxy,
+	 *                          virtue of the underlying JavaMail framework).
+	 * @return null in case of no proxy or anonymous proxy, or a AnonymousSocks5Server proxy bridging server instance in case of authenticated proxy.
+	 */
+	private static AnonymousSocks5Server configureSessionWithProxy(final ProxyConfig proxyConfig, final Session session,
+			final TransportStrategy transportStrategy) {
+		final ProxyConfig effectiveProxyConfig = (proxyConfig != null) ? proxyConfig : new ProxyConfig();
+		if (!effectiveProxyConfig.requiresProxy()) {
+			LOGGER.debug("No proxy set, skipping proxy.");
+		} else {
+			if (transportStrategy == TransportStrategy.SMTP_SSL) {
+				throw new MailSenderException(MailSenderException.INVALID_PROXY_SLL_COMBINATION);
+			}
+			final Properties sessionProperties = session.getProperties();
+			sessionProperties.put("mail.smtp.socks.host", effectiveProxyConfig.getRemoteProxyHost());
+			sessionProperties.put("mail.smtp.socks.port", String.valueOf(effectiveProxyConfig.getRemoteProxyPort()));
+			if (effectiveProxyConfig.requiresAuthentication()) {
+				sessionProperties.put("mail.smtp.socks.host", "localhost");
+				sessionProperties.put("mail.smtp.socks.port", String.valueOf(effectiveProxyConfig.getProxyBridgePort()));
+				return new AnonymousSocks5Server(new AuthenticatingSocks5Bridge(effectiveProxyConfig),
+						effectiveProxyConfig.getProxyBridgePort());
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Processes an {@link Email} instance into a completely configured {@link Message}.
+	 * <p/>
+	 * Sends the Sun JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all
+	 * connection details have been configured in the provided {@link Session} instance and finally {@link Transport#sendMessage(Message,
+	 * Address[])}.
+	 * <p/>
+	 * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and providing
+	 * a message id.
+	 * <p>
+	 * If the email should be sent asynchrounously - perhaps as part of a batch, then a new thread is started using the {@link #executor} for
+	 * threadpooling.
+	 * <p>
+	 * If the email should go through an authenticated proxy server, then the SOCKS proxy bridge is started if not already running. When the last
+	 * email in a batch has finished, the proxy bridging server is shut down.
+	 *
+	 * @param email The information for the email to be sent.
+	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
+	 *              send the email and this method returns immediately.
+	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
+	 * @see MimeMessageHelper#produceMimeMessage(Email, Session)
+	 */
+	public final synchronized void send(final Email email, final boolean async) {
+		// we need to track even non-async emails to prevent async emails from shutting down
+		// the proxy bridge server while a non-async email is still being processed
+		if (proxyServer != null) {
+			// phaser auto-terminates each time the all parties have arrived, so re-initialize when needed
+			if (smtpRequestsPhaser == null || smtpRequestsPhaser.isTerminated()) {
+				smtpRequestsPhaser = new Phaser();
+			}
+			smtpRequestsPhaser.register();
+		}
+		if (async) {
+			// start up threadpool pool if nescesary
+			if (executor == null || executor.isTerminated()) {
+				executor = Executors.newFixedThreadPool(10); // FIXME make thread count a property
+			}
+			executor.execute(new Thread("sendMail process") {
+				@Override
+				public void run() {
+					sendMailClosure(session, email);
+				}
+			});
+		} else {
+			sendMailClosure(session, email);
+		}
+	}
+
+	private void sendMailClosure(final Session session, final Email email) {
+		LOGGER.trace("sending email...");
+		try {
+			// fill and send wrapped mime message parts
+			final MimeMessage message = MimeMessageHelper.produceMimeMessage(email, session);
+			logSession(session);
+			message.saveChanges(); // some headers and id's will be set for this specific message
+			final Transport transport = session.getTransport();
+
+			try {
+				synchronized (this) {
+					if (proxyServer != null && !proxyServer.isRunning()) {
+						LOGGER.trace("starting proxy bridge");
+						proxyServer.start();
+					}
+				}
+				try {
+					transport.connect();
+					transport.sendMessage(message, message.getAllRecipients());
+				} finally {
+					LOGGER.trace("closing transport");
+					//noinspection ThrowFromFinallyBlock
+					transport.close();
+				}
+			} finally {
+				checkShutDownProxyBridge();
+			}
+		} catch (final UnsupportedEncodingException e) {
+			throw new MailSenderException(MailSenderException.INVALID_ENCODING, e);
+		} catch (final MessagingException e) {
+			throw new MailSenderException(MailSenderException.GENERIC_ERROR, e);
+		}
+	}
+
+	/**
+	 * We need to keep a count of running threads only if we need to shutdown the proxy bridging server at the end in async mode.
+	 * <p>
+	 * ProxyServer != null means we need to shut down server, registered parties means we're running in async (batch) mode
+	 */
+	private synchronized void checkShutDownProxyBridge() {
+		if (proxyServer != null) {
+			smtpRequestsPhaser.arriveAndDeregister();
+			LOGGER.trace("SMTP request threads left: {}", smtpRequestsPhaser.getUnarrivedParties());
+			// if this thread is the last one finishing
+			if (smtpRequestsPhaser.getUnarrivedParties() == 0) {
+				LOGGER.trace("all threads have finished processing");
+				if (proxyServer.isRunning() && !proxyServer.isStopping()) {
+					LOGGER.trace("stopping proxy bridge...");
+					proxyServer.stop();
+				}
+				// shutdown the threadpool, or else the Mailer will keep any JVM alive forever
+				// executor is only available in async mode
+				if (executor != null) {
+					executor.shutdown();
+				}
+			}
+		}
+	}
+
+	/**
+	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
+	 */
+	private static void logSession(final Session session) {
+		final TransportStrategy transportStrategy = TransportStrategy.findStrategyForSession(session);
+		final Properties properties = session.getProperties();
+		final String sessionDetails = (transportStrategy != null) ? transportStrategy.toString(properties) : properties.toString();
+		LOGGER.debug("starting mail with " + sessionDetails);
+	}
+
+	/**
+	 * Refer to Session{@link Session#setDebug(boolean)}
+	 */
+	public void setDebug(final boolean debug) {
+		session.setDebug(debug);
+	}
+
+	/**
+	 * @param properties Properties which will be added to the current {@link Session} instance.
+	 */
+	public void applyProperties(final Properties properties) {
+		session.getProperties().putAll(properties);
+	}
+
+	/**
+	 * For emergencies, when a client really wants access to the internally created {@link Session} instance.
+	 */
+	public Session getSession() {
+		return session;
+	}
+}

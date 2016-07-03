@@ -1,7 +1,9 @@
-package org.simplejavamail.mailer;
+package org.simplejavamail.mailer.config;
 
 import javax.mail.Session;
 import java.util.Properties;
+
+import static java.lang.String.format;
 
 /**
  * Defines the various types of transport protocols and implements respective properties so that a {@link Session} may be configured using a
@@ -32,7 +34,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtp.host"
 		 */
 		@Override
-		String propertyNameHost() {
+		public String propertyNameHost() {
 			return "mail.smtp.host";
 		}
 
@@ -40,7 +42,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtp.port"
 		 */
 		@Override
-		String propertyNamePort() {
+		public String propertyNamePort() {
 			return "mail.smtp.port";
 		}
 
@@ -48,7 +50,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtp.username"
 		 */
 		@Override
-		String propertyNameUsername() {
+		public String propertyNameUsername() {
 			return "mail.smtp.username";
 		}
 
@@ -56,7 +58,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtp.auth"
 		 */
 		@Override
-		String propertyNameAuthenticate() {
+		public String propertyNameAuthenticate() {
 			return "mail.smtp.auth";
 		}
 	},
@@ -93,7 +95,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtps.host"
 		 */
 		@Override
-		String propertyNameHost() {
+		public String propertyNameHost() {
 			return "mail.smtps.host";
 		}
 
@@ -101,7 +103,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtps.port"
 		 */
 		@Override
-		String propertyNamePort() {
+		public String propertyNamePort() {
 			return "mail.smtps.port";
 		}
 
@@ -109,7 +111,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtps.username"
 		 */
 		@Override
-		String propertyNameUsername() {
+		public String propertyNameUsername() {
 			return "mail.smtps.username";
 		}
 
@@ -117,7 +119,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtps.auth"
 		 */
 		@Override
-		String propertyNameAuthenticate() {
+		public String propertyNameAuthenticate() {
 			return "mail.smtps.auth";
 		}
 	},
@@ -145,7 +147,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtp.host"
 		 */
 		@Override
-		String propertyNameHost() {
+		public String propertyNameHost() {
 			return "mail.smtp.host";
 		}
 
@@ -153,7 +155,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtp.port"
 		 */
 		@Override
-		String propertyNamePort() {
+		public String propertyNamePort() {
 			return "mail.smtp.port";
 		}
 
@@ -161,7 +163,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtp.username"
 		 */
 		@Override
-		String propertyNameUsername() {
+		public String propertyNameUsername() {
 			return "mail.smtp.username";
 		}
 
@@ -169,7 +171,7 @@ public enum TransportStrategy {
 		 * @return "mail.smtp.auth"
 		 */
 		@Override
-		String propertyNameAuthenticate() {
+		public String propertyNameAuthenticate() {
 			return "mail.smtp.auth";
 		}
 	};
@@ -195,13 +197,13 @@ public enum TransportStrategy {
 		return properties;
 	}
 
-	abstract String propertyNameHost();
+	public abstract String propertyNameHost();
 
-	abstract String propertyNamePort();
+	public abstract String propertyNamePort();
 
-	abstract String propertyNameUsername();
+	public abstract String propertyNameUsername();
 
-	abstract String propertyNameAuthenticate();
+	public abstract String propertyNameAuthenticate();
 
 	/**
 	 * @param session The session to determine the current transport strategy for
@@ -214,5 +216,14 @@ public enum TransportStrategy {
 			return TransportStrategy.valueOf(transportStrategyMarker);
 		}
 		return null;
+	}
+
+	public String toString(final Properties properties) {
+		return format("session (host: %s, port: %s, username: %s, authenticate: %s, transport: %s)",
+				properties.get(propertyNameHost()),
+				properties.get(propertyNamePort()),
+				properties.get(propertyNameUsername()),
+				properties.get(propertyNameAuthenticate()),
+				this);
 	}
 }

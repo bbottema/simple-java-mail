@@ -10,8 +10,6 @@ import org.simplejavamail.MailException;
 @SuppressWarnings("serial")
 class MailerException extends MailException {
 
-	static final String GENERIC_ERROR = "Third party error";
-	static final String INVALID_ENCODING = "Encoding not accepted";
 	static final String INVALID_RECIPIENT = "Invalid TO address: %s";
 	static final String INVALID_REPLYTO = "Invalid REPLY TO address: %s";
 	static final String INVALID_SENDER = "Invalid FROM address: %s";
@@ -19,14 +17,8 @@ class MailerException extends MailException {
 	static final String MISSING_RECIPIENT = "Email is not valid: missing recipients";
 	static final String MISSING_SUBJECT = "Email is not valid: missing subject";
 	static final String MISSING_CONTENT = "Email is not valid: missing content body";
-	static final String INVALID_DOMAINKEY = "Error signing MimeMessage with DKIM";
-	static final String INVALID_PROXY_SLL_COMBINATION = "Proxy is not supported for SSL connections (this is a limitation by the underlying JavaMail framework)";
 
 	MailerException(final String message) {
 		super(message);
-	}
-
-	MailerException(final String message, final Exception cause) {
-		super(message, cause);
 	}
 }

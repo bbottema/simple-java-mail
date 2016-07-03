@@ -2,7 +2,7 @@ package org.simplejavamail.internal.util;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.mailer.TransportStrategy;
+import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.util.ConfigLoader.Property;
 import testutil.ConfigLoaderTestHelper;
 
@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.mailer.TransportStrategy.SMTP_SSL;
+import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_SSL;
 import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
 
 public class ConfigLoaderTest {

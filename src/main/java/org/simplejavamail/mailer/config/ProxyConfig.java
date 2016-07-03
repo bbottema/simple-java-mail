@@ -1,4 +1,4 @@
-package org.simplejavamail.mailer;
+package org.simplejavamail.mailer.config;
 
 import org.simplejavamail.mailer.internal.socks.SocksProxyConfig;
 
@@ -27,7 +27,7 @@ public class ProxyConfig extends SocksProxyConfig {
 	 * #DEFAULT_PROXY_BRIDGE_PORT}.
 	 */
 	@SuppressWarnings("JavaDoc")
-	static final int DEFAULT_PROXY_BRIDGE_PORT = 1081;
+	public static final int DEFAULT_PROXY_BRIDGE_PORT = 1081;
 
 	/**
 	 * 'Skip proxy' constructor short-cut.
