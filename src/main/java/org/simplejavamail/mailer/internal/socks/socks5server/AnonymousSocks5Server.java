@@ -70,12 +70,6 @@ public class AnonymousSocks5Server implements Runnable {
 				threadPool.execute(new Socks5Handler(new SocksSession(socket), socks5Bridge));
 			} catch (final IOException e) {
 				checkIoException(e);
-			} finally {
-				try {
-					serverSocket.close();
-				} catch (final IOException e) {
-					checkIoException(e);
-				}
 			}
 		}
 		LOGGER.debug("shutting down...");
