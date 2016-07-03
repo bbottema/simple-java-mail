@@ -79,7 +79,7 @@ final class SocksCommandSender {
 
 		outputStream.write(bufferSent);
 		outputStream.flush();
-		LOGGER.debug("{}", MiscUtil.buildLogString(bufferSent, false));
+		LOGGER.trace("{}", MiscUtil.buildLogString(bufferSent, false));
 
 		checkServerReply(inputStream);
 	}
@@ -103,7 +103,7 @@ final class SocksCommandSender {
 
 		outputStream.write(bufferSent);
 		outputStream.flush();
-		LOGGER.debug("{}", MiscUtil.buildLogString(bufferSent, false));
+		LOGGER.trace("{}", MiscUtil.buildLogString(bufferSent, false));
 
 		checkServerReply(inputStream);
 	}
@@ -140,7 +140,7 @@ final class SocksCommandSender {
 				throw new SocksException("Address type not support, type value: " + addressType);
 		}
 		final byte[] receivedData = byteArrayOutputStream.toByteArray();
-		LOGGER.debug("{}", MiscUtil.buildLogString(receivedData, true));
+		LOGGER.trace("{}", MiscUtil.buildLogString(receivedData, true));
 		final byte[] addressBytes;
 		final byte[] portBytes = new byte[2];
 
