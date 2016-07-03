@@ -38,16 +38,6 @@ public final class MimeMessageHelper {
 	private static final String CHARACTER_ENCODING = StandardCharsets.UTF_8.name();
 
 	/**
-	 * Delegates to {@link #produceMimeMessage(Email, Session)}, using a new empty {@link Session} instance.
-	 *
-	 * @see #produceMimeMessage(Email, Session)
-	 */
-	public static MimeMessage produceMimeMessage(final Email email)
-			throws UnsupportedEncodingException, MessagingException {
-		return produceMimeMessage(email, Session.getDefaultInstance(new Properties()));
-	}
-
-	/**
 	 * Creates a new {@link MimeMessage} instance coupled to a specific {@link Session} instance and prepares it in the email structure, so that it
 	 * can be filled and send.
 	 * <p/>

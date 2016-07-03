@@ -324,6 +324,16 @@ public class Mailer {
 	}
 
 	/**
+	 * Delegates to {@link #produceMimeMessage(Email, Session)}, using a new empty {@link Session} instance.
+	 *
+	 * @see #produceMimeMessage(Email, Session)
+	 */
+	public static MimeMessage produceMimeMessage(final Email email)
+			throws UnsupportedEncodingException, MessagingException {
+		return produceMimeMessage(email, Session.getDefaultInstance(new Properties()));
+	}
+
+	/**
 	 * Refer to {@link MimeMessageHelper#produceMimeMessage(Email, Session)}
 	 */
 	public static MimeMessage produceMimeMessage(final Email email, final Session session)
