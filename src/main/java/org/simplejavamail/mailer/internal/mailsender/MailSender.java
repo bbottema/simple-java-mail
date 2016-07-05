@@ -264,7 +264,7 @@ public class MailSender {
 	 * @param threadPoolSize The maximum number of threads when sending emails in async fashion.
 	 * @see Property#DEFAULT_POOL_SIZE
 	 */
-	public void setThreadPoolSize(int threadPoolSize) {
+	public synchronized void setThreadPoolSize(int threadPoolSize) {
 		this.threadPoolSize = threadPoolSize;
 	}
 }
