@@ -8,7 +8,7 @@ http://www.simplejavamail.org
 
 RELEASE NOTES Java Simple Mail
 
-v4.0.0 (unreleased)
+v4.0.0
 
 - #41: added support for fast parallel batch processing
 - #42: **added support for config files**
@@ -16,6 +16,8 @@ v4.0.0 (unreleased)
 - #39: simplified and renamed packages to reflect the domain name of the new website: simplejavamail.org
 - #38: added support for anonymous proxy
 - #38: **added support for authenticated proxy**
+
+NOTE: All packages have been renamed to "org.simplejavamail.(..)".
 
 
 v3.1.1

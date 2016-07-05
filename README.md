@@ -50,7 +50,7 @@ Simple Java Mail is available in Maven Central:
 
 ### Latest Progress ###
 
-v4.0.0 (unreleased)
+v4.0.0
 
 - [#41](https://github.com/bbottema/simple-java-mail/issues/41): added support for fast parallel batch processing
 - [#42](https://github.com/bbottema/simple-java-mail/issues/42): **added support for config files**
@@ -58,6 +58,8 @@ v4.0.0 (unreleased)
 - [#39](https://github.com/bbottema/simple-java-mail/issues/39): simplified and renamed packages to reflect the domain name of the new website: [simplejavamail.org](http://www.simplejavamail.org)
 - [#38](https://github.com/bbottema/simple-java-mail/issues/38): added support for anonymous proxy
 - [#38](https://github.com/bbottema/simple-java-mail/issues/38): **added support for authenticated proxy** 
+
+NOTE: All packages have been renamed to "org.simplejavamail.(..)".
 
 
 v3.1.1
