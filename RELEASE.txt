@@ -1,4 +1,4 @@
-http://www.simple-java-mail.org
+http://www.simplejavamail.org
 
 <dependency>
     <groupId>org.codemonkey.simplejavamail</groupId>

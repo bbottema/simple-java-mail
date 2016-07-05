@@ -4,7 +4,7 @@
   
   Simple Java Mail
   Copyright 2009-2016 Benny Bottema
-  http://www.simple-java-mail.org
+  http://www.simplejavamail.org
   
   This product uses no commercial products.
   
