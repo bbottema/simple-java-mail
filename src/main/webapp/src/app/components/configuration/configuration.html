@@ -4,12 +4,14 @@
 
   <section class="introduction">
     <p class="wide">
-      Simple Java Mail provides full configuration through <strong>programmatic API</strong> as well as <strong>properties files</strong>. For each
-      level of configuration detail, a constructor is available keep it simple.
+      Simple Java Mail provides full configuration through <strong>programmatic API</strong> as well as <strong>system variables</strong>, <strong>environment
+                                                                                                                                                   variables</strong>
+      and <strong>properties files</strong>. For each level of configuration detail, a simple constructor is available as well.
     </p>
     <p class="wide">
       The Java API and config files complement each other; the more you configure in a properties file, the less you can provide through the
-      programmatic API. If you provide the overlapping configuration, the programmatic API takes priority, overriding property values.
+      programmatic API. If you provide the overlapping configuration, the programmatic API takes priority, overriding system and environment values,
+      overriding property values.
     </p>
   </section>
 
@@ -106,6 +108,10 @@ mailer.setEmailAddressCriteria(null);
 Proxyconfig proxyConfig = new ProxyConfig(...);
 proxyConfig.setProxyBridgePort(1081); // is always localhost
 </code></pre>
+<pre><code>
+// change maximum number of threads when sending asynchronously
+mailer.setThreadPoolSize(20);
+</code></pre>
     </div>
   </section>
 
@@ -116,12 +122,21 @@ proxyConfig.setProxyBridgePort(1081); // is always localhost
   <section>
     <div class="view">
       <p>
-        With properties files you can define defaults and overrides.
+        With properties files you can define defaults and overrides. You can also provide overriding value by defining system variables.
       </p>
       <p>
         Simple Java Mail will automatically load properties from <code class="inline">simplejavamail.properties</code>, if available on the classpath.
         Alternatively, you can manually load additional properties files in a number of ways.
       </p>
+      <p>
+        Properties are loaded in order of priority from high to low:
+      </p>
+      <ol class="indent">
+        <li>Programmatic values</li>
+        <li>System variables</li>
+        <li>Environment variables</li>
+        <li>Properties from config files</li>
+      </ol>
     </div>
 
     <div class="side">
@@ -165,6 +180,7 @@ simplejavamail.defaults.cc.name=CC Default
 simplejavamail.defaults.cc.address=cc@default.com
 simplejavamail.defaults.bcc.name=BCC Default
 simplejavamail.defaults.bcc.address=bcc@default.com
+simplejavamail.defaults.poolsize=10
 </code></pre>
     </div>
   </section>

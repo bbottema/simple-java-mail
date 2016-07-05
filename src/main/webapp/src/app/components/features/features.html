@@ -31,6 +31,7 @@
       <li><a simplePageScroll href="#section-email-validation">Validating Email Addresses</a></li>
       <li><a simplePageScroll href="#section-generate-mimemessage">Generating a MimeMessage from an Email</a></li>
       <li><a simplePageScroll href="#section-parse-mimemessage">Generating an Email from a MimeMessage</a></li>
+      <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
     </ul>
   </section>
 
@@ -121,6 +122,32 @@ inhouseMailer.sendMail(anotherEmail);
    &lt;constructor-arg value=&quot;password&quot; /&gt;
 &lt;/bean&gt;
 </code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-sending-asynchronously" id="section-sending-asynchronously" class="section-link h3">&sect;</a>
+  <h3>Asynchronous parallel batch sending</h3>
+
+  <section>
+    <div class="view">
+      <p>
+        The default mode is to send emails synchronously, blocking execution until the email was processed completely and the STMP server send a
+        succesful result.
+      </p>
+      <p>
+        You can also sent anyschronously in parallel or batches, or simply send in a fire-and-forget way. If an authenticated proxy is used, the <a
+        simplePageScroll href="#section-proxy">proxy briding server</a> is kept alive until the last email has been sent.</p>
+      <p>
+        Depending on the SMTP server (and proxy server if used) this can greatly influence how fast emails are sent.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>mailer.sendMail(email, true);
+</code></pre>
+      <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" simplePageScroll href="#section-other-settings">configuration section</a>
+         on how to set the thread pool size default.</p>
     </div>
   </section>
 
@@ -400,6 +427,41 @@ Email email = new Email(mimeMessage);
 
 new Mailer().sendMail(email);
 </code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-proxy" id="section-proxy" class="section-link h2">&sect;</a>
+  <h2>Send using a proxy</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Simple Java Mail supports sending emails through a proxy. It is also the only java mailing framework in the world that supports sending emails
+        through <strong>authenticated</strong> proxies.
+      </p>
+      <p>
+        The reason for this is that the underlying native <a href="https://java.net/projects/javamail/pages/Home">Javax Mail framework</a> supports
+        anonymous SOCKS5 proxies, but <a href="http://www.oracle.com/technetwork/java/javamail/faq/index.html#proxy">not authenticated proxies</a>.
+      </p>
+      <p>
+        To make this work with authentication, Simple Java Mail uses a trick: it sets up a temporary anonymous proxy server for Javax Mail to connect
+        to and then relays the connection to the target proxy performing the authentication outside of Javax Mail.
+      </p>
+      <p>
+        This temporary server is referred to as the <strong>Proxy Bridging Server</strong>.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code>// anonymous proxy
+new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080));
+
+// authenticated proxy
+new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username", "proxy password"));
+</code></pre>
+      <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" simplePageScroll href="#section-other-settings">configuration section</a>
+         on how to set proxy server defaults and the port on which the proxy bridge runs.</p>
     </div>
   </section>
 
