@@ -2,6 +2,8 @@ package org.simplejavamail.mailer.internal.mailsender;
 
 import org.simplejavamail.MailException;
 import org.simplejavamail.email.Email;
+import org.simplejavamail.internal.util.ConfigLoader;
+import org.simplejavamail.internal.util.ConfigLoader.Property;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
@@ -25,22 +27,29 @@ import java.util.concurrent.Phaser;
  * <hr/>
  * <p>
  * On a technical note, this is the most complex class in the library (aside from the SOCKS5 bridging server), because it deals with optional
- * asynchronous mailing requests and an optional proxy server that needs to be started and stopped on the fly depending on how many emails are being
- * sent. Especially the combination of asynchronous emails and synchronous emails needs to be managed properly.
+ * asynchronous mailing requests and an optional proxy server that needs to be started and stopped on the fly depending on how many emails are (still)
+ * being sent. Especially the combination of asynchronous emails and synchronous emails needs to be managed properly.
  */
 public class MailSender {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MailSender.class);
 
 	/**
-	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly,
-	 * when no <code>Session</code> instance was provided.
+	 * For multi-threaded scenario's where a batch of emails sent asynchronously, the default maximum number of threads is {@value
+	 * #DEFAULT_POOL_SIZE}. Can be overridden from a config file or through System variable.
+	 *
+	 * @see Property#DEFAULT_POOL_SIZE
+	 */
+	private static final int DEFAULT_POOL_SIZE = 10;
+
+	/**
+	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
 	 */
 	private final Session session;
 
 	/**
 	 * Intermediary SOCKS5 relay server that acts as bridge between JavaMail and remote proxy (since JavaMail only supports anonymous SOCKS proxies).
-	 * Only set when {@link ProxyConfig} is provided.
+	 * Only set when {@link ProxyConfig} is provided with authentication details.
 	 */
 	private AnonymousSocks5Server proxyServer = null;
 
@@ -55,10 +64,12 @@ public class MailSender {
 	/**
 	 * Used to keep track of running SMTP requests, so that we know when to close down the proxy bridging server (if used).
 	 * <p>
-	 * Can't be initialized in the field, because we need to reinitialize phaser was terminated after a batch of emails and this MailSender instance
-	 * is again engaged.
+	 * Can't be initialized in the field, because we need to reinitialize if the phaser was terminated after a batch of emails and this MailSender
+	 * instance is again engaged.
 	 */
 	private Phaser smtpRequestsPhaser;
+
+	private int threadPoolSize;
 
 	/**
 	 * @see #configureSessionWithProxy(ProxyConfig, Session, TransportStrategy)
@@ -66,11 +77,12 @@ public class MailSender {
 	public MailSender(final Session session, final ProxyConfig proxyConfig, final TransportStrategy transportStrategy) {
 		this.session = session;
 		this.proxyServer = configureSessionWithProxy(proxyConfig, session, transportStrategy);
+		this.threadPoolSize = ConfigLoader.valueOrProperty(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE);
 	}
 
 	/**
-	 * If a {@link ProxyConfig} was provided with a host address, then the appropriate properties are set, overriding any SOCKS properties already
-	 * there.
+	 * If a {@link ProxyConfig} was provided with a host address, then the appropriate properties are set on the {@link Session}, overriding any SOCKS
+	 * properties already there.
 	 * <p>
 	 * These properties are <em>"mail.smtp.socks.host"</em> and <em>"mail.smtp.socks.port"</em>, which are set to "localhost" and {@link
 	 * ProxyConfig#getProxyBridgePort()}.
@@ -124,6 +136,7 @@ public class MailSender {
 	 *              send the email and this method returns immediately.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
 	 * @see MimeMessageHelper#produceMimeMessage(Email, Session)
+	 * @see Executors#newFixedThreadPool(int)
 	 */
 	public final synchronized void send(final Email email, final boolean async) {
 		// we need to track even non-async emails to prevent async emails from shutting down
@@ -138,7 +151,7 @@ public class MailSender {
 		if (async) {
 			// start up threadpool pool if nescesary
 			if (executor == null || executor.isTerminated()) {
-				executor = Executors.newFixedThreadPool(10); // FIXME make thread count a property
+				executor = Executors.newFixedThreadPool(threadPoolSize);
 			}
 			executor.execute(new Thread("sendMail process") {
 				@Override
@@ -151,6 +164,12 @@ public class MailSender {
 		}
 	}
 
+	/**
+	 * Separate closure that can be executed directly or from a thread. Refer to {@link #send(Email, boolean)} for details.
+	 *
+	 * @param session The session with which to produce the {@link MimeMessage} aquire the {@link Transport} for connections.
+	 * @param email   The email that will be converted into a {@link MimeMessage}.
+	 */
 	private void sendMailClosure(final Session session, final Email email) {
 		LOGGER.trace("sending email...");
 		try {
@@ -239,5 +258,13 @@ public class MailSender {
 	 */
 	public Session getSession() {
 		return session;
+	}
+
+	/**
+	 * @param threadPoolSize The maximum number of threads when sending emails in async fashion.
+	 * @see Property#DEFAULT_POOL_SIZE
+	 */
+	public void setThreadPoolSize(int threadPoolSize) {
+		this.threadPoolSize = threadPoolSize;
 	}
 }

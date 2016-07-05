@@ -15,6 +15,33 @@ import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 /**
  * Contains list of possible properties names and can produce a map of property values, if provided as file "{@value #DEFAULT_CONFIG_FILENAME}" on the
  * classpath or as environment property.
+ * <p>
+ * The following properties are allowed:
+ * <pre><ul>
+ *    <li>simplejavamail.javaxmail.debug</li>
+ *    <li>simplejavamail.transportstrategy</li>
+ *    <li>simplejavamail.smtp.host</li>
+ *    <li>simplejavamail.smtp.port</li>
+ *    <li>simplejavamail.smtp.username</li>
+ *    <li>simplejavamail.smtp.password</li>
+ *    <li>simplejavamail.proxy.host</li>
+ *    <li>simplejavamail.proxy.port</li>
+ *    <li>simplejavamail.proxy.username</li>
+ *    <li>simplejavamail.proxy.password</li>
+ *    <li>simplejavamail.proxy.socks5bridge.port</li>
+ *    <li>simplejavamail.defaults.subject</li>
+ *    <li>simplejavamail.defaults.from.name</li>
+ *    <li>simplejavamail.defaults.from.address</li>
+ *    <li>simplejavamail.defaults.replyto.name</li>
+ *    <li>simplejavamail.defaults.replyto.address</li>
+ *    <li>simplejavamail.defaults.to.name</li>
+ *    <li>simplejavamail.defaults.to.address</li>
+ *    <li>simplejavamail.defaults.cc.name</li>
+ *    <li>simplejavamail.defaults.cc.address</li>
+ *    <li>simplejavamail.defaults.bcc.name</li>
+ *    <li>simplejavamail.defaults.bcc.address</li>
+ *    <li>simplejavamail.defaults.poolsize
+ * </ul></pre>
  */
 public final class ConfigLoader {
 
@@ -59,7 +86,8 @@ public final class ConfigLoader {
 		DEFAULT_CC_NAME("simplejavamail.defaults.cc.name"),
 		DEFAULT_CC_ADDRESS("simplejavamail.defaults.cc.address"),
 		DEFAULT_BCC_NAME("simplejavamail.defaults.bcc.name"),
-		DEFAULT_BCC_ADDRESS("simplejavamail.defaults.bcc.address");
+		DEFAULT_BCC_ADDRESS("simplejavamail.defaults.bcc.address"),
+		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize");
 
 		private final String key;
 

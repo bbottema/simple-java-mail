@@ -19,7 +19,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Date;
 import java.util.Map;
-import java.util.Properties;
 
 import static java.lang.String.format;
 

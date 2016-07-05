@@ -3,7 +3,7 @@ package org.simplejavamail.mailer;
 import org.simplejavamail.MailException;
 
 /**
- * This exception is used to communicate errors during the sending of email.
+ * This exception is used to communicate errors during the validation of email.
  *
  * @author Benny Bottema
  */

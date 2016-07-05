@@ -68,9 +68,9 @@ import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyFor
  * <hr/>
  * <p>
  * On a technical note, the {@link Mailer} class is the front facade for the public API. It limits itself to creating Session objects, offering
- * various constructors, sorting missing arguments using available properties and email validation. The actual sending and proxy configuration is done
- * by the internal {@link MailSender}. Some internal api is made public through this class such as {@link #setDebug(boolean)}, {@link
- * #produceMimeMessage(Email, Session)} and {@link #signMessageWithDKIM(MimeMessage, Email)}.
+ * various constructors, sorting missing arguments using available properties and finally email validation. The actual sending and proxy configuration
+ * is done by the internal {@link MailSender}. Some internal api is made public through this class for uses other than directly sending emails, such
+ * as {@link #setDebug(boolean)}, {@link #produceMimeMessage(Email, Session)} and {@link #signMessageWithDKIM(MimeMessage, Email)}.
  *
  * @author Benny Bottema
  * @see org.simplejavamail.mailer.internal.mailsender.MimeMessageHelper.MimeEmailMessageWrapper
@@ -255,6 +255,7 @@ public class Mailer {
 	 * href="http://www.simplejavamail.org/#/proxy">here</a>).
 	 *
 	 * @param debug Flag to indicate debug mode yes/no.
+	 * @see Property#JAVAXMAIL_DEBUG
 	 */
 	public void setDebug(final boolean debug) {
 		mailSender.setDebug(debug);
@@ -267,6 +268,14 @@ public class Mailer {
 	 */
 	public void applyProperties(final Properties properties) {
 		mailSender.applyProperties(properties);
+	}
+
+	/**
+	 * @param poolSize The maximum number of threads when sending emails in async fashion.
+	 * @see Property#DEFAULT_POOL_SIZE
+	 */
+	public void setThreadPoolSize(int poolSize) {
+		mailSender.setThreadPoolSize(poolSize);
 	}
 
 	/**
