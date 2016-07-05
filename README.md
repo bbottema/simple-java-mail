@@ -1,4 +1,4 @@
-[![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE) [![Latest Release](https://img.shields.io/maven-central/v/org.codemonkey.simplejavamail/simple-java-mail.svg?style=flat)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.codemonkey.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22) [![Javadocs](http://www.javadoc.io/badge/org.codemonkey.simplejavamail/simple-java-mail.svg?color=brightgreen)](http://www.javadoc.io/doc/org.codemonkey.simplejavamail/simple-java-mail) [![Build Status](https://img.shields.io/travis/bbottema/simple-java-mail.svg?style=flat)](https://travis-ci.org/bbottema/simple-java-mail) [![Codacy](https://img.shields.io/codacy/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
+[![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE) [![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22) [![Javadocs](http://www.javadoc.io/badge/org.codemonkey.simplejavamail/simple-java-mail.svg?color=brightgreen)](http://www.javadoc.io/doc/org.codemonkey.simplejavamail/simple-java-mail) [![Build Status](https://img.shields.io/travis/bbottema/simple-java-mail.svg?style=flat)](https://travis-ci.org/bbottema/simple-java-mail) [![Codacy](https://img.shields.io/codacy/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
 
 # Simple Java Mail #
 
@@ -42,9 +42,9 @@ Simple Java Mail is available in Maven Central:
 
 ```
 <dependency>
-    <groupId>org.codemonkey.simplejavamail</groupId>
+    <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>3.1.1</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
