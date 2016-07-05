@@ -204,13 +204,23 @@ public final class ConfigLoader {
 		filePropertiesLeft.putAll(fileProperties);
 		final Map<Property, Object> resolvedProps = new HashMap<>();
 		for (final Property prop : Property.values()) {
+			if (System.getProperty(prop.key) != null) {
+				System.out.println(prop.key + ": " + System.getProperty(prop.key));
+			}
 			final Object asSystemProperty = parsePropertyValue(System.getProperty(prop.key));
 			if (asSystemProperty != null) {
 				resolvedProps.put(prop, asSystemProperty);
+				filePropertiesLeft.remove(prop.key);
 			} else {
-				final String rawValue = (String) filePropertiesLeft.remove(prop.key);
-				if (rawValue != null) {
-					resolvedProps.put(prop, parsePropertyValue(rawValue));
+				final Object asEnvProperty = parsePropertyValue(System.getenv().get(prop.key));
+				if (asEnvProperty != null) {
+					resolvedProps.put(prop, asEnvProperty);
+					filePropertiesLeft.remove(prop.key);
+				} else {
+					final String rawValue = (String) filePropertiesLeft.remove(prop.key);
+					if (rawValue != null) {
+						resolvedProps.put(prop, parsePropertyValue(rawValue));
+					}
 				}
 			}
 		}

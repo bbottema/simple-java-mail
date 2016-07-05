@@ -2,8 +2,8 @@ package org.simplejavamail.internal.util;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.util.ConfigLoader.Property;
+import org.simplejavamail.mailer.config.TransportStrategy;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
@@ -12,14 +12,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_SSL;
 import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
+import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_SSL;
 
 public class ConfigLoaderTest {
 
 	@Before
 	public void restoreOriginalStaticProperties() {
 		ConfigLoader.loadProperties("simplejavamail.properties", false);
+		System.getProperties().clear();
 	}
 
 	@Test
@@ -45,6 +46,25 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("preconfiguredValue");
 		assertThat(ConfigLoader.valueOrProperty(null, SMTP_HOST, "backup")).isEqualTo("backup");
 		assertThat(ConfigLoader.valueOrProperty(null, SMTP_HOST, null)).isNull();
+	}
+
+	@Test
+	public void overridefromSystemVariables()
+			throws Exception {
+		Map<Property, Object> properties = new HashMap<>();
+		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
+
+		assertThat(ConfigLoader.valueOrProperty("value", PROXY_USERNAME, "backup")).isEqualTo("value");
+		assertThat(ConfigLoader.valueOrProperty(null, PROXY_USERNAME, "backup")).isEqualTo("username proxy"); // from config file
+		// cannot be tested:
+		//		System.getenv().put("simplejavamail.proxy.username", "override1");
+		//		restoreOriginalStaticProperties();
+		//		assertThat(ConfigLoader.valueOrProperty(null, PROXY_USERNAME, "backup")).isEqualTo("override1");
+		System.out.println("simplejavamail.proxy.username" + ": " + System.getProperty("simplejavamail.proxy.username"));
+		System.setProperty("simplejavamail.proxy.username", "override2");
+		System.out.println("simplejavamail.proxy.username" + ": " + System.getProperty("simplejavamail.proxy.username"));
+		restoreOriginalStaticProperties();
+		assertThat(ConfigLoader.valueOrProperty(null, PROXY_USERNAME, "backup")).isEqualTo("override2");
 	}
 
 	@Test
