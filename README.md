@@ -44,11 +44,17 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.0.0</version>
+    <version>4.1.0</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v4.10.0
+
+- [#48](https://github.com/bbottema/simple-java-mail/issues/48): Added programmatic support trusting hosts for SSL connections
+- [#47](https://github.com/bbottema/simple-java-mail/issues/47): Honor given names, deduce extension from datasource name, and more robust support for parsing mimemessages
+
 
 v4.0.0
 

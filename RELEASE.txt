@@ -3,10 +3,16 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.0.0</version>
+    <version>4.1.0</version>
 </dependency>
 
 RELEASE NOTES Java Simple Mail
+
+v4.1.0
+
+- #48: Added programmatic support trusting hosts for SSL connections
+- #47: Honor given names, deduce extension from datasource name, and more robust support for parsing mimemessages
+
 
 v4.0.0
 
