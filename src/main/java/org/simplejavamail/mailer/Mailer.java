@@ -250,7 +250,7 @@ public class Mailer {
 	}
 
 	/**
-	 * Actually sets {@link Session#setDebug(boolean)} so that it generates debug information. To get more information out of the underlying JavaMail
+	 * Calls {@link Session#setDebug(boolean)} so that it generates debug information. To get more information out of the underlying JavaMail
 	 * framework or out of Simple Java Mail, increase logging config of your chosen logging framework (examples <a
 	 * href="http://www.simplejavamail.org/#/proxy">here</a>).
 	 *
@@ -259,6 +259,25 @@ public class Mailer {
 	 */
 	public void setDebug(final boolean debug) {
 		mailSender.setDebug(debug);
+	}
+
+	/**
+	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property "mail.smtp.ssl.trust" is set to "*".
+	 * <p>
+	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
+	 */
+	public void trustAllSSLHosts(boolean trustAllHosts) {
+		mailSender.trustAllHosts(trustAllHosts);
+	}
+
+	/**
+	 * Configures the current session to white list all provided hosts and don't validate SSL keys for them. The property "mail.smtp.ssl.trust" is set
+	 * to a comma separated list.
+	 * <p>
+	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
+	 */
+	public void trustSSLHosts(String... hosts) {
+		mailSender.trustHosts(hosts);
 	}
 
 	/**

@@ -247,6 +247,35 @@ public class MailSender {
 	}
 
 	/**
+	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property "mail.smtp.ssl.trust" is set to "*".
+	 * <p>
+	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
+	 */
+	public void trustAllHosts(boolean trustAllHosts) {
+		session.getProperties().remove("mail.smtp.ssl.trust");
+		if (trustAllHosts) {
+			session.getProperties().setProperty("mail.smtp.ssl.trust", "*");
+		}
+	}
+
+	/**
+	 * Configures the current session to white list all provided hosts and don't validate SSL keys for them. The property "mail.smtp.ssl.trust" is set
+	 * to a comma separated list.
+	 * <p>
+	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
+	 */
+	public void trustHosts(String... hosts) {
+		trustAllHosts(false);
+		if (hosts.length > 0) {
+			StringBuilder builder = new StringBuilder(hosts[0]);
+			for (int i = 1; i < hosts.length; i++) {
+				builder.append(",").append(hosts[i]);
+			}
+			session.getProperties().setProperty("mail.smtp.ssl.trust", builder.toString());
+		}
+	}
+
+	/**
 	 * @param properties Properties which will be added to the current {@link Session} instance.
 	 */
 	public void applyProperties(final Properties properties) {
@@ -267,4 +296,5 @@ public class MailSender {
 	public synchronized void setThreadPoolSize(int threadPoolSize) {
 		this.threadPoolSize = threadPoolSize;
 	}
+
 }
