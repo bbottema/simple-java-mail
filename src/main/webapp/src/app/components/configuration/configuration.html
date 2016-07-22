@@ -109,8 +109,21 @@ Proxyconfig proxyConfig = new ProxyConfig(...);
 proxyConfig.setProxyBridgePort(1081); // is always localhost
 </code></pre>
 <pre><code>
-// change maximum number of threads when sending asynchronously
-mailer.setThreadPoolSize(20);
+// set custom properties
+Properties props = new Properties();
+props.setProperty("mail.smtp.sendpartial", true);
+mailer.applyProperties(props);
+  
+// or:
+mailer.getSession().getProperties().setProperty("mail.smtp.sendpartial", true);
+</code></pre>
+<pre><code>
+// trust all hosts for SSL connections, don't validate keys
+mailer.trustAllSSLHosts(true)
+</code></pre>
+<pre><code>
+// white list hosts for SSL connections, don't validate keys for these
+mailer.trustSSLHosts("a", "b", "c", ...);
 </code></pre>
     </div>
   </section>
