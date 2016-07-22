@@ -19,8 +19,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
 
 import static java.lang.String.format;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
  * Helper class that deals with javax.mail RFC MimeMessage stuff, as well as DKIM signing.
@@ -202,17 +204,46 @@ public final class MimeMessageHelper {
 	private static BodyPart getBodyPartFromDatasource(final AttachmentResource attachmentResource, final String dispositionType)
 			throws MessagingException {
 		final BodyPart attachmentPart = new MimeBodyPart();
-		final DataSource dataSource = attachmentResource.getDataSource();
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
-		final String resourceName = attachmentResource.getName();
-		final boolean dataSourceNameProvided = dataSource.getName() != null && !dataSource.getName().isEmpty();
-		final String fileName = dataSourceNameProvided ? dataSource.getName() : resourceName;
+		String resourceName = determineResourceName(attachmentResource, false);
+		String fileName = determineResourceName(attachmentResource, true);
 		attachmentPart.setDataHandler(new DataHandler(attachmentResource.getDataSource()));
 		attachmentPart.setFileName(fileName);
-		attachmentPart.setHeader("Content-Type", dataSource.getContentType() + "; filename=" + fileName + "; name=" + fileName);
+		String contentType = attachmentResource.getDataSource().getContentType();
+		attachmentPart.setHeader("Content-Type", contentType + "; filename=" + fileName + "; name=" + resourceName);
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
 		attachmentPart.setDisposition(dispositionType + "; size=0");
 		return attachmentPart;
+	}
+
+	/**
+	 * Determines the right resource name and optionally attaches the correct extension to the name.
+	 */
+	static String determineResourceName(AttachmentResource attachmentResource, boolean includeExtension) {
+		final String datasourceName = attachmentResource.getDataSource().getName();
+
+		String resourceName;
+
+		if (!valueNullOrEmpty(attachmentResource.getName())) {
+			resourceName = attachmentResource.getName();
+		} else if (!valueNullOrEmpty(datasourceName)) {
+			resourceName = datasourceName;
+		} else {
+			resourceName = "resource" + UUID.randomUUID();
+		}
+		if (includeExtension && !valueNullOrEmpty(datasourceName)) {
+			String possibleFilename = datasourceName;
+			if (possibleFilename.contains(".")) {
+				String extension = possibleFilename.substring(possibleFilename.lastIndexOf("."), possibleFilename.length());
+				if (!resourceName.endsWith(extension)) {
+					resourceName += extension;
+				}
+			}
+		} else if (!includeExtension && resourceName.contains(".") && resourceName.equals(datasourceName)) {
+			String extension = resourceName.substring(resourceName.lastIndexOf("."), resourceName.length());
+			resourceName = resourceName.replace(extension, "");
+		}
+		return resourceName;
 	}
 
 	/**

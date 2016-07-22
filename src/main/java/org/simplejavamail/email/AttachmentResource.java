@@ -3,8 +3,8 @@ package org.simplejavamail.email;
 import javax.activation.DataSource;
 
 /**
- * A named immutable email attachment information object. The name can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;). Contains
- * a {@link DataSource} that is compatible with the javax.mail API.
+ * A named immutable email attachment information object. The name can be a simple name, a filename or a named embedded image (eg.
+ * &lt;cid:footer&gt;). Contains a {@link DataSource} that is compatible with the javax.mail API.
  *
  * @author Benny Bottema
  * @see DataSource
@@ -24,8 +24,9 @@ public class AttachmentResource {
 	/**
 	 * Constructor; initializes the attachment resource with a name and data.
 	 *
-	 * @param name       The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;)
-	 * @param dataSource The attachment data.
+	 * @param name       The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;). Leave
+	 *                   <code>null</code> to fall back on {@link DataSource#getName()}.
+	 * @param dataSource The attachment data. If no name was provided, the name of this datasource is used if provided.
 	 * @see DataSource
 	 */
 	public AttachmentResource(final String name, final DataSource dataSource) {
