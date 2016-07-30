@@ -3,10 +3,15 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.1</version>
 </dependency>
 
 RELEASE NOTES Java Simple Mail
+
+v4.1.1
+
+- #50: bug fix for manual naming datasources
+
 
 v4.1.0
 

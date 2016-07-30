@@ -44,11 +44,16 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v4.1.1
+
+- [#50](https://github.com/bbottema/simple-java-mail/issues/50): bug fix for manual naming datasources
+
 
 v4.1.0
 
