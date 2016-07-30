@@ -1,4 +1,4 @@
-package org.simplejavamail.mailer.internal.datasource;
+package org.simplejavamail.mailer.internal.mailsender;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -30,22 +30,8 @@ public class NamedDataSourceTest {
     }
 
     @Test
-    public void originalNameWillWork() throws Exception {
-        DataSource testDataSource = new NamedDataSource(dataSource);
-        assertThat(testDataSource.getName()).isEqualTo("testName");
-        verify(dataSource).getName();
-    }
-
-    @Test
     public void inputStreamWillBeTheSame1() throws Exception {
         DataSource testDataSource = new NamedDataSource("newName", dataSource);
-        testDataSource.getInputStream();
-        verify(dataSource).getInputStream();
-    }
-
-    @Test
-    public void inputStreamWillBeTheSame2() throws Exception {
-        DataSource testDataSource = new NamedDataSource(dataSource);
         testDataSource.getInputStream();
         verify(dataSource).getInputStream();
     }
@@ -58,24 +44,9 @@ public class NamedDataSourceTest {
     }
 
     @Test
-    public void outputStreamWillBeTheSame2() throws Exception {
-        DataSource testDataSource = new NamedDataSource(dataSource);
-        testDataSource.getOutputStream();
-        verify(dataSource).getOutputStream();
-    }
-
-    @Test
     public void contentTypeStreamWillBeTheSame1() throws Exception {
         DataSource testDataSource = new NamedDataSource("newName", dataSource);
         testDataSource.getContentType();
         verify(dataSource).getContentType();
     }
-
-    @Test
-    public void contentTypeStreamWillBeTheSame2() throws Exception {
-        DataSource testDataSource = new NamedDataSource(dataSource);
-        testDataSource.getContentType();
-        verify(dataSource).getContentType();
-    }
-
 }

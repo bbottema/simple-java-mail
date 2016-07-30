@@ -7,7 +7,6 @@ import net.markenwerk.utils.mail.dkim.SigningAlgorithm;
 import org.simplejavamail.email.AttachmentResource;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
-import org.simplejavamail.mailer.internal.datasource.NamedDataSource;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
