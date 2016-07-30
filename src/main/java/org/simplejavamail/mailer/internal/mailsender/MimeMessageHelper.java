@@ -7,6 +7,7 @@ import net.markenwerk.utils.mail.dkim.SigningAlgorithm;
 import org.simplejavamail.email.AttachmentResource;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
+import org.simplejavamail.mailer.internal.datasource.NamedDataSource;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -29,14 +30,14 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  */
 public final class MimeMessageHelper {
 
-	private MimeMessageHelper() {
-
-	}
-
 	/**
 	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@link StandardCharsets#UTF_8}).
 	 */
 	private static final String CHARACTER_ENCODING = StandardCharsets.UTF_8.name();
+
+	private MimeMessageHelper() {
+
+	}
 
 	/**
 	 * Creates a new {@link MimeMessage} instance coupled to a specific {@link Session} instance and prepares it in the email structure, so that it
@@ -207,7 +208,7 @@ public final class MimeMessageHelper {
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
 		String resourceName = determineResourceName(attachmentResource, false);
 		String fileName = determineResourceName(attachmentResource, true);
-		attachmentPart.setDataHandler(new DataHandler(attachmentResource.getDataSource()));
+		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(fileName, attachmentResource.getDataSource())));
 		attachmentPart.setFileName(fileName);
 		String contentType = attachmentResource.getDataSource().getContentType();
 		attachmentPart.setHeader("Content-Type", contentType + "; filename=" + fileName + "; name=" + resourceName);
