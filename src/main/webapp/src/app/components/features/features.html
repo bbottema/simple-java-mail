@@ -1,21 +1,21 @@
 <div class="content">
-
+  
   <h1>Simple Java Mail Features</h1>
-
+  
   <section class="introduction">
     <p class="wide">
       Creating and sending emails is very simple with Simple Java Mail; you don't need to know about the mailing RFC, MimeMessage or any other low
       level <code class="inline">javax.mail</code> API. No anonymous inner classes needed and no <a
       href="http://docs.spring.io/spring/docs/current/spring-framework-reference/html/mail.html">large frameworks</a> needed nor XML.
     </p>
-
+    
     <p class="wide">
       On top of that, Simple Java Mail will do some basic validation checks so that your email is always populated with enough data. It even verifies
       email addresses against <a href="https://tools.ietf.org/html/rfc2822">RFC-2822</a> using the only complete <a
       href="https://github.com/bbottema/email-rfc2822-validator">rfc2822 validator in java</a> in the world.
     </p>
   </section>
-
+  
   <section class="toc">
     <ul>
       <li><a simplePageScroll href="#section-basic-usage">Basic usage</a></li>
@@ -34,17 +34,17 @@
       <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
     </ul>
   </section>
-
+  
   <section class="roadmap">
     <h2>Roadmap</h2>
-    <ul>
-      <li>Asynchronous (threaded) mailing for batches</li>
-    </ul>
+    <p>Currently everything we can think of is included!</p>
+    <p>Got a suggestion? Please post it in the <a
+      href="https://github.com/bbottema/simple-java-mail/issues"><strong>issue tracker</strong></a>.</p>
   </section>
-
+  
   <a href="#section-basic-usage" id="section-basic-usage" class="section-link h2">&sect;</a>
   <h2>Basic usage</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -56,7 +56,7 @@
         A Mailer instance is reusable.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Email email = new Email();
 
@@ -70,18 +70,18 @@ new Mailer("server", "25", "username", "password").sendMail(email);
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-builder-api" id="section-builder-api" class="section-link h3">&sect;</a>
   <h3>Using the fluent API with the Builder pattern</h3>
-
+  
   <section>
     <div class="view">
       <p>
         The previous example becomes even more succinct by using the fluent API.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Email email = new EmailBuilder()
     .from("Michel Baker", "m.baker@mbakery.com")
@@ -95,18 +95,18 @@ new Mailer("server", "25", "username", "password").sendMail(email);
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-reusable-mailer" id="section-reusable-mailer" class="section-link h3">&sect;</a>
   <h3>Configure once, reuse many times</h3>
-
+  
   <section>
     <div class="view">
       <p>
         You can preconfigure a <code class="inline">Mailer</code> and use it many times.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Mailer inhouseMailer = new Mailer("server", "25", "username", "password");
 
@@ -114,7 +114,7 @@ inhouseMailer.sendMail(email);
 inhouseMailer.sendMail(anotherEmail);
 </code></pre>
       Or as preconfigured Spring bean:
-<pre><code>
+      <pre><code>
 &lt;bean id=&quot;inhouseMailer&quot; class=&quot;org.simplejavamail.mailer.Mailer&quot;&gt;
    &lt;constructor-arg value=&quot;server&quot; /&gt;
    &lt;constructor-arg value=&quot;25&quot; /&gt;
@@ -124,11 +124,11 @@ inhouseMailer.sendMail(anotherEmail);
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-sending-asynchronously" id="section-sending-asynchronously" class="section-link h3">&sect;</a>
   <h3>Asynchronous parallel batch sending</h3>
-
+  
   <section>
     <div class="view">
       <p>
@@ -142,7 +142,7 @@ inhouseMailer.sendMail(anotherEmail);
         Depending on the SMTP server (and proxy server if used) this can greatly influence how fast emails are sent.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>mailer.sendMail(email, true);
 </code></pre>
@@ -150,18 +150,18 @@ inhouseMailer.sendMail(anotherEmail);
          on how to set the thread pool size default.</p>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-custom-session" id="section-custom-session" class="section-link h2">&sect;</a>
   <h2>Sending with your own Session instance</h2>
-
+  
   <section>
     <div class="view">
       <p>
         If you prefer to use your own preconfigured <code class="inline">Session</code> instance and still benefit from Simple Java Mail, you can!
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Email email = new Email();
 ...
@@ -170,18 +170,18 @@ new Mailer(yourSession).sendMail(email);
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-ssl-tls" id="section-ssl-tls" class="section-link h2">&sect;</a>
   <h2>Sending with SSL and TLS</h2>
-
+  
   <section>
     <div class="view">
       <p>
         Activating SSL or TLS is super easy. Just use the appropriate <code class="inline">TransportStrategy</code> enum.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Email email = new Email();
 
@@ -191,11 +191,11 @@ mailer.sendMail(email, TransportStrategy.SMTP_TLS);
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-gmail" id="section-gmail" class="section-link h3">&sect;</a>
   <h3>SSL and TLS with Google mail</h3>
-
+  
   <section>
     <div class="view">
       <p>
@@ -208,7 +208,7 @@ mailer.sendMail(email, TransportStrategy.SMTP_TLS);
         from your Google account.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>new Mailer("smtp.gmail.com", 25, "your user", "your password", TransportStrategy.SMTP_TLS).sendMail(email);
 new Mailer("smtp.gmail.com", 587, "your user", "your password", TransportStrategy.SMTP_TLS).sendMail(email);
@@ -216,11 +216,11 @@ new Mailer("smtp.gmail.com", 465, "your user", "your password", TransportStrateg
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-attachments" id="section-attachments" class="section-link h2">&sect;</a>
   <h2>Adding attachments</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -228,7 +228,7 @@ new Mailer("smtp.gmail.com", 465, "your user", "your password", TransportStrateg
         and <code class="inline">DataSource</code> objects.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Email email = new Email();
 
@@ -241,18 +241,18 @@ email.addAttachment("invitation.pdf", new FileDataSource("invitation_v8.3.pdf"))
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-embedding" id="section-embedding" class="section-link h2">&sect;</a>
   <h2>Embedding images</h2>
-
+  
   <section>
     <div class="view">
       <p>
         Embedding images is simple, but you have to add the placeholders in the HTML yourself.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Email email = new Email();
 
@@ -267,11 +267,11 @@ email.addEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png")
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-custom-headers" id="section-custom-headers" class="section-link h2">&sect;</a>
   <h2>Setting custom headers</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -279,7 +279,7 @@ email.addEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png")
         a proxy or monitoring setup in between mail servers. Whatever the case, adding headers is easy.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Email email = new Email();
 
@@ -290,11 +290,11 @@ email.addHeader("X-my-custom-header", "foo");
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-custom-properties" id="section-custom-properties" class="section-link h2">&sect;</a>
   <h2>Setting custom properties on the internal Session</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -302,7 +302,7 @@ email.addHeader("X-my-custom-header", "foo");
         <code class="inline">javax.mail</code>, that too is very easy.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Properties props = new Properties();
 props.setProperty("mail.smtp.timeout", 30 * 1000);
@@ -313,11 +313,11 @@ mailer.applyProperties(props);
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-session-access" id="section-session-access" class="section-link h2">&sect;</a>
   <h2>Direct access to the internal Session</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -326,7 +326,7 @@ mailer.applyProperties(props);
                                                                                                        this need</strong>.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Mailer mailer = new Mailer();
 
@@ -335,11 +335,11 @@ Session session = mailer.getSession();
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-dkim" id="section-dkim" class="section-link h2">&sect;</a>
   <h2>Signing emails with DKIM</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -348,7 +348,7 @@ Session session = mailer.getSession();
         perform the DNS DKIM record check on the given domain.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Email signedEmail = new Email();
 
@@ -361,11 +361,11 @@ new Mailer().sendMail(signedEmail);
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-email-validation" id="section-email-validation" class="section-link h2">&sect;</a>
   <h2>Validating Email Addresses</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -374,7 +374,7 @@ new Mailer().sendMail(signedEmail);
         href="https://github.com/bbottema/email-rfc2822-validator">email-rfc2822-validator</a> in the library.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>EmailAddressValidator.isValid("your_address@domain.com",
    EmailAddressCriteria.RFC_COMPLIANT);
@@ -385,18 +385,18 @@ EmailAddressValidator.isValid("your_address@domain.com",
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-generate-mimemessage" id="section-generate-mimemessage" class="section-link h2">&sect;</a>
   <h2>Generating a MimeMessage from an Email</h2>
-
+  
   <section>
     <div class="view">
       <p>
         If for some reason you need a MimeMessage, you can still benefit from the easy API Simple Java Mail offers. Behold.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Email email = new Email()
 // populate email, the builder is great for this
@@ -408,11 +408,11 @@ MimeMessage message = Mailer.produceMimeMessage(email, yourSession);
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-parse-mimemessage" id="section-parse-mimemessage" class="section-link h2">&sect;</a>
   <h2>Generating an Email from a MimeMessage</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -420,7 +420,7 @@ MimeMessage message = Mailer.produceMimeMessage(email, yourSession);
         intact.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>MimeMessage mimeMessage = ...;
 Email email = new Email(mimeMessage);
@@ -429,11 +429,11 @@ new Mailer().sendMail(email);
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-proxy" id="section-proxy" class="section-link h2">&sect;</a>
   <h2>Send using a proxy</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -452,7 +452,7 @@ new Mailer().sendMail(email);
         This temporary server is referred to as the <strong>Proxy Bridging Server</strong>.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>// anonymous proxy
 new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080));

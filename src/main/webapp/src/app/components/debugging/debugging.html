@@ -1,7 +1,7 @@
 <div class="content">
-
+  
   <h1>Logging & Debugging</h1>
-
+  
   <section class="toc">
     <ul>
       <li><a simplePageScroll href="#section-debug-logging">Enable javax.mail debug logging</a></li>
@@ -12,11 +12,11 @@
       <li><a simplePageScroll href="#section-logback" class="indent">Example with logback</a></li>
     </ul>
   </section>
-
-
+  
+  
   <a href="#section-debug-logging" id="section-debug-logging" class="section-link h2">&sect;</a>
   <h2>Enable javax.mail debug logging</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -24,7 +24,7 @@
         the internal Session instance.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code>Mailer mailer = new Mailer(...);
 mailer.setDebug(true);
@@ -38,11 +38,11 @@ Mailer mailer = new Mailer(yourSession);
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-mailexception" id="section-mailexception" class="section-link h2">&sect;</a>
   <h2>Catching exceptions</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -55,22 +55,22 @@ Mailer mailer = new Mailer(yourSession);
         <li>3. converting from MimeMessage to Email</li>
       </ol>
     </div>
-
+    
     <div class="side">
 <pre><code>Email email = new Email();
 
 try {
    new Mailer().sendMail(email);
 } catch (MailException e) {
-   // handle the exception (but it is already logged through SLF4J)
+   // handle the exception
 }
 </code></pre>
     </div>
   </section>
-
+  
   <a href="#section-logging" id="section-logging" class="section-link h2">&sect;</a>
   <h2>Logging output</h2>
-
+  
   <section>
     <div class="view">
       <p>
@@ -79,14 +79,21 @@ try {
                                                                                                                                   slf4j with
                                                                                                                                   log4j2</a>.
       </p>
-      <p>
-        There are three parts of Simple Java Mail that may produce logging: "org.simplejavamail", "socks5bridge" and
-        "org.simplejavamail.mailer.internal.socks". The latter two are for the proxy bridge that is used for <a [routerLink]="['/proxy']"
-        simplePageScroll href="#navigation">authenticated proxy connections </a>.
-      </p>
+      <div>
+        There are three parts of Simple Java Mail that may produce logging:
+        <ul class="indent">
+          <li>"org.simplejavamail"</li>
+          <li>"socks5bridge"</li>
+          <li>"org.simplejavamail.mailer.internal.socks"</li>
+        </ul>
+        <p>The latter two are for the proxy bridge that is used for <a [routerLink]="['/proxy']" simplePageScroll href="#navigation">authenticated
+                                                                                                                                     proxy
+                                                                                                                                     connections</a>.
+        </p>
+      </div>
       <p>
         If you wish to know where and how the properties are loaded, you can increase logging for "org.simplejavamail.internal.util.ConfigLoader".
-        This will tell you which properties are loaded by API and which from config file and which were properties are without values.
+        This will tell you which properties are loaded by API and which from config file and which properties are without value.
       </p>
       <p>
         When using maven, Simple Java Mail provides some default XML configuration for log4j2, but you can easily switch to something else. Below are
@@ -94,10 +101,10 @@ try {
       </p>
     </div>
   </section>
-
+  
   <a href="#section-log4j12" id="section-log4j12" class="section-link h3">&sect;</a>
   <h3>Example with log4j12</h3>
-
+  
   <section>
     <div class="view">
       <p>
@@ -105,7 +112,7 @@ try {
         slf4j-to-log4j impl included on the classpath as well as log4j12 itself and the log4j.xml with the config.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code class="language-markup small">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;!DOCTYPE log4j:configuration SYSTEM &quot;log4j.dtd&quot;&gt;
@@ -139,10 +146,10 @@ try {
 </code></pre>
     </div>
   </section>
-
+  
   <a href="#section-log4j2" id="section-log4j2" class="section-link h3">&sect;</a>
   <h3>Example with log4j2</h3>
-
+  
   <section>
     <div class="view">
       <p>
@@ -150,7 +157,7 @@ try {
         included on the classpath as well as log4j2 itself and the log4j2.xml with the config.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code class="language-markup small">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;configuration status=&quot;OFF&quot;&gt;
@@ -178,10 +185,10 @@ try {
 </code></pre>
     </div>
   </section>
-
+  
   <a href="#section-logback" id="section-logback" class="section-link h3">&sect;</a>
   <h3>Example with logback</h3>
-
+  
   <section>
     <div class="view">
       <p>
@@ -189,7 +196,7 @@ try {
         classpath as well as logback-core and the logback.xml with the config.
       </p>
     </div>
-
+    
     <div class="side">
 <pre><code class="language-markup small">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;configuration&gt;
