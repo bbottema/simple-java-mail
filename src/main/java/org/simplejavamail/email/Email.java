@@ -210,7 +210,7 @@ public class Email {
 	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then
 	 * delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 	 *
-	 * @param name     The name of the image as being referred to from the message content body (eg. '&lt;cid:signature&gt;').
+	 * @param name     The name of the image as being referred to from the message content body (eg. 'signature').
 	 * @param data     The byte data of the image to be embedded.
 	 * @param mimetype The content type of the given data (eg. "image/gif" or "image/jpeg").
 	 * @see ByteArrayDataSource
@@ -225,7 +225,7 @@ public class Email {
 	/**
 	 * Overloaded method which sets an embedded image on account of name and {@link DataSource}.
 	 *
-	 * @param name      The name of the image as being referred to from the message content body (eg. '&lt;cid:embeddedimage&gt;').
+	 * @param name      The name of the image as being referred to from the message content body (eg. 'embeddedimage').
 	 * @param imagedata The image data.
 	 */
 	@SuppressWarnings("WeakerAccess")
