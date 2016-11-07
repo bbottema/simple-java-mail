@@ -8,7 +8,9 @@ import javax.mail.MessagingException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -73,6 +75,7 @@ public class Email {
 	 */
 	private boolean applyDKIMSignature = false;
 	private InputStream dkimPrivateKeyInputStream;
+	private File dkimPrivateKeyFile; // supported seperately, so we don't have to do resource management ourselves for the InputStream
 	private String signingDomain;
 	private String selector;
 
@@ -106,26 +109,14 @@ public class Email {
 	}
 
 	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
+	 * As {@link #signWithDomainKey(InputStream, String, String)}, but with a File reference that is later read as {@code InputStream}.
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public void signWithDomainKey(final File dkimPrivateKeyFile, final String signingDomain, final String selector) {
-		FileInputStream dkimPrivateKeyInputStream = null;
-		try {
-			dkimPrivateKeyInputStream = new FileInputStream(dkimPrivateKeyFile);
-			signWithDomainKey(dkimPrivateKeyInputStream, signingDomain, selector);
-		} catch (final FileNotFoundException e) {
-			throw new EmailException(format(EmailException.DKIM_ERROR_INVALID_FILE, dkimPrivateKeyFile), e);
-		} finally {
-			if (dkimPrivateKeyInputStream != null) {
-				try {
-					dkimPrivateKeyInputStream.close();
-				} catch (final IOException e) {
-					//noinspection ThrowFromFinallyBlock
-					throw new EmailException(format(EmailException.DKIM_ERROR_UNCLOSABLE_INPUTSTREAM, e.getMessage()), e);
-				}
-			}
-		}
+		this.applyDKIMSignature = true;
+		this.dkimPrivateKeyFile = dkimPrivateKeyFile;
+		this.signingDomain = signingDomain;
+		this.selector = selector;
 	}
 
 	/**
@@ -340,6 +331,10 @@ public class Email {
 
 	public InputStream getDkimPrivateKeyInputStream() {
 		return dkimPrivateKeyInputStream;
+	}
+
+	public File getDkimPrivateKeyFile() {
+		return dkimPrivateKeyFile;
 	}
 
 	public String getSigningDomain() {

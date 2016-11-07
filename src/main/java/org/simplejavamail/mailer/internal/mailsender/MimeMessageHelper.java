@@ -256,8 +256,16 @@ public final class MimeMessageHelper {
 	 */
 	public static MimeMessage signMessageWithDKIM(final MimeMessage message, final Email email) {
 		try {
-			final DkimSigner dkimSigner = new DkimSigner(email.getSigningDomain(), email.getSelector(),
-					email.getDkimPrivateKeyInputStream());
+			final DkimSigner dkimSigner;
+			if (email.getDkimPrivateKeyFile() != null) {
+				// InputStream is managed by Dkim library
+				dkimSigner = new DkimSigner(email.getSigningDomain(), email.getSelector(),
+						email.getDkimPrivateKeyFile());
+			} else {
+				// InputStream is managed by SimpleJavaMail user
+				dkimSigner = new DkimSigner(email.getSigningDomain(), email.getSelector(),
+						email.getDkimPrivateKeyInputStream());
+			}
 			dkimSigner.setIdentity(email.getFromRecipient().getAddress());
 			dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
 			dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
