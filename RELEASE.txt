@@ -3,10 +3,16 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.1.1</version>
+    <version>4.1.2</version>
 </dependency>
 
 RELEASE NOTES Java Simple Mail
+
+v4.1.2
+
+- #52: bug fix for windows / linux disparity when checking socket status
+- #56: bug fix for IOException when signing dkim with a File reference
+
 
 v4.1.1
 

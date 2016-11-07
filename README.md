@@ -44,11 +44,17 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.1.1</version>
+    <version>4.1.2</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v4.1.2
+
+- [#52](https://github.com/bbottema/simple-java-mail/issues/52): bug fix for windows / linux disparity when checking socket status
+- [#56](https://github.com/bbottema/simple-java-mail/issues/56): bug fix for IOException when signing dkim with a File reference
+
 
 v4.1.1
 
