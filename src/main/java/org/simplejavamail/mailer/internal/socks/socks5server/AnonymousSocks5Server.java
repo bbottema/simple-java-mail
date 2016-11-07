@@ -83,7 +83,7 @@ public class AnonymousSocks5Server implements Runnable {
 	}
 
 	private void checkIoException(final Exception e) {
-		if (e.getMessage().equals("socket closed")) {
+		if (e.getMessage().equalsIgnoreCase("socket closed")) {
 			LOGGER.debug("socket closed");
 		} else {
 			running = false;
