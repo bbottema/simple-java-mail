@@ -8,24 +8,24 @@ http://www.simplejavamail.org
 
 RELEASE NOTES Java Simple Mail
 
-v4.1.2
+v4.1.2 (07-Nov-2016)
 
 - #52: bug fix for windows / linux disparity when checking socket status
 - #56: bug fix for IOException when signing dkim with a File reference
 
 
-v4.1.1
+v4.1.1 (30-Jul-2016)
 
 - #50: bug fix for manual naming datasources
 
 
-v4.1.0
+v4.1.0 (22-Jul-2016)
 
 - #48: Added programmatic support trusting hosts for SSL connections
 - #47: Honor given names, deduce extension from datasource name, and more robust support for parsing mimemessages
 
 
-v4.0.0
+v4.0.0 (05-Jul-2016)
 
 - #41: added support for fast parallel batch processing
 - #42: **added support for config files**
@@ -34,30 +34,33 @@ v4.0.0
 - #38: added support for anonymous proxy
 - #38: **added support for authenticated proxy**
 
-NOTE: All packages have been renamed to "org.simplejavamail.(..)".
+NOTE: All packages have been renamed to "org.simplejavamail.(..)"
+NOTE: Switched to Java 7
 
 
-v3.1.1
+v3.1.1 (11-May-2016)
 
 Major feature: DKIM support!
 
 - #36: Added proper toString and equals methods for the Email classes
 - #33: Added support for DKIM domain key signing
 
+NOTE: this is the last release still using Java 6. Next release will be using Java 7.
 
-v3.0.2
+
+v3.0.2 (07-May-2016)
 
 - #35: added proper .equals() and .toString() methods
 - #34: Fixed bug when disposition is missing (assume it is an attachment)
 - #00: added findbugs support internally
 
 
-v3.0.1
+v3.0.1 (29-Feb-2016)
 
 - #31: Fixed EmailAddressCriteria.DEFAULT and clarified Javadoc
   
   
-v3.0.0
+v3.0.0 (26-Feb-2016)
 
 - #30: Improved the demonstration class to include attachments and embedded images
 - #29: The package has been restructured for future maintenance, breaking backwards compatibility
@@ -65,27 +68,27 @@ v3.0.0
 - #22: Added conversion to and from MimeMessage. You can now consume and produce MimeMessage objects with simple-java-mail
 
 
-v2.5.1
+v2.5.1 (19-Jan-2016)
 
 - #25: Added finally clausule that will always close socket properly in case of an exception
 
 
-v2.5
+v2.5 (19-Jan-2016)
 
 - #24: Updated dependencies SLF4J to 1.7.13 and switched to the updated javax mail package com.sun.mail:javax.mail 1.5.5
 
 
-v2.4
+v2.4 (12-Aug-2015)
 
 - #21: Builder API uses CC and BCC recipient types incorrectly
 
 
-v2.3
+v2.3 (21-Jul-2015)
 
 - #19: supporting custom Session Properties now and emergency access to internal Session object.
 
 
-v2.2
+v2.2 (09-May-2015)
 
 - #3: turned off email regex validation by default, with the option to turn it back on
 - #7: fixed NullPointerException when using your own Session instance
@@ -94,23 +97,23 @@ v2.2
 - #17: Added fluent interface for building emails
 
 
-v2.1
+v2.1 (09-Aug-2012)
 
 - fixed character encoding for reply-to, from, to, body text and headers (to UTF-8)
 - fixed bug where Recipient was not public resulting in uncompilable code when calling email.getRecipients()
 
 
-v2.0
+v2.0 (20-Aug-2011)
 
 - added support for open headers (such as X-Priority)
 
 
-v1.9.1
+v1.9.1 (08-Aug-2011)
 
 - updated for Maven support (library hasn't changed, but 1.9 was released incorrectly to Maven Central)
 
 
-v1.9
+v1.9 (6-Aug-2011)
 
 - added support for JavaMail's reply-to address
 - made port optional as to support port defaulting based on protocol
@@ -124,7 +127,7 @@ v1.8
 Added support for TLS (tested with gmail)
 
 
-v1.7
+v1.7 (22-Mar-2011)
 
 Added support for SSL! (tested with gmail)
 
@@ -141,3 +144,11 @@ Completed migration to Java Simple Mail project.
 - updated TestMail demonstration class for clarification
 - updated readme.txt for test run instructions
 - included log4j.properties
+
+
+v1.4 (15-Jan-2011)
+
+
+vX.X (26-Apr-2009)
+
+- Initial upload to Google Code.
