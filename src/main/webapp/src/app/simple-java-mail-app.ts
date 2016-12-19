@@ -1,41 +1,23 @@
 declare var Prism:any;
 
 import {Component, ViewEncapsulation, AfterViewChecked, ElementRef} from '@angular/core';
-import {Router, Routes, ROUTER_DIRECTIVES} from '@angular/router';
-import {SimplePageScroll} from 'ng2-simple-page-scroll';
-
-import {About} from './components/about/about';
-import {Features} from './components/features/features';
-import {Configuration} from './components/configuration/configuration';
-import {Debugging} from './components/debugging/debugging';
-import {RfcCompliant} from './components/rfc/rfc';
-import {Download} from './components/download/download';
-import {Contact} from './components/contact/contact';
+import {Router} from '@angular/router';
+import {PageScrollConfig} from 'ng2-page-scroll';
 
 require('./lib/prism.ts');
 
 @Component({
   selector: 'simple-java-mail-app',
-  directives: [ROUTER_DIRECTIVES, SimplePageScroll],
-  template: require('app/simple-java-mail-app.html'),
-  styles: [require('app/simple-java-mail-app.less')],
+  template: require('./simple-java-mail-app.html'),
+  styles: [require('./simple-java-mail-app.less')],
   encapsulation: ViewEncapsulation.None
 })
 
-@Routes([
-  {path: '/about', component: About},
-  {path: '/features', component: Features},
-  {path: '/configuration', component: Configuration},
-  {path: '/debugging', component: Debugging},
-  {path: '/rfc', component: RfcCompliant},
-  {path: '/download', component: Download},
-  {path: '/contact', component: Contact},
-  {path: '', component: About}
-])
-
 export class SimpleJavaMailApp implements AfterViewChecked {
-  // router is used by the template
+  // router is used by the template (#navigation)
   constructor(private router:Router, private el:ElementRef) {
+    PageScrollConfig.defaultScrollOffset = 0;
+    PageScrollConfig.defaultDuration = 0;
   }
 
   // scrollToTop is used by the template

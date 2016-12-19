@@ -17,9 +17,9 @@
 
   <section class="toc">
     <ul>
-      <li><a simplePageScroll href="#section-programmatic-api">Programmatic API</a></li>
-      <li><a simplePageScroll href="#section-config-properties">Properties files</a></li>
-      <li><a simplePageScroll href="#section-combine-config">Combining both for multiple environments</a></li>
+      <li><a pageScroll href="#section-programmatic-api">Programmatic API</a></li>
+      <li><a pageScroll href="#section-config-properties">Properties files</a></li>
+      <li><a pageScroll href="#section-combine-config">Combining both for multiple environments</a></li>
     </ul>
   </section>
 
@@ -255,15 +255,15 @@ ConfigLoader.loadProperties(new File(".../config/candystore/simplejavamail.prope
 </code></pre>
 <pre><code>
 // see if we need to do some specific override for some reason
-if (someSpecialCondition) {
+if (someSpecialCondition) {{ '{' }}
   ConfigLoader.loadProperties("special-override.properties", true);
-}
+{{ '}' }}
 </code></pre>
 <pre><code>
 // or maybe we want to ditch all defaults and trust someone else's config completely
-if (ditchOwnAndTrustOtherSource) {
+if (ditchOwnAndTrustOtherSource) {{ '{' }}
   ConfigLoader.loadProperties(someFileOrInputSource, false);
-}
+{{ '}' }}
 </code></pre>
 <pre><code>
 // maybe the config service has something?

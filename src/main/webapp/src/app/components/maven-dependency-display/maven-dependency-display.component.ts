@@ -1,11 +1,11 @@
 import {Component, OnInit, Input} from '@angular/core';
-import {MavenSearchService} from 'services/maven-search.service';
+import {MavenSearchService} from '../../services/maven-search.service';
 
 var sprintf:any = require("sprintf-js").sprintf;
 
 @Component({
   selector: 'maven-dependency-display',
-  template: require('app/components/maven-dependency-display/maven-dependency-display.component.html'),
+  template: require('./maven-dependency-display.component.html'),
   providers: [MavenSearchService]
 })
 

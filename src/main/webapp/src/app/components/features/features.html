@@ -18,20 +18,20 @@
   
   <section class="toc">
     <ul>
-      <li><a simplePageScroll href="#section-basic-usage">Basic usage</a></li>
-      <li><a simplePageScroll href="#section-custom-session">Sending with your own Session instance</a></li>
-      <li><a simplePageScroll href="#section-ssl-tls">Sending with SSL and TLS</a></li>
-      <li><a simplePageScroll href="#section-gmail" class="indent">SSL and TLS with Google mail</a></li>
-      <li><a simplePageScroll href="#section-attachments">Adding attachments</a></li>
-      <li><a simplePageScroll href="#section-embedding">Embedding images</a></li>
-      <li><a simplePageScroll href="#section-custom-headers">Setting custom headers</a></li>
-      <li><a simplePageScroll href="#section-custom-properties">Setting custom properties on the internal Session</a></li>
-      <li><a simplePageScroll href="#section-session-access">Direct access to the internal Session</a></li>
-      <li><a simplePageScroll href="#section-dkim">Signing emails with DKIM</a></li>
-      <li><a simplePageScroll href="#section-email-validation">Validating Email Addresses</a></li>
-      <li><a simplePageScroll href="#section-generate-mimemessage">Generating a MimeMessage from an Email</a></li>
-      <li><a simplePageScroll href="#section-parse-mimemessage">Generating an Email from a MimeMessage</a></li>
-      <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
+      <li><a pageScroll href="#section-basic-usage">Basic usage</a></li>
+      <li><a pageScroll href="#section-custom-session">Sending with your own Session instance</a></li>
+      <li><a pageScroll href="#section-ssl-tls">Sending with SSL and TLS</a></li>
+      <li><a pageScroll href="#section-gmail" class="indent">SSL and TLS with Google mail</a></li>
+      <li><a pageScroll href="#section-attachments">Adding attachments</a></li>
+      <li><a pageScroll href="#section-embedding">Embedding images</a></li>
+      <li><a pageScroll href="#section-custom-headers">Setting custom headers</a></li>
+      <li><a pageScroll href="#section-custom-properties">Setting custom properties on the internal Session</a></li>
+      <li><a pageScroll href="#section-session-access">Direct access to the internal Session</a></li>
+      <li><a pageScroll href="#section-dkim">Signing emails with DKIM</a></li>
+      <li><a pageScroll href="#section-email-validation">Validating Email Addresses</a></li>
+      <li><a pageScroll href="#section-generate-mimemessage">Generating a MimeMessage from an Email</a></li>
+      <li><a pageScroll href="#section-parse-mimemessage">Generating an Email from a MimeMessage</a></li>
+      <li><a pageScroll href="#section-proxy">Send using a proxy</a></li>
     </ul>
   </section>
   
@@ -49,7 +49,7 @@
     <div class="view">
       <p>
         Simply create an <code class="inline">Email</code>, populate it with your data, create a <code class="inline">Mailer</code> and send the Email
-        instance. The mailer can be <a simplePageScroll
+        instance. The mailer can be <a pageScroll
         href="#section-custom-session">created with your own <code class="inline">Session</code> instance as well</a>.
       </p>
       <p>
@@ -137,7 +137,7 @@ inhouseMailer.sendMail(anotherEmail);
       </p>
       <p>
         You can also sent anyschronously in parallel or batches, or simply send in a fire-and-forget way. If an authenticated proxy is used, the <a
-        simplePageScroll href="#section-proxy">proxy briding server</a> is kept alive until the last email has been sent.</p>
+        pageScroll href="#section-proxy">proxy briding server</a> is kept alive until the last email has been sent.</p>
       <p>
         Depending on the SMTP server (and proxy server if used) this can greatly influence how fast emails are sent.
       </p>
@@ -146,7 +146,7 @@ inhouseMailer.sendMail(anotherEmail);
     <div class="side">
 <pre><code>mailer.sendMail(email, true);
 </code></pre>
-      <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" simplePageScroll href="#section-other-settings">configuration section</a>
+      <p>Refer to the <a pageScroll [routerLink]="['/configuration']" pageScroll href="#section-other-settings">configuration section</a>
          on how to set the thread pool size default.</p>
     </div>
   </section>
@@ -460,7 +460,7 @@ new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080));
 // authenticated proxy
 new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username", "proxy password"));
 </code></pre>
-      <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" simplePageScroll href="#section-other-settings">configuration section</a>
+      <p>Refer to the <a pageScroll [routerLink]="['/configuration']" pageScroll href="#section-other-settings">configuration section</a>
          on how to set proxy server defaults and the port on which the proxy bridge runs.</p>
     </div>
   </section>

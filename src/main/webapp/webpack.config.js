@@ -1,6 +1,5 @@
 var webpack = require('webpack');
 var path = require('path');
-var glob = require('glob');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 
 var PROD = false;
@@ -8,19 +7,28 @@ var PROD = false;
 // Webpack Config
 var webpackConfig = {
   entry: {
-    'polyfills': './src/polyfills.ts',
+    'polyfills': './src/polyfills.browser.ts',
     'vendor': './src/vendor.ts',
     'external': './src/external.ts',
-    'app': './src/app.ts'
+    'app': './src/main.browser.ts'
   },
 
   output: {
-    path: './dist'
+    publicPath: '',
+    path: path.resolve(__dirname, './dist'),
   },
 
   plugins: (PROD ? [
-    new webpack.optimize.UglifyJsPlugin({compress: {warnings: false}})
+    new webpack.optimize.UglifyJsPlugin({
+      compress: {warnings: false},
+      sourceMap: true
+    })
   ] : []).concat([
+    new webpack.ContextReplacementPlugin(
+      // The (\\|\/) piece accounts for path separators in *nix and Windows
+      /angular(\\|\/)core(\\|\/)src(\\|\/)linker/,
+      path.resolve(__dirname, './src'), {}
+    ),
     new webpack.optimize.CommonsChunkPlugin({name: ['app', 'external', 'vendor', 'polyfills'], minChunks: Infinity}),
     new HtmlWebpackPlugin({
       template: 'src/index.html'
@@ -30,80 +38,58 @@ var webpackConfig = {
   module: {
     loaders: [
       // .ts files for TypeScript
-      {test: /\.ts$/, loader: 'awesome-typescript-loader'},
-      {test: /\.less$/, loader: 'raw!less'},
-      {test: /\.css$/, loader: 'style!css'},
-      {test: /\.(jpe?g|png|gif|svg)$/i, loader: 'url'},
-      {test: /\.html$/, loader: 'html?-minimize'}
+      {
+        test: /\.ts$/,
+        loaders: [
+          'awesome-typescript-loader',
+          'angular2-template-loader',
+          'angular2-router-loader'
+        ]
+      },
+      {test: /\.less$/, loader: 'raw-loader!less-loader'},
+      {test: /\.css$/, loader: 'style-loader!css-loader'},
+      {test: /\.(jpe?g|png|gif|svg)$/i, loader: 'url-loader'},
+      {test: /\.html$/, loader: 'html-loader?-minimize'}
     ]
-  },
-
-  resolve: {
-    alias: {
-      'services': path.resolve('src/app/services'),
-      'components': path.resolve('src/app/components')
-    }
   }
+
 };
 
 
 // Our Webpack Defaults
 var defaultConfig = {
   devtool: 'cheap-module-source-map',
-  cache: true,
-  debug: true,
+
   output: {
     filename: '[name].bundle.js',
     sourceMapFilename: '[name].map',
     chunkFilename: '[id].chunk.js'
   },
 
-  module: {
-    preLoaders: [
-      {
-        test: /\.js$/,
-        loader: 'source-map-loader',
-        exclude: [
-          // these packages have problems with their sourcemaps
-          path.join(__dirname, 'node_modules', 'rxjs'),
-          path.join(__dirname, 'node_modules', '@angular2-material'),
-          path.join(__dirname, 'node_modules', '@angular'),
-        ]
-      }
-    ],
-    noParse: [
-      path.join(__dirname, 'node_modules', 'zone.js', 'dist'),
-      path.join(__dirname, 'node_modules', 'angular2', 'bundles')
-    ]
-  },
-
   resolve: {
-    root: [path.join(__dirname, 'src')],
-    extensions: ['', '.ts', '.js', '.json', '.css', '.html', '.less'],
-    alias: {
-      'angular2/testing': path.join(__dirname, 'node_modules', '@angular', 'core', 'testing.js'),
-      '@angular/testing': path.join(__dirname, 'node_modules', '@angular', 'core', 'testing.js'),
-      'angular2/core': path.join(__dirname, 'node_modules', '@angular', 'core', 'index.js'),
-      'angular2/platform/browser': path.join(__dirname, 'node_modules', '@angular', 'platform-browser', 'index.js'),
-      'angular2/testing': path.join(__dirname, 'node_modules', '@angular', 'testing', 'index.js'),
-      'angular2/router': path.join(__dirname, 'node_modules', '@angular', 'router-deprecated', 'index.js'),
-      'angular2/http': path.join(__dirname, 'node_modules', '@angular', 'http', 'index.js'),
-      'angular2/http/testing': path.join(__dirname, 'node_modules', '@angular', 'http', 'testing.js')
-    }
+    extensions: ['.ts', '.js'],
+    modules: [ path.resolve(__dirname, 'node_modules') ]
   },
 
   devServer: {
     historyApiFallback: true,
-    watchOptions: {aggregateTimeout: 300, poll: 1000}
+    watchOptions: { aggregateTimeout: 300, poll: 1000 },
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+      "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization"
+    }
   },
 
   node: {
-    global: 1,
+    global: true,
     crypto: 'empty',
-    module: 0,
-    Buffer: 0,
-    clearImmediate: 0,
-    setImmediate: 0
+    __dirname: true,
+    __filename: true,
+    process: true,
+    Buffer: false,
+    clearImmediate: false,
+    setImmediate: false
   }
 };
 

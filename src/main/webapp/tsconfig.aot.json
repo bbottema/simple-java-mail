@@ -1,24 +1,24 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es5",
-    "outDir": "dist",
-    "rootDir": ".",
-    "sourceMap": true,
+    "declaration": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "module": "commonjs",
     "moduleResolution": "node",
+    "outDir": "dist",
+    "sourceMap": true,
+    "sourceRoot": "src",
+    "noEmitHelpers": true,
+    "target": "es5",
     "typeRoots": [
       "node_modules/@types"
     ],
     "lib": ["es6", "dom"]
   },
-  "exclude": [
-    "node_modules"
+  "include": [
+    "./src/**/*.module.ts",
+    "./src/*.d.ts"
   ],
-  "awesomeTypescriptLoaderOptions": {
-    "useWebpackText": true
-  },
   "angularCompilerOptions": {
     "debug": false
   },
