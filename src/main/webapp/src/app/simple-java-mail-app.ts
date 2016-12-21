@@ -2,7 +2,7 @@ declare var Prism:any;
 
 import {Component, ViewEncapsulation, AfterViewChecked, ElementRef} from '@angular/core';
 import {Router} from '@angular/router';
-import {PageScrollConfig} from 'ng2-page-scroll';
+import {SimplePageScrollConfig} from 'ng2-simple-page-scroll';
 
 require('./lib/prism.ts');
 
@@ -16,8 +16,7 @@ require('./lib/prism.ts');
 export class SimpleJavaMailApp implements AfterViewChecked {
   // router is used by the template (#navigation)
   constructor(private router:Router, private el:ElementRef) {
-    PageScrollConfig.defaultScrollOffset = 0;
-    PageScrollConfig.defaultDuration = 0;
+    SimplePageScrollConfig.defaultScrollOffset = 0;
   }
 
   // scrollToTop is used by the template

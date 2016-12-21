@@ -14,5 +14,5 @@ import '@angular/router';
 
 // For vendors for example jQuery, Lodash, angular2-jwt import them here
 
-import 'ng2-page-scroll';
+import 'ng2-simple-page-scroll';
 import 'sprintf-js';

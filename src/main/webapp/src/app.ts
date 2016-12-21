@@ -5,7 +5,7 @@ import { SimpleJavaMailApp } from './app/simple-java-mail-app';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpModule } from '@angular/http';
 
-import {Ng2PageScrollModule} from 'ng2-page-scroll/ng2-page-scroll';
+import {Ng2SimplePageScrollModule} from 'ng2-simple-page-scroll/ng2-simple-page-scroll';
 
 import {About} from './app/components/about/about';
 import {Features} from './app/components/features/features';
@@ -36,7 +36,7 @@ require('./index.html');
     BrowserModule,
     HttpModule,
     RouterModule.forRoot(rootRouterConfig, { useHash: true }),
-    Ng2PageScrollModule.forRoot()
+    Ng2SimplePageScrollModule.forRoot()
   ],
   bootstrap: [ SimpleJavaMailApp ]
 })
