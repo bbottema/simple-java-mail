@@ -11,7 +11,7 @@
   "contributors": [
     "Benny Bottema <benny@bennybottema.com>"
   ],
-  "license": "Apache v2",
+  "license": "Apache-2.0",
   "dependencies": {
     "@angular/common": "~2.2.1",
     "@angular/compiler": "~2.2.1",
