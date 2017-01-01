@@ -14,8 +14,9 @@ ConfigLoader.loadProperties("overrides.properties"); // optional extra
 
 Email email = new Email();
 
-email.addRecipient("lollypop", "lolly.pop@somemail.com", Message.RecipientType.TO);
+email.setFromAddress("lollypop", "lolly.pop@mymail.com");
 email.setReplyToAddress("lollypop", "lolly.pop@othermail.com");
+email.addRecipient("lollypop", "lolly.pop@somemail.com", Message.RecipientType.TO);
 email.addRecipient("C. Cane", "candycane@candyshop.org", Message.RecipientType.TO);
 email.addRecipient("C. Bo", "chocobo@candyshop.org", Message.RecipientType.CC);
 email.setSubject("hey");
@@ -29,9 +30,9 @@ email.addAttachment("dresscode", odfDatasource);
 email.signWithDomainKey(privateKeyData, "somemail.com", "selector");
 
 new Mailer(
-		new ServerConfig("smtp.host.com", 587, "user@host.com", "password"),
-		TransportStrategy.SMTP_TLS,
-		new ProxyConfig("socksproxy.host.com", 1080, "proxy user", "proxy password")
+    new ServerConfig("smtp.host.com", 587, "user@host.com", "password"),
+    TransportStrategy.SMTP_TLS,
+    new ProxyConfig("socksproxy.host.com", 1080, "proxy user", "proxy password")
 ).sendMail(email);
 ```
 
