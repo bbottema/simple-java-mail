@@ -1,8 +1,8 @@
 package org.simplejavamail.mailer.config;
 
 import static java.lang.String.format;
-import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
-import static org.simplejavamail.internal.util.ConfigLoader.valueOrProperty;
+import static org.simplejavamail.util.ConfigLoader.Property.*;
+import static org.simplejavamail.util.ConfigLoader.valueOrProperty;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 

@@ -2,8 +2,8 @@ package org.simplejavamail.mailer.internal.mailsender;
 
 import org.simplejavamail.MailException;
 import org.simplejavamail.email.Email;
-import org.simplejavamail.internal.util.ConfigLoader;
-import org.simplejavamail.internal.util.ConfigLoader.Property;
+import org.simplejavamail.util.ConfigLoader;
+import org.simplejavamail.util.ConfigLoader.Property;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;

@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
-import static org.simplejavamail.internal.util.ConfigLoader.getProperty;
-import static org.simplejavamail.internal.util.ConfigLoader.hasProperty;
+import static org.simplejavamail.util.ConfigLoader.Property.*;
+import static org.simplejavamail.util.ConfigLoader.getProperty;
+import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
 /**
  * Fluent interface Builder for Emails

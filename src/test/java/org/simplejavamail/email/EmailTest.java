@@ -2,12 +2,9 @@ package org.simplejavamail.email;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.internal.util.ConfigLoader;
-import org.simplejavamail.mailer.Mailer;
+import org.simplejavamail.util.ConfigLoader;
 import testutil.ConfigLoaderTestHelper;
-import testutil.EmailHelper;
 
-import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 

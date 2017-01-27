@@ -21,9 +21,9 @@ import java.util.Properties;
 
 import static java.lang.String.format;
 import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC_COMPLIANT;
-import static org.simplejavamail.internal.util.ConfigLoader.Property.JAVAXMAIL_DEBUG;
-import static org.simplejavamail.internal.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
-import static org.simplejavamail.internal.util.ConfigLoader.*;
+import static org.simplejavamail.util.ConfigLoader.Property.JAVAXMAIL_DEBUG;
+import static org.simplejavamail.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
+import static org.simplejavamail.util.ConfigLoader.*;
 import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyForSession;
 
 /**

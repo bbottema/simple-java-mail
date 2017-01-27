@@ -1,4 +1,4 @@
-package org.simplejavamail.internal.util;
+package org.simplejavamail.util;
 
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.slf4j.Logger;

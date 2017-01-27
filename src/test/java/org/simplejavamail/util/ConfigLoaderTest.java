@@ -1,9 +1,9 @@
-package org.simplejavamail.internal.util;
+package org.simplejavamail.util;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.internal.util.ConfigLoader.Property;
 import org.simplejavamail.mailer.config.TransportStrategy;
+import org.simplejavamail.util.ConfigLoader.Property;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
@@ -13,8 +13,29 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
 import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_SSL;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_FROM_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_SUBJECT;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_TO_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.JAVAXMAIL_DEBUG;
+import static org.simplejavamail.util.ConfigLoader.Property.PROXY_HOST;
+import static org.simplejavamail.util.ConfigLoader.Property.PROXY_PASSWORD;
+import static org.simplejavamail.util.ConfigLoader.Property.PROXY_PORT;
+import static org.simplejavamail.util.ConfigLoader.Property.PROXY_SOCKS5BRIDGE_PORT;
+import static org.simplejavamail.util.ConfigLoader.Property.PROXY_USERNAME;
+import static org.simplejavamail.util.ConfigLoader.Property.SMTP_HOST;
+import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PASSWORD;
+import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PORT;
+import static org.simplejavamail.util.ConfigLoader.Property.SMTP_USERNAME;
+import static org.simplejavamail.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
 
 public class ConfigLoaderTest {
 

@@ -4,7 +4,7 @@ import net.markenwerk.utils.mail.dkim.DkimMessage;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.email.Email;
-import org.simplejavamail.internal.util.ConfigLoader;
+import org.simplejavamail.util.ConfigLoader;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;

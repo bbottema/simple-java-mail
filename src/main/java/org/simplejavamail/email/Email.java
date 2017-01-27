@@ -15,9 +15,9 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import static java.lang.String.format;
-import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
-import static org.simplejavamail.internal.util.ConfigLoader.getProperty;
-import static org.simplejavamail.internal.util.ConfigLoader.hasProperty;
+import static org.simplejavamail.util.ConfigLoader.Property.*;
+import static org.simplejavamail.util.ConfigLoader.getProperty;
+import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
 /**
  * Email message with all necessary data for an effective mailing action, including attachments etc.

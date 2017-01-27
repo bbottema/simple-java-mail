@@ -2,7 +2,7 @@ package org.simplejavamail.mailer;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.internal.util.ConfigLoader;
+import org.simplejavamail.util.ConfigLoader;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import testutil.ConfigLoaderTestHelper;
 

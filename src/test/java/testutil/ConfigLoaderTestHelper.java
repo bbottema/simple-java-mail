@@ -1,7 +1,7 @@
 package testutil;
 
-import org.simplejavamail.internal.util.ConfigLoader;
-import org.simplejavamail.internal.util.ConfigLoader.Property;
+import org.simplejavamail.util.ConfigLoader;
+import org.simplejavamail.util.ConfigLoader.Property;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
