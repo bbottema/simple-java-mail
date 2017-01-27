@@ -10,6 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.util.ConfigLoader.Property.*;
@@ -158,7 +159,6 @@ public class ConfigLoaderTest {
 		// now check if the extra properties were added
 		assertThat(ConfigLoader.getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
 		assertThat(ConfigLoader.getProperty(DEFAULT_TO_ADDRESS)).isEqualTo("to@default.com");
-
 	}
 
 	@Test
@@ -173,6 +173,46 @@ public class ConfigLoaderTest {
 				+ "simplejavamail.smtp.password=password\n";
 
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
+		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
+		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
+		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
+		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
+		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
+	}
+
+	@Test
+	public void loadPropertiesFromProperties()
+			throws IOException {
+		Properties source = new Properties();
+		source.put("simplejavamail.javaxmail.debug", "true");
+		source.put("simplejavamail.transportstrategy", "SMTP_SSL");
+		source.put("simplejavamail.smtp.host", "smtp.default.com");
+		source.put("simplejavamail.smtp.port", "25");
+		source.put("simplejavamail.smtp.username", "username");
+		source.put("simplejavamail.smtp.password", "password");
+
+		ConfigLoader.loadProperties(source, false);
+		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
+		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
+		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
+		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
+		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
+	}
+
+	@Test
+	public void loadPropertiesFromObjectProperties()
+			throws IOException {
+		Properties source = new Properties();
+		source.put("simplejavamail.javaxmail.debug", true);
+		source.put("simplejavamail.transportstrategy", "SMTP_SSL");
+		source.put("simplejavamail.smtp.host", "smtp.default.com");
+		source.put("simplejavamail.smtp.port", 25);
+		source.put("simplejavamail.smtp.username", "username");
+		source.put("simplejavamail.smtp.password", "password");
+
+		ConfigLoader.loadProperties(source, false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
 		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
 		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");

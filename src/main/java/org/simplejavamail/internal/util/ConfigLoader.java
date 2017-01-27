@@ -4,7 +4,11 @@ import org.simplejavamail.mailer.config.TransportStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -132,8 +136,6 @@ public final class ConfigLoader {
 	/**
 	 * Loads properties from property file on the classpath, if provided. Calling this method only has effect on new Email and Mailer instances after
 	 * this.
-	 * <p>
-	 * This method the internal list of properties and also returns the list to the caller.
 	 *
 	 * @param filename      Any file that is on the classpath that holds a list of key=value pairs.
 	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
@@ -149,9 +151,22 @@ public final class ConfigLoader {
 	}
 
 	/**
+	 * Loads properties from another properties source, in case you want to provide your own list.
+	 *
+	 * @param properties    Your own list of properties
+	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
+	 * @return The updated properties map that is used internally.
+	 */
+	public static Map<Property, Object> loadProperties(final Properties properties, final boolean addProperties) {
+		if (!addProperties) {
+			RESOLVED_PROPERTIES.clear();
+		}
+		RESOLVED_PROPERTIES.putAll(readProperties(properties));
+		return unmodifiableMap(RESOLVED_PROPERTIES);
+	}
+
+	/**
 	 * Loads properties from property {@link File}, if provided. Calling this method only has effect on new Email and Mailer instances after this.
-	 * <p>
-	 * This method the internal list of properties and also returns the list to the caller.
 	 *
 	 * @param filename      Any file reference that holds a properties list.
 	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
@@ -217,9 +232,13 @@ public final class ConfigLoader {
 					resolvedProps.put(prop, asEnvProperty);
 					filePropertiesLeft.remove(prop.key);
 				} else {
-					final String rawValue = (String) filePropertiesLeft.remove(prop.key);
+					final Object rawValue = filePropertiesLeft.remove(prop.key);
 					if (rawValue != null) {
-						resolvedProps.put(prop, parsePropertyValue(rawValue));
+						if (rawValue instanceof String) {
+							resolvedProps.put(prop, parsePropertyValue((String) rawValue));
+						} else {
+							resolvedProps.put(prop, rawValue);
+						}
 					}
 				}
 			}
