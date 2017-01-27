@@ -50,6 +50,32 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
+	public void valueOrPropertyEmptyDefaultValue()
+			throws Exception {
+		Map<Property, Object> properties = new HashMap<>();
+		properties.put(TRANSPORT_STRATEGY, "default");
+		ConfigLoaderTestHelper.setResolvedProperties(properties);
+
+		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
+		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("default");
+		assertThat(ConfigLoader.valueOrProperty("", TRANSPORT_STRATEGY, "backup")).isEqualTo("default");
+		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, null)).isEqualTo("default");
+	}
+
+	@Test
+	public void valueOrPropertyDefaultValueEmptyDefault()
+			throws Exception {
+		Map<Property, Object> properties = new HashMap<>();
+		properties.put(TRANSPORT_STRATEGY, "");
+		ConfigLoaderTestHelper.setResolvedProperties(properties);
+
+		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
+		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("backup");
+		assertThat(ConfigLoader.valueOrProperty("", TRANSPORT_STRATEGY, "backup")).isEqualTo("backup");
+		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, null)).isNull();
+	}
+
+	@Test
 	public void overridefromSystemVariables()
 			throws Exception {
 		Map<Property, Object> properties = new HashMap<>();
@@ -79,7 +105,7 @@ public class ConfigLoaderTest {
 
 		assertThat(ConfigLoader.hasProperty(TRANSPORT_STRATEGY)).isTrue();
 		assertThat(ConfigLoader.hasProperty(DEFAULT_FROM_ADDRESS)).isTrue();
-		assertThat(ConfigLoader.hasProperty(DEFAULT_BCC_NAME)).isTrue();
+		assertThat(ConfigLoader.hasProperty(DEFAULT_BCC_NAME)).isFalse();
 		assertThat(ConfigLoader.hasProperty(PROXY_HOST)).isFalse();
 	}
 

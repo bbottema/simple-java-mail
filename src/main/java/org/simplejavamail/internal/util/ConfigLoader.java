@@ -15,6 +15,7 @@ import java.util.Properties;
 
 import static java.util.Collections.unmodifiableMap;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
  * Contains list of possible properties names and can produce a map of property values, if provided as file "{@value #DEFAULT_CONFIG_FILENAME}" on the
@@ -98,6 +99,10 @@ public final class ConfigLoader {
 		Property(final String key) {
 			this.key = key;
 		}
+
+		public String key() {
+			return key;
+		}
 	}
 
 	/**
@@ -108,10 +113,12 @@ public final class ConfigLoader {
 	}
 
 	/**
+	 * Null or blank values are never allowed, so they are always ignored.
+	 *
 	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
 	 */
 	public static <T> T valueOrProperty(final T value, final Property property, final T defaultValue) {
-		if (value != null) {
+		if (!valueNullOrEmpty(value)) {
 			LOGGER.trace("using provided argument value {} for property {}", value, property);
 			return value;
 		} else if (hasProperty(property)) {
@@ -125,7 +132,7 @@ public final class ConfigLoader {
 	}
 
 	public static synchronized boolean hasProperty(final Property property) {
-		return RESOLVED_PROPERTIES.containsKey(property);
+		return !valueNullOrEmpty(RESOLVED_PROPERTIES.get(property));
 	}
 
 	public static synchronized <T> T getProperty(final Property property) {
