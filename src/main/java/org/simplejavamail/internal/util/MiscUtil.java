@@ -1,5 +1,8 @@
 package org.simplejavamail.internal.util;
 
+import javax.mail.internet.MimeUtility;
+import java.io.UnsupportedEncodingException;
+
 import static java.lang.Integer.toHexString;
 
 public final class MiscUtil {
@@ -33,5 +36,17 @@ public final class MiscUtil {
 
 	public static int toInt(final byte b) {
 		return b & 0xFF;
+	}
+
+
+	/**
+	 * To make sure email clients can interpret text properly, we need to encode some values according to RFC-2047.
+	 */
+	public static String encodeText(String name) {
+		try {
+			return MimeUtility.encodeText(name);
+		} catch (UnsupportedEncodingException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
 	}
 }

@@ -1,6 +1,7 @@
 package org.simplejavamail.email;
 
 import org.simplejavamail.internal.util.MimeMessageParser;
+import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
 import javax.mail.Message.RecipientType;
@@ -248,8 +249,8 @@ public class Email {
 	 */
 	public void addAttachment(final String name, final byte[] data, final String mimetype) {
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
-		dataSource.setName(name);
-		addAttachment(name, dataSource);
+			dataSource.setName(MiscUtil.encodeText(name));
+			addAttachment(MiscUtil.encodeText(name), dataSource);
 	}
 
 	/**
@@ -259,7 +260,7 @@ public class Email {
 	 * @param filedata The attachment data.
 	 */
 	public void addAttachment(final String name, final DataSource filedata) {
-		attachments.add(new AttachmentResource(name, filedata));
+		attachments.add(new AttachmentResource(MiscUtil.encodeText(name), filedata));
 	}
 
 	/**
