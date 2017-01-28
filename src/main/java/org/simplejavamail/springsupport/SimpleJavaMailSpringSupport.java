@@ -1,6 +1,7 @@
-package org.simplejavamail.util;
+package org.simplejavamail.springsupport;
 
 import org.simplejavamail.mailer.Mailer;
+import org.simplejavamail.util.ConfigLoader;
 import org.simplejavamail.util.ConfigLoader.Property;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
