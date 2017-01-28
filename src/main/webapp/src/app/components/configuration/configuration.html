@@ -157,6 +157,7 @@ mailer.trustSSLHosts("a", "b", "c", ...);
 <pre><code class="small">ConfigLoader.loadProperties("overrides-on-classpath.properties", /* addProperties = */ true);
 ConfigLoader.loadProperties(new File("d:/replace-from-environment.properties"), /* addProperties = */ false);
 ConfigLoader.loadProperties(usingMyOwnInputStream, addProperties);
+ConfigLoader.loadProperties(usingMyOwnPropertiesObject, addProperties);
 </code></pre>
     </div>
   </section>
@@ -269,6 +270,8 @@ if (ditchOwnAndTrustOtherSource) {{ '{' }}
 <pre><code>
 // maybe the config service has something?
 ConfigLoader.loadProperties(socket.getInpuStream(), true);
+// or you have your own Properties source?
+ConfigLoader.loadProperties(myOwnProperties, true);
 </code></pre>
 
       <p>
