@@ -4,9 +4,9 @@
 
   <section class="introduction">
     <p class="wide">
-      Simple Java Mail provides full configuration through <strong>programmatic API</strong> as well as <strong>system variables</strong>, <strong>environment
-                                                                                                                                                   variables</strong>
-      and <strong>properties files</strong>. For each level of configuration detail, a simple constructor is available as well.
+      Simple Java Mail provides full configuration through <strong>programmatic API</strong> as well as <strong>system variables</strong>,
+      <strong>environment variables</strong> and <strong>properties files</strong> (including Spring). For each level of configuration detail, a simple constructor is
+      available as well.
     </p>
     <p class="wide">
       The Java API and config files complement each other; the more you configure in a properties file, the less you can provide through the
@@ -20,6 +20,7 @@
       <li><a simplePageScroll href="#section-programmatic-api">Programmatic API</a></li>
       <li><a simplePageScroll href="#section-config-properties">Properties files</a></li>
       <li><a simplePageScroll href="#section-combine-config">Combining both for multiple environments</a></li>
+      <li><a simplePageScroll href="#section-spring-support">Spring support</a></li>
     </ul>
   </section>
 
@@ -113,7 +114,7 @@ proxyConfig.setProxyBridgePort(1081); // is always localhost
 Properties props = new Properties();
 props.setProperty("mail.smtp.sendpartial", true);
 mailer.applyProperties(props);
-  
+
 // or:
 mailer.getSession().getProperties().setProperty("mail.smtp.sendpartial", true);
 </code></pre>
@@ -171,7 +172,7 @@ ConfigLoader.loadProperties(usingMyOwnInputStream, addProperties);
     </div>
 
     <div class="side">
-<pre><code>simplejavamail.javaxmail.debug=true
+<pre><code class="language-properties">simplejavamail.javaxmail.debug=true
 simplejavamail.transportstrategy=SMTP_SSL
 simplejavamail.smtp.host=smtp.default.com
 simplejavamail.smtp.port=25
@@ -209,35 +210,35 @@ simplejavamail.defaults.poolsize=10
       <h3>Properties for the environments</h3>
     </div>
     <div class="wide">
-<pre><code class="small">/* global default properties (simplejavamail.properties on classpath) */
+<pre><code class="language-properties small">#global default properties (simplejavamail.properties on classpath)
 
-    // anonoymous SMTP inside 'safe' DMZ
+    # anonoymous SMTP inside 'safe' DMZ
     simplejavamail.smtp.host=dmz.smtp.candyshop.com
     simplejavamail.smtp.port=25
 
-    // default sender and reply-to address
+    # default sender and reply-to address
     simplejavamail.defaults.from.name=The Candy App
     simplejavamail.defaults.from.address=candyapp@candystore.com
     simplejavamail.defaults.replyto.name=Candystore Helpdesk
     simplejavamail.defaults.replyto.address=helpdesk@candystore.com
 </code></pre>
-<pre><code class="small">/* overrides from TEST and UAT .../config/candystore/simplejavamail.properties */
+<pre><code class="language-properties small">#overrides from TEST and UAT .../config/candystore/simplejavamail.properties
 
-    // always send a copy to test archive
+    # always send a copy to test archive
     simplejavamail.defaults.bcc.name=Archive TST UAT
     simplejavamail.defaults.bcc.address=test-archive@candyshop.com
 </code></pre>
-<pre><code class="small">/* overrides from PRODUCTION .../config/candystore/simplejavamail.properties */
+<pre><code class="language-properties small">#overrides from PRODUCTION .../config/candystore/simplejavamail.properties
 
-    // always send a copy to production archive
+    # always send a copy to production archive
     simplejavamail.defaults.bcc.name=Archive PRODUCTION
     simplejavamail.defaults.bcc.address=prod-archive@candyshop.com
 
-    // smtp server in production is protected
+    # smtp server in production is protected
     simplejavamail.smtp.username=creamcake
     simplejavamail.smtp.password=crusty_l0llyp0p
 
-    // sending mails in production must go through proxy
+    # sending mails in production must go through proxy
     simplejavamail.proxy.host=proxy.candyshop.com
     simplejavamail.proxy.port=1080
     simplejavamail.proxy.username=candyman
@@ -276,6 +277,53 @@ ConfigLoader.loadProperties(socket.getInpuStream(), true);
 
 <pre><code>// override only the port and connection type, leave everything else to config files
 Mailer mailer = new Mailer(new ServerConfig(null, 587), TransportStrategy.SMTP_TLS);
+</code></pre>
+    </div>
+  </section>
+
+
+  <a href="#section-spring-support" id="section-spring-support" class="section-link h2">&sect;</a>
+  <h2>Spring support</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Everything can be configured through Spring properties, allowing for robust profile-based configuration.
+      </p>
+      <p>
+        By importing the Spring support bean from Simple Java Mail, whatever properties are provided through Spring are then transfered to Simple Java Mail
+        using the ConfigLoader. It will add or overwrite whatever properties have been loaded before that (including the regular simplejavamail.properties).
+      </p>
+      <p>Here's a sample configuration using Java style configuration.</p>
+    </div>
+
+    <div class="side">
+      Loading Spring support and obtaining default Mailer instance:
+<pre><code class="small">@Component // or @Configuration etc.
+@Import(SimpleJavaMailSpringSupport.class)
+public class YourEmailService {{ '{' }}
+
+    @Autowired // or roll your own, as long as SimpleJavaMailSpringSupport is processed first
+    private Mailer mailer;
+
+{{ '}' }}
+</code></pre>
+      Then when you have profile based configuration (for example <code>default</code> and <code>production</code>):
+      <pre><code class="language-properties small">#application.properties
+simplejavamail.javaxmail.debug=true
+simplejavamail.smtp.host=smtp.host
+simplejavamail.smtp.port=25
+simplejavamail.transportstrategy=SMTP_PLAIN
+</code></pre>
+      <pre><code class="language-properties small">#application-production.properties
+simplejavamail.javaxmail.debug=false
+simplejavamail.smtp.host=smtp.production.host
+simplejavamail.smtp.port=443
+simplejavamail.transportstrategy=SMTP_SSL
+simplejavamail.smtp.username=&lt;username&gt;
+simplejavamail.smtp.password=&lt;password&gt;
+simplejavamail.proxy.username=&lt;proxy_username&gt;
+simplejavamail.proxy.password=&lt;proxy_password&gt;
 </code></pre>
     </div>
   </section>
