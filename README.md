@@ -45,11 +45,21 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.1.2</version>
+    <version>4.1.3</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+[v4.1.3](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.1.3%7Cjar) (28-Jan-2017)
+
+- [#61](https://github.com/bbottema/simple-java-mail/issues/61): Feature: Add support for providing your own Properties object
+- [#63](https://github.com/bbottema/simple-java-mail/issues/63): Feature: Spring support (read properties from Spring context)
+- [#58](https://github.com/bbottema/simple-java-mail/issues/58): Bugfix: Add support for non-English attachment and embedded image names
+- [#62](https://github.com/bbottema/simple-java-mail/issues/62): Bugfix: Empty properties loaded from config should be considered null
+
+**NOTE**: ConfigLoader moved from `/internal/util` to `/util`
+
 
 [v4.1.2](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.1.2%7Cjar) (07-Nov-2016)
 
