@@ -253,7 +253,7 @@ public class ConfigLoaderTest {
 			throws IOException {
 		Properties source = new Properties();
 		source.put("simplejavamail.javaxmail.debug", true);
-		source.put("simplejavamail.transportstrategy", "SMTP_SSL");
+		source.put("simplejavamail.transportstrategy", TransportStrategy.SMTP_SSL);
 		source.put("simplejavamail.smtp.host", "smtp.default.com");
 		source.put("simplejavamail.smtp.port", 25);
 		source.put("simplejavamail.smtp.username", "username");
