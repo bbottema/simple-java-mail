@@ -2,17 +2,19 @@ package org.simplejavamail.mailer.internal.mailsender;
 
 import org.simplejavamail.MailException;
 import org.simplejavamail.email.Email;
-import org.simplejavamail.util.ConfigLoader;
-import org.simplejavamail.util.ConfigLoader.Property;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
 import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.util.ConfigLoader;
+import org.simplejavamail.util.ConfigLoader.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.mail.*;
 import javax.mail.internet.MimeMessage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
@@ -72,12 +74,18 @@ public class MailSender {
 	private int threadPoolSize;
 
 	/**
+	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
+	 */
+	private boolean transportModeLoggingOnly;
+
+	/**
 	 * @see #configureSessionWithProxy(ProxyConfig, Session, TransportStrategy)
 	 */
 	public MailSender(final Session session, final ProxyConfig proxyConfig, final TransportStrategy transportStrategy) {
 		this.session = session;
 		this.proxyServer = configureSessionWithProxy(proxyConfig, session, transportStrategy);
 		this.threadPoolSize = ConfigLoader.valueOrProperty(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE);
+		this.transportModeLoggingOnly = ConfigLoader.valueOrProperty(null, Property.TRANSPORT_MODE_LOGGING_ONLY, false);
 	}
 
 	/**
@@ -186,13 +194,23 @@ public class MailSender {
 						proxyServer.start();
 					}
 				}
-				try {
-					transport.connect();
-					transport.sendMessage(message, message.getAllRecipients());
-				} finally {
-					LOGGER.trace("closing transport");
-					//noinspection ThrowFromFinallyBlock
-					transport.close();
+
+				if (!transportModeLoggingOnly) {
+					LOGGER.trace("\t\nEmail: {}", email);
+					LOGGER.trace("\t\nMimeMessage: {}\n", readMimeMessageToString(message));
+
+					try {
+						transport.connect();
+						transport.sendMessage(message, message.getAllRecipients());
+					} finally {
+						LOGGER.trace("closing transport");
+						//noinspection ThrowFromFinallyBlock
+						transport.close();
+					}
+				} else {
+					LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
+					LOGGER.info("\n\nEmail: {}\n", email);
+					LOGGER.info("\n\nMimeMessage: {}\n", readMimeMessageToString(message));
 				}
 			} finally {
 				checkShutDownProxyBridge();
@@ -201,6 +219,16 @@ public class MailSender {
 			throw new MailSenderException(MailSenderException.INVALID_ENCODING, e);
 		} catch (final MessagingException e) {
 			throw new MailSenderException(MailSenderException.GENERIC_ERROR, e);
+		}
+	}
+
+	private String readMimeMessageToString(MimeMessage message) {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			message.writeTo(os);
+			return os.toString("UTF-8");
+		} catch (IOException | MessagingException e) {
+			throw new RuntimeException(e.getMessage(), e);
 		}
 	}
 
@@ -297,4 +325,17 @@ public class MailSender {
 		this.threadPoolSize = threadPoolSize;
 	}
 
+	/**
+	 * Sets the transport mode for this mail sender to logging only, which means no mail will be actually sent out.
+	 */
+	public synchronized void setTransportModeLoggingOnly(boolean transportModeLoggingOnly) {
+		this.transportModeLoggingOnly = transportModeLoggingOnly;
+	}
+
+	/**
+	 * @return {@link #transportModeLoggingOnly}
+	 */
+	public boolean isTransportModeLoggingOnly() {
+		return transportModeLoggingOnly;
+	}
 }

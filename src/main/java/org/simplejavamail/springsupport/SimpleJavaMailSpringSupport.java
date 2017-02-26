@@ -38,7 +38,8 @@ public class SimpleJavaMailSpringSupport {
 			@Value("${simplejavamail.defaults.cc.address:#{null}}") String defaultCcAddress,
 			@Value("${simplejavamail.defaults.bcc.name:#{null}}") String defaultBccName,
 			@Value("${simplejavamail.defaults.bcc.address:#{null}}") String defaultBccAddress,
-			@Value("${simplejavamail.defaults.poolsize:#{null}}") String defaultPoolsize) {
+			@Value("${simplejavamail.defaults.poolsize:#{null}}") String defaultPoolsize,
+			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") String defaultTransportModeLoggingOnly) {
 		Properties emailProperties = new Properties();
 		setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG.key(), javaxmailDebug);
 		setNullableProperty(emailProperties, Property.TRANSPORT_STRATEGY.key(), transportstrategy);
@@ -63,6 +64,7 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_BCC_NAME.key(), defaultBccName);
 		setNullableProperty(emailProperties, Property.DEFAULT_BCC_ADDRESS.key(), defaultBccAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_POOL_SIZE.key(), defaultPoolsize);
+		setNullableProperty(emailProperties, Property.TRANSPORT_MODE_LOGGING_ONLY.key(), defaultTransportModeLoggingOnly);
 
 		ConfigLoader.loadProperties(emailProperties, true);
 

@@ -262,6 +262,22 @@ public class Mailer {
 	}
 
 	/**
+	 * Sets the transport mode for this mail sender to logging only, which means no mail will be actually sent out.
+	 *
+	 * @param transportModeLoggingOnly Flag to indicate logging mode yes/no.
+	 */
+	public synchronized void setTransportModeLoggingOnly(boolean transportModeLoggingOnly) {
+		mailSender.setTransportModeLoggingOnly(transportModeLoggingOnly);
+	}
+
+	/**
+	 * @return Whether this Mailer is set to only log or also actually send emails through an SMTP server (which is the default).
+	 */
+	public boolean isTransportModeLoggingOnly() {
+		return mailSender.isTransportModeLoggingOnly();
+	}
+
+	/**
 	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property "mail.smtp.ssl.trust" is set to "*".
 	 * <p>
 	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust

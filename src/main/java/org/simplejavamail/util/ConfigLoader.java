@@ -45,7 +45,8 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  *    <li>simplejavamail.defaults.cc.address</li>
  *    <li>simplejavamail.defaults.bcc.name</li>
  *    <li>simplejavamail.defaults.bcc.address</li>
- *    <li>simplejavamail.defaults.poolsize
+ *    <li>simplejavamail.defaults.poolsize</li>
+ *    <li>simplejavamail.transport.mode.logging.only</li>
  * </ul></pre>
  */
 public final class ConfigLoader {
@@ -92,7 +93,8 @@ public final class ConfigLoader {
 		DEFAULT_CC_ADDRESS("simplejavamail.defaults.cc.address"),
 		DEFAULT_BCC_NAME("simplejavamail.defaults.bcc.name"),
 		DEFAULT_BCC_ADDRESS("simplejavamail.defaults.bcc.address"),
-		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize");
+		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize"),
+		TRANSPORT_MODE_LOGGING_ONLY("simplejavamail.transport.mode.logging.only");
 
 		private final String key;
 
@@ -113,6 +115,9 @@ public final class ConfigLoader {
 	}
 
 	/**
+	 * Returns the given value if not null and not empty, otherwise tries to resolve the given property and if still not found resot to the default value if
+	 * provided.
+	 * <p>
 	 * Null or blank values are never allowed, so they are always ignored.
 	 *
 	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.

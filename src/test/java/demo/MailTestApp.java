@@ -31,8 +31,14 @@ public class MailTestApp {
 	private static final ServerConfig serverConfigTLS = new ServerConfig("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD);
 	private static final ServerConfig serverConfigSSL = new ServerConfig("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD);
 
+	/**
+	 * If you just want to see what email is being sent, just set this to true. It won't actually connect to an SMTP server then.
+	 */
+	private static final boolean LOGGING_MODE = false;
+
 	public static void main(final String[] args)
 			throws Exception {
+		// make Simple Java Mail ignore the properties file completely: that's there for the junit tests, not this demo.
 		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final Email emailNormal = new Email();
@@ -58,10 +64,17 @@ public class MailTestApp {
 		sendMail(emailFromMimeMessage); // should produce the exact same result as emailNormal!
 	}
 
-	private static void sendMail(final Email email) {
+	private static void sendMail(final Email email)
+			throws ClassNotFoundException {
 		// ProxyConfig proxyconfig = new ProxyConfig("localhost", 1030);
-		new Mailer(serverConfigSMTP, TransportStrategy.SMTP_TLS).sendMail(email);
-		new Mailer(serverConfigTLS, TransportStrategy.SMTP_TLS).sendMail(email);
-		new Mailer(serverConfigSSL, TransportStrategy.SMTP_SSL).sendMail(email);
+		sendMail(serverConfigSMTP, TransportStrategy.SMTP_TLS, email);
+		sendMail(serverConfigTLS, TransportStrategy.SMTP_TLS, email);
+		sendMail(serverConfigSSL, TransportStrategy.SMTP_SSL, email);
+	}
+
+	private static void sendMail(ServerConfig serverConfigSMTP, TransportStrategy smtpTls, Email email) {
+		Mailer mailer = new Mailer(serverConfigSMTP, smtpTls);
+		mailer.setTransportModeLoggingOnly(LOGGING_MODE);
+		mailer.sendMail(email);
 	}
 }
