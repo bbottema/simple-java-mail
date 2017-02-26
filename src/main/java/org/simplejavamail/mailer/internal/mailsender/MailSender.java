@@ -21,6 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 /**
  * Class that performs the actual javax.mail SMTP integration.
  * <p>
@@ -226,7 +228,7 @@ public class MailSender {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			message.writeTo(os);
-			return os.toString("UTF-8");
+			return os.toString(UTF_8.name());
 		} catch (IOException | MessagingException e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}
