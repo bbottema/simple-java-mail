@@ -2,10 +2,13 @@ package org.simplejavamail.internal.util;
 
 import javax.mail.internet.MimeUtility;
 import java.io.UnsupportedEncodingException;
+import java.util.regex.Pattern;
 
 import static java.lang.Integer.toHexString;
 
 public final class MiscUtil {
+
+	private static final Pattern MATCH_INSIDE_CIDBRACKETS = Pattern.compile("<?([^>]*)>?");
 
 	public static <T> T checkNotNull(final T value, final String msg) {
 		if (value == null) {
@@ -48,5 +51,9 @@ public final class MiscUtil {
 		} catch (UnsupportedEncodingException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
+	}
+
+	public static String extractCID(final String cid) {
+		return (cid != null) ?  MATCH_INSIDE_CIDBRACKETS.matcher(cid).replaceAll("$1") : null;
 	}
 }

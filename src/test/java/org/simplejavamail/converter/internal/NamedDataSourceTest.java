@@ -1,10 +1,11 @@
-package org.simplejavamail.mailer.internal.mailsender;
+package org.simplejavamail.converter.internal;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.simplejavamail.converter.internal.NamedDataSource;
 
 import javax.activation.DataSource;
 

@@ -3,6 +3,7 @@ package org.simplejavamail.mailer;
 import net.markenwerk.utils.mail.dkim.DkimMessage;
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.converter.FormatConverter;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.util.ConfigLoader;
 import org.simplejavamail.mailer.config.ProxyConfig;
@@ -174,7 +175,7 @@ public class MailerTest {
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
 
 		email.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
-		MimeMessage mimeMessage = Mailer.produceMimeMessage(email);
+		MimeMessage mimeMessage = FormatConverter.emailToMimeMessage(email);
 		// success, signing did not produce an error
 		assertThat(mimeMessage).isInstanceOf(DkimMessage.class);
 	}
@@ -185,8 +186,8 @@ public class MailerTest {
 		final Email emailNormal = EmailHelper.createDummyEmail();
 
 		// let's try producing and then consuming a MimeMessage ->
-		final MimeMessage mimeMessage = Mailer.produceMimeMessage(emailNormal);
-		final Email emailFromMimeMessage = new Email(mimeMessage);
+		final MimeMessage mimeMessage = FormatConverter.emailToMimeMessage(emailNormal);
+		final Email emailFromMimeMessage = FormatConverter.mimeMessageToEmail(mimeMessage);
 
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
 	}

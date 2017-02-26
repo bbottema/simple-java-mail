@@ -1,4 +1,4 @@
-package org.simplejavamail.mailer.internal.mailsender;
+package org.simplejavamail.converter.internal;
 
 import javax.activation.DataSource;
 import java.io.IOException;

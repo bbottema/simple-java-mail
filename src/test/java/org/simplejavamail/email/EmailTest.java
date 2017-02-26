@@ -2,6 +2,7 @@ package org.simplejavamail.email;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.util.ConfigLoader;
 import testutil.ConfigLoaderTestHelper;
 
@@ -54,9 +55,9 @@ public class EmailTest {
 
 	@Test
 	public void testBeautifyCID() {
-		assertThat(Email.extractCID(null)).isNull();
-		assertThat(Email.extractCID("")).isEqualTo("");
-		assertThat(Email.extractCID("haha")).isEqualTo("haha");
-		assertThat(Email.extractCID("<haha>")).isEqualTo("haha");
+		assertThat(MiscUtil.extractCID(null)).isNull();
+		assertThat(MiscUtil.extractCID("")).isEqualTo("");
+		assertThat(MiscUtil.extractCID("haha")).isEqualTo("haha");
+		assertThat(MiscUtil.extractCID("<haha>")).isEqualTo("haha");
 	}
 }

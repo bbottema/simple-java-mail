@@ -1,21 +1,14 @@
 package org.simplejavamail.email;
 
-import org.simplejavamail.internal.util.MimeMessageParser;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
 import javax.mail.Message.RecipientType;
-import javax.mail.MessagingException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
-import java.util.regex.Pattern;
 
-import static java.lang.String.format;
 import static org.simplejavamail.util.ConfigLoader.Property.*;
 import static org.simplejavamail.util.ConfigLoader.getProperty;
 import static org.simplejavamail.util.ConfigLoader.hasProperty;
@@ -84,28 +77,34 @@ public class Email {
 	 * Constructor, creates all internal lists. Populates default from, reply-to, to, cc and bcc if provided in the config file.
 	 */
 	public Email() {
+		this(true);
+	}
+
+	public Email(boolean readFromDefaults) {
 		recipients = new ArrayList<>();
 		embeddedImages = new ArrayList<>();
 		attachments = new ArrayList<>();
 		headers = new HashMap<>();
 
-		if (hasProperty(DEFAULT_FROM_ADDRESS)) {
-			setFromAddress((String) getProperty(DEFAULT_FROM_NAME), (String) getProperty(DEFAULT_FROM_ADDRESS));
-		}
-		if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
-			setReplyToAddress((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
-		}
-		if (hasProperty(DEFAULT_TO_ADDRESS)) {
-			addRecipient((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
-		}
-		if (hasProperty(DEFAULT_CC_ADDRESS)) {
-			addRecipient((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
-		}
-		if (hasProperty(DEFAULT_BCC_ADDRESS)) {
-			addRecipient((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
-		}
-		if (hasProperty(DEFAULT_SUBJECT)) {
-			setSubject((String) getProperty(DEFAULT_SUBJECT));
+		if (readFromDefaults) {
+			if (hasProperty(DEFAULT_FROM_ADDRESS)) {
+				setFromAddress((String) getProperty(DEFAULT_FROM_NAME), (String) getProperty(DEFAULT_FROM_ADDRESS));
+			}
+			if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
+				setReplyToAddress((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
+			}
+			if (hasProperty(DEFAULT_TO_ADDRESS)) {
+				addRecipient((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
+			}
+			if (hasProperty(DEFAULT_CC_ADDRESS)) {
+				addRecipient((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
+			}
+			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
+				addRecipient((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
+			}
+			if (hasProperty(DEFAULT_SUBJECT)) {
+				setSubject((String) getProperty(DEFAULT_SUBJECT));
+			}
 		}
 	}
 
@@ -394,67 +393,5 @@ public class Email {
 		} else if (builder.getDkimPrivateKeyInputStream() != null) {
 			signWithDomainKey(builder.getDkimPrivateKeyInputStream(), builder.getSigningDomain(), builder.getSelector());
 		}
-	}
-
-	/*
-	 * Email from MimeMessage
-	 *
-	 * @author Benny Bottema
-	 */
-
-	/**
-	 * Constructor for {@link javax.mail.internet.MimeMessage}.
-	 * <p>
-	 * <strong>Doen add default recipient that may have been provided in a config file.</strong>
-	 *
-	 * @param mimeMessage The MimeMessage from which to create the email.
-	 */
-	public Email(final MimeMessage mimeMessage) {
-		recipients = new ArrayList<>();
-		embeddedImages = new ArrayList<>();
-		attachments = new ArrayList<>();
-		headers = new HashMap<>();
-
-		try {
-			fillEmailFromMimeMessage(new MimeMessageParser(mimeMessage).parse());
-		} catch (MessagingException | IOException e) {
-			throw new EmailException(format(EmailException.PARSE_ERROR_MIMEMESSAGE, e.getMessage()), e);
-		}
-	}
-
-	private void fillEmailFromMimeMessage(final MimeMessageParser parser)
-			throws MessagingException {
-		final InternetAddress from = parser.getFrom();
-		this.setFromAddress(from.getPersonal(), from.getAddress());
-		final InternetAddress replyTo = parser.getReplyTo();
-		this.setReplyToAddress(replyTo.getPersonal(), replyTo.getAddress());
-		for (final Map.Entry<String, Object> header : parser.getHeaders().entrySet()) {
-			this.addHeader(header.getKey(), header.getValue());
-		}
-		for (final InternetAddress to : parser.getTo()) {
-			this.addRecipient(to.getPersonal(), to.getAddress(), RecipientType.TO);
-		}
-		//noinspection QuestionableName
-		for (final InternetAddress cc : parser.getCc()) {
-			this.addRecipient(cc.getPersonal(), cc.getAddress(), RecipientType.CC);
-		}
-		for (final InternetAddress bcc : parser.getBcc()) {
-			this.addRecipient(bcc.getPersonal(), bcc.getAddress(), RecipientType.BCC);
-		}
-		this.setSubject(parser.getSubject());
-		this.setText(parser.getPlainContent());
-		this.setTextHTML(parser.getHtmlContent());
-		for (final Map.Entry<String, DataSource> cid : parser.getCidMap().entrySet()) {
-			this.addEmbeddedImage(extractCID(cid.getKey()), cid.getValue());
-		}
-		for (final Map.Entry<String, DataSource> attachment : parser.getAttachmentList().entrySet()) {
-			this.addAttachment(extractCID(attachment.getKey()), attachment.getValue());
-		}
-	}
-
-	private static final Pattern MATCH_INSIDE_CIDBRACKETS = Pattern.compile("<?([^>]*)>?");
-
-	static String extractCID(final String cid) {
-		return (cid != null) ?  MATCH_INSIDE_CIDBRACKETS.matcher(cid).replaceAll("$1") : null;
 	}
 }

@@ -1,5 +1,6 @@
 package demo;
 
+import org.simplejavamail.converter.FormatConverter;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.mailer.Mailer;
 import org.simplejavamail.mailer.config.ServerConfig;
@@ -56,8 +57,8 @@ public class MailTestApp {
 		emailNormal.addEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png");
 
 		// let's try producing and then consuming a MimeMessage ->
-		final MimeMessage mimeMessage = Mailer.produceMimeMessage(emailNormal);
-		final Email emailFromMimeMessage = new Email(mimeMessage);
+		final MimeMessage mimeMessage = FormatConverter.emailToMimeMessage(emailNormal);
+		final Email emailFromMimeMessage = FormatConverter.mimeMessageToEmail(mimeMessage);
 
 		// note: the following statements will produce 6 new emails!
 		sendMail(emailNormal);

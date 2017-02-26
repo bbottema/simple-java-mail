@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer.internal.mailsender;
 
 import org.simplejavamail.MailException;
+import org.simplejavamail.converter.internal.MimeMessageHelper;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
@@ -13,15 +14,13 @@ import org.slf4j.LoggerFactory;
 
 import javax.mail.*;
 import javax.mail.internet.MimeMessage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.simplejavamail.converter.FormatConverter.readMimeMessageToEMLString;
 
 /**
  * Class that performs the actual javax.mail SMTP integration.
@@ -145,7 +144,6 @@ public class MailSender {
 	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
 	 *              send the email and this method returns immediately.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
-	 * @see MimeMessageHelper#produceMimeMessage(Email, Session)
 	 * @see Executors#newFixedThreadPool(int)
 	 */
 	public final synchronized void send(final Email email, final boolean async) {
@@ -199,7 +197,7 @@ public class MailSender {
 
 				if (!transportModeLoggingOnly) {
 					LOGGER.trace("\t\nEmail: {}", email);
-					LOGGER.trace("\t\nMimeMessage: {}\n", readMimeMessageToString(message));
+					LOGGER.trace("\t\nMimeMessage: {}\n", readMimeMessageToEMLString(message));
 
 					try {
 						transport.connect();
@@ -212,7 +210,7 @@ public class MailSender {
 				} else {
 					LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
 					LOGGER.info("\n\nEmail: {}\n", email);
-					LOGGER.info("\n\nMimeMessage: {}\n", readMimeMessageToString(message));
+					LOGGER.info("\n\nMimeMessage: {}\n", readMimeMessageToEMLString(message));
 				}
 			} finally {
 				checkShutDownProxyBridge();
@@ -221,16 +219,6 @@ public class MailSender {
 			throw new MailSenderException(MailSenderException.INVALID_ENCODING, e);
 		} catch (final MessagingException e) {
 			throw new MailSenderException(MailSenderException.GENERIC_ERROR, e);
-		}
-	}
-
-	private String readMimeMessageToString(MimeMessage message) {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		try {
-			message.writeTo(os);
-			return os.toString(UTF_8.name());
-		} catch (IOException | MessagingException e) {
-			throw new RuntimeException(e.getMessage(), e);
 		}
 	}
 

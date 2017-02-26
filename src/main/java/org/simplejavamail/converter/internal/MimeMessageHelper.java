@@ -1,4 +1,4 @@
-package org.simplejavamail.mailer.internal.mailsender;
+package org.simplejavamail.converter.internal;
 
 import net.markenwerk.utils.mail.dkim.Canonicalization;
 import net.markenwerk.utils.mail.dkim.DkimMessage;
@@ -274,7 +274,7 @@ public final class MimeMessageHelper {
 			dkimSigner.setZParam(false);
 			return new DkimMessage(message, dkimSigner);
 		} catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException | MessagingException e) {
-			throw new MailSenderException(MailSenderException.INVALID_DOMAINKEY, e);
+			throw new MimeMessageException(MimeMessageException.INVALID_DOMAINKEY, e);
 		}
 	}
 
@@ -318,7 +318,7 @@ public final class MimeMessageHelper {
 				multipartRelated.addBodyPart(contentAlternativeMessages);
 				contentAlternativeMessages.setContent(multipartAlternativeMessages);
 			} catch (final MessagingException e) {
-				throw new MailSenderException(e.getMessage(), e);
+				throw new MimeMessageException(e.getMessage(), e);
 			}
 		}
 

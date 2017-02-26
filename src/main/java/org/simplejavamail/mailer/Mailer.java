@@ -9,22 +9,24 @@ import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.mailsender.MailSender;
-import org.simplejavamail.mailer.internal.mailsender.MimeMessageHelper;
+import org.simplejavamail.converter.internal.MimeMessageHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.mail.*;
+import javax.mail.Authenticator;
+import javax.mail.Message;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
-import java.io.UnsupportedEncodingException;
 import java.util.EnumSet;
 import java.util.Properties;
 
 import static java.lang.String.format;
 import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC_COMPLIANT;
+import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyForSession;
+import static org.simplejavamail.util.ConfigLoader.*;
 import static org.simplejavamail.util.ConfigLoader.Property.JAVAXMAIL_DEBUG;
 import static org.simplejavamail.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
-import static org.simplejavamail.util.ConfigLoader.*;
-import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyForSession;
 
 /**
  * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content, embedded
@@ -70,10 +72,10 @@ import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyFor
  * On a technical note, the {@link Mailer} class is the front facade for the public API. It limits itself to creating Session objects, offering
  * various constructors, sorting missing arguments using available properties and finally email validation. The actual sending and proxy configuration
  * is done by the internal {@link MailSender}. Some internal api is made public through this class for uses other than directly sending emails, such
- * as {@link #setDebug(boolean)}, {@link #produceMimeMessage(Email, Session)} and {@link #signMessageWithDKIM(MimeMessage, Email)}.
+ * as {@link #setDebug(boolean)} and {@link #signMessageWithDKIM(MimeMessage, Email)}.
  *
  * @author Benny Bottema
- * @see org.simplejavamail.mailer.internal.mailsender.MimeMessageHelper.MimeEmailMessageWrapper
+ * @see MimeMessageHelper.MimeEmailMessageWrapper
  * @see Email
  */
 @SuppressWarnings("WeakerAccess")
@@ -365,24 +367,6 @@ public class Mailer {
 			}
 		}
 		return true;
-	}
-
-	/**
-	 * Delegates to {@link #produceMimeMessage(Email, Session)}, using a new empty {@link Session} instance.
-	 *
-	 * @see #produceMimeMessage(Email, Session)
-	 */
-	public static MimeMessage produceMimeMessage(final Email email)
-			throws UnsupportedEncodingException, MessagingException {
-		return produceMimeMessage(email, Session.getDefaultInstance(new Properties()));
-	}
-
-	/**
-	 * Refer to {@link MimeMessageHelper#produceMimeMessage(Email, Session)}
-	 */
-	public static MimeMessage produceMimeMessage(final Email email, final Session session)
-			throws MessagingException, UnsupportedEncodingException {
-		return MimeMessageHelper.produceMimeMessage(email, session);
 	}
 
 	/**
