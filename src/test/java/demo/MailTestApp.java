@@ -64,8 +64,7 @@ public class MailTestApp {
 		sendMail(emailFromMimeMessage); // should produce the exact same result as emailNormal!
 	}
 
-	private static void sendMail(final Email email)
-			throws ClassNotFoundException {
+	private static void sendMail(final Email email) {
 		// ProxyConfig proxyconfig = new ProxyConfig("localhost", 1030);
 		sendMail(serverConfigSMTP, TransportStrategy.SMTP_TLS, email);
 		sendMail(serverConfigTLS, TransportStrategy.SMTP_TLS, email);
