@@ -8,6 +8,9 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Test helper that can empty any properties loaded by the ConfigLoader.
+ */
 public class ConfigLoaderTestHelper {
 	public static void setResolvedProperties(Map<Property, Object> value)
 			throws Exception {
