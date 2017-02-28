@@ -4,6 +4,7 @@
   
   <section class="toc">
     <ul>
+      <li><a simplePageScroll href="#section-debug-mode">Logging emails instead of sending</a></li>
       <li><a simplePageScroll href="#section-debug-logging">Enable javax.mail debug logging</a></li>
       <li><a simplePageScroll href="#section-mailexception">Catching exceptions</a></li>
       <li><a simplePageScroll href="#section-logging">Logging output</a></li>
@@ -11,6 +12,32 @@
       <li><a simplePageScroll href="#section-log4j2" class="indent">Example with log4j2</a></li>
       <li><a simplePageScroll href="#section-logback" class="indent">Example with logback</a></li>
     </ul>
+  </section>
+  
+  
+  <a href="#section-debug-mode" id="section-debug-mode" class="section-link h2">&sect;</a>
+  <h2>Logging emails instead of sending</h2>
+  
+  <section>
+    <div class="view">
+      <p>
+        You can configure the <code>Mailer</code> to log emails instead of sending them.
+      </p>
+      <p>
+        Note: normally emails are always logged on <code>Level.DEBUG</code> level, but in logging mode emails are logged in <code>Level.INFO</code>.
+      </p>
+    </div>
+    
+    <div class="side">
+<pre><code>Mailer mailer = new Mailer(...);
+mailer.setTransportModeLoggingOnly(true);
+
+mailer.sendMail(email); // <-- this email will be logged but not sent
+</code></pre>
+      or:
+      <pre><code class="language-properties">simplejavamail.transport.mode.logging.only=true
+</code></pre>
+    </div>
   </section>
   
   
@@ -35,6 +62,9 @@ mailer.getSession().setDebug(true);
 // or
 yourSession.setDebug(true);
 Mailer mailer = new Mailer(yourSession);
+</code></pre>
+      or:
+      <pre><code class="language-properties">simplejavamail.javaxmail.debug=true
 </code></pre>
     </div>
   </section>
@@ -80,7 +110,7 @@ try {{ '{' }}
                                                                                                                                   log4j2</a>.
       </p>
       <div>
-        There are three parts of Simple Java Mail that may produce logging:
+        Aside from the native JavaMail logging, there are three parts of Simple Java Mail that may produce logging:
         <ul class="indent">
           <li>"org.simplejavamail"</li>
           <li>"socks5bridge"</li>
@@ -92,7 +122,7 @@ try {{ '{' }}
         </p>
       </div>
       <p>
-        If you wish to know where and how the properties are loaded, you can increase logging for "org.simplejavamail.internal.util.ConfigLoader".
+        If you wish to know where and how the properties are loaded, you can increase logging for "org.simplejavamail.util.ConfigLoader".
         This will tell you which properties are loaded by API and which from config file and which properties are without value.
       </p>
       <p>
