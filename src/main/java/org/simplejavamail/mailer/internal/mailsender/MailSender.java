@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
 
-import static org.simplejavamail.converter.FormatConverter.mimeMessageToEMLString;
+import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
 
 /**
  * Class that performs the actual javax.mail SMTP integration.
@@ -197,7 +197,7 @@ public class MailSender {
 
 				if (!transportModeLoggingOnly) {
 					LOGGER.trace("\t\nEmail: {}", email);
-					LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEMLString(message));
+					LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEML(message));
 
 					try {
 						transport.connect();
@@ -210,7 +210,7 @@ public class MailSender {
 				} else {
 					LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
 					LOGGER.info("\n\nEmail: {}\n", email);
-					LOGGER.info("\n\nMimeMessage: {}\n", mimeMessageToEMLString(message));
+					LOGGER.info("\n\nMimeMessage: {}\n", mimeMessageToEML(message));
 				}
 			} finally {
 				checkShutDownProxyBridge();

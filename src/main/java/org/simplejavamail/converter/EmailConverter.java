@@ -5,15 +5,13 @@ import org.simplejavamail.converter.internal.MimeMessageParser;
 import org.simplejavamail.email.Email;
 
 import javax.activation.DataSource;
+import javax.annotation.Nonnull;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.util.Map;
 import java.util.Properties;
 
@@ -26,26 +24,26 @@ import static org.simplejavamail.internal.util.MiscUtil.extractCID;
  * Utility to help convert {@link org.simplejavamail.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
  */
 @SuppressWarnings("WeakerAccess")
-public final class FormatConverter {
+public final class EmailConverter {
 
-	private FormatConverter() {
+	private EmailConverter() {
 		// util / helper class
 	}
 
 	/**
 	 * @param mimeMessage The MimeMessage from which to create the email.
 	 */
-	public static Email mimeMessageToEmail(final MimeMessage mimeMessage) {
+	public static Email mimeMessageToEmail(@Nonnull final MimeMessage mimeMessage) {
 		final Email email = new Email(false);
 		try {
 			fillEmailFromMimeMessage(email, new MimeMessageParser(mimeMessage).parse());
 		} catch (MessagingException | IOException e) {
-			throw new FormatConverterException(format(FormatConverterException.PARSE_ERROR_MIMEMESSAGE, e.getMessage()), e);
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_MIMEMESSAGE, e.getMessage()), e);
 		}
 		return email;
 	}
 
-	private static void fillEmailFromMimeMessage(final Email email, final MimeMessageParser parser)
+	private static void fillEmailFromMimeMessage(@Nonnull final Email email, @Nonnull final MimeMessageParser parser)
 			throws MessagingException {
 		final InternetAddress from = parser.getFrom();
 		email.setFromAddress(from.getPersonal(), from.getAddress());
@@ -80,14 +78,14 @@ public final class FormatConverter {
 	 *
 	 * @see #emailToMimeMessage(Email, Session)
 	 */
-	public static MimeMessage emailToMimeMessage(final Email email) {
-		return emailToMimeMessage(email, Session.getDefaultInstance(new Properties()));
+	public static MimeMessage emailToMimeMessage(@Nonnull final Email email) {
+		return emailToMimeMessage(email, createDummySession());
 	}
 
 	/**
 	 * Refer to {@link MimeMessageHelper#produceMimeMessage(Email, Session)}
 	 */
-	public static MimeMessage emailToMimeMessage(final Email email, final Session session) {
+	public static MimeMessage emailToMimeMessage(@Nonnull final Email email, @Nonnull final Session session) {
 		try {
 			return produceMimeMessage(email, session);
 		} catch (UnsupportedEncodingException | MessagingException e) {
@@ -99,7 +97,7 @@ public final class FormatConverter {
 	/**
 	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} which should be in the standard EML format.
 	 */
-	public static String mimeMessageToEMLString(final MimeMessage message) {
+	public static String mimeMessageToEML(@Nonnull final MimeMessage message) {
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			message.writeTo(os);
@@ -111,11 +109,44 @@ public final class FormatConverter {
 	}
 
 	/**
-	 * Delegates to {@link #emailToMimeMessage(Email)} and passes the result to {@link #mimeMessageToEMLString(MimeMessage)}.
+	 * Delegates to {@link #emailToMimeMessage(Email)} and passes the result to {@link #mimeMessageToEML(MimeMessage)}.
 	 *
 	 * @see #emailToMimeMessage(Email, Session)
 	 */
-	public static String emailToEMLString(final Email email) {
-		return mimeMessageToEMLString(emailToMimeMessage(email));
+	public static String emailToEML(@Nonnull final Email email) {
+		return mimeMessageToEML(emailToMimeMessage(email));
+	}
+
+	/**
+	 * Delegates to {@link #emlToMimeMessage(Session, String)} with an empty {@link Session} instance.
+	 *
+	 * @see #emailToMimeMessage(Email, Session)
+	 */
+	public static MimeMessage emlToMimeMessage(@Nonnull String eml) {
+		return emlToMimeMessage(createDummySession(), eml);
+	}
+
+	/**
+	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
+	 */
+	public static MimeMessage emlToMimeMessage(@Nonnull Session session, @Nonnull final String eml) {
+		try {
+			return new MimeMessage(session, new ByteArrayInputStream(eml.getBytes(UTF_8)));
+		} catch (MessagingException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML, e.getMessage()), e);
+		}
+	}
+
+	/**
+	 * Delegates to {@link #emlToMimeMessage(Session, String)} using a dummy {@link Session} instance and passes the result to {@link
+	 * #mimeMessageToEmail(MimeMessage)};
+	 */
+	public static Email emlToEmail(@Nonnull String eml) {
+		MimeMessage mimeMessage = emlToMimeMessage(createDummySession(), eml);
+		return mimeMessageToEmail(mimeMessage);
+	}
+
+	private static Session createDummySession() {
+		return Session.getDefaultInstance(new Properties());
 	}
 }

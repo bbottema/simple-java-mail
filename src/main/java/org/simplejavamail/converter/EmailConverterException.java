@@ -8,11 +8,13 @@ import org.simplejavamail.MailException;
  * @author Benny Bottema
  */
 @SuppressWarnings("serial")
-class FormatConverterException extends MailException {
+class EmailConverterException extends MailException {
+
+	static final String PARSE_ERROR_EML = "Error parsing EML data: %s";
 
 	static final String PARSE_ERROR_MIMEMESSAGE = "Error parsing MimeMessage: %s";
 
-	public FormatConverterException(final String message, final Exception cause) {
+	public EmailConverterException(final String message, final Exception cause) {
 		super(message, cause);
 	}
 }
