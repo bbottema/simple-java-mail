@@ -29,11 +29,11 @@
       <li><a simplePageScroll href="#section-session-access">Direct access to the internal Session</a></li>
       <li><a simplePageScroll href="#section-dkim">Signing emails with DKIM</a></li>
       <li><a simplePageScroll href="#section-email-validation">Validating Email Addresses</a></li>
-      <li><a simplePageScroll href="#section-conversions">SSL and TLS with Google mail</a></li>
-        <li><a simplePageScroll href="#section-generate-mimemessage" class="indent">Generating a MimeMessage from an Email</a></li>
-        <li><a simplePageScroll href="#section-parse-mimemessage" class="indent">Generating an Email from a MimeMessage</a></li>
-        <li><a simplePageScroll href="#section-export-eml" class="indent">Exporting to EML</a></li>
-        <li><a simplePageScroll href="#section-import-eml" class="indent">Importing EML data</a></li>
+      <li><a simplePageScroll href="#section-converting">Converting</a></li>
+        <li><a simplePageScroll href="#section-generate-mimemessage" class="indent">Email to MimeMessage</a></li>
+        <li><a simplePageScroll href="#section-parse-mimemessage" class="indent">MimeMessage to Email</a></li>
+        <li><a simplePageScroll href="#section-export-eml" class="indent">Email and MimeMEssage to EML</a></li>
+        <li><a simplePageScroll href="#section-import-eml" class="indent">EML to MimeMessage and Email</a></li>
       <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
     </ul>
   </section>
@@ -391,7 +391,7 @@ EmailAddressValidator.isValid("your_address@domain.com",
   
   
   
-  <a href="#section-generate-conversions" id="section-conversions" class="section-link h2">&sect;</a>
+  <a href="#section-generate-converting" id="section-converting" class="section-link h2">&sect;</a>
   <h2>Format conversions</h2>
   
   <section>
@@ -407,7 +407,7 @@ EmailAddressValidator.isValid("your_address@domain.com",
   
   
   <a href="#section-generate-mimemessage" id="section-generate-mimemessage" class="section-link h3">&sect;</a>
-  <h3>Generating a MimeMessage from an Email</h3>
+  <h3>Email to MimeMessage</h3>
   
   <section>
     <div class="view">
@@ -430,7 +430,7 @@ MimeMessage message = EmailConverter.emailToMimeMessage(email, yourSession);
   
   
   <a href="#section-parse-mimemessage" id="section-parse-mimemessage" class="section-link h3">&sect;</a>
-  <h3>Generating an Email from a MimeMessage</h3>
+  <h3>MimeMessage to Email</h3>
   
   <section>
     <div class="view">
@@ -451,7 +451,7 @@ new Mailer().sendMail(email);
   
   
   <a href="#section-export-eml" id="section-export-eml" class="section-link h3">&sect;</a>
-  <h3>Export to EML data</h3>
+  <h3>Email and MimeMessage to EML</h3>
   
   <section>
     <div class="view">
@@ -473,7 +473,7 @@ MimeMessage message = EmailConverter.mimeMessageToEML(mimeMessage);
   
   
   <a href="#section-import-eml" id="section-import-eml" class="section-link h3">&sect;</a>
-  <h3>Import EML data</h3>
+  <h3>EML to MimeMessage and Email</h3>
   
   <section>
     <div class="view">
