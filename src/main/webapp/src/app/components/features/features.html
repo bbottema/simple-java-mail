@@ -21,7 +21,7 @@
       <li><a simplePageScroll href="#section-basic-usage">Basic usage</a></li>
       <li><a simplePageScroll href="#section-custom-session">Sending with your own Session instance</a></li>
       <li><a simplePageScroll href="#section-ssl-tls">Sending with SSL and TLS</a></li>
-      <li><a simplePageScroll href="#section-gmail" class="indent">SSL and TLS with Google mail</a></li>
+        <li><a simplePageScroll href="#section-gmail" class="indent">SSL and TLS with Google mail</a></li>
       <li><a simplePageScroll href="#section-attachments">Adding attachments</a></li>
       <li><a simplePageScroll href="#section-embedding">Embedding images</a></li>
       <li><a simplePageScroll href="#section-custom-headers">Setting custom headers</a></li>
@@ -29,8 +29,11 @@
       <li><a simplePageScroll href="#section-session-access">Direct access to the internal Session</a></li>
       <li><a simplePageScroll href="#section-dkim">Signing emails with DKIM</a></li>
       <li><a simplePageScroll href="#section-email-validation">Validating Email Addresses</a></li>
-      <li><a simplePageScroll href="#section-generate-mimemessage">Generating a MimeMessage from an Email</a></li>
-      <li><a simplePageScroll href="#section-parse-mimemessage">Generating an Email from a MimeMessage</a></li>
+      <li><a simplePageScroll href="#section-conversions">SSL and TLS with Google mail</a></li>
+        <li><a simplePageScroll href="#section-generate-mimemessage" class="indent">Generating a MimeMessage from an Email</a></li>
+        <li><a simplePageScroll href="#section-parse-mimemessage" class="indent">Generating an Email from a MimeMessage</a></li>
+        <li><a simplePageScroll href="#section-export-eml" class="indent">Exporting to EML</a></li>
+        <li><a simplePageScroll href="#section-import-eml" class="indent">Importing EML data</a></li>
       <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
     </ul>
   </section>
@@ -387,8 +390,24 @@ EmailAddressValidator.isValid("your_address@domain.com",
   </section>
   
   
-  <a href="#section-generate-mimemessage" id="section-generate-mimemessage" class="section-link h2">&sect;</a>
-  <h2>Generating a MimeMessage from an Email</h2>
+  
+  <a href="#section-generate-conversions" id="section-conversions" class="section-link h2">&sect;</a>
+  <h2>Format conversions</h2>
+  
+  <section>
+    <div class="view">
+      <p>
+        Conversions are available to and from MimeMessage as well as <a href="http://forensicswiki.org/wiki/EML">EML</a> for importing
+        and exporting purposes.
+      </p>
+    </div>
+    
+    <div class="side">&nbsp;</div>
+  </section>
+  
+  
+  <a href="#section-generate-mimemessage" id="section-generate-mimemessage" class="section-link h3">&sect;</a>
+  <h3>Generating a MimeMessage from an Email</h3>
   
   <section>
     <div class="view">
@@ -402,16 +421,16 @@ EmailAddressValidator.isValid("your_address@domain.com",
 // populate email, the builder is great for this
 
 // then
-MimeMessage message = Mailer.produceMimeMessage(email);
-// or
-MimeMessage message = Mailer.produceMimeMessage(email, yourSession);
+MimeMessage message = EmailConverter.emailToMimeMessage(email);
+// ...or
+MimeMessage message = EmailConverter.emailToMimeMessage(email, yourSession);
 </code></pre>
     </div>
   </section>
   
   
-  <a href="#section-parse-mimemessage" id="section-parse-mimemessage" class="section-link h2">&sect;</a>
-  <h2>Generating an Email from a MimeMessage</h2>
+  <a href="#section-parse-mimemessage" id="section-parse-mimemessage" class="section-link h3">&sect;</a>
+  <h3>Generating an Email from a MimeMessage</h3>
   
   <section>
     <div class="view">
@@ -423,9 +442,54 @@ MimeMessage message = Mailer.produceMimeMessage(email, yourSession);
     
     <div class="side">
 <pre><code>MimeMessage mimeMessage = ...;
-Email email = new Email(mimeMessage);
+Email email = EmailConverter.mimeMessageToEmail(mimeMessage);
 
 new Mailer().sendMail(email);
+</code></pre>
+    </div>
+  </section>
+  
+  
+  <a href="#section-export-eml" id="section-export-eml" class="section-link h3">&sect;</a>
+  <h3>Export to EML data</h3>
+  
+  <section>
+    <div class="view">
+      <p>
+        <a href="http://forensicswiki.org/wiki/EML">EML</a> is an open email format originally by Outlook that works with Outlook as well as a
+        lot of email viewers you can download. The conversion helper in Simple Java Mail can convert from both Email and MimeMesage to and from EML.
+      </p>
+    </div>
+    
+    <div class="side">
+<pre><code>// from Email to EML
+String eml = EmailConverter.emailToEML(email);
+  
+// from MimeMessage to EML
+MimeMessage message = EmailConverter.mimeMessageToEML(mimeMessage);
+</code></pre>
+    </div>
+  </section>
+  
+  
+  <a href="#section-import-eml" id="section-import-eml" class="section-link h3">&sect;</a>
+  <h3>Import EML data</h3>
+  
+  <section>
+    <div class="view">
+      <p>
+        Just as easily as you can export to EML, you can also import EML.
+      </p>
+    </div>
+    
+    <div class="side">
+<pre><code>// from EML to Email
+Email email = EmailConverter.emlToEmail(stringFromEMLFile);
+  
+// from EML to MimeMessage
+MimeMessage message = EmailConverter.emlToMimeMessage(stringFromEMLFile);
+// ...or
+MimeMessage message = EmailConverter.emlToMimeMessage(stringFromEMLFile, yourSession);
 </code></pre>
     </div>
   </section>
