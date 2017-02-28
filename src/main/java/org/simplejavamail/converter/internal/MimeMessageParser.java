@@ -223,7 +223,7 @@ public class MimeMessageParser {
 		}
 	}
 
-	private String parseResourceName(String contentID, String fileName) {
+	private static String parseResourceName(final String contentID, final String fileName) {
 		String extension = "";
 		if (!valueNullOrEmpty(fileName) && fileName.contains(".")) {
 			extension = fileName.substring(fileName.lastIndexOf("."), fileName.length());

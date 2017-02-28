@@ -80,7 +80,7 @@ public class Email {
 		this(true);
 	}
 
-	public Email(boolean readFromDefaults) {
+	public Email(final boolean readFromDefaults) {
 		recipients = new ArrayList<>();
 		embeddedImages = new ArrayList<>();
 		attachments = new ArrayList<>();

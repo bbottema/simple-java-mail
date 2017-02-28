@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
 
-import static org.simplejavamail.converter.FormatConverter.readMimeMessageToEMLString;
+import static org.simplejavamail.converter.FormatConverter.mimeMessageToEMLString;
 
 /**
  * Class that performs the actual javax.mail SMTP integration.
@@ -197,7 +197,7 @@ public class MailSender {
 
 				if (!transportModeLoggingOnly) {
 					LOGGER.trace("\t\nEmail: {}", email);
-					LOGGER.trace("\t\nMimeMessage: {}\n", readMimeMessageToEMLString(message));
+					LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEMLString(message));
 
 					try {
 						transport.connect();
@@ -210,7 +210,7 @@ public class MailSender {
 				} else {
 					LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
 					LOGGER.info("\n\nEmail: {}\n", email);
-					LOGGER.info("\n\nMimeMessage: {}\n", readMimeMessageToEMLString(message));
+					LOGGER.info("\n\nMimeMessage: {}\n", mimeMessageToEMLString(message));
 				}
 			} finally {
 				checkShutDownProxyBridge();
@@ -269,7 +269,7 @@ public class MailSender {
 	 * <p>
 	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
 	 */
-	public void trustAllHosts(boolean trustAllHosts) {
+	public void trustAllHosts(final boolean trustAllHosts) {
 		session.getProperties().remove("mail.smtp.ssl.trust");
 		if (trustAllHosts) {
 			session.getProperties().setProperty("mail.smtp.ssl.trust", "*");
@@ -282,10 +282,10 @@ public class MailSender {
 	 * <p>
 	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
 	 */
-	public void trustHosts(String... hosts) {
+	public void trustHosts(final String... hosts) {
 		trustAllHosts(false);
 		if (hosts.length > 0) {
-			StringBuilder builder = new StringBuilder(hosts[0]);
+			final StringBuilder builder = new StringBuilder(hosts[0]);
 			for (int i = 1; i < hosts.length; i++) {
 				builder.append(",").append(hosts[i]);
 			}
@@ -311,14 +311,14 @@ public class MailSender {
 	 * @param threadPoolSize The maximum number of threads when sending emails in async fashion.
 	 * @see Property#DEFAULT_POOL_SIZE
 	 */
-	public synchronized void setThreadPoolSize(int threadPoolSize) {
+	public synchronized void setThreadPoolSize(final int threadPoolSize) {
 		this.threadPoolSize = threadPoolSize;
 	}
 
 	/**
 	 * Sets the transport mode for this mail sender to logging only, which means no mail will be actually sent out.
 	 */
-	public synchronized void setTransportModeLoggingOnly(boolean transportModeLoggingOnly) {
+	public synchronized void setTransportModeLoggingOnly(final boolean transportModeLoggingOnly) {
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 	}
 

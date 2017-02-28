@@ -45,10 +45,10 @@ public final class MiscUtil {
 	/**
 	 * To make sure email clients can interpret text properly, we need to encode some values according to RFC-2047.
 	 */
-	public static String encodeText(String name) {
+	public static String encodeText(final String name) {
 		try {
 			return MimeUtility.encodeText(name);
-		} catch (UnsupportedEncodingException e) {
+		} catch (final UnsupportedEncodingException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 	}

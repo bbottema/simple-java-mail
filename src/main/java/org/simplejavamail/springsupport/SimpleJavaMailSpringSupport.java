@@ -16,31 +16,31 @@ public class SimpleJavaMailSpringSupport {
 	public Mailer loadGlobalConfigAndCreateDefaultMailer(
 			// now obviously there are easier ways to do this, but this is the only way
 			// I can think of that actually works accross Spring versions
-			@Value("${simplejavamail.javaxmail.debug:#{null}}") String javaxmailDebug,
-			@Value("${simplejavamail.transportstrategy:#{null}}") String transportstrategy,
-			@Value("${simplejavamail.smtp.host:#{null}}") String smtpHost,
-			@Value("${simplejavamail.smtp.port:#{null}}") String smtpPort,
-			@Value("${simplejavamail.smtp.username:#{null}}") String smtpUsername,
-			@Value("${simplejavamail.smtp.password:#{null}}") String smtpPassword,
-			@Value("${simplejavamail.proxy.host:#{null}}") String proxyHost,
-			@Value("${simplejavamail.proxy.port:#{null}}") String proxyPort,
-			@Value("${simplejavamail.proxy.username:#{null}}") String proxyUsername,
-			@Value("${simplejavamail.proxy.password:#{null}}") String proxyPassword,
-			@Value("${simplejavamail.proxy.socks5bridge.port:#{null}}") String proxySocks5bridgePort,
-			@Value("${simplejavamail.defaults.subject:#{null}}") String defaultSubject,
-			@Value("${simplejavamail.defaults.from.name:#{null}}") String defaultFromName,
-			@Value("${simplejavamail.defaults.from.address:#{null}}") String defaultFromAddress,
-			@Value("${simplejavamail.defaults.replyto.name:#{null}}") String defaultReplytoName,
-			@Value("${simplejavamail.defaults.replyto.address:#{null}}") String defaultReplytoAddress,
-			@Value("${simplejavamail.defaults.to.name:#{null}}") String defaultToName,
-			@Value("${simplejavamail.defaults.to.address:#{null}}") String defaultToAddress,
-			@Value("${simplejavamail.defaults.cc.name:#{null}}") String defaultCcName,
-			@Value("${simplejavamail.defaults.cc.address:#{null}}") String defaultCcAddress,
-			@Value("${simplejavamail.defaults.bcc.name:#{null}}") String defaultBccName,
-			@Value("${simplejavamail.defaults.bcc.address:#{null}}") String defaultBccAddress,
-			@Value("${simplejavamail.defaults.poolsize:#{null}}") String defaultPoolsize,
-			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") String defaultTransportModeLoggingOnly) {
-		Properties emailProperties = new Properties();
+			@Value("${simplejavamail.javaxmail.debug:#{null}}") final String javaxmailDebug,
+			@Value("${simplejavamail.transportstrategy:#{null}}") final String transportstrategy,
+			@Value("${simplejavamail.smtp.host:#{null}}") final String smtpHost,
+			@Value("${simplejavamail.smtp.port:#{null}}") final String smtpPort,
+			@Value("${simplejavamail.smtp.username:#{null}}") final String smtpUsername,
+			@Value("${simplejavamail.smtp.password:#{null}}") final String smtpPassword,
+			@Value("${simplejavamail.proxy.host:#{null}}") final String proxyHost,
+			@Value("${simplejavamail.proxy.port:#{null}}") final String proxyPort,
+			@Value("${simplejavamail.proxy.username:#{null}}") final String proxyUsername,
+			@Value("${simplejavamail.proxy.password:#{null}}") final String proxyPassword,
+			@Value("${simplejavamail.proxy.socks5bridge.port:#{null}}") final String proxySocks5bridgePort,
+			@Value("${simplejavamail.defaults.subject:#{null}}") final String defaultSubject,
+			@Value("${simplejavamail.defaults.from.name:#{null}}") final String defaultFromName,
+			@Value("${simplejavamail.defaults.from.address:#{null}}") final String defaultFromAddress,
+			@Value("${simplejavamail.defaults.replyto.name:#{null}}") final String defaultReplytoName,
+			@Value("${simplejavamail.defaults.replyto.address:#{null}}") final String defaultReplytoAddress,
+			@Value("${simplejavamail.defaults.to.name:#{null}}") final String defaultToName,
+			@Value("${simplejavamail.defaults.to.address:#{null}}") final String defaultToAddress,
+			@Value("${simplejavamail.defaults.cc.name:#{null}}") final String defaultCcName,
+			@Value("${simplejavamail.defaults.cc.address:#{null}}") final String defaultCcAddress,
+			@Value("${simplejavamail.defaults.bcc.name:#{null}}") final String defaultBccName,
+			@Value("${simplejavamail.defaults.bcc.address:#{null}}") final String defaultBccAddress,
+			@Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
+			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly) {
+		final Properties emailProperties = new Properties();
 		setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG.key(), javaxmailDebug);
 		setNullableProperty(emailProperties, Property.TRANSPORT_STRATEGY.key(), transportstrategy);
 		setNullableProperty(emailProperties, Property.SMTP_HOST.key(), smtpHost);
@@ -73,7 +73,7 @@ public class SimpleJavaMailSpringSupport {
 		return new Mailer();
 	}
 
-	private void setNullableProperty(Properties emailProperties, String key, String value) {
+	private static void setNullableProperty(final Properties emailProperties, final String key, final String value) {
 		if (value != null) {
 			emailProperties.setProperty(key, value);
 		}

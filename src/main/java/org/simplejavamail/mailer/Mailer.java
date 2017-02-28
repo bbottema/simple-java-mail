@@ -268,7 +268,7 @@ public class Mailer {
 	 *
 	 * @param transportModeLoggingOnly Flag to indicate logging mode yes/no.
 	 */
-	public synchronized void setTransportModeLoggingOnly(boolean transportModeLoggingOnly) {
+	public synchronized void setTransportModeLoggingOnly(final boolean transportModeLoggingOnly) {
 		mailSender.setTransportModeLoggingOnly(transportModeLoggingOnly);
 	}
 
@@ -284,7 +284,7 @@ public class Mailer {
 	 * <p>
 	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
 	 */
-	public void trustAllSSLHosts(boolean trustAllHosts) {
+	public void trustAllSSLHosts(final boolean trustAllHosts) {
 		mailSender.trustAllHosts(trustAllHosts);
 	}
 
@@ -294,7 +294,7 @@ public class Mailer {
 	 * <p>
 	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
 	 */
-	public void trustSSLHosts(String... hosts) {
+	public void trustSSLHosts(final String... hosts) {
 		mailSender.trustHosts(hosts);
 	}
 
@@ -311,7 +311,7 @@ public class Mailer {
 	 * @param poolSize The maximum number of threads when sending emails in async fashion.
 	 * @see Property#DEFAULT_POOL_SIZE
 	 */
-	public void setThreadPoolSize(int poolSize) {
+	public void setThreadPoolSize(final int poolSize) {
 		mailSender.setThreadPoolSize(poolSize);
 	}
 

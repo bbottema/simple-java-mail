@@ -205,11 +205,11 @@ public final class MimeMessageHelper {
 			throws MessagingException {
 		final BodyPart attachmentPart = new MimeBodyPart();
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
-		String resourceName = determineResourceName(attachmentResource, false);
-		String fileName = determineResourceName(attachmentResource, true);
+		final String resourceName = determineResourceName(attachmentResource, false);
+		final String fileName = determineResourceName(attachmentResource, true);
 		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(fileName, attachmentResource.getDataSource())));
 		attachmentPart.setFileName(fileName);
-		String contentType = attachmentResource.getDataSource().getContentType();
+		final String contentType = attachmentResource.getDataSource().getContentType();
 		attachmentPart.setHeader("Content-Type", contentType + "; filename=" + fileName + "; name=" + resourceName);
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
 		attachmentPart.setDisposition(dispositionType + "; size=0");
@@ -219,7 +219,7 @@ public final class MimeMessageHelper {
 	/**
 	 * Determines the right resource name and optionally attaches the correct extension to the name.
 	 */
-	static String determineResourceName(AttachmentResource attachmentResource, boolean includeExtension) {
+	static String determineResourceName(final AttachmentResource attachmentResource, final boolean includeExtension) {
 		final String datasourceName = attachmentResource.getDataSource().getName();
 
 		String resourceName;
@@ -232,15 +232,16 @@ public final class MimeMessageHelper {
 			resourceName = "resource" + UUID.randomUUID();
 		}
 		if (includeExtension && !valueNullOrEmpty(datasourceName)) {
+			@SuppressWarnings("UnnecessaryLocalVariable") final
 			String possibleFilename = datasourceName;
 			if (possibleFilename.contains(".")) {
-				String extension = possibleFilename.substring(possibleFilename.lastIndexOf("."), possibleFilename.length());
+				final String extension = possibleFilename.substring(possibleFilename.lastIndexOf("."), possibleFilename.length());
 				if (!resourceName.endsWith(extension)) {
 					resourceName += extension;
 				}
 			}
 		} else if (!includeExtension && resourceName.contains(".") && resourceName.equals(datasourceName)) {
-			String extension = resourceName.substring(resourceName.lastIndexOf("."), resourceName.length());
+			final String extension = resourceName.substring(resourceName.lastIndexOf("."), resourceName.length());
 			resourceName = resourceName.replace(extension, "");
 		}
 		return resourceName;

@@ -26,13 +26,17 @@ import static org.simplejavamail.internal.util.MiscUtil.extractCID;
  * Utility to help convert {@link org.simplejavamail.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
  */
 @SuppressWarnings("WeakerAccess")
-public class FormatConverter {
+public final class FormatConverter {
+
+	private FormatConverter() {
+		// util / helper class
+	}
 
 	/**
 	 * @param mimeMessage The MimeMessage from which to create the email.
 	 */
 	public static Email mimeMessageToEmail(final MimeMessage mimeMessage) {
-		Email email = new Email(false);
+		final Email email = new Email(false);
 		try {
 			fillEmailFromMimeMessage(email, new MimeMessageParser(mimeMessage).parse());
 		} catch (MessagingException | IOException e) {
@@ -95,8 +99,8 @@ public class FormatConverter {
 	/**
 	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} which should be in the standard EML format.
 	 */
-	public static String mimeMessageToEMLString(MimeMessage message) {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
+	public static String mimeMessageToEMLString(final MimeMessage message) {
+		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			message.writeTo(os);
 			return os.toString(UTF_8.name());
@@ -111,7 +115,7 @@ public class FormatConverter {
 	 *
 	 * @see #emailToMimeMessage(Email, Session)
 	 */
-	public static String emailToEMLString(Email email) {
+	public static String emailToEMLString(final Email email) {
 		return mimeMessageToEMLString(emailToMimeMessage(email));
 	}
 }

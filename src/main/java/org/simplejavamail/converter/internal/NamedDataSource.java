@@ -31,7 +31,7 @@ class NamedDataSource implements DataSource {
 	 * @param dataSource wrapped data source
 	 * @param name       new name of data source
 	 */
-	public NamedDataSource(String name, DataSource dataSource) {
+	public NamedDataSource(final String name, final DataSource dataSource) {
 		this.dataSource = dataSource;
 		this.name = name;
 	}
