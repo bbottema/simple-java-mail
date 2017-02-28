@@ -12,6 +12,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.Properties;
@@ -91,7 +92,10 @@ public class FormatConverter {
 		}
 	}
 
-	public static String readMimeMessageToEMLString(MimeMessage message) {
+	/**
+	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} which should be in the standard EML format.
+	 */
+	public static String mimeMessageToEMLString(MimeMessage message) {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
 			message.writeTo(os);
@@ -100,5 +104,14 @@ public class FormatConverter {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
 			throw new RuntimeException(e.getMessage(), e);
 		}
+	}
+
+	/**
+	 * Delegates to {@link #emailToMimeMessage(Email)} and passes the result to {@link #mimeMessageToEMLString(MimeMessage)}.
+	 *
+	 * @see #emailToMimeMessage(Email, Session)
+	 */
+	public static String emailToEMLString(Email email) {
+		return mimeMessageToEMLString(emailToMimeMessage(email));
 	}
 }
