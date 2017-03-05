@@ -1,8 +1,13 @@
 package org.simplejavamail.converter;
 
-import org.simplejavamail.converter.internal.MimeMessageHelper;
-import org.simplejavamail.converter.internal.MimeMessageParser;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
+import org.simplejavamail.converter.internal.msgparser.OutlookMessageParser;
 import org.simplejavamail.email.Email;
+import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment;
+import org.simplejavamail.outlookmessageparser.model.OutlookMessage;
+import org.simplejavamail.outlookmessageparser.model.OutlookRecipient;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
@@ -11,13 +16,19 @@ import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.Properties;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.simplejavamail.converter.internal.MimeMessageHelper.produceMimeMessage;
+import static org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper.produceMimeMessage;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 
 /**
@@ -36,15 +47,43 @@ public final class EmailConverter {
 	public static Email mimeMessageToEmail(@Nonnull final MimeMessage mimeMessage) {
 		final Email email = new Email(false);
 		try {
-			fillEmailFromMimeMessage(email, new MimeMessageParser(mimeMessage).parse());
+			fillEmailFromMimeMessage(email, mimeMessage);
 		} catch (MessagingException | IOException e) {
 			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_MIMEMESSAGE, e.getMessage()), e);
 		}
 		return email;
 	}
 
-	private static void fillEmailFromMimeMessage(@Nonnull final Email email, @Nonnull final MimeMessageParser parser)
-			throws MessagingException {
+	/**
+	 * @param msgData The content of an Outlook (.msg) message from which to create the email.
+	 */
+	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
+		final Email email = new Email(false);
+		fillEmailFromOutlookMessage(email, OutlookMessageParser.parseOutlookMsg(msgData));
+		return email;
+	}
+
+	/**
+	 * @param msgfile The content of an Outlook (.msg) message from which to create the email.
+	 */
+	public static Email outlookMsgToEmail(@Nonnull final File msgfile) {
+		final Email email = new Email(false);
+		fillEmailFromOutlookMessage(email, OutlookMessageParser.parseOutlookMsg(msgfile));
+		return email;
+	}
+
+	/**
+	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the email.
+	 */
+	public static Email outlookMsgToEmail(@Nonnull final InputStream msgInputStream) {
+		final Email email = new Email(false);
+		fillEmailFromOutlookMessage(email, OutlookMessageParser.parseOutlookMsg(msgInputStream));
+		return email;
+	}
+
+	private static void fillEmailFromMimeMessage(@Nonnull final Email email, @Nonnull final MimeMessage mimeMessage)
+			throws MessagingException, IOException {
+		final MimeMessageParser parser = new MimeMessageParser(mimeMessage).parse();
 		final InternetAddress from = parser.getFrom();
 		email.setFromAddress(from.getPersonal(), from.getAddress());
 		final InternetAddress replyTo = parser.getReplyTo();
@@ -70,6 +109,33 @@ public final class EmailConverter {
 		}
 		for (final Map.Entry<String, DataSource> attachment : parser.getAttachmentList().entrySet()) {
 			email.addAttachment(extractCID(attachment.getKey()), attachment.getValue());
+		}
+	}
+
+	private static void fillEmailFromOutlookMessage(@Nonnull final Email email, @Nonnull final OutlookMessage outlookMessage) {
+		email.setFromAddress(outlookMessage.getFromName(), outlookMessage.getFromEmail());
+		if (!MiscUtil.valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
+			email.setReplyToAddress(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
+		}
+		for (final OutlookRecipient to : outlookMessage.getRecipients()) {
+			email.addRecipient(to.getName(), to.getAddress(), Message.RecipientType.TO);
+		}
+		//noinspection QuestionableName
+		for (final OutlookRecipient cc : outlookMessage.getCcRecipients()) {
+			email.addRecipient(cc.getName(), cc.getAddress(), Message.RecipientType.CC);
+		}
+		for (final OutlookRecipient bcc : outlookMessage.getBccRecipients()) {
+			email.addRecipient(bcc.getName(), bcc.getAddress(), Message.RecipientType.BCC);
+		}
+		email.setSubject(outlookMessage.getSubject());
+		email.setText(outlookMessage.getBodyText());
+		email.setTextHTML(outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML());
+
+		for (final Map.Entry<String, OutlookFileAttachment> cid : outlookMessage.fetchCIDMap().entrySet()) {
+			email.addEmbeddedImage(extractCID(cid.getKey()), cid.getValue().getData(), cid.getValue().getMimeTag());
+		}
+		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
+			email.addAttachment(attachment.getLongFilename(), attachment.getData(), attachment.getMimeTag());
 		}
 	}
 

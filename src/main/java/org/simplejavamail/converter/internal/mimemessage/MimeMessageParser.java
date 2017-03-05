@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.simplejavamail.converter.internal;
+package org.simplejavamail.converter.internal.mimemessage;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -29,8 +29,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
  * <strong>heavily modified version based on org.apache.commons.mail.util.MimeMessageParser.html</strong>
- * Parses a MimeMessage and stores the individual parts such a plain text,
- * HTML text and attachments.
+ * Parses a MimeMessage and stores the individual parts such a plain text, HTML text and attachments.
  *
  * @version current: MimeMessageParser.java 2016-02-25 Benny Bottema
  */

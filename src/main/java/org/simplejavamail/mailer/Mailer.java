@@ -9,7 +9,7 @@ import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.mailsender.MailSender;
-import org.simplejavamail.converter.internal.MimeMessageHelper;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

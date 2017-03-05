@@ -1,4 +1,4 @@
-package org.simplejavamail.converter.internal;
+package org.simplejavamail.converter.internal.mimemessage;
 
 import net.markenwerk.utils.mail.dkim.Canonicalization;
 import net.markenwerk.utils.mail.dkim.DkimMessage;

@@ -1,9 +1,9 @@
-package org.simplejavamail.converter.internal;
+package org.simplejavamail.converter.internal.mimemessage;
 
 import org.simplejavamail.MailException;
 
 /**
- * This exception is used to communicate errors during the sending of email.
+ * This exception is used to communicate errors during parsing of a {@link javax.mail.internet.MimeMessage}.
  *
  * @author Benny Bottema
  */

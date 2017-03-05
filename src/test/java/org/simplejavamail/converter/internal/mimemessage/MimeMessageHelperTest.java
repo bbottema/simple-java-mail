@@ -1,8 +1,7 @@
-package org.simplejavamail.converter.internal;
+package org.simplejavamail.converter.internal.mimemessage;
 
 import org.junit.Test;
 import org.simplejavamail.email.AttachmentResource;
-import org.simplejavamail.converter.internal.MimeMessageHelper;
 
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;

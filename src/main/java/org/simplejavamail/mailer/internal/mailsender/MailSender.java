@@ -1,7 +1,7 @@
 package org.simplejavamail.mailer.internal.mailsender;
 
 import org.simplejavamail.MailException;
-import org.simplejavamail.converter.internal.MimeMessageHelper;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;

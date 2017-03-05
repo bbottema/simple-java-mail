@@ -1,4 +1,4 @@
-package org.simplejavamail.converter.internal;
+package org.simplejavamail.converter.internal.mimemessage;
 
 import javax.activation.DataSource;
 import java.io.IOException;
