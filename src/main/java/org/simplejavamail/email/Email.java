@@ -163,21 +163,21 @@ public class Email {
 	}
 
 	/**
-	 * Bean setters for {@link #subject}.
+	 * Bean setter for {@link #subject}.
 	 */
 	public void setSubject(final String subject) {
 		this.subject = subject;
 	}
 
 	/**
-	 * Bean setters for {@link #text}.
+	 * Bean setter for {@link #text}.
 	 */
 	public void setText(final String text) {
 		this.text = text;
 	}
 
 	/**
-	 * Bean setters for {@link #textHTML}.
+	 * Bean setter for {@link #textHTML}.
 	 */
 	public void setTextHTML(final String textHTML) {
 		this.textHTML = textHTML;
