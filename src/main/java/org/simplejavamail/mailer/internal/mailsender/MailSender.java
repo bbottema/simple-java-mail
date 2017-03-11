@@ -43,6 +43,7 @@ public class MailSender {
 	 *
 	 * @see Property#DEFAULT_POOL_SIZE
 	 */
+	@SuppressWarnings("JavaDoc")
 	private static final int DEFAULT_POOL_SIZE = 10;
 
 	/**

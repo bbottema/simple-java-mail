@@ -9,28 +9,28 @@ import java.io.InputStream;
 /**
  * Helper class that parses {@link OutlookMessage} instances from the {@link org.simplejavamail.outlookmessageparser.OutlookMessageParser} library.
  */
-public class OutlookMessageParser {
+public final class OutlookMessageParser {
 
-	public static OutlookMessage parseOutlookMsg(File msgFile) {
+	public static OutlookMessage parseOutlookMsg(final File msgFile) {
 		try {
 			return new org.simplejavamail.outlookmessageparser.OutlookMessageParser().parseMsg(msgFile);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new OutlookMessageException(OutlookMessageException.ERROR_PARSING_OUTLOOK_MSG, e);
 		}
 	}
 
-	public static OutlookMessage parseOutlookMsg(InputStream msgInputStream) {
+	public static OutlookMessage parseOutlookMsg(final InputStream msgInputStream) {
 		try {
 			return new org.simplejavamail.outlookmessageparser.OutlookMessageParser().parseMsg(msgInputStream);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new OutlookMessageException(OutlookMessageException.ERROR_PARSING_OUTLOOK_MSG, e);
 		}
 	}
 
-	public static OutlookMessage parseOutlookMsg(String msgData) {
+	public static OutlookMessage parseOutlookMsg(final String msgData) {
 		try {
 			return new org.simplejavamail.outlookmessageparser.OutlookMessageParser().parseMsg(msgData);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new OutlookMessageException(OutlookMessageException.ERROR_PARSING_OUTLOOK_MSG, e);
 		}
 	}

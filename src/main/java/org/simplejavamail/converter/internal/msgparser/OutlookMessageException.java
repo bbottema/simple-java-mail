@@ -13,7 +13,7 @@ class OutlookMessageException extends MailException {
 
 	static final String ERROR_PARSING_OUTLOOK_MSG = "Unable to parse Outlook message";
 
-	OutlookMessageException(final String message, final Exception cause) {
+	OutlookMessageException(@SuppressWarnings("SameParameterValue") final String message, final Exception cause) {
 		super(message, cause);
 	}
 }

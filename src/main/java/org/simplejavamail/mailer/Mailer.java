@@ -327,7 +327,7 @@ public class Mailer {
 	 * @see MailSender#send(Email, boolean)
 	 * @see #validate(Email)
 	 */
-	public final synchronized void sendMail(final Email email, final boolean async) {
+	public final synchronized void sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (validate(email)) {
 			mailSender.send(email, async);
 		}
