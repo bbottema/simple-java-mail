@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.util;
 
+import javax.annotation.Nullable;
 import javax.mail.internet.MimeUtility;
 import java.io.UnsupportedEncodingException;
 import java.util.regex.Pattern;
@@ -45,7 +46,10 @@ public final class MiscUtil {
 	/**
 	 * To make sure email clients can interpret text properly, we need to encode some values according to RFC-2047.
 	 */
-	public static String encodeText(final String name) {
+	public static String encodeText(@Nullable final String name) {
+		if (name == null) {
+			return null;
+		}
 		try {
 			return MimeUtility.encodeText(name);
 		} catch (final UnsupportedEncodingException e) {

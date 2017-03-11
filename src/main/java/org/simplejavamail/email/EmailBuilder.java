@@ -3,6 +3,8 @@ package org.simplejavamail.email;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.mail.Message;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
@@ -12,9 +14,21 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.simplejavamail.util.ConfigLoader.Property.*;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_FROM_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_SUBJECT;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_TO_NAME;
 import static org.simplejavamail.util.ConfigLoader.getProperty;
 import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
@@ -120,31 +134,51 @@ public class EmailBuilder {
 	}
 
 	/**
-	 * Sets the sender address.
+	 * Sets the sender address {@link #fromRecipient}.
 	 *
 	 * @param name        The sender's name.
 	 * @param fromAddress The sender's email address.
 	 */
-	public EmailBuilder from(final String name, final String fromAddress) {
+	public EmailBuilder from(@Nullable final String name, @Nonnull final String fromAddress) {
 		this.fromRecipient = new Recipient(name, fromAddress, null);
 		return this;
 	}
 
 	/**
-	 * Sets the reply-to address (optional).
+	 * Sets the sender address {@link #fromRecipient} with preconfigured {@link Recipient}.
+	 *
+	 * @param recipient Preconfigured recipient (name is optional).
+	 */
+	public EmailBuilder from(@Nonnull final Recipient recipient) {
+		this.fromRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
+		return this;
+	}
+
+	/**
+	 * Sets {@link #replyToRecipient} (optional).
 	 *
 	 * @param name           The replied-to-receiver name.
 	 * @param replyToAddress The replied-to-receiver email address.
 	 */
-	public EmailBuilder replyTo(final String name, final String replyToAddress) {
+	public EmailBuilder replyTo(@Nullable final String name, @Nonnull final String replyToAddress) {
 		this.replyToRecipient = new Recipient(name, replyToAddress, null);
+		return this;
+	}
+
+	/**
+	 * Sets {@link #replyToRecipient} (optional) with preconfigured {@link Recipient}.
+	 *
+	 * @param recipient Preconfigured recipient (name is optional).
+	 */
+	public EmailBuilder replyTo(@Nonnull final Recipient recipient) {
+		this.replyToRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
 		return this;
 	}
 
 	/**
 	 * Sets the {@link #subject}.
 	 */
-	public EmailBuilder subject(final String subject) {
+	public EmailBuilder subject(@Nonnull final String subject) {
 		this.subject = subject;
 		return this;
 	}
@@ -152,7 +186,7 @@ public class EmailBuilder {
 	/**
 	 * Sets the {@link #text}.
 	 */
-	public EmailBuilder text(final String text) {
+	public EmailBuilder text(@Nullable final String text) {
 		this.text = text;
 		return this;
 	}
@@ -160,7 +194,7 @@ public class EmailBuilder {
 	/**
 	 * Sets the {@link #textHTML}.
 	 */
-	public EmailBuilder textHTML(final String textHTML) {
+	public EmailBuilder textHTML(@Nullable final String textHTML) {
 		this.textHTML = textHTML;
 		return this;
 	}
@@ -173,20 +207,56 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder to(final String name, final String address) {
+	public EmailBuilder to(@Nullable final String name, @Nonnull final String address) {
 		recipients.add(new Recipient(name, address, Message.RecipientType.TO));
 		return this;
 	}
 
 	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link Message.RecipientType#TO}.
+	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#TO}.
 	 *
-	 * @param recipient The recipent whose name and address to use
+	 * @param recipientsToAdd The recipients whose name and address to use
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder to(final Recipient recipient) {
-		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.TO));
+	public EmailBuilder to(@Nonnull final Recipient... recipientsToAdd) {
+		for (Recipient recipient : recipientsToAdd) {
+			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.TO));
+		}
+		return this;
+	}
+
+	/**
+	 * Adds anew {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#TO}. List can be
+	 * comma ',' or semicolon ';' separated.
+	 *
+	 * @param emailAddressList The recipients whose address to use for both name and address
+	 * @see #recipients
+	 * @see Recipient
+	 */
+	public EmailBuilder to(@Nonnull String emailAddressList) {
+		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.TO);
+	}
+
+	@Nonnull
+	private EmailBuilder addCommaOrSemicolonSeparatedEmailAddresses(@Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
+		for (String emailAddress : emailAddressList.replace(';', ',').split(",")) {
+			recipients.add(new Recipient(null, emailAddress, type));
+		}
+		return this;
+	}
+
+	/**
+	 * Adds new {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#TO}.
+	 *
+	 * @param emailAddresses The recipients whose address to use for both name and address
+	 * @see #recipients
+	 * @see Recipient
+	 */
+	public EmailBuilder to(@Nonnull String... emailAddresses) {
+		for (String emailAddress : emailAddresses) {
+			recipients.add(new Recipient(null, emailAddress, Message.RecipientType.TO));
+		}
 		return this;
 	}
 
@@ -199,21 +269,49 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	@SuppressWarnings({ "WeakerAccess", "QuestionableName" })
-	public EmailBuilder cc(final String name, final String address) {
+	public EmailBuilder cc(@Nullable final String name, @Nonnull final String address) {
 		recipients.add(new Recipient(name, address, Message.RecipientType.CC));
 		return this;
 	}
 
 	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link Message.RecipientType#CC}.
+	 * Adds new {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#CC}.
 	 *
-	 * @param recipient The recipent whose name and address to use
+	 * @param emailAddresses The recipients whose address to use for both name and address
+	 * @see #recipients
+	 * @see Recipient
+	 */
+	public EmailBuilder cc(@Nonnull String... emailAddresses) {
+		for (String emailAddress : emailAddresses) {
+			recipients.add(new Recipient(null, emailAddress, Message.RecipientType.CC));
+		}
+		return this;
+	}
+
+	/**
+	 * Adds anew {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#CC}. List can be
+	 * comma ',' or semicolon ';' separated.
+	 *
+	 * @param emailAddressList The recipients whose address to use for both name and address
+	 * @see #recipients
+	 * @see Recipient
+	 */
+	public EmailBuilder cc(@Nonnull String emailAddressList) {
+		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.CC);
+	}
+
+	/**
+	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#CC}.
+	 *
+	 * @param recipientsToAdd The recipients whose name and address to use
 	 * @see #recipients
 	 * @see Recipient
 	 */
 	@SuppressWarnings("QuestionableName")
-	public EmailBuilder cc(final Recipient recipient) {
-		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.CC));
+	public EmailBuilder cc(@Nonnull final Recipient... recipientsToAdd) {
+		for (Recipient recipient : recipientsToAdd) {
+			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.CC));
+		}
 		return this;
 	}
 
@@ -226,20 +324,48 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public EmailBuilder bcc(final String name, final String address) {
+	public EmailBuilder bcc(@Nullable final String name, @Nonnull final String address) {
 		recipients.add(new Recipient(name, address, Message.RecipientType.BCC));
 		return this;
 	}
 
 	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link Message.RecipientType#BCC}.
+	 * Adds new {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#BCC}.
 	 *
-	 * @param recipient The recipent whose name and address to use
+	 * @param emailAddresses The recipients whose address to use for both name and address
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder bcc(final Recipient recipient) {
-		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.BCC));
+	public EmailBuilder bcc(@Nonnull String... emailAddresses) {
+		for (String emailAddress : emailAddresses) {
+			recipients.add(new Recipient(null, emailAddress, Message.RecipientType.BCC));
+		}
+		return this;
+	}
+
+	/**
+	 * Adds anew {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#BCC}. List can be
+	 * comma ',' or semicolon ';' separated.
+	 *
+	 * @param emailAddressList The recipients whose address to use for both name and address
+	 * @see #recipients
+	 * @see Recipient
+	 */
+	public EmailBuilder bcc(@Nonnull String emailAddressList) {
+		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.BCC);
+	}
+
+	/**
+	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#BCC}.
+	 *
+	 * @param recipientsToAdd The recipients whose name and address to use
+	 * @see #recipients
+	 * @see Recipient
+	 */
+	public EmailBuilder bcc(@Nonnull final Recipient... recipientsToAdd) {
+		for (Recipient recipient : recipientsToAdd) {
+			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.BCC));
+		}
 		return this;
 	}
 
@@ -253,7 +379,7 @@ public class EmailBuilder {
 	 * @see ByteArrayDataSource
 	 * @see Email#addEmbeddedImage(String, DataSource)
 	 */
-	public EmailBuilder embedImage(final String name, final byte[] data, final String mimetype) {
+	public EmailBuilder embedImage(@Nonnull final String name, @Nonnull final byte[] data, @Nonnull final String mimetype) {
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 		dataSource.setName(name);
 		return embedImage(name, dataSource);
@@ -262,11 +388,15 @@ public class EmailBuilder {
 	/**
 	 * Overloaded method which sets an embedded image on account of name and {@link DataSource}.
 	 *
-	 * @param name      The name of the image as being referred to from the message content body (eg. 'embeddedimage').
+	 * @param name      The name of the image as being referred to from the message content body (eg. 'embeddedimage'). If not provided, the name of the given
+	 *                  data source is used instead.
 	 * @param imagedata The image data.
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public EmailBuilder embedImage(final String name, final DataSource imagedata) {
+	public EmailBuilder embedImage(@Nullable final String name, @Nonnull final DataSource imagedata) {
+		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName())) {
+			throw new EmailException(EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE);
+		}
 		embeddedImages.add(new AttachmentResource(name, imagedata));
 		return this;
 	}
@@ -278,7 +408,7 @@ public class EmailBuilder {
 	 * @param name  The name of the header.
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
 	 */
-	public EmailBuilder addHeader(final String name, final Object value) {
+	public EmailBuilder addHeader(@Nonnull final String name, @Nonnull final Object value) {
 		headers.put(name, String.valueOf(value));
 		return this;
 	}
@@ -293,7 +423,7 @@ public class EmailBuilder {
 	 * @see ByteArrayDataSource
 	 * @see #addAttachment(String, DataSource)
 	 */
-	public EmailBuilder addAttachment(final String name, final byte[] data, final String mimetype) {
+	public EmailBuilder addAttachment(@Nonnull final String name, @Nonnull final byte[] data, @Nonnull final String mimetype) {
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 		dataSource.setName(MiscUtil.encodeText(name));
 		addAttachment(MiscUtil.encodeText(name), dataSource);
@@ -306,7 +436,7 @@ public class EmailBuilder {
 	 * @param name     The name of the attachment (eg. 'filename.ext').
 	 * @param filedata The attachment data.
 	 */
-	public EmailBuilder addAttachment(final String name, final DataSource filedata) {
+	public EmailBuilder addAttachment(@Nullable final String name, @Nonnull final DataSource filedata) {
 		attachments.add(new AttachmentResource(MiscUtil.encodeText(name), filedata));
 		return this;
 	}
@@ -314,7 +444,7 @@ public class EmailBuilder {
 	/**
 	 * Sets all info needed for DKIM, using a byte array for private key data.
 	 */
-	public EmailBuilder signWithDomainKey(final byte[] dkimPrivateKey, final String signingDomain, final String selector) {
+	public EmailBuilder signWithDomainKey(@Nonnull final byte[] dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String selector) {
 		this.dkimPrivateKeyInputStream = new ByteArrayInputStream(dkimPrivateKey);
 		this.signingDomain = signingDomain;
 		this.selector = selector;
@@ -324,7 +454,7 @@ public class EmailBuilder {
 	/**
 	 * Sets all info needed for DKIM, using a byte array for private key data.
 	 */
-	public EmailBuilder signWithDomainKey(final String dkimPrivateKey, final String signingDomain, final String selector) {
+	public EmailBuilder signWithDomainKey(@Nonnull final String dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String selector) {
 		this.dkimPrivateKeyInputStream = new ByteArrayInputStream(dkimPrivateKey.getBytes(UTF_8));
 		this.signingDomain = signingDomain;
 		this.selector = selector;
@@ -334,7 +464,7 @@ public class EmailBuilder {
 	/**
 	 * Sets all info needed for DKIM, using a file reference for private key data.
 	 */
-	public EmailBuilder signWithDomainKey(final File dkimPrivateKeyFile, final String signingDomain, final String selector) {
+	public EmailBuilder signWithDomainKey(@Nonnull final File dkimPrivateKeyFile, @Nonnull final String signingDomain, @Nonnull final String selector) {
 		this.dkimPrivateKeyFile = dkimPrivateKeyFile;
 		this.signingDomain = signingDomain;
 		this.selector = selector;
@@ -344,7 +474,8 @@ public class EmailBuilder {
 	/**
 	 * Sets all info needed for DKIM, using an input stream for private key data.
 	 */
-	public EmailBuilder signWithDomainKey(final InputStream dkimPrivateKeyInputStream, final String signingDomain, final String selector) {
+	public EmailBuilder signWithDomainKey(@Nonnull final InputStream dkimPrivateKeyInputStream, @Nonnull final String signingDomain,
+			@Nonnull final String selector) {
 		this.dkimPrivateKeyInputStream = dkimPrivateKeyInputStream;
 		this.signingDomain = signingDomain;
 		this.selector = selector;

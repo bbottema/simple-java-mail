@@ -3,12 +3,15 @@ package org.simplejavamail.email;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.mail.Message.RecipientType;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.InputStream;
 import java.util.*;
 
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.util.ConfigLoader.Property.*;
 import static org.simplejavamail.util.ConfigLoader.getProperty;
 import static org.simplejavamail.util.ConfigLoader.hasProperty;
@@ -112,7 +115,7 @@ public class Email {
 	 * As {@link #signWithDomainKey(InputStream, String, String)}, but with a File reference that is later read as {@code InputStream}.
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public void signWithDomainKey(final File dkimPrivateKeyFile, final String signingDomain, final String selector) {
+	public void signWithDomainKey(@Nonnull final File dkimPrivateKeyFile, @Nonnull final String signingDomain, @Nonnull final String selector) {
 		this.applyDKIMSignature = true;
 		this.dkimPrivateKeyFile = dkimPrivateKeyFile;
 		this.signingDomain = signingDomain;
@@ -135,7 +138,7 @@ public class Email {
 	 * @param selector                  Additional domain specifier.
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public void signWithDomainKey(final InputStream dkimPrivateKeyInputStream, final String signingDomain, final String selector) {
+	public void signWithDomainKey(@Nonnull final InputStream dkimPrivateKeyInputStream, @Nonnull final String signingDomain, @Nonnull final String selector) {
 		this.applyDKIMSignature = true;
 		this.dkimPrivateKeyInputStream = dkimPrivateKeyInputStream;
 		this.signingDomain = signingDomain;
@@ -148,7 +151,7 @@ public class Email {
 	 * @param name        The sender's name.
 	 * @param fromAddress The sender's email address.
 	 */
-	public void setFromAddress(final String name, final String fromAddress) {
+	public void setFromAddress(@Nullable final String name, @Nonnull final String fromAddress) {
 		fromRecipient = new Recipient(name, fromAddress, null);
 	}
 
@@ -158,28 +161,28 @@ public class Email {
 	 * @param name           The replied-to-receiver name.
 	 * @param replyToAddress The replied-to-receiver email address.
 	 */
-	public void setReplyToAddress(final String name, final String replyToAddress) {
+	public void setReplyToAddress(@Nullable final String name, @Nonnull final String replyToAddress) {
 		replyToRecipient = new Recipient(name, replyToAddress, null);
 	}
 
 	/**
 	 * Bean setter for {@link #subject}.
 	 */
-	public void setSubject(final String subject) {
+	public void setSubject(@Nonnull final String subject) {
 		this.subject = subject;
 	}
 
 	/**
 	 * Bean setter for {@link #text}.
 	 */
-	public void setText(final String text) {
+	public void setText(@Nullable final String text) {
 		this.text = text;
 	}
 
 	/**
 	 * Bean setter for {@link #textHTML}.
 	 */
-	public void setTextHTML(final String textHTML) {
+	public void setTextHTML(@Nullable final String textHTML) {
 		this.textHTML = textHTML;
 	}
 
@@ -193,7 +196,7 @@ public class Email {
 	 * @see Recipient
 	 * @see RecipientType
 	 */
-	public void addRecipient(final String name, final String address, final RecipientType type) {
+	public void addRecipient(@Nullable final String name, @Nonnull final String address, @Nonnull final RecipientType type) {
 		recipients.add(new Recipient(name, address, type));
 	}
 
@@ -207,7 +210,7 @@ public class Email {
 	 * @see ByteArrayDataSource
 	 * @see #addEmbeddedImage(String, DataSource)
 	 */
-	public void addEmbeddedImage(final String name, final byte[] data, final String mimetype) {
+	public void addEmbeddedImage(@Nonnull final String name, @Nonnull final byte[] data, @Nonnull final String mimetype) {
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 		dataSource.setName(name);
 		addEmbeddedImage(name, dataSource);
@@ -220,7 +223,10 @@ public class Email {
 	 * @param imagedata The image data.
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public void addEmbeddedImage(final String name, final DataSource imagedata) {
+	public void addEmbeddedImage(@Nullable final String name, @Nonnull final DataSource imagedata) {
+		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName())) {
+			throw new EmailException(EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE);
+		}
 		embeddedImages.add(new AttachmentResource(name, imagedata));
 	}
 
@@ -232,7 +238,7 @@ public class Email {
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public void addHeader(final String name, final Object value) {
+	public void addHeader(@Nonnull final String name, @Nonnull final Object value) {
 		headers.put(name, String.valueOf(value));
 	}
 
@@ -246,7 +252,7 @@ public class Email {
 	 * @see ByteArrayDataSource
 	 * @see #addAttachment(String, DataSource)
 	 */
-	public void addAttachment(final String name, final byte[] data, final String mimetype) {
+	public void addAttachment(@Nonnull final String name, @Nonnull final byte[] data, @Nonnull final String mimetype) {
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 			dataSource.setName(MiscUtil.encodeText(name));
 			addAttachment(MiscUtil.encodeText(name), dataSource);
@@ -258,7 +264,7 @@ public class Email {
 	 * @param name     The name of the attachment (eg. 'filename.ext').
 	 * @param filedata The attachment data.
 	 */
-	public void addAttachment(final String name, final DataSource filedata) {
+	public void addAttachment(@Nullable final String name, @Nonnull final DataSource filedata) {
 		attachments.add(new AttachmentResource(MiscUtil.encodeText(name), filedata));
 	}
 
@@ -376,7 +382,7 @@ public class Email {
 	 *
 	 * @param builder The builder from which to create the email.
 	 */
-	Email(final EmailBuilder builder) {
+	Email(@Nonnull final EmailBuilder builder) {
 		recipients = builder.getRecipients();
 		embeddedImages = builder.getEmbeddedImages();
 		attachments = builder.getAttachments();
