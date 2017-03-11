@@ -71,7 +71,7 @@ final class EqualsHelper {
 		}
 		assert otherRecipient != null;
 		assert recipient != null;
-		if (recipient.getAddress() != null ? !recipient.getAddress().equals(otherRecipient.getAddress()) : otherRecipient.getAddress() != null) {
+		if (!recipient.getAddress().equals(otherRecipient.getAddress())) {
 			return false;
 		}
 		return recipient.getType() != null ? recipient.getType().equals(otherRecipient.getType()) : otherRecipient.getType() == null;

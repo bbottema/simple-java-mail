@@ -178,8 +178,8 @@ public class EmailBuilderTest {
 		}
 		try {
 			builder.embedImage(null, new byte[3], "mimetype");
-			failBecauseExceptionWasNotThrown(EmailException.class);
-		} catch (EmailException e) {
+			failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
+		} catch (IllegalArgumentException e) {
 			// ok
 		}
 	}

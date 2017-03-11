@@ -5,6 +5,8 @@ import javax.annotation.Nullable;
 import javax.mail.Message.RecipientType;
 import java.util.Objects;
 
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+
 /**
  * An immutable recipient object, with a name, emailaddress and recipient type (eg {@link RecipientType#BCC}).
  * 
@@ -29,7 +31,7 @@ public final class Recipient {
 	 */
 	public Recipient(@Nullable final String name, @Nonnull final String address, @Nullable final RecipientType type) {
 		this.name = name;
-		this.address = address;
+		this.address = checkNonEmptyArgument(address, "address");
 		this.type = type;
 	}
 

@@ -30,6 +30,7 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper.produceMimeMessage;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * Utility to help convert {@link org.simplejavamail.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
@@ -47,7 +48,7 @@ public final class EmailConverter {
 	public static Email mimeMessageToEmail(@Nonnull final MimeMessage mimeMessage) {
 		final Email email = new Email(false);
 		try {
-			fillEmailFromMimeMessage(email, mimeMessage);
+			fillEmailFromMimeMessage(email, checkNonEmptyArgument(mimeMessage, "mimeMessage"));
 		} catch (MessagingException | IOException e) {
 			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_MIMEMESSAGE, e.getMessage()), e);
 		}
@@ -59,7 +60,8 @@ public final class EmailConverter {
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
 		final Email email = new Email(false);
-		fillEmailFromOutlookMessage(email, OutlookMessageParser.parseOutlookMsg(msgData));
+		OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgData, "msgData"));
+		fillEmailFromOutlookMessage(email, outlookMessage);
 		return email;
 	}
 
@@ -68,7 +70,8 @@ public final class EmailConverter {
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final File msgfile) {
 		final Email email = new Email(false);
-		fillEmailFromOutlookMessage(email, OutlookMessageParser.parseOutlookMsg(msgfile));
+		OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgfile, "msgfile"));
+		fillEmailFromOutlookMessage(email, outlookMessage);
 		return email;
 	}
 
@@ -77,12 +80,15 @@ public final class EmailConverter {
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final InputStream msgInputStream) {
 		final Email email = new Email(false);
-		fillEmailFromOutlookMessage(email, OutlookMessageParser.parseOutlookMsg(msgInputStream));
+		OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream"));
+		fillEmailFromOutlookMessage(email, outlookMessage);
 		return email;
 	}
 
 	private static void fillEmailFromMimeMessage(@Nonnull final Email email, @Nonnull final MimeMessage mimeMessage)
 			throws MessagingException, IOException {
+		checkNonEmptyArgument(email, "email");
+		checkNonEmptyArgument(mimeMessage, "mimeMessage");
 		final MimeMessageParser parser = new MimeMessageParser(mimeMessage).parse();
 		final InternetAddress from = parser.getFrom();
 		email.setFromAddress(from.getPersonal(), from.getAddress());
@@ -113,6 +119,8 @@ public final class EmailConverter {
 	}
 
 	private static void fillEmailFromOutlookMessage(@Nonnull final Email email, @Nonnull final OutlookMessage outlookMessage) {
+		checkNonEmptyArgument(email, "email");
+		checkNonEmptyArgument(outlookMessage, "outlookMessage");
 		email.setFromAddress(outlookMessage.getFromName(), outlookMessage.getFromEmail());
 		if (!MiscUtil.valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
 			email.setReplyToAddress(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
@@ -145,7 +153,7 @@ public final class EmailConverter {
 	 * @see #emailToMimeMessage(Email, Session)
 	 */
 	public static MimeMessage emailToMimeMessage(@Nonnull final Email email) {
-		return emailToMimeMessage(email, createDummySession());
+		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession());
 	}
 
 	/**
@@ -153,7 +161,7 @@ public final class EmailConverter {
 	 */
 	public static MimeMessage emailToMimeMessage(@Nonnull final Email email, @Nonnull final Session session) {
 		try {
-			return produceMimeMessage(email, session);
+			return produceMimeMessage(checkNonEmptyArgument(email, "email"), checkNonEmptyArgument(session, "session"));
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
 			throw new RuntimeException(e.getMessage(), e);
@@ -163,10 +171,10 @@ public final class EmailConverter {
 	/**
 	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} which should be in the standard EML format.
 	 */
-	public static String mimeMessageToEML(@Nonnull final MimeMessage message) {
+	public static String mimeMessageToEML(@Nonnull final MimeMessage mimeMessage) {
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		try {
-			message.writeTo(os);
+			checkNonEmptyArgument(mimeMessage, "mimeMessage").writeTo(os);
 			return os.toString(UTF_8.name());
 		} catch (IOException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
@@ -180,7 +188,7 @@ public final class EmailConverter {
 	 * @see #emailToMimeMessage(Email, Session)
 	 */
 	public static String emailToEML(@Nonnull final Email email) {
-		return mimeMessageToEML(emailToMimeMessage(email));
+		return mimeMessageToEML(emailToMimeMessage(checkNonEmptyArgument(email, "email")));
 	}
 
 	/**
@@ -189,13 +197,15 @@ public final class EmailConverter {
 	 * @see #emailToMimeMessage(Email, Session)
 	 */
 	public static MimeMessage emlToMimeMessage(@Nonnull final String eml) {
-		return emlToMimeMessage(createDummySession(), eml);
+		return emlToMimeMessage(createDummySession(), checkNonEmptyArgument(eml, "eml"));
 	}
 
 	/**
 	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
 	 */
 	public static MimeMessage emlToMimeMessage(@Nonnull final Session session, @Nonnull final String eml) {
+		checkNonEmptyArgument(session, "session");
+		checkNonEmptyArgument(eml, "eml");
 		try {
 			return new MimeMessage(session, new ByteArrayInputStream(eml.getBytes(UTF_8)));
 		} catch (final MessagingException e) {
@@ -208,7 +218,7 @@ public final class EmailConverter {
 	 * #mimeMessageToEmail(MimeMessage)};
 	 */
 	public static Email emlToEmail(@Nonnull final String eml) {
-		final MimeMessage mimeMessage = emlToMimeMessage(createDummySession(), eml);
+		final MimeMessage mimeMessage = emlToMimeMessage(createDummySession(), checkNonEmptyArgument(eml, "eml"));
 		return mimeMessageToEmail(mimeMessage);
 	}
 

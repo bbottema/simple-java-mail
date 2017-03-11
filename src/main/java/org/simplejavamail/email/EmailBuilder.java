@@ -14,10 +14,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
@@ -140,6 +140,7 @@ public class EmailBuilder {
 	 * @param fromAddress The sender's email address.
 	 */
 	public EmailBuilder from(@Nullable final String name, @Nonnull final String fromAddress) {
+		checkNonEmptyArgument(fromAddress, "fromAddress");
 		this.fromRecipient = new Recipient(name, fromAddress, null);
 		return this;
 	}
@@ -150,6 +151,7 @@ public class EmailBuilder {
 	 * @param recipient Preconfigured recipient (name is optional).
 	 */
 	public EmailBuilder from(@Nonnull final Recipient recipient) {
+		checkNonEmptyArgument(recipient, "recipient");
 		this.fromRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
 		return this;
 	}
@@ -161,6 +163,7 @@ public class EmailBuilder {
 	 * @param replyToAddress The replied-to-receiver email address.
 	 */
 	public EmailBuilder replyTo(@Nullable final String name, @Nonnull final String replyToAddress) {
+		checkNonEmptyArgument(replyToAddress, "replyToAddress");
 		this.replyToRecipient = new Recipient(name, replyToAddress, null);
 		return this;
 	}
@@ -171,6 +174,7 @@ public class EmailBuilder {
 	 * @param recipient Preconfigured recipient (name is optional).
 	 */
 	public EmailBuilder replyTo(@Nonnull final Recipient recipient) {
+		checkNonEmptyArgument(recipient, "recipient");
 		this.replyToRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
 		return this;
 	}
@@ -179,7 +183,7 @@ public class EmailBuilder {
 	 * Sets the {@link #subject}.
 	 */
 	public EmailBuilder subject(@Nonnull final String subject) {
-		this.subject = subject;
+		this.subject = checkNonEmptyArgument(subject, "subject");
 		return this;
 	}
 
@@ -208,6 +212,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder to(@Nullable final String name, @Nonnull final String address) {
+		checkNonEmptyArgument(address, "address");
 		recipients.add(new Recipient(name, address, Message.RecipientType.TO));
 		return this;
 	}
@@ -220,7 +225,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder to(@Nonnull final Recipient... recipientsToAdd) {
-		for (Recipient recipient : recipientsToAdd) {
+		for (Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
 			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.TO));
 		}
 		return this;
@@ -235,12 +240,14 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder to(@Nonnull String emailAddressList) {
+		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.TO);
 	}
 
 	@Nonnull
 	private EmailBuilder addCommaOrSemicolonSeparatedEmailAddresses(@Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
-		for (String emailAddress : emailAddressList.replace(';', ',').split(",")) {
+		checkNonEmptyArgument(type, "type");
+		for (String emailAddress : checkNonEmptyArgument(emailAddressList, "emailAddressList").replace(';', ',').split(",")) {
 			recipients.add(new Recipient(null, emailAddress, type));
 		}
 		return this;
@@ -254,7 +261,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder to(@Nonnull String... emailAddresses) {
-		for (String emailAddress : emailAddresses) {
+		for (String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
 			recipients.add(new Recipient(null, emailAddress, Message.RecipientType.TO));
 		}
 		return this;
@@ -270,6 +277,7 @@ public class EmailBuilder {
 	 */
 	@SuppressWarnings({ "WeakerAccess", "QuestionableName" })
 	public EmailBuilder cc(@Nullable final String name, @Nonnull final String address) {
+		checkNonEmptyArgument(address, "address");
 		recipients.add(new Recipient(name, address, Message.RecipientType.CC));
 		return this;
 	}
@@ -282,7 +290,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder cc(@Nonnull String... emailAddresses) {
-		for (String emailAddress : emailAddresses) {
+		for (String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
 			recipients.add(new Recipient(null, emailAddress, Message.RecipientType.CC));
 		}
 		return this;
@@ -297,6 +305,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder cc(@Nonnull String emailAddressList) {
+		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.CC);
 	}
 
@@ -309,7 +318,7 @@ public class EmailBuilder {
 	 */
 	@SuppressWarnings("QuestionableName")
 	public EmailBuilder cc(@Nonnull final Recipient... recipientsToAdd) {
-		for (Recipient recipient : recipientsToAdd) {
+		for (Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
 			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.CC));
 		}
 		return this;
@@ -325,6 +334,7 @@ public class EmailBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public EmailBuilder bcc(@Nullable final String name, @Nonnull final String address) {
+		checkNonEmptyArgument(address, "address");
 		recipients.add(new Recipient(name, address, Message.RecipientType.BCC));
 		return this;
 	}
@@ -337,7 +347,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder bcc(@Nonnull String... emailAddresses) {
-		for (String emailAddress : emailAddresses) {
+		for (String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
 			recipients.add(new Recipient(null, emailAddress, Message.RecipientType.BCC));
 		}
 		return this;
@@ -352,6 +362,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder bcc(@Nonnull String emailAddressList) {
+		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.BCC);
 	}
 
@@ -363,7 +374,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder bcc(@Nonnull final Recipient... recipientsToAdd) {
-		for (Recipient recipient : recipientsToAdd) {
+		for (Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
 			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.BCC));
 		}
 		return this;
@@ -380,6 +391,10 @@ public class EmailBuilder {
 	 * @see Email#addEmbeddedImage(String, DataSource)
 	 */
 	public EmailBuilder embedImage(@Nonnull final String name, @Nonnull final byte[] data, @Nonnull final String mimetype) {
+		checkNonEmptyArgument(name, "name");
+		checkNonEmptyArgument(data, "data");
+		checkNonEmptyArgument(mimetype, "mimetype");
+
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 		dataSource.setName(name);
 		return embedImage(name, dataSource);
@@ -394,6 +409,7 @@ public class EmailBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public EmailBuilder embedImage(@Nullable final String name, @Nonnull final DataSource imagedata) {
+		checkNonEmptyArgument(imagedata, "imagedata");
 		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName())) {
 			throw new EmailException(EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE);
 		}
@@ -409,6 +425,8 @@ public class EmailBuilder {
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
 	 */
 	public EmailBuilder addHeader(@Nonnull final String name, @Nonnull final Object value) {
+		checkNonEmptyArgument(name, "name");
+		checkNonEmptyArgument(value, "value");
 		headers.put(name, String.valueOf(value));
 		return this;
 	}
@@ -423,7 +441,9 @@ public class EmailBuilder {
 	 * @see ByteArrayDataSource
 	 * @see #addAttachment(String, DataSource)
 	 */
-	public EmailBuilder addAttachment(@Nonnull final String name, @Nonnull final byte[] data, @Nonnull final String mimetype) {
+	public EmailBuilder addAttachment(@Nullable final String name, @Nonnull final byte[] data, @Nonnull final String mimetype) {
+		checkNonEmptyArgument(data, "data");
+		checkNonEmptyArgument(mimetype, "mimetype");
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 		dataSource.setName(MiscUtil.encodeText(name));
 		addAttachment(MiscUtil.encodeText(name), dataSource);
@@ -437,6 +457,7 @@ public class EmailBuilder {
 	 * @param filedata The attachment data.
 	 */
 	public EmailBuilder addAttachment(@Nullable final String name, @Nonnull final DataSource filedata) {
+		checkNonEmptyArgument(filedata, "filedata");
 		attachments.add(new AttachmentResource(MiscUtil.encodeText(name), filedata));
 		return this;
 	}
@@ -445,9 +466,9 @@ public class EmailBuilder {
 	 * Sets all info needed for DKIM, using a byte array for private key data.
 	 */
 	public EmailBuilder signWithDomainKey(@Nonnull final byte[] dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String selector) {
-		this.dkimPrivateKeyInputStream = new ByteArrayInputStream(dkimPrivateKey);
-		this.signingDomain = signingDomain;
-		this.selector = selector;
+		this.dkimPrivateKeyInputStream = new ByteArrayInputStream(checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey"));
+		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
+		this.selector = checkNonEmptyArgument(selector, "selector");
 		return this;
 	}
 
@@ -455,9 +476,10 @@ public class EmailBuilder {
 	 * Sets all info needed for DKIM, using a byte array for private key data.
 	 */
 	public EmailBuilder signWithDomainKey(@Nonnull final String dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String selector) {
+		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
 		this.dkimPrivateKeyInputStream = new ByteArrayInputStream(dkimPrivateKey.getBytes(UTF_8));
-		this.signingDomain = signingDomain;
-		this.selector = selector;
+		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
+		this.selector = checkNonEmptyArgument(selector, "selector");
 		return this;
 	}
 
@@ -465,9 +487,9 @@ public class EmailBuilder {
 	 * Sets all info needed for DKIM, using a file reference for private key data.
 	 */
 	public EmailBuilder signWithDomainKey(@Nonnull final File dkimPrivateKeyFile, @Nonnull final String signingDomain, @Nonnull final String selector) {
-		this.dkimPrivateKeyFile = dkimPrivateKeyFile;
-		this.signingDomain = signingDomain;
-		this.selector = selector;
+		this.dkimPrivateKeyFile = checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile");
+		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
+		this.selector = checkNonEmptyArgument(selector, "selector");
 		return this;
 	}
 
@@ -476,9 +498,9 @@ public class EmailBuilder {
 	 */
 	public EmailBuilder signWithDomainKey(@Nonnull final InputStream dkimPrivateKeyInputStream, @Nonnull final String signingDomain,
 			@Nonnull final String selector) {
-		this.dkimPrivateKeyInputStream = dkimPrivateKeyInputStream;
-		this.signingDomain = signingDomain;
-		this.selector = selector;
+		this.dkimPrivateKeyInputStream = checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream");
+		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
+		this.selector = checkNonEmptyArgument(selector, "selector");
 		return this;
 	}
 

@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.util.*;
 
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.util.ConfigLoader.Property.*;
 import static org.simplejavamail.util.ConfigLoader.getProperty;
 import static org.simplejavamail.util.ConfigLoader.hasProperty;
@@ -117,9 +118,9 @@ public class Email {
 	@SuppressWarnings("WeakerAccess")
 	public void signWithDomainKey(@Nonnull final File dkimPrivateKeyFile, @Nonnull final String signingDomain, @Nonnull final String selector) {
 		this.applyDKIMSignature = true;
-		this.dkimPrivateKeyFile = dkimPrivateKeyFile;
-		this.signingDomain = signingDomain;
-		this.selector = selector;
+		this.dkimPrivateKeyFile = checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile");
+		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
+		this.selector = checkNonEmptyArgument(selector, "selector");
 	}
 
 	/**
@@ -140,9 +141,9 @@ public class Email {
 	@SuppressWarnings("WeakerAccess")
 	public void signWithDomainKey(@Nonnull final InputStream dkimPrivateKeyInputStream, @Nonnull final String signingDomain, @Nonnull final String selector) {
 		this.applyDKIMSignature = true;
-		this.dkimPrivateKeyInputStream = dkimPrivateKeyInputStream;
-		this.signingDomain = signingDomain;
-		this.selector = selector;
+		this.dkimPrivateKeyInputStream = checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream");
+		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
+		this.selector = checkNonEmptyArgument(selector, "selector");
 	}
 
 	/**
@@ -152,7 +153,7 @@ public class Email {
 	 * @param fromAddress The sender's email address.
 	 */
 	public void setFromAddress(@Nullable final String name, @Nonnull final String fromAddress) {
-		fromRecipient = new Recipient(name, fromAddress, null);
+		fromRecipient = new Recipient(name, checkNonEmptyArgument(fromAddress, "fromAddress"), null);
 	}
 
 	/**
@@ -162,14 +163,14 @@ public class Email {
 	 * @param replyToAddress The replied-to-receiver email address.
 	 */
 	public void setReplyToAddress(@Nullable final String name, @Nonnull final String replyToAddress) {
-		replyToRecipient = new Recipient(name, replyToAddress, null);
+		replyToRecipient = new Recipient(name, checkNonEmptyArgument(replyToAddress, "replyToAddress"), null);
 	}
 
 	/**
 	 * Bean setter for {@link #subject}.
 	 */
 	public void setSubject(@Nonnull final String subject) {
-		this.subject = subject;
+		this.subject = checkNonEmptyArgument(subject, "subject");
 	}
 
 	/**
@@ -197,6 +198,8 @@ public class Email {
 	 * @see RecipientType
 	 */
 	public void addRecipient(@Nullable final String name, @Nonnull final String address, @Nonnull final RecipientType type) {
+		checkNonEmptyArgument(address, "address");
+		checkNonEmptyArgument(type, "type");
 		recipients.add(new Recipient(name, address, type));
 	}
 
@@ -211,6 +214,9 @@ public class Email {
 	 * @see #addEmbeddedImage(String, DataSource)
 	 */
 	public void addEmbeddedImage(@Nonnull final String name, @Nonnull final byte[] data, @Nonnull final String mimetype) {
+		checkNonEmptyArgument(name, "name");
+		checkNonEmptyArgument(data, "data");
+		checkNonEmptyArgument(mimetype, "mimetype");
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 		dataSource.setName(name);
 		addEmbeddedImage(name, dataSource);
@@ -224,6 +230,7 @@ public class Email {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public void addEmbeddedImage(@Nullable final String name, @Nonnull final DataSource imagedata) {
+		checkNonEmptyArgument(imagedata, "imagedata");
 		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName())) {
 			throw new EmailException(EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE);
 		}
@@ -239,6 +246,8 @@ public class Email {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public void addHeader(@Nonnull final String name, @Nonnull final Object value) {
+		checkNonEmptyArgument(name, "name");
+		checkNonEmptyArgument(value, "value");
 		headers.put(name, String.valueOf(value));
 	}
 
@@ -253,6 +262,10 @@ public class Email {
 	 * @see #addAttachment(String, DataSource)
 	 */
 	public void addAttachment(@Nonnull final String name, @Nonnull final byte[] data, @Nonnull final String mimetype) {
+		checkNonEmptyArgument(name, "name");
+		checkNonEmptyArgument(data, "data");
+		checkNonEmptyArgument(mimetype, "mimetype");
+
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 			dataSource.setName(MiscUtil.encodeText(name));
 			addAttachment(MiscUtil.encodeText(name), dataSource);
@@ -265,6 +278,7 @@ public class Email {
 	 * @param filedata The attachment data.
 	 */
 	public void addAttachment(@Nullable final String name, @Nonnull final DataSource filedata) {
+		checkNonEmptyArgument(filedata, "filedata");
 		attachments.add(new AttachmentResource(MiscUtil.encodeText(name), filedata));
 	}
 
@@ -383,6 +397,7 @@ public class Email {
 	 * @param builder The builder from which to create the email.
 	 */
 	Email(@Nonnull final EmailBuilder builder) {
+		checkNonEmptyArgument(builder, "builder");
 		recipients = builder.getRecipients();
 		embeddedImages = builder.getEmbeddedImages();
 		attachments = builder.getAttachments();

@@ -3,6 +3,7 @@ package org.simplejavamail.internal.util;
 import javax.annotation.Nullable;
 import javax.mail.internet.MimeUtility;
 import java.io.UnsupportedEncodingException;
+import java.util.Collection;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.toHexString;
@@ -26,7 +27,10 @@ public final class MiscUtil {
 	}
 
 	public static <T> boolean valueNullOrEmpty(final T value) {
-		return value == null || (value instanceof String && ((String) value).isEmpty());
+		return value == null ||
+				(value instanceof String && ((String) value).isEmpty()) ||
+				(value instanceof Collection && ((Collection<?>) value).isEmpty()) ||
+				(value instanceof byte[] && ((byte[]) value).length == 0);
 	}
 
 	public static String buildLogString(final byte[] bytes, final boolean isReceived) {
