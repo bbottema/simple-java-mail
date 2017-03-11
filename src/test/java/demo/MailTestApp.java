@@ -15,7 +15,7 @@ import java.nio.charset.Charset;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
 /**
- * Demonstration program for the Simple Java Mail framework.
+ * Demonstration program for the Simple Java Mail framework. Just fill your gmail, password and press GO.
  *
  * @author Benny Bottema
  */
