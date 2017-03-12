@@ -114,13 +114,25 @@ public class EmailBuilder {
 			replyTo((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
 		}
 		if (hasProperty(DEFAULT_TO_ADDRESS)) {
-			to((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS));
+			if (hasProperty(DEFAULT_TO_NAME)) {
+				to((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS));
+			} else {
+				to((String) getProperty(DEFAULT_TO_ADDRESS));
+			}
 		}
 		if (hasProperty(DEFAULT_CC_ADDRESS)) {
-			cc((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS));
+			if (hasProperty(DEFAULT_CC_NAME)) {
+				cc((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS));
+			} else {
+				cc((String) getProperty(DEFAULT_CC_ADDRESS));
+			}
 		}
 		if (hasProperty(DEFAULT_BCC_ADDRESS)) {
-			bcc((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS));
+			if (hasProperty(DEFAULT_BCC_NAME)) {
+				bcc((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS));
+			} else {
+				bcc((String) getProperty(DEFAULT_BCC_ADDRESS));
+			}
 		}
 		if (hasProperty(DEFAULT_SUBJECT)) {
 			subject((String) getProperty(DEFAULT_SUBJECT));
