@@ -90,11 +90,11 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link #emlToMimeMessage(Session, String)} using a dummy {@link Session} instance and passes the result to {@link
+	 * Delegates to {@link #emlToMimeMessage(String, Session)} using a dummy {@link Session} instance and passes the result to {@link
 	 * #mimeMessageToEmail(MimeMessage)};
 	 */
 	public static Email emlToEmail(@Nonnull final String eml) {
-		final MimeMessage mimeMessage = emlToMimeMessage(createDummySession(), checkNonEmptyArgument(eml, "eml"));
+		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
 		return mimeMessageToEmail(mimeMessage);
 	}
 
@@ -151,18 +151,18 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link #emlToMimeMessage(Session, String)} with an empty {@link Session} instance.
+	 * Delegates to {@link #emlToMimeMessage(String, Session)} with an empty {@link Session} instance.
 	 *
 	 * @see #emailToMimeMessage(Email, Session)
 	 */
 	public static MimeMessage emlToMimeMessage(@Nonnull final String eml) {
-		return emlToMimeMessage(createDummySession(), checkNonEmptyArgument(eml, "eml"));
+		return emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
 	}
 
 	/**
 	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
 	 */
-	public static MimeMessage emlToMimeMessage(@Nonnull final Session session, @Nonnull final String eml) {
+	public static MimeMessage emlToMimeMessage(@Nonnull final String eml, @Nonnull final Session session) {
 		checkNonEmptyArgument(session, "session");
 		checkNonEmptyArgument(eml, "eml");
 		try {

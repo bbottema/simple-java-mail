@@ -5,7 +5,6 @@ import org.simplejavamail.internal.util.MiscUtil;
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.mail.Message;
 import javax.mail.Message.RecipientType;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
@@ -117,21 +116,21 @@ public class Email {
 				if (hasProperty(DEFAULT_TO_NAME)) {
 					addRecipient((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
 				} else {
-					addRecipient((String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
+					addRecipients((String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
 				}
 			}
 			if (hasProperty(DEFAULT_CC_ADDRESS)) {
 				if (hasProperty(DEFAULT_CC_NAME)) {
 					addRecipient((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
 				} else {
-					addRecipient((String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
+					addRecipients((String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
 				}
 			}
 			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 				if (hasProperty(DEFAULT_BCC_NAME)) {
 					addRecipient((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
 				} else {
-					addRecipient((String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
+					addRecipients((String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
 				}
 			}
 			if (hasProperty(DEFAULT_SUBJECT)) {
@@ -240,18 +239,40 @@ public class Email {
 	 * @see Recipient
 	 * @see RecipientType
 	 */
-	public void addRecipient(@Nonnull final String emailAddressList, @Nonnull final RecipientType type) {
-		addCommaOrSemicolonSeparatedEmailAddresses(
-				checkNonEmptyArgument(emailAddressList, "emailAddressList"),
-				checkNonEmptyArgument(type, "type")
-		);
+	public void addRecipients(@Nonnull final String emailAddressList, @Nonnull final RecipientType type) {
+		checkNonEmptyArgument(type, "type");
+		checkNonEmptyArgument(emailAddressList, "emailAddressList");
+		addRecipients(type, extractEmailAddresses(emailAddressList));
 	}
 
-	@Nonnull
-	private void addCommaOrSemicolonSeparatedEmailAddresses(@Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
+	/**
+	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
+	 *
+	 * @param recipientEmailAddressesToAdd List of preconfigured recipients.
+	 * @see #recipients
+	 * @see Recipient
+	 * @see RecipientType
+	 */
+	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
 		checkNonEmptyArgument(type, "type");
-		for (String emailAddress : extractEmailAddresses(checkNonEmptyArgument(emailAddressList, "emailAddressList"))) {
+		for (String emailAddress : checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd")) {
 			recipients.add(new Recipient(null, emailAddress, type));
+		}
+	}
+
+	/**
+	 * Adds all given {@link Recipient} instances to the list (as copies) on account of name, address and recipient type (eg. {@link RecipientType#CC}).
+	 *
+	 * @param recipientsToAdd List of preconfigured recipients.
+	 * @see #recipients
+	 * @see Recipient
+	 * @see RecipientType
+	 */
+	public void addRecipients(@Nonnull final Recipient... recipientsToAdd) {
+		for (Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
+			final String address = checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
+			final RecipientType type = checkNonEmptyArgument(recipient.getType(), "recipient.type");
+			recipients.add(new Recipient(recipient.getName(), address, type));
 		}
 	}
 
