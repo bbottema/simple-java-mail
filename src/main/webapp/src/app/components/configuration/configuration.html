@@ -93,7 +93,7 @@ new Mailer(session, new ProxyConfig("proxy.host.com", 1080, "proxy user", "proxy
     </div>
 
     <div class="side">
-      <pre><code>// make javax.mail produce more logging
+      <pre><code>// make the underlying javax.mail produce more logging
 mailer.setDebug(true);
 </code></pre>
 <pre><code>
@@ -159,6 +159,9 @@ ConfigLoader.loadProperties(new File("d:/replace-from-environment.properties"), 
 ConfigLoader.loadProperties(usingMyOwnInputStream, addProperties);
 ConfigLoader.loadProperties(usingMyOwnPropertiesObject, addProperties);
 </code></pre>
+      This clears everything:
+      <pre><code class="small">ConfigLoader.loadProperties(new Properties(), /* addProperties = */ false);
+</code></pre>
     </div>
   </section>
 
@@ -168,7 +171,7 @@ ConfigLoader.loadProperties(usingMyOwnPropertiesObject, addProperties);
   <section>
     <div class="view">
       <p>
-        The default recipients are like admin features, where you notify a person whenever a mail goes out from a certain mailer.
+        Almost everything can be set as a default property. This way you can easily configure environments without changing the code.
       </p>
     </div>
 
