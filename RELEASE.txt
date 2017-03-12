@@ -3,8 +3,23 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.1.2</version>
+    <version>4.2.0</version>
 </dependency>
+
+v4.2.0 (12-Feb-2017)
+
+Major feature: Using the EmailConverter you can now convert between Outlook .msg, EML, MimeMessage and Email!
+
+- #66: Feature: convert email to EML
+- #65: Feature: read outlook messages from .msg file
+- #64: Feature: Added support for logging-only mode that skips the actual sending of emails
+- #69: Enhancement: Expanded EmailBuilder API to inlude more options for setting (multiple) recipients
+- #70: Enhancement: Most public API now have defensive null-checks for required fields (Fail Fast support)
+- #68: Bugfix: Name should be required for embedded images (added safeguards)
+- #67: Bugfix: Error when name was omitted for attachment
+- minor: added methods on AttachmentResource that reads back the content as (encoded) String
+- other: internal testing is now done using Wiser SMTP test server for testing live sending emails
+
 
 v4.1.3 (28-Jan-2017)
 

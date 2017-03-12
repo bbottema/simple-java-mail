@@ -15,3 +15,4 @@
     - Sun Java Mail API, shipped with JavaEE or as seperate download) (http://java.sun.com/products/javamail/)
     - Email Validation regular expressions, by Les Hazlewood, Casey Connor, Benny Bottema (https://github.com/bbottema/email-rfc2822-validator)
     - DKIM signing library https://github.com/markenwerk/java-utils-mail-dkim (based on https://github.com/usrflo/DKIM-for-JavaMail)
+    - Outlook Message Parser https://github.com/bbottema/outlook-message-parser (based on http://auxilii.com/msgparser/)
