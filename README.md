@@ -41,11 +41,12 @@ new Mailer(
 
 Simple Java Mail is available in Maven Central:
 
-```
+```xml
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
     <version>4.2.0</version>
+    <!--version>4.2.0-java6-release</version-->
 </dependency>
 ```
 
@@ -64,6 +65,8 @@ Simple Java Mail is available in Maven Central:
 - [#67](https://github.com/bbottema/simple-java-mail/issues/67): Bugfix: Error when name was omitted for attachment
 - minor: added methods on AttachmentResource that reads back the content as (encoded) String
 - other: internal testing is now done using Wiser SMTP test server for testing live sending emails
+
+**Note**: Starting this release, there will always be a Java6 compatible release as well versioned: "x.y.z-java6-release"
 
 
 [v4.1.3](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.1.3%7Cjar) (28-Jan-2017)
