@@ -346,5 +346,29 @@
                 </plugins>
             </build>
         </profile>
+
+        <profile>
+            <id>travis-verify-skip-unsupported-tests</id>
+            <activation>
+                <property>
+                    <name>excludeLiveServerTests</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.19.1</version>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/*LiveTest.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
