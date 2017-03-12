@@ -167,6 +167,16 @@
     </distributionManagement>
 
     <build>
+        <resources>
+            <resource>
+                <directory>.</directory>
+                <includes>
+                    <include>LICENSE-2.0.txt</include>
+                    <include>NOTICE.txt</include>
+                    <include>RELEASE.txt</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
