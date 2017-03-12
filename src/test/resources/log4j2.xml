@@ -18,6 +18,7 @@
             <AppenderRef ref="simpleConsole" />
         </Logger>
         <Logger name="org.simplejavamail.mailer.internal.socks" level="info"/>
+        <Logger name="org.subethamail.smtp.server" level="info"/>
 
         <Root level="debug">
             <AppenderRef ref="console" />

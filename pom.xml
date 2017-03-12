@@ -147,6 +147,12 @@
             <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
+        <dependency><!-- SMTP test server -->
+            <groupId>org.subethamail</groupId>
+            <artifactId>subethasmtp</artifactId>
+            <version>3.1.7</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <distributionManagement>
@@ -176,6 +182,24 @@
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
                 <version>2.5.2</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-assertions-generator-maven-plugin</artifactId>
+                <version>2.0.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate-assertions</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <classes>
+                        <param>org.simplejavamail.email.Email</param>
+                    </classes>
+                </configuration>
             </plugin>
 
             <plugin>
