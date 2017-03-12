@@ -121,6 +121,43 @@ inhouseMailer.sendMail(anotherEmail);
    &lt;constructor-arg value=&quot;password&quot; /&gt;
 &lt;/bean&gt;
 </code></pre>
+      Or the default one from Spring support:
+      <pre><code>
+@Autowired Mailer mailer; // configured completely using default properties
+</code></pre>
+    </div>
+  </section>
+  
+  
+  <a href="#section-add-recipients" id="section-add-recipients" class="section-link h3">&sect;</a>
+  <h3>Alternative API for almost everything</h3>
+  
+  <section>
+    <div class="view">
+      <p>
+        There alternative ways to do this in Email for almost everything, just to accomodate what you already have.
+      </p>
+    </div>
+    
+    <div class="side">
+      <p><code class="inline">Email</code>:</p>
+      <pre><code>// You can add your own Recipient instances for example
+email.addRecipients(yourRecipient1, yourRecipient2...);
+
+// or add comma / semicolon separated addresses (without names)
+String list = "twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com";
+emailNormal.addRecipients(list, RecipientType.BCC);
+</code></pre>
+      <p><code class="inline">EmailBuilder</code>:</p>
+      <pre><code>.to(yourRecipient1, yourRecipient2...)
+.bcc("twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com")
+...
+.build();
+</code></pre>
+      <p>Through properties:</p>
+      <pre><code class="language-properties small">simplejavamail.defaults.bcc.name=
+simplejavamail.defaults.bcc.address=twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com
+</code></pre>
     </div>
   </section>
   
@@ -131,11 +168,11 @@ inhouseMailer.sendMail(anotherEmail);
   <section>
     <div class="view">
       <p>
-        The default mode is to send emails synchronously, blocking execution until the email was processed completely and the STMP server send a
+        The default mode is to send emails synchronously, blocking execution until the email was processed completely and the STMP server sent a
         succesful result.
       </p>
       <p>
-        You can also sent anyschronously in parallel or batches, or simply send in a fire-and-forget way. If an authenticated proxy is used, the <a
+        You can also send anyschronously in parallel or batches, or simply send in a fire-and-forget way. If an authenticated proxy is used, the <a
         simplePageScroll href="#section-proxy">proxy briding server</a> is kept alive until the last email has been sent.</p>
       <p>
         Depending on the SMTP server (and proxy server if used) this can greatly influence how fast emails are sent.
