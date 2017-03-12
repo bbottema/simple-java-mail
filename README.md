@@ -59,6 +59,7 @@ Simple Java Mail is available in Maven Central:
 - [#66](https://github.com/bbottema/simple-java-mail/issues/66): Feature: convert email to EML
 - [#65](https://github.com/bbottema/simple-java-mail/issues/65): Feature: read outlook messages from .msg file
 - [#64](https://github.com/bbottema/simple-java-mail/issues/64): **Feature: Added support for logging-only mode that skips the actual sending of emails**
+- [#63](https://github.com/bbottema/simple-java-mail/issues/63): Feature: Already including in previous patch update: Spring support (read properties from Spring context)
 - [#69](https://github.com/bbottema/simple-java-mail/issues/69): Enhancement: Expanded EmailBuilder API to inlude more options for setting (multiple) recipients
 - [#70](https://github.com/bbottema/simple-java-mail/issues/70): Enhancement: Most public API now have defensive null-checks for required fields (Fail Fast support)
 - [#68](https://github.com/bbottema/simple-java-mail/issues/68): Bugfix: Name should be required for embedded images (added safeguards)
