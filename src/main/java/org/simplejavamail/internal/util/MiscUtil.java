@@ -1,12 +1,19 @@
 package org.simplejavamail.internal.util;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.internet.MimeUtility;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.toHexString;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 public final class MiscUtil {
 
@@ -46,7 +53,6 @@ public final class MiscUtil {
 		return b & 0xFF;
 	}
 
-
 	/**
 	 * To make sure email clients can interpret text properly, we need to encode some values according to RFC-2047.
 	 */
@@ -61,7 +67,24 @@ public final class MiscUtil {
 		}
 	}
 
-	public static String extractCID(final String cid) {
-		return (cid != null) ?  MATCH_INSIDE_CIDBRACKETS.matcher(cid).replaceAll("$1") : null;
+	@Nullable
+	public static String extractCID(@Nullable final String cid) {
+		return (cid != null) ? MATCH_INSIDE_CIDBRACKETS.matcher(cid).replaceAll("$1") : null;
+	}
+
+	/**
+	 * Uses standard JDK java to read an inputstream to String using the given encoding (in {@link ByteArrayOutputStream#toString(String)}).
+	 */
+	@Nonnull
+	public static String readInputStreamToString(@Nonnull final InputStream inputStream, @Nonnull final Charset charset)
+			throws IOException {
+		BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+		int result = bufferedInputStream.read();
+		while (result != -1) {
+			byteArrayOutputStream.write((byte) result);
+			result = bufferedInputStream.read();
+		}
+		return byteArrayOutputStream.toString(checkNonEmptyArgument(charset, "charset").name());
 	}
 }

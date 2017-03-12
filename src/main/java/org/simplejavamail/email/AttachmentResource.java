@@ -1,6 +1,15 @@
 package org.simplejavamail.email;
 
+import org.simplejavamail.internal.util.MiscUtil;
+
 import javax.activation.DataSource;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.charset.Charset;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * A named immutable email attachment information object. The name can be a simple name, a filename or a named embedded image (eg.
@@ -29,9 +38,30 @@ public class AttachmentResource {
 	 * @param dataSource The attachment data. If no name was provided, the name of this datasource is used if provided.
 	 * @see DataSource
 	 */
-	public AttachmentResource(final String name, final DataSource dataSource) {
+	public AttachmentResource(@Nullable final String name, @Nonnull final DataSource dataSource) {
 		this.name = name;
-		this.dataSource = dataSource;
+		this.dataSource = checkNonEmptyArgument(dataSource, "dataSource");
+	}
+
+	/**
+	 * @return The content of the datasource as UTF-8 encoded String.
+	 * @throws IOException See {@link #readAllData(Charset)}
+	 */
+	@Nonnull
+	public String readAllData()
+			throws IOException {
+		return readAllData(UTF_8);
+	}
+
+	/**
+	 * @return The content of the datasource as String, using IOUtils#toByteArray.
+	 * @throws IOException See {@link #readAllData(Charset)}
+	 */
+	@Nonnull
+	public String readAllData(@Nonnull final Charset charset)
+			throws IOException {
+		checkNonEmptyArgument(charset, "charset");
+		return MiscUtil.readInputStreamToString(dataSource.getInputStream(), charset);
 	}
 
 	/**
@@ -44,6 +74,7 @@ public class AttachmentResource {
 	/**
 	 * @return {@link #name}
 	 */
+	@Nullable
 	public String getName() {
 		return name;
 	}
@@ -60,6 +91,7 @@ public class AttachmentResource {
 	}
 
 	@Override
+	@Nonnull
 	public String toString() {
 		return "AttachmentResource{" +
 				"\n\t\tname='" + name + '\'' +
