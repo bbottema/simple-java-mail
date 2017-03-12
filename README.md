@@ -118,6 +118,7 @@ Simple Java Mail is available in Maven Central:
 - [#33](https://github.com/bbottema/simple-java-mail/issues/33): Added support for DKIM domain key signing
 
 *NOTE*: this is the last release still using Java 6. Next release will be using Java 7.
+/edit: starting with 4.2.0 every release will now have a "x.y.z-java6-release" release as well
 
 
 [v3.0.2](http://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C3.0.2%7Cjar) (07-May-2016)

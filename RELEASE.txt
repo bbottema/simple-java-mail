@@ -72,6 +72,7 @@ Major feature: DKIM support!
 - #33: Added support for DKIM domain key signing
 
 NOTE: this is the last release still using Java 6. Next release will be using Java 7.
+/edit: starting with 4.2.0 every release will now have a "x.y.z-java6-release" release as well
 
 
 v3.0.2 (07-May-2016)
