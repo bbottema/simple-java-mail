@@ -29,11 +29,7 @@
       <li><a simplePageScroll href="#section-session-access">Direct access to the internal Session</a></li>
       <li><a simplePageScroll href="#section-dkim">Signing emails with DKIM</a></li>
       <li><a simplePageScroll href="#section-email-validation">Validating Email Addresses</a></li>
-      <li><a simplePageScroll href="#section-converting">Converting</a></li>
-        <li><a simplePageScroll href="#section-generate-mimemessage" class="indent">Email to MimeMessage</a></li>
-        <li><a simplePageScroll href="#section-parse-mimemessage" class="indent">MimeMessage to Email</a></li>
-        <li><a simplePageScroll href="#section-export-eml" class="indent">Email and MimeMEssage to EML</a></li>
-        <li><a simplePageScroll href="#section-import-eml" class="indent">EML to MimeMessage and Email</a></li>
+      <li><a simplePageScroll href="#section-converting">Converting between email formats</a></li>
       <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
     </ul>
   </section>
@@ -392,104 +388,49 @@ EmailAddressValidator.isValid("your_address@domain.com",
   
   
   <a href="#section-generate-converting" id="section-converting" class="section-link h2">&sect;</a>
-  <h2>Format conversions</h2>
+  <h2>Converting between, Email, MimeMessage, EML and Outlook .msg</h2>
   
   <section>
     <div class="view">
       <p>
-        Conversions are available to and from MimeMessage as well as <a href="http://forensicswiki.org/wiki/EML">EML</a> for importing
-        and exporting purposes.
+        With Simple Java Mail you can easily convert to other types.
       </p>
-    </div>
-    
-    <div class="side">&nbsp;</div>
-  </section>
-  
-  
-  <a href="#section-generate-mimemessage" id="section-generate-mimemessage" class="section-link h3">&sect;</a>
-  <h3>Email to MimeMessage</h3>
-  
-  <section>
-    <div class="view">
       <p>
-        If for some reason you need a MimeMessage, you can still benefit from the easy API Simple Java Mail offers. Behold.
+        For example, if you need a MimeMessage, you can convert <code class="inline">Email</code>, EML data and even Outlook .msg files.
+      </p>
+      <p>
+        If you already have a MimeMessage, you can it into an Email instance, complete with embedded images and attachments, headers intact.
+      </p>
+      <p>
+         You can even build a mass Outlook .msg to <a href="http://forensicswiki.org/wiki/EML">EML</a> converter if you like!
       </p>
     </div>
     
     <div class="side">
-<pre><code>Email email = new Email()
-// populate email, the builder is great for this
+<pre><code class="small">// from Email
+String eml =              EmailConverter.emailToEML(yourEmail);
+MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(yourEmail);
+MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(yourEmail, yourSession);
 
-// then
-MimeMessage message = EmailConverter.emailToMimeMessage(email);
-// ...or
-MimeMessage message = EmailConverter.emailToMimeMessage(email, yourSession);
-</code></pre>
-    </div>
-  </section>
-  
-  
-  <a href="#section-parse-mimemessage" id="section-parse-mimemessage" class="section-link h3">&sect;</a>
-  <h3>MimeMessage to Email</h3>
-  
-  <section>
-    <div class="view">
-      <p>
-        If you already have a MimeMessage, you can easily convert it into a ready-to-use Email instance, complete with embedded images and attachment
-        intact.
-      </p>
-    </div>
-    
-    <div class="side">
-<pre><code>MimeMessage mimeMessage = ...;
-Email email = EmailConverter.mimeMessageToEmail(mimeMessage);
+// from MimeMessage
+Email email =             EmailConverter.mimeMessageToEmail(yourMimeMessage);
+String eml =              EmailConverter.mimeMessageToEML(yourMimeMessage);
 
-new Mailer().sendMail(email);
-</code></pre>
-    </div>
-  </section>
-  
-  
-  <a href="#section-export-eml" id="section-export-eml" class="section-link h3">&sect;</a>
-  <h3>Email and MimeMessage to EML</h3>
-  
-  <section>
-    <div class="view">
-      <p>
-        <a href="http://forensicswiki.org/wiki/EML">EML</a> is an open email format originally by Outlook that works with Outlook as well as a
-        lot of email viewers you can download. The conversion helper in Simple Java Mail can convert from both Email and MimeMesage to and from EML.
-      </p>
-    </div>
-    
-    <div class="side">
-<pre><code>// from Email to EML
-String eml = EmailConverter.emailToEML(email);
-  
-// from MimeMessage to EML
-MimeMessage message = EmailConverter.mimeMessageToEML(mimeMessage);
-</code></pre>
-    </div>
-  </section>
-  
-  
-  <a href="#section-import-eml" id="section-import-eml" class="section-link h3">&sect;</a>
-  <h3>EML to MimeMessage and Email</h3>
-  
-  <section>
-    <div class="view">
-      <p>
-        Just as easily as you can export to EML, you can also import EML.
-      </p>
-    </div>
-    
-    <div class="side">
-<pre><code>// from EML to Email
-Email email = EmailConverter.emlToEmail(stringFromEMLFile);
-  
-// from EML to MimeMessage
-MimeMessage message = EmailConverter.emlToMimeMessage(stringFromEMLFile);
-// ...or
-MimeMessage message = EmailConverter.emlToMimeMessage(stringFromEMLFile, yourSession);
+// from EML
+Email email =             EmailConverter.emlToEmail(emlDataString);
+MimeMessage mimeMessage = EmailConverter.emlToMimeMessage(emlDataString);
+MimeMessage mimeMessage = EmailConverter.emlToMimeMessage(emlDataString, yourSession);
+
+// from Outlook .msg
+Email email =             EmailConverter.outlookMsgToEmail(readToString("yourMessage.msg"));
+Email email =             EmailConverter.outlookMsgToEmail(new File("yourMessage.msg"));
+Email email =             EmailConverter.outlookMsgToEmail(getInputStream("yourMessage.msg"));
+String eml =              EmailConverter.outlookMsgToEML(readToString("yourMessage.msg"));
+String eml =              EmailConverter.outlookMsgToEML(new File("yourMessage.msg"));
+String eml =              EmailConverter.outlookMsgToEML(getInputStream("yourMessage.msg"));
+MimeMessage mimeMessage = EmailConverter.outlookMsgToMimeMessage(readToString("yourMessage.msg"));
+MimeMessage mimeMessage = EmailConverter.outlookMsgToMimeMessage(new File("yourMessage.msg"));
+MimeMessage mimeMessage = EmailConverter.outlookMsgToMimeMessage(getInputStream("yourMessage.msg"));
 </code></pre>
     </div>
   </section>
