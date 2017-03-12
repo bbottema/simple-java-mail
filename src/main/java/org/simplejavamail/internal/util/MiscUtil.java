@@ -78,8 +78,8 @@ public final class MiscUtil {
 	@Nonnull
 	public static String readInputStreamToString(@Nonnull final InputStream inputStream, @Nonnull final Charset charset)
 			throws IOException {
-		BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
-		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+		final BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+		final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 		int result = bufferedInputStream.read();
 		while (result != -1) {
 			byteArrayOutputStream.write((byte) result);
@@ -90,6 +90,7 @@ public final class MiscUtil {
 
 	@Nonnull
 	public static String[] extractEmailAddresses(@Nonnull final String emailAddressList) {
+		//noinspection DynamicRegexReplaceableByCompiledPattern
 		return checkNonEmptyArgument(emailAddressList, "emailAddressList")
 				.replace(';', ',')
 				.replaceAll("\\s*,\\s*", ",")

@@ -255,7 +255,7 @@ public class Email {
 	 */
 	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
 		checkNonEmptyArgument(type, "type");
-		for (String emailAddress : checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd")) {
+		for (final String emailAddress : checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd")) {
 			recipients.add(new Recipient(null, emailAddress, type));
 		}
 	}
@@ -269,7 +269,7 @@ public class Email {
 	 * @see RecipientType
 	 */
 	public void addRecipients(@Nonnull final Recipient... recipientsToAdd) {
-		for (Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
+		for (final Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
 			final String address = checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
 			final RecipientType type = checkNonEmptyArgument(recipient.getType(), "recipient.type");
 			recipients.add(new Recipient(recipient.getName(), address, type));

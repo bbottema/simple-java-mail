@@ -238,7 +238,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder to(@Nonnull final Recipient... recipientsToAdd) {
-		for (Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
+		for (final Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
 			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.TO));
 		}
 		return this;
@@ -252,7 +252,7 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder to(@Nonnull String emailAddressList) {
+	public EmailBuilder to(@Nonnull final String emailAddressList) {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.TO);
 	}
@@ -260,7 +260,7 @@ public class EmailBuilder {
 	@Nonnull
 	private EmailBuilder addCommaOrSemicolonSeparatedEmailAddresses(@Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
 		checkNonEmptyArgument(type, "type");
-		for (String emailAddress : extractEmailAddresses(checkNonEmptyArgument(emailAddressList, "emailAddressList"))) {
+		for (final String emailAddress : extractEmailAddresses(checkNonEmptyArgument(emailAddressList, "emailAddressList"))) {
 			recipients.add(new Recipient(null, emailAddress, type));
 		}
 		return this;
@@ -273,8 +273,8 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder to(@Nonnull String... emailAddresses) {
-		for (String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
+	public EmailBuilder to(@Nonnull final String... emailAddresses) {
+		for (final String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
 			recipients.add(new Recipient(null, emailAddress, Message.RecipientType.TO));
 		}
 		return this;
@@ -302,8 +302,9 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder cc(@Nonnull String... emailAddresses) {
-		for (String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
+	@SuppressWarnings("QuestionableName")
+	public EmailBuilder cc(@Nonnull final String... emailAddresses) {
+		for (final String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
 			recipients.add(new Recipient(null, emailAddress, Message.RecipientType.CC));
 		}
 		return this;
@@ -317,7 +318,8 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder cc(@Nonnull String emailAddressList) {
+	@SuppressWarnings("QuestionableName")
+	public EmailBuilder cc(@Nonnull final String emailAddressList) {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.CC);
 	}
@@ -331,7 +333,7 @@ public class EmailBuilder {
 	 */
 	@SuppressWarnings("QuestionableName")
 	public EmailBuilder cc(@Nonnull final Recipient... recipientsToAdd) {
-		for (Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
+		for (final Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
 			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.CC));
 		}
 		return this;
@@ -359,8 +361,8 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder bcc(@Nonnull String... emailAddresses) {
-		for (String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
+	public EmailBuilder bcc(@Nonnull final String... emailAddresses) {
+		for (final String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
 			recipients.add(new Recipient(null, emailAddress, Message.RecipientType.BCC));
 		}
 		return this;
@@ -374,7 +376,7 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder bcc(@Nonnull String emailAddressList) {
+	public EmailBuilder bcc(@Nonnull final String emailAddressList) {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.BCC);
 	}
@@ -387,7 +389,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder bcc(@Nonnull final Recipient... recipientsToAdd) {
-		for (Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
+		for (final Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
 			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.BCC));
 		}
 		return this;

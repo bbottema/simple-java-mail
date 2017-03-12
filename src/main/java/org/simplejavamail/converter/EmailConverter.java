@@ -64,7 +64,7 @@ public final class EmailConverter {
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
 		final Email email = new Email(false);
-		OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgData, "msgData"));
+		final OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgData, "msgData"));
 		fillEmailFromOutlookMessage(email, outlookMessage);
 		return email;
 	}
@@ -74,7 +74,7 @@ public final class EmailConverter {
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final File msgfile) {
 		final Email email = new Email(false);
-		OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgfile, "msgfile"));
+		final OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgfile, "msgfile"));
 		fillEmailFromOutlookMessage(email, outlookMessage);
 		return email;
 	}
@@ -84,7 +84,7 @@ public final class EmailConverter {
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final InputStream msgInputStream) {
 		final Email email = new Email(false);
-		OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream"));
+		final OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream"));
 		fillEmailFromOutlookMessage(email, outlookMessage);
 		return email;
 	}
@@ -256,7 +256,8 @@ public final class EmailConverter {
 		email.setText(parser.getPlainContent());
 		email.setTextHTML(parser.getHtmlContent());
 		for (final Map.Entry<String, DataSource> cid : parser.getCidMap().entrySet()) {
-			email.addEmbeddedImage(extractCID(cid.getKey()), cid.getValue());
+			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
+			email.addEmbeddedImage(extractCID(cidName), cid.getValue());
 		}
 		for (final Map.Entry<String, DataSource> attachment : parser.getAttachmentList().entrySet()) {
 			email.addAttachment(extractCID(attachment.getKey()), attachment.getValue());
@@ -285,7 +286,9 @@ public final class EmailConverter {
 		email.setTextHTML(outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML());
 
 		for (final Map.Entry<String, OutlookFileAttachment> cid : outlookMessage.fetchCIDMap().entrySet()) {
-			email.addEmbeddedImage(extractCID(cid.getKey()), cid.getValue().getData(), cid.getValue().getMimeTag());
+			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
+			//noinspection ConstantConditions
+			email.addEmbeddedImage(extractCID(cidName), cid.getValue().getData(), cid.getValue().getMimeTag());
 		}
 		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
 			email.addAttachment(attachment.getLongFilename(), attachment.getData(), attachment.getMimeTag());

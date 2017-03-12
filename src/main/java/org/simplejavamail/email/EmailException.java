@@ -12,7 +12,7 @@ class EmailException extends MailException {
 
 	static final String NAME_MISSING_FOR_EMBEDDED_IMAGE = "No name given for embedded image nor passed inside the data source";
 
-	EmailException(final String message) {
+	EmailException(@SuppressWarnings("SameParameterValue") final String message) {
 		super(message);
 	}
 }

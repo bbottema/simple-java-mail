@@ -57,8 +57,9 @@ public class AttachmentResource {
 	 * @return The content of the datasource as String, using IOUtils#toByteArray.
 	 * @throws IOException See {@link #readAllData(Charset)}
 	 */
+	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public String readAllData(@Nonnull final Charset charset)
+	public String readAllData(@SuppressWarnings("SameParameterValue") @Nonnull final Charset charset)
 			throws IOException {
 		checkNonEmptyArgument(charset, "charset");
 		return MiscUtil.readInputStreamToString(dataSource.getInputStream(), charset);
