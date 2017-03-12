@@ -42,8 +42,12 @@ public final class EmailConverter {
 		// util / helper class
 	}
 
+	/*
+		To Email instance
+	 */
+
 	/**
-	 * @param mimeMessage The MimeMessage from which to create the email.
+	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
 	 */
 	public static Email mimeMessageToEmail(@Nonnull final MimeMessage mimeMessage) {
 		final Email email = new Email(false);
@@ -56,7 +60,7 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * @param msgData The content of an Outlook (.msg) message from which to create the email.
+	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
 		final Email email = new Email(false);
@@ -66,7 +70,7 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * @param msgfile The content of an Outlook (.msg) message from which to create the email.
+	 * @param msgfile The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final File msgfile) {
 		final Email email = new Email(false);
@@ -76,7 +80,7 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the email.
+	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final InputStream msgInputStream) {
 		final Email email = new Email(false);
@@ -84,6 +88,147 @@ public final class EmailConverter {
 		fillEmailFromOutlookMessage(email, outlookMessage);
 		return email;
 	}
+
+	/**
+	 * Delegates to {@link #emlToMimeMessage(Session, String)} using a dummy {@link Session} instance and passes the result to {@link
+	 * #mimeMessageToEmail(MimeMessage)};
+	 */
+	public static Email emlToEmail(@Nonnull final String eml) {
+		final MimeMessage mimeMessage = emlToMimeMessage(createDummySession(), checkNonEmptyArgument(eml, "eml"));
+		return mimeMessageToEmail(mimeMessage);
+	}
+
+	/*
+		To MimeMessage instance
+	 */
+
+	/**
+	 * @return Result of {@link #outlookMsgToEmail(String)} and {@link #emailToMimeMessage(Email)}
+	 */
+	@Nonnull
+	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final String outlookMsgData) {
+		checkNonEmptyArgument(outlookMsgData, "outlookMsgData");
+		return emailToMimeMessage(outlookMsgToEmail(outlookMsgData));
+	}
+
+	/**
+	 * @return Result of {@link #outlookMsgToEmail(File)} and {@link #emailToMimeMessage(Email)}
+	 */
+	@Nonnull
+	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final File outlookMsgFile) {
+		checkNonEmptyArgument(outlookMsgFile, "outlookMsgFile");
+		return emailToMimeMessage(outlookMsgToEmail(outlookMsgFile));
+	}
+
+	/**
+	 * @return Result of {@link #outlookMsgToEmail(InputStream)} and {@link #emailToMimeMessage(Email)}
+	 */
+	@Nonnull
+	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final InputStream outloookMsgInputStream) {
+		checkNonEmptyArgument(outloookMsgInputStream, "outloookMsgInputStream");
+		return emailToMimeMessage(outlookMsgToEmail(outloookMsgInputStream));
+	}
+
+	/**
+	 * Delegates to {@link #emailToMimeMessage(Email, Session)}, using a new empty {@link Session} instance.
+	 *
+	 * @see #emailToMimeMessage(Email, Session)
+	 */
+	public static MimeMessage emailToMimeMessage(@Nonnull final Email email) {
+		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession());
+	}
+
+	/**
+	 * Refer to {@link MimeMessageHelper#produceMimeMessage(Email, Session)}
+	 */
+	public static MimeMessage emailToMimeMessage(@Nonnull final Email email, @Nonnull final Session session) {
+		try {
+			return produceMimeMessage(checkNonEmptyArgument(email, "email"), checkNonEmptyArgument(session, "session"));
+		} catch (UnsupportedEncodingException | MessagingException e) {
+			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
+			throw new RuntimeException(e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Delegates to {@link #emlToMimeMessage(Session, String)} with an empty {@link Session} instance.
+	 *
+	 * @see #emailToMimeMessage(Email, Session)
+	 */
+	public static MimeMessage emlToMimeMessage(@Nonnull final String eml) {
+		return emlToMimeMessage(createDummySession(), checkNonEmptyArgument(eml, "eml"));
+	}
+
+	/**
+	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
+	 */
+	public static MimeMessage emlToMimeMessage(@Nonnull final Session session, @Nonnull final String eml) {
+		checkNonEmptyArgument(session, "session");
+		checkNonEmptyArgument(eml, "eml");
+		try {
+			return new MimeMessage(session, new ByteArrayInputStream(eml.getBytes(UTF_8)));
+		} catch (final MessagingException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML, e.getMessage()), e);
+		}
+	}
+
+	/*
+		To EML String
+	 */
+
+	/**
+	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} which should be in the standard EML format.
+	 */
+	public static String mimeMessageToEML(@Nonnull final MimeMessage mimeMessage) {
+		final ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			checkNonEmptyArgument(mimeMessage, "mimeMessage").writeTo(os);
+			return os.toString(UTF_8.name());
+		} catch (IOException | MessagingException e) {
+			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
+			throw new RuntimeException(e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Delegates to {@link #emailToMimeMessage(Email)} and passes the result to {@link #mimeMessageToEML(MimeMessage)}.
+	 *
+	 * @see #emailToMimeMessage(Email, Session)
+	 */
+	public static String emailToEML(@Nonnull final Email email) {
+		return mimeMessageToEML(emailToMimeMessage(checkNonEmptyArgument(email, "email")));
+	}
+
+	/**
+	 * @return Result of {@link #outlookMsgToEmail(String)} and {@link #emailToEML(Email)}
+	 */
+	@Nonnull
+	public static String outlookMsgToEML(@Nonnull final String outlookMsgData) {
+		checkNonEmptyArgument(outlookMsgData, "outlookMsgData");
+		return emailToEML(outlookMsgToEmail(outlookMsgData));
+	}
+
+	/**
+	 * @return Result of {@link #outlookMsgToEmail(File)} and {@link #emailToEML(Email)}
+	 */
+	@Nonnull
+	public static String outlookMsgToEML(@Nonnull final File outlookMsgFile) {
+		checkNonEmptyArgument(outlookMsgFile, "outlookMsgFile");
+		return emailToEML(outlookMsgToEmail(outlookMsgFile));
+	}
+
+	/**
+	 * @return Result of {@link #outlookMsgToEmail(InputStream)} and {@link #emailToEML(Email)}
+	 */
+	@Nonnull
+	public static String outlookMsgToEML(@Nonnull final InputStream outloookMsgInputStream) {
+		checkNonEmptyArgument(outloookMsgInputStream, "outloookMsgInputStream");
+		return emailToEML(outlookMsgToEmail(outloookMsgInputStream));
+	}
+
+	/*
+		Helpers
+	 */
 
 	private static void fillEmailFromMimeMessage(@Nonnull final Email email, @Nonnull final MimeMessage mimeMessage)
 			throws MessagingException, IOException {
@@ -145,81 +290,6 @@ public final class EmailConverter {
 		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
 			email.addAttachment(attachment.getLongFilename(), attachment.getData(), attachment.getMimeTag());
 		}
-	}
-
-	/**
-	 * Delegates to {@link #emailToMimeMessage(Email, Session)}, using a new empty {@link Session} instance.
-	 *
-	 * @see #emailToMimeMessage(Email, Session)
-	 */
-	public static MimeMessage emailToMimeMessage(@Nonnull final Email email) {
-		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession());
-	}
-
-	/**
-	 * Refer to {@link MimeMessageHelper#produceMimeMessage(Email, Session)}
-	 */
-	public static MimeMessage emailToMimeMessage(@Nonnull final Email email, @Nonnull final Session session) {
-		try {
-			return produceMimeMessage(checkNonEmptyArgument(email, "email"), checkNonEmptyArgument(session, "session"));
-		} catch (UnsupportedEncodingException | MessagingException e) {
-			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new RuntimeException(e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} which should be in the standard EML format.
-	 */
-	public static String mimeMessageToEML(@Nonnull final MimeMessage mimeMessage) {
-		final ByteArrayOutputStream os = new ByteArrayOutputStream();
-		try {
-			checkNonEmptyArgument(mimeMessage, "mimeMessage").writeTo(os);
-			return os.toString(UTF_8.name());
-		} catch (IOException | MessagingException e) {
-			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new RuntimeException(e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Delegates to {@link #emailToMimeMessage(Email)} and passes the result to {@link #mimeMessageToEML(MimeMessage)}.
-	 *
-	 * @see #emailToMimeMessage(Email, Session)
-	 */
-	public static String emailToEML(@Nonnull final Email email) {
-		return mimeMessageToEML(emailToMimeMessage(checkNonEmptyArgument(email, "email")));
-	}
-
-	/**
-	 * Delegates to {@link #emlToMimeMessage(Session, String)} with an empty {@link Session} instance.
-	 *
-	 * @see #emailToMimeMessage(Email, Session)
-	 */
-	public static MimeMessage emlToMimeMessage(@Nonnull final String eml) {
-		return emlToMimeMessage(createDummySession(), checkNonEmptyArgument(eml, "eml"));
-	}
-
-	/**
-	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
-	 */
-	public static MimeMessage emlToMimeMessage(@Nonnull final Session session, @Nonnull final String eml) {
-		checkNonEmptyArgument(session, "session");
-		checkNonEmptyArgument(eml, "eml");
-		try {
-			return new MimeMessage(session, new ByteArrayInputStream(eml.getBytes(UTF_8)));
-		} catch (final MessagingException e) {
-			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML, e.getMessage()), e);
-		}
-	}
-
-	/**
-	 * Delegates to {@link #emlToMimeMessage(Session, String)} using a dummy {@link Session} instance and passes the result to {@link
-	 * #mimeMessageToEmail(MimeMessage)};
-	 */
-	public static Email emlToEmail(@Nonnull final String eml) {
-		final MimeMessage mimeMessage = emlToMimeMessage(createDummySession(), checkNonEmptyArgument(eml, "eml"));
-		return mimeMessageToEmail(mimeMessage);
 	}
 
 	private static Session createDummySession() {
