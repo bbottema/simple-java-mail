@@ -5,15 +5,31 @@ import org.simplejavamail.internal.util.MiscUtil;
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.mail.Message;
 import javax.mail.Message.RecipientType;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.util.ConfigLoader.Property.*;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_FROM_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_SUBJECT;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_TO_NAME;
 import static org.simplejavamail.util.ConfigLoader.getProperty;
 import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
@@ -98,13 +114,25 @@ public class Email {
 				setReplyToAddress((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
 			}
 			if (hasProperty(DEFAULT_TO_ADDRESS)) {
-				addRecipient((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
+				if (hasProperty(DEFAULT_TO_NAME)) {
+					addRecipient((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
+				} else {
+					addRecipient((String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
+				}
 			}
 			if (hasProperty(DEFAULT_CC_ADDRESS)) {
-				addRecipient((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
+				if (hasProperty(DEFAULT_CC_NAME)) {
+					addRecipient((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
+				} else {
+					addRecipient((String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
+				}
 			}
 			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
-				addRecipient((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
+				if (hasProperty(DEFAULT_BCC_NAME)) {
+					addRecipient((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
+				} else {
+					addRecipient((String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
+				}
 			}
 			if (hasProperty(DEFAULT_SUBJECT)) {
 				setSubject((String) getProperty(DEFAULT_SUBJECT));
@@ -201,6 +229,30 @@ public class Email {
 		checkNonEmptyArgument(address, "address");
 		checkNonEmptyArgument(type, "type");
 		recipients.add(new Recipient(name, address, type));
+	}
+
+	/**
+	 * Adds a new {@link Recipient} to the list on account of name, address and recipient type (eg. {@link RecipientType#CC}).
+	 *
+	 * @param emailAddressList The emailadres of the recipient or recipients separated by comma or semicolon.
+	 * @param type             The type of receiver (eg. {@link RecipientType#CC}).
+	 * @see #recipients
+	 * @see Recipient
+	 * @see RecipientType
+	 */
+	public void addRecipient(@Nonnull final String emailAddressList, @Nonnull final RecipientType type) {
+		addCommaOrSemicolonSeparatedEmailAddresses(
+				checkNonEmptyArgument(emailAddressList, "emailAddressList"),
+				checkNonEmptyArgument(type, "type")
+		);
+	}
+
+	@Nonnull
+	private void addCommaOrSemicolonSeparatedEmailAddresses(@Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
+		checkNonEmptyArgument(type, "type");
+		for (String emailAddress : extractEmailAddresses(checkNonEmptyArgument(emailAddressList, "emailAddressList"))) {
+			recipients.add(new Recipient(null, emailAddress, type));
+		}
 	}
 
 	/**

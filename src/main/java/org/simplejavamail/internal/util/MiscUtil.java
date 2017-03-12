@@ -87,4 +87,12 @@ public final class MiscUtil {
 		}
 		return byteArrayOutputStream.toString(checkNonEmptyArgument(charset, "charset").name());
 	}
+
+	@Nonnull
+	public static String[] extractEmailAddresses(@Nonnull final String emailAddressList) {
+		return checkNonEmptyArgument(emailAddressList, "emailAddressList")
+				.replace(';', ',')
+				.replaceAll("\\s*,\\s*", ",")
+				.split(",");
+	}
 }

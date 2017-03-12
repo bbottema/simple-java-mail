@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
@@ -247,7 +248,7 @@ public class EmailBuilder {
 	@Nonnull
 	private EmailBuilder addCommaOrSemicolonSeparatedEmailAddresses(@Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
 		checkNonEmptyArgument(type, "type");
-		for (String emailAddress : checkNonEmptyArgument(emailAddressList, "emailAddressList").replace(';', ',').split(",")) {
+		for (String emailAddress : extractEmailAddresses(checkNonEmptyArgument(emailAddressList, "emailAddressList"))) {
 			recipients.add(new Recipient(null, emailAddress, type));
 		}
 		return this;

@@ -40,4 +40,49 @@ public class MiscUtilTest {
 		assertThat(MiscUtil.valueNullOrEmpty("blah")).isEqualTo(false);
 		assertThat(MiscUtil.valueNullOrEmpty(2534)).isEqualTo(false);
 	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testExtractEmailAddresses_MissingAddress() {
+		MiscUtil.extractEmailAddresses(null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testExtractEmailAddresses_EmptyAddress() {
+		MiscUtil.extractEmailAddresses("");
+	}
+
+	@Test
+	public void testExtractEmailAddresses_SingleAddress() {
+		String[] singleAddressList = MiscUtil.extractEmailAddresses("a@b.com");
+		assertThat(singleAddressList).hasSize(1);
+		assertThat(singleAddressList).contains("a@b.com");
+	}
+
+	@Test
+	public void testExtractEmailAddresses_MultipleAddressesWithCommas() {
+		String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com,a2@b.com,a3@b.com");
+		assertThat(singleAddressList).hasSize(3);
+		assertThat(singleAddressList).contains("a1@b.com", "a2@b.com", "a3@b.com");
+	}
+
+	@Test
+	public void testExtractEmailAddresses_MultipleAddressesWithSemicolons() {
+		String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com;a2@b.com;a3@b.com");
+		assertThat(singleAddressList).hasSize(3);
+		assertThat(singleAddressList).contains("a1@b.com", "a2@b.com", "a3@b.com");
+	}
+
+	@Test
+	public void testExtractEmailAddresses_MultipleAddressesMixedCommasAndSemicolons() {
+		String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com,a2@b.com;a3@b.com;a4@b.com,a5@b.com");
+		assertThat(singleAddressList).hasSize(5);
+		assertThat(singleAddressList).contains("a1@b.com", "a2@b.com", "a3@b.com", "a4@b.com", "a5@b.com");
+	}
+
+	@Test
+	public void testExtractEmailAddresses_MultipleAddressesTralingSpaces() {
+		String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com, a2@b.com ;a3@b.com;a4@b.com , a5@b.com,a6@b.com");
+		assertThat(singleAddressList).hasSize(6);
+		assertThat(singleAddressList).contains("a1@b.com", "a2@b.com", "a3@b.com", "a4@b.com", "a5@b.com", "a6@b.com");
+	}
 }
