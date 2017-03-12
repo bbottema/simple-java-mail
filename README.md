@@ -45,12 +45,17 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.2.0</version>
-    <!--version>4.2.0-java6-release</version-->
+    <version>4.2.1</version>
+    <!--version>4.2.1-java6-release</version-->
 </dependency>
 ```
 
 ### Latest Progress ###
+
+[v4.2.1](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.1%7Cjar) (12-Feb-2017)
+
+Patch: streamlined convenience methods for adding recipients.
+
 
 [v4.2.0](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.0%7Cjar) (12-Feb-2017)
 
