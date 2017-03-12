@@ -125,7 +125,7 @@ Simple Java Mail is available in Maven Central:
 
 - [#35](https://github.com/bbottema/simple-java-mail/issues/35): added proper .equals() and .toString() methods
 - [#34](https://github.com/bbottema/simple-java-mail/issues/34): Fixed bug when disposition is missing (assume it is an attachment)
-- #00: added findbugs support internally
+- other: added findbugs support internally
 
 
 [v3.0.1](http://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C3.0.1%7Cjar) (29-Feb-2016)
