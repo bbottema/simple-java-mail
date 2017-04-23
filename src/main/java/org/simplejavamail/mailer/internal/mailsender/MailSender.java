@@ -190,6 +190,7 @@ public class MailSender {
 
 			try {
 				synchronized (this) {
+					// proxy server is null when not needed
 					if (proxyServer != null && !proxyServer.isRunning()) {
 						LOGGER.trace("starting proxy bridge");
 						proxyServer.start();
