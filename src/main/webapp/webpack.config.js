@@ -26,7 +26,7 @@ var webpackConfig = {
   ] : []).concat([
     new webpack.ContextReplacementPlugin(
       // The (\\|\/) piece accounts for path separators in *nix and Windows
-      /angular(\\|\/)core(\\|\/)src(\\|\/)linker/,
+      /angular(\\|\/)core(\\|\/)@angular/,
       path.resolve(__dirname, './src'), {}
     ),
     new webpack.optimize.CommonsChunkPlugin({name: ['app', 'external', 'vendor', 'polyfills'], minChunks: Infinity}),
@@ -36,20 +36,20 @@ var webpackConfig = {
   ]),
 
   module: {
-    loaders: [
+    rules: [
       // .ts files for TypeScript
       {
         test: /\.ts$/,
-        loaders: [
-          'awesome-typescript-loader',
-          'angular2-template-loader',
-          'angular2-router-loader'
+        use: [
+          { loader: 'awesome-typescript-loader' },
+          { loader: 'angular2-template-loader' },
+          { loader: 'angular2-router-loader' }
         ]
       },
-      {test: /\.less$/, loader: 'raw-loader!less-loader'},
-      {test: /\.css$/, loader: 'style-loader!css-loader'},
-      {test: /\.(jpe?g|png|gif|svg)$/i, loader: 'url-loader'},
-      {test: /\.html$/, loader: 'html-loader?-minimize'}
+      {test: /\.less$/, use: ['raw-loader', 'less-loader']},
+      {test: /\.css$/, use: ['style-loader', 'css-loader']},
+      {test: /\.(jpe?g|png|gif|svg)$/i, use: ['url-loader']},
+      {test: /\.html$/, use: ['html-loader?-minimize']}
     ]
   }
 
