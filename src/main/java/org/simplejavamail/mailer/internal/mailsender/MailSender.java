@@ -148,17 +148,17 @@ public class MailSender {
 	 * @see Executors#newFixedThreadPool(int)
 	 */
 	public final synchronized void send(final Email email, final boolean async) {
-		// we need to track even non-async emails to prevent async emails from shutting down
-		// the proxy bridge server while a non-async email is still being processed
-		if (proxyServer != null) {
-			// phaser auto-terminates each time the all parties have arrived, so re-initialize when needed
-			if (smtpRequestsPhaser == null || smtpRequestsPhaser.isTerminated()) {
-				smtpRequestsPhaser = new Phaser();
-			}
-			smtpRequestsPhaser.register();
-		}
+		/*
+            we need to track even non-async emails to prevent async emails from shutting down
+            the proxy bridge server (or connection pool in async mode) while a non-async email is still being processed
+		 */
+        // phaser auto-terminates each time the all parties have arrived, so re-initialize when needed
+        if (smtpRequestsPhaser == null || smtpRequestsPhaser.isTerminated()) {
+            smtpRequestsPhaser = new Phaser();
+        }
+        smtpRequestsPhaser.register();
 		if (async) {
-			// start up threadpool pool if nescesary
+			// start up threadpool pool if necessary
 			if (executor == null || executor.isTerminated()) {
 				executor = Executors.newFixedThreadPool(threadPoolSize);
 			}
@@ -215,7 +215,7 @@ public class MailSender {
 					LOGGER.info("\n\nMimeMessage: {}\n", mimeMessageToEML(message));
 				}
 			} finally {
-				checkShutDownProxyBridge();
+				checkShutDownRunningProcesses();
 			}
 		} catch (final UnsupportedEncodingException e) {
 			throw new MailSenderException(MailSenderException.INVALID_ENCODING, e);
@@ -225,29 +225,25 @@ public class MailSender {
 	}
 
 	/**
-	 * We need to keep a count of running threads only if we need to shutdown the proxy bridging server at the end in async mode.
-	 * <p>
-	 * ProxyServer != null means we need to shut down server, registered parties means we're running in async (batch) mode
-	 */
-	private synchronized void checkShutDownProxyBridge() {
-		if (proxyServer != null) {
-			smtpRequestsPhaser.arriveAndDeregister();
-			LOGGER.trace("SMTP request threads left: {}", smtpRequestsPhaser.getUnarrivedParties());
-			// if this thread is the last one finishing
-			if (smtpRequestsPhaser.getUnarrivedParties() == 0) {
-				LOGGER.trace("all threads have finished processing");
-				if (proxyServer.isRunning() && !proxyServer.isStopping()) {
-					LOGGER.trace("stopping proxy bridge...");
-					proxyServer.stop();
-				}
-				// shutdown the threadpool, or else the Mailer will keep any JVM alive forever
-				// executor is only available in async mode
-				if (executor != null) {
-					executor.shutdown();
-				}
-			}
-		}
-	}
+	 * We need to keep a count of running threads in case a proxyserver is running or a connection pool needs to be shut down.
+     */
+    private synchronized void checkShutDownRunningProcesses() {
+        smtpRequestsPhaser.arriveAndDeregister();
+        LOGGER.trace("SMTP request threads left: {}", smtpRequestsPhaser.getUnarrivedParties());
+        // if this thread is the last one finishing
+        if (smtpRequestsPhaser.getUnarrivedParties() == 0) {
+            LOGGER.trace("all threads have finished processing");
+            if (proxyServer != null && proxyServer.isRunning() && !proxyServer.isStopping()) {
+                LOGGER.trace("stopping proxy bridge...");
+                proxyServer.stop();
+            }
+            // shutdown the threadpool, or else the Mailer will keep any JVM alive forever
+            // executor is only available in async mode
+            if (executor != null) {
+                executor.shutdown();
+            }
+        }
+    }
 
 	/**
 	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
