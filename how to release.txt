@@ -5,6 +5,8 @@ If you have an existing key, simply import it:
 
 gpg --allow-secret-key-import --import <keyring>.gpg
 
+That, or you can install one of the binaries to import the key, from here: https://www.gnupg.org/download/index.html
+
 To release:
 
  1. update release notes and github readme page (don't commit)
@@ -26,15 +28,15 @@ maven's settings.xml:
 
 To have a global gpg password so that it will use that automatically:
 
-	<profiles>
-		<profile>
-			<id>gpg</id>
-			<properties>
-				<gpg.executable>gpg</gpg.executable>
-				<gpg.passphrase>letmein</gpg.passphrase>
-			</properties>
-		</profile>
-	</profiles>
-	<activeProfiles>
-		<activeProfile>gpg</activeProfile>
-	</activeProfiles>
+        <profiles>
+            <profile>
+                <id>gpg</id>
+                <properties>
+                    <gpg.executable>gpg</gpg.executable>
+                    <gpg.passphrase>letmein</gpg.passphrase>
+                </properties>
+            </profile>
+        </profiles>
+        <activeProfiles>
+            <activeProfile>gpg</activeProfile>
+        </activeProfiles>

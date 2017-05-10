@@ -45,12 +45,18 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.2.1</version>
-    <!--version>4.2.1-java6-release</version-->
+    <version>4.2.2</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+[v4.2.2](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.2%7Cjar) (10-May-2017)
+
+- [#73](https://github.com/bbottema/simple-java-mail/issues/73): Patch: fix for sending emails in async mode, which makes sure the connection pool is 
+always closed when the last *known* email has been sent. Without this fix, the connection pool keeps any parent process running (main thread or 
+Tomcat for example) until a hard kill
+
 
 [v4.2.1](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.1%7Cjar) (12-Feb-2017)
 

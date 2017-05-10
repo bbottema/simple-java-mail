@@ -3,8 +3,14 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.2.1</version> or: 4.2.1-java6-release
+    <version>4.2.2</version>
 </dependency>
+
+v4.2.2 (10-May-2017)
+
+- #73: Patch: fix for sending emails in async mode, which makes sure the connection pool is always closed when the last *known* email has been sent. Without
+this fix, the connection pool keeps any parent process running (main thread or Tomcat for example) until a hard kill.
+
 
 v4.2.1 (12-Feb-2017)
 
