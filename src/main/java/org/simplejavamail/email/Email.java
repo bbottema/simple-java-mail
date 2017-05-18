@@ -6,6 +6,8 @@ import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Message.RecipientType;
+import javax.mail.Session;
+import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.InputStream;
@@ -137,6 +139,17 @@ public class Email {
 				setSubject((String) getProperty(DEFAULT_SUBJECT));
 			}
 		}
+	}
+
+	/**
+	 * Factory method to generate a {@link MimeMessage}. Subclasses can override this method to produce a custom
+	 * implementation of {@link MimeMessage} (e.g. one that overrides the default message id generation strategy).
+	 *
+	 * @param session The Session to attach the MimeMessage to
+	 * @return A blank {@link MimeMessage} instance to be populated.
+	 */
+	public MimeMessage createMimeMessage(@Nonnull Session session) {
+		return new MimeMessage(session);
 	}
 
 	/**

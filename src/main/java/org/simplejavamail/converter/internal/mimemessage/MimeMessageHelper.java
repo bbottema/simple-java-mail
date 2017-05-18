@@ -40,11 +40,11 @@ public final class MimeMessageHelper {
 
 	/**
 	 * Creates a new {@link MimeMessage} instance coupled to a specific {@link Session} instance and prepares it in the email structure, so that it
-	 * can be filled and send.
+	 * can be filled and sent.
 	 * <p/>
-	 * Fills subject, from,reply-to, content, sent-date, recipients, texts, embedded images, attachments, content and adds all headers.
+	 * Fills subject, from, reply-to, content, sent-date, recipients, texts, embedded images, attachments, content and adds all headers.
 	 *
-	 * @param email   The email message from which the subject and From-address are extracted.
+	 * @param email   The email message from which the {@link MimeMessage} is created.
 	 * @param session The Session to attach the MimeMessage to
 	 * @return A fully preparated {@link Message} instance, ready to be sent.
 	 * @throws MessagingException           May be thrown when the message couldn't be processed by JavaMail.
@@ -64,7 +64,7 @@ public final class MimeMessageHelper {
 		}
 		// create new wrapper for each mail being sent (enable sending multiple emails with one mailer)
 		final MimeEmailMessageWrapper messageRoot = new MimeEmailMessageWrapper();
-		final MimeMessage message = new MimeMessage(session);
+		final MimeMessage message = email.createMimeMessage(session);
 		// set basic email properties
 		message.setSubject(email.getSubject(), CHARACTER_ENCODING);
 		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName(), CHARACTER_ENCODING));
