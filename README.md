@@ -55,7 +55,8 @@ Simple Java Mail is available in Maven Central:
 
 - [#79](https://github.com/bbottema/simple-java-mail/issues/79): Enhancement: define custom message ID on the Email object
 - [#74](https://github.com/bbottema/simple-java-mail/issues/74): v4.2.3-java-6-release: A java6 version with limited capabilities:
-    I've released customised java6 release with a customised outlook-message-parser 1.1.16-java6-release. **This is the last java6 release** I will do,
+    I've released a customised java6 release with a customised outlook-message-parser 1.1.16-java6-release. **This is the last java6 release** I 
+    will do,
      as it is simply too much manual labor to create a limited second edition.
 
     I've removed the JDK7 Phaser completely which has the following consequences:
