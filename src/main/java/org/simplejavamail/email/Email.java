@@ -39,6 +39,16 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  */
 @SuppressWarnings("SameParameterValue")
 public class Email {
+
+	/**
+	 * Optional ID, which will be used when sending using the underlying Java Mail framework. Will be generated otherwise.
+	 * <p>
+	 * Note that id can only ever be filled by end-users for sending an email. This library will never fill this field when converting a MimeMessage.
+	 * <p>
+	 * The id-format should be conform <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
+	 */
+	private String id;
+
 	/**
 	 * The sender of the email. Can be used in conjunction with {@link #replyToRecipient}.
 	 */
@@ -171,6 +181,13 @@ public class Email {
 		this.dkimPrivateKeyInputStream = checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream");
 		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
 		this.selector = checkNonEmptyArgument(selector, "selector");
+	}
+
+	/**
+	 * Bean setter for {@link #id}.
+	 */
+	public void setId(@Nullable final String id) {
+		this.id = id;
 	}
 
 	/**
@@ -356,6 +373,13 @@ public class Email {
 	}
 
 	/**
+	 * Bean getter for {@link #id}.
+	 */
+	public String getId() {
+		return id;
+	}
+
+	/**
 	 * Bean getter for {@link #fromRecipient}.
 	 */
 	public Recipient getFromRecipient() {
@@ -452,6 +476,7 @@ public class Email {
 	@Override
 	public String toString() {
 		return "Email{" +
+				"\n\tid=" + id +
 				"\n\tfromRecipient=" + fromRecipient +
 				",\n\treplyToRecipient=" + replyToRecipient +
 				",\n\ttext='" + text + '\'' +
@@ -476,6 +501,7 @@ public class Email {
 		attachments = builder.getAttachments();
 		headers = builder.getHeaders();
 
+		id = builder.getId();
 		fromRecipient = builder.getFromRecipient();
 		replyToRecipient = builder.getReplyToRecipient();
 		text = builder.getText();

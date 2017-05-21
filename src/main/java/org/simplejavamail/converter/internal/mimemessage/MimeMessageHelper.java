@@ -7,6 +7,7 @@ import net.markenwerk.utils.mail.dkim.SigningAlgorithm;
 import org.simplejavamail.email.AttachmentResource;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
+import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -64,7 +65,16 @@ public final class MimeMessageHelper {
 		}
 		// create new wrapper for each mail being sent (enable sending multiple emails with one mailer)
 		final MimeEmailMessageWrapper messageRoot = new MimeEmailMessageWrapper();
-		final MimeMessage message = new MimeMessage(session);
+		final MimeMessage message = new MimeMessage(session) {
+			@Override
+			protected void updateMessageID() throws MessagingException {
+				if (valueNullOrEmpty(email.getId())) {
+					super.updateMessageID();
+				} else {
+					setHeader("Message-ID", email.getId());
+				}
+			}
+		};
 		// set basic email properties
 		message.setSubject(email.getSubject(), CHARACTER_ENCODING);
 		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName(), CHARACTER_ENCODING));

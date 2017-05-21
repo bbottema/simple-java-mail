@@ -2,6 +2,7 @@ package testutil;
 
 import org.simplejavamail.email.Email;
 
+import javax.annotation.Nullable;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,10 +13,15 @@ import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmail;
 
 public class EmailHelper {
-
-	public static Email createDummyEmail()
+	
+	public static Email createDummyEmail() throws IOException {
+		return createDummyEmail(null);
+	}
+	
+	public static Email createDummyEmail(@Nullable String id)
 			throws IOException {
 		final Email emailNormal = new Email();
+		emailNormal.setId(id);
 		emailNormal.setFromAddress("lollypop", "lol.pop@somemail.com");
 		// normally not needed, but for the test it is because the MimeMessage will
 		// have it added automatically as well, so the parsed Email will also have it then
@@ -25,7 +31,7 @@ public class EmailHelper {
 		emailNormal.setText("We should meet up!");
 		emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
 		emailNormal.setSubject("hey");
-
+		
 		// add two text files in different ways and a black thumbs up embedded image ->
 		ByteArrayDataSource namedAttachment = new ByteArrayDataSource("Black Tie Optional", "text/plain");
 		namedAttachment.setName("dresscode.txt"); // normally not needed, but otherwise the equals will fail
@@ -35,12 +41,12 @@ public class EmailHelper {
 		emailNormal.addEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png");
 		return emailNormal;
 	}
-
+	
 	public static Email readOutlookMessage(final String filePath) {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream(filePath);
 		return outlookMsgToEmail(resourceAsStream);
 	}
-
+	
 	public static String normalizeText(String text) {
 		return text.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
 	}

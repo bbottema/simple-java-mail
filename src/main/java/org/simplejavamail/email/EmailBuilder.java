@@ -40,6 +40,16 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  */
 @SuppressWarnings("UnusedReturnValue")
 public class EmailBuilder {
+	
+	/**
+	 * Optional ID, which will be used when sending using the underlying Java Mail framework. Will be generated otherwise.
+	 * <p>
+	 * Note that id can only ever be filled by end-users for sending an email. This library will never fill this field when converting a MimeMessage.
+	 * <p>
+	 * The id-format should be conform <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
+	 */
+	private String id;
+
 	private Recipient fromRecipient;
 	/**
 	 * The reply-to-address, optional. Can be used in conjunction with {@link #fromRecipient}.
@@ -139,11 +149,16 @@ public class EmailBuilder {
 		}
 	}
 
-	/**
-	 *
-	 */
 	public Email build() {
 		return new Email(this);
+	}
+
+	/**
+	 * Sets the optional id to be used when sending using the underlying Java Mail framework. Will be generated otherwise.
+	 */
+	public EmailBuilder id(@Nullable final String id) {
+		this.id = id;
+		return this;
 	}
 
 	/**
@@ -522,6 +537,10 @@ public class EmailBuilder {
 	/*
 		SETTERS / GETTERS
 	 */
+
+	public String getId() {
+		return id;
+	}
 
 	public Recipient getFromRecipient() {
 		return fromRecipient;

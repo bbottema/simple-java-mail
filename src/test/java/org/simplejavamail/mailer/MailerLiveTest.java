@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.simplejavamail.email.AttachmentResource;
@@ -14,12 +15,14 @@ import testutil.testrules.SmtpServerRule;
 import testutil.testrules.TestSmtpServer;
 
 import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.util.Properties;
 
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static testutil.EmailHelper.normalizeText;
 import static testutil.EmailHelper.readOutlookMessage;
 
@@ -43,6 +46,13 @@ public class MailerLiveTest {
 	public void createMailSession_StandardDummyMail()
 			throws IOException, MessagingException {
 		assertSendingEmail(EmailHelper.createDummyEmail());
+	}
+
+	@Test
+	@Ignore("Unfortunately, Wiser doesn't seem to get the ID back, but I confirmed with gmail that the (correct) ID should be there")
+	public void createMailSession_StandardDummyMailWithId()
+			throws IOException, MessagingException {
+		assertSendingEmail(EmailHelper.createDummyEmail("<123@456>"));
 	}
 
 	@Test
@@ -78,7 +88,11 @@ public class MailerLiveTest {
 	private Email assertSendingEmail(final Email originalEmail)
 			throws MessagingException {
 		mailer.sendMail(originalEmail);
-		Email receivedEmail = mimeMessageToEmail(smtpServerRule.getOnlyMessage());
+		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		if (!valueNullOrEmpty(originalEmail.getId())) {
+			 assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
+		}
+		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
 		assertThat(receivedEmail).isEqualTo(originalEmail);
 		return receivedEmail;
 	}
