@@ -54,6 +54,16 @@ Simple Java Mail is available in Maven Central:
 [v4.2.3](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.3%7Cjar) (21-May-2017)
 
 - [#79](https://github.com/bbottema/simple-java-mail/issues/79): Enhancement: define custom message ID on the Email object
+- [#74](https://github.com/bbottema/simple-java-mail/issues/74): v4.2.3-java-6-release: A java6 version with limited capabilities:
+    I've released customised java6 release with a customised outlook-message-parser 1.1.16-java6-release. **This is the last java6 release** I will do,
+     as it is simply too much manual labor to create a limited second edition.
+
+    I've removed the JDK7 Phaser completely which has the following consequences:
+
+    - If authenticated proxy is used, the bridging proxy server will not be shut down automatically (and might not run the second time)
+    - If mails are sent in async mode, the connection pool will not be shut down anymore by itself
+    
+    This means your server/application might not stop properly due to lingering processes. To be completely safe, only send emails in sync mode (used by default) and don't use authenticated proxy config.
 
 
 [v4.2.2](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.2%7Cjar) (10-May-2017)
