@@ -59,7 +59,7 @@ Simple Java Mail is available in Maven Central:
     will do,
      as it is simply too much manual labor to create a limited second edition.
 
-    I've removed the JDK7 Phaser completely which has the following consequences:
+    For this edition, I've removed the JDK7 Phaser completely which has the following consequences:
 
     - If authenticated proxy is used, the bridging proxy server will not be shut down automatically (and might not run the second time)
     - If mails are sent in async mode, the connection pool will not be shut down anymore by itself
