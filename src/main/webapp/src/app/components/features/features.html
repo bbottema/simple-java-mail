@@ -70,7 +70,7 @@ email.addRecipient("dad", "StevenOakly1963@hotmail.com", RecipientType.TO);
 email.setSubject("My Bakery is finally open!");
 email.setText("Mom, Dad. We did the opening ceremony of our bakery!!!");
 
-new Mailer("server", "25", "username", "password").sendMail(email);
+new Mailer("server", 25, "username", "password").sendMail(email);
 </code></pre>
     </div>
   </section>
@@ -95,7 +95,7 @@ new Mailer("server", "25", "username", "password").sendMail(email);
     .text("Mom, Dad. We did the opening ceremony of our bakery!!!")
     .build();
 
-new Mailer("server", "25", "username", "password").sendMail(email);
+new Mailer("server", 25, "username", "password").sendMail(email);
 </code></pre>
     </div>
   </section>
@@ -112,7 +112,7 @@ new Mailer("server", "25", "username", "password").sendMail(email);
     </div>
     
     <div class="side">
-<pre><code>Mailer inhouseMailer = new Mailer("server", "25", "username", "password");
+<pre><code>Mailer inhouseMailer = new Mailer("server", 25, "username", "password");
 
 inhouseMailer.sendMail(email);
 inhouseMailer.sendMail(anotherEmail);
