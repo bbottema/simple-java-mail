@@ -162,10 +162,14 @@ public class MailSender {
 			if (executor == null || executor.isTerminated()) {
 				executor = Executors.newFixedThreadPool(threadPoolSize);
 			}
-			executor.execute(new Thread("sendMail process") {
+			executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					sendMailClosure(session, email);
+					try {
+						sendMailClosure(session, email);
+					} catch (Exception e) {
+						LOGGER.trace("could not send email '{}' to {}", email.getSubject(), email.getRecipients(), e);
+					}
 				}
 			});
 		} else {
