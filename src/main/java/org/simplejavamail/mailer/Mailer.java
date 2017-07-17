@@ -10,6 +10,8 @@ import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.mailsender.MailSender;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
+import org.simplejavamail.util.ConfigLoader;
+import org.simplejavamail.util.ConfigLoader.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +84,12 @@ import static org.simplejavamail.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
 public class Mailer {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Mailer.class);
+
+	/**
+	 * the default maximum timeout value for the transport socket is {@value #DEFAULT_SEND_MAIL_SOCKET_TIMEOUT}
+	 * milliseconds. Can be overridden from a config file or through System variable.
+	 */
+	private static final String DEFAULT_SEND_MAIL_SOCKET_TIMEOUT = "60000";
 
 	private final MailSender mailSender;
 
@@ -228,6 +236,14 @@ public class Mailer {
 		final Properties props = transportStrategy.generateProperties();
 		props.put(transportStrategy.propertyNameHost(), serverConfig.getHost());
 		props.put(transportStrategy.propertyNamePort(), String.valueOf(serverConfig.getPort()));
+
+		// socket timeouts handling
+		String sendMailTimeoutInMillis = ConfigLoader.valueOrProperty(
+			null, Property.DEFAULT_SEND_MAIL_TIMEOUT_IN_MILLIS, DEFAULT_SEND_MAIL_SOCKET_TIMEOUT
+		);
+		props.put("mail.smtp.connectiontimeout", sendMailTimeoutInMillis);
+		props.put("mail.smtp.timeout", sendMailTimeoutInMillis);
+		props.put("mail.smtp.writetimeout", sendMailTimeoutInMillis);
 
 		if (serverConfig.getUsername() != null) {
 			props.put(transportStrategy.propertyNameUsername(), serverConfig.getUsername());

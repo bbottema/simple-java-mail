@@ -168,7 +168,7 @@ public class MailSender {
 					try {
 						sendMailClosure(session, email);
 					} catch (Exception e) {
-						LOGGER.trace("could not send email '{}' to {}", email.getSubject(), email.getRecipients(), e);
+						LOGGER.error("could not send email {}", email, e);
 					}
 				}
 			});
