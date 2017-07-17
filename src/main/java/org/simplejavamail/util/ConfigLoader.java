@@ -94,7 +94,7 @@ public final class ConfigLoader {
 		DEFAULT_BCC_NAME("simplejavamail.defaults.bcc.name"),
 		DEFAULT_BCC_ADDRESS("simplejavamail.defaults.bcc.address"),
 		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize"),
-		DEFAULT_SEND_MAIL_TIMEOUT_IN_MILLIS("simplejavamail.defaults.sendmailtimeoutinmillis"),
+		DEFAULT_MAIL_SOCKET_TIMEOUT_IN_MILLIS("simplejavamail.defaults.mailsockettimeoutinmillis"),
 		TRANSPORT_MODE_LOGGING_ONLY("simplejavamail.transport.mode.logging.only");
 
 		private final String key;
