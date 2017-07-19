@@ -163,6 +163,8 @@ public class MailSender {
 				executor = Executors.newFixedThreadPool(threadPoolSize);
 			}
 			executor.execute(new Runnable() {
+				private final String name = "sendMail process";
+
 				@Override
 				public void run() {
 					try {
@@ -170,6 +172,11 @@ public class MailSender {
 					} catch (Exception e) {
 						LOGGER.error("could not send email {}", email, e);
 					}
+				}
+
+				@Override
+				public String toString() {
+					return name;
 				}
 			});
 		} else {
