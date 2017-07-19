@@ -163,7 +163,7 @@ public class MailSender {
 				executor = Executors.newFixedThreadPool(threadPoolSize);
 			}
 			executor.execute(new Runnable() {
-				private final String name = "sendMail process";
+				private static final String NAME = "sendMail process";
 
 				@Override
 				public void run() {
@@ -176,7 +176,7 @@ public class MailSender {
 
 				@Override
 				public String toString() {
-					return name;
+					return NAME;
 				}
 			});
 		} else {
