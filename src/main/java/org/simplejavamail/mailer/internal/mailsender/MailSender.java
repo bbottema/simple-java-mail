@@ -162,10 +162,21 @@ public class MailSender {
 			if (executor == null || executor.isTerminated()) {
 				executor = Executors.newFixedThreadPool(threadPoolSize);
 			}
-			executor.execute(new Thread("sendMail process") {
+			executor.execute(new Runnable() {
+				private static final String NAME = "sendMail process";
+
 				@Override
 				public void run() {
-					sendMailClosure(session, email);
+					try {
+						sendMailClosure(session, email);
+					} catch (Exception e) {
+						LOGGER.error("could not send email {}", email, e);
+					}
+				}
+
+				@Override
+				public String toString() {
+					return NAME;
 				}
 			});
 		} else {
