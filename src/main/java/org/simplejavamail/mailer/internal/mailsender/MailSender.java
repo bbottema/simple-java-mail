@@ -36,6 +36,11 @@ import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
 public class MailSender {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MailSender.class);
+	
+	/**
+	 * Defaults to {@code false}, sending mails rather than just only logging the mails.
+	 */
+	private static final boolean DEFAULT_MODE_LOGGING_ONLY = false;
 
 	/**
 	 * For multi-threaded scenario's where a batch of emails sent asynchronously, the default maximum number of threads is {@value
@@ -91,7 +96,7 @@ public class MailSender {
 		this.session = session;
 		this.proxyServer = configureSessionWithProxy(proxyConfig, session, transportStrategy);
 		this.threadPoolSize = ConfigLoader.valueOrProperty(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE);
-		this.transportModeLoggingOnly = ConfigLoader.valueOrProperty(null, Property.TRANSPORT_MODE_LOGGING_ONLY, false);
+		this.transportModeLoggingOnly = ConfigLoader.valueOrProperty(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_MODE_LOGGING_ONLY);
 	}
 
 	/**
