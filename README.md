@@ -45,7 +45,7 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.2.3</version>
+    <version>4.3.0</version>
 </dependency>
 ```
 
