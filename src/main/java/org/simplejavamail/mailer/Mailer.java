@@ -3,15 +3,14 @@ package org.simplejavamail.mailer;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 import org.simplejavamail.MailException;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.mailsender.MailSender;
-import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
-import org.simplejavamail.util.ConfigLoader;
-import org.simplejavamail.util.ConfigLoader.Property;
+import org.simplejavamail.util.ConfigLoader.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,9 +25,9 @@ import java.util.Properties;
 import static java.lang.String.format;
 import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC_COMPLIANT;
 import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyForSession;
-import static org.simplejavamail.util.ConfigLoader.*;
 import static org.simplejavamail.util.ConfigLoader.Property.JAVAXMAIL_DEBUG;
 import static org.simplejavamail.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
+import static org.simplejavamail.util.ConfigLoader.*;
 
 /**
  * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content, embedded
@@ -195,7 +194,7 @@ public class Mailer {
 	 * Main constructor which produces a new {@link Session} on the fly. Use this if you don't have a mail session configured in your web container,
 	 * or Spring context etc.
 	 * <p>
-	 * Also set javax.mail debug mode if a config file was provided for this.
+	 * Also sets javax.mail debug mode if a config file was provided for this.
 	 *
 	 * @param serverConfig      Remote SMTP server details.
 	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
@@ -206,12 +205,12 @@ public class Mailer {
 		final Session session = createMailSession(serverConfig, effectiveTransportStrategy);
 		this.mailSender = new MailSender(session, proxyConfig, effectiveTransportStrategy);
 		this.emailAddressCriteria = null;
-
+		
 		if (hasProperty(JAVAXMAIL_DEBUG)) {
 			setDebug((Boolean) getProperty(JAVAXMAIL_DEBUG));
 		}
 	}
-
+	
 	/**
 	 * Instantiates and configures the {@link Session} instance. Delegates resolving transport protocol specific properties to the given {@link
 	 * TransportStrategy} in two ways: <ol> <li>request an initial property list which the strategy may pre-populate</li> <li>by requesting the
@@ -321,7 +320,7 @@ public class Mailer {
 	public void applyProperties(final Properties properties) {
 		mailSender.applyProperties(properties);
 	}
-
+	
 	/**
 	 * @param poolSize The maximum number of threads when sending emails in async fashion.
 	 * @see Property#DEFAULT_POOL_SIZE

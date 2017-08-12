@@ -55,7 +55,7 @@ public class MailSender {
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
 	 */
 	private final Session session;
-
+	
 	/**
 	 * Intermediary SOCKS5 relay server that acts as bridge between JavaMail and remote proxy (since JavaMail only supports anonymous SOCKS proxies).
 	 * Only set when {@link ProxyConfig} is provided with authentication details.
@@ -88,7 +88,7 @@ public class MailSender {
 	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
 	 */
 	private boolean transportModeLoggingOnly;
-
+	
 	/**
 	 * @see #configureSessionWithProxy(ProxyConfig, Session, TransportStrategy)
 	 */
@@ -186,7 +186,7 @@ public class MailSender {
 			sendMailClosure(session, email);
 		}
 	}
-
+	
 	/**
 	 * Separate closure that can be executed directly or from a thread. Refer to {@link #send(Email, boolean)} for details.
 	 *
@@ -318,7 +318,7 @@ public class MailSender {
 	public Session getSession() {
 		return session;
 	}
-
+	
 	/**
 	 * @param threadPoolSize The maximum number of threads when sending emails in async fashion.
 	 * @see Property#DEFAULT_POOL_SIZE
