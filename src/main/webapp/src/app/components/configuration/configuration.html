@@ -129,6 +129,9 @@ mailer.trustAllSSLHosts(true)
 // white list hosts for SSL connections, don't validate keys for these
 mailer.trustSSLHosts("a", "b", "c", ...);
 </code></pre>
+<pre><code>// change the pool size (default 10) for concurrent threads, each sending an email
+mailer.setThreadPoolSize(3);
+</code></pre>
     </div>
   </section>
 
