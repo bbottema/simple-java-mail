@@ -132,6 +132,9 @@ mailer.trustSSLHosts("a", "b", "c", ...);
 <pre><code>// change the pool size (default 10) for concurrent threads, each sending an email
 mailer.setThreadPoolSize(3);
 </code></pre>
+<pre><code>// change the session timeout (affects socket connect-, read- and write timeouts)
+mailer.setThreadPoolSize(3);
+</code></pre>
     </div>
   </section>
 
@@ -205,6 +208,7 @@ simplejavamail.defaults.cc.address=cc@default.com
 simplejavamail.defaults.bcc.name=
 simplejavamail.defaults.bcc.address=bcc1@default.com;bcc2@default.com
 simplejavamail.defaults.poolsize=10
+simplejavamail.defaults.sessiontimeoutmillis=60000
 simplejavamail.transport.mode.logging.only=true
 </code></pre>
     </div>
