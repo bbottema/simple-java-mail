@@ -209,11 +209,16 @@ public class MimeMessageParser {
 					}
 				} else {
 					final DataSource ds = createDataSource(part);
-					// If the diposition is not provided, the part should be treat as attachment
+					// If the diposition is not provided, the part should be treated as attachment
 					if (part.getDisposition() == null || Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
 						this.attachmentList.put(parseResourceName(part.getContentID(), part.getFileName()), ds);
 					} else if (Part.INLINE.equalsIgnoreCase(part.getDisposition())) {
-						this.cidMap.put(part.getContentID(), ds);
+						if (part.getContentID() != null) {
+							this.cidMap.put(part.getContentID(), ds);
+						} else {
+							// contentID missing -> treat as standard attachment
+							this.attachmentList.put(parseResourceName(null, part.getFileName()), ds);
+						}
 					} else {
 						throw new IllegalStateException("invalid attachment type");
 					}
