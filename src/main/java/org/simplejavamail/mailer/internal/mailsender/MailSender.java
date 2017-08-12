@@ -264,9 +264,14 @@ public class MailSender {
 				checkShutDownRunningProcesses();
 			}
 		} catch (final UnsupportedEncodingException e) {
+			LOGGER.error("Failed to send email:\n{}", email);
 			throw new MailSenderException(MailSenderException.INVALID_ENCODING, e);
 		} catch (final MessagingException e) {
+			LOGGER.error("Failed to send email:\n{}", email);
 			throw new MailSenderException(MailSenderException.GENERIC_ERROR, e);
+		} catch (final Exception e) {
+			LOGGER.error("Failed to send email:\n{}", email);
+			throw e;
 		}
 	}
 
