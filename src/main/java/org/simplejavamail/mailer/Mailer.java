@@ -4,6 +4,7 @@ import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 import org.simplejavamail.MailException;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
+import org.simplejavamail.email.AttachmentResource;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
 import org.simplejavamail.mailer.config.ProxyConfig;
@@ -20,6 +21,7 @@ import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Properties;
 
 import static java.lang.String.format;
@@ -341,9 +343,18 @@ public class Mailer {
 			mailSender.send(email, async);
 		}
 	}
-
+	
 	/**
 	 * Validates an {@link Email} instance. Validation fails if the subject is missing, content is missing, or no recipients are defined.
+	 * <p>
+	 * It also checks for illegal characters that would facilitate injection attacks:
+	 *
+	 * <ul>
+	 *     <li>http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security</li>
+	 *     <li>https://security.stackexchange.com/a/54100/110048</li>
+	 *     <li>https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)</li>
+	 *     <li>http://cwe.mitre.org/data/definitions/93.html</li>
+	 * </ul>
 	 *
 	 * @param email The email that needs to be configured correctly.
 	 * @return Always <code>true</code> (throws a {@link MailException} exception if validation fails).
@@ -353,6 +364,28 @@ public class Mailer {
 	@SuppressWarnings({ "SameReturnValue", "WeakerAccess" })
 	public boolean validate(final Email email)
 			throws MailException {
+		// check for illegal values
+		scanForInjectionAttack(email.getSubject(), "email.subject");
+		for (Map.Entry<String, String> headerEntry : email.getHeaders().entrySet()) {
+			scanForInjectionAttack(headerEntry.getKey(), "email.header.mapEntryKey");
+			scanForInjectionAttack(headerEntry.getValue(), "email.header." + headerEntry.getKey());
+		}
+		for (AttachmentResource attachment : email.getAttachments()) {
+			scanForInjectionAttack(attachment.getName(), "email.attachment.name");
+		}
+		for (AttachmentResource embeddedImage : email.getEmbeddedImages()) {
+			scanForInjectionAttack(embeddedImage.getName(), "email.embeddedImage.name");
+		}
+		scanForInjectionAttack(email.getFromRecipient().getName(), "email.fromRecipient.name");
+		scanForInjectionAttack(email.getFromRecipient().getAddress(), "email.fromRecipient.address");
+		scanForInjectionAttack(email.getReplyToRecipient().getName(), "email.replyToRecipient.name");
+		scanForInjectionAttack(email.getReplyToRecipient().getAddress(), "email.replyToRecipient.address");
+		for (Recipient recipient : email.getRecipients()) {
+			scanForInjectionAttack(recipient.getName(), "email.recipient.name");
+			scanForInjectionAttack(recipient.getAddress(), "email.recipient.address");
+		}
+		
+		// check for mandatory values
 		if (email.getText() == null && email.getTextHTML() == null) {
 			throw new MailerException(MailerException.MISSING_CONTENT);
 		} else if (email.getSubject() == null || email.getSubject().equals("")) {
@@ -376,6 +409,16 @@ public class Mailer {
 			}
 		}
 		return true;
+	}
+	
+	/**
+	 * @param value Value checked for suspicious newline characters "\n", "\r" and "%0A" (as acknowledged by SMTP servers).
+	 * @param valueLabel The name of the field being checked, used for reporting exceptions.
+	 */
+	private static void scanForInjectionAttack(String value, String valueLabel) {
+		if (value != null && (value.contains("\n") || value.contains("\r") || value.contains("%0A"))) {
+			throw new MailerException(format(MailerException.INJECTION_SUSPECTED, valueLabel, value));
+		}
 	}
 
 	/**
