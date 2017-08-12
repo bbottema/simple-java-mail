@@ -41,6 +41,12 @@ public class MailSender {
 	 * Defaults to {@code false}, sending mails rather than just only logging the mails.
 	 */
 	private static final boolean DEFAULT_MODE_LOGGING_ONLY = false;
+	
+	/**
+	 * The default maximum timeout value for the transport socket is {@value #DEFAULT_SESSION_TIMEOUT_MILLIS}
+	 * milliseconds. Can be overridden from a config file or through System variable.
+	 */
+	private static final int DEFAULT_SESSION_TIMEOUT_MILLIS = 60_000;
 
 	/**
 	 * For multi-threaded scenario's where a batch of emails sent asynchronously, the default maximum number of threads is {@value
@@ -79,7 +85,13 @@ public class MailSender {
 	private Phaser smtpRequestsPhaser;
 	
 	/**
-	 * The number of concurrent threads sending an email each. Used only when sending emails asynchronously (batch job mode). Default to
+	 * The timeout to use when sending emails (affects socket connect-, read- and write timeouts). Defaults to
+	 * {@value #DEFAULT_SESSION_TIMEOUT_MILLIS}.
+	 */
+	private int sessionTimeout;
+	
+	/**
+	 * The number of concurrent threads sending an email each. Used only when sending emails asynchronously (batch job mode). Defaults to
 	 * {@value #DEFAULT_POOL_SIZE}.
 	 */
 	private int threadPoolSize;
@@ -90,12 +102,20 @@ public class MailSender {
 	private boolean transportModeLoggingOnly;
 	
 	/**
-	 * @see #configureSessionWithProxy(ProxyConfig, Session, TransportStrategy)
+	 * Configures proxy: {@link #configureSessionWithProxy(ProxyConfig, Session, TransportStrategy)}(ProxyConfig, Session, TransportStrategy)
+	 * <p>
+	 * Also initializes:
+	 * <ul>
+	 *     <li>{@link #sessionTimeout} from properties or default {@link #DEFAULT_SESSION_TIMEOUT_MILLIS}</li>
+	 *     <li>{@link #threadPoolSize} from properties or default {@link #DEFAULT_POOL_SIZE}</li>
+	 *     <li>{@link #transportModeLoggingOnly} from properties or default {@link #DEFAULT_MODE_LOGGING_ONLY}</li>
+	 * </ul>
 	 */
 	public MailSender(final Session session, final ProxyConfig proxyConfig, final TransportStrategy transportStrategy) {
 		this.session = session;
 		this.proxyServer = configureSessionWithProxy(proxyConfig, session, transportStrategy);
 		this.threadPoolSize = ConfigLoader.valueOrProperty(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE);
+		this.sessionTimeout = ConfigLoader.valueOrProperty(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS);
 		this.transportModeLoggingOnly = ConfigLoader.valueOrProperty(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_MODE_LOGGING_ONLY);
 	}
 
@@ -171,6 +191,7 @@ public class MailSender {
 			if (executor == null || executor.isTerminated()) {
 				executor = Executors.newFixedThreadPool(threadPoolSize);
 			}
+			configureSessionWithTimeout(session, sessionTimeout);
 			executor.execute(new Runnable() {
 				@Override
 				public void run() {
@@ -185,6 +206,17 @@ public class MailSender {
 		} else {
 			sendMailClosure(session, email);
 		}
+	}
+	
+	/**
+	 * Configures the {@link Session} with the same timeout for socket connection timeout, read and write timeout.
+	 */
+	private void configureSessionWithTimeout(final Session session, final int sessionTimeout) {
+		// socket timeouts handling
+		final Properties sessionProperties = session.getProperties();
+		sessionProperties.put("mail.smtp.connectiontimeout", String.valueOf(sessionTimeout));
+		sessionProperties.put("mail.smtp.timeout", String.valueOf(sessionTimeout));
+		sessionProperties.put("mail.smtp.writetimeout", String.valueOf(sessionTimeout));
 	}
 	
 	/**
@@ -325,6 +357,14 @@ public class MailSender {
 	 */
 	public synchronized void setThreadPoolSize(final int threadPoolSize) {
 		this.threadPoolSize = threadPoolSize;
+	}
+	
+	/**
+	 * @param sessionTimeout The timeout to use when sending emails (affects socket connect-, read- and write timeouts).
+	 * @see Property#DEFAULT_SESSION_TIMEOUT_MILLIS
+	 */
+	public void setSessionTimeout(final int sessionTimeout) {
+		this.sessionTimeout = sessionTimeout;
 	}
 
 	/**

@@ -84,12 +84,6 @@ public class Mailer {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Mailer.class);
 
-	/**
-	 * The default maximum timeout value for the transport socket is {@value #DEFAULT_SESSION_TIMEOUT_MILLIS}
-	 * milliseconds. Can be overridden from a config file or through System variable.
-	 */
-	private static final int DEFAULT_SESSION_TIMEOUT_MILLIS = 60_000;
-
 	private final MailSender mailSender;
 
 	/**
@@ -110,8 +104,8 @@ public class Mailer {
 	}
 
 	/**
-	 * Custom Session constructor with proxy, stores the given mail session for later use. Assumes that *all* properties used to make a connection are
-	 * configured (host, port, authentication and transport protocol settings).
+	 * Custom Session constructor with proxy, stores the given mail session for later use. Assumes that *all* properties (except session
+	 * timeouts) used to make a connection are configured (host, port, authentication and transport protocol settings).
 	 * <p>
 	 * Only proxy settings are always added if details are provided.
 	 * <p>
@@ -236,13 +230,6 @@ public class Mailer {
 		props.put(transportStrategy.propertyNameHost(), serverConfig.getHost());
 		props.put(transportStrategy.propertyNamePort(), String.valueOf(serverConfig.getPort()));
 
-		// socket timeouts handling
-		final int sendMailTimeoutInMillis = ConfigLoader.valueOrProperty(null,
-				Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS);
-		props.put("mail.smtp.connectiontimeout", String.valueOf(sendMailTimeoutInMillis));
-		props.put("mail.smtp.timeout", String.valueOf(sendMailTimeoutInMillis));
-		props.put("mail.smtp.writetimeout", String.valueOf(sendMailTimeoutInMillis));
-
 		if (serverConfig.getUsername() != null) {
 			props.put(transportStrategy.propertyNameUsername(), serverConfig.getUsername());
 		}
@@ -327,6 +314,14 @@ public class Mailer {
 	 */
 	public void setThreadPoolSize(final int poolSize) {
 		mailSender.setThreadPoolSize(poolSize);
+	}
+	
+	/**
+	 * @param sessionTimeout The timeout to use when sending emails (affects socket connect-, read- and write timeouts).
+	 * @see Property#DEFAULT_SESSION_TIMEOUT_MILLIS
+	 */
+	public void setSessionTimeout(final int sessionTimeout) {
+		mailSender.setSessionTimeout(sessionTimeout);
 	}
 
 	/**
