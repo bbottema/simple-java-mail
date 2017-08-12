@@ -363,7 +363,7 @@ public class MailSender {
 	 * @param sessionTimeout The timeout to use when sending emails (affects socket connect-, read- and write timeouts).
 	 * @see Property#DEFAULT_SESSION_TIMEOUT_MILLIS
 	 */
-	public void setSessionTimeout(final int sessionTimeout) {
+	public synchronized void setSessionTimeout(final int sessionTimeout) {
 		this.sessionTimeout = sessionTimeout;
 	}
 
