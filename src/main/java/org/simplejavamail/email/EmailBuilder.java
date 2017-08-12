@@ -107,9 +107,9 @@ public class EmailBuilder {
 	private String signingDomain;
 
 	/**
-	 * The selector to be used in combination with the domain.
+	 * The dkimSelector to be used in combination with the domain.
 	 */
-	private String selector;
+	private String dkimSelector;
 
 	public EmailBuilder() {
 		recipients = new ArrayList<>();
@@ -495,31 +495,31 @@ public class EmailBuilder {
 	/**
 	 * Sets all info needed for DKIM, using a byte array for private key data.
 	 */
-	public EmailBuilder signWithDomainKey(@Nonnull final byte[] dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String selector) {
+	public EmailBuilder signWithDomainKey(@Nonnull final byte[] dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
 		this.dkimPrivateKeyInputStream = new ByteArrayInputStream(checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey"));
 		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
-		this.selector = checkNonEmptyArgument(selector, "selector");
+		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
 	}
 
 	/**
 	 * Sets all info needed for DKIM, using a byte array for private key data.
 	 */
-	public EmailBuilder signWithDomainKey(@Nonnull final String dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String selector) {
+	public EmailBuilder signWithDomainKey(@Nonnull final String dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
 		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
 		this.dkimPrivateKeyInputStream = new ByteArrayInputStream(dkimPrivateKey.getBytes(UTF_8));
 		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
-		this.selector = checkNonEmptyArgument(selector, "selector");
+		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
 	}
 
 	/**
 	 * Sets all info needed for DKIM, using a file reference for private key data.
 	 */
-	public EmailBuilder signWithDomainKey(@Nonnull final File dkimPrivateKeyFile, @Nonnull final String signingDomain, @Nonnull final String selector) {
+	public EmailBuilder signWithDomainKey(@Nonnull final File dkimPrivateKeyFile, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
 		this.dkimPrivateKeyFile = checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile");
 		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
-		this.selector = checkNonEmptyArgument(selector, "selector");
+		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
 	}
 
@@ -527,10 +527,10 @@ public class EmailBuilder {
 	 * Sets all info needed for DKIM, using an input stream for private key data.
 	 */
 	public EmailBuilder signWithDomainKey(@Nonnull final InputStream dkimPrivateKeyInputStream, @Nonnull final String signingDomain,
-			@Nonnull final String selector) {
+			@Nonnull final String dkimSelector) {
 		this.dkimPrivateKeyInputStream = checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream");
 		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
-		this.selector = checkNonEmptyArgument(selector, "selector");
+		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
 	}
 
@@ -590,7 +590,7 @@ public class EmailBuilder {
 		return signingDomain;
 	}
 
-	public String getSelector() {
-		return selector;
+	public String getDkimSelector() {
+		return dkimSelector;
 	}
 }

@@ -269,11 +269,11 @@ public final class MimeMessageHelper {
 			final DkimSigner dkimSigner;
 			if (email.getDkimPrivateKeyFile() != null) {
 				// InputStream is managed by Dkim library
-				dkimSigner = new DkimSigner(email.getSigningDomain(), email.getSelector(),
+				dkimSigner = new DkimSigner(email.getDkimSigningDomain(), email.getDkimSelector(),
 						email.getDkimPrivateKeyFile());
 			} else {
 				// InputStream is managed by SimpleJavaMail user
-				dkimSigner = new DkimSigner(email.getSigningDomain(), email.getSelector(),
+				dkimSigner = new DkimSigner(email.getDkimSigningDomain(), email.getDkimSelector(),
 						email.getDkimPrivateKeyInputStream());
 			}
 			dkimSigner.setIdentity(email.getFromRecipient().getAddress());

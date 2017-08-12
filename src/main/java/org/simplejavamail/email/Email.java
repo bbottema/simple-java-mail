@@ -99,8 +99,8 @@ public class Email {
 	private boolean applyDKIMSignature = false;
 	private InputStream dkimPrivateKeyInputStream;
 	private File dkimPrivateKeyFile; // supported seperately, so we don't have to do resource management ourselves for the InputStream
-	private String signingDomain;
-	private String selector;
+	private String dkimSigningDomain;
+	private String dkimSelector;
 
 	/**
 	 * Constructor, creates all internal lists. Populates default from, reply-to, to, cc and bcc if provided in the config file.
@@ -148,16 +148,16 @@ public class Email {
 			}
 		}
 	}
-
+	
 	/**
 	 * As {@link #signWithDomainKey(InputStream, String, String)}, but with a File reference that is later read as {@code InputStream}.
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public void signWithDomainKey(@Nonnull final File dkimPrivateKeyFile, @Nonnull final String signingDomain, @Nonnull final String selector) {
+	public void signWithDomainKey(@Nonnull final File dkimPrivateKeyFile, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
 		this.applyDKIMSignature = true;
 		this.dkimPrivateKeyFile = checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile");
-		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
-		this.selector = checkNonEmptyArgument(selector, "selector");
+		this.dkimSigningDomain = checkNonEmptyArgument(signingDomain, "dkimSigningDomain");
+		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 	}
 
 	/**
@@ -173,14 +173,14 @@ public class Email {
 	 *
 	 * @param dkimPrivateKeyInputStream De key content used to sign for the sending party.
 	 * @param signingDomain             The domain being authorized to send.
-	 * @param selector                  Additional domain specifier.
+	 * @param dkimSelector                  Additional domain specifier.
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public void signWithDomainKey(@Nonnull final InputStream dkimPrivateKeyInputStream, @Nonnull final String signingDomain, @Nonnull final String selector) {
+	public void signWithDomainKey(@Nonnull final InputStream dkimPrivateKeyInputStream, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
 		this.applyDKIMSignature = true;
 		this.dkimPrivateKeyInputStream = checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream");
-		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
-		this.selector = checkNonEmptyArgument(selector, "selector");
+		this.dkimSigningDomain = checkNonEmptyArgument(signingDomain, "dkimSigningDomain");
+		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 	}
 
 	/**
@@ -454,12 +454,12 @@ public class Email {
 		return dkimPrivateKeyFile;
 	}
 
-	public String getSigningDomain() {
-		return signingDomain;
+	public String getDkimSigningDomain() {
+		return dkimSigningDomain;
 	}
 
-	public String getSelector() {
-		return selector;
+	public String getDkimSelector() {
+		return dkimSelector;
 	}
 
 	@Override
@@ -507,11 +507,11 @@ public class Email {
 		text = builder.getText();
 		textHTML = builder.getTextHTML();
 		subject = builder.getSubject();
-
+		
 		if (builder.getDkimPrivateKeyFile() != null) {
-			signWithDomainKey(builder.getDkimPrivateKeyFile(), builder.getSigningDomain(), builder.getSelector());
+			signWithDomainKey(builder.getDkimPrivateKeyFile(), builder.getSigningDomain(), builder.getDkimSelector());
 		} else if (builder.getDkimPrivateKeyInputStream() != null) {
-			signWithDomainKey(builder.getDkimPrivateKeyInputStream(), builder.getSigningDomain(), builder.getSelector());
+			signWithDomainKey(builder.getDkimPrivateKeyInputStream(), builder.getSigningDomain(), builder.getDkimSelector());
 		}
 	}
 }
