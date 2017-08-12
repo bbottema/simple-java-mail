@@ -15,7 +15,7 @@ public class SimpleJavaMailSpringSupport {
 	@Bean
 	public Mailer loadGlobalConfigAndCreateDefaultMailer(
 			// now obviously there are easier ways to do this, but this is the only way
-			// I can think of that actually works accross Spring versions
+			// I can think of that actually works across Spring versions
 			@Value("${simplejavamail.javaxmail.debug:#{null}}") final String javaxmailDebug,
 			@Value("${simplejavamail.transportstrategy:#{null}}") final String transportstrategy,
 			@Value("${simplejavamail.smtp.host:#{null}}") final String smtpHost,
@@ -39,6 +39,7 @@ public class SimpleJavaMailSpringSupport {
 			@Value("${simplejavamail.defaults.bcc.name:#{null}}") final String defaultBccName,
 			@Value("${simplejavamail.defaults.bcc.address:#{null}}") final String defaultBccAddress,
 			@Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
+			@Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
 			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly) {
 		final Properties emailProperties = new Properties();
 		setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG.key(), javaxmailDebug);
@@ -64,6 +65,7 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_BCC_NAME.key(), defaultBccName);
 		setNullableProperty(emailProperties, Property.DEFAULT_BCC_ADDRESS.key(), defaultBccAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_POOL_SIZE.key(), defaultPoolsize);
+		setNullableProperty(emailProperties, Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key(), defaultSessionTimeoutMillis);
 		setNullableProperty(emailProperties, Property.TRANSPORT_MODE_LOGGING_ONLY.key(), defaultTransportModeLoggingOnly);
 
 		ConfigLoader.loadProperties(emailProperties, true);

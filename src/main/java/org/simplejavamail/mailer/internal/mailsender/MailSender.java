@@ -158,25 +158,19 @@ public class MailSender {
         }
         smtpRequestsPhaser.register();
 		if (async) {
-			// start up threadpool pool if necessary
+			// start up thread pool if necessary
 			if (executor == null || executor.isTerminated()) {
 				executor = Executors.newFixedThreadPool(threadPoolSize);
 			}
 			executor.execute(new Runnable() {
-				private static final String NAME = "sendMail process";
-
 				@Override
 				public void run() {
-					try {
-						sendMailClosure(session, email);
-					} catch (Exception e) {
-						LOGGER.error("could not send email {}", email, e);
-					}
+					sendMailClosure(session, email);
 				}
 
 				@Override
 				public String toString() {
-					return NAME;
+					return "sendMail process";
 				}
 			});
 		} else {

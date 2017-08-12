@@ -86,10 +86,10 @@ public class Mailer {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Mailer.class);
 
 	/**
-	 * The default maximum timeout value for the transport socket is {@value #DEFAULT_MAIL_SOCKET_TIMEOUT}
+	 * The default maximum timeout value for the transport socket is {@value #DEFAULT_SESSION_TIMEOUT_MILLIS}
 	 * milliseconds. Can be overridden from a config file or through System variable.
 	 */
-	private static final String DEFAULT_MAIL_SOCKET_TIMEOUT = "60000";
+	private static final int DEFAULT_SESSION_TIMEOUT_MILLIS = 60_000;
 
 	private final MailSender mailSender;
 
@@ -238,12 +238,11 @@ public class Mailer {
 		props.put(transportStrategy.propertyNamePort(), String.valueOf(serverConfig.getPort()));
 
 		// socket timeouts handling
-		String sendMailTimeoutInMillis = ConfigLoader.valueOrProperty(
-			null, Property.DEFAULT_MAIL_SOCKET_TIMEOUT_IN_MILLIS, DEFAULT_MAIL_SOCKET_TIMEOUT
-		);
-		props.put("mail.smtp.connectiontimeout", sendMailTimeoutInMillis);
-		props.put("mail.smtp.timeout", sendMailTimeoutInMillis);
-		props.put("mail.smtp.writetimeout", sendMailTimeoutInMillis);
+		final int sendMailTimeoutInMillis = ConfigLoader.valueOrProperty(null,
+				Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS);
+		props.put("mail.smtp.connectiontimeout", String.valueOf(sendMailTimeoutInMillis));
+		props.put("mail.smtp.timeout", String.valueOf(sendMailTimeoutInMillis));
+		props.put("mail.smtp.writetimeout", String.valueOf(sendMailTimeoutInMillis));
 
 		if (serverConfig.getUsername() != null) {
 			props.put(transportStrategy.propertyNameUsername(), serverConfig.getUsername());
