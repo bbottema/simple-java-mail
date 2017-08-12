@@ -133,7 +133,7 @@ mailer.trustSSLHosts("a", "b", "c", ...);
 mailer.setThreadPoolSize(3);
 </code></pre>
 <pre><code>// change the session timeout (affects socket connect-, read- and write timeouts)
-mailer.setThreadPoolSize(3);
+mailer.setSessionTimeout(10 * 1000); // 10 seconds for quick disconnect
 </code></pre>
     </div>
   </section>
