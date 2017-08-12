@@ -51,6 +51,20 @@ Simple Java Mail is available in Maven Central:
 
 ### Latest Progress ###
 
+[v4.3.0](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.3.0%7Cjar) (12-August-2017)
+
+Security and timeout release. 
+
+This version safeguards against SMTP injection attack from external values entering the library through *Email* instance. Also, this release 
+introduces default/configurable timeouts for connecting, reading and writing when sending an email.
+
+- [#89](https://github.com/bbottema/simple-java-mail/issues/89) Support multiple delimited recipient addresses sharing the same TO/CC/BCC name
+- [#88](https://github.com/bbottema/simple-java-mail/issues/88) **Safeguard subject property (and others) against SMTP CRLF injection attacks**
+- [#85](https://github.com/bbottema/simple-java-mail/issues/85) **Apply configurable timeouts when sending emails**
+- [#83](https://github.com/bbottema/simple-java-mail/issues/83) Parse INLINE attachments without ID as regular attachments when converting (mostly 
+applicable to Apple emails)
+
+
 [v4.2.3](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.3%7Cjar) (21-May-2017)
 
 - [#79](https://github.com/bbottema/simple-java-mail/issues/79): Enhancement: define custom message ID on the Email object
