@@ -72,7 +72,11 @@ public class MailSender {
 	 * instance is again engaged.
 	 */
 	private Phaser smtpRequestsPhaser;
-
+	
+	/**
+	 * The number of concurrent threads sending an email each. Used only when sending emails asynchronously (batch job mode). Default to
+	 * {@value #DEFAULT_POOL_SIZE}.
+	 */
 	private int threadPoolSize;
 
 	/**
