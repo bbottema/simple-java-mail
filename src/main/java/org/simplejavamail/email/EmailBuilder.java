@@ -232,20 +232,6 @@ public class EmailBuilder {
 	}
 
 	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link Message.RecipientType#TO}.
-	 *
-	 * @param name    The name of the recipient.
-	 * @param address The emailaddress of the recipient.
-	 * @see #recipients
-	 * @see Recipient
-	 */
-	public EmailBuilder to(@Nullable final String name, @Nonnull final String address) {
-		checkNonEmptyArgument(address, "address");
-		recipients.add(new Recipient(name, address, Message.RecipientType.TO));
-		return this;
-	}
-
-	/**
 	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#TO}.
 	 *
 	 * @param recipientsToAdd The recipients whose name and address to use
@@ -260,23 +246,31 @@ public class EmailBuilder {
 	}
 
 	/**
-	 * Adds anew {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#TO}. List can be
-	 * comma ',' or semicolon ';' separated.
+	 * Delegates to {@link #to(String, String)} while omitting the name used for the recipient(s).
+	 */
+	public EmailBuilder to(@Nonnull final String emailAddressList) {
+		return to(null, emailAddressList);
+	}
+	
+	/**
+	 * Adds anew {@link Recipient} instances to the list on account of given name, address with recipient type {@link Message.RecipientType#TO}.
+	 * List can be comma ',' or semicolon ';' separated.
 	 *
-	 * @param emailAddressList The recipients whose address to use for both name and address
+	 * @param name    		   The name of the recipient(s).
+	 * @param emailAddressList The emailaddresses of the recipients (will be singular in most use cases).
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder to(@Nonnull final String emailAddressList) {
+	public EmailBuilder to(@Nullable final String name, @Nonnull final String emailAddressList) {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.TO);
+		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.TO);
 	}
 
 	@Nonnull
-	private EmailBuilder addCommaOrSemicolonSeparatedEmailAddresses(@Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
+	private EmailBuilder addCommaOrSemicolonSeparatedEmailAddresses(@Nullable final String name, @Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
 		checkNonEmptyArgument(type, "type");
 		for (final String emailAddress : extractEmailAddresses(checkNonEmptyArgument(emailAddressList, "emailAddressList"))) {
-			recipients.add(new Recipient(null, emailAddress, type));
+			recipients.add(new Recipient(name, emailAddress, type));
 		}
 		return this;
 	}
@@ -296,21 +290,6 @@ public class EmailBuilder {
 	}
 
 	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link Message.RecipientType#CC}.
-	 *
-	 * @param name    The name of the recipient.
-	 * @param address The emailaddress of the recipient.
-	 * @see #recipients
-	 * @see Recipient
-	 */
-	@SuppressWarnings({ "WeakerAccess", "QuestionableName" })
-	public EmailBuilder cc(@Nullable final String name, @Nonnull final String address) {
-		checkNonEmptyArgument(address, "address");
-		recipients.add(new Recipient(name, address, Message.RecipientType.CC));
-		return this;
-	}
-
-	/**
 	 * Adds new {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#CC}.
 	 *
 	 * @param emailAddresses The recipients whose address to use for both name and address
@@ -324,19 +303,29 @@ public class EmailBuilder {
 		}
 		return this;
 	}
+	
+	
+	/**
+	 * Delegates to {@link #cc(String, String)} while omitting the name for the CC recipient(s).
+	 */
+	@SuppressWarnings("QuestionableName")
+	public EmailBuilder cc(@Nonnull final String emailAddressList) {
+		return cc(null, emailAddressList);
+	}
 
 	/**
 	 * Adds anew {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#CC}. List can be
 	 * comma ',' or semicolon ';' separated.
 	 *
+	 * @param name    		   The name of the recipient(s).
 	 * @param emailAddressList The recipients whose address to use for both name and address
 	 * @see #recipients
 	 * @see Recipient
 	 */
 	@SuppressWarnings("QuestionableName")
-	public EmailBuilder cc(@Nonnull final String emailAddressList) {
+	public EmailBuilder cc(@Nullable String name, @Nonnull final String emailAddressList) {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.CC);
+		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.CC);
 	}
 
 	/**
@@ -355,21 +344,6 @@ public class EmailBuilder {
 	}
 
 	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address with recipient type {@link Message.RecipientType#BCC}.
-	 *
-	 * @param name    The name of the recipient.
-	 * @param address The emailaddress of the recipient.
-	 * @see #recipients
-	 * @see Recipient
-	 */
-	@SuppressWarnings("WeakerAccess")
-	public EmailBuilder bcc(@Nullable final String name, @Nonnull final String address) {
-		checkNonEmptyArgument(address, "address");
-		recipients.add(new Recipient(name, address, Message.RecipientType.BCC));
-		return this;
-	}
-
-	/**
 	 * Adds new {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#BCC}.
 	 *
 	 * @param emailAddresses The recipients whose address to use for both name and address
@@ -382,18 +356,26 @@ public class EmailBuilder {
 		}
 		return this;
 	}
+	
+	/**
+	 * Delegates to {@link #bcc(String, String)} while omitting the name for the BCC recipient(s).
+	 */
+	public EmailBuilder bcc(@Nonnull final String emailAddressList) {
+		return bcc(null, emailAddressList);
+	}
 
 	/**
 	 * Adds anew {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#BCC}. List can be
 	 * comma ',' or semicolon ';' separated.
 	 *
+	 * @param name    		   The name of the recipient(s).
 	 * @param emailAddressList The recipients whose address to use for both name and address
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder bcc(@Nonnull final String emailAddressList) {
+	public EmailBuilder bcc(@Nullable String name, @Nonnull final String emailAddressList) {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		return addCommaOrSemicolonSeparatedEmailAddresses(emailAddressList, Message.RecipientType.BCC);
+		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.BCC);
 	}
 
 	/**

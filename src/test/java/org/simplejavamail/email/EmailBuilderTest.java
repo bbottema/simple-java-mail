@@ -80,6 +80,8 @@ public class EmailBuilderTest {
 				.to("8@candyshop.org;9@candyshop.org")
 				.to("10@candyshop.org;11@candyshop.org,12@candyshop.org")
 				.to(new Recipient("13", "13@candyshop.org", null), new Recipient("14", "14@candyshop.org", null))
+				.to("15", "15a@candyshop.org,15b@candyshop.org")
+				.to("16", "16a@candyshop.org;16b@candyshop.org")
 				.build();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
@@ -96,7 +98,11 @@ public class EmailBuilderTest {
 				createRecipient(null, "11@candyshop.org", Message.RecipientType.TO),
 				createRecipient(null, "12@candyshop.org", Message.RecipientType.TO),
 				createRecipient("13", "13@candyshop.org", Message.RecipientType.TO),
-				createRecipient("14", "14@candyshop.org", Message.RecipientType.TO)
+				createRecipient("14", "14@candyshop.org", Message.RecipientType.TO),
+				createRecipient("15", "15a@candyshop.org", Message.RecipientType.TO),
+				createRecipient("15", "15b@candyshop.org", Message.RecipientType.TO),
+				createRecipient("16", "16a@candyshop.org", Message.RecipientType.TO),
+				createRecipient("16", "16b@candyshop.org", Message.RecipientType.TO)
 		);
 	}
 
@@ -112,6 +118,8 @@ public class EmailBuilderTest {
 				.cc("8@candyshop.org;9@candyshop.org")
 				.cc("10@candyshop.org;11@candyshop.org,12@candyshop.org")
 				.cc(new Recipient("13", "13@candyshop.org", null), new Recipient("14", "14@candyshop.org", null))
+				.cc("15", "15a@candyshop.org,15b@candyshop.org")
+				.cc("16", "16a@candyshop.org;16b@candyshop.org")
 				.build();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
@@ -128,7 +136,11 @@ public class EmailBuilderTest {
 				createRecipient(null, "11@candyshop.org", Message.RecipientType.CC),
 				createRecipient(null, "12@candyshop.org", Message.RecipientType.CC),
 				createRecipient("13", "13@candyshop.org", Message.RecipientType.CC),
-				createRecipient("14", "14@candyshop.org", Message.RecipientType.CC)
+				createRecipient("14", "14@candyshop.org", Message.RecipientType.CC),
+				createRecipient("15", "15a@candyshop.org", Message.RecipientType.CC),
+				createRecipient("15", "15b@candyshop.org", Message.RecipientType.CC),
+				createRecipient("16", "16a@candyshop.org", Message.RecipientType.CC),
+				createRecipient("16", "16b@candyshop.org", Message.RecipientType.CC)
 		);
 	}
 
@@ -144,6 +156,8 @@ public class EmailBuilderTest {
 				.bcc("8@candyshop.org;9@candyshop.org")
 				.bcc("10@candyshop.org;11@candyshop.org,12@candyshop.org")
 				.bcc(new Recipient("13", "13@candyshop.org", null), new Recipient("14", "14@candyshop.org", null))
+				.bcc("15", "15a@candyshop.org,15b@candyshop.org")
+				.bcc("16", "16a@candyshop.org;16b@candyshop.org")
 				.build();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
@@ -160,7 +174,11 @@ public class EmailBuilderTest {
 				createRecipient(null, "11@candyshop.org", Message.RecipientType.BCC),
 				createRecipient(null, "12@candyshop.org", Message.RecipientType.BCC),
 				createRecipient("13", "13@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("14", "14@candyshop.org", Message.RecipientType.BCC)
+				createRecipient("14", "14@candyshop.org", Message.RecipientType.BCC),
+				createRecipient("15", "15a@candyshop.org", Message.RecipientType.BCC),
+				createRecipient("15", "15b@candyshop.org", Message.RecipientType.BCC),
+				createRecipient("16", "16a@candyshop.org", Message.RecipientType.BCC),
+				createRecipient("16", "16b@candyshop.org", Message.RecipientType.BCC)
 		);
 	}
 
