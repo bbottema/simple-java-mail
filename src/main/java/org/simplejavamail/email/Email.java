@@ -230,7 +230,17 @@ public class Email {
 	public void setTextHTML(@Nullable final String textHTML) {
 		this.textHTML = textHTML;
 	}
-
+	
+	/**
+	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
+	 * Identical to {@link #addRecipients(String, String, RecipientType)}, but kept for readability purposes.
+	 */
+	public void addRecipient(@Nullable final String name, @Nonnull final String emailAddressList, @Nonnull final RecipientType type) {
+		checkNonEmptyArgument(type, "type");
+		checkNonEmptyArgument(emailAddressList, "emailAddressList");
+		addRecipients(name, type, extractEmailAddresses(emailAddressList));
+	}
+	
 	/**
 	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
 	 */
