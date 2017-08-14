@@ -28,10 +28,11 @@ ConfigLoader.loadProperties("overrides.properties"); // optional extra
 
 Email email = new Email();
 
-email.addRecipient("lollypop", "lolly.pop@somemail.com", Message.RecipientType.TO);
+email.addRecipient("lollypop", "lolly.pop@somemail.com", RecipientType.TO);
 email.setReplyToAddress("lollypop", "lolly.pop@othermail.com");
-email.addRecipient("C. Cane", "candycane@candyshop.org", Message.RecipientType.TO);
-email.addRecipient("C. Bo", "chocobo@candyshop.org", Message.RecipientType.CC);
+email.addRecipient("C. Cane", "candycane@candyshop.org", RecipientType.TO);
+email.addRecipient("C. Bo", "chocobo@candyshop.org", RecipientType.CC);
+email.addRecipients("Candy Group", "taster1@cgroup.org;taster2@cgroup.org", RecipientType.BCC);
 email.setSubject("hey");
 email.setText("We should meet up! ;)");
 email.setTextHTML("&lt;img src=&#39;cid:wink1&#39;&gt;&lt;b&gt;We should meet up!&lt;/b&gt;&lt;img src=&#39;cid:wink2&#39;&gt;");
