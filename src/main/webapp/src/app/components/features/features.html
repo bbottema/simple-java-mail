@@ -152,6 +152,8 @@ email.addRecipients(yourRecipient1, yourRecipient2...);
 // or add comma / semicolon separated addresses (without names)
 String list = "twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com";
 emailNormal.addRecipients(list, RecipientType.BCC);
+// or:
+emailNormal.addRecipients("maintenance group", list, RecipientType.TO);
 </code></pre>
       <p><code class="inline">EmailBuilder</code>:</p>
       <pre><code>.to(yourRecipient1, yourRecipient2...)
