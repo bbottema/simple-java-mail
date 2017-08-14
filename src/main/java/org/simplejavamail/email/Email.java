@@ -232,36 +232,21 @@ public class Email {
 	}
 
 	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address and recipient type (eg. {@link RecipientType#CC}).
-	 *
-	 * @param name    The name of the recipient.
-	 * @param address The emailadres of the recipient.
-	 * @param type    The type of receiver (eg. {@link RecipientType#CC}).
-	 * @see #recipients
-	 * @see Recipient
-	 * @see RecipientType
+	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
 	 */
-	public void addRecipient(@Nullable final String name, @Nonnull final String address, @Nonnull final RecipientType type) {
-		checkNonEmptyArgument(address, "address");
-		checkNonEmptyArgument(type, "type");
-		recipients.add(new Recipient(name, address, type));
-	}
-
-	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address and recipient type (eg. {@link RecipientType#CC}).
-	 *
-	 * @param emailAddressList The emailadres of the recipient or recipients separated by comma or semicolon.
-	 * @param type             The type of receiver (eg. {@link RecipientType#CC}).
-	 * @see #recipients
-	 * @see Recipient
-	 * @see RecipientType
-	 */
-	public void addRecipients(@Nonnull final String emailAddressList, @Nonnull final RecipientType type) {
+	public void addRecipients(@Nullable final String name, @Nonnull final String emailAddressList, @Nonnull final RecipientType type) {
 		checkNonEmptyArgument(type, "type");
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		addRecipients(type, extractEmailAddresses(emailAddressList));
+		addRecipients(name, type, extractEmailAddresses(emailAddressList));
 	}
-
+	
+	/**
+	 * Delegates to {@link #addRecipients(String, RecipientType, String...)} with an empty name.
+	 */
+	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
+		addRecipients(null, type, recipientEmailAddressesToAdd);
+	}
+	
 	/**
 	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
 	 *
@@ -270,10 +255,10 @@ public class Email {
 	 * @see Recipient
 	 * @see RecipientType
 	 */
-	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
+	public void addRecipients(@Nullable final String name, @Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
 		checkNonEmptyArgument(type, "type");
 		for (final String emailAddress : checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd")) {
-			recipients.add(new Recipient(null, emailAddress, type));
+			recipients.add(new Recipient(name, emailAddress, type));
 		}
 	}
 
