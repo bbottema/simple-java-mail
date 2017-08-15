@@ -395,6 +395,10 @@ public class Mailer {
 			throw new MailerException(MailerException.MISSING_RECIPIENT);
 		} else if (email.getFromRecipient() == null) {
 			throw new MailerException(MailerException.MISSING_SENDER);
+		} else if (email.isUseDispositionNotificationTo() && email.getDispositionNotificationTo() == null) {
+			throw new MailerException(MailerException.MISSING_DISPOSITIONNOTIFICATIONTO);
+		} else if (email.isUseReturnReceiptTo() && email.getReturnReceiptTo() == null) {
+			throw new MailerException(MailerException.MISSING_RETURNRECEIPTTO);
 		} else if (emailAddressCriteria != null) {
 			if (!EmailAddressValidator.isValid(email.getFromRecipient().getAddress(), emailAddressCriteria)) {
 				throw new MailerException(format(MailerException.INVALID_SENDER, email));
@@ -408,11 +412,13 @@ public class Mailer {
 					.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
 				throw new MailerException(format(MailerException.INVALID_REPLYTO, email));
 			}
-			if (email.isUseDispositionNotificationTo() && email.getDispositionNotificationTo() == null) {
-				throw new MailerException(MailerException.MISSING_DISPOSITIONNOTIFICATIONTO);
+			if (email.isUseDispositionNotificationTo() && !EmailAddressValidator
+					.isValid(email.getDispositionNotificationTo().getAddress(), emailAddressCriteria)) {
+				throw new MailerException(format(MailerException.INVALID_DISPOSITIONNOTIFICATIONTO, email));
 			}
-			if (email.isUseReturnReceiptTo() && email.getReturnReceiptTo() == null) {
-				throw new MailerException(MailerException.MISSING_RETURNRECEIPTTO);
+			if (email.isUseReturnReceiptTo() && !EmailAddressValidator
+					.isValid(email.getReturnReceiptTo().getAddress(), emailAddressCriteria)) {
+				throw new MailerException(format(MailerException.INVALID_RETURNRECEIPTTO, email));
 			}
 		}
 		return true;
