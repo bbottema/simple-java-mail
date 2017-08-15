@@ -39,7 +39,22 @@ final class EqualsHelper {
 		if (!email1.getAttachments().containsAll(email2.getAttachments())) {
 			return false;
 		}
-		return email1.getHeaders().equals(email2.getHeaders());
+		if (!email1.getHeaders().equals(email2.getHeaders())) {
+			return false;
+		}
+		if (email1.isUseDispositionNotificationTo() != email2.isUseDispositionNotificationTo()) {
+			return false;
+		}
+		if (email1.isUseReturnReceiptTo() != email2.isUseReturnReceiptTo()) {
+			return false;
+		}
+		if (email1.getDispositionNotificationTo() != null ? !email1.getDispositionNotificationTo().equals(email2.getDispositionNotificationTo()) : email2.getDispositionNotificationTo() != null) {
+			return false;
+		}
+		if (email1.getReturnReceiptTo() != null ? !email1.getReturnReceiptTo().equals(email2.getReturnReceiptTo()) : email2.getReturnReceiptTo() != null) {
+			return false;
+		}
+		return true;
 	}
 
 	private static boolean isEqualRecipientList(final List<Recipient> recipients, final List<Recipient> otherRecipients) {

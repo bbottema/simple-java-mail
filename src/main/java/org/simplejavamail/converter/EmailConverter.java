@@ -4,6 +4,7 @@ import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.msgparser.OutlookMessageParser;
 import org.simplejavamail.email.Email;
+import org.simplejavamail.email.Recipient;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookMessage;
@@ -14,6 +15,7 @@ import javax.annotation.Nonnull;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
+import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
@@ -240,7 +242,9 @@ public final class EmailConverter {
 		final InternetAddress replyTo = parser.getReplyTo();
 		email.setReplyToAddress(replyTo.getPersonal(), replyTo.getAddress());
 		for (final Map.Entry<String, Object> header : parser.getHeaders().entrySet()) {
-			email.addHeader(header.getKey(), header.getValue());
+			if (!fillPredefinedHeader(email, header)) {
+				email.addHeader(header.getKey(), header.getValue());
+			}
 		}
 		for (final InternetAddress to : parser.getTo()) {
 			email.addRecipient(to.getPersonal(), to.getAddress(), Message.RecipientType.TO);
@@ -263,7 +267,22 @@ public final class EmailConverter {
 			email.addAttachment(extractCID(attachment.getKey()), attachment.getValue());
 		}
 	}
-
+	
+	private static boolean fillPredefinedHeader(@Nonnull Email email, @Nonnull Map.Entry<String, Object> header) throws AddressException {
+		if (header.getKey().equals("Disposition-Notification-To")) {
+			email.setUseDispositionNotificationTo(true);
+			InternetAddress internetAddress = new InternetAddress((String) header.getValue());
+			email.setDispositionNotificationTo(new Recipient(internetAddress.getPersonal(), internetAddress.getAddress(), null));
+			return true;
+		} else if (header.getKey().equals("Return-Receipt-To")) {
+			email.setUseReturnReceiptTo(true);
+			InternetAddress internetAddress = new InternetAddress((String) header.getValue());
+			email.setReturnReceiptTo(new Recipient(internetAddress.getPersonal(), internetAddress.getAddress(), null));
+			return true;
+		}
+		return false;
+	}
+	
 	private static void fillEmailFromOutlookMessage(@Nonnull final Email email, @Nonnull final OutlookMessage outlookMessage) {
 		checkNonEmptyArgument(email, "email");
 		checkNonEmptyArgument(outlookMessage, "outlookMessage");

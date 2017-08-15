@@ -1,6 +1,7 @@
 package testutil;
 
 import org.simplejavamail.email.Email;
+import org.simplejavamail.email.Recipient;
 
 import javax.annotation.Nullable;
 import javax.mail.util.ByteArrayDataSource;
@@ -31,6 +32,12 @@ public class EmailHelper {
 		emailNormal.setText("We should meet up!");
 		emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
 		emailNormal.setSubject("hey");
+		
+		emailNormal.addHeader("dummyHeader", "dummyHeaderValue");
+		emailNormal.setUseDispositionNotificationTo(true);
+		emailNormal.setDispositionNotificationTo(new Recipient(null, "simple@address.com", null));
+		emailNormal.setUseReturnReceiptTo(true);
+		emailNormal.setReturnReceiptTo(new Recipient("Complex Email", "simple@address.com", null));
 		
 		// add two text files in different ways and a black thumbs up embedded image ->
 		ByteArrayDataSource namedAttachment = new ByteArrayDataSource("Black Tie Optional", "text/plain");

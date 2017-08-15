@@ -41,7 +41,7 @@ public class MailerLiveTest {
 		ConfigLoader.loadProperties(new Properties(), false); // clear out defaults
 		mailer = new Mailer(SERVER_CONFIG);
 	}
-
+	
 	@Test
 	public void createMailSession_StandardDummyMail()
 			throws IOException, MessagingException {
