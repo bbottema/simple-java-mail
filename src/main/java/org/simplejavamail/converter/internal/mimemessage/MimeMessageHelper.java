@@ -181,6 +181,9 @@ public final class MimeMessageHelper {
 	/**
 	 * Sets all headers on the {@link Message} instance. Since we're not using a high-level JavaMail method, the JavaMail library says we need to do
 	 * some encoding and 'folding' manually, to get the value right for the headers (see {@link MimeUtility}.
+	 * <p>
+	 * Furthermore sets the notification flags <code>Disposition-Notification-To</code> and <code>Return-Receipt-To</code> if provided. It used
+	 * JavaMail's built in method for producing an RFC compliant email address (see {@link InternetAddress#toString()}).
 	 *
 	 * @param email   The message in which the headers are defined.
 	 * @param message The {@link Message} on which to set the raw, encoded and folded headers.
@@ -197,6 +200,18 @@ public final class MimeMessageHelper {
 			final String headerValue = MimeUtility.encodeText(header.getValue(), CHARACTER_ENCODING, null);
 			final String foldedHeaderValue = MimeUtility.fold(headerName.length() + 2, headerValue);
 			message.addHeader(header.getKey(), foldedHeaderValue);
+		}
+		
+		if (email.isUseDispositionNotificationTo()) {
+			final Address address = new InternetAddress(email.getDispositionNotificationTo().getAddress(),
+					email.getDispositionNotificationTo().getName(), CHARACTER_ENCODING);
+			message.setHeader("Disposition-Notification-To", address.toString());
+		}
+		
+		if (email.isUseReturnReceiptTo()) {
+			final Address address = new InternetAddress(email.getReturnReceiptTo().getAddress(),
+					email.getReturnReceiptTo().getName(), CHARACTER_ENCODING);
+			message.setHeader("Return-Receipt-To", address.toString());
 		}
 	}
 

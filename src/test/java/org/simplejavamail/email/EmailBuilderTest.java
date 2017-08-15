@@ -181,6 +181,66 @@ public class EmailBuilderTest {
 				createRecipient("16", "16b@candyshop.org", Message.RecipientType.BCC)
 		);
 	}
+	
+	@Test
+	public void testBuilderNotificationFlags_DefaultOff() {
+		final Email email = new EmailBuilder()
+				.replyTo("replyTo", "1@candyshop.org")
+				.from("from", "2@candyshop.org")
+				.build();
+		
+		assertThat(email.isUseDispositionNotificationTo()).isFalse();
+		assertThat(email.isUseReturnReceiptTo()).isFalse();
+		assertThat(email.getDispositionNotificationTo()).isNull();
+		assertThat(email.getReturnReceiptTo()).isNull();
+	}
+	
+	@Test
+	public void testBuilderNotificationFlags_ReDefaultToReplyTo() {
+		final Email email = new EmailBuilder()
+				.replyTo("replyTo", "1@candyshop.org")
+				.from("from", "2@candyshop.org")
+				.withDispositionNotificationTo("custom@candyshop.com")
+				.withReturnReceiptTo("custom@candyshop.com")
+				.withDispositionNotificationTo()
+				.withReturnReceiptTo()
+				.build();
+		
+		assertThat(email.isUseDispositionNotificationTo()).isTrue();
+		assertThat(email.isUseReturnReceiptTo()).isTrue();
+		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
+		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
+	}
+	
+	@Test
+	public void testBuilderNotificationFlags_DefaultToReplyTo() {
+		final Email email = new EmailBuilder()
+				.replyTo("replyTo", "1@candyshop.org")
+				.from("from", "2@candyshop.org")
+				.withDispositionNotificationTo()
+				.withReturnReceiptTo()
+				.build();
+		
+		assertThat(email.isUseDispositionNotificationTo()).isTrue();
+		assertThat(email.isUseReturnReceiptTo()).isTrue();
+		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
+		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
+	}
+	
+	@Test
+	public void testBuilderNotificationFlags_CustomAddress() {
+		final Email email = new EmailBuilder()
+				.replyTo("replyTo", "1@candyshop.org")
+				.from("from", "2@candyshop.org")
+				.withDispositionNotificationTo("customa@candyshop.org")
+				.withReturnReceiptTo("customb@candyshop.org")
+				.build();
+		
+		assertThat(email.isUseDispositionNotificationTo()).isTrue();
+		assertThat(email.isUseReturnReceiptTo()).isTrue();
+		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient(null, "customa@candyshop.org", null));
+		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient(null, "customb@candyshop.org", null));
+	}
 
 	@Test
 	public void testBuilderEmbeddingImages() {

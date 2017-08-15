@@ -49,74 +49,107 @@ public class EmailBuilder {
 	 * The id-format should be conform <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
 	 */
 	private String id;
-
+	
 	private Recipient fromRecipient;
+	
 	/**
 	 * The reply-to-address, optional. Can be used in conjunction with {@link #fromRecipient}.
 	 */
 	private Recipient replyToRecipient;
-
+	
 	/**
 	 * The email message body in plain text.
 	 */
 	private String text;
-
+	
 	/**
 	 * The email message body in html.
 	 */
 	private String textHTML;
-
+	
 	/**
 	 * The subject of the email message.
 	 */
 	private String subject;
-
+	
 	/**
 	 * List of {@link Recipient}.
 	 */
 	private final List<Recipient> recipients;
-
+	
 	/**
 	 * List of {@link AttachmentResource}.
 	 */
 	private final List<AttachmentResource> embeddedImages;
-
+	
 	/**
 	 * List of {@link AttachmentResource}.
 	 */
 	private final List<AttachmentResource> attachments;
-
+	
 	/**
 	 * Map of header name and values, such as <code>X-Priority</code> etc.
 	 */
 	private final Map<String, String> headers;
-
+	
 	/**
 	 * A file reference to the private key to be used for signing with DKIM.
 	 */
 	private File dkimPrivateKeyFile;
-
+	
 	/**
 	 * An input stream containg the private key data to be used for signing with DKIM.
 	 */
 	private InputStream dkimPrivateKeyInputStream;
-
+	
 	/**
 	 * The domain used for signing with DKIM.
 	 */
 	private String signingDomain;
-
+	
 	/**
 	 * The dkimSelector to be used in combination with the domain.
 	 */
 	private String dkimSelector;
-
+	
+	/**
+	 * Indicates the new emails should set the <a href="https://tools.ietf.org/html/rfc8098">NPM flag "Disposition-Notification-To"</a>. This flag can
+	 * be used to request a return receipt from the recipient to signal that the recipient has read the email.
+	 * <p>
+	 * This flag may be ignored by SMTP clients (for example gmail ignores it completely, while the Google Apps business suite honors it).
+	 * <p>
+	 * If no address is provided, {@link #dispositionNotificationTo} will default to {@link #replyToRecipient} if available or else
+	 * {@link #fromRecipient}.
+	 */
+	private boolean useDispositionNotificationTo;
+	
+	/**
+	 * @see #useDispositionNotificationTo
+	 */
+	private Recipient dispositionNotificationTo;
+	
+	/**
+	 * Indicates the new emails should set the <a href="https://en.wikipedia.org/wiki/Return_receipt">RRT flag "Return-Receipt-To"</a>. This flag
+	 * can be used to request a notification from the SMTP server recipient to signal that the recipient has read the email.
+	 * <p>
+	 * This flag is rarely used, but your mail server / client might implement this flag to automatically send back a notification that the email
+	 * was received on the mail server or opened in the client, depending on the chosen implementation.
+	 * <p>
+	 * If no address is provided, {@link #returnReceiptTo} will default to {@link #replyToRecipient} if available or else {@link #fromRecipient}.
+	 */
+	private boolean useReturnReceiptTo;
+	
+	/**
+	 * @see #useReturnReceiptTo
+	 */
+	private Recipient returnReceiptTo;
+	
 	public EmailBuilder() {
 		recipients = new ArrayList<>();
 		embeddedImages = new ArrayList<>();
 		attachments = new ArrayList<>();
 		headers = new HashMap<>();
-
+		
 		if (hasProperty(DEFAULT_FROM_ADDRESS)) {
 			from((String) getProperty(DEFAULT_FROM_NAME), (String) getProperty(DEFAULT_FROM_ADDRESS));
 		}
@@ -148,11 +181,11 @@ public class EmailBuilder {
 			subject((String) getProperty(DEFAULT_SUBJECT));
 		}
 	}
-
+	
 	public Email build() {
 		return new Email(this);
 	}
-
+	
 	/**
 	 * Sets the optional id to be used when sending using the underlying Java Mail framework. Will be generated otherwise.
 	 */
@@ -160,7 +193,7 @@ public class EmailBuilder {
 		this.id = id;
 		return this;
 	}
-
+	
 	/**
 	 * Sets the sender address {@link #fromRecipient}.
 	 *
@@ -172,7 +205,7 @@ public class EmailBuilder {
 		this.fromRecipient = new Recipient(name, fromAddress, null);
 		return this;
 	}
-
+	
 	/**
 	 * Sets the sender address {@link #fromRecipient} with preconfigured {@link Recipient}.
 	 *
@@ -183,7 +216,7 @@ public class EmailBuilder {
 		this.fromRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
 		return this;
 	}
-
+	
 	/**
 	 * Sets {@link #replyToRecipient} (optional).
 	 *
@@ -195,7 +228,7 @@ public class EmailBuilder {
 		this.replyToRecipient = new Recipient(name, replyToAddress, null);
 		return this;
 	}
-
+	
 	/**
 	 * Sets {@link #replyToRecipient} (optional) with preconfigured {@link Recipient}.
 	 *
@@ -206,7 +239,7 @@ public class EmailBuilder {
 		this.replyToRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
 		return this;
 	}
-
+	
 	/**
 	 * Sets the {@link #subject}.
 	 */
@@ -214,7 +247,7 @@ public class EmailBuilder {
 		this.subject = checkNonEmptyArgument(subject, "subject");
 		return this;
 	}
-
+	
 	/**
 	 * Sets the {@link #text}.
 	 */
@@ -222,7 +255,7 @@ public class EmailBuilder {
 		this.text = text;
 		return this;
 	}
-
+	
 	/**
 	 * Sets the {@link #textHTML}.
 	 */
@@ -230,7 +263,7 @@ public class EmailBuilder {
 		this.textHTML = textHTML;
 		return this;
 	}
-
+	
 	/**
 	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#TO}.
 	 *
@@ -244,7 +277,7 @@ public class EmailBuilder {
 		}
 		return this;
 	}
-
+	
 	/**
 	 * Delegates to {@link #to(String, String)} while omitting the name used for the recipient(s).
 	 */
@@ -256,7 +289,7 @@ public class EmailBuilder {
 	 * Adds anew {@link Recipient} instances to the list on account of given name, address with recipient type {@link Message.RecipientType#TO}.
 	 * List can be comma ',' or semicolon ';' separated.
 	 *
-	 * @param name    		   The name of the recipient(s).
+	 * @param name             The name of the recipient(s).
 	 * @param emailAddressList The emailaddresses of the recipients (will be singular in most use cases).
 	 * @see #recipients
 	 * @see Recipient
@@ -265,7 +298,7 @@ public class EmailBuilder {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.TO);
 	}
-
+	
 	@Nonnull
 	private EmailBuilder addCommaOrSemicolonSeparatedEmailAddresses(@Nullable final String name, @Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
 		checkNonEmptyArgument(type, "type");
@@ -274,7 +307,7 @@ public class EmailBuilder {
 		}
 		return this;
 	}
-
+	
 	/**
 	 * Adds new {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#TO}.
 	 *
@@ -288,7 +321,7 @@ public class EmailBuilder {
 		}
 		return this;
 	}
-
+	
 	/**
 	 * Adds new {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#CC}.
 	 *
@@ -312,12 +345,12 @@ public class EmailBuilder {
 	public EmailBuilder cc(@Nonnull final String emailAddressList) {
 		return cc(null, emailAddressList);
 	}
-
+	
 	/**
 	 * Adds anew {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#CC}. List can be
 	 * comma ',' or semicolon ';' separated.
 	 *
-	 * @param name    		   The name of the recipient(s).
+	 * @param name             The name of the recipient(s).
 	 * @param emailAddressList The recipients whose address to use for both name and address
 	 * @see #recipients
 	 * @see Recipient
@@ -327,7 +360,7 @@ public class EmailBuilder {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.CC);
 	}
-
+	
 	/**
 	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#CC}.
 	 *
@@ -342,7 +375,7 @@ public class EmailBuilder {
 		}
 		return this;
 	}
-
+	
 	/**
 	 * Adds new {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#BCC}.
 	 *
@@ -363,12 +396,12 @@ public class EmailBuilder {
 	public EmailBuilder bcc(@Nonnull final String emailAddressList) {
 		return bcc(null, emailAddressList);
 	}
-
+	
 	/**
 	 * Adds anew {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#BCC}. List can be
 	 * comma ',' or semicolon ';' separated.
 	 *
-	 * @param name    		   The name of the recipient(s).
+	 * @param name             The name of the recipient(s).
 	 * @param emailAddressList The recipients whose address to use for both name and address
 	 * @see #recipients
 	 * @see Recipient
@@ -377,7 +410,7 @@ public class EmailBuilder {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.BCC);
 	}
-
+	
 	/**
 	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#BCC}.
 	 *
@@ -391,7 +424,7 @@ public class EmailBuilder {
 		}
 		return this;
 	}
-
+	
 	/**
 	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then
 	 * delegates to {@link Email#addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
@@ -406,12 +439,12 @@ public class EmailBuilder {
 		checkNonEmptyArgument(name, "name");
 		checkNonEmptyArgument(data, "data");
 		checkNonEmptyArgument(mimetype, "mimetype");
-
+		
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 		dataSource.setName(name);
 		return embedImage(name, dataSource);
 	}
-
+	
 	/**
 	 * Overloaded method which sets an embedded image on account of name and {@link DataSource}.
 	 *
@@ -428,7 +461,7 @@ public class EmailBuilder {
 		embeddedImages.add(new AttachmentResource(name, imagedata));
 		return this;
 	}
-
+	
 	/**
 	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>. example: <code>email.addHeader("X-Priority",
 	 * 2)</code>
@@ -442,7 +475,7 @@ public class EmailBuilder {
 		headers.put(name, String.valueOf(value));
 		return this;
 	}
-
+	
 	/**
 	 * Adds an attachment to the email message and generates the necessary {@link DataSource} with the given byte data. Then delegates to {@link
 	 * #addAttachment(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
@@ -461,7 +494,7 @@ public class EmailBuilder {
 		addAttachment(MiscUtil.encodeText(name), dataSource);
 		return this;
 	}
-
+	
 	/**
 	 * Overloaded method which sets an attachment on account of name and {@link DataSource}.
 	 *
@@ -473,7 +506,7 @@ public class EmailBuilder {
 		attachments.add(new AttachmentResource(MiscUtil.encodeText(name), filedata));
 		return this;
 	}
-
+	
 	/**
 	 * Sets all info needed for DKIM, using a byte array for private key data.
 	 */
@@ -483,7 +516,7 @@ public class EmailBuilder {
 		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
 	}
-
+	
 	/**
 	 * Sets all info needed for DKIM, using a byte array for private key data.
 	 */
@@ -494,7 +527,7 @@ public class EmailBuilder {
 		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
 	}
-
+	
 	/**
 	 * Sets all info needed for DKIM, using a file reference for private key data.
 	 */
@@ -504,75 +537,165 @@ public class EmailBuilder {
 		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
 	}
-
+	
 	/**
 	 * Sets all info needed for DKIM, using an input stream for private key data.
 	 */
 	public EmailBuilder signWithDomainKey(@Nonnull final InputStream dkimPrivateKeyInputStream, @Nonnull final String signingDomain,
-			@Nonnull final String dkimSelector) {
+										  @Nonnull final String dkimSelector) {
 		this.dkimPrivateKeyInputStream = checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream");
 		this.signingDomain = checkNonEmptyArgument(signingDomain, "signingDomain");
 		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
 	}
-
+	
+	/**
+	 * Indicates that we want to use the NPM flag {@link #dispositionNotificationTo}. The actual address will default to the {@link #replyToRecipient}
+	 * first if set or else {@link #fromRecipient}.
+	 */
+	public EmailBuilder withDispositionNotificationTo() {
+		this.useDispositionNotificationTo = true;
+		this.dispositionNotificationTo = null;
+		return this;
+	}
+	
+	/**
+	 * Indicates that we want to use the NPM flag {@link #dispositionNotificationTo} with the given mandatory address.
+	 */
+	public EmailBuilder withDispositionNotificationTo(@Nonnull String address) {
+		this.useDispositionNotificationTo = true;
+		this.dispositionNotificationTo = new Recipient(null, checkNonEmptyArgument(address, "dispositionNotificationToAddress"), null);
+		return this;
+	}
+	
+	/**
+	 * Indicates that we want to use the NPM flag {@link #dispositionNotificationTo} with the given optional name and mandatory address.
+	 */
+	public EmailBuilder withDispositionNotificationTo(@Nullable String name, @Nonnull String address) {
+		this.useDispositionNotificationTo = true;
+		this.dispositionNotificationTo = new Recipient(name, checkNonEmptyArgument(address, "dispositionNotificationToAddress"), null);
+		return this;
+	}
+	
+	/**
+	 * Indicates that we want to use the NPM flag {@link #dispositionNotificationTo} with the given preconfigred {@link Recipient}.
+	 */
+	public EmailBuilder withDispositionNotificationTo(@Nonnull Recipient recipient) {
+		this.useDispositionNotificationTo = true;
+		this.dispositionNotificationTo = new Recipient(recipient.getName(), checkNonEmptyArgument(recipient.getAddress(), "dispositionNotificationToAddress"), null);
+		return this;
+	}
+	
+	/**
+	 * Indicates that we want to use the flag {@link #returnReceiptTo}. The actual address will default to the {@link #replyToRecipient}
+	 * first if set or else {@link #fromRecipient}.
+	 */
+	public EmailBuilder withReturnReceiptTo() {
+		this.useReturnReceiptTo = true;
+		this.returnReceiptTo = null;
+		return this;
+	}
+	
+	/**
+	 * Indicates that we want to use the NPM flag {@link #returnReceiptTo} with the given mandatory address.
+	 */
+	public EmailBuilder withReturnReceiptTo(@Nonnull String address) {
+		this.useReturnReceiptTo = true;
+		this.returnReceiptTo = new Recipient(null, checkNonEmptyArgument(address, "returnReceiptToAddress"), null);
+		return this;
+	}
+	
+	/**
+	 * Indicates that we want to use the NPM flag {@link #returnReceiptTo} with the given optional name and mandatory address.
+	 */
+	public EmailBuilder withReturnReceiptTo(@Nullable String name, @Nonnull String address) {
+		this.useReturnReceiptTo = true;
+		this.returnReceiptTo = new Recipient(name, checkNonEmptyArgument(address, "returnReceiptToAddress"), null);
+		return this;
+	}
+	
+	/**
+	 * Indicates that we want to use the NPM flag {@link #returnReceiptTo} with the preconfigured {@link Recipient}.
+	 */
+	public EmailBuilder withReturnReceiptTo(@Nonnull Recipient recipient) {
+		this.useReturnReceiptTo = true;
+		this.returnReceiptTo = new Recipient(recipient.getName(), checkNonEmptyArgument(recipient.getAddress(), "returnReceiptToAddress"), null);
+		return this;
+	}
+	
 	/*
 		SETTERS / GETTERS
 	 */
-
+	
 	public String getId() {
 		return id;
 	}
-
+	
 	public Recipient getFromRecipient() {
 		return fromRecipient;
 	}
-
+	
 	public Recipient getReplyToRecipient() {
 		return replyToRecipient;
 	}
-
+	
 	public String getText() {
 		return text;
 	}
-
+	
 	public String getTextHTML() {
 		return textHTML;
 	}
-
+	
 	public String getSubject() {
 		return subject;
 	}
-
+	
 	public List<Recipient> getRecipients() {
 		return new ArrayList<>(recipients);
 	}
-
+	
 	public List<AttachmentResource> getEmbeddedImages() {
 		return new ArrayList<>(embeddedImages);
 	}
-
+	
 	public List<AttachmentResource> getAttachments() {
 		return new ArrayList<>(attachments);
 	}
-
+	
 	public Map<String, String> getHeaders() {
 		return new HashMap<>(headers);
 	}
-
+	
 	public File getDkimPrivateKeyFile() {
 		return dkimPrivateKeyFile;
 	}
-
+	
 	public InputStream getDkimPrivateKeyInputStream() {
 		return dkimPrivateKeyInputStream;
 	}
-
+	
 	public String getSigningDomain() {
 		return signingDomain;
 	}
-
+	
 	public String getDkimSelector() {
 		return dkimSelector;
+	}
+	
+	public boolean isUseDispositionNotificationTo() {
+		return useDispositionNotificationTo;
+	}
+	
+	public Recipient getDispositionNotificationTo() {
+		return dispositionNotificationTo;
+	}
+	
+	public boolean isUseReturnReceiptTo() {
+		return useReturnReceiptTo;
+	}
+	
+	public Recipient getReturnReceiptTo() {
+		return returnReceiptTo;
 	}
 }

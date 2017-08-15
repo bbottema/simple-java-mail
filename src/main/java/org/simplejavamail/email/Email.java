@@ -92,13 +92,45 @@ public class Email {
 	 * Map of header name and values, such as <code>X-Priority</code> etc.
 	 */
 	private final Map<String, String> headers;
+	
+	/**
+	 * Indicates the new emails should set the <a href="https://tools.ietf.org/html/rfc8098">NPM flag "Disposition-Notification-To"</a>. This flag can
+	 * be used to request a return receipt from the recipient to signal that the recipient has read the email.
+	 * <p>
+	 * This flag may be ignored by SMTP clients (for example gmail ignores it completely, while the Google Apps business suite honors it).
+	 * <p>
+	 * If no address is provided, {@link #dispositionNotificationTo} will default to {@link #replyToRecipient} if available or else
+	 * {@link #fromRecipient}.
+	 */
+	private boolean useDispositionNotificationTo;
+	
+	/**
+	 * @see #useDispositionNotificationTo
+	 */
+	private Recipient dispositionNotificationTo;
+	
+	/**
+	 * Indicates the new emails should set the <a href="https://en.wikipedia.org/wiki/Return_receipt">RRT flag "Return-Receipt-To"</a>. This flag
+	 * can be used to request a notification from the SMTP server recipient to signal that the recipient has read the email.
+	 * <p>
+	 * This flag is rarely used, but your mail server / client might implement this flag to automatically send back a notification that the email
+	 * was received on the mail server or opened in the client, depending on the chosen implementation.
+	 * <p>
+	 * If no address is provided, {@link #returnReceiptTo} will default to {@link #replyToRecipient} if available or else {@link #fromRecipient}.
+	 */
+	private boolean useReturnReceiptTo;
+	
+	/**
+	 * @see #useReturnReceiptTo
+	 */
+	private Recipient returnReceiptTo;
 
 	/*
 	DKIM properties
 	 */
 	private boolean applyDKIMSignature = false;
 	private InputStream dkimPrivateKeyInputStream;
-	private File dkimPrivateKeyFile; // supported seperately, so we don't have to do resource management ourselves for the InputStream
+	private File dkimPrivateKeyFile; // supported separately, so we don't have to do resource management ourselves for the InputStream
 	private String dkimSigningDomain;
 	private String dkimSelector;
 
@@ -189,15 +221,24 @@ public class Email {
 	public void setId(@Nullable final String id) {
 		this.id = id;
 	}
-
+	
 	/**
 	 * Sets the sender address.
 	 *
 	 * @param name        The sender's name.
-	 * @param fromAddress The sender's email address.
+	 * @param fromAddress The sender's email address, mandatory.
 	 */
 	public void setFromAddress(@Nullable final String name, @Nonnull final String fromAddress) {
 		fromRecipient = new Recipient(name, checkNonEmptyArgument(fromAddress, "fromAddress"), null);
+	}
+	
+	/**
+	 * Sets the sender address from a preconfigured {@link Recipient} object..
+	 *
+	 * @param recipient The Recipient optional name and mandatory address.
+	 */
+	public void setFromAddress(@Nonnull Recipient recipient) {
+		fromRecipient = new Recipient(recipient.getName(), checkNonEmptyArgument(recipient.getAddress(), "fromAddress"), null);
 	}
 
 	/**
@@ -209,6 +250,15 @@ public class Email {
 	public void setReplyToAddress(@Nullable final String name, @Nonnull final String replyToAddress) {
 		replyToRecipient = new Recipient(name, checkNonEmptyArgument(replyToAddress, "replyToAddress"), null);
 	}
+	
+	/**
+	 * Sets the reply-to address from a preconfigured {@link Recipient} object..
+	 *
+	 * @param recipient The Recipient optional name and mandatory address.
+	 */
+	public void setReplyToAddress(@Nonnull Recipient recipient) {
+		replyToRecipient = new Recipient(recipient.getName(), checkNonEmptyArgument(recipient.getAddress(), "replyToAddress"), null);
+	}
 
 	/**
 	 * Bean setter for {@link #subject}.
@@ -216,7 +266,35 @@ public class Email {
 	public void setSubject(@Nonnull final String subject) {
 		this.subject = checkNonEmptyArgument(subject, "subject");
 	}
-
+	
+	/**
+	 * Bean setter for {@link #useDispositionNotificationTo}.
+	 */
+	public void setUseDispositionNotificationTo(boolean useDispositionNotificationTo) {
+		this.useDispositionNotificationTo = useDispositionNotificationTo;
+	}
+	
+	/**
+	 * Bean setter for {@link #dispositionNotificationTo}.
+	 */
+	public void setDispositionNotificationTo(Recipient dispositionNotificationTo) {
+		this.dispositionNotificationTo = dispositionNotificationTo;
+	}
+	
+	/**
+	 * Bean setter for {@link #useReturnReceiptTo}.
+	 */
+	public void setUseReturnReceiptTo(boolean useReturnReceiptTo) {
+		this.useReturnReceiptTo = useReturnReceiptTo;
+	}
+	
+	/**
+	 * Bean setter for {@link #returnReceiptTo}.
+	 */
+	public void setReturnReceiptTo(Recipient returnReceiptTo) {
+		this.returnReceiptTo = returnReceiptTo;
+	}
+	
 	/**
 	 * Bean setter for {@link #text}.
 	 */
@@ -394,7 +472,35 @@ public class Email {
 	public String getSubject() {
 		return subject;
 	}
-
+	
+	/**
+	 * Bean getter for {@link #useDispositionNotificationTo}.
+	 */
+	public boolean isUseDispositionNotificationTo() {
+		return useDispositionNotificationTo;
+	}
+	
+	/**
+	 * Bean getter for {@link #dispositionNotificationTo}.
+	 */
+	public Recipient getDispositionNotificationTo() {
+		return dispositionNotificationTo;
+	}
+	
+	/**
+	 * Bean getter for {@link #useReturnReceiptTo}.
+	 */
+	public boolean isUseReturnReceiptTo() {
+		return useReturnReceiptTo;
+	}
+	
+	/**
+	 * Bean getter for {@link #returnReceiptTo}.
+	 */
+	public Recipient getReturnReceiptTo() {
+		return returnReceiptTo;
+	}
+	
 	/**
 	 * Bean getter for {@link #text}.
 	 */
@@ -467,7 +573,7 @@ public class Email {
 		return (this == o) || (o != null && getClass() == o.getClass() &&
 				EqualsHelper.equalsEmail(this, (Email) o));
 	}
-
+	
 	@Override
 	public String toString() {
 		return "Email{" +
@@ -478,9 +584,16 @@ public class Email {
 				",\n\ttextHTML='" + textHTML + '\'' +
 				",\n\tsubject='" + subject + '\'' +
 				",\n\trecipients=" + recipients +
+				",\n\tapplyDKIMSignature=" + applyDKIMSignature +
+				",\n\t\tdkimSelector=" + dkimSelector +
+				",\n\t\tdkimSigningDomain=" + dkimSigningDomain +
+				",\n\tuseDispositionNotificationTo=" + useDispositionNotificationTo +
+				",\n\t\tdispositionNotificationTo=" + dispositionNotificationTo +
+				",\n\tuseReturnReceiptTo=" + useReturnReceiptTo +
+				",\n\t\treturnReceiptTo=" + returnReceiptTo +
+				",\n\theaders=" + headers +
 				",\n\tembeddedImages=" + embeddedImages +
 				",\n\tattachments=" + attachments +
-				",\n\theaders=" + headers +
 				"\n}";
 	}
 
@@ -502,6 +615,31 @@ public class Email {
 		text = builder.getText();
 		textHTML = builder.getTextHTML();
 		subject = builder.getSubject();
+		
+		useDispositionNotificationTo = builder.isUseDispositionNotificationTo();
+		useReturnReceiptTo = builder.isUseReturnReceiptTo();
+		dispositionNotificationTo = builder.getDispositionNotificationTo();
+		returnReceiptTo = builder.getReturnReceiptTo();
+		
+		if (useDispositionNotificationTo) {
+			if (valueNullOrEmpty(builder.getDispositionNotificationTo())) {
+				if (builder.getReplyToRecipient() != null) {
+					dispositionNotificationTo = builder.getReplyToRecipient();
+				} else {
+					dispositionNotificationTo = builder.getFromRecipient();
+				}
+			}
+		}
+		
+		if (useReturnReceiptTo) {
+			if (valueNullOrEmpty(builder.getDispositionNotificationTo())) {
+				if (builder.getReplyToRecipient() != null) {
+					returnReceiptTo = builder.getReplyToRecipient();
+				} else {
+					returnReceiptTo = builder.getFromRecipient();
+				}
+			}
+		}
 		
 		if (builder.getDkimPrivateKeyFile() != null) {
 			signWithDomainKey(builder.getDkimPrivateKeyFile(), builder.getSigningDomain(), builder.getDkimSelector());

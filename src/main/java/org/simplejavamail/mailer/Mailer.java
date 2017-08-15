@@ -345,7 +345,8 @@ public class Mailer {
 	}
 	
 	/**
-	 * Validates an {@link Email} instance. Validation fails if the subject is missing, content is missing, or no recipients are defined.
+	 * Validates an {@link Email} instance. Validation fails if the subject is missing, content is missing, or no recipients are defined or that
+	 * the addresses are missing for NPM notification flags.
 	 * <p>
 	 * It also checks for illegal characters that would facilitate injection attacks:
 	 *
@@ -406,6 +407,12 @@ public class Mailer {
 			if (email.getReplyToRecipient() != null && !EmailAddressValidator
 					.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
 				throw new MailerException(format(MailerException.INVALID_REPLYTO, email));
+			}
+			if (email.isUseDispositionNotificationTo() && email.getDispositionNotificationTo() == null) {
+				throw new MailerException(MailerException.MISSING_DISPOSITIONNOTIFICATIONTO);
+			}
+			if (email.isUseReturnReceiptTo() && email.getReturnReceiptTo() == null) {
+				throw new MailerException(MailerException.MISSING_RETURNRECEIPTTO);
 			}
 		}
 		return true;
