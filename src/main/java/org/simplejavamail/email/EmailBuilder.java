@@ -545,19 +545,19 @@ public class EmailBuilder {
 	}
 
 	public List<Recipient> getRecipients() {
-		return recipients;
+		return new ArrayList<>(recipients);
 	}
 
 	public List<AttachmentResource> getEmbeddedImages() {
-		return embeddedImages;
+		return new ArrayList<>(embeddedImages);
 	}
 
 	public List<AttachmentResource> getAttachments() {
-		return attachments;
+		return new ArrayList<>(attachments);
 	}
 
 	public Map<String, String> getHeaders() {
-		return headers;
+		return new HashMap<>(headers);
 	}
 
 	public File getDkimPrivateKeyFile() {
