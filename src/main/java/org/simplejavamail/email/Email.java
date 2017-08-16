@@ -128,7 +128,7 @@ public class Email {
 	/*
 	DKIM properties
 	 */
-	private boolean applyDKIMSignature = false;
+	private boolean applyDKIMSignature;
 	private InputStream dkimPrivateKeyInputStream;
 	private File dkimPrivateKeyFile; // supported separately, so we don't have to do resource management ourselves for the InputStream
 	private String dkimSigningDomain;
@@ -570,31 +570,44 @@ public class Email {
 
 	@Override
 	public boolean equals(final Object o) {
-		return (this == o) || (o != null && getClass() == o.getClass() &&
+		return (this == o) || ((o != null) && (getClass() == o.getClass()) &&
 				EqualsHelper.equalsEmail(this, (Email) o));
 	}
-	
+
 	@Override
 	public String toString() {
-		return "Email{" +
+		String s = "Email{" +
 				"\n\tid=" + id +
 				"\n\tfromRecipient=" + fromRecipient +
 				",\n\treplyToRecipient=" + replyToRecipient +
 				",\n\ttext='" + text + '\'' +
 				",\n\ttextHTML='" + textHTML + '\'' +
 				",\n\tsubject='" + subject + '\'' +
-				",\n\trecipients=" + recipients +
-				",\n\tapplyDKIMSignature=" + applyDKIMSignature +
-				",\n\t\tdkimSelector=" + dkimSelector +
-				",\n\t\tdkimSigningDomain=" + dkimSigningDomain +
-				",\n\tuseDispositionNotificationTo=" + useDispositionNotificationTo +
-				",\n\t\tdispositionNotificationTo=" + dispositionNotificationTo +
-				",\n\tuseReturnReceiptTo=" + useReturnReceiptTo +
-				",\n\t\treturnReceiptTo=" + returnReceiptTo +
-				",\n\theaders=" + headers +
-				",\n\tembeddedImages=" + embeddedImages +
-				",\n\tattachments=" + attachments +
-				"\n}";
+				",\n\trecipients=" + recipients;
+		if (applyDKIMSignature) {
+			s += ",\n\tapplyDKIMSignature=" + true +
+					",\n\t\tdkimSelector=" + dkimSelector +
+					",\n\t\tdkimSigningDomain=" + dkimSigningDomain;
+		}
+		if (useDispositionNotificationTo) {
+			s += ",\n\tuseDispositionNotificationTo=" + true +
+					",\n\t\tdispositionNotificationTo=" + dispositionNotificationTo;
+		}
+		if (useReturnReceiptTo) {
+			s += ",\n\tuseReturnReceiptTo=" + true +
+					",\n\t\treturnReceiptTo=" + returnReceiptTo;
+		}
+		if (!headers.isEmpty()) {
+			s += ",\n\theaders=" + headers;
+		}
+		if (!embeddedImages.isEmpty()) {
+			s += ",\n\tembeddedImages=" + embeddedImages;
+		}
+		if (!attachments.isEmpty()) {
+			s += ",\n\tattachments=" + attachments;
+		}
+		s += "\n}";
+		return s;
 	}
 
 	/**
@@ -623,6 +636,7 @@ public class Email {
 		
 		if (useDispositionNotificationTo) {
 			if (valueNullOrEmpty(builder.getDispositionNotificationTo())) {
+				//noinspection IfMayBeConditional
 				if (builder.getReplyToRecipient() != null) {
 					dispositionNotificationTo = builder.getReplyToRecipient();
 				} else {
@@ -633,6 +647,7 @@ public class Email {
 		
 		if (useReturnReceiptTo) {
 			if (valueNullOrEmpty(builder.getDispositionNotificationTo())) {
+				//noinspection IfMayBeConditional
 				if (builder.getReplyToRecipient() != null) {
 					returnReceiptTo = builder.getReplyToRecipient();
 				} else {
