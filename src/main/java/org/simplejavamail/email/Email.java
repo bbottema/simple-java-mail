@@ -329,10 +329,19 @@ public class Email {
 	}
 
 	/**
-	 * Delegates to {@link #addRecipients(String, RecipientType, String...)} with an empty name.
+	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
+	 *
+	 * @param recipientEmailAddressesToAdd List of preconfigured recipients (can be just the address each or the form "<code>A Name <address@domain.com></></code>").
+	 * @see #recipients
+	 * @see Recipient
+	 * @see RecipientType
 	 */
 	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
-		addRecipients(null, type, recipientEmailAddressesToAdd);
+		throw new RuntimeException("Not implemented");
+//		checkNonEmptyArgument(type, "type");
+//		for (final String emailAddress : checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd")) {
+//			recipients.add(new Recipient(name, emailAddress, type));
+//		}
 	}
 
 	/**
