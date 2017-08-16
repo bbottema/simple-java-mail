@@ -15,11 +15,11 @@ import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmail;
 
 public class EmailHelper {
 	
-	public static Email createDummyEmail() throws IOException {
-		return createDummyEmail(null);
+	public static Email createDummyEmail(boolean includeCustomHeaders) throws IOException {
+		return createDummyEmail(null, includeCustomHeaders);
 	}
 	
-	public static Email createDummyEmail(@Nullable String id)
+	public static Email createDummyEmail(@Nullable String id, boolean includeCustomHeaders)
 			throws IOException {
 		final Email emailNormal = new Email();
 		emailNormal.setId(id);
@@ -32,13 +32,15 @@ public class EmailHelper {
 		emailNormal.setText("We should meet up!");
 		emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
 		emailNormal.setSubject("hey");
-		
-		emailNormal.addHeader("dummyHeader", "dummyHeaderValue");
-		emailNormal.setUseDispositionNotificationTo(true);
-		emailNormal.setDispositionNotificationTo(new Recipient(null, "simple@address.com", null));
-		emailNormal.setUseReturnReceiptTo(true);
-		emailNormal.setReturnReceiptTo(new Recipient("Complex Email", "simple@address.com", null));
-		
+
+		if (includeCustomHeaders) {
+			emailNormal.addHeader("dummyHeader", "dummyHeaderValue");
+			emailNormal.setUseDispositionNotificationTo(true);
+			emailNormal.setDispositionNotificationTo(new Recipient(null, "simple@address.com", null));
+			emailNormal.setUseReturnReceiptTo(true);
+			emailNormal.setReturnReceiptTo(new Recipient("Complex Email", "simple@address.com", null));
+		}
+
 		// add two text files in different ways and a black thumbs up embedded image ->
 		ByteArrayDataSource namedAttachment = new ByteArrayDataSource("Black Tie Optional", "text/plain");
 		namedAttachment.setName("dresscode.txt"); // normally not needed, but otherwise the equals will fail

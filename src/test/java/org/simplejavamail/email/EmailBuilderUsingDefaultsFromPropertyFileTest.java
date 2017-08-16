@@ -31,6 +31,6 @@ public class EmailBuilderUsingDefaultsFromPropertyFileTest {
 				.embedImage("thumbsup", parseBase64Binary(base64String), "image/png")
 				.build();
 
-		assertThat(email).isEqualTo(EmailHelper.createDummyEmail());
+		assertThat(email).isEqualTo(EmailHelper.createDummyEmail(false));
 	}
 }

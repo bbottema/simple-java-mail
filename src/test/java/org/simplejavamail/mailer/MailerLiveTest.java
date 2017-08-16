@@ -45,14 +45,14 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_StandardDummyMail()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail());
+		assertSendingEmail(EmailHelper.createDummyEmail(true));
 	}
 
 	@Test
 	@Ignore("Unfortunately, Wiser doesn't seem to get the ID back, but I confirmed with gmail that the (correct) ID should be there")
 	public void createMailSession_StandardDummyMailWithId()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail("<123@456>"));
+		assertSendingEmail(EmailHelper.createDummyEmail("<123@456>", false));
 	}
 
 	@Test
