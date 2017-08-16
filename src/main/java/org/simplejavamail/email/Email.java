@@ -327,18 +327,19 @@ public class Email {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		addRecipients(name, type, extractEmailAddresses(emailAddressList));
 	}
-	
+
 	/**
 	 * Delegates to {@link #addRecipients(String, RecipientType, String...)} with an empty name.
 	 */
 	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
 		addRecipients(null, type, recipientEmailAddressesToAdd);
 	}
-	
+
 	/**
 	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
 	 *
-	 * @param recipientEmailAddressesToAdd List of preconfigured recipients.
+	 * @param name                         The name to use for each email address in the {@code recipientEmailAddressesToAdd}.
+	 * @param recipientEmailAddressesToAdd List of preconfigured recipients (without names).
 	 * @see #recipients
 	 * @see Recipient
 	 * @see RecipientType
