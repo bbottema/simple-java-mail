@@ -97,6 +97,9 @@ public class Mailer {
 	/**
 	 * Custom Session constructor, stores the given mail session for later use. Assumes that *all* properties used to make a connection are configured
 	 * (host, port, authentication and transport protocol settings). Will skip proxy.
+	 * <p>
+	 * Uses {@link TransportStrategy#findStrategyForSession} to determine the right connection mode based on already available properties in the
+	 * {@link Session}.
 	 *
 	 * @param session A preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 * @see #Mailer(Session, ProxyConfig)
@@ -111,7 +114,8 @@ public class Mailer {
 	 * <p>
 	 * Only proxy settings are always added if details are provided.
 	 * <p>
-	 * Also set javax.mail debug mode if a config file was provided for this.
+	 * Also set javax.mail debug mode if a config file was provided for this. Uses {@link TransportStrategy#findStrategyForSession} to determine the right
+	 * connection mode based on already available properties in the {@link Session}.
 	 *
 	 * @param session     A preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 * @param proxyConfig Remote proxy server details, if the connection should be run through a SOCKS proxy.
@@ -137,6 +141,9 @@ public class Mailer {
 	}
 
 	/**
+	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and populates as much as possible from the config file (proxy details,
+	 * transport strategy) and otherwise defaults to {@link TransportStrategy#SMTP_PLAIN} and skipping proxy.
+	 *
 	 * @param host     The address URL of the SMTP server to be used.
 	 * @param port     The port of the SMTP server.
 	 * @param username An optional username, may be <code>null</code>.
@@ -148,6 +155,9 @@ public class Mailer {
 	}
 
 	/**
+	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and populates as much as possible from the config file (proxy details,
+	 * transport strategy) and otherwise defaults to {@link TransportStrategy#SMTP_PLAIN} and skipping proxy.
+	 *
 	 * @param serverConfig Remote SMTP server details.
 	 * @see #Mailer(ServerConfig, TransportStrategy, ProxyConfig)
 	 */
@@ -156,6 +166,9 @@ public class Mailer {
 	}
 
 	/**
+	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and tries to populates proxy details from config file and otherwise skips
+	 * proxy.
+	 *
 	 * @param host              The address URL of the SMTP server to be used.
 	 * @param port              The port of the SMTP server.
 	 * @param username          An optional username, may be <code>null</code>.
@@ -163,12 +176,14 @@ public class Mailer {
 	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
 	 * @see #Mailer(ServerConfig, TransportStrategy, ProxyConfig)
 	 */
-	public Mailer(final String host, final Integer port, final String username, final String password,
-			final TransportStrategy transportStrategy) {
+	public Mailer(final String host, final Integer port, final String username, final String password, final TransportStrategy transportStrategy) {
 		this(new ServerConfig(host, port, username, password), transportStrategy, null);
 	}
 
 	/**
+	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and tries to populates proxy details from config file and otherwise skips
+	 * proxy.
+	 *
 	 * @param serverConfig      Remote SMTP server details.
 	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
 	 * @see #Mailer(ServerConfig, TransportStrategy, ProxyConfig)
@@ -178,6 +193,9 @@ public class Mailer {
 	}
 
 	/**
+	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and tries to populates transport strategy from config file and otherwise
+	 * defaults to {@link TransportStrategy#SMTP_PLAIN}.
+	 *
 	 * @param serverConfig Remote SMTP server details.
 	 * @param proxyConfig  Remote proxy server details, if the connection should be run through a SOCKS proxy.
 	 * @see #Mailer(ServerConfig, TransportStrategy, ProxyConfig)
