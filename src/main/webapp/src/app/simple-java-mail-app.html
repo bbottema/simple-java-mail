@@ -11,7 +11,7 @@
 <pre><code>Email email = new EmailBuilder()
     .from("lollypop", "lolly.pop@pretzelfun.com")
     .to("C. Cane", "candycane@candyshop.org")
-    .to("C. Bo", "chocobo@candyshop.org")
+    .cc("C. Bo &lt;chocobo@candyshop.org&gt;")
     .subject("hey")
     .text("We should meet up! ;)")
     .build();

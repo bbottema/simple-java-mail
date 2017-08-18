@@ -154,9 +154,16 @@ String list = "twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com";
 emailNormal.addRecipients(list, RecipientType.BCC);
 // or:
 emailNormal.addRecipients("maintenance group", list, RecipientType.TO);
+
+// what about a group with one deviating name?
+String list = "bob@sweets.com, gene@sweets.com; Security Group &lt;security@sweets.com&gt;";
+emailNormal.addRecipients("stakeholders", list, RecipientType.TO);
+// bob and gene are named "stakeholders", security gets its own name
 </code></pre>
       <p><code class="inline">EmailBuilder</code>:</p>
       <pre><code>.to(yourRecipient1, yourRecipient2...)
+.cc("stakeholders", "bob@sweets.com", "gene@sweets.com", "Security Group &lt;security@sweets.com&gt;")
+.cc("stakeholders", "bob@sweets.com, gene@sweets.com; Security Group &lt;security@sweets.com&gt;")
 .bcc("twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com")
 ...
 .build();
