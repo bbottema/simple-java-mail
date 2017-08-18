@@ -6,6 +6,8 @@ import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Message.RecipientType;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.InputStream;
@@ -330,6 +332,10 @@ public class Email {
 
 	/**
 	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
+	 * <p>
+	 * Email address can be of format {@code "address@domain.com[,;*]"} or {@code "Recipient Name <address@domain.com>[,;*]"}.
+	 * Parsed each email address using {@link InternetAddress#parse(String, boolean, boolean)} in non-strict mode (because we're doing our own
+	 * proper validation when actually sending the email).
 	 *
 	 * @param recipientEmailAddressesToAdd List of preconfigured recipients (can be just the address each or the form "<code>A Name <address@domain.com></></code>").
 	 * @see #recipients
@@ -337,26 +343,47 @@ public class Email {
 	 * @see RecipientType
 	 */
 	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
-		throw new RuntimeException("Not implemented");
-//		checkNonEmptyArgument(type, "type");
-//		for (final String emailAddress : checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd")) {
-//			recipients.add(new Recipient(name, emailAddress, type));
-//		}
+		checkNonEmptyArgument(type, "type");
+		checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd");
+		for (final String potentiallyCombinedEmailAddress : recipientEmailAddressesToAdd) {
+			for (final String emailAddress : extractEmailAddresses(potentiallyCombinedEmailAddress)) {
+				addRecipientByInternetAddress(recipients, null, emailAddress, type);
+			}
+		}
 	}
-
+	
 	/**
 	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
+	 * <p>
+	 * Email address can be of format {@code "address@domain.com"} or {@code "Recipient Name <address@domain.com>"}.
+	 * Parsed each email address using {@link InternetAddress#parse(String, boolean, boolean)} in non-strict mode (because we're doing our own
+	 * proper validation when actually sending the email).
 	 *
-	 * @param name                         The name to use for each email address in the {@code recipientEmailAddressesToAdd}.
+	 * @param recipientName                The name to use for each email address in the {@code recipientEmailAddressesToAdd}.
 	 * @param recipientEmailAddressesToAdd List of preconfigured recipients (without names).
 	 * @see #recipients
 	 * @see Recipient
 	 * @see RecipientType
 	 */
-	public void addRecipients(@Nullable final String name, @Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
+	public void addRecipients(@Nullable final String recipientName, @Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
 		checkNonEmptyArgument(type, "type");
-		for (final String emailAddress : checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd")) {
-			recipients.add(new Recipient(name, emailAddress, type));
+		checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd");
+		for (final String emailAddress : recipientEmailAddressesToAdd) {
+			addRecipientByInternetAddress(recipients, recipientName, emailAddress, type);
+		}
+	}
+	
+	static void addRecipientByInternetAddress(@Nonnull List<Recipient> recipients, @Nullable String recipientName, @Nonnull String
+			emailAddress, @Nullable RecipientType type) {
+		try {
+			InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
+			String relevantName = parsedAddress.getPersonal() != null ? parsedAddress.getPersonal() : recipientName;
+			recipients.add(new Recipient(relevantName, parsedAddress.getAddress(), type));
+		} catch (AddressException e) {
+			// InternetAddress failed to parse the email address even in non-strict mode
+			// just assume the address was too complex rather than plain wrong, and let our own email validation
+			// library take care of it when sending the email
+			recipients.add(new Recipient(recipientName, emailAddress, type));
 		}
 	}
 

@@ -303,7 +303,7 @@ public class EmailBuilder {
 	private EmailBuilder addCommaOrSemicolonSeparatedEmailAddresses(@Nullable final String name, @Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
 		checkNonEmptyArgument(type, "type");
 		for (final String emailAddress : extractEmailAddresses(checkNonEmptyArgument(emailAddressList, "emailAddressList"))) {
-			recipients.add(new Recipient(name, emailAddress, type));
+			Email.addRecipientByInternetAddress(recipients, name, emailAddress, type);
 		}
 		return this;
 	}

@@ -2,62 +2,229 @@ package org.simplejavamail.email;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.internal.util.MiscUtil;
-import org.simplejavamail.util.ConfigLoader;
 import testutil.ConfigLoaderTestHelper;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import javax.mail.Message;
+import java.util.ArrayList;
 
-import static javax.mail.Message.RecipientType.*;
+import static javax.mail.Message.RecipientType.BCC;
+import static javax.mail.Message.RecipientType.CC;
+import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SuppressWarnings("unused")
 public class EmailTest {
-
+	private Email email;
+	
 	@Before
-	public void restoreOriginalStaticProperties()
-			throws IOException {
-		String s = "simplejavamail.defaults.from.name=From Default\n"
-				+ "simplejavamail.defaults.from.address=from@default.com\n"
-				+ "simplejavamail.defaults.replyto.name=Reply-To Default\n"
-				+ "simplejavamail.defaults.replyto.address=reply-to@default.com\n"
-				+ "simplejavamail.defaults.to.name=To Default\n"
-				+ "simplejavamail.defaults.to.address=to@default.com\n"
-				+ "simplejavamail.defaults.cc.name=CC Default\n"
-				+ "simplejavamail.defaults.cc.address=cc@default.com\n"
-				+ "simplejavamail.defaults.bcc.name=BCC Default\n"
-				+ "simplejavamail.defaults.bcc.address=bcc@default.com";
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
-	}
-
-	@Test
-	public void emailConstructor_WithoutConfig()
-			throws Exception {
+	public void setup() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		Email email = new Email();
-		assertThat(email.getFromRecipient()).isNull();
-		assertThat(email.getReplyToRecipient()).isNull();
-		assertThat(email.getRecipients()).isEmpty();
+		email = new Email();
 	}
-
+	
 	@Test
-	public void emailConstructor_WithConfig() {
-		Email email = new Email();
-		assertThat(email.getFromRecipient()).isEqualToComparingFieldByField(new Recipient("From Default", "from@default.com", null));
-		assertThat(email.getReplyToRecipient()).isEqualToComparingFieldByField(new Recipient("Reply-To Default", "reply-to@default.com", null));
-		assertThat(email.getRecipients()).isNotEmpty();
-		assertThat(email.getRecipients()).hasSize(3);
-		assertThat(email.getRecipients()).usingFieldByFieldElementComparator().contains(new Recipient("To Default", "to@default.com", TO));
-		assertThat(email.getRecipients()).usingFieldByFieldElementComparator().contains(new Recipient("CC Default", "cc@default.com", CC));
-		assertThat(email.getRecipients()).usingFieldByFieldElementComparator().contains(new Recipient("BCC Default", "bcc@default.com", BCC));
+	public void testAddRecipient_Basic_Named() {
+		email.addRecipient("name1", "1@domain.com", TO);
+		email.addRecipient("name2", "2@domain.com,3@domain.com", CC);
+		email.addRecipient("name3", "4@domain.com;5@domain.com", BCC);
+		email.addRecipient("name4", "6@domain.com;7@domain.com,8@domain.com", TO);
+		
+		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
+				new Recipient("name1", "1@domain.com", TO),
+				new Recipient("name2", "2@domain.com", CC),
+				new Recipient("name2", "3@domain.com", CC),
+				new Recipient("name3", "4@domain.com", BCC),
+				new Recipient("name3", "5@domain.com", BCC),
+				new Recipient("name4", "6@domain.com", TO),
+				new Recipient("name4", "7@domain.com", TO),
+				new Recipient("name4", "8@domain.com", TO)
+		);
 	}
-
+	
 	@Test
-	public void testBeautifyCID() {
-		assertThat(MiscUtil.extractCID(null)).isNull();
-		assertThat(MiscUtil.extractCID("")).isEqualTo("");
-		assertThat(MiscUtil.extractCID("haha")).isEqualTo("haha");
-		assertThat(MiscUtil.extractCID("<haha>")).isEqualTo("haha");
+	public void testAddRecipient_Complex_Named() {
+		email.addRecipient("name1", "name1b <1@domain.com>", TO);
+		email.addRecipient("name2", "name2b <2@domain.com>,3@domain.com", CC);
+		email.addRecipient("name3", "4@domain.com;name3b <5@domain.com>", BCC);
+		email.addRecipient("name4", "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>", TO);
+		
+		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
+				new Recipient("name1b", "1@domain.com", TO),
+				new Recipient("name2b", "2@domain.com", CC),
+				new Recipient("name2", "3@domain.com", CC),
+				new Recipient("name3", "4@domain.com", BCC),
+				new Recipient("name3b", "5@domain.com", BCC),
+				new Recipient("name4b", "6@domain.com", TO),
+				new Recipient("name5b", "7@domain.com", TO),
+				new Recipient("name6b", "8@domain.com", TO)
+		);
+	}
+	
+	@Test
+	public void testAddRecipients_Basic_Named() {
+		email.addRecipients("name1", "1@domain.com", TO);
+		email.addRecipients("name2", "2@domain.com,3@domain.com", CC);
+		email.addRecipients("name3", "4@domain.com;5@domain.com", BCC);
+		email.addRecipients("name4", "6@domain.com;7@domain.com,8@domain.com", TO);
+		
+		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
+				new Recipient("name1", "1@domain.com", TO),
+				new Recipient("name2", "2@domain.com", CC),
+				new Recipient("name2", "3@domain.com", CC),
+				new Recipient("name3", "4@domain.com", BCC),
+				new Recipient("name3", "5@domain.com", BCC),
+				new Recipient("name4", "6@domain.com", TO),
+				new Recipient("name4", "7@domain.com", TO),
+				new Recipient("name4", "8@domain.com", TO)
+		);
+	}
+	
+	@Test
+	public void testAddRecipients_Complex_Named() {
+		email.addRecipients("name1", "name1b <1@domain.com>", TO);
+		email.addRecipients("name2", "name2b <2@domain.com>,3@domain.com", CC);
+		email.addRecipients("name3", "4@domain.com;name3b <5@domain.com>", BCC);
+		email.addRecipients("name4", "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>", TO);
+		
+		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
+				new Recipient("name1b", "1@domain.com", TO),
+				new Recipient("name2b", "2@domain.com", CC),
+				new Recipient("name2", "3@domain.com", CC),
+				new Recipient("name3", "4@domain.com", BCC),
+				new Recipient("name3b", "5@domain.com", BCC),
+				new Recipient("name4b", "6@domain.com", TO),
+				new Recipient("name5b", "7@domain.com", TO),
+				new Recipient("name6b", "8@domain.com", TO)
+		);
+	}
+	
+	@Test
+	public void testAddRecipientsVarArgs_Basic_Named() {
+		email.addRecipients("name1", TO, "1@domain.com");
+		email.addRecipients("name2", CC, "2@domain.com", "3@domain.com");
+		
+		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
+				new Recipient("name1", "1@domain.com", TO),
+				new Recipient("name2", "2@domain.com", CC),
+				new Recipient("name2", "3@domain.com", CC)
+		);
+	}
+	
+	@Test
+	public void testAddRecipientsVarArgs_Complex_Named() {
+		email.addRecipients("name1", TO, "name1b <1@domain.com>");
+		email.addRecipients("name2", CC, "name2b <2@domain.com>", "name3b <3@domain.com>");
+		
+		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
+				new Recipient("name1b", "1@domain.com", TO),
+				new Recipient("name2b", "2@domain.com", CC),
+				new Recipient("name3b", "3@domain.com", CC)
+		);
+	}
+	
+	@Test
+	public void testAddRecipientsVarArgs_Basic_Nameless() {
+		email.addRecipients(TO, "1@domain.com");
+		email.addRecipients(CC, "2@domain.com", "3@domain.com");
+		
+		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
+				new Recipient(null, "1@domain.com", TO),
+				new Recipient(null, "2@domain.com", CC),
+				new Recipient(null, "3@domain.com", CC)
+		);
+	}
+	
+	@Test
+	public void testAddRecipientsVarArgs_Complex_Nameless() {
+		email.addRecipients(TO, "name1b <1@domain.com>");
+		email.addRecipients(CC, "name2b <2@domain.com>", "name3b <3@domain.com>");
+		
+		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
+				new Recipient("name1b", "1@domain.com", TO),
+				new Recipient("name2b", "2@domain.com", CC),
+				new Recipient("name3b", "3@domain.com", CC)
+		);
+	}
+	
+	@Test
+	public void testAddRecipients_Basic_Nameless() {
+		email.addRecipients(TO, "1@domain.com");
+		email.addRecipients(CC, "2@domain.com,3@domain.com");
+		email.addRecipients(BCC, "4@domain.com;5@domain.com");
+		email.addRecipients(TO, "6@domain.com;7@domain.com,8@domain.com");
+		
+		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
+				new Recipient(null, "1@domain.com", TO),
+				new Recipient(null, "2@domain.com", CC),
+				new Recipient(null, "3@domain.com", CC),
+				new Recipient(null, "4@domain.com", BCC),
+				new Recipient(null, "5@domain.com", BCC),
+				new Recipient(null, "6@domain.com", TO),
+				new Recipient(null, "7@domain.com", TO),
+				new Recipient(null, "8@domain.com", TO)
+		);
+	}
+	
+	@Test
+	public void testAddRecipients_Complex_Nameless() {
+		email.addRecipients(TO, "name1b <1@domain.com>");
+		email.addRecipients(CC, "name2b <2@domain.com>,3@domain.com");
+		email.addRecipients(BCC, "4@domain.com;name3b <5@domain.com>");
+		email.addRecipients(TO, "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
+		
+		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
+				new Recipient("name1b", "1@domain.com", TO),
+				new Recipient("name2b", "2@domain.com", CC),
+				new Recipient(null, "3@domain.com", CC),
+				new Recipient(null, "4@domain.com", BCC),
+				new Recipient("name3b", "5@domain.com", BCC),
+				new Recipient("name4b", "6@domain.com", TO),
+				new Recipient("name5b", "7@domain.com", TO),
+				new Recipient("name6b", "8@domain.com", TO)
+		);
+	}
+	
+	@Test
+	public void testAddRecipients_Complex_Quicktest() {
+		// accept valid addresses:
+		email.addRecipients(TO, "Abc\\@def@example.com");
+		email.addRecipients(TO, "Fred\\ Bloggs@example.com");
+		email.addRecipients(TO, "Joe.\\\\Blow@example.com");
+		email.addRecipients(TO, "\"Abc@def\"@example.com");
+		email.addRecipients(TO, "\"Fred Bloggs\"@example.com");
+		email.addRecipients(TO, "customer/department=shipping@example.com");
+		email.addRecipients(TO, "$A12345@example.com");
+		email.addRecipients(TO, "!def!xyz%abc@example.com");
+		email.addRecipients(TO, "_somename@example.com");
+		email.addRecipients(TO, "very.“():[]”.VERY.“very@\\\\ \"very”.unusual@strange.example.com");
+		
+		// even accept invalid addresses:
+		email.addRecipients(TO, "Name <1@domai@n.com>");
+		
+		// OK, InternetAddress#parse() didn't error out on these addresses
+	}
+	
+	@Test
+	public void testAddRecipientByInternetAddress(){
+		ArrayList<Recipient> recipients = new ArrayList<>();
+		assertThat(parsedEmail(null, "a@b.com", null)).isEqualTo(new Recipient(null, "a@b.com", null));
+		assertThat(parsedEmail(null, " a@b.com ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
+		assertThat(parsedEmail(null, " <a@b.com> ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
+		assertThat(parsedEmail(null, " < a@b.com > ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
+		assertThat(parsedEmail(null, "moo <a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(parsedEmail(null, "moo<a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(parsedEmail(null, " moo< a@b.com   > ", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(parsedEmail(null, "\"moo\" <a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(parsedEmail(null, "\"moo\"<a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(parsedEmail(null, " \"moo\"< a@b.com   > ", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(parsedEmail(null, " \"  m oo  \"< a@b.com   > ", null)).isEqualTo(new Recipient("  m oo  ", "a@b.com", null));
+		// next one is unparsable by InternetAddress#parse(), so it should be taken as is
+		assertThat(parsedEmail(null, " \"  m oo  \" a@b.com    ", null)).isEqualTo(new Recipient(null, " \"  m oo  \" a@b.com    ", null));
+	}
+	
+	private Recipient parsedEmail(String name, String address, Message.RecipientType type) {
+		ArrayList<Recipient> recipients = new ArrayList<>();
+		Email.addRecipientByInternetAddress(recipients, name, address, type);
+		assertThat(recipients).hasSize(1);
+		return recipients.get(0);
 	}
 }
