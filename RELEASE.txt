@@ -3,8 +3,17 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.3.0</version>
+    <version>4.4.0</version>
 </dependency>
+
+v4.4.0 (18-August-2017)
+
+API usability release.
+
+- #95 Feature: Add support native API for setting Return-Receipt-To header
+- #93 Feature: Add support native API for setting Disposition-Notification-To header
+- #91 *Feature: Add support for parsing preformatted email addresses that include both name and address*
+- #94 Bugfix: A single EmailBuilder would build emails that all share the same collections for recipients, attachments and embedded images
 
 v4.3.0 (12-August-2017)
 
