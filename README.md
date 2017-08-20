@@ -53,7 +53,7 @@ Simple Java Mail is available in Maven Central:
 
 [v4.4.1](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.1%7Cjar) (20-August-2017)
 
-- Usability patch: 77781b5b80ea9cae9ee7eb57aadc960df8199f4b
+- Usability patch: [77781b5b80ea9cae9ee7eb57aadc960df8199f4b](https://github.com/bbottema/simple-java-mail/commit/77781b5b80ea9cae9ee7eb57aadc960df8199f4b)
 
 
 [v4.4.0](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.0%7Cjar) (18-August-2017)
