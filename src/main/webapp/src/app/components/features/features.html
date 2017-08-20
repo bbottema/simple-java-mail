@@ -446,16 +446,26 @@ new Mailer().sendMail(signedEmail);
         <a href="https://www.chilkatsoft.com/p/p_313.asp">'delivery receipt' and 'read receipt'</a>, which is configured
         through the headers <code>Return-Receipt-To</code> and <code>Disposition-Notification-To</code> respectively.
       </p>
+      <p>
+        You can explicitly define the email address to return the receipts to or else Simple Java Mail will default
+        to the <em>replyTo</em> address if available or else the <em>fromAddress</em>.
+      </p>
     </div>
     
     <div class="side">
 <pre><code>Email email = new Email();
+email.setUseDispositionNotificationTo();
+email.setUseReturnReceiptTo();
+// or:
 email.setDispositionNotificationTo(new Recipient("name", "address@domain.com"));
 email.setReturnReceiptTo(new Recipient("name", "address@domain.com"));
 
 // or:
 Email email = new EmailBuilder()
   (..)
+  .withDispositionNotificationTo()
+  .withReturnReceiptTo()
+  // or:
   .withDispositionNotificationTo("on-read@domain.com")
   .withReturnReceiptTo("name", "on-delivery@domain.com")
   .build();
