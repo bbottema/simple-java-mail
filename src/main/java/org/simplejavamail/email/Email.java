@@ -280,6 +280,7 @@ public class Email {
 	 * Bean setter for {@link #dispositionNotificationTo}.
 	 */
 	public void setDispositionNotificationTo(Recipient dispositionNotificationTo) {
+		setUseDispositionNotificationTo(true);
 		this.dispositionNotificationTo = dispositionNotificationTo;
 	}
 	
@@ -294,6 +295,7 @@ public class Email {
 	 * Bean setter for {@link #returnReceiptTo}.
 	 */
 	public void setReturnReceiptTo(Recipient returnReceiptTo) {
+		setUseReturnReceiptTo(true);
 		this.returnReceiptTo = returnReceiptTo;
 	}
 	
