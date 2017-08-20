@@ -25,6 +25,7 @@ public interface Socks5Bridge {
 	 * @return A socket that channels through an already authenticated SOCKS5 proxy.
 	 * @throws IOException
 	 */
+	@SuppressWarnings("JavaDoc")
 	Socket connect(String sessionId, InetAddress remoteServerAddress, int remoteServerPort)
 			throws IOException;
 }

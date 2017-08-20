@@ -11,7 +11,7 @@ import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.mailsender.MailSender;
-import org.simplejavamail.util.ConfigLoader.*;
+import org.simplejavamail.util.ConfigLoader.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,9 @@ import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC
 import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.util.ConfigLoader.Property.JAVAXMAIL_DEBUG;
 import static org.simplejavamail.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
-import static org.simplejavamail.util.ConfigLoader.*;
+import static org.simplejavamail.util.ConfigLoader.getProperty;
+import static org.simplejavamail.util.ConfigLoader.hasProperty;
+import static org.simplejavamail.util.ConfigLoader.valueOrProperty;
 
 /**
  * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content, embedded

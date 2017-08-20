@@ -57,7 +57,7 @@ public class AttachmentResource {
 	 * @return The content of the datasource as String, using IOUtils#toByteArray.
 	 * @throws IOException See {@link #readAllData(Charset)}
 	 */
-	@SuppressWarnings("WeakerAccess")
+	@SuppressWarnings({"WeakerAccess", "JavaDoc"})
 	@Nonnull
 	public String readAllData(@SuppressWarnings("SameParameterValue") @Nonnull final Charset charset)
 			throws IOException {

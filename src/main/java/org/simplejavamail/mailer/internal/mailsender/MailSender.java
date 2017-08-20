@@ -46,6 +46,7 @@ public class MailSender {
 	 * The default maximum timeout value for the transport socket is {@value #DEFAULT_SESSION_TIMEOUT_MILLIS}
 	 * milliseconds. Can be overridden from a config file or through System variable.
 	 */
+	@SuppressWarnings("JavaDoc")
 	private static final int DEFAULT_SESSION_TIMEOUT_MILLIS = 60_000;
 
 	/**
