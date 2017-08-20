@@ -33,6 +33,7 @@
       <li><a simplePageScroll href="#section-custom-properties">Setting custom properties on the internal Session</a></li>
       <li><a simplePageScroll href="#section-session-access">Direct access to the internal Session</a></li>
       <li><a simplePageScroll href="#section-dkim">Signing emails with DKIM</a></li>
+      <li><a simplePageScroll href="#section-return-receipt">Configure delivery / read receipt</a></li>
       <li><a simplePageScroll href="#section-email-validation">Validating Email Addresses</a></li>
       <li><a simplePageScroll href="#section-converting">Converting between email formats</a></li>
       <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
@@ -430,6 +431,34 @@ signedEmail.signWithDomainKey(
    "your_selector");
 
 new Mailer().sendMail(signedEmail);
+</code></pre>
+    </div>
+  </section>
+  
+  
+  <a href="#section-dkim" id="section-return-receipt" class="section-link h2">&sect;</a>
+  <h2>Configure delivery / read receipt</h2>
+  
+  <section>
+    <div class="view">
+      <p>
+        For servers and clients that support it (mostly Outlook at offices), Simple Java Mail has built in support for
+        <a href="https://www.chilkatsoft.com/p/p_313.asp">'delivery receipt' and 'read receipt'</a>, which is configured
+        through the headers <code>Return-Receipt-To</code> and <code>Disposition-Notification-To</code> respectively.
+      </p>
+    </div>
+    
+    <div class="side">
+<pre><code>Email email = new Email();
+email.setDispositionNotificationTo(new Recipient("name", "address@domain.com"));
+email.setReturnReceiptTo(new Recipient("name", "address@domain.com"));
+
+// or:
+Email email = new EmailBuilder()
+  (..)
+  .withDispositionNotificationTo("on-read@domain.com")
+  .withReturnReceiptTo("name", "on-delivery@domain.com")
+  .build();
 </code></pre>
     </div>
   </section>
