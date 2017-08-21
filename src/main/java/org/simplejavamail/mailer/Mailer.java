@@ -387,11 +387,7 @@ public class Mailer {
 	public boolean validate(final Email email)
 			throws MailException {
 		// check for mandatory values
-		if (email.getText() == null && email.getTextHTML() == null) {
-			throw new MailerException(MailerException.MISSING_CONTENT);
-		} else if (email.getSubject() == null || email.getSubject().equals("")) {
-			throw new MailerException(MailerException.MISSING_SUBJECT);
-		} else if (email.getRecipients().size() == 0) {
+		if (email.getRecipients().size() == 0) {
 			throw new MailerException(MailerException.MISSING_RECIPIENT);
 		} else if (email.getFromRecipient() == null) {
 			throw new MailerException(MailerException.MISSING_SENDER);
