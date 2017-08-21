@@ -357,7 +357,7 @@ public class Email {
 	/**
 	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
 	 * <p>
-	 * Email address can be of format {@code "address@domain.com"} or {@code "Recipient Name <address@domain.com>"}.
+	 * Email address can be of format {@code "address@domain.com[,;*]"} or {@code "Recipient Name <address@domain.com>[,;*]"}.
 	 * Parsed each email address using {@link InternetAddress#parse(String, boolean, boolean)} in non-strict mode (because we're doing our own
 	 * proper validation when actually sending the email).
 	 *
@@ -370,8 +370,10 @@ public class Email {
 	public void addRecipients(@Nullable final String recipientName, @Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
 		checkNonEmptyArgument(type, "type");
 		checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd");
-		for (final String emailAddress : recipientEmailAddressesToAdd) {
+		for (final String potentiallyCombinedEmailAddress : recipientEmailAddressesToAdd) {
+			for (final String emailAddress : extractEmailAddresses(potentiallyCombinedEmailAddress)) {
 			addRecipientByInternetAddress(recipients, recipientName, emailAddress, type);
+			}
 		}
 	}
 	
