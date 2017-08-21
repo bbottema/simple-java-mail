@@ -16,9 +16,9 @@ Email email = new Email();
 
 email.setFromAddress("lollypop", "lolly.pop@mymail.com");
 email.setReplyToAddress("lollypop", "lolly.pop@othermail.com");
-email.addRecipient("lollypop", "lolly.pop@somemail.com", Message.RecipientType.TO);
-email.addRecipient("C. Cane", "candycane@candyshop.org", Message.RecipientType.TO);
-email.addRecipient("C. Bo", "chocobo@candyshop.org", Message.RecipientType.CC);
+email.addNamedRecipient("lollypop", "lolly.pop@somemail.com", RecipientType.TO);
+email.addNamedRecipient("C. Cane", "candycane@candyshop.org", RecipientType.TO);
+email.addRecipients(CC, "chocobo@candyshop.org; Chocobo <chocobo@candyshop.org>");
 email.setSubject("hey");
 email.setText("We should meet up! ;)");
 email.setTextHTML("&lt;img src=&#39;cid:wink1&#39;&gt;&lt;b&gt;We should meet up!&lt;/b&gt;&lt;img src=&#39;cid:wink2&#39;&gt;");
@@ -45,13 +45,13 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.4.2</version>
+    <version>4.4.3</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-[v4.4.2](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.2%7Cjar) (21-August-2017)
+[v4.4.3](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.2%7Cjar) (21-August-2017)
 
 API usability release.
 
@@ -61,6 +61,7 @@ API usability release.
 name and address**
 - [#94](https://github.com/bbottema/simple-java-mail/issues/94) Bugfix: A single EmailBuilder would build emails that all share the same collections
  for recipients, attachments and embedded images
+- [#98](https://github.com/bbottema/simple-java-mail/issues/98) Bugfix: Subject and body content should be optional
 
 
 [v4.3.0](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.3.0%7Cjar) (12-August-2017)
