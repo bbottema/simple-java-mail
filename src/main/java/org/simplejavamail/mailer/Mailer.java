@@ -26,6 +26,7 @@ import java.util.Properties;
 
 import static java.lang.String.format;
 import static org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria.RFC_COMPLIANT;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.util.ConfigLoader.Property.JAVAXMAIL_DEBUG;
 import static org.simplejavamail.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
@@ -385,27 +386,6 @@ public class Mailer {
 	@SuppressWarnings({ "SameReturnValue", "WeakerAccess" })
 	public boolean validate(final Email email)
 			throws MailException {
-		// check for illegal values
-		scanForInjectionAttack(email.getSubject(), "email.subject");
-		for (Map.Entry<String, String> headerEntry : email.getHeaders().entrySet()) {
-			scanForInjectionAttack(headerEntry.getKey(), "email.header.mapEntryKey");
-			scanForInjectionAttack(headerEntry.getValue(), "email.header." + headerEntry.getKey());
-		}
-		for (AttachmentResource attachment : email.getAttachments()) {
-			scanForInjectionAttack(attachment.getName(), "email.attachment.name");
-		}
-		for (AttachmentResource embeddedImage : email.getEmbeddedImages()) {
-			scanForInjectionAttack(embeddedImage.getName(), "email.embeddedImage.name");
-		}
-		scanForInjectionAttack(email.getFromRecipient().getName(), "email.fromRecipient.name");
-		scanForInjectionAttack(email.getFromRecipient().getAddress(), "email.fromRecipient.address");
-		scanForInjectionAttack(email.getReplyToRecipient().getName(), "email.replyToRecipient.name");
-		scanForInjectionAttack(email.getReplyToRecipient().getAddress(), "email.replyToRecipient.address");
-		for (Recipient recipient : email.getRecipients()) {
-			scanForInjectionAttack(recipient.getName(), "email.recipient.name");
-			scanForInjectionAttack(recipient.getAddress(), "email.recipient.address");
-		}
-		
 		// check for mandatory values
 		if (email.getText() == null && email.getTextHTML() == null) {
 			throw new MailerException(MailerException.MISSING_CONTENT);
@@ -441,6 +421,30 @@ public class Mailer {
 				throw new MailerException(format(MailerException.INVALID_RETURNRECEIPTTO, email));
 			}
 		}
+		
+		// check for illegal values
+		scanForInjectionAttack(email.getSubject(), "email.subject");
+		for (Map.Entry<String, String> headerEntry : email.getHeaders().entrySet()) {
+			scanForInjectionAttack(headerEntry.getKey(), "email.header.mapEntryKey");
+			scanForInjectionAttack(headerEntry.getValue(), "email.header." + headerEntry.getKey());
+		}
+		for (AttachmentResource attachment : email.getAttachments()) {
+			scanForInjectionAttack(attachment.getName(), "email.attachment.name");
+		}
+		for (AttachmentResource embeddedImage : email.getEmbeddedImages()) {
+			scanForInjectionAttack(embeddedImage.getName(), "email.embeddedImage.name");
+		}
+		scanForInjectionAttack(email.getFromRecipient().getName(), "email.fromRecipient.name");
+		scanForInjectionAttack(email.getFromRecipient().getAddress(), "email.fromRecipient.address");
+		if (!valueNullOrEmpty(email.getReplyToRecipient())) {
+			scanForInjectionAttack(email.getReplyToRecipient().getName(), "email.replyToRecipient.name");
+			scanForInjectionAttack(email.getReplyToRecipient().getAddress(), "email.replyToRecipient.address");
+		}
+		for (Recipient recipient : email.getRecipients()) {
+			scanForInjectionAttack(recipient.getName(), "email.recipient.name");
+			scanForInjectionAttack(recipient.getAddress(), "email.recipient.address");
+		}
+		
 		return true;
 	}
 	

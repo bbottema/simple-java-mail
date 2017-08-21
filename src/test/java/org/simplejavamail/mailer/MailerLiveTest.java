@@ -43,16 +43,28 @@ public class MailerLiveTest {
 	}
 	
 	@Test
-	public void createMailSession_StandardDummyMail()
+	public void createMailSession_StandardDummyMailBasicFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail(true));
+		assertSendingEmail(EmailHelper.createDummyEmail(true, false));
+	}
+	
+	@Test
+	public void createMailSession_StandardDummyMail_AllFields()
+			throws IOException, MessagingException {
+		assertSendingEmail(EmailHelper.createDummyEmail(false, false));
+	}
+	
+	@Test
+	public void createMailSession_StandardDummyMail_IncludingCustomHeaders()
+			throws IOException, MessagingException {
+		assertSendingEmail(EmailHelper.createDummyEmail(false, true));
 	}
 
 	@Test
 	@Ignore("Unfortunately, Wiser doesn't seem to get the ID back, but I confirmed with gmail that the (correct) ID should be there")
 	public void createMailSession_StandardDummyMailWithId()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail("<123@456>", false));
+		assertSendingEmail(EmailHelper.createDummyEmail("<123@456>", false, false));
 	}
 
 	@Test
@@ -93,6 +105,10 @@ public class MailerLiveTest {
 			 assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
 		}
 		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
+		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty
+		if (originalEmail.getReplyToRecipient() == null) {
+			originalEmail.setReplyToAddress(originalEmail.getFromRecipient());
+		}
 		assertThat(receivedEmail).isEqualTo(originalEmail);
 		return receivedEmail;
 	}

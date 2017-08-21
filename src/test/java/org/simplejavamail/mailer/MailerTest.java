@@ -162,7 +162,7 @@ public class MailerTest {
 	@Test
 	public void testDKIMPriming()
 			throws IOException, MessagingException {
-		final Email email = EmailHelper.createDummyEmail(false);
+		final Email email = EmailHelper.createDummyEmail(false, false);
 
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
 		String privateDERkeyBase64 =
@@ -183,7 +183,7 @@ public class MailerTest {
 	@Test
 	public void testParser()
 			throws Exception {
-		final Email emailNormal = EmailHelper.createDummyEmail(false);
+		final Email emailNormal = EmailHelper.createDummyEmail(false, false);
 
 		// let's try producing and then consuming a MimeMessage ->
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);

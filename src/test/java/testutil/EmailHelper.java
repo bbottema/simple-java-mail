@@ -15,18 +15,20 @@ import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmail;
 
 public class EmailHelper {
 	
-	public static Email createDummyEmail(boolean includeCustomHeaders) throws IOException {
-		return createDummyEmail(null, includeCustomHeaders);
+	public static Email createDummyEmail(boolean basicFields, boolean includeCustomHeaders) throws IOException {
+		return createDummyEmail(null, basicFields, includeCustomHeaders);
 	}
 	
-	public static Email createDummyEmail(@Nullable String id, boolean includeCustomHeaders)
+	public static Email createDummyEmail(@Nullable String id, boolean basicFields, boolean includeCustomHeaders)
 			throws IOException {
 		final Email emailNormal = new Email();
 		emailNormal.setId(id);
 		emailNormal.setFromAddress("lollypop", "lol.pop@somemail.com");
-		// normally not needed, but for the test it is because the MimeMessage will
-		// have it added automatically as well, so the parsed Email will also have it then
-		emailNormal.setReplyToAddress("lollypop", "lol.pop@somemail.com");
+		if (!basicFields) {
+			// normally not needed, but for the test it is because the MimeMessage will
+			// have it added automatically as well, so the parsed Email will also have it then
+			emailNormal.setReplyToAddress("lollypop-reply", "lol.pop.reply@somemail.com");
+		}
 		// don't forget to add your own address here ->
 		emailNormal.addRecipient("C.Cane", "candycane@candyshop.org", TO);
 		emailNormal.setText("We should meet up!");
