@@ -15,8 +15,8 @@ To release:
             (set password in settings.xml or use local pgp key password, for which the public key must have been sent to a public key server,
             eg: gpg --keyserver hkp://keyserver.ubuntu.com --send-keys 05AC6403)
 		    server needed in settings.xml (see below)
- 4. add new SNAPSHOT version and commit everything
- 5. Go to https://oss.sonatype.org and release the artifact so it is submitted to Maven Central
+ 4. Go to https://oss.sonatype.org and release the artifact so it is submitted to Maven Central
+ 5. add new SNAPSHOT version and commit everything
 
 maven's settings.xml:
 

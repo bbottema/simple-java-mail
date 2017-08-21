@@ -3,14 +3,10 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.4.1</version>
+    <version>4.4.2</version>
 </dependency>
 
-v4.4.1 (20-August-2017)
-
-Usability patch: https://github.com/bbottema/simple-java-mail/commit/77781b5b80ea9cae9ee7eb57aadc960df8199f4b
-
-v4.4.0 (18-August-2017)
+v4.4.2 (21-August-2017)
 
 API usability release.
 
