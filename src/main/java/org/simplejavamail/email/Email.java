@@ -158,21 +158,21 @@ public class Email {
 			}
 			if (hasProperty(DEFAULT_TO_ADDRESS)) {
 				if (hasProperty(DEFAULT_TO_NAME)) {
-					addRecipient((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
+					addRecipient((String) getProperty(DEFAULT_TO_NAME), RecipientType.TO, (String) getProperty(DEFAULT_TO_ADDRESS));
 				} else {
 					addRecipients((String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
 				}
 			}
 			if (hasProperty(DEFAULT_CC_ADDRESS)) {
 				if (hasProperty(DEFAULT_CC_NAME)) {
-					addRecipient((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
+					addRecipient((String) getProperty(DEFAULT_CC_NAME), RecipientType.CC, (String) getProperty(DEFAULT_CC_ADDRESS));
 				} else {
 					addRecipients((String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
 				}
 			}
 			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 				if (hasProperty(DEFAULT_BCC_NAME)) {
-					addRecipient((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
+					addRecipient((String) getProperty(DEFAULT_BCC_NAME), RecipientType.BCC, (String) getProperty(DEFAULT_BCC_ADDRESS));
 				} else {
 					addRecipients((String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
 				}
@@ -315,43 +315,22 @@ public class Email {
 	
 	/**
 	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
-	 * Identical to {@link #addRecipients(String, String, RecipientType)}, but kept for readability purposes.
+	 * Identical to {@link #addRecipients(String, RecipientType, String...)}, but kept for readability purposes.
 	 */
-	public void addRecipient(@Nullable final String name, @Nonnull final String emailAddressList, @Nonnull final RecipientType type) {
+	public void addRecipient(@Nullable final String name, @Nonnull final RecipientType type, @Nonnull final String emailAddressList) {
 		checkNonEmptyArgument(type, "type");
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		addRecipients(name, type, extractEmailAddresses(emailAddressList));
-	}
-	
-	/**
-	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
-	 */
-	public void addRecipients(@Nullable final String name, @Nonnull final String emailAddressList, @Nonnull final RecipientType type) {
-		checkNonEmptyArgument(type, "type");
-		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		addRecipients(name, type, extractEmailAddresses(emailAddressList));
+		addRecipients(name, type, emailAddressList);
 	}
 
 	/**
-	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
-	 * <p>
-	 * Email address can be of format {@code "address@domain.com[,;*]"} or {@code "Recipient Name <address@domain.com>[,;*]"}.
-	 * Parsed each email address using {@link InternetAddress#parse(String, boolean, boolean)} in non-strict mode (because we're doing our own
-	 * proper validation when actually sending the email).
-	 *
-	 * @param recipientEmailAddressesToAdd List of preconfigured recipients (can be just the address each or the form "<code>A Name <address@domain.com></></code>").
-	 * @see #recipients
-	 * @see Recipient
-	 * @see RecipientType
+	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
+	 * Identical to {@link #addRecipients(String, RecipientType, String...)}, but kept for readability purposes.
 	 */
 	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
 		checkNonEmptyArgument(type, "type");
 		checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd");
-		for (final String potentiallyCombinedEmailAddress : recipientEmailAddressesToAdd) {
-			for (final String emailAddress : extractEmailAddresses(potentiallyCombinedEmailAddress)) {
-				addRecipientByInternetAddress(recipients, null, emailAddress, type);
-			}
-		}
+		addRecipients(null, type, recipientEmailAddressesToAdd);
 	}
 	
 	/**

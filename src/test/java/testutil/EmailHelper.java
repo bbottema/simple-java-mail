@@ -30,7 +30,7 @@ public class EmailHelper {
 			emailNormal.setReplyToAddress("lollypop-reply", "lol.pop.reply@somemail.com");
 		}
 		// don't forget to add your own address here ->
-		emailNormal.addRecipient("C.Cane", "candycane@candyshop.org", TO);
+		emailNormal.addRecipient("C.Cane", TO, "candycane@candyshop.org");
 		emailNormal.setText("We should meet up!");
 		emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
 		emailNormal.setSubject("hey");

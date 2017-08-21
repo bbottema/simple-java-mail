@@ -23,10 +23,10 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipient_Basic_Named() {
-		email.addRecipient("name1", "1@domain.com", TO);
-		email.addRecipient("name2", "2@domain.com,3@domain.com", CC);
-		email.addRecipient("name3", "4@domain.com;5@domain.com", BCC);
-		email.addRecipient("name4", "6@domain.com;7@domain.com,8@domain.com", TO);
+		email.addRecipient("name1", TO, "1@domain.com");
+		email.addRecipient("name2", CC, "2@domain.com,3@domain.com");
+		email.addRecipient("name3", BCC, "4@domain.com;5@domain.com");
+		email.addRecipient("name4", TO, "6@domain.com;7@domain.com,8@domain.com");
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1", "1@domain.com", TO),
@@ -42,10 +42,10 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipient_Complex_Named() {
-		email.addRecipient("name1", "name1b <1@domain.com>", TO);
-		email.addRecipient("name2", "name2b <2@domain.com>,3@domain.com", CC);
-		email.addRecipient("name3", "4@domain.com;name3b <5@domain.com>", BCC);
-		email.addRecipient("name4", "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>", TO);
+		email.addRecipient("name1", TO, "name1b <1@domain.com>");
+		email.addRecipient("name2", CC, "name2b <2@domain.com>,3@domain.com");
+		email.addRecipient("name3", BCC, "4@domain.com;name3b <5@domain.com>");
+		email.addRecipient("name4", TO, "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1b", "1@domain.com", TO),
@@ -61,10 +61,10 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipients_Basic_Named() {
-		email.addRecipients("name1", "1@domain.com", TO);
-		email.addRecipients("name2", "2@domain.com,3@domain.com", CC);
-		email.addRecipients("name3", "4@domain.com;5@domain.com", BCC);
-		email.addRecipients("name4", "6@domain.com;7@domain.com,8@domain.com", TO);
+		email.addRecipients("name1", TO, "1@domain.com");
+		email.addRecipients("name2", CC, "2@domain.com,3@domain.com");
+		email.addRecipients("name3", BCC, "4@domain.com;5@domain.com");
+		email.addRecipients("name4", TO, "6@domain.com;7@domain.com,8@domain.com");
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1", "1@domain.com", TO),
@@ -80,10 +80,10 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipients_Complex_Named() {
-		email.addRecipients("name1", "name1b <1@domain.com>", TO);
-		email.addRecipients("name2", "name2b <2@domain.com>,3@domain.com", CC);
-		email.addRecipients("name3", "4@domain.com;name3b <5@domain.com>", BCC);
-		email.addRecipients("name4", "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>", TO);
+		email.addRecipients("name1", TO, "name1b <1@domain.com>");
+		email.addRecipients("name2", CC, "name2b <2@domain.com>,3@domain.com");
+		email.addRecipients("name3", BCC, "4@domain.com;name3b <5@domain.com>");
+		email.addRecipients("name4", TO, "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1b", "1@domain.com", TO),
