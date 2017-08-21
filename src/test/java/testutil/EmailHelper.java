@@ -15,11 +15,11 @@ import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmail;
 
 public class EmailHelper {
 	
-	public static Email createDummyEmail(boolean basicFields, boolean includeCustomHeaders) throws IOException {
-		return createDummyEmail(null, basicFields, includeCustomHeaders);
+	public static Email createDummyEmail(boolean includeSubjectAndBody, boolean basicFields, boolean includeCustomHeaders) throws IOException {
+		return createDummyEmail(null, includeSubjectAndBody, basicFields, includeCustomHeaders);
 	}
 	
-	public static Email createDummyEmail(@Nullable String id, boolean basicFields, boolean includeCustomHeaders)
+	public static Email createDummyEmail(@Nullable String id, boolean includeSubjectAndBody, boolean basicFields, boolean includeCustomHeaders)
 			throws IOException {
 		final Email emailNormal = new Email();
 		emailNormal.setId(id);
@@ -31,9 +31,11 @@ public class EmailHelper {
 		}
 		// don't forget to add your own address here ->
 		emailNormal.addNamedRecipient("C.Cane", TO, "candycane@candyshop.org");
-		emailNormal.setText("We should meet up!");
-		emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
-		emailNormal.setSubject("hey");
+		if (includeSubjectAndBody) {
+			emailNormal.setSubject("hey");
+			emailNormal.setText("We should meet up!");
+			emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
+		}
 
 		if (includeCustomHeaders) {
 			emailNormal.addHeader("dummyHeader", "dummyHeaderValue");

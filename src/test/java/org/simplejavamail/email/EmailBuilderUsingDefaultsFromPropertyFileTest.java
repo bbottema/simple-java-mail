@@ -30,7 +30,7 @@ public class EmailBuilderUsingDefaultsFromPropertyFileTest {
 				.embedImage("thumbsup", parseBase64Binary(base64String), "image/png")
 				.build();
 		
-		assertThat(EmailHelper.createDummyEmail(true, false)).isEqualTo(email);
+		assertThat(EmailHelper.createDummyEmail(true, true, false)).isEqualTo(email);
 	}
 	
 	@Test
@@ -55,6 +55,6 @@ public class EmailBuilderUsingDefaultsFromPropertyFileTest {
 				.addHeader("dummyHeader", "dummyHeaderValue")
 				.build();
 		
-		assertThat(EmailHelper.createDummyEmail(false, true)).isEqualTo(email);
+		assertThat(EmailHelper.createDummyEmail(true, false, true)).isEqualTo(email);
 	}
 }

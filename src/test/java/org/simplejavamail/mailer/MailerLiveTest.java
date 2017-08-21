@@ -43,28 +43,34 @@ public class MailerLiveTest {
 	}
 	
 	@Test
+	public void createMailSession_EmptySubjectAndBody()
+			throws IOException, MessagingException {
+		assertSendingEmail(EmailHelper.createDummyEmail(true, true, false));
+	}
+	
+	@Test
 	public void createMailSession_StandardDummyMailBasicFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail(true, false));
+		assertSendingEmail(EmailHelper.createDummyEmail(true, true, false));
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_AllFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail(false, false));
+		assertSendingEmail(EmailHelper.createDummyEmail(true, false, false));
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_IncludingCustomHeaders()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail(false, true));
+		assertSendingEmail(EmailHelper.createDummyEmail(true, false, true));
 	}
 
 	@Test
 	@Ignore("Unfortunately, Wiser doesn't seem to get the ID back, but I confirmed with gmail that the (correct) ID should be there")
 	public void createMailSession_StandardDummyMailWithId()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail("<123@456>", false, false));
+		assertSendingEmail(EmailHelper.createDummyEmail("<123@456>", true, false, false));
 	}
 
 	@Test
