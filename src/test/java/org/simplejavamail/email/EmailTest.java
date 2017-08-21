@@ -4,9 +4,6 @@ import org.junit.Before;
 import org.junit.Test;
 import testutil.ConfigLoaderTestHelper;
 
-import javax.mail.Message;
-import java.util.ArrayList;
-
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
@@ -23,10 +20,10 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipient_Basic_Named() {
-		email.addRecipient("name1", TO, "1@domain.com");
-		email.addRecipient("name2", CC, "2@domain.com,3@domain.com");
-		email.addRecipient("name3", BCC, "4@domain.com;5@domain.com");
-		email.addRecipient("name4", TO, "6@domain.com;7@domain.com,8@domain.com");
+		email.addNamedRecipient("name1", TO, "1@domain.com");
+		email.addNamedRecipient("name2", CC, "2@domain.com,3@domain.com");
+		email.addNamedRecipient("name3", BCC, "4@domain.com;5@domain.com");
+		email.addNamedRecipient("name4", TO, "6@domain.com;7@domain.com,8@domain.com");
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1", "1@domain.com", TO),
@@ -42,10 +39,10 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipient_Complex_Named() {
-		email.addRecipient("name1", TO, "name1b <1@domain.com>");
-		email.addRecipient("name2", CC, "name2b <2@domain.com>,3@domain.com");
-		email.addRecipient("name3", BCC, "4@domain.com;name3b <5@domain.com>");
-		email.addRecipient("name4", TO, "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
+		email.addNamedRecipient("name1", TO, "name1b <1@domain.com>");
+		email.addNamedRecipient("name2", CC, "name2b <2@domain.com>,3@domain.com");
+		email.addNamedRecipient("name3", BCC, "4@domain.com;name3b <5@domain.com>");
+		email.addNamedRecipient("name4", TO, "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1b", "1@domain.com", TO),
@@ -61,10 +58,10 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipients_Basic_Named() {
-		email.addRecipients("name1", TO, "1@domain.com");
-		email.addRecipients("name2", CC, "2@domain.com,3@domain.com");
-		email.addRecipients("name3", BCC, "4@domain.com;5@domain.com");
-		email.addRecipients("name4", TO, "6@domain.com;7@domain.com,8@domain.com");
+		email.addNamedRecipients("name1", TO, "1@domain.com");
+		email.addNamedRecipients("name2", CC, "2@domain.com,3@domain.com");
+		email.addNamedRecipients("name3", BCC, "4@domain.com;5@domain.com");
+		email.addNamedRecipients("name4", TO, "6@domain.com;7@domain.com,8@domain.com");
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1", "1@domain.com", TO),
@@ -80,10 +77,10 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipients_Complex_Named() {
-		email.addRecipients("name1", TO, "name1b <1@domain.com>");
-		email.addRecipients("name2", CC, "name2b <2@domain.com>,3@domain.com");
-		email.addRecipients("name3", BCC, "4@domain.com;name3b <5@domain.com>");
-		email.addRecipients("name4", TO, "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
+		email.addNamedRecipients("name1", TO, "name1b <1@domain.com>");
+		email.addNamedRecipients("name2", CC, "name2b <2@domain.com>,3@domain.com");
+		email.addNamedRecipients("name3", BCC, "4@domain.com;name3b <5@domain.com>");
+		email.addNamedRecipients("name4", TO, "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1b", "1@domain.com", TO),
@@ -99,8 +96,8 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipientsVarArgs_Basic_Named() {
-		email.addRecipients("name1", TO, "1@domain.com");
-		email.addRecipients("name2", CC, "2@domain.com", "3@domain.com");
+		email.addNamedRecipients("name1", TO, "1@domain.com");
+		email.addNamedRecipients("name2", CC, "2@domain.com", "3@domain.com");
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1", "1@domain.com", TO),
@@ -111,8 +108,8 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipientsVarArgs_Complex_Named() {
-		email.addRecipients("name1", TO, "name1b <1@domain.com>");
-		email.addRecipients("name2", CC, "name2b <2@domain.com>", "name3b <3@domain.com>");
+		email.addNamedRecipients("name1", TO, "name1b <1@domain.com>");
+		email.addNamedRecipients("name2", CC, "name2b <2@domain.com>", "name3b <3@domain.com>");
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1b", "1@domain.com", TO),
@@ -205,26 +202,18 @@ public class EmailTest {
 	
 	@Test
 	public void testAddRecipientByInternetAddress(){
-		ArrayList<Recipient> recipients = new ArrayList<>();
-		assertThat(parsedEmail(null, "a@b.com", null)).isEqualTo(new Recipient(null, "a@b.com", null));
-		assertThat(parsedEmail(null, " a@b.com ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
-		assertThat(parsedEmail(null, " <a@b.com> ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
-		assertThat(parsedEmail(null, " < a@b.com > ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
-		assertThat(parsedEmail(null, "moo <a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(parsedEmail(null, "moo<a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(parsedEmail(null, " moo< a@b.com   > ", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(parsedEmail(null, "\"moo\" <a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(parsedEmail(null, "\"moo\"<a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(parsedEmail(null, " \"moo\"< a@b.com   > ", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(parsedEmail(null, " \"  m oo  \"< a@b.com   > ", null)).isEqualTo(new Recipient("  m oo  ", "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, "a@b.com", null)).isEqualTo(new Recipient(null, "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, " a@b.com ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, " <a@b.com> ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, " < a@b.com > ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, "moo <a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, "moo<a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, " moo< a@b.com   > ", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, "\"moo\" <a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, "\"moo\"<a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, " \"moo\"< a@b.com   > ", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
+		assertThat(Email.interpretRecipientData(null, " \"  m oo  \"< a@b.com   > ", null)).isEqualTo(new Recipient("  m oo  ", "a@b.com", null));
 		// next one is unparsable by InternetAddress#parse(), so it should be taken as is
-		assertThat(parsedEmail(null, " \"  m oo  \" a@b.com    ", null)).isEqualTo(new Recipient(null, " \"  m oo  \" a@b.com    ", null));
-	}
-	
-	private Recipient parsedEmail(String name, String address, Message.RecipientType type) {
-		ArrayList<Recipient> recipients = new ArrayList<>();
-		Email.addRecipientByInternetAddress(recipients, name, address, type);
-		assertThat(recipients).hasSize(1);
-		return recipients.get(0);
+		assertThat(Email.interpretRecipientData(null, " \"  m oo  \" a@b.com    ", null)).isEqualTo(new Recipient(null, " \"  m oo  \" a@b.com    ", null));
 	}
 }

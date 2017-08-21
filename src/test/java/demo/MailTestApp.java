@@ -45,7 +45,7 @@ public class MailTestApp {
 		final Email emailNormal = new Email();
 		emailNormal.setFromAddress("lollypop", "lol.pop@somemail.com");
 		// don't forget to add your own address here ->
-		emailNormal.addRecipient("C.Cane", RecipientType.TO, YOUR_GMAIL_ADDRESS);
+		emailNormal.addNamedRecipient("C.Cane", RecipientType.TO, YOUR_GMAIL_ADDRESS);
 		emailNormal.setText("We should meet up!");
 		emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
 		emailNormal.setSubject("hey");

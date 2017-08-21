@@ -158,23 +158,23 @@ public class Email {
 			}
 			if (hasProperty(DEFAULT_TO_ADDRESS)) {
 				if (hasProperty(DEFAULT_TO_NAME)) {
-					addRecipient((String) getProperty(DEFAULT_TO_NAME), RecipientType.TO, (String) getProperty(DEFAULT_TO_ADDRESS));
+					addNamedRecipient((String) getProperty(DEFAULT_TO_NAME), RecipientType.TO, (String) getProperty(DEFAULT_TO_ADDRESS));
 				} else {
-					addRecipients((String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
+					addNamedRecipients((String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
 				}
 			}
 			if (hasProperty(DEFAULT_CC_ADDRESS)) {
 				if (hasProperty(DEFAULT_CC_NAME)) {
-					addRecipient((String) getProperty(DEFAULT_CC_NAME), RecipientType.CC, (String) getProperty(DEFAULT_CC_ADDRESS));
+					addNamedRecipient((String) getProperty(DEFAULT_CC_NAME), RecipientType.CC, (String) getProperty(DEFAULT_CC_ADDRESS));
 				} else {
-					addRecipients((String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
+					addNamedRecipients((String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
 				}
 			}
 			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 				if (hasProperty(DEFAULT_BCC_NAME)) {
-					addRecipient((String) getProperty(DEFAULT_BCC_NAME), RecipientType.BCC, (String) getProperty(DEFAULT_BCC_ADDRESS));
+					addNamedRecipient((String) getProperty(DEFAULT_BCC_NAME), RecipientType.BCC, (String) getProperty(DEFAULT_BCC_ADDRESS));
 				} else {
-					addRecipients((String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
+					addNamedRecipients((String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
 				}
 			}
 			if (hasProperty(DEFAULT_SUBJECT)) {
@@ -314,59 +314,57 @@ public class Email {
 	}
 	
 	/**
-	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
-	 * Identical to {@link #addRecipients(String, RecipientType, String...)}, but kept for readability purposes.
+	 * Delegates to {@link #addNamedRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
+	 * Identical to {@link #addNamedRecipients(String, RecipientType, String...)}, but kept for readability purposes.
 	 */
-	public void addRecipient(@Nullable final String name, @Nonnull final RecipientType type, @Nonnull final String emailAddressList) {
+	public void addNamedRecipient(@Nullable final String name, @Nonnull final RecipientType type, @Nonnull final String emailAddressList) {
 		checkNonEmptyArgument(type, "type");
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		addRecipients(name, type, emailAddressList);
+		addNamedRecipients(name, type, emailAddressList);
 	}
 
 	/**
-	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
-	 * Identical to {@link #addRecipients(String, RecipientType, String...)}, but kept for readability purposes.
+	 * Delegates to {@link #addNamedRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
+	 * Identical to {@link #addNamedRecipients(String, RecipientType, String...)}, but kept for readability purposes.
 	 */
 	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
 		checkNonEmptyArgument(type, "type");
 		checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd");
-		addRecipients(null, type, recipientEmailAddressesToAdd);
+		addNamedRecipients(null, type, recipientEmailAddressesToAdd);
 	}
 	
 	/**
 	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
 	 * <p>
-	 * Email address can be of format {@code "address@domain.com[,;*]"} or {@code "Recipient Name <address@domain.com>[,;*]"}.
-	 * Parsed each email address using {@link InternetAddress#parse(String, boolean, boolean)} in non-strict mode (because we're doing our own
-	 * proper validation when actually sending the email).
+	 * Email address can be of format {@code "address@domain.com[,;*]"} or {@code "Recipient Name <address@domain.com>[,;*]"}. Included names would
+	 * override the default recipientName provided.
 	 *
 	 * @param recipientName                The name to use for each email address in the {@code recipientEmailAddressesToAdd}.
-	 * @param recipientEmailAddressesToAdd List of preconfigured recipients (without names).
+	 * @param recipientEmailAddressesToAdd List of preconfigured recipients (with or without names, overriding the default if included).
 	 * @see #recipients
 	 * @see Recipient
 	 * @see RecipientType
 	 */
-	public void addRecipients(@Nullable final String recipientName, @Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
+	public void addNamedRecipients(@Nullable final String recipientName, @Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
 		checkNonEmptyArgument(type, "type");
 		checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd");
 		for (final String potentiallyCombinedEmailAddress : recipientEmailAddressesToAdd) {
 			for (final String emailAddress : extractEmailAddresses(potentiallyCombinedEmailAddress)) {
-				addRecipientByInternetAddress(recipients, recipientName, emailAddress, type);
+				recipients.add(interpretRecipientData(recipientName, emailAddress, type));
 			}
 		}
 	}
 	
-	static void addRecipientByInternetAddress(@Nonnull List<Recipient> recipients, @Nullable String recipientName, @Nonnull String
-			emailAddress, @Nullable RecipientType type) {
+	static Recipient interpretRecipientData(@Nullable String recipientName, @Nonnull String emailAddress, @Nullable RecipientType type) {
 		try {
 			InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
 			String relevantName = parsedAddress.getPersonal() != null ? parsedAddress.getPersonal() : recipientName;
-			recipients.add(new Recipient(relevantName, parsedAddress.getAddress(), type));
+			return new Recipient(relevantName, parsedAddress.getAddress(), type);
 		} catch (AddressException e) {
 			// InternetAddress failed to parse the email address even in non-strict mode
 			// just assume the address was too complex rather than plain wrong, and let our own email validation
 			// library take care of it when sending the email
-			recipients.add(new Recipient(recipientName, emailAddress, type));
+			return new Recipient(recipientName, emailAddress, type);
 		}
 	}
 

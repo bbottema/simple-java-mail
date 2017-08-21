@@ -247,14 +247,14 @@ public final class EmailConverter {
 			}
 		}
 		for (final InternetAddress to : parser.getTo()) {
-			email.addRecipient(to.getPersonal(), Message.RecipientType.TO, to.getAddress());
+			email.addNamedRecipient(to.getPersonal(), Message.RecipientType.TO, to.getAddress());
 		}
 		//noinspection QuestionableName
 		for (final InternetAddress cc : parser.getCc()) {
-			email.addRecipient(cc.getPersonal(), Message.RecipientType.CC, cc.getAddress());
+			email.addNamedRecipient(cc.getPersonal(), Message.RecipientType.CC, cc.getAddress());
 		}
 		for (final InternetAddress bcc : parser.getBcc()) {
-			email.addRecipient(bcc.getPersonal(), Message.RecipientType.BCC, bcc.getAddress());
+			email.addNamedRecipient(bcc.getPersonal(), Message.RecipientType.BCC, bcc.getAddress());
 		}
 		email.setSubject(parser.getSubject());
 		email.setText(parser.getPlainContent());
@@ -291,14 +291,14 @@ public final class EmailConverter {
 			email.setReplyToAddress(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
 		}
 		for (final OutlookRecipient to : outlookMessage.getRecipients()) {
-			email.addRecipient(to.getName(), Message.RecipientType.TO, to.getAddress());
+			email.addNamedRecipient(to.getName(), Message.RecipientType.TO, to.getAddress());
 		}
 		//noinspection QuestionableName
 		for (final OutlookRecipient cc : outlookMessage.getCcRecipients()) {
-			email.addRecipient(cc.getName(), Message.RecipientType.CC, cc.getAddress());
+			email.addNamedRecipient(cc.getName(), Message.RecipientType.CC, cc.getAddress());
 		}
 		for (final OutlookRecipient bcc : outlookMessage.getBccRecipients()) {
-			email.addRecipient(bcc.getName(), Message.RecipientType.BCC, bcc.getAddress());
+			email.addNamedRecipient(bcc.getName(), Message.RecipientType.BCC, bcc.getAddress());
 		}
 		email.setSubject(outlookMessage.getSubject());
 		email.setText(outlookMessage.getBodyText());
