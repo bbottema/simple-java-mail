@@ -372,7 +372,7 @@ public class Email {
 		checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd");
 		for (final String potentiallyCombinedEmailAddress : recipientEmailAddressesToAdd) {
 			for (final String emailAddress : extractEmailAddresses(potentiallyCombinedEmailAddress)) {
-			addRecipientByInternetAddress(recipients, recipientName, emailAddress, type);
+				addRecipientByInternetAddress(recipients, recipientName, emailAddress, type);
 			}
 		}
 	}
