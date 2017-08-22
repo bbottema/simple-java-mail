@@ -158,23 +158,23 @@ public class Email {
 			}
 			if (hasProperty(DEFAULT_TO_ADDRESS)) {
 				if (hasProperty(DEFAULT_TO_NAME)) {
-					addNamedRecipient((String) getProperty(DEFAULT_TO_NAME), RecipientType.TO, (String) getProperty(DEFAULT_TO_ADDRESS));
+					addNamedToRecipients((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS));
 				} else {
-					addNamedRecipients((String) getProperty(DEFAULT_TO_ADDRESS), RecipientType.TO);
+					addToRecipients((String) getProperty(DEFAULT_TO_ADDRESS));
 				}
 			}
 			if (hasProperty(DEFAULT_CC_ADDRESS)) {
 				if (hasProperty(DEFAULT_CC_NAME)) {
-					addNamedRecipient((String) getProperty(DEFAULT_CC_NAME), RecipientType.CC, (String) getProperty(DEFAULT_CC_ADDRESS));
+					addNamedCcRecipients((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS));
 				} else {
-					addNamedRecipients((String) getProperty(DEFAULT_CC_ADDRESS), RecipientType.CC);
+					addCcRecipients((String) getProperty(DEFAULT_CC_ADDRESS));
 				}
 			}
 			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 				if (hasProperty(DEFAULT_BCC_NAME)) {
-					addNamedRecipient((String) getProperty(DEFAULT_BCC_NAME), RecipientType.BCC, (String) getProperty(DEFAULT_BCC_ADDRESS));
+					addNamedBccRecipients((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS));
 				} else {
-					addNamedRecipients((String) getProperty(DEFAULT_BCC_ADDRESS), RecipientType.BCC);
+					addBccRecipients((String) getProperty(DEFAULT_BCC_ADDRESS));
 				}
 			}
 			if (hasProperty(DEFAULT_SUBJECT)) {
@@ -314,23 +314,51 @@ public class Email {
 	}
 	
 	/**
-	 * Delegates to {@link #addNamedRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
-	 * Identical to {@link #addNamedRecipients(String, RecipientType, String...)}, but kept for readability purposes.
+	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using empty default name and {@link RecipientType#TO}.
 	 */
-	public void addNamedRecipient(@Nullable final String name, @Nonnull final RecipientType type, @Nonnull final String emailAddressList) {
-		checkNonEmptyArgument(type, "type");
-		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		addNamedRecipients(name, type, emailAddressList);
+	public void addToRecipients(@Nonnull final String... delimitedEmailAddresses) {
+		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
+		addRecipients(null, RecipientType.TO, delimitedEmailAddresses);
 	}
-
+	
 	/**
-	 * Delegates to {@link #addNamedRecipients(String, RecipientType, String...)}, parsing the delimited address list first (if more than one).
-	 * Identical to {@link #addNamedRecipients(String, RecipientType, String...)}, but kept for readability purposes.
+	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using empty default name and {@link RecipientType#CC}.
 	 */
-	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
-		checkNonEmptyArgument(type, "type");
-		checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd");
-		addNamedRecipients(null, type, recipientEmailAddressesToAdd);
+	public void addCcRecipients(@Nonnull final String... delimitedEmailAddresses) {
+		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
+		addRecipients(null, RecipientType.CC, delimitedEmailAddresses);
+	}
+	
+	/**
+	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using empty default name and {@link RecipientType#BCC}.
+	 */
+	public void addBccRecipients(@Nonnull final String... delimitedEmailAddresses) {
+		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
+		addRecipients(null, RecipientType.BCC, delimitedEmailAddresses);
+	}
+	
+	/**
+	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using {@link RecipientType#TO}.
+	 */
+	public void addNamedToRecipients(@Nullable final String name, @Nonnull final String... delimitedEmailAddresses) {
+		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
+		addRecipients(name, RecipientType.TO, delimitedEmailAddresses);
+	}
+	
+	/**
+	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using {@link RecipientType#CC}.
+	 */
+	public void addNamedCcRecipients(@Nullable final String name, @Nonnull final String... delimitedEmailAddresses) {
+		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
+		addRecipients(name, RecipientType.CC, delimitedEmailAddresses);
+	}
+	
+	/**
+	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using {@link RecipientType#BCC}.
+	 */
+	public void addNamedBccRecipients(@Nullable final String name, @Nonnull final String... delimitedEmailAddresses) {
+		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
+		addRecipients(name, RecipientType.BCC, delimitedEmailAddresses);
 	}
 	
 	/**
@@ -339,13 +367,13 @@ public class Email {
 	 * Email address can be of format {@code "address@domain.com[,;*]"} or {@code "Recipient Name <address@domain.com>[,;*]"}. Included names would
 	 * override the default recipientName provided.
 	 *
-	 * @param recipientName                The name to use for each email address in the {@code recipientEmailAddressesToAdd}.
-	 * @param recipientEmailAddressesToAdd List of preconfigured recipients (with or without names, overriding the default if included).
+	 * @param recipientName                The optional name to use for each email address in the {@code recipientEmailAddressesToAdd}.
+	 * @param recipientEmailAddressesToAdd List of (preconfigured) recipients (with or without names, overriding the default name if included).
 	 * @see #recipients
 	 * @see Recipient
 	 * @see RecipientType
 	 */
-	public void addNamedRecipients(@Nullable final String recipientName, @Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
+	public void addRecipients(@Nullable final String recipientName, @Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
 		checkNonEmptyArgument(type, "type");
 		checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd");
 		for (final String potentiallyCombinedEmailAddress : recipientEmailAddressesToAdd) {

@@ -12,7 +12,6 @@ import org.simplejavamail.outlookmessageparser.model.OutlookRecipient;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
-import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.AddressException;
@@ -247,14 +246,14 @@ public final class EmailConverter {
 			}
 		}
 		for (final InternetAddress to : parser.getTo()) {
-			email.addNamedRecipient(to.getPersonal(), Message.RecipientType.TO, to.getAddress());
+			email.addNamedToRecipients(to.getPersonal(), to.getAddress());
 		}
 		//noinspection QuestionableName
 		for (final InternetAddress cc : parser.getCc()) {
-			email.addNamedRecipient(cc.getPersonal(), Message.RecipientType.CC, cc.getAddress());
+			email.addNamedCcRecipients(cc.getPersonal(), cc.getAddress());
 		}
 		for (final InternetAddress bcc : parser.getBcc()) {
-			email.addNamedRecipient(bcc.getPersonal(), Message.RecipientType.BCC, bcc.getAddress());
+			email.addNamedBccRecipients(bcc.getPersonal(), bcc.getAddress());
 		}
 		email.setSubject(parser.getSubject());
 		email.setText(parser.getPlainContent());
@@ -291,14 +290,14 @@ public final class EmailConverter {
 			email.setReplyToAddress(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
 		}
 		for (final OutlookRecipient to : outlookMessage.getRecipients()) {
-			email.addNamedRecipient(to.getName(), Message.RecipientType.TO, to.getAddress());
+			email.addNamedToRecipients(to.getName(), to.getAddress());
 		}
 		//noinspection QuestionableName
 		for (final OutlookRecipient cc : outlookMessage.getCcRecipients()) {
-			email.addNamedRecipient(cc.getName(), Message.RecipientType.CC, cc.getAddress());
+			email.addNamedCcRecipients(cc.getName(), cc.getAddress());
 		}
 		for (final OutlookRecipient bcc : outlookMessage.getBccRecipients()) {
-			email.addNamedRecipient(bcc.getName(), Message.RecipientType.BCC, bcc.getAddress());
+			email.addNamedBccRecipients(bcc.getName(), bcc.getAddress());
 		}
 		email.setSubject(outlookMessage.getSubject());
 		email.setText(outlookMessage.getBodyText());

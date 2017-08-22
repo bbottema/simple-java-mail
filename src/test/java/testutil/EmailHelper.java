@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
-import static javax.mail.Message.RecipientType.TO;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmail;
 
@@ -30,7 +29,7 @@ public class EmailHelper {
 			emailNormal.setReplyToAddress("lollypop-reply", "lol.pop.reply@somemail.com");
 		}
 		// don't forget to add your own address here ->
-		emailNormal.addNamedRecipient("C.Cane", TO, "candycane@candyshop.org");
+		emailNormal.addNamedToRecipients("C.Cane", "candycane@candyshop.org");
 		if (includeSubjectAndBody) {
 			emailNormal.setSubject("hey");
 			emailNormal.setText("We should meet up!");

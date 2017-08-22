@@ -7,7 +7,6 @@ import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import testutil.ConfigLoaderTestHelper;
 
-import javax.mail.Message.RecipientType;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.nio.charset.Charset;
@@ -45,7 +44,7 @@ public class MailTestApp {
 		final Email emailNormal = new Email();
 		emailNormal.setFromAddress("lollypop", "lol.pop@somemail.com");
 		// don't forget to add your own address here ->
-		emailNormal.addNamedRecipient("C.Cane", RecipientType.TO, YOUR_GMAIL_ADDRESS);
+		emailNormal.addNamedToRecipients("C.Cane", YOUR_GMAIL_ADDRESS);
 		emailNormal.setText("We should meet up!");
 		emailNormal.setTextHTML("<b>We should meet up!</b><img src='cid:thumbsup'>");
 		emailNormal.setSubject("hey");
