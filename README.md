@@ -16,9 +16,9 @@ Email email = new Email();
 
 email.setFromAddress("lollypop", "lolly.pop@mymail.com");
 email.setReplyToAddress("lollypop", "lolly.pop@othermail.com");
-email.addNamedRecipient("lollypop", "lolly.pop@somemail.com", RecipientType.TO);
-email.addNamedRecipient("C. Cane", "candycane@candyshop.org", RecipientType.TO);
-email.addRecipients(CC, "chocobo@candyshop.org; Chocobo <chocobo@candyshop.org>");
+email.addNamedToRecipient("lollypop", "lolly.pop@somemail.com");
+email.addNamedToRecipient("C. Cane", "candycane@candyshop.org");
+email.addRecipients("optional default name", CC, "rocky@candyshop.org; Chocobo <chocobo@candyshop.org>");
 email.setSubject("hey");
 email.setText("We should meet up! ;)");
 email.setTextHTML("&lt;img src=&#39;cid:wink1&#39;&gt;&lt;b&gt;We should meet up!&lt;/b&gt;&lt;img src=&#39;cid:wink2&#39;&gt;");
@@ -26,6 +26,9 @@ email.addEmbeddedImage("wink1", imageByteArray, "image/png");
 email.addEmbeddedImage("wink2", imageDatesource);
 email.addAttachment("invitation", pdfByteArray, "application/pdf");
 email.addAttachment("dresscode", odfDatasource);
+
+email.addHeader("X-Priority", "5");
+email.setUseReturnReceiptTo(true);
 
 email.signWithDomainKey(privateKeyData, "somemail.com", "selector");
 
