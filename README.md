@@ -27,7 +27,7 @@ email.addEmbeddedImage("wink2", imageDatesource);
 email.addAttachment("invitation", pdfByteArray, "application/pdf");
 email.addAttachment("dresscode", odfDatasource);
 
-email.addHeader("X-Priority", "5");
+email.addHeader("X-Priority", 5);
 email.setUseReturnReceiptTo(true);
 
 email.signWithDomainKey(privateKeyData, "somemail.com", "selector");
