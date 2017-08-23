@@ -3,12 +3,12 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.4.3</version>
+    <version>4.4.4</version>
 </dependency>
 
-v4.4.3 (21-August-2017)
+v4.4.4 (21-August-2017)
 
-API usability release.
+API usability release. *This relase streamlined the recipient setters, breaking backwards compatibility (but straightforward to fix)*
 
 - #95 Feature: Add support native API for setting Return-Receipt-To header
 - #93 Feature: Add support native API for setting Disposition-Notification-To header

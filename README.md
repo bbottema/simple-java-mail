@@ -45,15 +45,15 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.4.3</version>
+    <version>4.4.4</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-[v4.4.3](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.2%7Cjar) (21-August-2017)
+[v4.4.4](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.4%7Cjar) (23-August-2017)
 
-API usability release.
+API usability release. **This relase streamlined the recipient setters, breaking backwards compatibility (but straightforward to fix)**
 
 - [#95](https://github.com/bbottema/simple-java-mail/issues/95) Feature: Add support native API for setting Return-Receipt-To header
 - [#93](https://github.com/bbottema/simple-java-mail/issues/93) Feature: Add support native API for setting Disposition-Notification-To header
