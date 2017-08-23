@@ -16,8 +16,8 @@ Email email = new Email();
 
 email.setFromAddress("lollypop", "lolly.pop@mymail.com");
 email.setReplyToAddress("lollypop", "lolly.pop@othermail.com");
-email.addNamedToRecipient("lollypop", "lolly.pop@somemail.com");
-email.addNamedToRecipient("C. Cane", "candycane@candyshop.org");
+email.addNamedToRecipients("lollypop", "lolly.pop@somemail.com");
+email.addNamedToRecipients("C. Cane", "candycane@candyshop.org");
 email.addRecipients("optional default name", CC, "rocky@candyshop.org; Chocobo <chocobo@candyshop.org>");
 email.setSubject("hey");
 email.setText("We should meet up! ;)");
