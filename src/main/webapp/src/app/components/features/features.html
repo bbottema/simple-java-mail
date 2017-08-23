@@ -66,8 +66,8 @@
 <pre><code>Email email = new Email();
 
 email.setFromAddress("Michel Baker", "m.baker@mbakery.com");
-email.addRecipient("mom", "jean.baker@hotmail.com", RecipientType.TO);
-email.addRecipient("dad", "StevenOakly1963@hotmail.com", RecipientType.TO);
+email.addNamedToRecipient("mom", "jean.baker@hotmail.com");
+email.addNamedToRecipient("dad", "StevenOakly1963@hotmail.com");
 email.setSubject("My Bakery is finally open!");
 email.setText("Mom, Dad. We did the opening ceremony of our bakery!!!");
 
@@ -152,14 +152,14 @@ email.addRecipients(yourRecipient1, yourRecipient2...);
 
 // or add comma / semicolon separated addresses (without names)
 String list = "twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com";
-emailNormal.addRecipients(list, RecipientType.BCC);
+emailNormal.addBccRecipients(list);
 // or:
-emailNormal.addRecipients("maintenance group", list, RecipientType.TO);
+emailNormal.addNamedToRecipients("maintenance group", list);
 
 // what about a group with one deviating name?
 String list = "bob@sweets.com, gene@sweets.com; Security Group &lt;security@sweets.com&gt;";
-emailNormal.addRecipients("stakeholders", list, RecipientType.TO);
-// bob and gene are named "stakeholders", security gets its own name
+emailNormal.addNamedToRecipients("stakeholders", list);
+// bob and gene are named "stakeholders", "Security Group" get its own name
 </code></pre>
       <p><code class="inline">EmailBuilder</code>:</p>
       <pre><code>.to(yourRecipient1, yourRecipient2...)

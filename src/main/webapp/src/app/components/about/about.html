@@ -28,11 +28,11 @@ ConfigLoader.loadProperties("overrides.properties"); // optional extra
 
 Email email = new Email();
 
-email.addRecipient("lollypop", "lolly.pop@somemail.com", RecipientType.TO);
-email.addRecipient("C. Cane", "candycane@candyshop.org", RecipientType.TO);
-email.addRecipient("C. Bo", "chocobo@candyshop.org", RecipientType.CC);
-email.addRecipients("Tasting Group", "taster1@cgroup.org;taster2@cgroup.org;tester &lt;taster3@cgroup.org&gt;", RecipientType.BCC);
-email.addRecipients("Mr Sweetnose &lt;snose@candyshop.org&gt;", RecipientType.BCC);
+email.addNamedToRecipients("lollypop", "lolly.pop@somemail.com");
+email.addNamedToRecipients("C. Cane", "candycane@candyshop.org");
+email.addNamedCcRecipients("C. Bo", "chocobo@candyshop.org");
+email.addRecipients("Tasting Group", BCC, "taster1@cgroup.org;taster2@cgroup.org;tester &lt;taster3@cgroup.org&gt;");
+email.addBccRecipients("Mr Sweetnose &lt;snose@candyshop.org&gt;");
 
 email.setReplyToAddress("lollypop", "lolly.pop@othermail.com");
 email.setSubject("hey");
@@ -42,6 +42,9 @@ email.addEmbeddedImage("wink1", imageByteArray, "image/png");
 email.addEmbeddedImage("wink2", imageDatesource);
 email.addAttachment("invitation", pdfByteArray, "application/pdf");
 email.addAttachment("dresscode", odfDatasource);
+
+email.addHeader("X-Priority", 5);
+email.setUseReturnReceiptTo(true);
 
 email.signWithDomainKey(privateKeyData, "somemail.com", "selector");
 
