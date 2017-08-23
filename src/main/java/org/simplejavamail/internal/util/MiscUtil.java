@@ -87,13 +87,20 @@ public final class MiscUtil {
 		}
 		return byteArrayOutputStream.toString(checkNonEmptyArgument(charset, "charset").name());
 	}
-
+	
+	/**
+	 * Recognizes the tails of each address entry, so it can replace the [';] delimiters, thereby disambiguating the delimiters, since they can
+	 * appear in names as well (making it difficult to split on [,;] delimiters.
+	 *
+	 * @param emailAddressList The delimited list of addresses (or single address) optionally including the name.
+	 * @return Array of address entries optionally including the names, trimmed for spaces or trailing delimiters.
+	 */
 	@Nonnull
 	public static String[] extractEmailAddresses(@Nonnull final String emailAddressList) {
-		//noinspection DynamicRegexReplaceableByCompiledPattern
+		// recognize value tails and replace the delimiters there, disambiguating delimiters
 		return checkNonEmptyArgument(emailAddressList, "emailAddressList")
-				.replace(';', ',')
-				.replaceAll("\\s*,\\s*", ",")
-				.split(",");
+				.replaceAll("(@.*?>?)\\s*[,;]", "$1<|>")
+				.replaceAll("<\\|>$", "") // remove trailing delimiter
+				.split("\\s*<\\|>\\s*"); // split on delimiter including surround space
 	}
 }
