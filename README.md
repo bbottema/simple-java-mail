@@ -48,11 +48,17 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.4.4</version>
+    <version>4.4.5</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+[v4.4.5](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.5%7Cjar) (2-September-2017)
+
+- [#101](https://github.com/bbottema/simple-java-mail/issues/101) API backwards compatibility update, reinstate old addRecipient API as deprecated 
+(sorry for removing it abruptly)
+
 
 [v4.4.4](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.4%7Cjar) (23-August-2017)
 

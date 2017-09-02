@@ -3,8 +3,13 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.4.4</version>
+    <version>4.4.5</version>
 </dependency>
+
+v4.4.5 (2-September-2017)
+
+- #101 API backwards compatibility update, reinstate old addRecipient API as deprecated (sorry for removing it abruptly)
+
 
 v4.4.4 (21-August-2017)
 
