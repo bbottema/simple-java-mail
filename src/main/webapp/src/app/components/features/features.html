@@ -141,7 +141,7 @@ inhouseMailer.sendMail(anotherEmail);
   <section>
     <div class="view">
       <p>
-        There alternative ways to do this in Email for almost everything, just to accomodate what you already have.
+        Simple Java Mail has alternative ways to do things for almost everything...
       </p>
     </div>
     
@@ -188,14 +188,14 @@ simplejavamail.defaults.bcc.address=twister@sweets.com,blue.tongue@sweets.com;ho
       </p>
       <p>
         You can also send anyschronously in parallel or batches, or simply send in a fire-and-forget way. If an authenticated proxy is used, the <a
-        simplePageScroll href="#section-proxy">proxy briding server</a> is kept alive until the last email has been sent.</p>
+        simplePageScroll href="#section-proxy">proxy bridging server</a> is kept alive until the last email has been sent.</p>
       <p>
         Depending on the SMTP server (and proxy server if used) this can greatly influence how fast emails are sent.
       </p>
     </div>
     
     <div class="side">
-<pre><code>mailer.sendMail(email, true);
+<pre><code>mailer.sendMail(email, /* async = */ true);
 </code></pre>
       <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" href="#section-other-settings">configuration section</a>
          on how to set the thread pool size default.</p>
@@ -508,7 +508,7 @@ EmailAddressValidator.isValid("your_address@domain.com",
         With Simple Java Mail you can easily convert to other types.
       </p>
       <p>
-        For example, if you need a MimeMessage, you can convert <code class="inline">Email</code>, EML data and even Outlook .msg files.
+        For example, if you need a MimeMessage, you can convert <code class="inline">Email</code> objects, EML data and even Outlook .msg files.
       </p>
       <p>
         If you already have a MimeMessage, you can it into an Email instance, complete with embedded images and attachments, headers intact.
