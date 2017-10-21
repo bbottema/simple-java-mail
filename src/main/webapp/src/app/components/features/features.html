@@ -258,9 +258,9 @@ new Mailer(yourSession).sendMail(email);
     <div class="side">
 <pre><code>Email email = new Email();
 
-mailer.sendMail(email, TransportStrategy.SMTP_PLAIN); // default if omitted
-mailer.sendMail(email, TransportStrategy.SMTP_SSL);
-mailer.sendMail(email, TransportStrategy.SMTP_TLS);
+new Mailer(..., TransportStrategy.SMTP_PLAIN, ...); // default if omitted
+new Mailer(..., TransportStrategy.SMTP_SSL, ...);
+new Mailer(..., TransportStrategy.SMTP_TLS, ...);
 </code></pre>
     </div>
   </section>
