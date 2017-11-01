@@ -236,7 +236,7 @@ public final class MimeMessageHelper {
 		final String contentType = attachmentResource.getDataSource().getContentType();
 		attachmentPart.setHeader("Content-Type", contentType + "; filename=" + fileName + "; name=" + resourceName);
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
-		attachmentPart.setDisposition(dispositionType + "; size=0");
+		attachmentPart.setDisposition(dispositionType);
 		return attachmentPart;
 	}
 
