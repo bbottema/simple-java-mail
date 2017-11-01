@@ -245,6 +245,7 @@ public final class EmailConverter {
 				email.addHeader(header.getKey(), header.getValue());
 			}
 		}
+		email.setId(mimeMessage.getMessageID());
 		for (final InternetAddress to : parser.getTo()) {
 			email.addNamedToRecipients(to.getPersonal(), to.getAddress());
 		}

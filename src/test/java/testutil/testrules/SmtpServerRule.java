@@ -70,7 +70,6 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 		List<WiserMessage> messages = getMessages();
 		assertThat(messages).hasSize(1);
 		MimeMessage mimeMessage = messages.iterator().next().getMimeMessage();
-		mimeMessage.removeHeader("Message-ID");
 		return mimeMessage;
 	}
 

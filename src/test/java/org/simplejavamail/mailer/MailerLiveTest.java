@@ -1,7 +1,6 @@
 package org.simplejavamail.mailer;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.simplejavamail.email.AttachmentResource;
@@ -22,7 +21,6 @@ import java.util.Properties;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
-import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static testutil.EmailHelper.normalizeText;
 import static testutil.EmailHelper.readOutlookMessage;
 
@@ -67,7 +65,6 @@ public class MailerLiveTest {
 	}
 
 	@Test
-	@Ignore("Unfortunately, Wiser doesn't seem to get the ID back, but I confirmed with gmail that the (correct) ID should be there")
 	public void createMailSession_StandardDummyMailWithId()
 			throws IOException, MessagingException {
 		assertSendingEmail(EmailHelper.createDummyEmail("<123@456>", true, false, false));
@@ -107,13 +104,16 @@ public class MailerLiveTest {
 			throws MessagingException {
 		mailer.sendMail(originalEmail);
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		if (!valueNullOrEmpty(originalEmail.getId())) {
-			 assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
-		}
+		assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
+		
 		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
 		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty
 		if (originalEmail.getReplyToRecipient() == null) {
 			originalEmail.setReplyToAddress(originalEmail.getFromRecipient());
+		}
+		// received email will always have an id, so let's make sure we're able to compare to the original email object
+		if (originalEmail.getHeaders().get("Message-ID") == null) {
+			originalEmail.addHeader("Message-ID", originalEmail.getId());
 		}
 		assertThat(receivedEmail).isEqualTo(originalEmail);
 		return receivedEmail;
