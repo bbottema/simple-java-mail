@@ -514,10 +514,9 @@ public class Email {
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public void addHeader(@Nonnull final String name, @Nonnull final Object value) {
+	public void addHeader(@Nonnull final String name, @Nullable final Object value) {
 		checkNonEmptyArgument(name, "name");
-		checkNonEmptyArgument(value, "value");
-		headers.put(name, String.valueOf(value));
+		headers.put(name, value != null ? String.valueOf(value) : "");
 	}
 
 	/**
