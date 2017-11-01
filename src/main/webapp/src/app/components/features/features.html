@@ -25,6 +25,7 @@
        <li><a simplePageScroll href="#section-sending-asynchronously" class="indent">Asynchronous parallel batch sending</a></li>
       <li><a simplePageScroll href="#section-custom-session">Sending with your own Session instance</a></li>
       <li><a simplePageScroll href="#section-custom-id">Setting a custom message ID on sent email</a></li>
+      <li><a simplePageScroll href="#section-sent-id">Getting the generated email id after sending</a></li>
       <li><a simplePageScroll href="#section-ssl-tls">Sending with SSL and TLS</a></li>
         <li><a simplePageScroll href="#section-gmail" class="indent">SSL and TLS with Google mail</a></li>
       <li><a simplePageScroll href="#section-attachments">Adding attachments</a></li>
@@ -234,12 +235,32 @@ new Mailer(yourSession).sendMail(email);
     
     <div class="side">
 <pre><code>Email email = new Email()
-    email.setId("<123@456>");
+email.setId("<123@456>");
 </code></pre>
       Or:
       <pre><code>Email email = new EmailBuilder()
     .id("<123@456>")
     .build();
+</code></pre>
+    </div>
+  </section>
+  
+  
+  <a href="#section-sent-id" id="section-sent-id" class="section-link h2">&sect;</a>
+  <h2>Getting the generated email id after sending</h2>
+  
+  <section>
+    <div class="view">
+      <p>
+        Sometimes you need the actual ID used in the MimeMessage that went out to the SMTP server.
+        Luckily, it's very easy to retrieve it.
+      </p>
+    </div>
+    
+    <div class="side">
+<pre><code>
+mailer.sendMail(email); // id updated during sending!
+email.getId(); // <1420232606.6.1509560747190@Cypher>
 </code></pre>
     </div>
   </section>
@@ -410,7 +431,7 @@ Session session = mailer.getSession();
   </section>
   
   
-  <a href="#section-dkim" id="section-dkim" class="section-link h2">&sect;</a>
+  <a href="#section-dkim" id="section-return-receipt" class="section-link h2">&sect;</a>
   <h2>Signing emails with DKIM</h2>
   
   <section>
