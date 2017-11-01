@@ -233,6 +233,7 @@ public class MailSender {
 			final MimeMessage message = MimeMessageHelper.produceMimeMessage(email, session);
 			logSession(session);
 			message.saveChanges(); // some headers and id's will be set for this specific message
+			email.setId(message.getMessageID());
 			final Transport transport = session.getTransport();
 
 			try {
@@ -275,7 +276,7 @@ public class MailSender {
 			throw e;
 		}
 	}
-
+	
 	/**
 	 * We need to keep a count of running threads in case a proxyserver is running or a connection pool needs to be shut down.
      */
