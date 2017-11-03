@@ -115,6 +115,10 @@ public class MailerLiveTest {
 		if (originalEmail.getHeaders().get("Message-ID") == null) {
 			originalEmail.addHeader("Message-ID", originalEmail.getId());
 		}
+		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session, so just ignore this
+		if (originalEmail.getBounceToRecipient() != null) {
+			receivedEmail.setBounceToRecipient(originalEmail.getBounceToRecipient());
+		}
 		assertThat(receivedEmail).isEqualTo(originalEmail);
 		return receivedEmail;
 	}

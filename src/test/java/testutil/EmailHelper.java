@@ -27,6 +27,7 @@ public class EmailHelper {
 			// normally not needed, but for the test it is because the MimeMessage will
 			// have it added automatically as well, so the parsed Email will also have it then
 			emailNormal.setReplyToAddress("lollypop-reply", "lol.pop.reply@somemail.com");
+			emailNormal.setBounceToAddress("lollypop-bounce", "lol.pop.bounce@somemail.com");
 		}
 		// don't forget to add your own address here ->
 		emailNormal.addNamedToRecipients("C.Cane", "candycane@candyshop.org");

@@ -32,6 +32,8 @@ public class SimpleJavaMailSpringSupport {
 			@Value("${simplejavamail.defaults.from.address:#{null}}") final String defaultFromAddress,
 			@Value("${simplejavamail.defaults.replyto.name:#{null}}") final String defaultReplytoName,
 			@Value("${simplejavamail.defaults.replyto.address:#{null}}") final String defaultReplytoAddress,
+			@Value("${simplejavamail.defaults.bounceto.name:#{null}}") final String defaultBouncetoName,
+			@Value("${simplejavamail.defaults.bounceto.address:#{null}}") final String defaultBouncetoAddress,
 			@Value("${simplejavamail.defaults.to.name:#{null}}") final String defaultToName,
 			@Value("${simplejavamail.defaults.to.address:#{null}}") final String defaultToAddress,
 			@Value("${simplejavamail.defaults.cc.name:#{null}}") final String defaultCcName,
@@ -58,6 +60,8 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_FROM_ADDRESS.key(), defaultFromAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_REPLYTO_NAME.key(), defaultReplytoName);
 		setNullableProperty(emailProperties, Property.DEFAULT_REPLYTO_ADDRESS.key(), defaultReplytoAddress);
+		setNullableProperty(emailProperties, Property.DEFAULT_BOUNCETO_NAME.key(), defaultBouncetoName);
+		setNullableProperty(emailProperties, Property.DEFAULT_BOUNCETO_ADDRESS.key(), defaultBouncetoAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_TO_NAME.key(), defaultToName);
 		setNullableProperty(emailProperties, Property.DEFAULT_TO_ADDRESS.key(), defaultToAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_CC_NAME.key(), defaultCcName);

@@ -20,6 +20,10 @@ final class EqualsHelper {
 				email2.getReplyToRecipient() != null) {
 			return false;
 		}
+		if (email1.getBounceToRecipient() != null ? !isEqualRecipient(email1.getBounceToRecipient(), email2.getBounceToRecipient()) :
+				email2.getBounceToRecipient() != null) {
+			return false;
+		}
 		if (email1.getText() != null ? !email1.getText().equals(email2.getText()) : email2.getText() != null) {
 			return false;
 		}

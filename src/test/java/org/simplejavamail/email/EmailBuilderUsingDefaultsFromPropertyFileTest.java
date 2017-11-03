@@ -43,6 +43,7 @@ public class EmailBuilderUsingDefaultsFromPropertyFileTest {
 		final Email email = new EmailBuilder()
 				.from("lollypop", "lol.pop@somemail.com")
 				.replyTo("lollypop-reply", "lol.pop.reply@somemail.com")
+				.bounceTo("lollypop-bounce", "lol.pop.bounce@somemail.com")
 				.to("C.Cane", "candycane@candyshop.org")
 				.text("We should meet up!")
 				.textHTML("<b>We should meet up!</b><img src='cid:thumbsup'>")

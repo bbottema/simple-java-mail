@@ -408,6 +408,10 @@ public class Mailer {
 					.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
 				throw new MailerException(format(MailerException.INVALID_REPLYTO, email));
 			}
+			if (email.getBounceToRecipient() != null && !EmailAddressValidator
+					.isValid(email.getBounceToRecipient().getAddress(), emailAddressCriteria)) {
+				throw new MailerException(format(MailerException.INVALID_BOUNCETO, email));
+			}
 			if (email.isUseDispositionNotificationTo() && !EmailAddressValidator
 					.isValid(email.getDispositionNotificationTo().getAddress(), emailAddressCriteria)) {
 				throw new MailerException(format(MailerException.INVALID_DISPOSITIONNOTIFICATIONTO, email));
@@ -435,6 +439,10 @@ public class Mailer {
 		if (!valueNullOrEmpty(email.getReplyToRecipient())) {
 			scanForInjectionAttack(email.getReplyToRecipient().getName(), "email.replyToRecipient.name");
 			scanForInjectionAttack(email.getReplyToRecipient().getAddress(), "email.replyToRecipient.address");
+		}
+		if (!valueNullOrEmpty(email.getBounceToRecipient())) {
+			scanForInjectionAttack(email.getBounceToRecipient().getName(), "email.bounceToRecipient.name");
+			scanForInjectionAttack(email.getBounceToRecipient().getAddress(), "email.bounceToRecipient.address");
 		}
 		for (Recipient recipient : email.getRecipients()) {
 			scanForInjectionAttack(recipient.getName(), "email.recipient.name");

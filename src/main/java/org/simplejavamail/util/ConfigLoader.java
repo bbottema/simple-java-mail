@@ -39,6 +39,8 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  *    <li>simplejavamail.defaults.from.address</li>
  *    <li>simplejavamail.defaults.replyto.name</li>
  *    <li>simplejavamail.defaults.replyto.address</li>
+ *    <li>simplejavamail.defaults.bounceto.name</li>
+ *    <li>simplejavamail.defaults.bounceto.address</li>
  *    <li>simplejavamail.defaults.to.name</li>
  *    <li>simplejavamail.defaults.to.address</li>
  *    <li>simplejavamail.defaults.cc.name</li>
@@ -88,6 +90,8 @@ public final class ConfigLoader {
 		DEFAULT_FROM_ADDRESS("simplejavamail.defaults.from.address"),
 		DEFAULT_REPLYTO_NAME("simplejavamail.defaults.replyto.name"),
 		DEFAULT_REPLYTO_ADDRESS("simplejavamail.defaults.replyto.address"),
+		DEFAULT_BOUNCETO_NAME("simplejavamail.defaults.bounceto.name"),
+		DEFAULT_BOUNCETO_ADDRESS("simplejavamail.defaults.bounceto.address"),
 		DEFAULT_TO_NAME("simplejavamail.defaults.to.name"),
 		DEFAULT_TO_ADDRESS("simplejavamail.defaults.to.address"),
 		DEFAULT_CC_NAME("simplejavamail.defaults.cc.name"),

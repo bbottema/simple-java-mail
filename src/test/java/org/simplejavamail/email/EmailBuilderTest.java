@@ -44,28 +44,51 @@ public class EmailBuilderTest {
 		assertThat(email.getFromRecipient().getAddress()).isEqualTo("lol.pop2@somemail.com");
 		assertThat(email.getFromRecipient().getType()).isNull();
 	}
-
+	
 	@Test
 	public void testBuilderReplyToAddress() {
 		final Email email = new EmailBuilder()
 				.replyTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
 				.build();
-
+		
 		assertThat(email.getReplyToRecipient().getName()).isEqualTo("lollypop");
 		assertThat(email.getReplyToRecipient().getAddress()).isEqualTo("lol.pop@somemail.com");
 		assertThat(email.getReplyToRecipient().getType()).isNull();
 	}
-
+	
+	@Test
+	public void testBuilderBounceToAddress() {
+		final Email email = new EmailBuilder()
+				.bounceTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
+				.build();
+		
+		assertThat(email.getBounceToRecipient().getName()).isEqualTo("lollypop");
+		assertThat(email.getBounceToRecipient().getAddress()).isEqualTo("lol.pop@somemail.com");
+		assertThat(email.getBounceToRecipient().getType()).isNull();
+	}
+	
 	@Test
 	public void testBuilderReplyToAddressOverwriteWithAlternativeBuilderMethod() {
 		final Email email = new EmailBuilder()
 				.replyTo("lollypop", "lol.pop@somemail.com") // should be overwritted
 				.replyTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
 				.build();
-
+		
 		assertThat(email.getReplyToRecipient().getName()).isEqualTo("lollypop2");
 		assertThat(email.getReplyToRecipient().getAddress()).isEqualTo("lol.pop2@somemail.com");
 		assertThat(email.getReplyToRecipient().getType()).isNull();
+	}
+	
+	@Test
+	public void testBuilderBounceToAddressOverwriteWithAlternativeBuilderMethod() {
+		final Email email = new EmailBuilder()
+				.bounceTo("lollypop", "lol.pop@somemail.com") // should be overwritted
+				.bounceTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
+				.build();
+		
+		assertThat(email.getBounceToRecipient().getName()).isEqualTo("lollypop2");
+		assertThat(email.getBounceToRecipient().getAddress()).isEqualTo("lol.pop2@somemail.com");
+		assertThat(email.getBounceToRecipient().getType()).isNull();
 	}
 	
 	@Test

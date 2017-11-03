@@ -188,6 +188,9 @@ public class MailerTest {
 		// let's try producing and then consuming a MimeMessage ->
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
+		
+		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session, so just ignore this
+		emailFromMimeMessage.setBounceToRecipient(emailNormal.getBounceToRecipient());
 
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
 	}

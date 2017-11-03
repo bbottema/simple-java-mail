@@ -3,6 +3,7 @@ package org.simplejavamail.mailer.internal.mailsender;
 import org.simplejavamail.MailException;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.email.Email;
+import org.simplejavamail.email.Recipient;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
@@ -12,6 +13,7 @@ import org.simplejavamail.util.ConfigLoader.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.mail.*;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
@@ -20,7 +22,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
 
+import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * Class that performs the actual javax.mail SMTP integration.
@@ -226,11 +230,16 @@ public class MailSender {
 	 * @param session The session with which to produce the {@link MimeMessage} aquire the {@link Transport} for connections.
 	 * @param email   The email that will be converted into a {@link MimeMessage}.
 	 */
-	private void sendMailClosure(final Session session, final Email email) {
+	private void sendMailClosure(@Nonnull final Session session, @Nonnull final Email email) {
 		LOGGER.trace("sending email...");
 		try {
 			// fill and send wrapped mime message parts
-			final MimeMessage message = MimeMessageHelper.produceMimeMessage(email, session);
+			final MimeMessage message = MimeMessageHelper.produceMimeMessage(
+					checkNonEmptyArgument(email, "email"),
+					checkNonEmptyArgument(session, "session"));
+			
+			configureBounceToAddress(session, email);
+			
 			logSession(session);
 			message.saveChanges(); // some headers and id's will be set for this specific message
 			email.setId(message.getMessageID());
@@ -274,6 +283,14 @@ public class MailSender {
 		} catch (final Exception e) {
 			LOGGER.error("Failed to send email:\n{}", email);
 			throw e;
+		}
+	}
+	
+	private void configureBounceToAddress(Session session, Email email) {
+		Recipient bounceAddress = email.getBounceToRecipient();
+		if (bounceAddress != null) {
+			String formattedRecipient = format("%s <%s>", bounceAddress.getName(), bounceAddress.getAddress());
+			session.getProperties().setProperty("mail.smtp.from", formattedRecipient);
 		}
 	}
 	

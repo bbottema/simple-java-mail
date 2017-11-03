@@ -10,8 +10,18 @@ import org.simplejavamail.email.Recipient;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
-import javax.mail.*;
-import javax.mail.internet.*;
+import javax.annotation.Nonnull;
+import javax.mail.Address;
+import javax.mail.BodyPart;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Part;
+import javax.mail.Session;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.internet.MimeUtility;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static java.lang.String.format;
+import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
@@ -54,14 +65,11 @@ public final class MimeMessageHelper {
 	 * @see #setEmbeddedImages(Email, MimeMultipart)
 	 * @see #setAttachments(Email, MimeMultipart)
 	 */
-	public static MimeMessage produceMimeMessage(final Email email, final Session session)
+	public static MimeMessage produceMimeMessage(@Nonnull final Email email, @Nonnull final Session session)
 			throws MessagingException, UnsupportedEncodingException {
-		if (email == null) {
-			throw new IllegalStateException("email is missing");
-		}
-		if (session == null) {
-			throw new IllegalStateException("session is needed, it cannot be attached later");
-		}
+		checkArgumentNotEmpty(email, "email is missing");
+		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
+		
 		// create new wrapper for each mail being sent (enable sending multiple emails with one mailer)
 		final MimeEmailMessageWrapper messageRoot = new MimeEmailMessageWrapper();
 		final MimeMessage message = new MimeMessage(session) {

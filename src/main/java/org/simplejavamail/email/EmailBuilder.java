@@ -21,6 +21,8 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_NAME;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
+import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BOUNCETO_NAME;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
@@ -56,6 +58,11 @@ public class EmailBuilder {
 	 * The reply-to-address, optional. Can be used in conjunction with {@link #fromRecipient}.
 	 */
 	private Recipient replyToRecipient;
+	
+	/**
+	 * The Return-Path (or Envelope FROM) address, optional. Can be used to hint the SMTP server where bouncing emails should go to.
+	 */
+	private Recipient bounceToRecipient;
 	
 	/**
 	 * The email message body in plain text.
@@ -156,6 +163,9 @@ public class EmailBuilder {
 		if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
 			replyTo((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
 		}
+		if (hasProperty(DEFAULT_BOUNCETO_ADDRESS)) {
+			bounceTo((String) getProperty(DEFAULT_BOUNCETO_NAME), (String) getProperty(DEFAULT_BOUNCETO_ADDRESS));
+		}
 		if (hasProperty(DEFAULT_TO_ADDRESS)) {
 			if (hasProperty(DEFAULT_TO_NAME)) {
 				to((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS));
@@ -230,13 +240,36 @@ public class EmailBuilder {
 	}
 	
 	/**
+	 * Sets {@link #bounceToRecipient} (optional).
+	 *
+	 * @param name            The name of the bouncing emails receiver.
+	 * @param bounceToAddress The address of the bouncing emails receiver.
+	 */
+	public EmailBuilder bounceTo(@Nullable final String name, @Nonnull final String bounceToAddress) {
+		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
+		this.bounceToRecipient = new Recipient(name, bounceToAddress, null);
+		return this;
+	}
+	
+	/**
 	 * Sets {@link #replyToRecipient} (optional) with preconfigured {@link Recipient}.
 	 *
 	 * @param recipient Preconfigured recipient (name is optional).
 	 */
 	public EmailBuilder replyTo(@Nonnull final Recipient recipient) {
-		checkNonEmptyArgument(recipient, "recipient");
+		checkNonEmptyArgument(recipient, "replyToRecipient");
 		this.replyToRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
+		return this;
+	}
+	
+	/**
+	 * Sets {@link #bounceToRecipient} (optional) with preconfigured {@link Recipient}.
+	 *
+	 * @param recipient Preconfigured recipient (name is optional).
+	 */
+	public EmailBuilder bounceTo(@Nonnull final Recipient recipient) {
+		checkNonEmptyArgument(recipient, "bounceToRecipient");
+		this.bounceToRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
 		return this;
 	}
 	
@@ -637,6 +670,10 @@ public class EmailBuilder {
 	
 	public Recipient getReplyToRecipient() {
 		return replyToRecipient;
+	}
+	
+	public Recipient getBounceToRecipient() {
+		return bounceToRecipient;
 	}
 	
 	public String getText() {
