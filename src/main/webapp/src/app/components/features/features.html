@@ -38,6 +38,7 @@
       <li><a simplePageScroll href="#section-email-validation">Validating Email Addresses</a></li>
       <li><a simplePageScroll href="#section-converting">Converting between email formats</a></li>
       <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
+      <li><a simplePageScroll href="#section-bouncing-emails">Setting custom recipient for bouncing emails</a></li>
     </ul>
   </section>
   
@@ -431,7 +432,7 @@ Session session = mailer.getSession();
   </section>
   
   
-  <a href="#section-dkim" id="section-return-receipt" class="section-link h2">&sect;</a>
+  <a href="#section-dkim" id="section-dkim" class="section-link h2">&sect;</a>
   <h2>Signing emails with DKIM</h2>
   
   <section>
@@ -457,7 +458,7 @@ new Mailer().sendMail(signedEmail);
   </section>
   
   
-  <a href="#section-dkim" id="section-return-receipt" class="section-link h2">&sect;</a>
+  <a href="#section-return-receipt" id="section-return-receipt" class="section-link h2">&sect;</a>
   <h2>Configure delivery / read receipt</h2>
   
   <section>
@@ -600,6 +601,37 @@ new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username
 </code></pre>
       <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" href="#section-other-settings">configuration section</a>
          on how to set proxy server defaults and the port on which the proxy bridge runs.</p>
+    </div>
+  </section>
+  
+  
+  <a href="#section-bouncing-emails" id="section-bouncing-emails" class="section-link h2">&sect;</a>
+  <h2>Setting custom recipient for bouncing emails</h2>
+  
+  <section>
+    <div class="view">
+      <p>
+        For bouncing emails, you can provide a hint to the SMTP server to which bouncing emails should be returned.
+        This is also known as the Return-Path or Envelope FROM and is set on the Session instance with the property
+        <code class="inline">mail.smtp.from</code>.
+      </p>
+      <p>
+        Simple Java Mail offers a convenience method to set this property.
+      </p>
+    </div>
+    
+    <div class="side">
+<pre><code>
+// in similar fashion to setting replyTo address:
+email.setBounceToRecipient(aRecipientInstance); // or
+email.setBounceToAddress("Bob", "bob.techdesk@candyshop.com");
+
+// Or using the Builder:
+Email email = new EmailBuilder()
+    .bounceTo(aRecipientInstance) // or
+    .bounceTo("Bob", "bob.techdesk@candyshop.com")
+    .build();
+</code></pre>
     </div>
   </section>
 
