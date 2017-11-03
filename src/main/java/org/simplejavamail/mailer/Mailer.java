@@ -313,10 +313,20 @@ public class Mailer {
 	}
 
 	/**
-	 * Configures the current session to white list all provided hosts and don't validate SSL keys for them. The property "mail.smtp.ssl.trust" is set
-	 * to a comma separated list.
+	 * Configures the current session to only accept server certificates issued to one of the provided hostnames,
+	 * <strong>and disables certificate issuer validation.</strong>
 	 * <p>
-	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
+	 * Passing an empty list resets the current session's trust behavior to the default, and is equivalent to never
+	 * calling this method in the first place.
+	 * <p>
+	 * <strong>Security warning:</strong> Any certificate matching any of the provided host names will be accepted,
+	 * regardless of the certificate issuer; attackers can abuse this behavior by serving a matching self-signed
+	 * certificate during a man-in-the-middle attack.
+	 * <p>
+	 * This method sets the property {@code mail.smtp.ssl.trust} to a space-separated list of the provided
+	 * {@code hosts}. If the provided list is empty, {@code mail.smtp.ssl.trust} is unset.
+	 *
+	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
 	 */
 	public void trustSSLHosts(final String... hosts) {
 		mailSender.trustHosts(hosts);

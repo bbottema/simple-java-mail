@@ -42,8 +42,8 @@ public class MailSenderTest {
 		mailSender.trustHosts("a");
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a");
 		mailSender.trustHosts("a", "b");
-		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a,b");
+		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b");
 		mailSender.trustHosts("a", "b", "c");
-		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a,b,c");
+		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b c");
 	}
 }
