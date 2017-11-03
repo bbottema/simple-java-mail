@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.mail.*;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
@@ -68,6 +69,20 @@ public class MailSender {
 	private final Session session;
 	
 	/**
+	 * The strategy is used initially to configure as much as possible, such as the Session and proxy configuration, however, at the time of
+	 * actually sending an email, some more properties need to be set based on the current Email instance.
+	 * <p>
+	 * Depending on the transport strategy, these properties are different, that's why we need to keep a global hold on this instance.
+	 * <p>
+	 * <strong>NOTE:</strong><br>
+	 * This is an optional parameter and as such some functions will throw an error when used (such as {@link #trustAllHosts(boolean)}) or
+	 * will skip setting optional properties (such as default timeouts) and also skip mandatory properties which are assumed to be preconfigured on
+	 * the Session instance (these will be logged on DEBUG level, such as proxy host and port properties).
+	 */
+	@Nullable
+	private final TransportStrategy transportStrategy;
+	
+	/**
 	 * Intermediary SOCKS5 relay server that acts as bridge between JavaMail and remote proxy (since JavaMail only supports anonymous SOCKS proxies).
 	 * Only set when {@link ProxyConfig} is provided with authentication details.
 	 */
@@ -116,8 +131,9 @@ public class MailSender {
 	 *     <li>{@link #transportModeLoggingOnly} from properties or default {@link #DEFAULT_MODE_LOGGING_ONLY}</li>
 	 * </ul>
 	 */
-	public MailSender(final Session session, final ProxyConfig proxyConfig, final TransportStrategy transportStrategy) {
+	public MailSender(final Session session, final ProxyConfig proxyConfig, @Nullable final TransportStrategy transportStrategy) {
 		this.session = session;
+		this.transportStrategy = transportStrategy;
 		this.proxyServer = configureSessionWithProxy(proxyConfig, session, transportStrategy);
 		this.threadPoolSize = ConfigLoader.valueOrProperty(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE);
 		this.sessionTimeout = ConfigLoader.valueOrProperty(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS);
@@ -128,7 +144,7 @@ public class MailSender {
 	 * If a {@link ProxyConfig} was provided with a host address, then the appropriate properties are set on the {@link Session}, overriding any SOCKS
 	 * properties already there.
 	 * <p>
-	 * These properties are <em>"mail.smtp.socks.host"</em> and <em>"mail.smtp.socks.port"</em>, which are set to "localhost" and {@link
+	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>, which are set to "localhost" and {@link
 	 * ProxyConfig#getProxyBridgePort()}.
 	 *
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
@@ -147,11 +163,21 @@ public class MailSender {
 				throw new MailSenderException(MailSenderException.INVALID_PROXY_SLL_COMBINATION);
 			}
 			final Properties sessionProperties = session.getProperties();
-			sessionProperties.put("mail.smtp.socks.host", effectiveProxyConfig.getRemoteProxyHost());
-			sessionProperties.put("mail.smtp.socks.port", String.valueOf(effectiveProxyConfig.getRemoteProxyPort()));
+			if (transportStrategy != null) {
+				sessionProperties.put(transportStrategy.propertyNameSocksHost(), effectiveProxyConfig.getRemoteProxyHost());
+				sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(effectiveProxyConfig.getRemoteProxyPort()));
+			} else {
+				LOGGER.debug("no transport strategy provided, expecting mail.smtp(s).socks.host and .port properties to be set to proxy " +
+						"config on Session");
+			}
 			if (effectiveProxyConfig.requiresAuthentication()) {
-				sessionProperties.put("mail.smtp.socks.host", "localhost");
-				sessionProperties.put("mail.smtp.socks.port", String.valueOf(effectiveProxyConfig.getProxyBridgePort()));
+				if (transportStrategy != null) {
+					sessionProperties.put(transportStrategy.propertyNameSocksHost(), "localhost");
+					sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(effectiveProxyConfig.getProxyBridgePort()));
+				} else {
+					LOGGER.debug("no transport strategy provided but authenticated proxy required, expecting mail.smtp(s).socks.host and .port " +
+							"properties to be set to localhost and port " + effectiveProxyConfig.getProxyBridgePort());
+				}
 				return new AnonymousSocks5Server(new AuthenticatingSocks5Bridge(effectiveProxyConfig),
 						effectiveProxyConfig.getProxyBridgePort());
 			}
@@ -217,11 +243,15 @@ public class MailSender {
 	 * Configures the {@link Session} with the same timeout for socket connection timeout, read and write timeout.
 	 */
 	private void configureSessionWithTimeout(final Session session, final int sessionTimeout) {
-		// socket timeouts handling
-		final Properties sessionProperties = session.getProperties();
-		sessionProperties.put("mail.smtp.connectiontimeout", String.valueOf(sessionTimeout));
-		sessionProperties.put("mail.smtp.timeout", String.valueOf(sessionTimeout));
-		sessionProperties.put("mail.smtp.writetimeout", String.valueOf(sessionTimeout));
+		if (transportStrategy != null) {
+			// socket timeouts handling
+			final Properties sessionProperties = session.getProperties();
+			sessionProperties.put(transportStrategy.propertyNameConnectionTimeout(), String.valueOf(sessionTimeout));
+			sessionProperties.put(transportStrategy.propertyNameTimeout(), String.valueOf(sessionTimeout));
+			sessionProperties.put(transportStrategy.propertyNameWriteTimeout(), String.valueOf(sessionTimeout));
+		} else {
+			LOGGER.debug("No transport strategy provided, skipping defaults for .connectiontimout, .timout and .writetimeout");
+		}
 	}
 	
 	/**
@@ -289,8 +319,12 @@ public class MailSender {
 	private void configureBounceToAddress(Session session, Email email) {
 		Recipient bounceAddress = email.getBounceToRecipient();
 		if (bounceAddress != null) {
-			String formattedRecipient = format("%s <%s>", bounceAddress.getName(), bounceAddress.getAddress());
-			session.getProperties().setProperty("mail.smtp.from", formattedRecipient);
+			if (transportStrategy != null) {
+				String formattedRecipient = format("%s <%s>", bounceAddress.getName(), bounceAddress.getAddress());
+				session.getProperties().setProperty(transportStrategy.propertyNameEnvelopeFrom(), formattedRecipient);
+			} else {
+				throw new MailSenderException(MailSenderException.CANNOT_SET_BOUNCETO_WITHOUT_TRANSPORTSTRATEGY);
+			}
 		}
 	}
 	
@@ -333,14 +367,18 @@ public class MailSender {
 	}
 
 	/**
-	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property "mail.smtp.ssl.trust" is set to "*".
+	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property "mail.smtp(s).ssl.trust" is set to "*".
 	 * <p>
 	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
 	 */
 	public void trustAllHosts(final boolean trustAllHosts) {
-		session.getProperties().remove("mail.smtp.ssl.trust");
-		if (trustAllHosts) {
-			session.getProperties().setProperty("mail.smtp.ssl.trust", "*");
+		if (transportStrategy != null) {
+			session.getProperties().remove(transportStrategy.propertyNameSSLTrust());
+			if (trustAllHosts) {
+				session.getProperties().setProperty(transportStrategy.propertyNameSSLTrust(), "*");
+			}
+		} else {
+			throw new MailSenderException(MailSenderException.CANNOT_SET_TRUST_WITHOUT_TRANSPORTSTRATEGY);
 		}
 	}
 
@@ -355,19 +393,22 @@ public class MailSender {
 	 * regardless of the certificate issuer; attackers can abuse this behavior by serving a matching self-signed
 	 * certificate during a man-in-the-middle attack.
 	 * <p>
-	 * This method sets the property {@code mail.smtp.ssl.trust} to a space-separated list of the provided
-	 * {@code hosts}. If the provided list is empty, {@code mail.smtp.ssl.trust} is unset.
+	 * This method sets the property {@code mail.smtp(s).ssl.trust} to a space-separated list of the provided
+	 * {@code hosts}. If the provided list is empty, {@code mail.smtp(s).ssl.trust} is unset.
 	 *
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
 	 */
 	public void trustHosts(final String... hosts) {
 		trustAllHosts(false);
 		if (hosts.length > 0) {
+			if (transportStrategy == null) {
+				throw new MailSenderException(MailSenderException.CANNOT_SET_TRUST_WITHOUT_TRANSPORTSTRATEGY);
+			}
 			final StringBuilder builder = new StringBuilder(hosts[0]);
 			for (int i = 1; i < hosts.length; i++) {
 				builder.append(" ").append(hosts[i]);
 			}
-			session.getProperties().setProperty("mail.smtp.ssl.trust", builder.toString());
+			session.getProperties().setProperty(transportStrategy.propertyNameSSLTrust(), builder.toString());
 		}
 	}
 

@@ -11,7 +11,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 /**
  * The proxy configuration that indicates whether the connections should be routed through a proxy.
  * <p>
- * In case a proxy is required, the properties <em>"mail.smtp.socks.host"</em> and <em>"mail.smtp.socks.port"</em> will be set.
+ * In case a proxy is required, the properties <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em> will be set.
  * <p>
  * As the underlying JavaMail framework only support anonymous SOCKS proxy servers for non-ssl connections, authenticated SOCKS5 proxy is made
  * possible using an intermediary anonymous proxy server which relays the connection through an authenticated remote proxy server. Anonymous proxies
@@ -119,7 +119,7 @@ public class ProxyConfig extends SocksProxyConfig {
 	 * @param proxyBridgePort Port override for the temporary intermediary SOCKS5 relay server bridge (default is {@value
 	 *                        #DEFAULT_PROXY_BRIDGE_PORT}).
 	 */
-	public void setProxyBridgePort(final int proxyBridgePort) {
+	public void setProxyBridgePort(@SuppressWarnings("SameParameterValue") final int proxyBridgePort) {
 		this.proxyBridgePort = proxyBridgePort;
 	}
 

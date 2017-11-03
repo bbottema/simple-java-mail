@@ -61,6 +61,62 @@ public enum TransportStrategy {
 		public String propertyNameAuthenticate() {
 			return "mail.smtp.auth";
 		}
+		
+		/**
+		 * @return "mail.smtp.socks.host"
+		 */
+		@Override
+		public String propertyNameSocksHost() {
+			return "mail.smtp.socks.host";
+		}
+		
+		/**
+		 * @return "mail.smtp.socks.port"
+		 */
+		@Override
+		public String propertyNameSocksPort() {
+			return "mail.smtp.socks.port";
+		}
+		
+		/**
+		 * @return "mail.smtp.connectiontimeout"
+		 */
+		@Override
+		public String propertyNameConnectionTimeout() {
+			return "mail.smtp.connectiontimeout";
+		}
+		
+		/**
+		 * @return "mail.smtp.timeout"
+		 */
+		@Override
+		public String propertyNameTimeout() {
+			return "mail.smtp.timeout";
+		}
+		
+		/**
+		 * @return "mail.smtp.writetimeout"
+		 */
+		@Override
+		public String propertyNameWriteTimeout() {
+			return "mail.smtp.writetimeout";
+		}
+		
+		/**
+		 * @return "mail.smtp.from"
+		 */
+		@Override
+		public String propertyNameEnvelopeFrom() {
+			return "mail.smtp.from";
+		}
+		
+		/**
+		 * @return "mail.smtp.ssl.trust"
+		 */
+		@Override
+		public String propertyNameSSLTrust() {
+			return "mail.smtp.ssl.trust";
+		}
 	},
 	/**
 	 * SMTPS / SSL transport strategy, that returns the ".smtps." variation of the SMTP_PLAIN version. Additionally the transport protocol is
@@ -122,6 +178,62 @@ public enum TransportStrategy {
 		public String propertyNameAuthenticate() {
 			return "mail.smtps.auth";
 		}
+		
+		/**
+		 * @return "mail.smtps.socks.host"
+		 */
+		@Override
+		public String propertyNameSocksHost() {
+			return "mail.smtps.socks.host";
+		}
+		
+		/**
+		 * @return "mail.smtps.socks.port"
+		 */
+		@Override
+		public String propertyNameSocksPort() {
+			return "mail.smtps.socks.port";
+		}
+		
+		/**
+		 * @return "mail.smtps.connectiontimeout"
+		 */
+		@Override
+		public String propertyNameConnectionTimeout() {
+			return "mail.smtps.connectiontimeout";
+		}
+		
+		/**
+		 * @return "mail.smtps.timeout"
+		 */
+		@Override
+		public String propertyNameTimeout() {
+			return "mail.smtps.timeout";
+		}
+		
+		/**
+		 * @return "mail.smtps.writetimeout"
+		 */
+		@Override
+		public String propertyNameWriteTimeout() {
+			return "mail.smtps.writetimeout";
+		}
+		
+		/**
+		 * @return "mail.smtps.from"
+		 */
+		@Override
+		public String propertyNameEnvelopeFrom() {
+			return "mail.smtps.from";
+		}
+		
+		/**
+		 * @return "mail.smtps.ssl.trust"
+		 */
+		@Override
+		public String propertyNameSSLTrust() {
+			return "mail.smtps.ssl.trust";
+		}
 	},
 	/**
 	 * <strong>NOTE: this code is in untested beta state</strong>
@@ -174,6 +286,62 @@ public enum TransportStrategy {
 		public String propertyNameAuthenticate() {
 			return "mail.smtp.auth";
 		}
+		
+		/**
+		 * @return "mail.smtp.socks.host"
+		 */
+		@Override
+		public String propertyNameSocksHost() {
+			return "mail.smtp.socks.host";
+		}
+		
+		/**
+		 * @return "mail.smtp.socks.port"
+		 */
+		@Override
+		public String propertyNameSocksPort() {
+			return "mail.smtp.socks.port";
+		}
+		
+		/**
+		 * @return "mail.smtp.connectiontimeout"
+		 */
+		@Override
+		public String propertyNameConnectionTimeout() {
+			return "mail.smtp.connectiontimeout";
+		}
+		
+		/**
+		 * @return "mail.smtp.timeout"
+		 */
+		@Override
+		public String propertyNameTimeout() {
+			return "mail.smtp.timeout";
+		}
+		
+		/**
+		 * @return "mail.smtp.writetimeout"
+		 */
+		@Override
+		public String propertyNameWriteTimeout() {
+			return "mail.smtp.writetimeout";
+		}
+		
+		/**
+		 * @return "mail.smtp.from"
+		 */
+		@Override
+		public String propertyNameEnvelopeFrom() {
+			return "mail.smtp.from";
+		}
+		
+		/**
+		 * @return "mail.smtp.ssl.trust"
+		 */
+		@Override
+		public String propertyNameSSLTrust() {
+			return "mail.smtp.ssl.trust";
+		}
 	};
 
 	/**
@@ -198,13 +366,17 @@ public enum TransportStrategy {
 	}
 
 	public abstract String propertyNameHost();
-
 	public abstract String propertyNamePort();
-
 	public abstract String propertyNameUsername();
-
 	public abstract String propertyNameAuthenticate();
-
+	public abstract String propertyNameSocksHost();
+	public abstract String propertyNameSocksPort();
+	public abstract String propertyNameConnectionTimeout();
+	public abstract String propertyNameWriteTimeout();
+	public abstract String propertyNameEnvelopeFrom();
+	public abstract String propertyNameSSLTrust();
+	public abstract String propertyNameTimeout();
+	
 	/**
 	 * @param session The session to determine the current transport strategy for
 	 * @return Which strategy matches the current Session properties.

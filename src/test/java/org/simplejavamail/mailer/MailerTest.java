@@ -3,12 +3,13 @@ package org.simplejavamail.mailer;
 import net.markenwerk.utils.mail.dkim.DkimMessage;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.Email;
-import org.simplejavamail.util.ConfigLoader;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
+import org.simplejavamail.util.ConfigLoader;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -21,6 +22,8 @@ import java.util.Properties;
 
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_SSL;
 import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_TLS;
 
 @SuppressWarnings("unused")
@@ -81,7 +84,7 @@ public class MailerTest {
 			throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
 
-		Mailer mailer = createFullyConfiguredMailer(false, "");
+		Mailer mailer = createFullyConfiguredMailer(false, "", SMTP_TLS);
 
 		Session session = mailer.getSession();
 
@@ -103,7 +106,7 @@ public class MailerTest {
 			throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
 
-		Mailer mailer = createFullyConfiguredMailer(true, "");
+		Mailer mailer = createFullyConfiguredMailer(true, "", SMTP_TLS);
 
 		Session session = mailer.getSession();
 
@@ -137,14 +140,14 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
 	}
-
+	
 	@Test
 	public void createMailSession_MaximumConstructor_WithConfig()
 			throws Exception {
-		Mailer mailer = createFullyConfiguredMailer(false, "overridden ");
-
+		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTP_TLS);
+		
 		Session session = mailer.getSession();
-
+		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("overridden smtp host");
 		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
@@ -155,6 +158,24 @@ public class MailerTest {
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+		assertThat(session.getProperty("extra1")).isEqualTo("overridden value1");
+		assertThat(session.getProperty("extra2")).isEqualTo("overridden value2");
+	}
+	
+	@Test
+	public void createMailSession_MaximumConstructor_WithConfig_TLS()
+			throws Exception {
+		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTP_SSL);
+		
+		Session session = mailer.getSession();
+		
+		assertThat(session.getDebug()).isTrue();
+		assertThat(session.getProperty("mail.smtps.host")).isEqualTo("overridden smtp host");
+		assertThat(session.getProperty("mail.smtps.port")).isEqualTo("25");
+		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtps");
+		assertThat(session.getProperty("mail.smtps.quitwait")).isEqualTo("false");
+		assertThat(session.getProperty("mail.smtps.username")).isEqualTo("overridden username smtp");
+		assertThat(session.getProperty("mail.smtps.auth")).isEqualTo("true");
 		assertThat(session.getProperty("extra1")).isEqualTo("overridden value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("overridden value2");
 	}
@@ -195,12 +216,19 @@ public class MailerTest {
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
 	}
 
-	private Mailer createFullyConfiguredMailer(boolean authenticateProxy, String prefix) {
+	private Mailer createFullyConfiguredMailer(boolean authenticateProxy, String prefix, TransportStrategy transportStrategy) {
 		ServerConfig serverConfig = new ServerConfig(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp");
 		ProxyConfig proxyConfigAnon = new ProxyConfig(prefix + "proxy host", 1080);
 		ProxyConfig proxyConfigAuth = new ProxyConfig(prefix + "proxy host", 1080, prefix + "username proxy", prefix + "password proxy");
 		proxyConfigAuth.setProxyBridgePort(999);
-		Mailer mailer = new Mailer(serverConfig, SMTP_TLS, authenticateProxy ? proxyConfigAuth : proxyConfigAnon);
+		
+		ProxyConfig proxyBypassingMock = Mockito.mock(ProxyConfig.class);
+		when(proxyBypassingMock.requiresProxy()).thenReturn(false);
+		
+		Mailer mailer = transportStrategy == SMTP_TLS
+				? new Mailer(serverConfig, transportStrategy, authenticateProxy ? proxyConfigAuth : proxyConfigAnon)
+				: new Mailer(serverConfig, transportStrategy, proxyBypassingMock); // SLL doesn't support proxy and defaults include proxy
+		
 		mailer.setDebug(true);
 		Properties extraProperties = new Properties();
 		extraProperties.put("extra1", prefix + "value1");
