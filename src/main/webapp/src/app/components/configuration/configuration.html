@@ -17,29 +17,172 @@
 
   <section class="toc">
     <ul>
+      <li><a simplePageScroll href="#section-transport-strategies">Transport strategies</a></li>
+      <li><a simplePageScroll href="#section-transport-strategy-smtp" class="indent">TransportStrategy.SMTP</a></li>
+      <li><a simplePageScroll href="#section-transport-strategy-smtps" class="indent">TransportStrategy.SMTPS</a></li>
+      <li><a simplePageScroll href="#section-transport-strategy-tls" class="indent">TransportStrategy.SMTP_TLS</a></li>
       <li><a simplePageScroll href="#section-programmatic-api">Programmatic API</a></li>
       <li><a simplePageScroll href="#section-config-properties">Properties files</a></li>
       <li><a simplePageScroll href="#section-combine-config">Combining both for multiple environments</a></li>
       <li><a simplePageScroll href="#section-spring-support">Spring support</a></li>
     </ul>
   </section>
+  
+  
+  <a href="#section-transport-strategies" id="section-transport-strategies" class="section-link h2">&sect;</a>
+  <h2>Transport strategies</h2>
+  
+  <section>
+    <div>
+      <p class="wide">
+        Although Simple Java Mail started out as a library to help produce RFC-anatomically correct emails, one of its
+        primary drivers now is to simplify configuration, using <em>transport strategies</em>.
+      </p>
+      <p class="wide">
+        There are three strategies: <code class="inline">TransportStrategy.SMTP</code>,
+        <code class="inline">TransportStrategy.SMTPS</code> and <code class="inline">TransportStrategy.SMTP_TLS</code>.
+      </p>
+      <p>Let's quickly review them one-by-one.</p>
+    </div>
+  </section>
+  
+  
+  <a href="#section-transport-strategy-smtp" id="section-transport-strategy-smtp" class="section-link h3">&sect;</a>
+  <h3>TransportStrategy.SMTP</h3>
+  
+  <section>
+    <div class="view">
+      <p>
+        This transport strategy falls back to plaintext when a mail server does not indicate support for
+        STARTTLS. Additionally, even if a TLS session is negotiated, <strong>server certificates are not validated in
+        any way</strong>.
+      </p>
+    </div>
+    <div class="side">
+<pre><code>
+Mailer mailer = new Mailer(TransportStrategy.SMTP);
 
+// or through property defaults:
+simplejavamail.transportstrategy=SMTP
+Mailer mailer = new Mailer();
+</code></pre>
+    </div>
+  </section>
+  <section>
+    <div>
+      <p class="wide">
+        Furthermore, this transport strategy only offers protection against passive network eavesdroppers when the mail server
+        indicates support for STARTTLS. Active network attackers can trivially bypass the encryption 1) by tampering with
+        the STARTTLS indicator, 2) by presenting a self-signed certificate, 3) by presenting a certificate issued by an
+        untrusted certificate authority; or 4) by presenting a certificate that was issued by a valid certificate
+        authority to a domain other than the mail server's.
+      </p>
+      <p class="wide">
+        For proper mail transport encryption, use <code class="inline">TransportStrategy.SMTPS</code> or <code class="inline">TransportStrategy.SMTP_TLS</code>.
+      </p>
+    </div>
+  </section>
+  <section>
+    <div class="view">
+      <p>
+        To disable opportunistic TLS and revert back to the legacy SMTP_PLAIN behavior prior to 5.0.0
+        (not recommended), you can turn it off programmatically or by setting the property
+        <code class="inline">simplejavamail.opportunistic.tls</code>.
+      </p>
+    </div>
+    <div class="side">
+      <pre><code>
+TransportStrategy.SMTP.setOpportunisticTLS(false);
+Mailer mailer = new Mailer(TransportStrategy.SMTP);
+// or as property:
+simplejavamail.opportunistic.tls=false
+</code></pre>
+    </div>
+  </section>
+  
+  
+  <a href="#section-transport-strategy-smtps" id="section-transport-strategy-smtps" class="section-link h3">&sect;</a>
+  <h3>TransportStrategy.SMTPS</h3>
+  
+  <section>
+    <div class="view">
+      <p>SMTP entirely encapsulated by TLS. Commonly known as SMTPS.</p>
+      <p>
+        Strict validation of server certificates is enabled. Server certificates must be issued <br />
+        1) by a certificate authority in the system trust store; and <br />
+        2) to a subject matching the identity of the remote SMTP server.
+      </p>
+    </div>
+    <div class="side">
+<pre><code>
+Mailer mailer = new Mailer(TransportStrategy.SMTPS);
 
+// or through property defaults:
+simplejavamail.transportstrategy=SMTPS
+Mailer mailer = new Mailer();
+</code></pre>
+    </div>
+  </section>
+  
+  
+  <a href="#section-transport-strategy-tls" id="section-transport-strategy-tls" class="section-link h3">&sect;</a>
+  <h3>TransportStrategy.SMTP_TLS</h3>
+  
+  <section>
+    <div class="view">
+      <p>Plaintext SMTP with a mandatory, authenticated STARTTLS upgrade.</p>
+      <p>
+        Strict validation of server certificates is enabled. Server certificates must be issued <br/>
+        1) by a certificate authority in the system trust store; and <br/>
+        2) to a subject matching the identity of the remote SMTP server.
+      </p>
+    </div>
+    <div class="side">
+<pre><code>
+Mailer mailer = new Mailer(TransportStrategy.SMTP_TLS);
+
+// or through property defaults:
+simplejavamail.transportstrategy=SMTP_TLS
+Mailer mailer = new Mailer();
+</code></pre>
+    </div>
+  </section>
+  <section>
+    <div>
+      <p class="wide">
+        To quote FastMail on the <a href="https://www.fastmail.com/help/technical/ssltlsstarttls.html">differences between SSL and TLS</a>:
+      </p>
+      <blockquote>
+        <p class="wide">
+          <strong>SSL and TLS</strong> both provide a way to encrypt a communication channel between two computers (e.g. your computer
+          and our server). TLS is the successor to SSL and the terms SSL and TLS are used interchangeably unless you're
+          referring to a specific version of the protocol.
+        </p>
+      </blockquote>
+      <blockquote>
+        <p class="wide">
+          The ordering of protocols in terms of oldest to newest is: SSL v2, SSL v3, TLS v1.0, TLS v1.1, TLS v1.2, TLS v1.3 (currently proposed).
+        </p>
+      </blockquote>
+    </div>
+  </section>
+  
+  
   <a href="#section-programmatic-api" id="section-programmatic-api" class="section-link h2">&sect;</a>
   <h2>Programmatic API</h2>
-
+  
   <section>
-    <div class="wide">
+    <div>
       <p>
         Everything can be configured through the java API.
       </p>
     </div>
-
-    <div class="wide">
-<pre><code class="small">// the simplest constructor, this is how the library started!
+    
+    <div>
+<pre><code class="small">// the simplest constructor, this is how the library once started!
 new Mailer("smtp.host.com", 25, "username", "password");
 </code></pre>
-<pre><code class="small">
+      <pre><code class="small">
 // the same as the basic constructor, but with a config object
 new Mailer(new ServerConfig("smtp.host.com", 25, "username", "password"));
 
@@ -56,11 +199,11 @@ new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080));
 // or authenticated proxy
 new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username", "proxy password"));
 </code></pre>
-<pre><code class="small">
+      <pre><code class="small">
 // anonymous smtp + anonymous proxy + default SMTP protocol strategy
 new Mailer(new ServerConfig("smtp.host.com", 25), new ProxyConfig("proxy.host.com", 1080));
 </code></pre>
-<pre><code class="small">
+      <pre><code class="small">
 // configure everything!
 new Mailer(
 		new ServerConfig("smtp.host.com", 587, "user@host.com", "password"),
@@ -68,7 +211,7 @@ new Mailer(
 		new ProxyConfig("socksproxy.host.com", 1080, "proxy user", "proxy password")
 ).sendMail(email);
 </code></pre>
-<pre><code class="small">
+      <pre><code class="small">
 // preconfigured Session?
 new Mailer(session);
 
@@ -80,8 +223,8 @@ new Mailer(session, new ProxyConfig("proxy.host.com", 1080, "proxy user", "proxy
 </code></pre>
     </div>
   </section>
-
-
+  
+  
   <a href="#section-other-settings" id="section-other-settings" class="section-link h3">&sect;</a>
   <h3>Other settings</h3>
 
@@ -210,6 +353,7 @@ simplejavamail.defaults.bcc.address=bcc1@default.com;bcc2@default.com
 simplejavamail.defaults.poolsize=10
 simplejavamail.defaults.sessiontimeoutmillis=60000
 simplejavamail.transport.mode.logging.only=true
+simplejavamail.opportunistic.tls=false
 </code></pre>
     </div>
   </section>
@@ -218,13 +362,13 @@ simplejavamail.transport.mode.logging.only=true
   <h2>Combining both for multiple environments</h2>
 
   <section>
-    <div class="wide">
+    <div>
       <p>
         Let's set up configuration for a <strong>test</strong>, <strong>acceptance</strong> and <strong>production</strong> environment.
       </p>
       <h3>Properties for the environments</h3>
     </div>
-    <div class="wide">
+    <div>
 <pre><code class="language-properties small">#global default properties (simplejavamail.properties on classpath)
 
     # anonoymous SMTP inside 'safe' DMZ
@@ -263,7 +407,7 @@ simplejavamail.transport.mode.logging.only=true
 
     <h3>Now for the programmatic part</h3>
 
-    <div class="wide">
+    <div>
 <pre><code>// simplejavamail.properties is automatically loaded
 
 // assume that every environment provides its own property file
