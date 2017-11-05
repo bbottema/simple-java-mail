@@ -14,6 +14,7 @@ import javax.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.Iterator;
 import java.util.List;
 
 import static java.lang.String.format;
@@ -62,15 +63,48 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 		checkState("getMessages()");
 		return wiser.getMessages();
 	}
-
+	
+	@Nonnull
+	public MimeMessage getOnlyMessage(String envelopeReceiver)
+			throws MessagingException {
+		checkState("getMessages()");
+		List<WiserMessage> messages = getMessages();
+		assertThat(messages).hasSize(1);
+		Iterator<WiserMessage> iterator = messages.iterator();
+		WiserMessage wiserMessage = iterator.next();
+		assertThat(wiserMessage.getEnvelopeReceiver()).isEqualTo(envelopeReceiver);
+		MimeMessage mimeMessage = wiserMessage.getMimeMessage();
+		iterator.remove();
+		return mimeMessage;
+	}
+	
 	@Nonnull
 	public MimeMessage getOnlyMessage()
 			throws MessagingException {
 		checkState("getMessages()");
 		List<WiserMessage> messages = getMessages();
 		assertThat(messages).hasSize(1);
-		MimeMessage mimeMessage = messages.iterator().next().getMimeMessage();
+		Iterator<WiserMessage> iterator = messages.iterator();
+		MimeMessage mimeMessage = iterator.next().getMimeMessage();
+		iterator.remove();
 		return mimeMessage;
+	}
+	
+	@Nonnull
+	public MimeMessage getMessage(String envelopeReceiver)
+			throws MessagingException {
+		checkState("getMessages()");
+		List<WiserMessage> messages = getMessages();
+		Iterator<WiserMessage> iterator = messages.iterator();
+		while (iterator.hasNext()) {
+			WiserMessage wiserMessage = iterator.next();
+			if (wiserMessage.getEnvelopeReceiver().equals(envelopeReceiver)) {
+				MimeMessage mimeMessage = wiserMessage.getMimeMessage();
+				iterator.remove();
+				return mimeMessage;
+			}
+		}
+		throw new AssertionError("message not found for recipient " + envelopeReceiver);
 	}
 
 	@Nonnull

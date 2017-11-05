@@ -40,7 +40,7 @@ public class MimeMessageParser {
 	static {
 		// taken from: protected javax.mail.internet.InternetHeaders constructor
 		/*
-		 * When extracting information to create an Email, we're not interested in the following headers:
+		 * When extracting information to create an Email, we're NOT interested in the following headers:
          */
 		DEFAULT_HEADERS.add("Return-Path");
 		DEFAULT_HEADERS.add("Received");
@@ -59,8 +59,9 @@ public class MimeMessageParser {
 		DEFAULT_HEADERS.add("Cc");
 		DEFAULT_HEADERS.add("Bcc");
 		DEFAULT_HEADERS.add("Message-Id");
-		DEFAULT_HEADERS.add("In-Reply-To");
-		DEFAULT_HEADERS.add("References");
+		// The next two are needed for replying to
+		// DEFAULT_HEADERS.add("In-Reply-To");
+		// DEFAULT_HEADERS.add("References");
 		DEFAULT_HEADERS.add("Subject");
 		DEFAULT_HEADERS.add("Comments");
 		DEFAULT_HEADERS.add("Keywords");

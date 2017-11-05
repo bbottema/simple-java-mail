@@ -1,21 +1,28 @@
 package org.simplejavamail.email;
 
+import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -52,6 +59,9 @@ public class EmailBuilder {
 	 */
 	private String id;
 	
+	/**
+	 * The sender of the email. Can be used in conjunction with {@link #replyToRecipient}.
+	 */
 	private Recipient fromRecipient;
 	
 	/**
@@ -82,7 +92,7 @@ public class EmailBuilder {
 	/**
 	 * List of {@link Recipient}.
 	 */
-	private final List<Recipient> recipients;
+	private final Set<Recipient> recipients;
 	
 	/**
 	 * List of {@link AttachmentResource}.
@@ -152,7 +162,7 @@ public class EmailBuilder {
 	private Recipient returnReceiptTo;
 	
 	public EmailBuilder() {
-		recipients = new ArrayList<>();
+		recipients = new HashSet<>();
 		embeddedImages = new ArrayList<>();
 		attachments = new ArrayList<>();
 		headers = new HashMap<>();
@@ -202,6 +212,15 @@ public class EmailBuilder {
 	public EmailBuilder id(@Nullable final String id) {
 		this.id = id;
 		return this;
+	}
+	
+	/**
+	 * Sets the sender address {@link #fromRecipient}.
+	 *
+	 * @param fromAddress The sender's email address.
+	 */
+	public EmailBuilder from(@Nonnull final String fromAddress) {
+		return from(null, fromAddress);
 	}
 	
 	/**
@@ -305,6 +324,17 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	public EmailBuilder to(@Nonnull final Recipient... recipientsToAdd) {
+		return to(asList(recipientsToAdd));
+	}
+	
+	/**
+	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#TO}.
+	 *
+	 * @param recipientsToAdd The recipients whose name and address to use
+	 * @see #recipients
+	 * @see Recipient
+	 */
+	public EmailBuilder to(@Nonnull final Collection<Recipient> recipientsToAdd) {
 		for (final Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
 			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.TO));
 		}
@@ -495,6 +525,11 @@ public class EmailBuilder {
 		return this;
 	}
 	
+	public EmailBuilder withHeaders(@Nonnull final Map<String, String> headers) {
+		this.headers.putAll(headers);
+		return this;
+	}
+	
 	/**
 	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>. example: <code>email.addHeader("X-Priority",
 	 * 2)</code>
@@ -654,6 +689,51 @@ public class EmailBuilder {
 		this.useReturnReceiptTo = true;
 		this.returnReceiptTo = new Recipient(recipient.getName(), checkNonEmptyArgument(recipient.getAddress(), "returnReceiptToAddress"), null);
 		return this;
+	}
+	
+	/**
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean)} with replyToAll set to <code>true</code>.
+	 */
+	public EmailBuilder asReplyTo(@Nonnull final Email email) {
+		return asReplyTo(EmailConverter.emailToMimeMessage(email), true);
+	}
+	
+	/**
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean)}.
+	 */
+	public EmailBuilder asReplyTo(@Nonnull final Email email, boolean repyToAll) {
+		return asReplyTo(EmailConverter.emailToMimeMessage(email), repyToAll);
+	}
+	
+	/**
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean)} with replyToAll set to <code>true</code>.
+	 */
+	public EmailBuilder asReplyTo(MimeMessage email) {
+		return asReplyTo(email, true);
+	}
+	
+	/**
+	 * Primes the email with all subject, headers and recipients needed for a valid RFC reply.
+	 * <p>
+	 * Note: replaces subject.
+	 *
+	 * @see javax.mail.internet.MimeMessage#reply(boolean)
+	 */
+	public EmailBuilder asReplyTo(MimeMessage emailMessage, boolean repyToAll) {
+		final Email reply;
+		try {
+			MimeMessage replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
+			replyMessage.setText("ignore");
+			replyMessage.setFrom("ignore@ignore.ignore");
+			reply = EmailConverter.mimeMessageToEmail(replyMessage);
+		} catch (MessagingException e) {
+			throw new EmailException("was unable to parse mimemessage to produce a reply for", e);
+		}
+		
+		return this
+				.subject(reply.getSubject())
+				.to(reply.getRecipients())
+				.withHeaders(reply.getHeaders());
 	}
 	
 	/*

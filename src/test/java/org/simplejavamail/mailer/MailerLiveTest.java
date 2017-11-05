@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.simplejavamail.email.AttachmentResource;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailAssert;
+import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.Recipient;
 import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.util.ConfigLoader;
@@ -20,6 +21,7 @@ import java.util.Properties;
 
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static testutil.EmailHelper.normalizeText;
 import static testutil.EmailHelper.readOutlookMessage;
@@ -69,7 +71,7 @@ public class MailerLiveTest {
 			throws IOException, MessagingException {
 		assertSendingEmail(EmailHelper.createDummyEmail("<123@456>", true, false, false));
 	}
-
+	
 	@Test
 	public void createMailSession_OutlookMessageTest()
 			throws IOException, MessagingException {
@@ -122,7 +124,66 @@ public class MailerLiveTest {
 		assertThat(receivedEmail).isEqualTo(originalEmail);
 		return receivedEmail;
 	}
-
+	
+	@Test
+	public void createMailSession_ReplyToMessage()
+			throws IOException, MessagingException {
+		// send initial mail
+		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"));
+		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
+		
+		// send reply to initial mail
+		Email reply = new EmailBuilder()
+				.asReplyTo(assertSendingEmail(receivedEmail))
+				.from("dummy@domain.com")
+				.text("This is the reply")
+				.build();
+		
+		// test received reply to initial mail
+		mailer.sendMail(reply);
+		MimeMessage receivedMimeMessageReply1 = smtpServerRule.getMessage("lo.pop.replyto@somemail.com");
+		MimeMessage receivedMimeMessageReply2 = smtpServerRule.getMessage("benny.bottema@aegon.nl");
+		Email receivedReply1 = mimeMessageToEmail(receivedMimeMessageReply1);
+		Email receivedReply2 = mimeMessageToEmail(receivedMimeMessageReply2);
+		
+		assertThat(receivedReply1).isEqualTo(receivedReply2);
+		EmailAssert.assertThat(receivedReply1).hasSubject("Re: hey");
+		EmailAssert.assertThat(receivedReply1).hasOnlyRecipients(
+				new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO),
+				new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO)
+		);
+		assertThat(receivedReply1.getHeaders()).contains(entry("In-Reply-To", receivedEmail.getId()));
+		assertThat(receivedReply1.getHeaders()).contains(entry("References", receivedEmail.getId()));
+	}
+	
+	@Test
+	public void createMailSession_ReplyToMessage_NotAll_AndCustomReferences()
+			throws IOException, MessagingException {
+		// send initial mail
+		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"));
+		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
+		
+		// send reply to initial mail
+		Email reply = new EmailBuilder()
+				.asReplyTo(assertSendingEmail(receivedEmail), false)
+				.addHeader("References", "dummy-references")
+				.from("dummy@domain.com")
+				.text("This is the reply")
+				.build();
+		
+		// test received reply to initial mail
+		mailer.sendMail(reply);
+		MimeMessage receivedMimeMessageReply1 = smtpServerRule.getOnlyMessage("lo.pop.replyto@somemail.com");
+		Email receivedReply = mimeMessageToEmail(receivedMimeMessageReply1);
+		
+		EmailAssert.assertThat(receivedReply).hasSubject("Re: hey");
+		EmailAssert.assertThat(receivedReply).hasOnlyRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO));
+		assertThat(receivedReply.getHeaders()).contains(entry("In-Reply-To", receivedEmail.getId()));
+		assertThat(receivedReply.getHeaders()).contains(entry("References", "dummy-references"));
+	}
+	
 	private void assertAttachmentMetadata(AttachmentResource embeddedImg, String mimeType, String filename) {
 		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo(mimeType);
 		assertThat(embeddedImg.getName()).isEqualTo(filename);

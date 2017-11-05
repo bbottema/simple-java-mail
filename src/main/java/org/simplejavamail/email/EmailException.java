@@ -15,4 +15,8 @@ class EmailException extends MailException {
 	EmailException(@SuppressWarnings("SameParameterValue") final String message) {
 		super(message);
 	}
+	
+	EmailException(@SuppressWarnings("SameParameterValue") final String message, final Exception cause) {
+		super(message, cause);
+	}
 }
