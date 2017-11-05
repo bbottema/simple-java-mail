@@ -10,23 +10,48 @@ import static java.lang.String.format;
  * <code>TransportStrategy</code> implementation.
  *
  * @author Benny Bottema
+ * @author Christian Barcenas
  */
 public enum TransportStrategy {
 
 	/**
-	 * Simplest possible form: only vanilla ".smtp." property names and no extra properties. Additionally the transport protocol is explicitly set to
-	 * smtp.
+	 * Vanilla SMTP with an insecure STARTTLS upgrade (if supported).
+	 * <p>
+	 * This {@code TransportStrategy} falls back to plaintext when a mail server does not indicate support for
+	 * STARTTLS. Additionally, even if a TLS session is negotiated, <strong>server certificates are not validated in
+	 * any way</strong>.
+	 * <p>
+	 * This {@code TransportStrategy} only offers protection against passive network eavesdroppers when the mail server
+	 * indicates support for STARTTLS. Active network attackers can trivially bypass the encryption 1) by tampering with
+	 * the STARTTLS indicator, 2) by presenting a self-signed certificate, 3) by presenting a certificate issued by an
+	 * untrusted certificate authority; or 4) by presenting a certificate that was issued by a valid certificate
+	 * authority to a domain other than the mail server's.
+	 * <p>
+	 * For proper mail transport encryption, see {@link TransportStrategy#SMTP_SSL} or
+	 * {@link TransportStrategy#SMTP_TLS}.
+	 * <p>
+	 * Implementation notes:
+	 * <ul>
+	 *     <li>The transport protocol is explicitly set to {@code smtp}.</li>
+	 *     <li>Only {@code mail.smtp} properties are set.</li>
+	 *     <li>STARTTLS is enabled by setting {@code mail.smtp.starttls.enable} to {@code true}.</li>
+	 *     <li>STARTTLS plaintext fallback is enabled by setting {@code mail.smtp.starttls.required} to {@code false}.</li>
+	 *     <li>Certificate issuer checks are disabled by setting {@code mail.smtp.ssl.trust} to {@code "*"}.</li>
+	 *     <li>Certificate identity checks are disabled by setting {@code mail.smtp.ssl.checkserveridentity} to {@code false}.</li>
+     * </ul>
 	 */
 	SMTP_PLAIN {
 		/**
-		 * Here protocol "mail.transport.protocol" is set to "smtp".
-		 *
 		 * @see TransportStrategy#SMTP_PLAIN
 		 */
 		@Override
 		public Properties generateProperties() {
 			final Properties props = super.generateProperties();
 			props.put("mail.transport.protocol", "smtp");
+			props.put("mail.smtp.starttls.enable", true);
+			props.put("mail.smtp.starttls.required", false);
+			props.put("mail.smtp.ssl.trust", "*");
+			props.put("mail.smtp.ssl.checkserveridentity", false);
 			return props;
 		}
 
@@ -119,9 +144,18 @@ public enum TransportStrategy {
 		}
 	},
 	/**
-	 * SMTPS / SSL transport strategy, that returns the ".smtps." variation of the SMTP_PLAIN version. Additionally the transport protocol is
-	 * explicitly set to smtps. Finally, he property "mail.smtps.quitwait" is set to false, to get rid of a strange SSL exception:<br>
+	 * SMTP entirely encapsulated by TLS. Commonly known as SMTPS.
 	 * <p>
+	 * Strict validation of server certificates is enabled. Server certificates must be issued 1) by a certificate
+	 * authority in the system trust store; and 2) to a subject matching the identity of the remote SMTP server.
+	 * <p>
+	 * Implementation notes:
+	 * <ul>
+	 *     <li>The transport protocol is explicitly set to {@code smtps}.</li>
+	 *     <li>Only {@code mail.smtps} properties are set.</li>
+	 *     <li>Certificate identity checks are enabled by setting {@code mail.smtp.ssl.checkserveridentity} to {@code true}.</li>
+	 *     <li>
+	 * {@code mail.smtps.quitwait} is set to {@code false} to get rid of a strange SSLException:
 	 * <pre>
 	 * javax.mail.MessagingException: Exception reading response;
 	 * nested exception is:
@@ -132,17 +166,18 @@ public enum TransportStrategy {
 	 * <blockquote>The mail is sent but the exception is unwanted. The property <em>quitwait</em> means If set to false, the QUIT command is sent and
 	 * the connection is immediately closed. If set to true (the default), causes the transport to wait for the response to the QUIT
 	 * command</blockquote><br> <strong>- <a href="http://www.rgagnon.com/javadetails/java-0570.html">source</a></strong>
+	 *     </li>
+	 * </ul>
 	 */
 	SMTP_SSL {
 		/**
-		 * Here protocol "mail.transport.protocol" is set to "smtps" and the quitwait property "mail.smtps.quitwait" is set to "false".
-		 *
 		 * @see TransportStrategy#SMTP_SSL
 		 */
 		@Override
 		public Properties generateProperties() {
 			final Properties properties = super.generateProperties();
 			properties.put("mail.transport.protocol", "smtps");
+			properties.put("mail.smtps.ssl.checkserveridentity", "true");
 			properties.put("mail.smtps.quitwait", "false");
 			return properties;
 		}
@@ -236,15 +271,24 @@ public enum TransportStrategy {
 		}
 	},
 	/**
+	 * Plaintext SMTP with a mandatory, authenticated STARTTLS upgrade.
+	 * <p>
 	 * <strong>NOTE: this code is in untested beta state</strong>
 	 * <p>
-	 * Uses standard ".smtp." property names (like {@link TransportStrategy#SMTP_PLAIN}). Additionally the transport protocol is explicitly set to
-	 * smtp. Finally, the property "mail.smtp.starttls.enable" is being set to true.
+	 * Strict validation of server certificates is enabled. Server certificates must be issued 1) by a certificate
+	 * authority in the system trust store; and 2) to a subject matching the identity of the remote SMTP server.
+	 * <p>
+	 * Implementation notes:
+	 * <ul>
+	 *     <li>The transport protocol is explicitly set to {@code smtp}.</li>
+	 *     <li>Only {@code mail.smtp} properties are set.</li>
+	 *     <li>STARTTLS is enabled by setting {@code mail.smtp.starttls.enable} to {@code true}.</li>
+	 *     <li>STARTTLS plaintext fallback is disabled by setting {@code mail.smtp.starttls.required} to {@code true}.</li>
+	 *     <li>Certificate identity checks are enabled by setting {@code mail.smtp.ssl.checkserveridentity} to {@code true}.</li>
+	 * </ul>
 	 */
 	SMTP_TLS {
 		/**
-		 * Here protocol "mail.transport.protocol" is set to "smtp" and the tls property "mail.smtp.starttls.enable" is set to "true".
-		 *
 		 * @see TransportStrategy#SMTP_TLS
 		 */
 		@Override
@@ -252,6 +296,8 @@ public enum TransportStrategy {
 			final Properties props = super.generateProperties();
 			props.put("mail.transport.protocol", "smtp");
 			props.put("mail.smtp.starttls.enable", "true");
+			props.put("mail.smtp.starttls.required", "true");
+			props.put("mail.smtp.ssl.checkserveridentity", "true");
 			return props;
 		}
 
