@@ -86,6 +86,7 @@ public class MailSender {
 	 * Intermediary SOCKS5 relay server that acts as bridge between JavaMail and remote proxy (since JavaMail only supports anonymous SOCKS proxies).
 	 * Only set when {@link ProxyConfig} is provided with authentication details.
 	 */
+	@Nullable
 	private AnonymousSocks5Server proxyServer = null;
 
 	/**
@@ -448,7 +449,7 @@ public class MailSender {
 	public synchronized void setTransportModeLoggingOnly(final boolean transportModeLoggingOnly) {
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 	}
-
+	
 	/**
 	 * @return {@link #transportModeLoggingOnly}
 	 */
