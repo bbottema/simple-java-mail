@@ -273,8 +273,6 @@ public enum TransportStrategy {
 	/**
 	 * Plaintext SMTP with a mandatory, authenticated STARTTLS upgrade.
 	 * <p>
-	 * <strong>NOTE: this code is in untested beta state</strong>
-	 * <p>
 	 * Strict validation of server certificates is enabled. Server certificates must be issued 1) by a certificate
 	 * authority in the system trust store; and 2) to a subject matching the identity of the remote SMTP server.
 	 * <p>
