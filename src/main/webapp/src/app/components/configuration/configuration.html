@@ -57,7 +57,7 @@ new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080));
 new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username", "proxy password"));
 </code></pre>
 <pre><code class="small">
-// anonymous smtp + anonymous proxy + default SMTP_PLAIN strategy
+// anonymous smtp + anonymous proxy + default SMTP protocol strategy
 new Mailer(new ServerConfig("smtp.host.com", 25), new ProxyConfig("proxy.host.com", 1080));
 </code></pre>
 <pre><code class="small">
@@ -186,7 +186,7 @@ ConfigLoader.loadProperties(usingMyOwnPropertiesObject, addProperties);
 
     <div class="side">
 <pre><code class="language-properties">simplejavamail.javaxmail.debug=true
-simplejavamail.transportstrategy=SMTP_SSL
+simplejavamail.transportstrategy=SMTPS
 simplejavamail.smtp.host=smtp.default.com
 simplejavamail.smtp.port=25
 simplejavamail.smtp.username=username
@@ -330,13 +330,13 @@ public class YourEmailService {{ '{' }}
 simplejavamail.javaxmail.debug=true
 simplejavamail.smtp.host=smtp.host
 simplejavamail.smtp.port=25
-simplejavamail.transportstrategy=SMTP_PLAIN
+simplejavamail.transportstrategy=SMTP
 </code></pre>
       <pre><code class="language-properties small">#application-production.properties
 simplejavamail.javaxmail.debug=false
 simplejavamail.smtp.host=smtp.production.host
 simplejavamail.smtp.port=443
-simplejavamail.transportstrategy=SMTP_SSL
+simplejavamail.transportstrategy=SMTPS
 simplejavamail.smtp.username=&lt;username&gt;
 simplejavamail.smtp.password=&lt;password&gt;
 simplejavamail.proxy.username=&lt;proxy_username&gt;
