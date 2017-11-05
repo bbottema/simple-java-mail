@@ -280,8 +280,8 @@ email.getId(); // <1420232606.6.1509560747190@Cypher>
     <div class="side">
 <pre><code>Email email = new Email();
 
-new Mailer(..., TransportStrategy.SMTP_PLAIN, ...); // default if omitted
-new Mailer(..., TransportStrategy.SMTP_SSL, ...);
+new Mailer(..., TransportStrategy.SMTP, ...); // default if omitted
+new Mailer(..., TransportStrategy.SMTPS, ...);
 new Mailer(..., TransportStrategy.SMTP_TLS, ...);
 </code></pre>
     </div>
@@ -307,7 +307,7 @@ new Mailer(..., TransportStrategy.SMTP_TLS, ...);
     <div class="side">
 <pre><code>new Mailer("smtp.gmail.com", 25, "your user", "your password", TransportStrategy.SMTP_TLS).sendMail(email);
 new Mailer("smtp.gmail.com", 587, "your user", "your password", TransportStrategy.SMTP_TLS).sendMail(email);
-new Mailer("smtp.gmail.com", 465, "your user", "your password", TransportStrategy.SMTP_SSL).sendMail(email);
+new Mailer("smtp.gmail.com", 465, "your user", "your password", TransportStrategy.SMTPS).sendMail(email);
 </code></pre>
     </div>
   </section>

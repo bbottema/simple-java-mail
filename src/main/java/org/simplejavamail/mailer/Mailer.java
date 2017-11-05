@@ -135,7 +135,7 @@ public class Mailer {
 	 * No-arg constructor that only works with properly populated config file ("simplejavamail.properties") on the classpath.
 	 * <p>
 	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and populates as much as possible from the config file (smtp server
-	 * details, proxy details, transport strategy) and otherwise defaults to {@link TransportStrategy#SMTP_PLAIN} and skipping proxy.
+	 * details, proxy details, transport strategy) and otherwise defaults to {@link TransportStrategy#SMTP} and skipping proxy.
 	 *
 	 * @see #Mailer(ServerConfig, TransportStrategy, ProxyConfig)
 	 */
@@ -145,7 +145,7 @@ public class Mailer {
 
 	/**
 	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and populates as much as possible from the config file (proxy details,
-	 * transport strategy) and otherwise defaults to {@link TransportStrategy#SMTP_PLAIN} and skipping proxy.
+	 * transport strategy) and otherwise defaults to {@link TransportStrategy#SMTP} and skipping proxy.
 	 *
 	 * @param host     The address URL of the SMTP server to be used.
 	 * @param port     The port of the SMTP server.
@@ -159,7 +159,7 @@ public class Mailer {
 
 	/**
 	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and populates as much as possible from the config file (proxy details,
-	 * transport strategy) and otherwise defaults to {@link TransportStrategy#SMTP_PLAIN} and skipping proxy.
+	 * transport strategy) and otherwise defaults to {@link TransportStrategy#SMTP} and skipping proxy.
 	 *
 	 * @param serverConfig Remote SMTP server details.
 	 * @see #Mailer(ServerConfig, TransportStrategy, ProxyConfig)
@@ -197,7 +197,7 @@ public class Mailer {
 
 	/**
 	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and tries to populates transport strategy from config file and otherwise
-	 * defaults to {@link TransportStrategy#SMTP_PLAIN}.
+	 * defaults to {@link TransportStrategy#SMTP}.
 	 *
 	 * @param serverConfig Remote SMTP server details.
 	 * @param proxyConfig  Remote proxy server details, if the connection should be run through a SOCKS proxy.
@@ -218,7 +218,7 @@ public class Mailer {
 	 * @param proxyConfig       Remote proxy server details, if the connection should be run through a SOCKS proxy.
 	 */
 	public Mailer(final ServerConfig serverConfig, final TransportStrategy transportStrategy, final ProxyConfig proxyConfig) {
-		final TransportStrategy effectiveTransportStrategy = valueOrProperty(transportStrategy, TRANSPORT_STRATEGY, TransportStrategy.SMTP_PLAIN);
+		final TransportStrategy effectiveTransportStrategy = valueOrProperty(transportStrategy, TRANSPORT_STRATEGY, TransportStrategy.SMTP);
 		final Session session = createMailSession(serverConfig, effectiveTransportStrategy);
 		this.mailSender = new MailSender(session, proxyConfig, effectiveTransportStrategy);
 		this.emailAddressCriteria = null;

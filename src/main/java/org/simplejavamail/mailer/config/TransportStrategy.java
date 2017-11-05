@@ -27,7 +27,7 @@ public enum TransportStrategy {
 	 * untrusted certificate authority; or 4) by presenting a certificate that was issued by a valid certificate
 	 * authority to a domain other than the mail server's.
 	 * <p>
-	 * For proper mail transport encryption, see {@link TransportStrategy#SMTP_SSL} or
+	 * For proper mail transport encryption, see {@link TransportStrategy#SMTPS} or
 	 * {@link TransportStrategy#SMTP_TLS}.
 	 * <p>
 	 * Implementation notes:
@@ -40,9 +40,9 @@ public enum TransportStrategy {
 	 *     <li>Certificate identity checks are disabled by setting {@code mail.smtp.ssl.checkserveridentity} to {@code false}.</li>
      * </ul>
 	 */
-	SMTP_PLAIN {
+	SMTP {
 		/**
-		 * @see TransportStrategy#SMTP_PLAIN
+		 * @see TransportStrategy#SMTP
 		 */
 		@Override
 		public Properties generateProperties() {
@@ -169,9 +169,9 @@ public enum TransportStrategy {
 	 *     </li>
 	 * </ul>
 	 */
-	SMTP_SSL {
+	SMTPS {
 		/**
-		 * @see TransportStrategy#SMTP_SSL
+		 * @see TransportStrategy#SMTPS
 		 */
 		@Override
 		public Properties generateProperties() {

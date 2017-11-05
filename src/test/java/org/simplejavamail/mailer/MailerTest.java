@@ -23,7 +23,7 @@ import java.util.Properties;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
-import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_SSL;
+import static org.simplejavamail.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_TLS;
 
 @SuppressWarnings("unused")
@@ -173,7 +173,7 @@ public class MailerTest {
 	@Test
 	public void createMailSession_MaximumConstructor_WithConfig_TLS()
 			throws Exception {
-		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTP_SSL);
+		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTPS);
 		
 		Session session = mailer.getSession();
 		

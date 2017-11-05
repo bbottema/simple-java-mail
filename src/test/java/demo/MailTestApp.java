@@ -68,7 +68,7 @@ public class MailTestApp {
 		// ProxyConfig proxyconfig = new ProxyConfig("localhost", 1030);
 		sendMail(serverConfigSMTP, TransportStrategy.SMTP_TLS, email);
 		sendMail(serverConfigTLS, TransportStrategy.SMTP_TLS, email);
-		sendMail(serverConfigSSL, TransportStrategy.SMTP_SSL, email);
+		sendMail(serverConfigSSL, TransportStrategy.SMTPS, email);
 	}
 
 	private static void sendMail(ServerConfig serverConfigSMTP, TransportStrategy smtpTls, Email email) {

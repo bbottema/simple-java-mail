@@ -12,8 +12,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_PLAIN;
-import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_SSL;
+import static org.simplejavamail.mailer.config.TransportStrategy.SMTP;
+import static org.simplejavamail.mailer.config.TransportStrategy.SMTPS;
 
 public class MailSenderTest {
 	
@@ -48,7 +48,7 @@ public class MailSenderTest {
 	
 	@Test
 	public void trustAllHosts_PLAIN() {
-		MailSender mailSender = new MailSender(session, null, SMTP_PLAIN);
+		MailSender mailSender = new MailSender(session, null, SMTP);
 		mailSender.trustAllHosts(true);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
 		mailSender.trustAllHosts(false);
@@ -56,10 +56,10 @@ public class MailSenderTest {
 	}
 	
 	@Test
-	public void trustAllHosts_SSL() {
+	public void trustAllHosts_SMTPS() {
 		ProxyConfig proxyBypassingMock = mock(ProxyConfig.class);
 		when(proxyBypassingMock.requiresProxy()).thenReturn(false);
-		MailSender mailSender = new MailSender(session, proxyBypassingMock, SMTP_SSL);
+		MailSender mailSender = new MailSender(session, proxyBypassingMock, SMTPS);
 		mailSender.trustAllHosts(true);
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isEqualTo("*");
 		mailSender.trustAllHosts(false);
@@ -68,7 +68,7 @@ public class MailSenderTest {
 	
 	@Test
 	public void trustHosts() {
-		MailSender mailSender = new MailSender(session, null, SMTP_PLAIN);
+		MailSender mailSender = new MailSender(session, null, SMTP);
 		mailSender.trustHosts();
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
 		mailSender.trustHosts("a");

@@ -159,7 +159,7 @@ public class MailSender {
 		if (!effectiveProxyConfig.requiresProxy()) {
 			LOGGER.debug("No proxy set, skipping proxy.");
 		} else {
-			if (transportStrategy == TransportStrategy.SMTP_SSL) {
+			if (transportStrategy == TransportStrategy.SMTPS) {
 				throw new MailSenderException(MailSenderException.INVALID_PROXY_SLL_COMBINATION);
 			}
 			final Properties sessionProperties = session.getProperties();

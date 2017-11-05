@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_SSL;
+import static org.simplejavamail.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
@@ -157,7 +157,7 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.parsePropertyValue("true")).isEqualTo(true);
 		assertThat(ConfigLoader.parsePropertyValue("yes")).isEqualTo(true);
 		assertThat(ConfigLoader.parsePropertyValue("yesno")).isEqualTo("yesno");
-		assertThat(ConfigLoader.parsePropertyValue("SMTP_PLAIN")).isEqualTo(TransportStrategy.SMTP_PLAIN);
+		assertThat(ConfigLoader.parsePropertyValue("SMTP")).isEqualTo(TransportStrategy.SMTP);
 		assertThat(ConfigLoader.parsePropertyValue("SMTP_TLS")).isEqualTo(TransportStrategy.SMTP_TLS);
 	}
 
@@ -166,7 +166,7 @@ public class ConfigLoaderTest {
 			throws Exception {
 		ConfigLoader.loadProperties("simplejavamail.properties", false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
+		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
 		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
 		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
@@ -193,7 +193,7 @@ public class ConfigLoaderTest {
 	public void loadPropertiesAddingMode()
 			throws Exception {
 		String s1 = "simplejavamail.javaxmail.debug=true\n"
-				+ "simplejavamail.transportstrategy=SMTP_SSL";
+				+ "simplejavamail.transportstrategy=SMTPS";
 		String s2 = "simplejavamail.defaults.to.name=To Default\n"
 				+ "simplejavamail.defaults.to.address=to@default.com";
 
@@ -202,7 +202,7 @@ public class ConfigLoaderTest {
 
 		// some checks from the config file
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTP_SSL);
+		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTPS);
 		// now check if the extra properties were added
 		assertThat(ConfigLoader.getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
 		assertThat(ConfigLoader.getProperty(DEFAULT_TO_ADDRESS)).isEqualTo("to@default.com");
@@ -213,7 +213,7 @@ public class ConfigLoaderTest {
 			throws IOException {
 
 		String s = "simplejavamail.javaxmail.debug=true\n"
-				+ "simplejavamail.transportstrategy=SMTP_SSL\n"
+				+ "simplejavamail.transportstrategy=SMTPS\n"
 				+ "simplejavamail.smtp.host=smtp.default.com\n"
 				+ "simplejavamail.smtp.port=25\n"
 				+ "simplejavamail.smtp.username=username\n"
@@ -221,7 +221,7 @@ public class ConfigLoaderTest {
 
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
+		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
 		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
 		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
@@ -233,7 +233,7 @@ public class ConfigLoaderTest {
 			throws IOException {
 		Properties source = new Properties();
 		source.put("simplejavamail.javaxmail.debug", "true");
-		source.put("simplejavamail.transportstrategy", "SMTP_SSL");
+		source.put("simplejavamail.transportstrategy", "SMTPS");
 		source.put("simplejavamail.smtp.host", "smtp.default.com");
 		source.put("simplejavamail.smtp.port", "25");
 		source.put("simplejavamail.smtp.username", "username");
@@ -241,7 +241,7 @@ public class ConfigLoaderTest {
 
 		ConfigLoader.loadProperties(source, false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
+		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
 		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
 		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
@@ -253,7 +253,7 @@ public class ConfigLoaderTest {
 			throws IOException {
 		Properties source = new Properties();
 		source.put("simplejavamail.javaxmail.debug", true);
-		source.put("simplejavamail.transportstrategy", TransportStrategy.SMTP_SSL);
+		source.put("simplejavamail.transportstrategy", TransportStrategy.SMTPS);
 		source.put("simplejavamail.smtp.host", "smtp.default.com");
 		source.put("simplejavamail.smtp.port", 25);
 		source.put("simplejavamail.smtp.username", "username");
@@ -261,7 +261,7 @@ public class ConfigLoaderTest {
 
 		ConfigLoader.loadProperties(source, false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTP_SSL);
+		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
 		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
 		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
