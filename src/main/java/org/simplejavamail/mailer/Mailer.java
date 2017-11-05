@@ -182,7 +182,18 @@ public class Mailer {
 	public Mailer(final String host, final Integer port, final String username, final String password, final TransportStrategy transportStrategy) {
 		this(new ServerConfig(host, port, username, password), transportStrategy, null);
 	}
-
+	
+	/**
+	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and tries to populates server config and proxy details from config
+	 * file and otherwise skips proxy.
+	 *
+	 * @param transportStrategy The transport protocol configuration type for handling SSL or TLS (or vanilla SMTP)
+	 * @see #Mailer(ServerConfig, TransportStrategy, ProxyConfig)
+	 */
+	public Mailer(final TransportStrategy transportStrategy) {
+		this(null, transportStrategy, null);
+	}
+	
 	/**
 	 * Delegates to {@link #Mailer(ServerConfig, TransportStrategy, ProxyConfig)} and tries to populates proxy details from config file and otherwise skips
 	 * proxy.
@@ -249,17 +260,19 @@ public class Mailer {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public static Session createMailSession(final ServerConfig serverConfig, final TransportStrategy transportStrategy) {
+		final ServerConfig effectiveServerConfig = serverConfig != null ? serverConfig : new ServerConfig(null, null, null, null);
+		
 		final Properties props = transportStrategy.generateProperties();
-		props.put(transportStrategy.propertyNameHost(), serverConfig.getHost());
-		props.put(transportStrategy.propertyNamePort(), String.valueOf(serverConfig.getPort()));
+		props.put(transportStrategy.propertyNameHost(), effectiveServerConfig.getHost());
+		props.put(transportStrategy.propertyNamePort(), String.valueOf(effectiveServerConfig.getPort()));
 
-		if (serverConfig.getUsername() != null) {
-			props.put(transportStrategy.propertyNameUsername(), serverConfig.getUsername());
+		if (effectiveServerConfig.getUsername() != null) {
+			props.put(transportStrategy.propertyNameUsername(), effectiveServerConfig.getUsername());
 		}
 
-		if (serverConfig.getPassword() != null) {
+		if (effectiveServerConfig.getPassword() != null) {
 			props.put(transportStrategy.propertyNameAuthenticate(), "true");
-			return Session.getInstance(props, new SmtpAuthenticator(serverConfig));
+			return Session.getInstance(props, new SmtpAuthenticator(effectiveServerConfig));
 		} else {
 			return Session.getInstance(props);
 		}
@@ -271,7 +284,7 @@ public class Mailer {
 	 */
 	public Session getSession() {
 		LOGGER.warn("Providing access to Session instance for emergency fall-back scenario. Please let us know why you need it.");
-		LOGGER.warn("\t>https://github.com/bbottema/simple-java-mail/issues");
+		LOGGER.warn("\t\t> https://github.com/bbottema/simple-java-mail/issues");
 		return mailSender.getSession();
 	}
 
