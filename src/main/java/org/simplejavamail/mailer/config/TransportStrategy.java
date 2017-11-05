@@ -1,9 +1,15 @@
 package org.simplejavamail.mailer.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.mail.Session;
 import java.util.Properties;
 
 import static java.lang.String.format;
+import static org.simplejavamail.util.ConfigLoader.Property.OPPORTUNISTIC_TLS;
+import static org.simplejavamail.util.ConfigLoader.getProperty;
+import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
 /**
  * Defines the various types of transport protocols and implements respective properties so that a {@link Session} may be configured using a
@@ -48,10 +54,13 @@ public enum TransportStrategy {
 		public Properties generateProperties() {
 			final Properties props = super.generateProperties();
 			props.put("mail.transport.protocol", "smtp");
-			props.put("mail.smtp.starttls.enable", true);
-			props.put("mail.smtp.starttls.required", false);
-			props.put("mail.smtp.ssl.trust", "*");
-			props.put("mail.smtp.ssl.checkserveridentity", false);
+			if (!hasProperty(OPPORTUNISTIC_TLS) || (Boolean) getProperty(OPPORTUNISTIC_TLS)) {
+				LOGGER.debug("Opportunistic TLS mode enabled for SMTP plain protocol (can be disabled with property 'simplejavamail.opportunistic.tls').");
+				props.put("mail.smtp.starttls.enable", "true");
+				props.put("mail.smtp.starttls.required", "false");
+				props.put("mail.smtp.ssl.trust", "*");
+				props.put("mail.smtp.ssl.checkserveridentity", "false");
+			}
 			return props;
 		}
 
@@ -387,7 +396,9 @@ public enum TransportStrategy {
 			return "mail.smtp.ssl.trust";
 		}
 	};
-
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(TransportStrategy.class);
+	
 	/**
 	 * Marker property used to track which {@link TransportStrategy} has been used. This way we can differentiate between preconfigured custom
 	 * <code>Session</code> and sessions created by a <code>Mailer</code> instance, without checking each and every property for a specific strategy.
@@ -424,6 +435,7 @@ public enum TransportStrategy {
 	/**
 	 * @param session The session to determine the current transport strategy for
 	 * @return Which strategy matches the current Session properties.
+	 * @see #TRANSPORT_STRATEGY_MARKER
 	 * @see #generateProperties()
 	 */
 	public static TransportStrategy findStrategyForSession(final Session session) {

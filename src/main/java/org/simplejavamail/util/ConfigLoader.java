@@ -50,6 +50,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  *    <li>simplejavamail.defaults.poolsize</li>
  *    <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  *    <li>simplejavamail.transport.mode.logging.only</li>
+ *    <li>simplejavamail.opportunistic.tls</li>
  * </ul></pre>
  */
 public final class ConfigLoader {
@@ -100,7 +101,8 @@ public final class ConfigLoader {
 		DEFAULT_BCC_ADDRESS("simplejavamail.defaults.bcc.address"),
 		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize"),
 		DEFAULT_SESSION_TIMEOUT_MILLIS("simplejavamail.defaults.sessiontimeoutmillis"),
-		TRANSPORT_MODE_LOGGING_ONLY("simplejavamail.transport.mode.logging.only");
+		TRANSPORT_MODE_LOGGING_ONLY("simplejavamail.transport.mode.logging.only"),
+		OPPORTUNISTIC_TLS("simplejavamail.opportunistic.tls");
 
 		private final String key;
 

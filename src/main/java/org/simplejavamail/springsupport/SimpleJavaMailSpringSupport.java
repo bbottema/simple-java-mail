@@ -42,7 +42,8 @@ public class SimpleJavaMailSpringSupport {
 			@Value("${simplejavamail.defaults.bcc.address:#{null}}") final String defaultBccAddress,
 			@Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
 			@Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
-			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly) {
+			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly,
+			@Value("${simplejavamail.opportunistic.tls:#{null}}") final String defaultOpportunisticTls) {
 		final Properties emailProperties = new Properties();
 		setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG.key(), javaxmailDebug);
 		setNullableProperty(emailProperties, Property.TRANSPORT_STRATEGY.key(), transportstrategy);
@@ -71,6 +72,7 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_POOL_SIZE.key(), defaultPoolsize);
 		setNullableProperty(emailProperties, Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key(), defaultSessionTimeoutMillis);
 		setNullableProperty(emailProperties, Property.TRANSPORT_MODE_LOGGING_ONLY.key(), defaultTransportModeLoggingOnly);
+		setNullableProperty(emailProperties, Property.OPPORTUNISTIC_TLS.key(), defaultOpportunisticTls);
 
 		ConfigLoader.loadProperties(emailProperties, true);
 
