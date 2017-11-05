@@ -1,15 +1,15 @@
 package org.simplejavamail.mailer.config;
 
+import org.simplejavamail.util.ConfigLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.mail.Session;
 import java.util.Properties;
 
 import static java.lang.String.format;
 import static org.simplejavamail.util.ConfigLoader.Property.OPPORTUNISTIC_TLS;
-import static org.simplejavamail.util.ConfigLoader.getProperty;
-import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
 /**
  * Defines the various types of transport protocols and implements respective properties so that a {@link Session} may be configured using a
@@ -47,6 +47,22 @@ public enum TransportStrategy {
      * </ul>
 	 */
 	SMTP {
+		
+		/**
+		 * Defaults to enabled opportunistic TLS behavior ({@link #opportunisticTLS}), in case value was not programmatically set or provided
+		 * as property value.
+		 */
+		private static final boolean DEFAULT_OPPORTUNISTIC_TLS = true;
+		
+		/**
+		 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
+		 * was provided, this value defaults to {@value DEFAULT_OPPORTUNISTIC_TLS}.
+		 * <p>
+		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
+		 */
+		@Nullable
+		private Boolean opportunisticTLS;
+		
 		/**
 		 * @see TransportStrategy#SMTP
 		 */
@@ -54,8 +70,8 @@ public enum TransportStrategy {
 		public Properties generateProperties() {
 			final Properties props = super.generateProperties();
 			props.put("mail.transport.protocol", "smtp");
-			if (!hasProperty(OPPORTUNISTIC_TLS) || (Boolean) getProperty(OPPORTUNISTIC_TLS)) {
-				LOGGER.debug("Opportunistic TLS mode enabled for SMTP plain protocol (can be disabled with property 'simplejavamail.opportunistic.tls').");
+			if (ConfigLoader.valueOrProperty(opportunisticTLS, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS)) {
+				LOGGER.debug("Opportunistic TLS mode enabled for SMTP plain protocol.");
 				props.put("mail.smtp.starttls.enable", "true");
 				props.put("mail.smtp.starttls.required", "false");
 				props.put("mail.smtp.ssl.trust", "*");
@@ -151,6 +167,22 @@ public enum TransportStrategy {
 		public String propertyNameSSLTrust() {
 			return "mail.smtp.ssl.trust";
 		}
+		
+		/**
+		 * @return {@link #opportunisticTLS}
+		 */
+		@Nullable
+		public Boolean getOpportunisticTLS() {
+			return opportunisticTLS;
+		}
+		
+		/**
+		 * Sets {@link #opportunisticTLS}. Setting <code>null</code> will revert to property value if available or default to {@value
+		 * DEFAULT_OPPORTUNISTIC_TLS}
+		 */
+		public void setOpportunisticTLS(@Nullable Boolean opportunisticTLS) {
+			this.opportunisticTLS = opportunisticTLS;
+		}
 	},
 	/**
 	 * SMTP entirely encapsulated by TLS. Commonly known as SMTPS.
@@ -169,9 +201,7 @@ public enum TransportStrategy {
 	 * javax.mail.MessagingException: Exception reading response;
 	 * nested exception is:
 	 * 	javax.net.ssl.SSLException: Unsupported record version Unknown-50.49
-	 * (..)
-	 * </pre>
-	 * <p>
+	 * (..)</pre>
 	 * <blockquote>The mail is sent but the exception is unwanted. The property <em>quitwait</em> means If set to false, the QUIT command is sent and
 	 * the connection is immediately closed. If set to true (the default), causes the transport to wait for the response to the QUIT
 	 * command</blockquote><br> <strong>- <a href="http://www.rgagnon.com/javadetails/java-0570.html">source</a></strong>
@@ -431,6 +461,15 @@ public enum TransportStrategy {
 	public abstract String propertyNameEnvelopeFrom();
 	public abstract String propertyNameSSLTrust();
 	public abstract String propertyNameTimeout();
+	
+	/**
+	 * @see TransportStrategy#SMTP#getOpportunisticTLS()
+	 */
+	@Nullable public Boolean getOpportunisticTLS() { return false; }
+	/**
+	 * @see TransportStrategy#SMTP#setOpportunisticTLS(Boolean)
+	 */
+	public void setOpportunisticTLS(@Nullable Boolean opportunisticTLS) {}
 	
 	/**
 	 * @param session The session to determine the current transport strategy for

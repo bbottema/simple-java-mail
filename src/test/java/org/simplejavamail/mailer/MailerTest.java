@@ -182,6 +182,34 @@ public class MailerTest {
 	}
 	
 	@Test
+	public void createMailSession_MinimalConstructor_WithConfig_OPPORTUNISTIC_TLS_Manually_Disabled() {
+		Properties properties = new Properties();
+		properties.setProperty(OPPORTUNISTIC_TLS.key(), "false");
+		ConfigLoader.loadProperties(properties, true);
+		
+		TransportStrategy.SMTP.setOpportunisticTLS(true);
+		
+		Mailer mailer = new Mailer(TransportStrategy.SMTP);
+		Session session = mailer.getSession();
+		
+		assertThat(session.getDebug()).isTrue();
+		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp.default.com");
+		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
+		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
+		
+		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
+		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
+		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
+		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("false");
+		
+		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
+		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
+		// the following two are because authentication is needed, otherwise proxy would be straightworward
+		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
+		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+	}
+	
+	@Test
 	public void createMailSession_MaximumConstructor_WithConfig()
 			throws Exception {
 		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTP_TLS);
