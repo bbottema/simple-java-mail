@@ -777,25 +777,21 @@ public class Email {
 		dispositionNotificationTo = builder.getDispositionNotificationTo();
 		returnReceiptTo = builder.getReturnReceiptTo();
 		
-		if (useDispositionNotificationTo) {
-			if (valueNullOrEmpty(builder.getDispositionNotificationTo())) {
-				//noinspection IfMayBeConditional
-				if (builder.getReplyToRecipient() != null) {
-					dispositionNotificationTo = builder.getReplyToRecipient();
-				} else {
-					dispositionNotificationTo = builder.getFromRecipient();
-				}
+		if (useDispositionNotificationTo && valueNullOrEmpty(builder.getDispositionNotificationTo())) {
+			//noinspection IfMayBeConditional
+			if (builder.getReplyToRecipient() != null) {
+				dispositionNotificationTo = builder.getReplyToRecipient();
+			} else {
+				dispositionNotificationTo = builder.getFromRecipient();
 			}
 		}
 		
-		if (useReturnReceiptTo) {
-			if (valueNullOrEmpty(builder.getDispositionNotificationTo())) {
-				//noinspection IfMayBeConditional
-				if (builder.getReplyToRecipient() != null) {
-					returnReceiptTo = builder.getReplyToRecipient();
-				} else {
-					returnReceiptTo = builder.getFromRecipient();
-				}
+		if (useReturnReceiptTo && valueNullOrEmpty(builder.getDispositionNotificationTo())) {
+			//noinspection IfMayBeConditional
+			if (builder.getReplyToRecipient() != null) {
+				returnReceiptTo = builder.getReplyToRecipient();
+			} else {
+				returnReceiptTo = builder.getFromRecipient();
 			}
 		}
 		
