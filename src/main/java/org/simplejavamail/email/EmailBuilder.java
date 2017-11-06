@@ -23,6 +23,7 @@ import java.util.Set;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
+import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -309,10 +310,46 @@ public class EmailBuilder {
 	}
 	
 	/**
+	 * Prepends {@link #text}.
+	 */
+	// FIXME add tests
+	public EmailBuilder prependText(@Nonnull final String text) {
+		this.text = text + defaultTo(this.text, "");
+		return this;
+	}
+	
+	/**
+	 * Appends {@link #text}.
+	 */
+	// FIXME add tests
+	public EmailBuilder appendText(@Nonnull final String text) {
+		this.text = defaultTo(this.text, "") + text;
+		return this;
+	}
+	
+	/**
 	 * Sets the {@link #textHTML}.
 	 */
 	public EmailBuilder textHTML(@Nullable final String textHTML) {
 		this.textHTML = textHTML;
+		return this;
+	}
+	
+	/**
+	 * Prepends {@link #textHTML}.
+	 */
+	// FIXME add tests
+	public EmailBuilder prependTextHTML(@Nonnull final String textHTML) {
+		this.textHTML = textHTML + defaultTo(this.textHTML, "");
+		return this;
+	}
+	
+	/**
+	 * Appends {@link #textHTML}.
+	 */
+	// FIXME add tests
+	public EmailBuilder appendTextHTML(@Nonnull final String textHTML) {
+		this.textHTML = defaultTo(this.textHTML, "") + textHTML;
 		return this;
 	}
 	
@@ -708,32 +745,72 @@ public class EmailBuilder {
 	/**
 	 * Delegates to {@link #asReplyTo(MimeMessage, boolean)} with replyToAll set to <code>true</code>.
 	 */
-	public EmailBuilder asReplyTo(MimeMessage email) {
+	public EmailBuilder asReplyTo(@Nonnull MimeMessage email) {
 		return asReplyTo(email, true);
 	}
 	
 	/**
 	 * Primes the email with all subject, headers and recipients needed for a valid RFC reply.
 	 * <p>
-	 * Note: replaces subject.
+	 * <strong>Note:</strong> replaces subject and body (text replaced with "> text" and HTML
+	 * replaced {@code <blockquote>} if provided).
 	 *
+	 * @see <a href="https://javaee.github.io/javamail/FAQ#reply">Official JavaMail FAQ on replying</a>
 	 * @see javax.mail.internet.MimeMessage#reply(boolean)
 	 */
-	public EmailBuilder asReplyTo(MimeMessage emailMessage, boolean repyToAll) {
-		final Email reply;
+	public EmailBuilder asReplyTo(@Nonnull MimeMessage emailMessage, boolean repyToAll) {
 		try {
-			MimeMessage replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
+			final MimeMessage replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
 			replyMessage.setText("ignore");
 			replyMessage.setFrom("ignore@ignore.ignore");
-			reply = EmailConverter.mimeMessageToEmail(replyMessage);
+			
+			final Email original = EmailConverter.mimeMessageToEmail(emailMessage);
+			final Email generatedReply = EmailConverter.mimeMessageToEmail(replyMessage);
+			
+			return this
+					.subject(generatedReply.getSubject())
+					.to(generatedReply.getRecipients())
+					.text(valueNullOrEmpty(original.getText()) ? null : original.getText().replaceAll("(?m)^", "> "))
+					.textHTML(valueNullOrEmpty(original.getTextHTML()) ? null : "<blockquote>" + original.getTextHTML() + "</blockquote>")
+					.withHeaders(generatedReply.getHeaders());
 		} catch (MessagingException e) {
 			throw new EmailException("was unable to parse mimemessage to produce a reply for", e);
 		}
+	}
+	
+	/**
+	 * Delegates to {@link #asForwardOf(MimeMessage, boolean)} with inline set to <code>true</code>.
+	 */
+	public EmailBuilder asForwardOf(@Nonnull final Email email) {
+		return asForwardOf(EmailConverter.emailToMimeMessage(email), true);
+	}
+	
+	/**
+	 * Delegates to {@link #asForwardOf(MimeMessage, boolean)}.
+	 */
+	public EmailBuilder asForwardOf(@Nonnull final Email email, boolean inline) {
+		return asForwardOf(EmailConverter.emailToMimeMessage(email), inline);
+	}
+	
+	/**
+	 * Delegates to {@link #asForwardOf(MimeMessage, boolean)} with inline set to <code>true</code>.
+	 */
+	public EmailBuilder asForwardOf(@Nonnull MimeMessage email) {
+		return asForwardOf(email, true);
+	}
+	
+	/**
+	 * Primes the email with all subject, headers needed for a valid RFC forward.
+	 * <p>
+	 * Note: replaces subject.
+	 *
+	 * @param inline Indicates whether to include the original body as inline content on the new body or as attachment
+	 * @see <a href="https://javaee.github.io/javamail/FAQ#forward">Official JavaMail FAQ on forwarding</a>
+	 */
+	public EmailBuilder asForwardOf(@Nonnull MimeMessage emailMessage, final boolean inline) {
 		
-		return this
-				.subject(reply.getSubject())
-				.to(reply.getRecipients())
-				.withHeaders(reply.getHeaders());
+		
+		return this;
 	}
 	
 	/*

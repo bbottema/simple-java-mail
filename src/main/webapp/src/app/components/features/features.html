@@ -14,6 +14,11 @@
       email addresses against <a href="https://tools.ietf.org/html/rfc2822">RFC-2822</a> using the only complete <a
       href="https://github.com/bbottema/email-rfc2822-validator">rfc2822 validator in java</a> in the world.
     </p>
+    
+    <p class="wide">
+      Simple Java Mail also takes care of all the
+      <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">connection and security properties</a> for you.
+    </p>
   </section>
   
   <section class="toc">
@@ -37,8 +42,9 @@
       <li><a simplePageScroll href="#section-return-receipt">Configure delivery / read receipt</a></li>
       <li><a simplePageScroll href="#section-email-validation">Validating Email Addresses</a></li>
       <li><a simplePageScroll href="#section-converting">Converting between email formats</a></li>
-      <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
       <li><a simplePageScroll href="#section-bouncing-emails">Setting custom recipient for bouncing emails</a></li>
+      <li><a simplePageScroll href="#section-reply-forward">Replying to and forwarding emails</a></li>
+      <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
     </ul>
   </section>
   
@@ -570,6 +576,82 @@ MimeMessage mimeMessage = EmailConverter.outlookMsgToMimeMessage(getInputStream(
   </section>
   
   
+  <a href="#section-bouncing-emails" id="section-bouncing-emails" class="section-link h2">&sect;</a>
+  <h2>Setting custom recipient for bouncing emails</h2>
+  
+  <section>
+    <div class="view">
+      <p>
+        For bouncing emails, you can provide a hint to the SMTP server to which bouncing emails should be returned.
+        This is also known as the Return-Path or Envelope FROM and is set on the Session instance with the property
+        <code class="inline">mail.smtp.from</code>.
+      </p>
+      <p>
+        Simple Java Mail offers a convenience method to set this property.
+      </p>
+    </div>
+    
+    <div class="side">
+<pre><code>
+// in similar fashion to setting replyTo address:
+email.setBounceToRecipient(aRecipientInstance); // or
+email.setBounceToAddress("Bob", "bob.techdesk@candyshop.com");
+
+// Or using the Builder:
+Email email = new EmailBuilder()
+    .bounceTo(aRecipientInstance) // or
+    .bounceTo("Bob", "bob.techdesk@candyshop.com")
+    .build();
+</code></pre>
+    </div>
+  </section>
+  
+  
+  <a href="#section-reply-forward" id="section-reply-forward" class="section-link h2">&sect;</a>
+  <h2>Replying to and forwarding emails</h2>
+  
+  <section>
+    <div class="view">
+      <p>
+        If you have an email you want to reply to or wish to forward, the <code class="inline">EmailBuilder</code>
+        has you covered.
+      </p>
+      <br />
+      <div>
+        <p>
+          <strong>Note:</strong> due to the nature of the underlying JavaMail framework (also see
+            <a href="https://javaee.github.io/javamail/FAQ#reply">reply</a> /
+            <a href="https://javaee.github.io/javamail/FAQ#forward">forward</a>):
+        </p>
+        <ul class="indent">
+          <li>In case of replying, the original email is quoted in the body of the reply itself.</li>
+          <li>In case of forwarding, the original email is included as a separate body inside the forward.</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="side">
+      <p>Replying to an email:</p>
+<pre><code>
+Email reply = new EmailBuilder()
+				.asReplyTo(receivedEmail) // Email or MimeMessage
+				.from("dummy@domain.com")
+				.prependText("Reply body. Original email included below")
+				.build();
+</code></pre>
+      <p>Forwarding an email:</p>
+<pre><code>
+// forwarding an email
+Email reply = new EmailBuilder()
+				.asForwardOf(receivedEmail) // Email or MimeMessage
+				.from("dummy@domain.com")
+				.text("Hello? This is Forward. See below email:")
+				.build();
+</code></pre>
+    </div>
+  </section>
+  
+  
   <a href="#section-proxy" id="section-proxy" class="section-link h2">&sect;</a>
   <h2>Send using a proxy</h2>
   
@@ -601,37 +683,6 @@ new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username
 </code></pre>
       <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" href="#section-other-settings">configuration section</a>
          on how to set proxy server defaults and the port on which the proxy bridge runs.</p>
-    </div>
-  </section>
-  
-  
-  <a href="#section-bouncing-emails" id="section-bouncing-emails" class="section-link h2">&sect;</a>
-  <h2>Setting custom recipient for bouncing emails</h2>
-  
-  <section>
-    <div class="view">
-      <p>
-        For bouncing emails, you can provide a hint to the SMTP server to which bouncing emails should be returned.
-        This is also known as the Return-Path or Envelope FROM and is set on the Session instance with the property
-        <code class="inline">mail.smtp.from</code>.
-      </p>
-      <p>
-        Simple Java Mail offers a convenience method to set this property.
-      </p>
-    </div>
-    
-    <div class="side">
-<pre><code>
-// in similar fashion to setting replyTo address:
-email.setBounceToRecipient(aRecipientInstance); // or
-email.setBounceToAddress("Bob", "bob.techdesk@candyshop.com");
-
-// Or using the Builder:
-Email email = new EmailBuilder()
-    .bounceTo(aRecipientInstance) // or
-    .bounceTo("Bob", "bob.techdesk@candyshop.com")
-    .build();
-</code></pre>
     </div>
   </section>
 

@@ -103,4 +103,9 @@ public final class MiscUtil {
 				.replaceAll("<\\|>$", "") // remove trailing delimiter
 				.split("\\s*<\\|>\\s*"); // split on delimiter including surround space
 	}
+	
+	@Nullable
+	public static <T> T defaultTo(@Nullable T value, @Nullable T defaultValue) {
+		return value != null ? value : defaultValue;
+	}
 }
