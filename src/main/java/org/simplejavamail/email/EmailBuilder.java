@@ -1,6 +1,7 @@
 package org.simplejavamail.email;
 
 import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
@@ -50,6 +52,14 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  */
 @SuppressWarnings("UnusedReturnValue")
 public class EmailBuilder {
+	
+	/**
+	 * Default simple quoting markup for email replies.
+	 * <p>
+	 * <code>{@value DEFAULT_QUOTING_MARKUP}</code>
+	 */
+	private static final String DEFAULT_QUOTING_MARKUP = "<blockquote style=\"color: gray; border-left: 1px solid #4f4f4f; padding-left: " +
+			"1cm\">%s</blockquote>";
 	
 	/**
 	 * Optional ID, which will be used when sending using the underlying Java Mail framework. Will be generated otherwise.
@@ -161,6 +171,11 @@ public class EmailBuilder {
 	 * @see #useReturnReceiptTo
 	 */
 	private Recipient returnReceiptTo;
+	
+	/**
+	 * Holds a message that should be included in the new email as forwarded message.
+	 */
+	private MimeMessage emailToForward;
 	
 	public EmailBuilder() {
 		recipients = new HashSet<>();
@@ -546,6 +561,16 @@ public class EmailBuilder {
 	}
 	
 	/**
+	 * Delegates to {@link #embedImage(String, DataSource)} for each embedded image.
+	 */
+	private EmailBuilder withEmbeddedImages(@Nonnull List<AttachmentResource> embeddedImages) {
+		for (AttachmentResource embeddedImage : embeddedImages) {
+			embedImage(embeddedImage.getName(), embeddedImage.getDataSource());
+		}
+		return this;
+	}
+	
+	/**
 	 * Overloaded method which sets an embedded image on account of name and {@link DataSource}.
 	 *
 	 * @param name      The name of the image as being referred to from the message content body (eg. 'embeddedimage'). If not provided, the name of the given
@@ -729,88 +754,129 @@ public class EmailBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #asReplyTo(MimeMessage, boolean)} with replyToAll set to <code>true</code>.
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
+	 * template.
 	 */
 	public EmailBuilder asReplyTo(@Nonnull final Email email) {
-		return asReplyTo(EmailConverter.emailToMimeMessage(email), true);
+		return asReplyTo(EmailConverter.emailToMimeMessage(email), false, DEFAULT_QUOTING_MARKUP);
 	}
 	
 	/**
-	 * Delegates to {@link #asReplyTo(MimeMessage, boolean)}.
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code> and a default HTML quoting
+	 * template.
 	 */
-	public EmailBuilder asReplyTo(@Nonnull final Email email, boolean repyToAll) {
-		return asReplyTo(EmailConverter.emailToMimeMessage(email), repyToAll);
+	public EmailBuilder asReplyToAll(@Nonnull final Email email) {
+		return asReplyTo(EmailConverter.emailToMimeMessage(email), true, DEFAULT_QUOTING_MARKUP);
 	}
 	
 	/**
-	 * Delegates to {@link #asReplyTo(MimeMessage, boolean)} with replyToAll set to <code>true</code>.
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code>.
+	 *
+	 * @see EmailBuilder#DEFAULT_QUOTING_MARKUP
+	 */
+	public EmailBuilder asReplyToAll(@Nonnull Email email, @Nonnull String customQuotingTemplate) {
+		return asReplyTo(EmailConverter.emailToMimeMessage(email), true, customQuotingTemplate);
+	}
+	
+	/**
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
+	 */
+	public EmailBuilder asReplyTo(@Nonnull Email email, @Nonnull String customQuotingTemplate) {
+		return asReplyTo(EmailConverter.emailToMimeMessage(email), false, customQuotingTemplate);
+	}
+	
+	/**
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
+	 * template.
 	 */
 	public EmailBuilder asReplyTo(@Nonnull MimeMessage email) {
-		return asReplyTo(email, true);
+		return asReplyTo(email, false, DEFAULT_QUOTING_MARKUP);
 	}
 	
 	/**
-	 * Primes the email with all subject, headers and recipients needed for a valid RFC reply.
-	 * <p>
-	 * <strong>Note:</strong> replaces subject and body (text replaced with "> text" and HTML
-	 * replaced {@code <blockquote>} if provided).
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code>.
 	 *
+	 * @see EmailBuilder#DEFAULT_QUOTING_MARKUP
+	 */
+	public EmailBuilder asReplyToAll(@Nonnull MimeMessage email, @Nonnull String customQuotingTemplate) {
+		return asReplyTo(email, true, customQuotingTemplate);
+	}
+	
+	/**
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
+	 */
+	public EmailBuilder asReplyTo(@Nonnull MimeMessage email, @Nonnull String customQuotingTemplate) {
+		return asReplyTo(email, false, customQuotingTemplate);
+	}
+	
+	/**
+	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code> and a default HTML quoting
+	 * template.
+	 *
+	 * @see EmailBuilder#DEFAULT_QUOTING_MARKUP
+	 */
+	public EmailBuilder asReplyToAll(@Nonnull MimeMessage email) {
+		return asReplyTo(email, true, DEFAULT_QUOTING_MARKUP);
+	}
+	
+	/**
+	 * Primes the email with all subject, headers, originally embedded images and recipients needed for a valid RFC reply.
+	 * <p>
+	 * <strong>Note:</strong> replaces subject with "Re: &lt;original subject&gt;" (but never nested).<br>
+	 * <p>
+	 * <strong>Note:</strong> Make sure you set the content before using this API or else the quoted content is lost. Replaces body (text is replaced
+	 * with "> text" and HTML is replaced with the provided or default quoting markup.
+	 *
+	 * @param htmlTemplate A valid HTML that contains the string {@code "%s"}. Be advised that HTML is very limited in emails.
 	 * @see <a href="https://javaee.github.io/javamail/FAQ#reply">Official JavaMail FAQ on replying</a>
 	 * @see javax.mail.internet.MimeMessage#reply(boolean)
 	 */
-	public EmailBuilder asReplyTo(@Nonnull MimeMessage emailMessage, boolean repyToAll) {
+	public EmailBuilder asReplyTo(@Nonnull MimeMessage emailMessage, boolean repyToAll, @Nonnull String htmlTemplate) {
+		final MimeMessage replyMessage;
 		try {
-			final MimeMessage replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
+			replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
 			replyMessage.setText("ignore");
 			replyMessage.setFrom("ignore@ignore.ignore");
-			
-			final Email original = EmailConverter.mimeMessageToEmail(emailMessage);
-			final Email generatedReply = EmailConverter.mimeMessageToEmail(replyMessage);
-			
-			return this
-					.subject(generatedReply.getSubject())
-					.to(generatedReply.getRecipients())
-					.text(valueNullOrEmpty(original.getText()) ? null : original.getText().replaceAll("(?m)^", "> "))
-					.textHTML(valueNullOrEmpty(original.getTextHTML()) ? null : "<blockquote>" + original.getTextHTML() + "</blockquote>")
-					.withHeaders(generatedReply.getHeaders());
 		} catch (MessagingException e) {
 			throw new EmailException("was unable to parse mimemessage to produce a reply for", e);
 		}
+		
+		final Email repliedTo = EmailConverter.mimeMessageToEmail(emailMessage);
+		final Email generatedReply = EmailConverter.mimeMessageToEmail(replyMessage);
+		
+		return this
+				.subject(generatedReply.getSubject())
+				.to(generatedReply.getRecipients())
+				.text(valueNullOrEmpty(repliedTo.getText()) ? text : text + repliedTo.getText().replaceAll("(?m)^", "> "))
+				.textHTML(valueNullOrEmpty(repliedTo.getTextHTML()) ? textHTML : textHTML + format(htmlTemplate, repliedTo.getTextHTML()))
+				.withHeaders(generatedReply.getHeaders())
+				.withEmbeddedImages(repliedTo.getEmbeddedImages());
 	}
 	
 	/**
-	 * Delegates to {@link #asForwardOf(MimeMessage, boolean)} with inline set to <code>true</code>.
+	 * Delegates to {@link #asForwardOf(MimeMessage)}.
+	 *
+	 * @see EmailConverter#emailToMimeMessage(Email)
 	 */
 	public EmailBuilder asForwardOf(@Nonnull final Email email) {
-		return asForwardOf(EmailConverter.emailToMimeMessage(email), true);
+		return asForwardOf(EmailConverter.emailToMimeMessage(email));
 	}
 	
 	/**
-	 * Delegates to {@link #asForwardOf(MimeMessage, boolean)}.
-	 */
-	public EmailBuilder asForwardOf(@Nonnull final Email email, boolean inline) {
-		return asForwardOf(EmailConverter.emailToMimeMessage(email), inline);
-	}
-	
-	/**
-	 * Delegates to {@link #asForwardOf(MimeMessage, boolean)} with inline set to <code>true</code>.
-	 */
-	public EmailBuilder asForwardOf(@Nonnull MimeMessage email) {
-		return asForwardOf(email, true);
-	}
-	
-	/**
-	 * Primes the email with all subject, headers needed for a valid RFC forward.
+	 * Primes the email to build with proper subject and inline forwarded email needed for a valid RFC forward.
 	 * <p>
-	 * Note: replaces subject.
+	 * <strong>Note</strong>: replaces subject with "Fwd: &lt;original subject&gt;" (nesting enabled).
+	 * <p>
+	 * <strong>Note</strong>: {@code Content-Disposition} will be left empty so the receiving email client can decide how to handle display (most will show
+	 * inline, some will show as attachment instead).
 	 *
-	 * @param inline Indicates whether to include the original body as inline content on the new body or as attachment
 	 * @see <a href="https://javaee.github.io/javamail/FAQ#forward">Official JavaMail FAQ on forwarding</a>
+	 * @see <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/">More reading
+	 * material</a>
 	 */
-	public EmailBuilder asForwardOf(@Nonnull MimeMessage emailMessage, final boolean inline) {
-		
-		
-		return this;
+	public EmailBuilder asForwardOf(@Nonnull MimeMessage emailMessage) {
+		this.emailToForward = emailMessage;
+		return subject("Fwd: " + MimeMessageParser.parseSubject(emailMessage));
 	}
 	
 	/*
@@ -891,5 +957,9 @@ public class EmailBuilder {
 	
 	public Recipient getReturnReceiptTo() {
 		return returnReceiptTo;
+	}
+	
+	public MimeMessage getEmailToForward() {
+		return emailToForward;
 	}
 }

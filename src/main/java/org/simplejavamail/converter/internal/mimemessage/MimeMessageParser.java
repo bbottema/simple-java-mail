@@ -1,234 +1,214 @@
-/*
- * <strong>heavily modified version based on org.apache.commons.mail.util.MimeMessageParser.html</strong>
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.simplejavamail.converter.internal.mimemessage;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
-import javax.mail.*;
-import javax.mail.internet.*;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.mail.Address;
+import javax.mail.Header;
+import javax.mail.Message.RecipientType;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Part;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.ContentType;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimePart;
+import javax.mail.internet.MimeUtility;
+import javax.mail.internet.ParseException;
 import javax.mail.util.ByteArrayDataSource;
-import java.io.*;
-import java.util.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
- * <strong>heavily modified version based on org.apache.commons.mail.util.MimeMessageParser.html</strong>
  * Parses a MimeMessage and stores the individual parts such a plain text, HTML text and attachments.
  *
  * @version current: MimeMessageParser.java 2016-02-25 Benny Bottema
  */
 public class MimeMessageParser {
-
-	private static final List<String> DEFAULT_HEADERS = new ArrayList<>();
+	
+	/**
+	 * Contains the headers we will ignore, because either we set the information differently (such as Subject) or we recognize the header as
+	 * interfering or obsolete for new emails).
+	 */
+	private static final List<String> HEADERS_TO_IGNORE = new ArrayList<>();
 
 	static {
 		// taken from: protected javax.mail.internet.InternetHeaders constructor
 		/*
 		 * When extracting information to create an Email, we're NOT interested in the following headers:
          */
-		DEFAULT_HEADERS.add("Return-Path");
-		DEFAULT_HEADERS.add("Received");
-		DEFAULT_HEADERS.add("Resent-Date");
-		DEFAULT_HEADERS.add("Resent-From");
-		DEFAULT_HEADERS.add("Resent-Sender");
-		DEFAULT_HEADERS.add("Resent-To");
-		DEFAULT_HEADERS.add("Resent-Cc");
-		DEFAULT_HEADERS.add("Resent-Bcc");
-		DEFAULT_HEADERS.add("Resent-Message-Id");
-		DEFAULT_HEADERS.add("Date");
-		DEFAULT_HEADERS.add("From");
-		DEFAULT_HEADERS.add("Sender");
-		DEFAULT_HEADERS.add("Reply-To");
-		DEFAULT_HEADERS.add("To");
-		DEFAULT_HEADERS.add("Cc");
-		DEFAULT_HEADERS.add("Bcc");
-		DEFAULT_HEADERS.add("Message-Id");
+		// HEADERS_TO_IGNORE.add("Return-Path"); // bounceTo address
+		HEADERS_TO_IGNORE.add("Received");
+		HEADERS_TO_IGNORE.add("Resent-Date");
+		HEADERS_TO_IGNORE.add("Resent-From");
+		HEADERS_TO_IGNORE.add("Resent-Sender");
+		HEADERS_TO_IGNORE.add("Resent-To");
+		HEADERS_TO_IGNORE.add("Resent-Cc");
+		HEADERS_TO_IGNORE.add("Resent-Bcc");
+		HEADERS_TO_IGNORE.add("Resent-Message-Id");
+		HEADERS_TO_IGNORE.add("Date");
+		HEADERS_TO_IGNORE.add("From");
+		HEADERS_TO_IGNORE.add("Sender");
+		HEADERS_TO_IGNORE.add("Reply-To");
+		HEADERS_TO_IGNORE.add("To");
+		HEADERS_TO_IGNORE.add("Cc");
+		HEADERS_TO_IGNORE.add("Bcc");
+		HEADERS_TO_IGNORE.add("Message-Id");
 		// The next two are needed for replying to
-		// DEFAULT_HEADERS.add("In-Reply-To");
-		// DEFAULT_HEADERS.add("References");
-		DEFAULT_HEADERS.add("Subject");
-		DEFAULT_HEADERS.add("Comments");
-		DEFAULT_HEADERS.add("Keywords");
-		DEFAULT_HEADERS.add("Errors-To");
-		DEFAULT_HEADERS.add("MIME-Version");
-		DEFAULT_HEADERS.add("Content-Type");
-		DEFAULT_HEADERS.add("Content-Transfer-Encoding");
-		DEFAULT_HEADERS.add("Content-MD5");
-		DEFAULT_HEADERS.add(":");
-		DEFAULT_HEADERS.add("Content-Length");
-		DEFAULT_HEADERS.add("Status");
+		// HEADERS_TO_IGNORE.add("In-Reply-To");
+		// HEADERS_TO_IGNORE.add("References");
+		HEADERS_TO_IGNORE.add("Subject");
+		HEADERS_TO_IGNORE.add("Comments");
+		HEADERS_TO_IGNORE.add("Keywords");
+		HEADERS_TO_IGNORE.add("Errors-To");
+		HEADERS_TO_IGNORE.add("MIME-Version");
+		HEADERS_TO_IGNORE.add("Content-Type");
+		HEADERS_TO_IGNORE.add("Content-Transfer-Encoding");
+		HEADERS_TO_IGNORE.add("Content-MD5");
+		HEADERS_TO_IGNORE.add(":");
+		HEADERS_TO_IGNORE.add("Content-Length");
+		HEADERS_TO_IGNORE.add("Status");
 		// extra headers that should be ignored, which may originate from nested attachments
-		DEFAULT_HEADERS.add("Content-Disposition");
-		DEFAULT_HEADERS.add("size");
-		DEFAULT_HEADERS.add("filename");
-		DEFAULT_HEADERS.add("Content-ID");
-		DEFAULT_HEADERS.add("name");
-		DEFAULT_HEADERS.add("From");
-	}
-
-	private final Map<String, DataSource> attachmentList = new HashMap<>();
-
-	private final Map<String, DataSource> cidMap = new HashMap<>();
-
-	private final Map<String, Object> headers = new HashMap<>();
-
-	private final MimeMessage mimeMessage;
-
-	private String plainContent;
-
-	private String htmlContent;
-
-	/**
-	 * Constructs an instance with the MimeMessage to be extracted.
-	 *
-	 * @param message the message to parse
-	 */
-	public MimeMessageParser(final MimeMessage message) {
-		this.mimeMessage = message;
-	}
-
-	/**
-	 * Does the actual extraction.
-	 *
-	 * @return this instance
-	 */
-	public MimeMessageParser parse()
-			throws MessagingException, IOException {
-		this.parse(mimeMessage);
-		return this;
-	}
-
-	/**
-	 * @return the 'to' recipients of the message
-	 */
-	public List<InternetAddress> getTo()
-			throws MessagingException {
-		return getInternetAddresses(this.mimeMessage.getRecipients(Message.RecipientType.TO));
-	}
-
-	/**
-	 * @return the 'cc' recipients of the message
-	 */
-	public List<InternetAddress> getCc()
-			throws MessagingException {
-		return getInternetAddresses(this.mimeMessage.getRecipients(Message.RecipientType.CC));
-	}
-
-	/**
-	 * @return the 'bcc' recipients of the message
-	 */
-	public List<InternetAddress> getBcc()
-			throws MessagingException {
-		return getInternetAddresses(this.mimeMessage.getRecipients(Message.RecipientType.BCC));
-	}
-
-	private static List<InternetAddress> getInternetAddresses(final Address[] recipients) {
-		final List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<Address>();
-		final List<InternetAddress> mailAddresses = new ArrayList<>();
-		for (final Address address : addresses) {
-			if (address instanceof InternetAddress) {
-				mailAddresses.add((InternetAddress) address);
-			}
-		}
-		return mailAddresses;
-	}
-
-	/**
-	 * @return the 'from' field of the message
-	 */
-	public InternetAddress getFrom()
-			throws MessagingException {
-		final Address[] addresses = this.mimeMessage.getFrom();
-		if (addresses == null || addresses.length == 0) {
-			return null;
-		}
-		return (InternetAddress) addresses[0];
-	}
-
-	/**
-	 * @return the 'replyTo' address of the email
-	 */
-	public InternetAddress getReplyTo()
-			throws MessagingException {
-		final Address[] addresses = this.mimeMessage.getReplyTo();
-		if (addresses == null || addresses.length == 0) {
-			return null;
-		}
-		return (InternetAddress) addresses[0];
-	}
-
-	/**
-	 * @return the mail subject
-	 */
-	public String getSubject()
-			throws MessagingException {
-		return this.mimeMessage.getSubject();
+		HEADERS_TO_IGNORE.add("Content-Disposition");
+		HEADERS_TO_IGNORE.add("size");
+		HEADERS_TO_IGNORE.add("filename");
+		HEADERS_TO_IGNORE.add("Content-ID");
+		HEADERS_TO_IGNORE.add("name");
+		HEADERS_TO_IGNORE.add("From");
 	}
 
 	/**
 	 * Extracts the content of a MimeMessage recursively.
-	 *
-	 * @param part the current MimePart
-	 * @throws MessagingException parsing the MimeMessage failed
-	 * @throws IOException        parsing the MimeMessage failed
 	 */
-	private void parse(final MimePart part)
-			throws MessagingException, IOException {
-		extractCustomUserHeaders(part);
-
-		if (isMimeType(part, "text/plain") && plainContent == null
-				&& !Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
-			plainContent = (String) part.getContent();
+	public static ParsedMimeMessageComponents parseMimeMessage(@Nonnull final MimeMessage mimeMessage) {
+		ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
+		parsedComponents.messageId = parseMessageId(mimeMessage);
+		parsedComponents.subject = parseSubject(mimeMessage);
+		parsedComponents.toAddresses.addAll(parseToAddresses(mimeMessage));
+		parsedComponents.ccAddresses.addAll(parseCcAddresses(mimeMessage));
+		parsedComponents.bccAddresses.addAll(parseBccAddresses(mimeMessage));
+		parsedComponents.fromAddress = parseFromAddress(mimeMessage);
+		parsedComponents.replyToAddresses = parseReplyToAddresses(mimeMessage);
+		parseMimePartTree(mimeMessage, parsedComponents);
+		return parsedComponents;
+	}
+	
+	private static void parseMimePartTree(@Nonnull final MimePart currentPart, @Nonnull final ParsedMimeMessageComponents parsedComponents) {
+		for (Header header : retrieveAllHeaders(currentPart)) {
+			parseHeader(header, parsedComponents);
+		}
+		
+		final String disposition = parseDisposition(currentPart);
+		
+		if (isMimeType(currentPart, "text/plain") && parsedComponents.plainContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+			parsedComponents.plainContent = parseContent(currentPart);
+		} else if (isMimeType(currentPart, "text/html") && parsedComponents.htmlContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+			parsedComponents.htmlContent = parseContent(currentPart);
+		} else if (isMimeType(currentPart, "multipart/*")) {
+			final Multipart mp = parseContent(currentPart);
+			for (int i = 0, count = countBodyParts(mp); i < count; i++) {
+				parseMimePartTree(getBodyPartAtIndex(mp, i), parsedComponents);
+			}
 		} else {
-			if (isMimeType(part, "text/html") && htmlContent == null
-					&& !Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
-				htmlContent = (String) part.getContent();
-			} else {
-				if (isMimeType(part, "multipart/*")) {
-					final Multipart mp = (Multipart) part.getContent();
-					final int count = mp.getCount();
-
-					// iterate over all MimeBodyPart
-					for (int i = 0; i < count; i++) {
-						parse((MimeBodyPart) mp.getBodyPart(i));
-					}
+			final DataSource ds = createDataSource(currentPart);
+			// If the diposition is not provided, the part should be treated as attachment
+			if (disposition == null || Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+				parsedComponents.attachmentList.put(parseResourceName(parseContentID(currentPart), parseFileName(currentPart)), ds);
+			} else if (Part.INLINE.equalsIgnoreCase(disposition)) {
+				if (parseContentID(currentPart) != null) {
+					parsedComponents.cidMap.put(parseContentID(currentPart), ds);
 				} else {
-					final DataSource ds = createDataSource(part);
-					// If the diposition is not provided, the part should be treated as attachment
-					if (part.getDisposition() == null || Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
-						this.attachmentList.put(parseResourceName(part.getContentID(), part.getFileName()), ds);
-					} else if (Part.INLINE.equalsIgnoreCase(part.getDisposition())) {
-						if (part.getContentID() != null) {
-							this.cidMap.put(part.getContentID(), ds);
-						} else {
-							// contentID missing -> treat as standard attachment
-							this.attachmentList.put(parseResourceName(null, part.getFileName()), ds);
-						}
-					} else {
-						throw new IllegalStateException("invalid attachment type");
-					}
+					// contentID missing -> treat as standard attachment
+					parsedComponents.attachmentList.put(parseResourceName(null, parseFileName(currentPart)), ds);
 				}
+			} else {
+				throw new IllegalStateException("invalid attachment type");
 			}
 		}
 	}
-
-	private static String parseResourceName(final String contentID, final String fileName) {
+	
+	private static void parseHeader(Header header, @Nonnull ParsedMimeMessageComponents parsedComponents) {
+		if (header.getName().equals("Disposition-Notification-To")) {
+			parsedComponents.dispositionNotificationTo = createAddress(header, "Disposition-Notification-To");
+		} else if (header.getName().equals("Return-Receipt-To")) {
+			parsedComponents.returnReceiptTo = createAddress(header, "Return-Receipt-To");
+		} else if (header.getName().equals("Return-Path")) {
+			parsedComponents.bounceToAddress = createAddress(header, "Return-Path");
+		} else if (!HEADERS_TO_IGNORE.contains(header.getName())) {
+			parsedComponents.headers.put(header.getName(), header.getValue());
+		} else {
+			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
+		}
+	}
+	
+	public static String parseFileName(@Nonnull Part currentPart) {
+		try {
+			return currentPart.getFileName();
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_FILENAME, e);
+		}
+	}
+	
+	@Nullable
+	public static String parseContentID(@Nonnull MimePart currentPart) {
+		try {
+			return currentPart.getContentID();
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_ID, e);
+		}
+	}
+	
+	public static MimeBodyPart getBodyPartAtIndex(Multipart parentMultiPart, int index) {
+		try {
+			return (MimeBodyPart) parentMultiPart.getBodyPart(index);
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_GETTING_BODYPART_AT_INDEX, index), e);
+		}
+	}
+	
+	public static int countBodyParts(Multipart mp) {
+		try {
+			return mp.getCount();
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_MULTIPART_COUNT, e);
+		}
+	}
+	
+	public static <T> T parseContent(@Nonnull MimePart currentPart) {
+		try {
+			//noinspection unchecked
+			return (T) currentPart.getContent();
+		} catch (IOException | MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CONTENT, e);
+		}
+	}
+	
+	public static String parseDisposition(@Nonnull MimePart currentPart) {
+		try {
+			return currentPart.getDisposition();
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_DISPOSITION, e);
+		}
+	}
+	
+	@Nonnull
+	private static String parseResourceName(@Nullable final String contentID, @Nonnull final String fileName) {
 		String extension = "";
 		if (!valueNullOrEmpty(fileName) && fileName.contains(".")) {
 			extension = fileName.substring(fileName.lastIndexOf("."), fileName.length());
@@ -239,167 +219,286 @@ public class MimeMessageParser {
 			return fileName;
 		}
 	}
-
-	private void extractCustomUserHeaders(final MimePart part)
-			throws MessagingException {
-		final Enumeration e = part.getAllHeaders();
-		while (e.hasMoreElements()) {
-			final Object headerObj = e.nextElement();
-			if (headerObj instanceof Header) {
-				final Header header = (Header) headerObj;
-				if (isCustomUserHeader(header)) {
-					headers.put(header.getName(), header.getValue());
-				}
-			}
+	
+	@Nonnull
+	public static List<Header> retrieveAllHeaders(@Nonnull MimePart part) {
+		try {
+			return Collections.list(part.getAllHeaders());
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_ALL_HEADERS, e);
 		}
 	}
-
-	private static boolean isCustomUserHeader(final Header header) {
-		return !DEFAULT_HEADERS.contains(header.getName());
+	
+	@Nonnull
+	private static InternetAddress createAddress(Header header, String typeOfAddress) {
+		try {
+			return new InternetAddress(header.getValue());
+		} catch (AddressException e) {
+			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_PARSING_ADDRESS, typeOfAddress), e);
+		}
 	}
-
+	
 	/**
 	 * Checks whether the MimePart contains an object of the given mime type.
 	 *
 	 * @param part     the current MimePart
 	 * @param mimeType the mime type to check
 	 * @return {@code true} if the MimePart matches the given mime type, {@code false} otherwise
-	 * @throws MessagingException parsing the MimeMessage failed
 	 */
-	private static boolean isMimeType(final MimePart part, final String mimeType)
-			throws MessagingException {
+	public static boolean isMimeType(@Nonnull final MimePart part, @Nonnull final String mimeType) {
 		// Do not use part.isMimeType(String) as it is broken for MimeBodyPart
 		// and does not really check the actual content type.
 
 		try {
-			final ContentType ct = new ContentType(part.getDataHandler().getContentType());
-			return ct.match(mimeType);
+			final ContentType contentType = new ContentType(retrieveDataHandler(part).getContentType());
+			return contentType.match(mimeType);
 		} catch (final ParseException ex) {
-			return part.getContentType().equalsIgnoreCase(mimeType);
+			return retrieveContentType(part).equalsIgnoreCase(mimeType);
 		}
 	}
-
+	
+	public static String retrieveContentType(@Nonnull MimePart part) {
+		try {
+			return part.getContentType();
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_TYPE, e);
+		}
+	}
+	
+	public static DataHandler retrieveDataHandler(@Nonnull MimePart part) {
+		try {
+			return part.getDataHandler();
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_DATAHANDLER, e);
+		}
+	}
+	
 	/**
 	 * Parses the MimePart to create a DataSource.
 	 *
 	 * @param part the current part to be processed
 	 * @return the DataSource
-	 * @throws MessagingException creating the DataSource failed
-	 * @throws IOException        creating the DataSource failed
 	 */
-	private static DataSource createDataSource(final MimePart part)
-			throws MessagingException, IOException {
-		final DataHandler dataHandler = part.getDataHandler();
+	@Nonnull
+	private static DataSource createDataSource(@Nonnull final MimePart part) {
+		final DataHandler dataHandler = retrieveDataHandler(part);
 		final DataSource dataSource = dataHandler.getDataSource();
-		final String contentType = getBaseMimeType(dataSource.getContentType());
-		final byte[] content = MimeMessageParser.getContent(dataSource.getInputStream());
+		final String contentType = parseBaseMimeType(dataSource.getContentType());
+		final byte[] content = readContent(retrieveInputStream(dataSource));
 		final ByteArrayDataSource result = new ByteArrayDataSource(content, contentType);
-		final String dataSourceName = getDataSourceName(part, dataSource);
+		final String dataSourceName = parseDataSourceName(part, dataSource);
 
 		result.setName(dataSourceName);
 		return result;
 	}
-
-	/**
-	 * Determines the name of the data source if it is not already set.
-	 *
-	 * @param part       the mail part
-	 * @param dataSource the data source
-	 * @return the name of the data source or {@code null} if no name can be determined
-	 * @throws MessagingException           accessing the part failed
-	 * @throws UnsupportedEncodingException decoding the text failed
-	 */
-	private static String getDataSourceName(final Part part, final DataSource dataSource)
-			throws MessagingException, UnsupportedEncodingException {
-		String result = dataSource.getName();
-
-		if (result == null || result.length() == 0) {
-			result = part.getFileName();
+	
+	public static InputStream retrieveInputStream(DataSource dataSource) {
+		try {
+			return dataSource.getInputStream();
+		} catch (IOException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_INPUTSTREAM, e);
 		}
-
-		if (result != null && result.length() > 0) {
-			result = MimeUtility.decodeText(result);
-		} else {
-			result = null;
-		}
-
-		return result;
 	}
-
-	/**
-	 * Read the content of the input stream.
-	 *
-	 * @param is the input stream to process
-	 * @return the content of the input stream
-	 * @throws IOException reading the input stream failed
-	 */
-	private static byte[] getContent(final InputStream is)
-			throws IOException {
-		int ch;
-		final byte[] result;
-
-		final ByteArrayOutputStream os = new ByteArrayOutputStream();
+	
+	@Nullable
+	private static String parseDataSourceName(@Nonnull final Part part, @Nonnull final DataSource dataSource) {
+		String result = !valueNullOrEmpty(dataSource.getName()) ? dataSource.getName() : parseFileName(part);
+		return !valueNullOrEmpty(result) ? decodeText(result) : null;
+	}
+	
+	@Nonnull
+	private static String decodeText(@Nonnull String result) {
+		try {
+			return MimeUtility.decodeText(result);
+		} catch (UnsupportedEncodingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_DECODING_TEXT, e);
+		}
+	}
+	
+	@Nonnull
+	private static byte[] readContent(@Nonnull final InputStream is) {
 		final BufferedInputStream isReader = new BufferedInputStream(is);
+		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		final BufferedOutputStream osWriter = new BufferedOutputStream(os);
-
-		while ((ch = isReader.read()) != -1) {
-			osWriter.write(ch);
+		
+		int ch;
+		try {
+			while ((ch = isReader.read()) != -1) {
+				osWriter.write(ch);
+			}
+			osWriter.flush();
+			final byte[] result = os.toByteArray();
+			osWriter.close();
+			return result;
+		} catch (IOException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_READING_CONTENT, e);
 		}
-
-		osWriter.flush();
-		result = os.toByteArray();
-		osWriter.close();
-
-		return result;
 	}
 
 	/**
-	 * Parses the mimeType.
-	 *
 	 * @param fullMimeType the mime type from the mail api
-	 * @return the real mime type
+	 * @return The real mime type
 	 */
-	private static String getBaseMimeType(final String fullMimeType) {
+	@Nonnull
+	private static String parseBaseMimeType(@Nonnull final String fullMimeType) {
 		final int pos = fullMimeType.indexOf(';');
 		if (pos >= 0) {
 			return fullMimeType.substring(0, pos);
 		}
 		return fullMimeType;
 	}
-
-	/**
-	 * @return {@link #cidMap}
-	 */
-	public Map<String, DataSource> getCidMap() {
-		return cidMap;
+	
+	
+	@Nonnull
+	public static List<InternetAddress> parseToAddresses(@Nonnull MimeMessage mimeMessage) {
+		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.TO));
 	}
-
-	/**
-	 * @return {@link #headers}
-	 */
-	public Map<String, Object> getHeaders() {
-		return headers;
+	
+	@Nonnull
+	public static List<InternetAddress> parseCcAddresses(@Nonnull MimeMessage mimeMessage) {
+		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.CC));
 	}
-
-	/**
-	 * @return {@link #plainContent}
-	 */
-	public String getPlainContent() {
-		return plainContent;
+	
+	@Nonnull
+	public static List<InternetAddress> parseBccAddresses(@Nonnull MimeMessage mimeMessage) {
+		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.BCC));
 	}
-
-	/**
-	 * @return {@link #attachmentList}
-	 */
-	public Map<String, DataSource> getAttachmentList() {
-		return attachmentList;
+	
+	@Nullable
+	public static Address[] retrieveRecipients(@Nonnull MimeMessage mimeMessage, RecipientType recipientType) {
+		try {
+			return mimeMessage.getRecipients(recipientType);
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_GETTING_RECIPIENTS, recipientType), e);
+		}
 	}
-
-	/**
-	 * @return {@link #htmlContent}
-	 */
-	public String getHtmlContent() {
-		return htmlContent;
+	
+	@Nonnull
+	private static List<InternetAddress> parseInternetAddresses(@Nullable final Address[] recipients) {
+		final List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<Address>();
+		final List<InternetAddress> mailAddresses = new ArrayList<>();
+		for (final Address address : addresses) {
+			if (address instanceof InternetAddress) {
+				mailAddresses.add((InternetAddress) address);
+			}
+		}
+		return mailAddresses;
 	}
-
+	
+	@Nullable
+	public static InternetAddress parseFromAddress(@Nonnull MimeMessage mimeMessage) {
+		try {
+			final Address[] addresses = mimeMessage.getFrom();
+			return (addresses == null || addresses.length == 0) ? null : (InternetAddress) addresses[0];
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_FROMADDRESS, e);
+		}
+	}
+	
+	@Nullable
+	public static InternetAddress parseReplyToAddresses(@Nonnull MimeMessage mimeMessage) {
+		try {
+			final Address[] addresses = mimeMessage.getReplyTo();
+			return (addresses == null || addresses.length == 0) ? null : (InternetAddress) addresses[0];
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_REPLY_TO_ADDRESSES, e);
+		}
+	}
+	
+	@Nullable
+	public static String parseSubject(@Nonnull MimeMessage mimeMessage) {
+		try {
+			return mimeMessage.getSubject();
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_SUBJECT, e);
+		}
+	}
+	
+	
+	@Nullable
+	public static String parseMessageId(@Nonnull MimeMessage mimeMessage) {
+		try {
+			return mimeMessage.getMessageID();
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_MESSAGE_ID, e);
+		}
+	}
+	
+	public static class ParsedMimeMessageComponents {
+		private final Map<String, DataSource> attachmentList = new HashMap<>();
+		private final Map<String, DataSource> cidMap = new HashMap<>();
+		private final Map<String, Object> headers = new HashMap<>();
+		private final List<InternetAddress> toAddresses = new ArrayList<>();
+		private final List<InternetAddress> ccAddresses = new ArrayList<>();
+		private final List<InternetAddress> bccAddresses = new ArrayList<>();
+		private String messageId;
+		private String subject;
+		private InternetAddress fromAddress;
+		private InternetAddress replyToAddresses;
+		private InternetAddress dispositionNotificationTo;
+		private InternetAddress returnReceiptTo;
+		private InternetAddress bounceToAddress;
+		private String plainContent;
+		private String htmlContent;
+		
+		public String getMessageId() {
+			return messageId;
+		}
+		
+		public Map<String, DataSource> getAttachmentList() {
+			return attachmentList;
+		}
+		
+		public Map<String, DataSource> getCidMap() {
+			return cidMap;
+		}
+		
+		public Map<String, Object> getHeaders() {
+			return headers;
+		}
+		
+		public List<InternetAddress> getToAddresses() {
+			return toAddresses;
+		}
+		
+		public List<InternetAddress> getCcAddresses() {
+			return ccAddresses;
+		}
+		
+		public List<InternetAddress> getBccAddresses() {
+			return bccAddresses;
+		}
+		
+		public String getSubject() {
+			return subject;
+		}
+		
+		public InternetAddress getFromAddress() {
+			return fromAddress;
+		}
+		
+		public InternetAddress getReplyToAddresses() {
+			return replyToAddresses;
+		}
+		
+		public InternetAddress getDispositionNotificationTo() {
+			return dispositionNotificationTo;
+		}
+		
+		public InternetAddress getReturnReceiptTo() {
+			return returnReceiptTo;
+		}
+		
+		public InternetAddress getBounceToAddress() {
+			return bounceToAddress;
+		}
+		
+		public String getPlainContent() {
+			return plainContent;
+		}
+		
+		public String getHtmlContent() {
+			return htmlContent;
+		}
+	}
 }

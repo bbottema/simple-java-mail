@@ -89,19 +89,20 @@ public final class MimeMessageHelper {
 		setRecipients(email, message);
 		// fill multipart structure
 		setTexts(email, messageRoot.multipartAlternativeMessages);
+		configureForwarding(email, messageRoot.multipartRootMixed);
 		setEmbeddedImages(email, messageRoot.multipartRelated);
-		setAttachments(email, messageRoot.multipartRoot);
-		message.setContent(messageRoot.multipartRoot);
+		setAttachments(email, messageRoot.multipartRootMixed);
+		message.setContent(messageRoot.multipartRootMixed);
 		setHeaders(email, message);
 		message.setSentDate(new Date());
 
 		if (email.isApplyDKIMSignature()) {
 			return signMessageWithDKIM(message, email);
 		}
-
+		
 		return message;
 	}
-
+	
 	/**
 	 * Fills the {@link Message} instance with recipients from the {@link Email}.
 	 *
@@ -155,6 +156,24 @@ public final class MimeMessageHelper {
 			final MimeBodyPart messagePartHTML = new MimeBodyPart();
 			messagePartHTML.setContent(email.getTextHTML(), "text/html; charset=\"" + CHARACTER_ENCODING + "\"");
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
+		}
+	}
+	
+	/**
+	 * If provided, adds the {@code emailToForward} as a MimeBodyPart to the mixed multipart root.
+	 * <p>
+	 * <strong>Note:</strong> this is done without setting {@code Content-Disposition} so email clients can choose
+	 * how to display embedded forwards. Most client will show the forward as inline, some may show it as attachment.
+	 */
+	private static void configureForwarding(@Nonnull final Email email, @Nonnull final MimeMultipart multipartRootMixed) {
+		if (email.getEmailToForward() != null) {
+			try {
+				final BodyPart fordwardedMessage = new MimeBodyPart();
+				fordwardedMessage.setContent(email.getEmailToForward(), "message/rfc822");
+				multipartRootMixed.addBodyPart(fordwardedMessage);
+			} catch (MessagingException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -307,7 +326,7 @@ public final class MimeMessageHelper {
 			dkimSigner.setZParam(false);
 			return new DkimMessage(message, dkimSigner);
 		} catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException | MessagingException e) {
-			throw new MimeMessageException(MimeMessageException.INVALID_DOMAINKEY, e);
+			throw new MimeMessageParseException(MimeMessageParseException.INVALID_DOMAINKEY, e);
 		}
 	}
 
@@ -316,12 +335,13 @@ public final class MimeMessageHelper {
 	 * using JavaMail.<br> <br> The constructor creates a new email message constructed from {@link MimeMultipart} as follows:
 	 * <p/>
 	 * <pre>
-	 * - root
+	 * - mixed root
 	 * 	- related
 	 * 		- alternative
 	 * 			- mail tekst
 	 * 			- mail html tekst
 	 * 		- embedded images
+	 * 	- forwarded message
 	 * 	- attachments
 	 * </pre>
 	 *
@@ -329,7 +349,7 @@ public final class MimeMessageHelper {
 	 */
 	private static class MimeEmailMessageWrapper {
 
-		private final MimeMultipart multipartRoot;
+		private final MimeMultipart multipartRootMixed;
 
 		private final MimeMultipart multipartRelated;
 
@@ -337,21 +357,23 @@ public final class MimeMessageHelper {
 
 		/**
 		 * Creates an email skeleton structure, so that embedded images, attachments and (html) texts are being processed properly.
+		 *
+		 * Some more <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/.">helpful reading material</a>.
 		 */
 		MimeEmailMessageWrapper() {
-			multipartRoot = new MimeMultipart("mixed");
+			multipartRootMixed = new MimeMultipart("mixed");
 			final MimeBodyPart contentRelated = new MimeBodyPart();
 			multipartRelated = new MimeMultipart("related");
 			final MimeBodyPart contentAlternativeMessages = new MimeBodyPart();
 			multipartAlternativeMessages = new MimeMultipart("alternative");
 			try {
 				// construct mail structure
-				multipartRoot.addBodyPart(contentRelated);
+				multipartRootMixed.addBodyPart(contentRelated);
 				contentRelated.setContent(multipartRelated);
 				multipartRelated.addBodyPart(contentAlternativeMessages);
 				contentAlternativeMessages.setContent(multipartAlternativeMessages);
 			} catch (final MessagingException e) {
-				throw new MimeMessageException(e.getMessage(), e);
+				throw new MimeMessageParseException(e.getMessage(), e);
 			}
 		}
 

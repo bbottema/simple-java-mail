@@ -27,6 +27,9 @@ final class EqualsHelper {
 		if (email1.getText() != null ? !email1.getText().equals(email2.getText()) : email2.getText() != null) {
 			return false;
 		}
+		if (email1.getEmailToForward() != null ? email2.getEmailToForward() == null : email2.getEmailToForward() != null) {
+			return false;
+		}
 		if (email1.getTextHTML() != null ? !email1.getTextHTML().equals(email2.getTextHTML()) : email2.getTextHTML() != null) {
 			return false;
 		}

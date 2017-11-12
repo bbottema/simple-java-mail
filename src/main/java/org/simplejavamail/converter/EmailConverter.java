@@ -2,6 +2,7 @@ package org.simplejavamail.converter;
 
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.msgparser.OutlookMessageParser;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
@@ -14,7 +15,6 @@ import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
 import javax.mail.Session;
-import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
@@ -51,12 +51,9 @@ public final class EmailConverter {
 	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
 	 */
 	public static Email mimeMessageToEmail(@Nonnull final MimeMessage mimeMessage) {
+		checkNonEmptyArgument(mimeMessage, "mimeMessage");
 		final Email email = new Email(false);
-		try {
-			fillEmailFromMimeMessage(email, checkNonEmptyArgument(mimeMessage, "mimeMessage"));
-		} catch (MessagingException | IOException e) {
-			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_MIMEMESSAGE, e.getMessage()), e);
-		}
+		fillEmailFromMimeMessage(email, MimeMessageParser.parseMimeMessage(mimeMessage));
 		return email;
 	}
 
@@ -231,56 +228,51 @@ public final class EmailConverter {
 		Helpers
 	 */
 
-	private static void fillEmailFromMimeMessage(@Nonnull final Email email, @Nonnull final MimeMessage mimeMessage)
-			throws MessagingException, IOException {
+	private static void fillEmailFromMimeMessage(@Nonnull final Email email, @Nonnull final ParsedMimeMessageComponents parsed) {
 		checkNonEmptyArgument(email, "email");
-		checkNonEmptyArgument(mimeMessage, "mimeMessage");
-		final MimeMessageParser parser = new MimeMessageParser(mimeMessage).parse();
-		final InternetAddress from = parser.getFrom();
-		email.setFromAddress(from.getPersonal(), from.getAddress());
-		final InternetAddress replyTo = parser.getReplyTo();
-		email.setReplyToAddress(replyTo.getPersonal(), replyTo.getAddress());
-		for (final Map.Entry<String, Object> header : parser.getHeaders().entrySet()) {
-			if (!fillPredefinedHeader(email, header)) {
-				email.addHeader(header.getKey(), header.getValue());
-			}
+		checkNonEmptyArgument(parsed, "parsedMimeMessageComponents");
+		if (parsed.getFromAddress() != null) {
+			email.setFromAddress(parsed.getFromAddress().getPersonal(), parsed.getFromAddress().getAddress());
 		}
-		email.setId(mimeMessage.getMessageID());
-		for (final InternetAddress to : parser.getTo()) {
+		if (parsed.getReplyToAddresses() != null) {
+			email.setReplyToAddress(parsed.getReplyToAddresses().getPersonal(), parsed.getReplyToAddresses().getAddress());
+		}
+		for (final Map.Entry<String, Object> header : parsed.getHeaders().entrySet()) {
+			email.addHeader(header.getKey(), header.getValue());
+		}
+		InternetAddress dnTo = parsed.getDispositionNotificationTo();
+		if (dnTo != null) {
+			email.setDispositionNotificationTo(new Recipient(dnTo.getPersonal(), dnTo.getAddress(), null));
+		}
+		InternetAddress rrTo = parsed.getReturnReceiptTo();
+		if (rrTo != null) {
+			email.setReturnReceiptTo(new Recipient(rrTo.getPersonal(), rrTo.getAddress(), null));
+		}
+		InternetAddress bTo = parsed.getBounceToAddress();
+		if (bTo != null) {
+			email.setBounceToRecipient(new Recipient(bTo.getPersonal(), bTo.getAddress(), null));
+		}
+		email.setId(parsed.getMessageId());
+		for (final InternetAddress to : parsed.getToAddresses()) {
 			email.addNamedToRecipients(to.getPersonal(), to.getAddress());
 		}
 		//noinspection QuestionableName
-		for (final InternetAddress cc : parser.getCc()) {
+		for (final InternetAddress cc : parsed.getCcAddresses()) {
 			email.addNamedCcRecipients(cc.getPersonal(), cc.getAddress());
 		}
-		for (final InternetAddress bcc : parser.getBcc()) {
+		for (final InternetAddress bcc : parsed.getBccAddresses()) {
 			email.addNamedBccRecipients(bcc.getPersonal(), bcc.getAddress());
 		}
-		email.setSubject(parser.getSubject());
-		email.setText(parser.getPlainContent());
-		email.setTextHTML(parser.getHtmlContent());
-		for (final Map.Entry<String, DataSource> cid : parser.getCidMap().entrySet()) {
+		email.setSubject(parsed.getSubject() != null ? parsed.getSubject() : "");
+		email.setText(parsed.getPlainContent());
+		email.setTextHTML(parsed.getHtmlContent());
+		for (final Map.Entry<String, DataSource> cid : parsed.getCidMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
 			email.addEmbeddedImage(extractCID(cidName), cid.getValue());
 		}
-		for (final Map.Entry<String, DataSource> attachment : parser.getAttachmentList().entrySet()) {
+		for (final Map.Entry<String, DataSource> attachment : parsed.getAttachmentList().entrySet()) {
 			email.addAttachment(extractCID(attachment.getKey()), attachment.getValue());
 		}
-	}
-	
-	private static boolean fillPredefinedHeader(@Nonnull Email email, @Nonnull Map.Entry<String, Object> header) throws AddressException {
-		if (header.getKey().equals("Disposition-Notification-To")) {
-			email.setUseDispositionNotificationTo(true);
-			InternetAddress internetAddress = new InternetAddress((String) header.getValue());
-			email.setDispositionNotificationTo(new Recipient(internetAddress.getPersonal(), internetAddress.getAddress(), null));
-			return true;
-		} else if (header.getKey().equals("Return-Receipt-To")) {
-			email.setUseReturnReceiptTo(true);
-			InternetAddress internetAddress = new InternetAddress((String) header.getValue());
-			email.setReturnReceiptTo(new Recipient(internetAddress.getPersonal(), internetAddress.getAddress(), null));
-			return true;
-		}
-		return false;
 	}
 	
 	private static void fillEmailFromOutlookMessage(@Nonnull final Email email, @Nonnull final OutlookMessage outlookMessage) {

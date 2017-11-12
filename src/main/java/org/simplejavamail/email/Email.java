@@ -8,6 +8,7 @@ import javax.annotation.Nullable;
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.InputStream;
@@ -133,6 +134,11 @@ public class Email {
 	 * @see #useReturnReceiptTo
 	 */
 	private Recipient returnReceiptTo;
+	
+	/**
+	 * Holds a message that should be included in the new email as forwarded message.
+	 */
+	private MimeMessage emailToForward;
 
 	/*
 	DKIM properties
@@ -326,6 +332,13 @@ public class Email {
 	public void setReturnReceiptTo(Recipient returnReceiptTo) {
 		setUseReturnReceiptTo(true);
 		this.returnReceiptTo = returnReceiptTo;
+	}
+	
+	/**
+	 * Bean setter for {@link #emailToForward}.
+	 */
+	public void setEmailToForward(MimeMessage emailToForward) {
+		this.emailToForward = emailToForward;
 	}
 	
 	/**
@@ -643,6 +656,13 @@ public class Email {
 	}
 	
 	/**
+	 * Bean getter for {@link #emailToForward}.
+	 */
+	public MimeMessage getEmailToForward() {
+		return emailToForward;
+	}
+	
+	/**
 	 * Bean getter for {@link #text}.
 	 */
 	public String getText() {
@@ -748,6 +768,9 @@ public class Email {
 		if (!attachments.isEmpty()) {
 			s += ",\n\tattachments=" + attachments;
 		}
+		if (emailToForward != null) {
+			s += ",\n\tforwardingEmail=true";
+		}
 		s += "\n}";
 		return s;
 	}
@@ -776,6 +799,7 @@ public class Email {
 		useReturnReceiptTo = builder.isUseReturnReceiptTo();
 		dispositionNotificationTo = builder.getDispositionNotificationTo();
 		returnReceiptTo = builder.getReturnReceiptTo();
+		emailToForward = builder.getEmailToForward();
 		
 		if (useDispositionNotificationTo && valueNullOrEmpty(builder.getDispositionNotificationTo())) {
 			//noinspection IfMayBeConditional

@@ -135,7 +135,7 @@ public class MailerLiveTest {
 		
 		// send reply to initial mail
 		Email reply = new EmailBuilder()
-				.asReplyTo(assertSendingEmail(receivedEmail))
+				.asReplyToAll(assertSendingEmail(receivedEmail))
 				.from("dummy@domain.com")
 				.text("This is the reply")
 				.build();
@@ -167,7 +167,7 @@ public class MailerLiveTest {
 		
 		// send reply to initial mail
 		Email reply = new EmailBuilder()
-				.asReplyTo(assertSendingEmail(receivedEmail), false)
+				.asReplyTo(assertSendingEmail(receivedEmail))
 				.addHeader("References", "dummy-references")
 				.from("dummy@domain.com")
 				.text("This is the reply")
