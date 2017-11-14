@@ -455,66 +455,6 @@ public class Email {
 	}
 	
 	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address and recipient type (eg. {@link RecipientType#CC}).
-	 * <p>
-	 * The address string can be a comma/semicolon separated list and addresses can also be of the format {@code "name <address>"}.
-	 *
-	 * @param name    The name of the recipient.
-	 * @param address The emailadres of the recipient or delimited list of addresses, optionally with overriding names.
-	 * @param type    The type of receiver (eg. {@link RecipientType#CC}).
-	 * @see #recipients
-	 * @see Recipient
-	 * @see RecipientType
-	 * @deprecated Due to the increasing complexity of address combinations, in v5.0.0 this method will be removed in favor of
-	 * {@link #addNamedToRecipients(String, String...)},
-	 * {@link #addNamedCcRecipients(String, String...)} and {@link #addNamedBccRecipients(String, String...)}.
-	 */
-	@Deprecated
-	public void addRecipient(@Nullable final String name, @Nonnull final String address, @Nonnull final RecipientType type) {
-		checkNonEmptyArgument(address, "address");
-		checkNonEmptyArgument(type, "type");
-		addRecipients(name, type, address);
-	}
-	
-	/**
-	 * Adds a new {@link Recipient} to the list on account of name, address and recipient type (eg. {@link RecipientType#CC}).
-	 * <p>
-	 * The address string can be a comma/semicolon separated list and addresses can also be of the format {@code "name <address>"}.
-	 *
-	 * @param emailAddressList The emailadres of the recipient  or delimited list of addresses, optionally with overriding names.
-	 * @param type             The type of receiver (eg. {@link RecipientType#CC}).
-	 * @see #recipients
-	 * @see Recipient
-	 * @see RecipientType
-	 * @deprecated Due to the increasing complexity of address combinations, in v5.0.0 this method will be removed in favor of
-	 * {@link #addToRecipients(String...)}, {@link #addCcRecipients(String...)} and {@link #addBccRecipients(String...)}.
-	 */
-	@Deprecated
-	public void addRecipients(@Nonnull final String emailAddressList, @Nonnull final RecipientType type) {
-		checkNonEmptyArgument(type, "type");
-		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		addRecipients(null, type, emailAddressList);
-	}
-	
-	/**
-	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
-	 * <p>
-	 * The address strings can be a comma/semicolon separated lists, and addresses can also be of the format {@code "name <address>"}.
-	 *
-	 * @param recipientEmailAddressesToAdd The emailadresses of the recipients or delimited lists of addresses, optionally with overriding names.
-	 * @see #recipients
-	 * @see Recipient
-	 * @see RecipientType
-	 * @deprecated Due to the increasing complexity of address combinations, in v5.0.0 this method will be removed in favor of
-	 * {@link #addToRecipients(String...)}, {@link #addCcRecipients(String...)} and {@link #addBccRecipients(String...)}.
-	 */
-	@Deprecated
-	public void addRecipients(@Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
-		checkNonEmptyArgument(type, "type");
-		addRecipients(null, type, recipientEmailAddressesToAdd);
-	}
-
-	/**
 	 * Adds an embedded image (attachment type) to the email message and generates the necessary {@link DataSource} with the given byte data. Then
 	 * delegates to {@link #addEmbeddedImage(String, DataSource)}. At this point the datasource is actually a {@link ByteArrayDataSource}.
 	 *
