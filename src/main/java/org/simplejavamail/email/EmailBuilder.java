@@ -327,7 +327,6 @@ public class EmailBuilder {
 	/**
 	 * Prepends {@link #text}.
 	 */
-	// FIXME add tests
 	public EmailBuilder prependText(@Nonnull final String text) {
 		this.text = text + defaultTo(this.text, "");
 		return this;
@@ -336,7 +335,6 @@ public class EmailBuilder {
 	/**
 	 * Appends {@link #text}.
 	 */
-	// FIXME add tests
 	public EmailBuilder appendText(@Nonnull final String text) {
 		this.text = defaultTo(this.text, "") + text;
 		return this;
@@ -353,7 +351,6 @@ public class EmailBuilder {
 	/**
 	 * Prepends {@link #textHTML}.
 	 */
-	// FIXME add tests
 	public EmailBuilder prependTextHTML(@Nonnull final String textHTML) {
 		this.textHTML = textHTML + defaultTo(this.textHTML, "");
 		return this;
@@ -362,7 +359,6 @@ public class EmailBuilder {
 	/**
 	 * Appends {@link #textHTML}.
 	 */
-	// FIXME add tests
 	public EmailBuilder appendTextHTML(@Nonnull final String textHTML) {
 		this.textHTML = defaultTo(this.textHTML, "") + textHTML;
 		return this;

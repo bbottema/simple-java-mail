@@ -370,6 +370,86 @@ public class EmailBuilderTest {
 				.addAttachment(null, new byte[3], "text/txt");
 		// ok no exceptions
 	}
+	
+	@Test
+	public void testPrependText_ToEmptyText() {
+		Email test = new EmailBuilder()
+				.prependText("test")
+				.build();
+		
+		EmailAssert.assertThat(test).hasText("test");
+	}
+	
+	@Test
+	public void testPrependText_ToNonEmptyText() {
+		Email test = new EmailBuilder()
+				.text("moo")
+				.textHTML("ignore")
+				.prependText("test\n")
+				.build();
+		
+		EmailAssert.assertThat(test).hasText("test\nmoo");
+	}
+	
+	@Test
+	public void testPrependTextHTML_ToEmptyText() {
+		Email test = new EmailBuilder()
+				.prependTextHTML("test")
+				.build();
+		
+		EmailAssert.assertThat(test).hasTextHTML("test");
+	}
+	
+	@Test
+	public void testPrependTextHTML_ToNonEmptyText() {
+		Email test = new EmailBuilder()
+				.text("ignore")
+				.textHTML("moo")
+				.prependTextHTML("test\n")
+				.build();
+		
+		EmailAssert.assertThat(test).hasTextHTML("test\nmoo");
+	}
+	
+	@Test
+	public void testAppendText_ToEmptyText() {
+		Email test = new EmailBuilder()
+				.appendText("test")
+				.build();
+		
+		EmailAssert.assertThat(test).hasText("test");
+	}
+	
+	@Test
+	public void testAppendText_ToNonEmptyText() {
+		Email test = new EmailBuilder()
+				.text("moo")
+				.textHTML("ignore")
+				.appendText("\ntest")
+				.build();
+		
+		EmailAssert.assertThat(test).hasText("moo\ntest");
+	}
+	
+	@Test
+	public void testAppendTextHTML_ToEmptyText() {
+		Email test = new EmailBuilder()
+				.appendTextHTML("test")
+				.build();
+		
+		EmailAssert.assertThat(test).hasTextHTML("test");
+	}
+	
+	@Test
+	public void testAppendTextHTML_ToNonEmptyText() {
+		Email test = new EmailBuilder()
+				.text("ignore")
+				.textHTML("moo")
+				.appendTextHTML("\ntest")
+				.build();
+		
+		EmailAssert.assertThat(test).hasTextHTML("moo\ntest");
+	}
 
 	private Recipient createRecipient(final String name, final String emailAddress, final Message.RecipientType recipientType) {
 		return new Recipient(name, emailAddress, recipientType);
