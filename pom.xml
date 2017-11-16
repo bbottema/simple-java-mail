@@ -307,15 +307,15 @@
                             <relocations>
                                 <relocation>
                                     <pattern>org.hazlewood.connor.bottema.emailaddress</pattern>
-                                    <shadedPattern>org.hazlewood.connor.bottema.emailaddress.shaded</shadedPattern>
+                                    <shadedPattern>org.hazlewood.connor.bottema.emailaddress.simplejavamail</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>net.markenwerk</pattern>
-                                    <shadedPattern>net.markenwerk.shaded</shadedPattern>
+                                    <shadedPattern>net.markenwerk.simplejavamail</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.simplejavamail.outlookmessageparser</pattern>
-                                    <shadedPattern>org.simplejavamail.outlookmessageparser.shaded</shadedPattern>
+                                    <shadedPattern>org.simplejavamail.outlookmessageparser.simplejavamail</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
