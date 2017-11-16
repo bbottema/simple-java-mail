@@ -19,7 +19,7 @@ import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
  * @author Benny Bottema
  */
 @SuppressWarnings({ "WeakerAccess", "UnusedAssignment" })
-public class MailTestApp {
+public class MailTestDemoApp {
 
 	private static final String YOUR_GMAIL_ADDRESS = "your_gmail_user@gmail.com";
 
