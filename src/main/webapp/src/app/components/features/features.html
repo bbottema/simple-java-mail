@@ -45,6 +45,7 @@
       <li><a simplePageScroll href="#section-bouncing-emails">Setting custom recipient for bouncing emails</a></li>
       <li><a simplePageScroll href="#section-reply-forward">Replying to and forwarding emails</a></li>
       <li><a simplePageScroll href="#section-proxy">Send using a proxy</a></li>
+      <li><a simplePageScroll href="#section-connection-test">Testing a server connection</a></li>
     </ul>
   </section>
   
@@ -147,13 +148,13 @@ inhouseMailer.sendMail(anotherEmail);
   <h3>Alternative API for almost everything</h3>
   
   <section>
-    <div class="view">
-      <p>
+    <div>
+      <p class="wide">
         Simple Java Mail has alternative ways to do things for almost everything...
       </p>
     </div>
     
-    <div class="side">
+    <div>
       <p><code class="inline">Email</code>:</p>
       <pre><code>// You can add your own Recipient instances for example
 email.addRecipients(yourRecipient1, yourRecipient2...);
@@ -481,7 +482,7 @@ new Mailer().sendMail(signedEmail);
     </div>
     
     <div class="side">
-<pre><code>Email email = new Email();
+<pre><code class="small">Email email = new Email();
 email.setUseDispositionNotificationTo();
 email.setUseReturnReceiptTo();
 // or:
@@ -656,25 +657,23 @@ Email reply = new EmailBuilder()
   <h2>Send using a proxy</h2>
   
   <section>
-    <div class="view">
-      <p>
+    <div>
+      <p class="wide">
         Simple Java Mail supports sending emails through a proxy. It is also the only java mailing framework in the world that supports sending emails
-        through <strong>authenticated</strong> proxies.
+        through <strong>authenticated</strong> proxies. The reason for this is that the underlying native
+        <a href="https://java.net/projects/javamail/pages/Home">Javax Mail framework</a> supports anonymous SOCKS5 proxies, but
+        <a href="http://www.oracle.com/technetwork/java/javamail/faq/index.html#proxy">not authenticated proxies</a>.
       </p>
-      <p>
-        The reason for this is that the underlying native <a href="https://java.net/projects/javamail/pages/Home">Javax Mail framework</a> supports
-        anonymous SOCKS5 proxies, but <a href="http://www.oracle.com/technetwork/java/javamail/faq/index.html#proxy">not authenticated proxies</a>.
-      </p>
-      <p>
+      <p class="wide">
         To make this work with authentication, Simple Java Mail uses a trick: it sets up a temporary anonymous proxy server for Javax Mail to connect
-        to and then relays the connection to the target proxy performing the authentication outside of Javax Mail.
+        to and then the bridge relays the connection to the target proxy performing the authentication outside of Javax Mail.
       </p>
-      <p>
+      <p class="wide">
         This temporary server is referred to as the <strong>Proxy Bridging Server</strong>.
       </p>
     </div>
     
-    <div class="side">
+    <div>
 <pre><code>// anonymous proxy
 new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080));
 
@@ -683,6 +682,28 @@ new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username
 </code></pre>
       <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" href="#section-other-settings">configuration section</a>
          on how to set proxy server defaults and the port on which the proxy bridge runs.</p>
+    </div>
+  </section>
+  
+  
+  <a href="#section-connection-test" id="section-connection-test" class="section-link h2">&sect;</a>
+  <h2>Testing a server connection</h2>
+  
+  <section>
+    <div>
+      <p class="wide">
+        If you just want to do a connection test using your current configuration, including transport strategy and (authenticated)
+        proxy, Simple Java Mail got you covered.
+      </p>
+    </div>
+    
+    <div>
+<pre><code>// configure your mailer
+Mailer mailer = new Mailer(/*server settings, proxy etc.*/);
+
+// perform connection test
+mailer.testConnection(); // no error means success
+</code></pre>
     </div>
   </section>
 
