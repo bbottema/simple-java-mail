@@ -15,7 +15,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.mail.*;
+import javax.mail.Address;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.Transport;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
@@ -173,6 +177,7 @@ public class MailSender {
 			}
 			if (effectiveProxyConfig.requiresAuthentication()) {
 				if (transportStrategy != null) {
+					// wire anonymous proxy request to our own proxy bridge so we can perform authentication to the actual proxy
 					sessionProperties.put(transportStrategy.propertyNameSocksHost(), "localhost");
 					sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(effectiveProxyConfig.getProxyBridgePort()));
 				} else {
@@ -278,8 +283,7 @@ public class MailSender {
 
 			try {
 				synchronized (this) {
-					// proxy server is null when not needed
-					if (proxyServer != null && !proxyServer.isRunning()) {
+					if (needsAuthenticatedProxy() && !proxyServer.isRunning()) {
 						LOGGER.trace("starting proxy bridge");
 						proxyServer.start();
 					}
@@ -338,7 +342,7 @@ public class MailSender {
         // if this thread is the last one finishing
         if (smtpRequestsPhaser.getUnarrivedParties() == 0) {
             LOGGER.trace("all threads have finished processing");
-            if (proxyServer != null && proxyServer.isRunning() && !proxyServer.isStopping()) {
+            if (needsAuthenticatedProxy() && proxyServer.isRunning() && !proxyServer.isStopping()) {
                 LOGGER.trace("stopping proxy bridge...");
                 proxyServer.stop();
             }
@@ -412,7 +416,39 @@ public class MailSender {
 			session.getProperties().setProperty(transportStrategy.propertyNameSSLTrust(), builder.toString());
 		}
 	}
-
+	
+	/**
+	 * Tries to connect to the configured SMTP server, including (authenticated) proxy if set up.
+	 * <p>
+	 * Note: synchronizes on this mailer instance, so that we don't get into race condition conflicts with emails actually being sent.
+	 */
+	public synchronized void testConnection() {
+		boolean proxyBridgeStartedForTestingConnection = false;
+		
+		try (Transport transport = session.getTransport()) {
+			if (needsAuthenticatedProxy() && !proxyServer.isRunning()) {
+				LOGGER.trace("starting proxy bridge for testing connection");
+				proxyServer.start();
+				proxyBridgeStartedForTestingConnection = true;
+			}
+			transport.connect(); // actual test
+		} catch (MessagingException e) {
+			throw new MailSenderException(MailSenderException.ERROR_CONNECTING_SMTP_SERVER, e);
+		} finally {
+			if (proxyBridgeStartedForTestingConnection) {
+				LOGGER.trace("stopping proxy bridge after connection test");
+				proxyServer.stop();
+			}
+		}
+	}
+	
+	/**
+	 * Proxy server is null when not needed. Method is for readability.
+	 */
+	private boolean needsAuthenticatedProxy() {
+		return proxyServer != null;
+	}
+	
 	/**
 	 * @param properties Properties which will be added to the current {@link Session} instance.
 	 */

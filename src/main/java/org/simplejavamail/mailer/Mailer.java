@@ -344,7 +344,16 @@ public class Mailer {
 	public void trustSSLHosts(final String... hosts) {
 		mailSender.trustHosts(hosts);
 	}
-
+	
+	/**
+	 * Tries to connect to the configured SMTP server, including (authenticated) proxy if set up.
+	 * <p>
+	 * Note: synchronizes on the thread for sending mails so that we don't get into race condition conflicts with emails actually being sent.
+	 */
+	public void testConnection() {
+		mailSender.testConnection();
+	}
+	
 	/**
 	 * Copies all property entries into the {@link Session} using {@link Session#getProperties()}.
 	 *
