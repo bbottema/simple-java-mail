@@ -171,6 +171,7 @@ public enum TransportStrategy {
 		/**
 		 * @return {@link #opportunisticTLS}
 		 */
+		@Override
 		@Nullable
 		public Boolean getOpportunisticTLS() {
 			return opportunisticTLS;
@@ -180,7 +181,8 @@ public enum TransportStrategy {
 		 * Sets {@link #opportunisticTLS}. Setting <code>null</code> will revert to property value if available or default to {@value
 		 * DEFAULT_OPPORTUNISTIC_TLS}
 		 */
-		public void setOpportunisticTLS(@Nullable Boolean opportunisticTLS) {
+		@Override
+		public void setOpportunisticTLS(@Nullable final Boolean opportunisticTLS) {
 			this.opportunisticTLS = opportunisticTLS;
 		}
 	},
@@ -469,7 +471,7 @@ public enum TransportStrategy {
 	/**
 	 * @see TransportStrategy#SMTP#setOpportunisticTLS(Boolean)
 	 */
-	public void setOpportunisticTLS(@Nullable Boolean opportunisticTLS) {}
+	public void setOpportunisticTLS(@Nullable final Boolean opportunisticTLS) {}
 	
 	/**
 	 * @param session The session to determine the current transport strategy for

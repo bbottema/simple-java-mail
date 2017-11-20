@@ -21,10 +21,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
+import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -52,7 +54,12 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  */
 @SuppressWarnings("UnusedReturnValue")
 public class EmailBuilder {
-	
+
+	/**
+	 * Used for replying to emails, when quoting the original email. Matches the beginning of every line.
+	 */
+	private static final Pattern LINE_START_PATTERN = compile("(?m)^");
+
 	/**
 	 * Default simple quoting markup for email replies.
 	 * <p>
@@ -467,7 +474,7 @@ public class EmailBuilder {
 	 * @see Recipient
 	 */
 	@SuppressWarnings("QuestionableName")
-	public EmailBuilder cc(@Nullable String name, @Nonnull final String emailAddressList) {
+	public EmailBuilder cc(@Nullable final String name, @Nonnull final String emailAddressList) {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.CC);
 	}
@@ -517,7 +524,7 @@ public class EmailBuilder {
 	 * @see #recipients
 	 * @see Recipient
 	 */
-	public EmailBuilder bcc(@Nullable String name, @Nonnull final String emailAddressList) {
+	public EmailBuilder bcc(@Nullable final String name, @Nonnull final String emailAddressList) {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.BCC);
 	}
@@ -559,8 +566,8 @@ public class EmailBuilder {
 	/**
 	 * Delegates to {@link #embedImage(String, DataSource)} for each embedded image.
 	 */
-	private EmailBuilder withEmbeddedImages(@Nonnull List<AttachmentResource> embeddedImages) {
-		for (AttachmentResource embeddedImage : embeddedImages) {
+	private EmailBuilder withEmbeddedImages(@Nonnull final List<AttachmentResource> embeddedImages) {
+		for (final AttachmentResource embeddedImage : embeddedImages) {
 			embedImage(embeddedImage.getName(), embeddedImage.getDataSource());
 		}
 		return this;
@@ -583,6 +590,7 @@ public class EmailBuilder {
 		return this;
 	}
 	
+	@SuppressWarnings("WeakerAccess")
 	public EmailBuilder withHeaders(@Nonnull final Map<String, String> headers) {
 		this.headers.putAll(headers);
 		return this;
@@ -688,7 +696,7 @@ public class EmailBuilder {
 	/**
 	 * Indicates that we want to use the NPM flag {@link #dispositionNotificationTo} with the given mandatory address.
 	 */
-	public EmailBuilder withDispositionNotificationTo(@Nonnull String address) {
+	public EmailBuilder withDispositionNotificationTo(@Nonnull final String address) {
 		this.useDispositionNotificationTo = true;
 		this.dispositionNotificationTo = new Recipient(null, checkNonEmptyArgument(address, "dispositionNotificationToAddress"), null);
 		return this;
@@ -697,7 +705,7 @@ public class EmailBuilder {
 	/**
 	 * Indicates that we want to use the NPM flag {@link #dispositionNotificationTo} with the given optional name and mandatory address.
 	 */
-	public EmailBuilder withDispositionNotificationTo(@Nullable String name, @Nonnull String address) {
+	public EmailBuilder withDispositionNotificationTo(@Nullable final String name, @Nonnull final String address) {
 		this.useDispositionNotificationTo = true;
 		this.dispositionNotificationTo = new Recipient(name, checkNonEmptyArgument(address, "dispositionNotificationToAddress"), null);
 		return this;
@@ -706,7 +714,7 @@ public class EmailBuilder {
 	/**
 	 * Indicates that we want to use the NPM flag {@link #dispositionNotificationTo} with the given preconfigred {@link Recipient}.
 	 */
-	public EmailBuilder withDispositionNotificationTo(@Nonnull Recipient recipient) {
+	public EmailBuilder withDispositionNotificationTo(@Nonnull final Recipient recipient) {
 		this.useDispositionNotificationTo = true;
 		this.dispositionNotificationTo = new Recipient(recipient.getName(), checkNonEmptyArgument(recipient.getAddress(), "dispositionNotificationToAddress"), null);
 		return this;
@@ -725,7 +733,7 @@ public class EmailBuilder {
 	/**
 	 * Indicates that we want to use the NPM flag {@link #returnReceiptTo} with the given mandatory address.
 	 */
-	public EmailBuilder withReturnReceiptTo(@Nonnull String address) {
+	public EmailBuilder withReturnReceiptTo(@Nonnull final String address) {
 		this.useReturnReceiptTo = true;
 		this.returnReceiptTo = new Recipient(null, checkNonEmptyArgument(address, "returnReceiptToAddress"), null);
 		return this;
@@ -734,7 +742,7 @@ public class EmailBuilder {
 	/**
 	 * Indicates that we want to use the NPM flag {@link #returnReceiptTo} with the given optional name and mandatory address.
 	 */
-	public EmailBuilder withReturnReceiptTo(@Nullable String name, @Nonnull String address) {
+	public EmailBuilder withReturnReceiptTo(@Nullable final String name, @Nonnull final String address) {
 		this.useReturnReceiptTo = true;
 		this.returnReceiptTo = new Recipient(name, checkNonEmptyArgument(address, "returnReceiptToAddress"), null);
 		return this;
@@ -743,7 +751,7 @@ public class EmailBuilder {
 	/**
 	 * Indicates that we want to use the NPM flag {@link #returnReceiptTo} with the preconfigured {@link Recipient}.
 	 */
-	public EmailBuilder withReturnReceiptTo(@Nonnull Recipient recipient) {
+	public EmailBuilder withReturnReceiptTo(@Nonnull final Recipient recipient) {
 		this.useReturnReceiptTo = true;
 		this.returnReceiptTo = new Recipient(recipient.getName(), checkNonEmptyArgument(recipient.getAddress(), "returnReceiptToAddress"), null);
 		return this;
@@ -770,14 +778,14 @@ public class EmailBuilder {
 	 *
 	 * @see EmailBuilder#DEFAULT_QUOTING_MARKUP
 	 */
-	public EmailBuilder asReplyToAll(@Nonnull Email email, @Nonnull String customQuotingTemplate) {
+	public EmailBuilder asReplyToAll(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
 		return asReplyTo(EmailConverter.emailToMimeMessage(email), true, customQuotingTemplate);
 	}
 	
 	/**
 	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
 	 */
-	public EmailBuilder asReplyTo(@Nonnull Email email, @Nonnull String customQuotingTemplate) {
+	public EmailBuilder asReplyTo(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
 		return asReplyTo(EmailConverter.emailToMimeMessage(email), false, customQuotingTemplate);
 	}
 	
@@ -785,7 +793,7 @@ public class EmailBuilder {
 	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
 	 * template.
 	 */
-	public EmailBuilder asReplyTo(@Nonnull MimeMessage email) {
+	public EmailBuilder asReplyTo(@Nonnull final MimeMessage email) {
 		return asReplyTo(email, false, DEFAULT_QUOTING_MARKUP);
 	}
 	
@@ -794,14 +802,14 @@ public class EmailBuilder {
 	 *
 	 * @see EmailBuilder#DEFAULT_QUOTING_MARKUP
 	 */
-	public EmailBuilder asReplyToAll(@Nonnull MimeMessage email, @Nonnull String customQuotingTemplate) {
+	public EmailBuilder asReplyToAll(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
 		return asReplyTo(email, true, customQuotingTemplate);
 	}
 	
 	/**
 	 * Delegates to {@link #asReplyTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
 	 */
-	public EmailBuilder asReplyTo(@Nonnull MimeMessage email, @Nonnull String customQuotingTemplate) {
+	public EmailBuilder asReplyTo(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
 		return asReplyTo(email, false, customQuotingTemplate);
 	}
 	
@@ -811,10 +819,10 @@ public class EmailBuilder {
 	 *
 	 * @see EmailBuilder#DEFAULT_QUOTING_MARKUP
 	 */
-	public EmailBuilder asReplyToAll(@Nonnull MimeMessage email) {
+	public EmailBuilder asReplyToAll(@Nonnull final MimeMessage email) {
 		return asReplyTo(email, true, DEFAULT_QUOTING_MARKUP);
 	}
-	
+
 	/**
 	 * Primes the email with all subject, headers, originally embedded images and recipients needed for a valid RFC reply.
 	 * <p>
@@ -827,23 +835,23 @@ public class EmailBuilder {
 	 * @see <a href="https://javaee.github.io/javamail/FAQ#reply">Official JavaMail FAQ on replying</a>
 	 * @see javax.mail.internet.MimeMessage#reply(boolean)
 	 */
-	public EmailBuilder asReplyTo(@Nonnull MimeMessage emailMessage, boolean repyToAll, @Nonnull String htmlTemplate) {
+	public EmailBuilder asReplyTo(@Nonnull final MimeMessage emailMessage, final boolean repyToAll, @Nonnull final String htmlTemplate) {
 		final MimeMessage replyMessage;
 		try {
 			replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
 			replyMessage.setText("ignore");
 			replyMessage.setFrom("ignore@ignore.ignore");
-		} catch (MessagingException e) {
+		} catch (final MessagingException e) {
 			throw new EmailException("was unable to parse mimemessage to produce a reply for", e);
 		}
 		
 		final Email repliedTo = EmailConverter.mimeMessageToEmail(emailMessage);
 		final Email generatedReply = EmailConverter.mimeMessageToEmail(replyMessage);
-		
+
 		return this
 				.subject(generatedReply.getSubject())
 				.to(generatedReply.getRecipients())
-				.text(valueNullOrEmpty(repliedTo.getText()) ? text : text + repliedTo.getText().replaceAll("(?m)^", "> "))
+				.text(valueNullOrEmpty(repliedTo.getText()) ? text : text + LINE_START_PATTERN.matcher(repliedTo.getText()).replaceAll("> "))
 				.textHTML(valueNullOrEmpty(repliedTo.getTextHTML()) ? textHTML : textHTML + format(htmlTemplate, repliedTo.getTextHTML()))
 				.withHeaders(generatedReply.getHeaders())
 				.withEmbeddedImages(repliedTo.getEmbeddedImages());
@@ -870,7 +878,7 @@ public class EmailBuilder {
 	 * @see <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/">More reading
 	 * material</a>
 	 */
-	public EmailBuilder asForwardOf(@Nonnull MimeMessage emailMessage) {
+	public EmailBuilder asForwardOf(@Nonnull final MimeMessage emailMessage) {
 		this.emailToForward = emailMessage;
 		return subject("Fwd: " + MimeMessageParser.parseSubject(emailMessage));
 	}

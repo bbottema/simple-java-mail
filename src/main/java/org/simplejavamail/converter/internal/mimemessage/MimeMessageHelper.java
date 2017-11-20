@@ -171,7 +171,7 @@ public final class MimeMessageHelper {
 				final BodyPart fordwardedMessage = new MimeBodyPart();
 				fordwardedMessage.setContent(email.getEmailToForward(), "message/rfc822");
 				multipartRootMixed.addBodyPart(fordwardedMessage);
-			} catch (MessagingException e) {
+			} catch (final MessagingException e) {
 				e.printStackTrace();
 			}
 		}

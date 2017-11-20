@@ -240,15 +240,15 @@ public final class EmailConverter {
 		for (final Map.Entry<String, Object> header : parsed.getHeaders().entrySet()) {
 			email.addHeader(header.getKey(), header.getValue());
 		}
-		InternetAddress dnTo = parsed.getDispositionNotificationTo();
+		final InternetAddress dnTo = parsed.getDispositionNotificationTo();
 		if (dnTo != null) {
 			email.setDispositionNotificationTo(new Recipient(dnTo.getPersonal(), dnTo.getAddress(), null));
 		}
-		InternetAddress rrTo = parsed.getReturnReceiptTo();
+		final InternetAddress rrTo = parsed.getReturnReceiptTo();
 		if (rrTo != null) {
 			email.setReturnReceiptTo(new Recipient(rrTo.getPersonal(), rrTo.getAddress(), null));
 		}
-		InternetAddress bTo = parsed.getBounceToAddress();
+		final InternetAddress bTo = parsed.getBounceToAddress();
 		if (bTo != null) {
 			email.setBounceToRecipient(new Recipient(bTo.getPersonal(), bTo.getAddress(), null));
 		}

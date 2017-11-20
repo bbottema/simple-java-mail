@@ -255,7 +255,7 @@ public class Email {
 	 *
 	 * @param recipient The Recipient optional name and mandatory address.
 	 */
-	public void setFromAddress(@Nonnull Recipient recipient) {
+	public void setFromAddress(@Nonnull final Recipient recipient) {
 		fromRecipient = new Recipient(recipient.getName(), checkNonEmptyArgument(recipient.getAddress(), "fromAddress"), null);
 	}
 
@@ -284,7 +284,7 @@ public class Email {
 	 *
 	 * @param recipient The Recipient optional name and mandatory address.
 	 */
-	public void setReplyToAddress(@Nonnull Recipient recipient) {
+	public void setReplyToAddress(@Nonnull final Recipient recipient) {
 		replyToRecipient = new Recipient(recipient.getName(), checkNonEmptyArgument(recipient.getAddress(), "replyToAddress"), null);
 	}
 	
@@ -293,7 +293,7 @@ public class Email {
 	 *
 	 * @param recipient The Recipient optional name and mandatory address.
 	 */
-	public void setBounceToRecipient(@Nonnull Recipient recipient) {
+	public void setBounceToRecipient(@Nonnull final Recipient recipient) {
 		bounceToRecipient = new Recipient(recipient.getName(), checkNonEmptyArgument(recipient.getAddress(), "bounceAddress"), null);
 	}
 
@@ -307,14 +307,14 @@ public class Email {
 	/**
 	 * Bean setter for {@link #useDispositionNotificationTo}.
 	 */
-	public void setUseDispositionNotificationTo(boolean useDispositionNotificationTo) {
+	public void setUseDispositionNotificationTo(final boolean useDispositionNotificationTo) {
 		this.useDispositionNotificationTo = useDispositionNotificationTo;
 	}
 	
 	/**
 	 * Bean setter for {@link #dispositionNotificationTo}.
 	 */
-	public void setDispositionNotificationTo(Recipient dispositionNotificationTo) {
+	public void setDispositionNotificationTo(final Recipient dispositionNotificationTo) {
 		setUseDispositionNotificationTo(true);
 		this.dispositionNotificationTo = dispositionNotificationTo;
 	}
@@ -322,14 +322,14 @@ public class Email {
 	/**
 	 * Bean setter for {@link #useReturnReceiptTo}.
 	 */
-	public void setUseReturnReceiptTo(boolean useReturnReceiptTo) {
+	public void setUseReturnReceiptTo(final boolean useReturnReceiptTo) {
 		this.useReturnReceiptTo = useReturnReceiptTo;
 	}
 	
 	/**
 	 * Bean setter for {@link #returnReceiptTo}.
 	 */
-	public void setReturnReceiptTo(Recipient returnReceiptTo) {
+	public void setReturnReceiptTo(final Recipient returnReceiptTo) {
 		setUseReturnReceiptTo(true);
 		this.returnReceiptTo = returnReceiptTo;
 	}
@@ -337,7 +337,7 @@ public class Email {
 	/**
 	 * Bean setter for {@link #emailToForward}.
 	 */
-	public void setEmailToForward(MimeMessage emailToForward) {
+	public void setEmailToForward(final MimeMessage emailToForward) {
 		this.emailToForward = emailToForward;
 	}
 	
@@ -425,12 +425,12 @@ public class Email {
 		}
 	}
 	
-	static Recipient interpretRecipientData(@Nullable String recipientName, @Nonnull String emailAddress, @Nullable RecipientType type) {
+	static Recipient interpretRecipientData(@Nullable final String recipientName, @Nonnull final String emailAddress, @Nullable final RecipientType type) {
 		try {
-			InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
-			String relevantName = parsedAddress.getPersonal() != null ? parsedAddress.getPersonal() : recipientName;
+			final InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
+			final String relevantName = parsedAddress.getPersonal() != null ? parsedAddress.getPersonal() : recipientName;
 			return new Recipient(relevantName, parsedAddress.getAddress(), type);
-		} catch (AddressException e) {
+		} catch (final AddressException e) {
 			// InternetAddress failed to parse the email address even in non-strict mode
 			// just assume the address was too complex rather than plain wrong, and let our own email validation
 			// library take care of it when sending the email

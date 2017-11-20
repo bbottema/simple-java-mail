@@ -15,7 +15,7 @@ class MailSenderException extends MailException {
 	static final String INVALID_ENCODING = "Encoding not accepted";
 	static final String CANNOT_SET_TRUST_WITHOUT_TRANSPORTSTRATEGY = "Cannot determine the trust properties to set without a provided transport strategy";
 	static final String CANNOT_SET_BOUNCETO_WITHOUT_TRANSPORTSTRATEGY = "Cannot determine the envelope .from property to set without a provided transport strategy";
-	static java.lang.String ERROR_CONNECTING_SMTP_SERVER = "Was unable to connect to SMTP server";
+	static final String ERROR_CONNECTING_SMTP_SERVER = "Was unable to connect to SMTP server";
 	
 	MailSenderException(@SuppressWarnings("SameParameterValue") final String message) {
 		super(message);

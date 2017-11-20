@@ -13,11 +13,16 @@ import java.util.Collection;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.toHexString;
+import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 public final class MiscUtil {
 
-	private static final Pattern MATCH_INSIDE_CIDBRACKETS = Pattern.compile("<?([^>]*)>?");
+	private static final Pattern MATCH_INSIDE_CIDBRACKETS = compile("<?([^>]*)>?");
+
+	private static final Pattern COMMA_DELIMITER_PATTERN = compile("(@.*?>?)\\s*[,;]");
+	private static final Pattern TRAILING_TOKEN_DELIMITER_PATTERN = compile("<\\|>$");
+	private static final Pattern TOKEN_DELIMITER_PATTERN = compile("\\s*<\\|>\\s*");
 
 	public static <T> T checkNotNull(final T value, final String msg) {
 		if (value == null) {
@@ -87,7 +92,7 @@ public final class MiscUtil {
 		}
 		return byteArrayOutputStream.toString(checkNonEmptyArgument(charset, "charset").name());
 	}
-	
+
 	/**
 	 * Recognizes the tails of each address entry, so it can replace the [';] delimiters, thereby disambiguating the delimiters, since they can
 	 * appear in names as well (making it difficult to split on [,;] delimiters.
@@ -97,15 +102,15 @@ public final class MiscUtil {
 	 */
 	@Nonnull
 	public static String[] extractEmailAddresses(@Nonnull final String emailAddressList) {
+		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		// recognize value tails and replace the delimiters there, disambiguating delimiters
-		return checkNonEmptyArgument(emailAddressList, "emailAddressList")
-				.replaceAll("(@.*?>?)\\s*[,;]", "$1<|>")
-				.replaceAll("<\\|>$", "") // remove trailing delimiter
-				.split("\\s*<\\|>\\s*"); // split on delimiter including surround space
+		final String unambiguousDelimitedList = COMMA_DELIMITER_PATTERN.matcher(emailAddressList).replaceAll("$1<|>");
+		final String withoutTrailingDelimeter = TRAILING_TOKEN_DELIMITER_PATTERN.matcher(unambiguousDelimitedList).replaceAll("");
+		return TOKEN_DELIMITER_PATTERN.split(withoutTrailingDelimeter, 0);
 	}
 	
 	@Nullable
-	public static <T> T defaultTo(@Nullable T value, @Nullable T defaultValue) {
+	public static <T> T defaultTo(@Nullable final T value, @Nullable final T defaultValue) {
 		return value != null ? value : defaultValue;
 	}
 }

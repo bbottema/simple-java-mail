@@ -456,14 +456,14 @@ public class Mailer {
 		
 		// check for illegal values
 		scanForInjectionAttack(email.getSubject(), "email.subject");
-		for (Map.Entry<String, String> headerEntry : email.getHeaders().entrySet()) {
+		for (final Map.Entry<String, String> headerEntry : email.getHeaders().entrySet()) {
 			scanForInjectionAttack(headerEntry.getKey(), "email.header.mapEntryKey");
 			scanForInjectionAttack(headerEntry.getValue(), "email.header." + headerEntry.getKey());
 		}
-		for (AttachmentResource attachment : email.getAttachments()) {
+		for (final AttachmentResource attachment : email.getAttachments()) {
 			scanForInjectionAttack(attachment.getName(), "email.attachment.name");
 		}
-		for (AttachmentResource embeddedImage : email.getEmbeddedImages()) {
+		for (final AttachmentResource embeddedImage : email.getEmbeddedImages()) {
 			scanForInjectionAttack(embeddedImage.getName(), "email.embeddedImage.name");
 		}
 		scanForInjectionAttack(email.getFromRecipient().getName(), "email.fromRecipient.name");
@@ -476,7 +476,7 @@ public class Mailer {
 			scanForInjectionAttack(email.getBounceToRecipient().getName(), "email.bounceToRecipient.name");
 			scanForInjectionAttack(email.getBounceToRecipient().getAddress(), "email.bounceToRecipient.address");
 		}
-		for (Recipient recipient : email.getRecipients()) {
+		for (final Recipient recipient : email.getRecipients()) {
 			scanForInjectionAttack(recipient.getName(), "email.recipient.name");
 			scanForInjectionAttack(recipient.getAddress(), "email.recipient.address");
 		}
@@ -488,7 +488,7 @@ public class Mailer {
 	 * @param value Value checked for suspicious newline characters "\n", "\r" and "%0A" (as acknowledged by SMTP servers).
 	 * @param valueLabel The name of the field being checked, used for reporting exceptions.
 	 */
-	private static void scanForInjectionAttack(String value, String valueLabel) {
+	private static void scanForInjectionAttack(final String value, final String valueLabel) {
 		if (value != null && (value.contains("\n") || value.contains("\r") || value.contains("%0A"))) {
 			throw new MailerException(format(MailerException.INJECTION_SUSPECTED, valueLabel, value));
 		}

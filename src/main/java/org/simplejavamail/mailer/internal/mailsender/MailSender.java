@@ -279,10 +279,10 @@ public class MailSender {
 			logSession(session);
 			message.saveChanges(); // some headers and id's will be set for this specific message
 			email.setId(message.getMessageID());
-			final Transport transport = session.getTransport();
 
 			try {
 				synchronized (this) {
+					//noinspection ConstantConditions
 					if (needsAuthenticatedProxy() && !proxyServer.isRunning()) {
 						LOGGER.trace("starting proxy bridge");
 						proxyServer.start();
@@ -293,13 +293,11 @@ public class MailSender {
 					LOGGER.trace("\t\nEmail: {}", email);
 					LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEML(message));
 
-					try {
+					try (Transport transport = session.getTransport()) {
 						transport.connect();
 						transport.sendMessage(message, message.getAllRecipients());
 					} finally {
 						LOGGER.trace("closing transport");
-						//noinspection ThrowFromFinallyBlock
-						transport.close();
 					}
 				} else {
 					LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
@@ -321,11 +319,11 @@ public class MailSender {
 		}
 	}
 	
-	private void configureBounceToAddress(Session session, Email email) {
-		Recipient bounceAddress = email.getBounceToRecipient();
+	private void configureBounceToAddress(final Session session, final Email email) {
+		final Recipient bounceAddress = email.getBounceToRecipient();
 		if (bounceAddress != null) {
 			if (transportStrategy != null) {
-				String formattedRecipient = format("%s <%s>", bounceAddress.getName(), bounceAddress.getAddress());
+				final String formattedRecipient = format("%s <%s>", bounceAddress.getName(), bounceAddress.getAddress());
 				session.getProperties().setProperty(transportStrategy.propertyNameEnvelopeFrom(), formattedRecipient);
 			} else {
 				throw new MailSenderException(MailSenderException.CANNOT_SET_BOUNCETO_WITHOUT_TRANSPORTSTRATEGY);
@@ -342,7 +340,8 @@ public class MailSender {
         // if this thread is the last one finishing
         if (smtpRequestsPhaser.getUnarrivedParties() == 0) {
             LOGGER.trace("all threads have finished processing");
-            if (needsAuthenticatedProxy() && proxyServer.isRunning() && !proxyServer.isStopping()) {
+			//noinspection ConstantConditions
+			if (needsAuthenticatedProxy() && proxyServer.isRunning() && !proxyServer.isStopping()) {
                 LOGGER.trace("stopping proxy bridge...");
                 proxyServer.stop();
             }
@@ -426,13 +425,14 @@ public class MailSender {
 		boolean proxyBridgeStartedForTestingConnection = false;
 		
 		try (Transport transport = session.getTransport()) {
+			//noinspection ConstantConditions
 			if (needsAuthenticatedProxy() && !proxyServer.isRunning()) {
 				LOGGER.trace("starting proxy bridge for testing connection");
 				proxyServer.start();
 				proxyBridgeStartedForTestingConnection = true;
 			}
 			transport.connect(); // actual test
-		} catch (MessagingException e) {
+		} catch (final MessagingException e) {
 			throw new MailSenderException(MailSenderException.ERROR_CONNECTING_SMTP_SERVER, e);
 		} finally {
 			if (proxyBridgeStartedForTestingConnection) {

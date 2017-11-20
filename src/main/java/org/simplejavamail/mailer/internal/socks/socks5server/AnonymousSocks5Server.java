@@ -69,6 +69,7 @@ public class AnonymousSocks5Server implements Runnable {
 		while (!stopping) {
 			try {
 				LOGGER.info("waiting for new connection...");
+				@SuppressWarnings("SocketOpenedButNotSafelyClosed") // socket is closed elsewhere
 				final Socket socket = serverSocket.accept();
 				socket.setSoTimeout(10000);
 				threadPool.execute(new Socks5Handler(new SocksSession(socket), socks5Bridge));

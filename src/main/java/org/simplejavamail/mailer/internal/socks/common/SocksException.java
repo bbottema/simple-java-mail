@@ -17,8 +17,7 @@ public class SocksException extends RuntimeException {
 	}
 
 	public static SocksException serverReplyException(final byte reply) {
-		int code = reply;
-		code = code & 0xff;
+		int code = reply & 0xff;
 		if (code < 0 || code > 0x08) {
 			return new SocksException("Unknown reply");
 		}
