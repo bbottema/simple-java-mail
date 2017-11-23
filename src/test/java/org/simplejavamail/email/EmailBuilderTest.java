@@ -24,7 +24,7 @@ public class EmailBuilderTest {
 
 	@Test
 	public void testBuilderFromAddress() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.from(new Recipient("lollypop", "lol.pop@somemail.com", null))
 				.build();
 
@@ -35,7 +35,7 @@ public class EmailBuilderTest {
 
 	@Test
 	public void testBuilderFromAddressOverwriteWithAlternativeBuilderMethod() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.from("lollypop", "lol.pop@somemail.com") // should be overwritted
 				.from(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
 				.build();
@@ -47,7 +47,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderReplyToAddress() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.replyTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
 				.build();
 		
@@ -58,7 +58,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderBounceToAddress() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.bounceTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
 				.build();
 		
@@ -69,7 +69,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderReplyToAddressOverwriteWithAlternativeBuilderMethod() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.replyTo("lollypop", "lol.pop@somemail.com") // should be overwritted
 				.replyTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
 				.build();
@@ -81,7 +81,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderBounceToAddressOverwriteWithAlternativeBuilderMethod() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.bounceTo("lollypop", "lol.pop@somemail.com") // should be overwritted
 				.bounceTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
 				.build();
@@ -93,7 +93,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderToAddresses() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.to("1", "1@candyshop.org")
 				.to(null, "2@candyshop.org")
 				.to(new Recipient("3", "3@candyshop.org", null))
@@ -131,7 +131,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderToAddresses_ComplexFormat() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.to("1", "1b <1@candyshop.org>")
 				.to(null, "2b <2@candyshop.org>")
 				.to("5b <5@candyshop.org>")
@@ -156,7 +156,7 @@ public class EmailBuilderTest {
 
 	@Test
 	public void testBuilderCCAddresses() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.cc("1", "1@candyshop.org")
 				.cc(null, "2@candyshop.org")
 				.cc(new Recipient("3", "3@candyshop.org", null))
@@ -194,7 +194,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderCCAddresses_ComplexFormat() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.cc("1", "1b <1@candyshop.org>")
 				.cc(null, "2b <2@candyshop.org>")
 				.cc("5b <5@candyshop.org>")
@@ -219,7 +219,7 @@ public class EmailBuilderTest {
 
 	@Test
 	public void testBuilderBCCAddresses() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.bcc("1", "1@candyshop.org")
 				.bcc(null, "2@candyshop.org")
 				.bcc(new Recipient("3", "3@candyshop.org", null))
@@ -257,7 +257,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderBCCAddresses_ComplexFormat() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.bcc("1", "1b <1@candyshop.org>")
 				.bcc(null, "2b <2@candyshop.org>")
 				.bcc("5b <5@candyshop.org>")
@@ -282,7 +282,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderNotificationFlags_DefaultOff() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.replyTo("replyTo", "1@candyshop.org")
 				.from("from", "2@candyshop.org")
 				.build();
@@ -295,7 +295,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderNotificationFlags_ReDefaultToReplyTo() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.replyTo("replyTo", "1@candyshop.org")
 				.from("from", "2@candyshop.org")
 				.withDispositionNotificationTo("custom@candyshop.com")
@@ -312,7 +312,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderNotificationFlags_DefaultToReplyTo() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.replyTo("replyTo", "1@candyshop.org")
 				.from("from", "2@candyshop.org")
 				.withDispositionNotificationTo()
@@ -327,7 +327,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testBuilderNotificationFlags_CustomAddress() {
-		final Email email = new EmailBuilder()
+		final Email email = EmailBuilder.builder()
 				.replyTo("replyTo", "1@candyshop.org")
 				.from("from", "2@candyshop.org")
 				.withDispositionNotificationTo("customa@candyshop.org")
@@ -342,7 +342,7 @@ public class EmailBuilderTest {
 
 	@Test
 	public void testBuilderEmbeddingImages() {
-		final EmailBuilder builder = new EmailBuilder()
+		final EmailBuilder builder = EmailBuilder.builder()
 				.embedImage("a", new ByteArrayDataSource(new byte[3], ""))
 				.embedImage(null, new DataSourceWithDummyName())
 				.embedImage("a", new byte[3], "mimetype");
@@ -362,7 +362,7 @@ public class EmailBuilderTest {
 
 	@Test
 	public void testBuilderAddingAttachmentsWithMissingNameWithoutExceptions() {
-		new EmailBuilder()
+		EmailBuilder.builder()
 				.addAttachment("a", new ByteArrayDataSource(new byte[3], "text/txt"))
 				.addAttachment(null, new DataSourceWithDummyName())
 				.addAttachment("a", new byte[3], "text/txt")
@@ -373,7 +373,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testPrependText_ToEmptyText() {
-		Email test = new EmailBuilder()
+		Email test = EmailBuilder.builder()
 				.prependText("test")
 				.build();
 		
@@ -382,7 +382,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testPrependText_ToNonEmptyText() {
-		Email test = new EmailBuilder()
+		Email test = EmailBuilder.builder()
 				.text("moo")
 				.textHTML("ignore")
 				.prependText("test\n")
@@ -393,7 +393,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testPrependTextHTML_ToEmptyText() {
-		Email test = new EmailBuilder()
+		Email test = EmailBuilder.builder()
 				.prependTextHTML("test")
 				.build();
 		
@@ -402,7 +402,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testPrependTextHTML_ToNonEmptyText() {
-		Email test = new EmailBuilder()
+		Email test = EmailBuilder.builder()
 				.text("ignore")
 				.textHTML("moo")
 				.prependTextHTML("test\n")
@@ -413,7 +413,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testAppendText_ToEmptyText() {
-		Email test = new EmailBuilder()
+		Email test = EmailBuilder.builder()
 				.appendText("test")
 				.build();
 		
@@ -422,7 +422,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testAppendText_ToNonEmptyText() {
-		Email test = new EmailBuilder()
+		Email test = EmailBuilder.builder()
 				.text("moo")
 				.textHTML("ignore")
 				.appendText("\ntest")
@@ -433,7 +433,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testAppendTextHTML_ToEmptyText() {
-		Email test = new EmailBuilder()
+		Email test = EmailBuilder.builder()
 				.appendTextHTML("test")
 				.build();
 		
@@ -442,7 +442,7 @@ public class EmailBuilderTest {
 	
 	@Test
 	public void testAppendTextHTML_ToNonEmptyText() {
-		Email test = new EmailBuilder()
+		Email test = EmailBuilder.builder()
 				.text("ignore")
 				.textHTML("moo")
 				.appendTextHTML("\ntest")
