@@ -9,6 +9,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
+import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
@@ -27,6 +28,9 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.regex.Pattern.compile;
+import static javax.mail.Message.RecipientType.BCC;
+import static javax.mail.Message.RecipientType.CC;
+import static javax.mail.Message.RecipientType.TO;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -54,14 +58,14 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  */
 @SuppressWarnings("UnusedReturnValue")
 public class EmailBuilder {
-
+	
 	/**
 	 * Used for replying to emails, when quoting the original email. Matches the beginning of every line.
 	 *
 	 * @see #asReplyTo(MimeMessage, boolean, String)
 	 */
 	private static final Pattern LINE_START_PATTERN = compile("(?m)^");
-
+	
 	/**
 	 * Default simple quoting markup for email replies.
 	 * <p>
@@ -71,7 +75,7 @@ public class EmailBuilder {
 	 */
 	private static final String DEFAULT_QUOTING_MARKUP = "<blockquote style=\"color: gray; border-left: 1px solid #4f4f4f; padding-left: " +
 			"1cm\">%s</blockquote>";
-
+	
 	/**
 	 * @see #id(String)
 	 */
@@ -134,7 +138,7 @@ public class EmailBuilder {
 	 * @see #signWithDomainKey(File, String, String)
 	 */
 	private File dkimPrivateKeyFile;
-
+	
 	/**
 	 * @see #signWithDomainKey(InputStream, String, String)
 	 */
@@ -180,11 +184,10 @@ public class EmailBuilder {
 	 * @see #asForwardOf(MimeMessage)
 	 */
 	private MimeMessage emailToForward;
-
+	
 	/**
-	 * FIXME:
-	 * describe what the constructor does related to one of the static builder starters, while referring to the common initialization (either in some super constructor, or because
-	 * the static builder starters internally all start with email().
+	 * FIXME: describe what the constructor does related to one of the static builder starters, while referring to the common initialization (either
+	 * in some super constructor, or because the static builder starters internally all start with email().
 	 */
 	// FIXME split up to email(), asReplyTo(), asForwardOf()
 	public static EmailBuilder builder() {
@@ -194,7 +197,7 @@ public class EmailBuilder {
 	public EmailBuilder ignoringDefaults() {
 		return new EmailBuilder(false);
 	}
-
+	
 	/**
 	 * @see EmailBuilder#builder()
 	 */
@@ -240,7 +243,7 @@ public class EmailBuilder {
 			}
 		}
 	}
-
+	
 	/**
 	 * @return A new immutable {@link Email} instance populated with all the data set on this builder instance.
 	 */
@@ -273,11 +276,12 @@ public class EmailBuilder {
 	public EmailBuilder from(@Nullable final String name, @Nonnull final String fromAddress) {
 		return from(new Recipient(name, checkNonEmptyArgument(fromAddress, "fromAddress"), null));
 	}
-
+	
 	/**
 	 * Sets the address of the sender of this email with given {@link Recipient} (ignoring its {@link RecipientType} if provided).
 	 * <p>
-	 * Can be used in conjunction with one of the {@code replyTo(...)} methods, which is then prioritized by email clients when replying to this email.
+	 * Can be used in conjunction with one of the {@code replyTo(...)} methods, which is then prioritized by email clients when replying to this
+	 * email.
 	 *
 	 * @param recipient Preconfigured recipient which includes optional name and mandatory email address.
 	 *
@@ -297,7 +301,7 @@ public class EmailBuilder {
 	public EmailBuilder replyTo(@Nullable final String name, @Nonnull final String replyToAddress) {
 		return replyTo(new Recipient(name, checkNonEmptyArgument(replyToAddress, "replyToAddress"), null));
 	}
-
+	
 	/**
 	 * Sets the <em>replyTo</em> address of this email with given {@link Recipient} (ignoring its {@link RecipientType} if provided).
 	 * <p>
@@ -312,18 +316,19 @@ public class EmailBuilder {
 		this.replyToRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
 		return this;
 	}
-
+	
 	/**
 	 * Delegates to {@link #bounceTo(Recipient)} with given name and email address.
 	 */
 	public EmailBuilder bounceTo(@Nullable final String name, @Nonnull final String bounceToAddress) {
 		return bounceTo(new Recipient(name, checkNonEmptyArgument(bounceToAddress, "bounceToAddress"), null));
 	}
-
+	
 	/**
 	 * Sets the <em>bounceTo</em> address of this email with given {@link Recipient} (ignoring its {@link RecipientType} if provided).
 	 * <p>
-	 * If provided, SMTP server should return bounced emails to this address. This is also known as the {@code Return-Path} (or <em>Envelope FROM</em>).
+	 * If provided, SMTP server should return bounced emails to this address. This is also known as the {@code Return-Path} (or <em>Envelope
+	 * FROM</em>).
 	 *
 	 * @param recipient Preconfigured recipient which includes optional name and mandatory email address.
 	 *
@@ -342,12 +347,12 @@ public class EmailBuilder {
 		this.subject = checkNonEmptyArgument(subject, "subject");
 		return this;
 	}
-
+	
 	/**
 	 * Sets the optional email message body in plain text.
 	 * <p>
-	 * Both text and HTML can be provided, which will  be offered to the email client as alternative content. Email clients that support it, will favor HTML
-	 * over plain text and ignore the text body completely.
+	 * Both text and HTML can be provided, which will  be offered to the email client as alternative content. Email clients that support it, will
+	 * favor HTML over plain text and ignore the text body completely.
 	 *
 	 * @see #prependText(String)
 	 * @see #appendText(String)
@@ -356,7 +361,7 @@ public class EmailBuilder {
 		this.text = text;
 		return this;
 	}
-
+	
 	/**
 	 * Prepends text to the current plain text body (or starts it if plain text body is missing).
 	 *
@@ -366,7 +371,7 @@ public class EmailBuilder {
 		this.text = text + defaultTo(this.text, "");
 		return this;
 	}
-
+	
 	/**
 	 * Appends text to the current plain text body (or starts it if plain text body is missing).
 	 *
@@ -376,12 +381,12 @@ public class EmailBuilder {
 		this.text = defaultTo(this.text, "") + text;
 		return this;
 	}
-
+	
 	/**
 	 * Sets the optional email message body in HTML text.
 	 * <p>
-	 * Both text and HTML can be provided, which will  be offered to the email client as alternative content. Email clients that support it, will favor HTML
-	 * over plain text and ignore the text body completely.
+	 * Both text and HTML can be provided, which will  be offered to the email client as alternative content. Email clients that support it, will
+	 * favor HTML over plain text and ignore the text body completely.
 	 *
 	 * @see #prependTextHTML(String)
 	 * @see #appendTextHTML(String)
@@ -390,7 +395,7 @@ public class EmailBuilder {
 		this.textHTML = textHTML;
 		return this;
 	}
-
+	
 	/**
 	 * Prepends HTML text to the current HTML text body (or starts it if HTML text body is missing).
 	 *
@@ -400,7 +405,7 @@ public class EmailBuilder {
 		this.textHTML = textHTML + defaultTo(this.textHTML, "");
 		return this;
 	}
-
+	
 	/**
 	 * Appends HTML text to the current HTML text body (or starts it if HTML text body is missing).
 	 *
@@ -411,55 +416,192 @@ public class EmailBuilder {
 		return this;
 	}
 	
-	public EmailBuilder to					(@Nonnull final Recipient... recipients) { 										 			return withRecipients(asList(recipients), RecipientType.TO); }
-	public EmailBuilder to					(@Nonnull final Collection<Recipient> recipients) {  							 			return withRecipients(recipients, RecipientType.TO);  }
-	public EmailBuilder to					(@Nullable final String name, String address) { 							 				return toWithFixedName(name, address); }
-	public EmailBuilder to					(@Nonnull final String oneOrMoreAddresses) { 												return withRecipientsWithDefaultName(null, asList(oneOrMoreAddresses), RecipientType.TO); }
-	public EmailBuilder to					(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return toWithFixedName(name, oneOrMoreAddressesEach); }
-	public EmailBuilder to					(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return toWithFixedName(name, oneOrMoreAddressesEach); }
-	public EmailBuilder toMultiple			(@Nonnull final String... oneOrMoreAddressesEach) { 							 			return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), RecipientType.TO); }
-	public EmailBuilder toAddresses			(@Nonnull final Collection<String> oneOrMoreAddressesEach) { 							 	return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, RecipientType.TO); }
-	public EmailBuilder toWithFixedName		(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), RecipientType.TO); }
-	public EmailBuilder toWithDefaultName	(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {	 			return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), RecipientType.TO); }
-	public EmailBuilder toWithFixedName		(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, RecipientType.TO); }
-	public EmailBuilder toWithDefaultName	(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, RecipientType.TO); }
+	// @formatter:off
+	/*
+		TO: Recipient
+	 */
+	/** Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#TO}. */
+	 public EmailBuilder to								(@Nonnull final Recipient... recipients) { 										 					return withRecipients(asList(recipients), TO); }
+	/** Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#TO}. */
+	 public EmailBuilder to								(@Nonnull final Collection<Recipient> recipients) {  							 					return withRecipients(recipients, TO);  }
+	/*
+		TO: String
+	 */
+	/** Alias for {@link #toWithFixedName(String, String...)}. */
+	 public EmailBuilder to								(@Nullable final String name, String address) { 							 						return toWithFixedName(name, address); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO} and empty default name. */
+	 public EmailBuilder to								(@Nonnull final String oneOrMoreAddresses) { 														return withRecipientsWithDefaultName(null, asList(oneOrMoreAddresses), TO); }
+	/** Alias for {@link #toWithFixedName(String, String...)}. */
+	 public EmailBuilder to								(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 					return toWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Alias for {@link #toWithFixedName(String, Collection)}. */
+	 public EmailBuilder to								(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return toWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO} and empty default name. */
+	 public EmailBuilder toMultiple						(@Nonnull final String... oneOrMoreAddressesEach) { 							 					return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), TO); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO} and empty default name. */
+	 public EmailBuilder toMultiple						(@Nonnull final Collection<String> oneOrMoreAddressesEach) { 							 			return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, TO); }
+	/** Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#TO}. */
+	 public EmailBuilder toWithFixedName				(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 					return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), TO); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO}. */
+	 public EmailBuilder toWithDefaultName				(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {	 					return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), TO); }
+	/** Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#TO}. */
+	 public EmailBuilder toWithFixedName				(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, TO); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO}. */
+	 public EmailBuilder toWithDefaultName				(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, TO); }
+	/*
+		TO: InternetAddress
+	 */
+	/** Alias for {@link #toAddressesWithFixedName(String, InternetAddress...)}. */
+	 public EmailBuilder to								(@Nullable final String name, InternetAddress address) { 							 				return toAddressesWithFixedName(name, address); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO} and empty default name. */
+	 public EmailBuilder to								(@Nonnull final InternetAddress address) { 															return withAddressesWithDefaultName(null, asList(address), TO); }
+	/** Alias for {@link #toAddressesWithFixedName(String, InternetAddress...)}. */
+	 public EmailBuilder to								(@Nullable final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) { 			return toAddressesWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Alias for {@link #toAddressesWithFixedName(String, Collection)}. */
+	 public EmailBuilder toAddresses					(@Nullable final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 	return toAddressesWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO} and empty default name. */
+	 public EmailBuilder toMultiple						(@Nonnull final InternetAddress... oneOrMoreAddressesEach) { 							 			return withAddressesWithDefaultName(null, asList(oneOrMoreAddressesEach), TO); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO} and empty default name. */
+	 public EmailBuilder toMultipleAddresses			(@Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 							 	return withAddressesWithDefaultName(null, oneOrMoreAddressesEach, TO); }
+	/** Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#TO}. */
+	 public EmailBuilder toAddressesWithFixedName		(@Nullable final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) { 			return withAddressesWithFixedName(name, asList(oneOrMoreAddressesEach), TO); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO}. */
+	 public EmailBuilder toAddressesWithDefaultName		(@Nonnull final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) {	 		return withAddressesWithDefaultName(name, asList(oneOrMoreAddressesEach), TO); }
+	/** Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#TO}. */
+	 public EmailBuilder toAddressesWithFixedName		(@Nullable final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 	return withAddressesWithFixedName(name, oneOrMoreAddressesEach, TO); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO}. */
+	 public EmailBuilder toAddressesWithDefaultName		(@Nonnull final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 	return withAddressesWithDefaultName(name, oneOrMoreAddressesEach, TO); }
+	/*
+		CC: Recipient
+	 */
+	/** Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#CC}. */
+	 public EmailBuilder cc								(@Nonnull final Recipient... recipients) { 										 					return withRecipients(asList(recipients), CC); }
+	/** Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#CC}. */
+	 public EmailBuilder cc								(@Nonnull final Collection<Recipient> recipients) {  							 					return withRecipients(recipients, CC);  }
+	/*
+		CC: String
+	 */
+	/** Alias for {@link #ccWithFixedName(String, String...)}. */
+	 public EmailBuilder cc								(@Nullable final String name, String address) { 							 						return ccWithFixedName(name, address); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC} and empty default name. */
+	 public EmailBuilder cc								(@Nonnull final String oneOrMoreAddresses) { 														return withRecipientsWithDefaultName(null, asList(oneOrMoreAddresses), CC); }
+	/** Alias for {@link #ccWithFixedName(String, String...)}. */
+	 public EmailBuilder cc								(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 					return ccWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Alias for {@link #ccWithFixedName(String, Collection)}. */
+	 public EmailBuilder cc								(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return ccWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC} and empty default name. */
+	 public EmailBuilder ccMultiple						(@Nonnull final String... oneOrMoreAddressesEach) { 							 					return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), CC); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC} and empty default name. */
+	 public EmailBuilder ccAddresses					(@Nonnull final Collection<String> oneOrMoreAddressesEach) { 							 			return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, CC); }
+	/** Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#CC}. */
+	 public EmailBuilder ccWithFixedName				(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 					return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), CC); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC}. */
+	 public EmailBuilder ccWithDefaultName				(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {	 					return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), CC); }
+	/** Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#CC}. */
+	 public EmailBuilder ccWithFixedName				(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, CC); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC}. */
+	 public EmailBuilder ccWithDefaultName				(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, CC); }
+	/*
+		CC: InternetAddress
+	 */
+	/** Alias for {@link #ccAddressesWithFixedName(String, InternetAddress...)}. */
+	 public EmailBuilder cc								(@Nullable final String name, InternetAddress address) { 							 				return ccAddressesWithFixedName(name, address); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC} and empty default name. */
+	 public EmailBuilder cc								(@Nonnull final InternetAddress address) { 															return withAddressesWithDefaultName(null, asList(address), CC); }
+	/** Alias for {@link #ccAddressesWithFixedName(String, InternetAddress...)}. */
+	 public EmailBuilder cc								(@Nullable final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) { 			return ccAddressesWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Alias for {@link #ccAddressesWithFixedName(String, Collection)}. */
+	 public EmailBuilder ccAddresses					(@Nullable final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 	return ccAddressesWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC} and empty default name. */
+	 public EmailBuilder ccMultiple						(@Nonnull final InternetAddress... oneOrMoreAddressesEach) { 							 			return withAddressesWithDefaultName(null, asList(oneOrMoreAddressesEach), CC); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC} and empty default name. */
+	 public EmailBuilder ccMultipleAddresses			(@Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 							 	return withAddressesWithDefaultName(null, oneOrMoreAddressesEach, CC); }
+	/** Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#CC}. */
+	 public EmailBuilder ccAddressesWithFixedName		(@Nullable final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) { 			return withAddressesWithFixedName(name, asList(oneOrMoreAddressesEach), CC); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC}. */
+	 public EmailBuilder ccAddressesWithDefaultName		(@Nonnull final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) {	 		return withAddressesWithDefaultName(name, asList(oneOrMoreAddressesEach), CC); }
+	/** Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#CC}. */
+	 public EmailBuilder ccAddressesWithFixedName		(@Nullable final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 	return withAddressesWithFixedName(name, oneOrMoreAddressesEach, CC); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC}. */
+	 public EmailBuilder ccAddressesWithDefaultName		(@Nonnull final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 	return withAddressesWithDefaultName(name, oneOrMoreAddressesEach, CC); }
+	/*
+		BCC: Recipient
+	 */
+	/** Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	 public EmailBuilder bcc							(@Nonnull final Recipient... recipients) { 										 					return withRecipients(asList(recipients), BCC); }
+	/** Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	 public EmailBuilder bcc							(@Nonnull final Collection<Recipient> recipients) {  							 					return withRecipients(recipients, BCC);  }
 	
-	public EmailBuilder cc					(@Nonnull final Recipient... recipients) { 										 			return withRecipients(asList(recipients), RecipientType.CC); }
-	public EmailBuilder cc					(@Nonnull final Collection<Recipient> recipients) {  							 			return withRecipients(recipients, RecipientType.CC);  }
-	public EmailBuilder cc					(@Nullable final String name, String address) { 							 				return ccWithFixedName(name, address); }
-	public EmailBuilder cc					(@Nonnull final String oneOrMoreAddresses) { 												return withRecipientsWithDefaultName(null, asList(oneOrMoreAddresses), RecipientType.CC); }
-	public EmailBuilder cc					(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return ccWithFixedName(name, oneOrMoreAddressesEach); }
-	public EmailBuilder cc					(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return ccWithFixedName(name, oneOrMoreAddressesEach); }
-	public EmailBuilder ccMultiple			(@Nonnull final String... oneOrMoreAddressesEach) { 							 			return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), RecipientType.CC); }
-	public EmailBuilder ccAddresses			(@Nonnull final Collection<String> oneOrMoreAddressesEach) { 							 	return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, RecipientType.CC); }
-	public EmailBuilder ccWithFixedName		(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), RecipientType.CC); }
-	public EmailBuilder ccWithDefaultName	(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {	 			return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), RecipientType.CC); }
-	public EmailBuilder ccWithFixedName		(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, RecipientType.CC); }
-	public EmailBuilder ccWithDefaultName	(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, RecipientType.CC); }
+	/*
+		BCC: String
+	 */
+	/** Alias for {@link #bccWithFixedName(String, String...)}. */
+	 public EmailBuilder bcc							(@Nullable final String name, String address) { 							 						return bccWithFixedName(name, address); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name. */
+	 public EmailBuilder bcc							(@Nonnull final String oneOrMoreAddresses) { 														return withRecipientsWithDefaultName(null, asList(oneOrMoreAddresses), BCC); }
+	/** Alias for {@link #bccWithFixedName(String, String...)}. */
+	 public EmailBuilder bcc							(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 					return bccWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Alias for {@link #bccWithFixedName(String, Collection)}. */
+	 public EmailBuilder bcc							(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return bccWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name. */
+	 public EmailBuilder bccMultiple					(@Nonnull final String... oneOrMoreAddressesEach) { 							 					return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), BCC); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name. */
+	 public EmailBuilder bccAddresses					(@Nonnull final Collection<String> oneOrMoreAddressesEach) { 							 			return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, BCC); }
+	/** Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	 public EmailBuilder bccWithFixedName				(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 					return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), BCC); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	 public EmailBuilder bccWithDefaultName				(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {	 					return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), BCC); }
+	/** Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	 public EmailBuilder bccWithFixedName				(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, BCC); }
+	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	 public EmailBuilder bccWithDefaultName				(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, BCC); }
+	/*
+		BCC: InternetAddress
+	 */
+	/** Alias for {@link #bccAddressesWithFixedName(String, InternetAddress...)}. */
+	 public EmailBuilder bcc							(@Nullable final String name, InternetAddress address) { 							 				return bccAddressesWithFixedName(name, address); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name. */
+	 public EmailBuilder bcc							(@Nonnull final InternetAddress address) { 															return withAddressesWithDefaultName(null, asList(address), BCC); }
+	/** Alias for {@link #bccAddressesWithFixedName(String, InternetAddress...)}. */
+	 public EmailBuilder bcc							(@Nullable final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) { 			return bccAddressesWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Alias for {@link #bccAddressesWithFixedName(String, Collection)}. */
+	 public EmailBuilder bccAddresses					(@Nullable final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 	return bccAddressesWithFixedName(name, oneOrMoreAddressesEach); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name. */
+	 public EmailBuilder bccMultiple					(@Nonnull final InternetAddress... oneOrMoreAddressesEach) { 							 			return withAddressesWithDefaultName(null, asList(oneOrMoreAddressesEach), BCC); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name. */
+	 public EmailBuilder bccMultipleAddresses			(@Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 							 	return withAddressesWithDefaultName(null, oneOrMoreAddressesEach, BCC); }
+	/** Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	 public EmailBuilder bccAddressesWithFixedName		(@Nullable final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) { 			return withAddressesWithFixedName(name, asList(oneOrMoreAddressesEach), BCC); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	 public EmailBuilder bccAddressesWithDefaultName	(@Nonnull final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) {	 		return withAddressesWithDefaultName(name, asList(oneOrMoreAddressesEach), BCC); }
+	/** Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	 public EmailBuilder bccAddressesWithFixedName		(@Nullable final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 	return withAddressesWithFixedName(name, oneOrMoreAddressesEach, BCC); }
+	/** Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	 public EmailBuilder bccAddressesWithDefaultName	(@Nonnull final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) { 	return withAddressesWithDefaultName(name, oneOrMoreAddressesEach, BCC); }
+	// @formatter:on
 	
-	public EmailBuilder bcc					(@Nonnull final Recipient... recipients) { 										 			return withRecipients(asList(recipients), RecipientType.BCC); }
-	public EmailBuilder bcc					(@Nonnull final Collection<Recipient> recipients) {  							 			return withRecipients(recipients, RecipientType.BCC);  }
-	public EmailBuilder bcc					(@Nullable final String name, String address) { 							 				return bccWithFixedName(name, address); }
-	public EmailBuilder bcc					(@Nonnull final String oneOrMoreAddresses) { 												return withRecipientsWithDefaultName(null, asList(oneOrMoreAddresses), RecipientType.BCC); }
-	public EmailBuilder bcc					(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return bccWithFixedName(name, oneOrMoreAddressesEach); }
-	public EmailBuilder bcc					(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return bccWithFixedName(name, oneOrMoreAddressesEach); }
-	public EmailBuilder bccMultiple			(@Nonnull final String... oneOrMoreAddressesEach) { 							 			return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), RecipientType.BCC); }
-	public EmailBuilder bccAddresses		(@Nonnull final Collection<String> oneOrMoreAddressesEach) { 							 	return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, RecipientType.BCC); }
-	public EmailBuilder bccWithFixedName	(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), RecipientType.BCC); }
-	public EmailBuilder bccWithDefaultName	(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {	 			return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), RecipientType.BCC); }
-	public EmailBuilder bccWithFixedName	(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, RecipientType.BCC); }
-	public EmailBuilder bccWithDefaultName	(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, RecipientType.BCC); }
-	
+	/**
+	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}, leaving existing names in tact and defaulting when missing.
+	 */
 	@Nonnull
 	public EmailBuilder withRecipientsWithDefaultName(@Nullable final String defaultName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
 		return withRecipients(defaultName, false, oneOrMoreAddressesEach, recipientType);
 	}
 	
+	/**
+	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}, assigning or overwriting existing names with the provided.
+	 * name.
+	 */
 	@Nonnull
 	public EmailBuilder withRecipientsWithFixedName(@Nullable final String fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
 		return withRecipients(fixedName, true, oneOrMoreAddressesEach, recipientType);
 	}
 	
+	/**
+	 * Delegates to {@link #withRecipient(Recipient)} for each address found in not just the collection, but also in every individual address string.
+	 *
+	 * @param fixedName Indicates whether the provided name should be applied to all addresses, or only to those where a name is missing.
+	 * @param oneOrMoreAddressesEach Collection of addresses. Each entry itself can be a delimited list of RFC822 addresses.
+	 */
 	@Nonnull
 	public EmailBuilder withRecipients(@Nullable String name, boolean fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
 		for (String oneOrMoreAddresses : oneOrMoreAddressesEach) {
@@ -470,6 +612,42 @@ public class EmailBuilder {
 		return this;
 	}
 	
+	/**
+	 * Delegates to {@link #withAddresses(String, boolean, Collection, RecipientType)}, leaving existing names in tact and defaulting when missing.
+	 */
+	@Nonnull
+	public EmailBuilder withAddressesWithDefaultName(@Nullable final String defaultName, @Nonnull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
+		return withAddresses(defaultName, false, addresses, recipientType);
+	}
+	
+	/**
+	 * Delegates to {@link #withAddresses(String, boolean, Collection, RecipientType)}, assigning or overwriting existing names with the provided.
+	 */
+	@Nonnull
+	public EmailBuilder withAddressesWithFixedName(@Nullable final String fixedName, @Nonnull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
+		return withAddresses(fixedName, true, addresses, recipientType);
+	}
+	
+	/**
+	 * Delegates to {@link #withRecipient(String, String, RecipientType)} for each address in the provided collection.
+	 *
+	 * @param fixedName Indicates whether the provided name should be applied to all addresses, or only to those where a name is missing.
+	 */
+	@Nonnull
+	public EmailBuilder withAddresses(@Nullable String name, boolean fixedName, @Nonnull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
+		for (InternetAddress address : addresses) {
+			String effectiveName = (fixedName || valueNullOrEmpty(address.getPersonal())) ? name : address.getPersonal();
+			withRecipient(effectiveName, address.getAddress(), recipientType);
+		}
+		return this;
+	}
+	
+	/**
+	 * Delegates to {@link #withRecipient(String, String, RecipientType)} for each recipient in the provided collection, optionally fixing the
+	 * recipientType for all recipients to the provided type.
+	 *
+	 * @param fixedRecipientType Optional. Fixes all recipients to the given type. If omitted, the types are not removed, but kept as-is.
+	 */
 	@Nonnull
 	public EmailBuilder withRecipients(@Nonnull Collection<Recipient> recipients, @Nullable RecipientType fixedRecipientType) {
 		for (Recipient recipient : recipients) {
@@ -478,18 +656,38 @@ public class EmailBuilder {
 		return this;
 	}
 	
+	/**
+	 * Adds a new {@link Recipient} instance with the given name, address and {@link RecipientType}.
+	 * <p>
+	 * Note that the email address must be a single address according to RFC822 format. Name can be provided explicitly or as part of the RFC822 email
+	 * address or omitted completely.
+	 * FIXME: test with explicit name and implicit name combined
+	 *
+	 * @param name          Optional explicit name. Can be included in the email address instead, or omitted completely. A name will show as {@code
+	 *                      "Name Here <address@domain.com>"}
+	 * @param singleAddress A single address according to RFC822 format with or without personal name.
+	 * @param recipientType Optional type of recipient. This is needed for TO, CC and BCC, but not for <em>bounceTo</em>, <em>returnReceiptTo</em>,
+	 *                      <em>replyTo</em>, <em>from</em> etc.
+	 */
 	public EmailBuilder withRecipient(@Nullable final String name, @Nonnull final String singleAddress, @Nullable final RecipientType recipientType) {
 		recipients.add(new Recipient(name, singleAddress, recipientType));
 		return this;
 	}
 	
+	/**
+	 * Adds a new {@link Recipient} instance as copy of the provided recipient (copying name, address and {@link RecipientType}).
+	 * <p>
+	 * Note that the email address must be a single address according to RFC822 format. Name can be provided explicitly or as part of the RFC822 email
+	 * address or omitted completely.
+	 */
 	public EmailBuilder withRecipient(@Nonnull final Recipient recipient) {
 		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType()));
 		return this;
 	}
 	
 	/**
-	 * Delegates to {@link #embedImage(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
+	 * Delegates to {@link #embedImage(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and
+	 * mimetype.
 	 *
 	 * @param name     The name of the image as being referred to from the message content body (eg. 'signature').
 	 * @param data     The byte data of the image to be embedded.
@@ -504,15 +702,16 @@ public class EmailBuilder {
 		dataSource.setName(name);
 		return embedImage(name, dataSource);
 	}
-
+	
 	/**
-	 * Adds image data to this email that can be referred to from the email HTML body. For adding images as attachment, refer to {@link #addAttachment(String,
-	 * DataSource)} instead.
+	 * Adds image data to this email that can be referred to from the email HTML body. For adding images as attachment, refer to {@link
+	 * #addAttachment(String, DataSource)} instead.
 	 * <p>
-	 * The provided {@link DataSource} is assumed to be of mimetype png, jpg or whatever the email client supports as valid image embedded in HTML content.
+	 * The provided {@link DataSource} is assumed to be of mimetype png, jpg or whatever the email client supports as valid image embedded in HTML
+	 * content.
 	 *
-	 * @param name      The name of the image as being referred to from the message content body (eg. 'src="cid:yourImageName"'). If not provided, the name of
-	 *                  the given data source is used instead.
+	 * @param name      The name of the image as being referred to from the message content body (eg. 'src="cid:yourImageName"'). If not provided, the
+	 *                  name of the given data source is used instead.
 	 * @param imagedata The image data.
 	 *
 	 * @see EmailBuilder#embedImage(String, byte[], String)
@@ -527,7 +726,7 @@ public class EmailBuilder {
 		embeddedImages.add(new AttachmentResource(name, imagedata));
 		return this;
 	}
-
+	
 	/**
 	 * Delegates to {@link #embedImage(String, DataSource)} for each embedded image.
 	 */
@@ -537,13 +736,13 @@ public class EmailBuilder {
 		}
 		return this;
 	}
-
+	
 	/**
 	 * Delegates to {@link #addHeader(String, Object)} for each header in the provided {@code Map}.
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public <T> EmailBuilder withHeaders(@Nonnull final Map<String, T> headers) {
-		for (Map.Entry<String, T> headerEntry: headers.entrySet()) {
+		for (Map.Entry<String, T> headerEntry : headers.entrySet()) {
 			addHeader(headerEntry.getKey(), headerEntry.getValue());
 		}
 		return this;
@@ -564,9 +763,10 @@ public class EmailBuilder {
 		headers.put(name, String.valueOf(value));
 		return this;
 	}
-
+	
 	/**
-	 * Delegates to {@link #addAttachment(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
+	 * Delegates to {@link #addAttachment(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and
+	 * mimetype.
 	 *
 	 * @param name     The name of the attachment (eg. filename including extension, like 'filename.ext').
 	 * @param data     The binary data of the attachment.
@@ -583,10 +783,10 @@ public class EmailBuilder {
 		addAttachment(name, dataSource);
 		return this;
 	}
-
+	
 	/**
-	 * Adds an attachment to the email message, which will be shown in the email client as seperate files available for download or inline display if the client
-	 * supports it (for example, most browsers these days display PDF's in a popup).
+	 * Adds an attachment to the email message, which will be shown in the email client as seperate files available for download or inline display if
+	 * the client supports it (for example, most browsers these days display PDF's in a popup).
 	 * <p>
 	 * Note: for embedding images instead of attaching them for download, refer to {@link #embedImage(String, DataSource)} instead.
 	 *
@@ -601,7 +801,7 @@ public class EmailBuilder {
 		attachments.add(new AttachmentResource(MiscUtil.encodeText(name), filedata));
 		return this;
 	}
-
+	
 	/**
 	 * Delegates to {@link #addAttachment(String, DataSource)} for each attachment.
 	 */
@@ -611,7 +811,7 @@ public class EmailBuilder {
 		}
 		return this;
 	}
-
+	
 	/**
 	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
 	 * dkimPrivateKey} data.
@@ -629,10 +829,10 @@ public class EmailBuilder {
 		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
 		return signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey.getBytes(UTF_8)), signingDomain, dkimSelector);
 	}
-
+	
 	/**
-	 * Sets all info needed for signing with DKIM (key, domain, selector), using an input stream for private key data. This data is used once the email is sent,
-	 * using the DKIM library.
+	 * Sets all info needed for signing with DKIM (key, domain, selector), using an input stream for private key data. This data is used once the
+	 * email is sent, using the DKIM library.
 	 *
 	 * @see #signWithDomainKey(byte[], String, String)
 	 * @see #signWithDomainKey(String, String, String)
@@ -645,10 +845,10 @@ public class EmailBuilder {
 		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
 	}
-
+	
 	/**
-	 * Sets all info needed for DKIM (key, domain, selector), using a file reference for private key data. This file is resolved once the email is sent, using
-	 * the DKIM library.
+	 * Sets all info needed for DKIM (key, domain, selector), using a file reference for private key data. This file is resolved once the email is
+	 * sent, using the DKIM library.
 	 *
 	 * @see #signWithDomainKey(InputStream, String, String)
 	 */
@@ -678,7 +878,7 @@ public class EmailBuilder {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
 		return withDispositionNotificationTo(new Recipient(null, address, null));
 	}
-
+	
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided name and address.
 	 */
@@ -686,10 +886,11 @@ public class EmailBuilder {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
 		return withDispositionNotificationTo(new Recipient(name, address, null));
 	}
-
+	
 	/**
 	 * Indicates the this email should use the <a href="https://tools.ietf.org/html/rfc8098">NPM flag "Disposition-Notification-To"</a> with the given
-	 * preconfigred {@link Recipient}. This flag can be used to request a return receipt from the recipient to signal that the recipient has read the email.
+	 * preconfigred {@link Recipient}. This flag can be used to request a return receipt from the recipient to signal that the recipient has read the
+	 * email.
 	 * <p>
 	 * This flag may be ignored by SMTP clients (for example gmail ignores it completely, while the Google Apps business suite honors it).
 	 *
@@ -703,10 +904,10 @@ public class EmailBuilder {
 		this.dispositionNotificationTo = new Recipient(recipient.getName(), recipient.getAddress(), null);
 		return this;
 	}
-
+	
 	/**
-	 * Indicates that we want to use the flag {@link #returnReceiptTo}. The actual address will default to the {@link #replyToRecipient} first if set or else
-	 * {@link #fromRecipient} (the final address is determined when sending the email).
+	 * Indicates that we want to use the flag {@link #returnReceiptTo}. The actual address will default to the {@link #replyToRecipient} first if set
+	 * or else {@link #fromRecipient} (the final address is determined when sending the email).
 	 * <p>
 	 * For more detailed information, refer to {@link #withReturnReceiptTo(Recipient)}.
 	 */
@@ -731,13 +932,14 @@ public class EmailBuilder {
 		checkNonEmptyArgument(address, "address");
 		return withReturnReceiptTo(new Recipient(name, address, null));
 	}
-
+	
 	/**
-	 * Indicates that this email should use the <a href="https://en.wikipedia.org/wiki/Return_receipt">RRT flag "Return-Receipt-To"</a> with the preconfigured
-	 * {@link Recipient}. This flag can be used to request a notification from the SMTP server recipient to signal that the recipient has read the email.
+	 * Indicates that this email should use the <a href="https://en.wikipedia.org/wiki/Return_receipt">RRT flag "Return-Receipt-To"</a> with the
+	 * preconfigured {@link Recipient}. This flag can be used to request a notification from the SMTP server recipient to signal that the recipient
+	 * has read the email.
 	 * <p>
-	 * This flag is rarely used, but your mail server / client might implement this flag to automatically send back a notification that the email was received
-	 * on the mail server or opened in the client, depending on the chosen implementation.
+	 * This flag is rarely used, but your mail server / client might implement this flag to automatically send back a notification that the email was
+	 * received on the mail server or opened in the client, depending on the chosen implementation.
 	 */
 	public EmailBuilder withReturnReceiptTo(@Nonnull final Recipient recipient) {
 		checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
@@ -811,17 +1013,19 @@ public class EmailBuilder {
 	public EmailBuilder asReplyToAll(@Nonnull final MimeMessage email) {
 		return asReplyTo(email, true, DEFAULT_QUOTING_MARKUP);
 	}
-
+	
 	/**
 	 * Primes the email with all subject, headers, originally embedded images and recipients needed for a valid RFC reply.
 	 * <p>
 	 * <strong>Note:</strong> replaces subject with "Re: &lt;original subject&gt;" (but never nested).<br>
 	 * <p>
-	 * <strong>Note:</strong> Make sure you set the content before using this API or else the quoted content is lost. Replaces body (text is replaced with ">
-	 * text" and HTML is replaced with the provided or default quoting markup.
+	 * <strong>Note:</strong> Make sure you set the content before using this API or else the quoted content is lost. Replaces body (text is replaced
+	 * with "> text" and HTML is replaced with the provided or default quoting markup.
 	 *
-	 * @param emailMessage The message from which we harvest recipients, original content to quote (including embedded images), message ID to include.
-	 * @param repyToAll    Indicates whether all original receivers should be included in this new reply. Also see {@link MimeMessage#reply(boolean)}.
+	 * @param emailMessage The message from which we harvest recipients, original content to quote (including embedded images), message ID to
+	 *                     include.
+	 * @param repyToAll    Indicates whether all original receivers should be included in this new reply. Also see {@link
+	 *                     MimeMessage#reply(boolean)}.
 	 * @param htmlTemplate A valid HTML that contains the string {@code "%s"}. Be advised that HTML is very limited in emails.
 	 *
 	 * @see #asReplyTo(Email)
@@ -847,7 +1051,7 @@ public class EmailBuilder {
 		
 		final Email repliedTo = EmailConverter.mimeMessageToEmail(emailMessage);
 		final Email generatedReply = EmailConverter.mimeMessageToEmail(replyMessage);
-
+		
 		return this
 				.subject(generatedReply.getSubject())
 				.to(generatedReply.getRecipients())
@@ -865,18 +1069,19 @@ public class EmailBuilder {
 	public EmailBuilder asForwardOf(@Nonnull final Email email) {
 		return asForwardOf(EmailConverter.emailToMimeMessage(email));
 	}
-
+	
 	/**
-	 * Primes the email to build with proper subject and inline forwarded email needed for a valid RFC forward. Also includes the original email intact, to be
-	 * rendered by the email client as 'forwarded email'.
+	 * Primes the email to build with proper subject and inline forwarded email needed for a valid RFC forward. Also includes the original email
+	 * intact, to be rendered by the email client as 'forwarded email'.
 	 * <p>
 	 * <strong>Note 1</strong>: replaces subject with "Fwd: &lt;original subject&gt;" (nesting enabled).
 	 * <p>
-	 * <strong>Note 2</strong>: {@code Content-Disposition} will be left empty so the receiving email client can decide how to handle display (most will show
-	 * inline, some will show as attachment instead).
+	 * <strong>Note 2</strong>: {@code Content-Disposition} will be left empty so the receiving email client can decide how to handle display (most
+	 * will show inline, some will show as attachment instead).
 	 *
 	 * @see <a href="https://javaee.github.io/javamail/FAQ#forward">Official JavaMail FAQ on forwarding</a>
-	 * @see <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/">More reading material</a>
+	 * @see <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/">More reading
+	 * material</a>
 	 * @see #asForwardOf(Email)
 	 */
 	public EmailBuilder asForwardOf(@Nonnull final MimeMessage emailMessage) {
@@ -887,56 +1092,56 @@ public class EmailBuilder {
 	/*
 		GETTERS
 	 */
-
+	
 	/**
 	 * @see #id(String)
 	 */
 	public String getId() {
 		return id;
 	}
-
+	
 	/**
 	 * @see #from(Recipient)
 	 */
 	public Recipient getFromRecipient() {
 		return fromRecipient;
 	}
-
+	
 	/**
 	 * @see #replyTo(Recipient)
 	 */
 	public Recipient getReplyToRecipient() {
 		return replyToRecipient;
 	}
-
+	
 	/**
 	 * @see #bounceTo(Recipient)
 	 */
 	public Recipient getBounceToRecipient() {
 		return bounceToRecipient;
 	}
-
+	
 	/**
 	 * @see #text(String)
 	 */
 	public String getText() {
 		return text;
 	}
-
+	
 	/**
 	 * @see #textHTML(String)
 	 */
 	public String getTextHTML() {
 		return textHTML;
 	}
-
+	
 	/**
 	 * @see #subject(String)
 	 */
 	public String getSubject() {
 		return subject;
 	}
-
+	
 	/**
 	 * @see #to(Recipient...)
 	 * @see #cc(Recipient...)
@@ -945,21 +1150,21 @@ public class EmailBuilder {
 	public List<Recipient> getRecipients() {
 		return new ArrayList<>(recipients);
 	}
-
+	
 	/**
 	 * @see #embedImage(String, DataSource)
 	 */
 	public List<AttachmentResource> getEmbeddedImages() {
 		return new ArrayList<>(embeddedImages);
 	}
-
+	
 	/**
 	 * @see #addAttachment(String, DataSource)
 	 */
 	public List<AttachmentResource> getAttachments() {
 		return new ArrayList<>(attachments);
 	}
-
+	
 	/**
 	 * @see #addHeader(String, Object)
 	 * @see #asReplyTo(MimeMessage, boolean, String)
@@ -967,21 +1172,21 @@ public class EmailBuilder {
 	public Map<String, String> getHeaders() {
 		return new HashMap<>(headers);
 	}
-
+	
 	/**
 	 * @see #signWithDomainKey(File, String, String)
 	 */
 	public File getDkimPrivateKeyFile() {
 		return dkimPrivateKeyFile;
 	}
-
+	
 	/**
 	 * @see #signWithDomainKey(InputStream, String, String)
 	 */
 	public InputStream getDkimPrivateKeyInputStream() {
 		return dkimPrivateKeyInputStream;
 	}
-
+	
 	/**
 	 * @see #signWithDomainKey(InputStream, String, String)
 	 * @see #signWithDomainKey(File, String, String)
@@ -989,7 +1194,7 @@ public class EmailBuilder {
 	public String getSigningDomain() {
 		return signingDomain;
 	}
-
+	
 	/**
 	 * @see #signWithDomainKey(InputStream, String, String)
 	 * @see #signWithDomainKey(File, String, String)
@@ -997,7 +1202,7 @@ public class EmailBuilder {
 	public String getDkimSelector() {
 		return dkimSelector;
 	}
-
+	
 	/**
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
@@ -1005,7 +1210,7 @@ public class EmailBuilder {
 	public boolean isUseDispositionNotificationTo() {
 		return useDispositionNotificationTo;
 	}
-
+	
 	/**
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
@@ -1013,7 +1218,7 @@ public class EmailBuilder {
 	public Recipient getDispositionNotificationTo() {
 		return dispositionNotificationTo;
 	}
-
+	
 	/**
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
@@ -1021,7 +1226,7 @@ public class EmailBuilder {
 	public boolean isUseReturnReceiptTo() {
 		return useReturnReceiptTo;
 	}
-
+	
 	/**
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
@@ -1029,7 +1234,7 @@ public class EmailBuilder {
 	public Recipient getReturnReceiptTo() {
 		return returnReceiptTo;
 	}
-
+	
 	/**
 	 * @see #asForwardOf(MimeMessage)
 	 */
