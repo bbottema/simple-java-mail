@@ -1,7 +1,12 @@
 package org.simplejavamail.internal.util;
 
+import org.simplejavamail.email.Recipient;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.mail.Message.RecipientType;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -107,6 +112,20 @@ public final class MiscUtil {
 		final String unambiguousDelimitedList = COMMA_DELIMITER_PATTERN.matcher(emailAddressList).replaceAll("$1<|>");
 		final String withoutTrailingDelimeter = TRAILING_TOKEN_DELIMITER_PATTERN.matcher(unambiguousDelimitedList).replaceAll("");
 		return TOKEN_DELIMITER_PATTERN.split(withoutTrailingDelimeter, 0);
+	}
+	
+	@Nonnull
+	public static Recipient interpretRecipient(@Nullable final String name, boolean fixedName, @Nonnull final String emailAddress, @Nullable final RecipientType type) {
+		try {
+			final InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
+			final String relevantName = (fixedName || parsedAddress.getPersonal() == null) ? name : parsedAddress.getPersonal();
+			return new Recipient(relevantName, parsedAddress.getAddress(), type);
+		} catch (final AddressException e) {
+			// InternetAddress failed to parse the email address even in non-strict mode
+			// just assume the address was too complex rather than plain wrong, and let our own email validation
+			// library take care of it when sending the email
+			return new Recipient(name, emailAddress, type);
+		}
 	}
 	
 	@Nullable

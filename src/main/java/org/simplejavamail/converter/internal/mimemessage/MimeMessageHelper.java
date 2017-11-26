@@ -96,7 +96,7 @@ public final class MimeMessageHelper {
 		setHeaders(email, message);
 		message.setSentDate(new Date());
 
-		if (email.isApplyDKIMSignature()) {
+		if (!valueNullOrEmpty(email.getDkimSigningDomain())) {
 			return signMessageWithDKIM(message, email);
 		}
 		

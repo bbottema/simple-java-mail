@@ -7,7 +7,7 @@ import org.simplejavamail.internal.util.MiscUtil;
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.mail.Message;
+import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
@@ -188,50 +188,56 @@ public class EmailBuilder {
 	 */
 	// FIXME split up to email(), asReplyTo(), asForwardOf()
 	public static EmailBuilder builder() {
-		return new EmailBuilder();
+		return new EmailBuilder(true);
+	}
+	
+	public EmailBuilder ignoringDefaults() {
+		return new EmailBuilder(false);
 	}
 
 	/**
 	 * @see EmailBuilder#builder()
 	 */
-	private EmailBuilder() {
+	private EmailBuilder(final boolean applyDefaults) {
 		recipients = new HashSet<>();
 		embeddedImages = new ArrayList<>();
 		attachments = new ArrayList<>();
 		headers = new HashMap<>();
 		
-		if (hasProperty(DEFAULT_FROM_ADDRESS)) {
-			from((String) getProperty(DEFAULT_FROM_NAME), (String) getProperty(DEFAULT_FROM_ADDRESS));
-		}
-		if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
-			replyTo((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
-		}
-		if (hasProperty(DEFAULT_BOUNCETO_ADDRESS)) {
-			bounceTo((String) getProperty(DEFAULT_BOUNCETO_NAME), (String) getProperty(DEFAULT_BOUNCETO_ADDRESS));
-		}
-		if (hasProperty(DEFAULT_TO_ADDRESS)) {
-			if (hasProperty(DEFAULT_TO_NAME)) {
-				to((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS));
-			} else {
-				to((String) getProperty(DEFAULT_TO_ADDRESS));
+		if (applyDefaults) {
+			if (hasProperty(DEFAULT_FROM_ADDRESS)) {
+				from((String) getProperty(DEFAULT_FROM_NAME), (String) getProperty(DEFAULT_FROM_ADDRESS));
 			}
-		}
-		if (hasProperty(DEFAULT_CC_ADDRESS)) {
-			if (hasProperty(DEFAULT_CC_NAME)) {
-				cc((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS));
-			} else {
-				cc((String) getProperty(DEFAULT_CC_ADDRESS));
+			if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
+				replyTo((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
 			}
-		}
-		if (hasProperty(DEFAULT_BCC_ADDRESS)) {
-			if (hasProperty(DEFAULT_BCC_NAME)) {
-				bcc((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS));
-			} else {
-				bcc((String) getProperty(DEFAULT_BCC_ADDRESS));
+			if (hasProperty(DEFAULT_BOUNCETO_ADDRESS)) {
+				bounceTo((String) getProperty(DEFAULT_BOUNCETO_NAME), (String) getProperty(DEFAULT_BOUNCETO_ADDRESS));
 			}
-		}
-		if (hasProperty(DEFAULT_SUBJECT)) {
-			subject((String) getProperty(DEFAULT_SUBJECT));
+			if (hasProperty(DEFAULT_TO_ADDRESS)) {
+				if (hasProperty(DEFAULT_TO_NAME)) {
+					to((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS));
+				} else {
+					to((String) getProperty(DEFAULT_TO_ADDRESS));
+				}
+			}
+			if (hasProperty(DEFAULT_CC_ADDRESS)) {
+				if (hasProperty(DEFAULT_CC_NAME)) {
+					cc((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS));
+				} else {
+					cc((String) getProperty(DEFAULT_CC_ADDRESS));
+				}
+			}
+			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
+				if (hasProperty(DEFAULT_BCC_NAME)) {
+					bcc((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS));
+				} else {
+					bcc((String) getProperty(DEFAULT_BCC_ADDRESS));
+				}
+			}
+			if (hasProperty(DEFAULT_SUBJECT)) {
+				subject((String) getProperty(DEFAULT_SUBJECT));
+			}
 		}
 	}
 
@@ -269,7 +275,7 @@ public class EmailBuilder {
 	}
 
 	/**
-	 * Sets the address of the sender of this email with given {@link Recipient} (ignoring its {@link javax.mail.Message.RecipientType} if provided).
+	 * Sets the address of the sender of this email with given {@link Recipient} (ignoring its {@link RecipientType} if provided).
 	 * <p>
 	 * Can be used in conjunction with one of the {@code replyTo(...)} methods, which is then prioritized by email clients when replying to this email.
 	 *
@@ -293,7 +299,7 @@ public class EmailBuilder {
 	}
 
 	/**
-	 * Sets the <em>replyTo</em> address of this email with given {@link Recipient} (ignoring its {@link javax.mail.Message.RecipientType} if provided).
+	 * Sets the <em>replyTo</em> address of this email with given {@link Recipient} (ignoring its {@link RecipientType} if provided).
 	 * <p>
 	 * If provided, email clients should prioritize the <em>replyTo</em> recipient over the <em>from</em> recipient when replying to this email.
 	 *
@@ -315,7 +321,7 @@ public class EmailBuilder {
 	}
 
 	/**
-	 * Sets the <em>bounceTo</em> address of this email with given {@link Recipient} (ignoring its {@link javax.mail.Message.RecipientType} if provided).
+	 * Sets the <em>bounceTo</em> address of this email with given {@link Recipient} (ignoring its {@link RecipientType} if provided).
 	 * <p>
 	 * If provided, SMTP server should return bounced emails to this address. This is also known as the {@code Return-Path} (or <em>Envelope FROM</em>).
 	 *
@@ -404,255 +410,84 @@ public class EmailBuilder {
 		this.textHTML = defaultTo(this.textHTML, "") + textHTML;
 		return this;
 	}
-
-	/**
-	 * Delegates to {@link #to(Collection)}.
-	 */
-	public EmailBuilder to(@Nonnull final Recipient... recipientsToAdd) {
-		return to(asList(recipientsToAdd));
-	}
-
-	/**
-	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#TO}.
-	 *
-	 * @param recipientsToAdd The recipients whose name and address to use
-	 * @see #to(String...)
-	 * @see #to(String)
-	 * @see #to(String, String)
-	 * @see #to(String, String...)
-	 * @see #to(Recipient...)
-	 */
-	public EmailBuilder to(@Nonnull final Collection<Recipient> recipientsToAdd) {
-		for (final Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
-			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.TO));
-		}
-		return this;
-	}
 	
-	/**
-	 * Delegates to {@link #to(String, String)} while omitting the name used for the recipient(s).
-	 */
-	public EmailBuilder to(@Nonnull final String emailAddressList) {
-		return to(null, emailAddressList);
-	}
+	public EmailBuilder to					(@Nonnull final Recipient... recipients) { 										 			return withRecipients(asList(recipients), RecipientType.TO); }
+	public EmailBuilder to					(@Nonnull final Collection<Recipient> recipients) {  							 			return withRecipients(recipients, RecipientType.TO);  }
+	public EmailBuilder to					(@Nullable final String name, String address) { 							 				return toWithFixedName(name, address); }
+	public EmailBuilder to					(@Nonnull final String oneOrMoreAddresses) { 												return withRecipientsWithDefaultName(null, asList(oneOrMoreAddresses), RecipientType.TO); }
+	public EmailBuilder to					(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return toWithFixedName(name, oneOrMoreAddressesEach); }
+	public EmailBuilder to					(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return toWithFixedName(name, oneOrMoreAddressesEach); }
+	public EmailBuilder toMultiple			(@Nonnull final String... oneOrMoreAddressesEach) { 							 			return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), RecipientType.TO); }
+	public EmailBuilder toAddresses			(@Nonnull final Collection<String> oneOrMoreAddressesEach) { 							 	return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, RecipientType.TO); }
+	public EmailBuilder toWithFixedName		(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), RecipientType.TO); }
+	public EmailBuilder toWithDefaultName	(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {	 			return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), RecipientType.TO); }
+	public EmailBuilder toWithFixedName		(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, RecipientType.TO); }
+	public EmailBuilder toWithDefaultName	(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, RecipientType.TO); }
 	
-	/**
-	 * Adds a new {@link Recipient} instances to the list on account of given name, address with recipient type {@link Message.RecipientType#TO}.
-	 * List can be comma ',' or semicolon ';' separated.
-	 *
-	 * @param name             The name of the recipient(s).
-	 * @param emailAddressList The emailaddresses of the recipients (will be singular in most use cases).
-	 *
-	 * @see #to(Collection)
-	 * @see #to(String...)
-	 * @see #to(String)
-	 * @see #to(String, String...)
-	 * @see #to(Recipient...)
-	 */
-	public EmailBuilder to(@Nullable final String name, @Nonnull final String emailAddressList) {
-		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.TO);
-	}
-
-	/**
-	 * Delegates to {@link #to(String, String...)} with empty name.
-	 */
-	public EmailBuilder to(@Nonnull final String... emailAddresses) {
-		return to(null, emailAddresses);
-	}
-
-	/**
-	 * Adds new {@link Recipient} instances to the list on account of given name, address with recipient type {@link Message.RecipientType#TO}.
-	 *
-	 * @param name           The name to use for each given address.
-	 * @param emailAddresses The recipients whose address to use for both name and address
-	 *
-	 * @see #to(Collection)
-	 * @see #to(String...)
-	 * @see #to(String)
-	 * @see #to(String, String...)
-	 * @see #to(Recipient...)
-	 */
-	public EmailBuilder to(@Nullable final String name, @Nonnull final String... emailAddresses) {
-		for (final String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
-			recipients.add(new Recipient(name, emailAddress, Message.RecipientType.TO));
-		}
-		return this;
-	}
-
+	public EmailBuilder cc					(@Nonnull final Recipient... recipients) { 										 			return withRecipients(asList(recipients), RecipientType.CC); }
+	public EmailBuilder cc					(@Nonnull final Collection<Recipient> recipients) {  							 			return withRecipients(recipients, RecipientType.CC);  }
+	public EmailBuilder cc					(@Nullable final String name, String address) { 							 				return ccWithFixedName(name, address); }
+	public EmailBuilder cc					(@Nonnull final String oneOrMoreAddresses) { 												return withRecipientsWithDefaultName(null, asList(oneOrMoreAddresses), RecipientType.CC); }
+	public EmailBuilder cc					(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return ccWithFixedName(name, oneOrMoreAddressesEach); }
+	public EmailBuilder cc					(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return ccWithFixedName(name, oneOrMoreAddressesEach); }
+	public EmailBuilder ccMultiple			(@Nonnull final String... oneOrMoreAddressesEach) { 							 			return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), RecipientType.CC); }
+	public EmailBuilder ccAddresses			(@Nonnull final Collection<String> oneOrMoreAddressesEach) { 							 	return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, RecipientType.CC); }
+	public EmailBuilder ccWithFixedName		(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), RecipientType.CC); }
+	public EmailBuilder ccWithDefaultName	(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {	 			return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), RecipientType.CC); }
+	public EmailBuilder ccWithFixedName		(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, RecipientType.CC); }
+	public EmailBuilder ccWithDefaultName	(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, RecipientType.CC); }
+	
+	public EmailBuilder bcc					(@Nonnull final Recipient... recipients) { 										 			return withRecipients(asList(recipients), RecipientType.BCC); }
+	public EmailBuilder bcc					(@Nonnull final Collection<Recipient> recipients) {  							 			return withRecipients(recipients, RecipientType.BCC);  }
+	public EmailBuilder bcc					(@Nullable final String name, String address) { 							 				return bccWithFixedName(name, address); }
+	public EmailBuilder bcc					(@Nonnull final String oneOrMoreAddresses) { 												return withRecipientsWithDefaultName(null, asList(oneOrMoreAddresses), RecipientType.BCC); }
+	public EmailBuilder bcc					(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return bccWithFixedName(name, oneOrMoreAddressesEach); }
+	public EmailBuilder bcc					(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return bccWithFixedName(name, oneOrMoreAddressesEach); }
+	public EmailBuilder bccMultiple			(@Nonnull final String... oneOrMoreAddressesEach) { 							 			return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), RecipientType.BCC); }
+	public EmailBuilder bccAddresses		(@Nonnull final Collection<String> oneOrMoreAddressesEach) { 							 	return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, RecipientType.BCC); }
+	public EmailBuilder bccWithFixedName	(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 			return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), RecipientType.BCC); }
+	public EmailBuilder bccWithDefaultName	(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {	 			return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), RecipientType.BCC); }
+	public EmailBuilder bccWithFixedName	(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, RecipientType.BCC); }
+	public EmailBuilder bccWithDefaultName	(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 	return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, RecipientType.BCC); }
+	
 	@Nonnull
-	private EmailBuilder addCommaOrSemicolonSeparatedEmailAddresses(@Nullable final String name, @Nonnull final String emailAddressList, @Nonnull final Message.RecipientType type) {
-		checkNonEmptyArgument(type, "type");
-		for (final String emailAddress : extractEmailAddresses(checkNonEmptyArgument(emailAddressList, "emailAddressList"))) {
-			recipients.add(Email.interpretRecipientData(name, emailAddress, type));
-		}
-		return this;
+	public EmailBuilder withRecipientsWithDefaultName(@Nullable final String defaultName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
+		return withRecipients(defaultName, false, oneOrMoreAddressesEach, recipientType);
 	}
-
-	/**
-	 * Delegates to {@link #cc(String, String...)} with empty name.
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder cc(@Nonnull final String... emailAddresses) {
-		return cc(null, emailAddresses);
+	
+	@Nonnull
+	public EmailBuilder withRecipientsWithFixedName(@Nullable final String fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
+		return withRecipients(fixedName, true, oneOrMoreAddressesEach, recipientType);
 	}
-
-	/**
-	 * Adds new {@link Recipient} instances to the list on account of given name, address with recipient type {@link Message.RecipientType#CC}.
-	 *
-	 * @param emailAddresses The recipients whose address to use for both name and address
-	 *
-	 * @see #cc(Recipient...)
-	 * @see #cc(Collection)
-	 * @see #cc(String...)
-	 * @see #cc(String)
-	 * @see #cc(String, String)
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder cc(@Nullable final String name, @Nonnull final String... emailAddresses) {
-		for (final String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
-			recipients.add(new Recipient(name, emailAddress, Message.RecipientType.CC));
+	
+	@Nonnull
+	public EmailBuilder withRecipients(@Nullable String name, boolean fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
+		for (String oneOrMoreAddresses : oneOrMoreAddressesEach) {
+			for (String emailAddress : extractEmailAddresses(oneOrMoreAddresses)) {
+				withRecipient(MiscUtil.interpretRecipient(name, fixedName, emailAddress, recipientType));
+			}
 		}
 		return this;
 	}
 	
-	
-	/**
-	 * Delegates to {@link #cc(String, String)} while omitting the name for the CC recipient(s).
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder cc(@Nonnull final String emailAddressList) {
-		return cc(null, emailAddressList);
-	}
-	
-	/**
-	 * Adds a new {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#CC}. List can be
-	 * comma ',' or semicolon ';' separated.
-	 *
-	 * @param name             The name of the recipient(s).
-	 * @param emailAddressList The recipients whose address to use for both name and address
-	 *
-	 * @see #cc(Recipient...)
-	 * @see #cc(Collection)
-	 * @see #cc(String...)
-	 * @see #cc(String)
-	 * @see #cc(String, String...)
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder cc(@Nullable final String name, @Nonnull final String emailAddressList) {
-		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.CC);
-	}
-
-	/**
-	 * Delegates to {@link #cc(Collection)}.
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder cc(@Nonnull final Recipient... recipientsToAdd) {
-		return cc(asList(recipientsToAdd));
-	}
-
-	/**
-	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#CC}.
-	 *
-	 * @param recipientsToAdd The recipients whose name and address to use
-	 *
-	 * @see #cc(Recipient...)
-	 * @see #cc(String...)
-	 * @see #cc(String)
-	 * @see #cc(String, String)
-	 * @see #cc(String, String...)
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder cc(@Nonnull final Collection<Recipient> recipientsToAdd) {
-		for (final Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
-			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.CC));
-		}
-		return this;
-	}
-
-	/**
-	 * Delegates to {@link #bcc(String, String...)} with empty name.
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder bcc(@Nonnull final String... emailAddresses) {
-		return bcc(null, emailAddresses);
-	}
-
-	/**
-	 * Adds new {@link Recipient} instances to the list on account of given name, address with recipient type {@link Message.RecipientType#BCC}.
-	 *
-	 * @param name           The optional default name to use when a provided address doesn't include it.
-	 * @param emailAddresses One or more addresses which all have the same name.
-	 *
-	 * @see #bcc(Collection)
-	 * @see #bcc(Recipient...)
-	 * @see #bcc(String...)
-	 * @see #bcc(String)
-	 * @see #bcc(String, String)
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder bcc(@Nullable final String name, @Nonnull final String... emailAddresses) {
-		for (final String emailAddress : checkNonEmptyArgument(emailAddresses, "emailAddresses")) {
-			recipients.add(Email.interpretRecipientData(name, emailAddress, Message.RecipientType.BCC));
+	@Nonnull
+	public EmailBuilder withRecipients(@Nonnull Collection<Recipient> recipients, @Nullable RecipientType fixedRecipientType) {
+		for (Recipient recipient : recipients) {
+			withRecipient(recipient.getName(), recipient.getAddress(), defaultTo(fixedRecipientType, recipient.getType()));
 		}
 		return this;
 	}
 	
-	/**
-	 * Delegates to {@link #bcc(String, String)} while omitting the name for the BCC recipient(s).
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder bcc(@Nonnull final String emailAddressList) {
-		return bcc(null, emailAddressList);
-	}
-	
-	/**
-	 * Adds a new {@link Recipient} instances to the list on account of empty name, address with recipient type {@link Message.RecipientType#BCC}. List can be
-	 * comma ',' or semicolon ';' separated.
-	 *
-	 * @param name             The optional default name to use when a provided addresses doesn't include a name.
-	 * @param emailAddressList The recipients whose address to parse, while only using the provided name if not provided for an address.
-	 *
-	 * @see #bcc(Collection)
-	 * @see #bcc(Recipient...)
-	 * @see #bcc(String...)
-	 * @see #bcc(String)
-	 * @see #bcc(String, String...)
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder bcc(@Nullable final String name, @Nonnull final String emailAddressList) {
-		checkNonEmptyArgument(emailAddressList, "emailAddressList");
-		return addCommaOrSemicolonSeparatedEmailAddresses(name, emailAddressList, Message.RecipientType.BCC);
-	}
-
-	/**
-	 * Delegates to {@link #bcc(Collection)}.
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder bcc(@Nonnull final Recipient... recipientsToAdd) {
-		return bcc(asList(recipientsToAdd));
-	}
-
-	/**
-	 * Adds new {@link Recipient} instances to the list on account of name, address with recipient type {@link Message.RecipientType#BCC}.
-	 *
-	 * @param recipientsToAdd The recipients whose name and address to use
-	 *
-	 * @see #bcc(Recipient...)
-	 * @see #bcc(String...)
-	 * @see #bcc(String)
-	 * @see #bcc(String, String...)
-	 * @see #bcc(String, String)
-	 */
-	@SuppressWarnings("QuestionableName")
-	public EmailBuilder bcc(@Nonnull final Collection<Recipient> recipientsToAdd) {
-		for (final Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
-			recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), Message.RecipientType.BCC));
-		}
+	public EmailBuilder withRecipient(@Nullable final String name, @Nonnull final String singleAddress, @Nullable final RecipientType recipientType) {
+		recipients.add(new Recipient(name, singleAddress, recipientType));
 		return this;
 	}
-
+	
+	public EmailBuilder withRecipient(@Nonnull final Recipient recipient) {
+		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType()));
+		return this;
+	}
+	
 	/**
 	 * Delegates to {@link #embedImage(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
 	 *

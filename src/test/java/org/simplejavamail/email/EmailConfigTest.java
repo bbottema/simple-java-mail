@@ -37,7 +37,7 @@ public class EmailConfigTest {
 	public void emailConstructor_WithoutConfig()
 			throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		Email email = new Email();
+		Email email = EmailBuilder.builder().build();
 		assertThat(email.getFromRecipient()).isNull();
 		assertThat(email.getReplyToRecipient()).isNull();
 		assertThat(email.getBounceToRecipient()).isNull();
@@ -46,7 +46,7 @@ public class EmailConfigTest {
 
 	@Test
 	public void emailConstructor_WithConfig() {
-		Email email = new Email();
+		Email email = EmailBuilder.builder().build();
 		assertThat(email.getFromRecipient()).isEqualToComparingFieldByField(new Recipient("From Default", "from@default.com", null));
 		assertThat(email.getReplyToRecipient()).isEqualToComparingFieldByField(new Recipient("Reply-To Default", "reply-to@default.com", null));
 		assertThat(email.getBounceToRecipient()).isEqualToComparingFieldByField(new Recipient("Bounce-To Default", "bounce-to@default.com", null));

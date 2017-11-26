@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.Email;
+import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
@@ -253,7 +254,7 @@ public class MailerTest {
 	@Test
 	public void testDKIMPriming()
 			throws IOException, MessagingException {
-		final Email email = EmailHelper.createDummyEmail(true, false, false);
+		final EmailBuilder emailBuilder = EmailHelper.createDummyEmailBuilder(true, false, false);
 
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
 		String privateDERkeyBase64 =
@@ -265,8 +266,8 @@ public class MailerTest {
 						+ "Zwgvs3Rvv7k5NwifQOEbhbZAigAGCF5Jk/Ijpi6zaUn7754GSn2FOzWgxDguUKe/fcgdHBLai/1jIRVZQQJAXF2xzWMwP+TmX44QxK52QHVI8mhNzcnH7A311gWns6AbLcuLA9quwjU"
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
 
-		email.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
-		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(email);
+		emailBuilder.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
+		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailBuilder.build());
 		// success, signing did not produce an error
 		assertThat(mimeMessage).isInstanceOf(DkimMessage.class);
 	}
@@ -274,14 +275,15 @@ public class MailerTest {
 	@Test
 	public void testParser()
 			throws Exception {
-		final Email emailNormal = EmailHelper.createDummyEmail(true, false, false);
+		final EmailBuilder emailBuilderNormal = EmailHelper.createDummyEmailBuilder(true, false, false);
 
 		// let's try producing and then consuming a MimeMessage ->
+		Email emailNormal = emailBuilderNormal.build();
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 		
 		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session, so just ignore this
-		emailFromMimeMessage.setBounceToRecipient(emailNormal.getBounceToRecipient());
+		emailFromMimeMessage.setBounceToRecipient(emailBuilderNormal.getBounceToRecipient());
 
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
 	}

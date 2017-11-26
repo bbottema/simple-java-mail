@@ -23,6 +23,7 @@ import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
+import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
 import static testutil.EmailHelper.normalizeText;
 import static testutil.EmailHelper.readOutlookMessage;
 
@@ -45,31 +46,31 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_EmptySubjectAndBody()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail(true, true, false));
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false));
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMailBasicFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail(true, true, false));
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false));
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_AllFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail(true, false, false));
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false));
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_IncludingCustomHeaders()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail(true, false, true));
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true));
 	}
 
 	@Test
 	public void createMailSession_StandardDummyMailWithId()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmail("<123@456>", true, false, false));
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false));
 	}
 	
 	@Test
@@ -102,26 +103,27 @@ public class MailerLiveTest {
 		assertThat(normalizeText(attachment2.readAllData())).isEqualTo("On the moon!");
 	}
 
-	private Email assertSendingEmail(final Email originalEmail)
+	private Email assertSendingEmail(final EmailBuilder originalEmailBuilder)
 			throws MessagingException {
+		Email originalEmail = originalEmailBuilder.build();
 		mailer.sendMail(originalEmail);
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
 		
 		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
 		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty
-		if (originalEmail.getReplyToRecipient() == null) {
-			originalEmail.setReplyToAddress(originalEmail.getFromRecipient());
+		if (originalEmailBuilder.getReplyToRecipient() == null) {
+			originalEmailBuilder.replyTo(originalEmailBuilder.getFromRecipient());
 		}
 		// received email will always have an id, so let's make sure we're able to compare to the original email object
-		if (originalEmail.getHeaders().get("Message-ID") == null) {
-			originalEmail.addHeader("Message-ID", originalEmail.getId());
+		if (originalEmailBuilder.getHeaders().get("Message-ID") == null) {
+			originalEmailBuilder.addHeader("Message-ID", originalEmail.getId());
 		}
 		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session, so just ignore this
-		if (originalEmail.getBounceToRecipient() != null) {
-			receivedEmail.setBounceToRecipient(originalEmail.getBounceToRecipient());
+		if (originalEmailBuilder.getBounceToRecipient() != null) {
+			receivedEmail.setBounceToRecipient(originalEmailBuilder.getBounceToRecipient());
 		}
-		assertThat(receivedEmail).isEqualTo(originalEmail);
+		assertThat(receivedEmail).isEqualTo(originalEmailBuilder.build());
 		return receivedEmail;
 	}
 	
@@ -129,13 +131,13 @@ public class MailerLiveTest {
 	public void createMailSession_ReplyToMessage()
 			throws IOException, MessagingException {
 		// send initial mail
-		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"));
+		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").build());
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
+		EmailBuilder receivedEmailBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder.builder()
-				.asReplyToAll(assertSendingEmail(receivedEmail))
+				.asReplyToAll(assertSendingEmail(receivedEmailBuilder))
 				.from("dummy@domain.com")
 				.text("This is the reply")
 				.build();
@@ -153,21 +155,21 @@ public class MailerLiveTest {
 				new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO),
 				new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO)
 		);
-		assertThat(receivedReply1.getHeaders()).contains(entry("In-Reply-To", receivedEmail.getId()));
-		assertThat(receivedReply1.getHeaders()).contains(entry("References", receivedEmail.getId()));
+		assertThat(receivedReply1.getHeaders()).contains(entry("In-Reply-To", receivedEmailBuilder.getId()));
+		assertThat(receivedReply1.getHeaders()).contains(entry("References", receivedEmailBuilder.getId()));
 	}
 	
 	@Test
 	public void createMailSession_ReplyToMessage_NotAll_AndCustomReferences()
 			throws IOException, MessagingException {
 		// send initial mail
-		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"));
+		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").build());
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
+		EmailBuilder receivedEmailBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder.builder()
-				.asReplyTo(assertSendingEmail(receivedEmail))
+				.asReplyTo(assertSendingEmail(receivedEmailBuilder))
 				.addHeader("References", "dummy-references")
 				.from("dummy@domain.com")
 				.text("This is the reply")
@@ -180,7 +182,7 @@ public class MailerLiveTest {
 		
 		EmailAssert.assertThat(receivedReply).hasSubject("Re: hey");
 		EmailAssert.assertThat(receivedReply).hasOnlyRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO));
-		assertThat(receivedReply.getHeaders()).contains(entry("In-Reply-To", receivedEmail.getId()));
+		assertThat(receivedReply.getHeaders()).contains(entry("In-Reply-To", receivedEmailBuilder.getId()));
 		assertThat(receivedReply.getHeaders()).contains(entry("References", "dummy-references"));
 	}
 	

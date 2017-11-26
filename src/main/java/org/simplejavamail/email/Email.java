@@ -5,37 +5,17 @@ import org.simplejavamail.internal.util.MiscUtil;
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.mail.Message.RecipientType;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
+import static java.util.Collections.unmodifiableList;
+import static java.util.Collections.unmodifiableMap;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BCC_NAME;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_BOUNCETO_NAME;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_CC_NAME;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_FROM_NAME;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_SUBJECT;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
-import static org.simplejavamail.util.ConfigLoader.Property.DEFAULT_TO_NAME;
-import static org.simplejavamail.util.ConfigLoader.getProperty;
-import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
 /**
  * Email message with all necessary data for an effective mailing action, including attachments etc.
@@ -46,156 +26,162 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
 public class Email {
 
 	/**
-	 * Optional ID, which will be used when sending using the underlying Java Mail framework. Will be generated otherwise.
-	 * <p>
-	 * Note that id can only ever be filled by end-users for sending an email. This library will never fill this field when converting a MimeMessage.
-	 * <p>
-	 * The id-format should be conform <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
+	 * @see EmailBuilder#id(String)
 	 */
 	private String id;
 
 	/**
-	 * The sender of the email. Can be used in conjunction with {@link #replyToRecipient}.
+	 * @see EmailBuilder#from(Recipient)
 	 */
 	private Recipient fromRecipient;
+	
 	/**
-	 * The reply-to-address, optional. Can be used in conjunction with {@link #fromRecipient}.
+	 * @see EmailBuilder#replyTo(Recipient)
 	 */
 	private Recipient replyToRecipient;
 	
 	/**
-	 * Also known as Return-Path or Envelope FROM. Can be used as a hint to the SMTP server to which address to return bouncing emails.
+	 * @see EmailBuilder#bounceTo(Recipient)
 	 */
 	private Recipient bounceToRecipient;
 	
 	/**
-	 * The email message body in plain text.
+	 * @see EmailBuilder#text(String)
 	 */
 	private String text;
 
 	/**
-	 * The email message body in html.
+	 * @see EmailBuilder#textHTML(String)
 	 */
 	private String textHTML;
 
 	/**
-	 * The subject of the email message.
+	 * @see EmailBuilder#subject(String)
 	 */
 	private String subject;
 
 	/**
-	 * List of {@link Recipient}.
+	 * @see EmailBuilder#to(Recipient...)
+	 * @see EmailBuilder#cc(Recipient...)
+	 * @see EmailBuilder#bcc(Recipient...)
 	 */
 	private final List<Recipient> recipients;
 
 	/**
-	 * List of {@link AttachmentResource}.
+	 * @see EmailBuilder#embedImage(String, DataSource)
 	 */
 	private final List<AttachmentResource> embeddedImages;
 
 	/**
-	 * List of {@link AttachmentResource}.
+	 * @see EmailBuilder#addAttachment(String, DataSource)
 	 */
 	private final List<AttachmentResource> attachments;
 
 	/**
-	 * Map of header name and values, such as <code>X-Priority</code> etc.
+	 * @see EmailBuilder#addHeader(String, Object)
+	 * @see EmailBuilder#asReplyTo(MimeMessage, boolean, String)
 	 */
 	private final Map<String, String> headers;
 	
 	/**
-	 * Indicates the new emails should set the <a href="https://tools.ietf.org/html/rfc8098">NPM flag "Disposition-Notification-To"</a>. This flag can
-	 * be used to request a return receipt from the recipient to signal that the recipient has read the email.
-	 * <p>
-	 * This flag may be ignored by SMTP clients (for example gmail ignores it completely, while the Google Apps business suite honors it).
-	 * <p>
-	 * If no address is provided, {@link #dispositionNotificationTo} will default to {@link #replyToRecipient} if available or else
-	 * {@link #fromRecipient}.
+	 * @see EmailBuilder#withDispositionNotificationTo()
+	 * @see EmailBuilder#withDispositionNotificationTo(Recipient)
 	 */
 	private boolean useDispositionNotificationTo;
 	
 	/**
-	 * @see #useDispositionNotificationTo
+	 * @see EmailBuilder#withDispositionNotificationTo()
+	 * @see EmailBuilder#withDispositionNotificationTo(Recipient)
 	 */
 	private Recipient dispositionNotificationTo;
 	
 	/**
-	 * Indicates the new emails should set the <a href="https://en.wikipedia.org/wiki/Return_receipt">RRT flag "Return-Receipt-To"</a>. This flag
-	 * can be used to request a notification from the SMTP server recipient to signal that the recipient has read the email.
-	 * <p>
-	 * This flag is rarely used, but your mail server / client might implement this flag to automatically send back a notification that the email
-	 * was received on the mail server or opened in the client, depending on the chosen implementation.
-	 * <p>
-	 * If no address is provided, {@link #returnReceiptTo} will default to {@link #replyToRecipient} if available or else {@link #fromRecipient}.
+	 * @see EmailBuilder#withReturnReceiptTo()
+	 * @see EmailBuilder#withReturnReceiptTo(Recipient)
 	 */
 	private boolean useReturnReceiptTo;
 	
 	/**
-	 * @see #useReturnReceiptTo
+	 * @see EmailBuilder#withReturnReceiptTo()
+	 * @see EmailBuilder#withReturnReceiptTo(Recipient)
 	 */
 	private Recipient returnReceiptTo;
 	
 	/**
-	 * Holds a message that should be included in the new email as forwarded message.
+	 * @see EmailBuilder#asForwardOf(MimeMessage)
 	 */
 	private MimeMessage emailToForward;
-
-	/*
-	DKIM properties
-	 */
-	private boolean applyDKIMSignature;
-	private InputStream dkimPrivateKeyInputStream;
-	private File dkimPrivateKeyFile; // supported separately, so we don't have to do resource management ourselves for the InputStream
-	private String dkimSigningDomain;
-	private String dkimSelector;
-
+	
 	/**
-	 * Constructor, creates all internal lists. Populates default from, reply-to, to, cc and bcc if provided in the config file.
+	 * @see EmailBuilder#signWithDomainKey(InputStream, String, String)
 	 */
-	public Email() {
-		this(true);
-	}
-
-	public Email(final boolean readFromDefaults) {
-		recipients = new ArrayList<>();
-		embeddedImages = new ArrayList<>();
-		attachments = new ArrayList<>();
-		headers = new HashMap<>();
-
-		if (readFromDefaults) {
-			if (hasProperty(DEFAULT_FROM_ADDRESS)) {
-				setFromAddress((String) getProperty(DEFAULT_FROM_NAME), (String) getProperty(DEFAULT_FROM_ADDRESS));
+	private InputStream dkimPrivateKeyInputStream;
+	
+	/**
+	 * @see #signWithDomainKey(File, String, String)
+	 */
+	private File dkimPrivateKeyFile; // supported separately, so we don't have to do resource management ourselves for the InputStream
+	
+	/**
+	 * @see EmailBuilder#signWithDomainKey(InputStream, String, String)
+	 * @see EmailBuilder#signWithDomainKey(File, String, String)
+	 */
+	private String dkimSigningDomain;
+	
+	/**
+	 * @see EmailBuilder#signWithDomainKey(InputStream, String, String)
+	 * @see EmailBuilder#signWithDomainKey(File, String, String)
+	 */
+	private String dkimSelector;
+	
+	/**
+	 * Simply transfers everything from EmailBuilder to this Email instance.
+	 *
+	 * @see EmailBuilder#build()
+	 */
+	Email(@Nonnull final EmailBuilder builder) {
+		checkNonEmptyArgument(builder, "builder");
+		recipients = unmodifiableList(builder.getRecipients());
+		embeddedImages = unmodifiableList(builder.getEmbeddedImages());
+		attachments = unmodifiableList(builder.getAttachments());
+		headers = unmodifiableMap(builder.getHeaders());
+		
+		id = builder.getId();
+		fromRecipient = builder.getFromRecipient();
+		replyToRecipient = builder.getReplyToRecipient();
+		bounceToRecipient = builder.getBounceToRecipient();
+		text = builder.getText();
+		textHTML = builder.getTextHTML();
+		subject = builder.getSubject();
+		
+		useDispositionNotificationTo = builder.isUseDispositionNotificationTo();
+		useReturnReceiptTo = builder.isUseReturnReceiptTo();
+		dispositionNotificationTo = builder.getDispositionNotificationTo();
+		returnReceiptTo = builder.getReturnReceiptTo();
+		emailToForward = builder.getEmailToForward();
+		
+		if (useDispositionNotificationTo && valueNullOrEmpty(builder.getDispositionNotificationTo())) {
+			//noinspection IfMayBeConditional
+			if (builder.getReplyToRecipient() != null) {
+				dispositionNotificationTo = builder.getReplyToRecipient();
+			} else {
+				dispositionNotificationTo = builder.getFromRecipient();
 			}
-			if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
-				setReplyToAddress((String) getProperty(DEFAULT_REPLYTO_NAME), (String) getProperty(DEFAULT_REPLYTO_ADDRESS));
+		}
+		
+		if (useReturnReceiptTo && valueNullOrEmpty(builder.getDispositionNotificationTo())) {
+			//noinspection IfMayBeConditional
+			if (builder.getReplyToRecipient() != null) {
+				returnReceiptTo = builder.getReplyToRecipient();
+			} else {
+				returnReceiptTo = builder.getFromRecipient();
 			}
-			if (hasProperty(DEFAULT_BOUNCETO_ADDRESS)) {
-				setBounceToAddress((String) getProperty(DEFAULT_BOUNCETO_NAME), (String) getProperty(DEFAULT_BOUNCETO_ADDRESS));
-			}
-			if (hasProperty(DEFAULT_TO_ADDRESS)) {
-				if (hasProperty(DEFAULT_TO_NAME)) {
-					addNamedToRecipients((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS));
-				} else {
-					addToRecipients((String) getProperty(DEFAULT_TO_ADDRESS));
-				}
-			}
-			if (hasProperty(DEFAULT_CC_ADDRESS)) {
-				if (hasProperty(DEFAULT_CC_NAME)) {
-					addNamedCcRecipients((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS));
-				} else {
-					addCcRecipients((String) getProperty(DEFAULT_CC_ADDRESS));
-				}
-			}
-			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
-				if (hasProperty(DEFAULT_BCC_NAME)) {
-					addNamedBccRecipients((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS));
-				} else {
-					addBccRecipients((String) getProperty(DEFAULT_BCC_ADDRESS));
-				}
-			}
-			if (hasProperty(DEFAULT_SUBJECT)) {
-				setSubject((String) getProperty(DEFAULT_SUBJECT));
-			}
+		}
+		
+		if (builder.getDkimPrivateKeyFile() != null) {
+			signWithDomainKey(builder.getDkimPrivateKeyFile(), builder.getSigningDomain(), builder.getDkimSelector());
+		} else if (builder.getDkimPrivateKeyInputStream() != null) {
+			signWithDomainKey(builder.getDkimPrivateKeyInputStream(), builder.getSigningDomain(), builder.getDkimSelector());
 		}
 	}
 	
@@ -204,7 +190,6 @@ public class Email {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public void signWithDomainKey(@Nonnull final File dkimPrivateKeyFile, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
-		this.applyDKIMSignature = true;
 		this.dkimPrivateKeyFile = checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile");
 		this.dkimSigningDomain = checkNonEmptyArgument(signingDomain, "dkimSigningDomain");
 		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
@@ -227,7 +212,6 @@ public class Email {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public void signWithDomainKey(@Nonnull final InputStream dkimPrivateKeyInputStream, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
-		this.applyDKIMSignature = true;
 		this.dkimPrivateKeyInputStream = checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream");
 		this.dkimSigningDomain = checkNonEmptyArgument(signingDomain, "dkimSigningDomain");
 		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
@@ -267,16 +251,6 @@ public class Email {
 	 */
 	public void setReplyToAddress(@Nullable final String name, @Nonnull final String replyToAddress) {
 		replyToRecipient = new Recipient(name, checkNonEmptyArgument(replyToAddress, "replyToAddress"), null);
-	}
-	
-	/**
-	 * Sets the Return-Path (or Envelope FROM) address (optional). Used for hinting the SMTP server where bouncing emails should return to.
-	 *
-	 * @param name            The replied-to-receiver name.
-	 * @param bounceToAddress The replied-to-receiver email address.
-	 */
-	public void setBounceToAddress(@Nullable final String name, @Nonnull final String bounceToAddress) {
-		bounceToRecipient = interpretRecipientData(name, checkNonEmptyArgument(bounceToAddress, "bounceToAddress"), null);
 	}
 	
 	/**
@@ -353,105 +327,6 @@ public class Email {
 	 */
 	public void setTextHTML(@Nullable final String textHTML) {
 		this.textHTML = textHTML;
-	}
-	
-	/**
-	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using empty default name and {@link RecipientType#TO}.
-	 */
-	public void addToRecipients(@Nonnull final String... delimitedEmailAddresses) {
-		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
-		addRecipients(null, RecipientType.TO, delimitedEmailAddresses);
-	}
-	
-	/**
-	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using empty default name and {@link RecipientType#CC}.
-	 */
-	public void addCcRecipients(@Nonnull final String... delimitedEmailAddresses) {
-		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
-		addRecipients(null, RecipientType.CC, delimitedEmailAddresses);
-	}
-	
-	/**
-	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using empty default name and {@link RecipientType#BCC}.
-	 */
-	public void addBccRecipients(@Nonnull final String... delimitedEmailAddresses) {
-		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
-		addRecipients(null, RecipientType.BCC, delimitedEmailAddresses);
-	}
-	
-	/**
-	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using {@link RecipientType#TO}.
-	 */
-	public void addNamedToRecipients(@Nullable final String name, @Nonnull final String... delimitedEmailAddresses) {
-		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
-		addRecipients(name, RecipientType.TO, delimitedEmailAddresses);
-	}
-	
-	/**
-	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using {@link RecipientType#CC}.
-	 */
-	public void addNamedCcRecipients(@Nullable final String name, @Nonnull final String... delimitedEmailAddresses) {
-		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
-		addRecipients(name, RecipientType.CC, delimitedEmailAddresses);
-	}
-	
-	/**
-	 * Delegates to {@link #addRecipients(String, RecipientType, String...)}, using {@link RecipientType#BCC}.
-	 */
-	public void addNamedBccRecipients(@Nullable final String name, @Nonnull final String... delimitedEmailAddresses) {
-		checkNonEmptyArgument(delimitedEmailAddresses, "emailAddressList");
-		addRecipients(name, RecipientType.BCC, delimitedEmailAddresses);
-	}
-	
-	/**
-	 * Adds all given recipients addresses to the list on account of address and recipient type (eg. {@link RecipientType#CC}).
-	 * <p>
-	 * Email address can be of format {@code "address@domain.com[,;*]"} or {@code "Recipient Name <address@domain.com>[,;*]"}. Included names would
-	 * override the default recipientName provided.
-	 *
-	 * @param recipientName                The optional name to use for each email address in the {@code recipientEmailAddressesToAdd}.
-	 * @param recipientEmailAddressesToAdd List of (preconfigured) recipients (with or without names, overriding the default name if included).
-	 * @see #recipients
-	 * @see Recipient
-	 * @see RecipientType
-	 */
-	public void addRecipients(@Nullable final String recipientName, @Nonnull final RecipientType type, @Nonnull final String... recipientEmailAddressesToAdd) {
-		checkNonEmptyArgument(type, "type");
-		checkNonEmptyArgument(recipientEmailAddressesToAdd, "recipientEmailAddressesToAdd");
-		for (final String potentiallyCombinedEmailAddress : recipientEmailAddressesToAdd) {
-			for (final String emailAddress : extractEmailAddresses(potentiallyCombinedEmailAddress)) {
-				recipients.add(interpretRecipientData(recipientName, emailAddress, type));
-			}
-		}
-	}
-	
-	static Recipient interpretRecipientData(@Nullable final String recipientName, @Nonnull final String emailAddress, @Nullable final RecipientType type) {
-		try {
-			final InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
-			final String relevantName = parsedAddress.getPersonal() != null ? parsedAddress.getPersonal() : recipientName;
-			return new Recipient(relevantName, parsedAddress.getAddress(), type);
-		} catch (final AddressException e) {
-			// InternetAddress failed to parse the email address even in non-strict mode
-			// just assume the address was too complex rather than plain wrong, and let our own email validation
-			// library take care of it when sending the email
-			return new Recipient(recipientName, emailAddress, type);
-		}
-	}
-
-	/**
-	 * Adds all given {@link Recipient} instances to the list (as copies) on account of name, address and recipient type (eg. {@link RecipientType#CC}).
-	 *
-	 * @param recipientsToAdd List of preconfigured recipients.
-	 * @see #recipients
-	 * @see Recipient
-	 * @see RecipientType
-	 */
-	public void addRecipients(@Nonnull final Recipient... recipientsToAdd) {
-		for (final Recipient recipient : checkNonEmptyArgument(recipientsToAdd, "recipientsToAdd")) {
-			final String address = checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
-			final RecipientType type = checkNonEmptyArgument(recipient.getType(), "recipient.type");
-			recipients.add(new Recipient(recipient.getName(), address, type));
-		}
 	}
 	
 	/**
@@ -620,32 +495,28 @@ public class Email {
 	 * Bean getter for {@link #attachments} as unmodifiable list.
 	 */
 	public List<AttachmentResource> getAttachments() {
-		return Collections.unmodifiableList(attachments);
+		return attachments;
 	}
 
 	/**
 	 * Bean getter for {@link #embeddedImages} as unmodifiable list.
 	 */
 	public List<AttachmentResource> getEmbeddedImages() {
-		return Collections.unmodifiableList(embeddedImages);
+		return embeddedImages;
 	}
 
 	/**
 	 * Bean getter for {@link #recipients} as unmodifiable list.
 	 */
 	public List<Recipient> getRecipients() {
-		return Collections.unmodifiableList(recipients);
+		return recipients;
 	}
 
 	/**
 	 * Bean getter for {@link #headers} as unmodifiable map.
 	 */
 	public Map<String, String> getHeaders() {
-		return Collections.unmodifiableMap(headers);
-	}
-
-	public boolean isApplyDKIMSignature() {
-		return applyDKIMSignature;
+		return headers;
 	}
 
 	public InputStream getDkimPrivateKeyInputStream() {
@@ -686,7 +557,7 @@ public class Email {
 				",\n\ttextHTML='" + textHTML + '\'' +
 				",\n\tsubject='" + subject + '\'' +
 				",\n\trecipients=" + recipients;
-		if (applyDKIMSignature) {
+		if (!valueNullOrEmpty(dkimSigningDomain)) {
 			s += ",\n\tapplyDKIMSignature=" + true +
 					",\n\t\tdkimSelector=" + dkimSelector +
 					",\n\t\tdkimSigningDomain=" + dkimSigningDomain;
@@ -713,56 +584,5 @@ public class Email {
 		}
 		s += "\n}";
 		return s;
-	}
-
-	/**
-	 * Constructor for the Builder class
-	 *
-	 * @param builder The builder from which to create the email.
-	 */
-	Email(@Nonnull final EmailBuilder builder) {
-		checkNonEmptyArgument(builder, "builder");
-		recipients = builder.getRecipients();
-		embeddedImages = builder.getEmbeddedImages();
-		attachments = builder.getAttachments();
-		headers = builder.getHeaders();
-
-		id = builder.getId();
-		fromRecipient = builder.getFromRecipient();
-		replyToRecipient = builder.getReplyToRecipient();
-		bounceToRecipient = builder.getBounceToRecipient();
-		text = builder.getText();
-		textHTML = builder.getTextHTML();
-		subject = builder.getSubject();
-		
-		useDispositionNotificationTo = builder.isUseDispositionNotificationTo();
-		useReturnReceiptTo = builder.isUseReturnReceiptTo();
-		dispositionNotificationTo = builder.getDispositionNotificationTo();
-		returnReceiptTo = builder.getReturnReceiptTo();
-		emailToForward = builder.getEmailToForward();
-		
-		if (useDispositionNotificationTo && valueNullOrEmpty(builder.getDispositionNotificationTo())) {
-			//noinspection IfMayBeConditional
-			if (builder.getReplyToRecipient() != null) {
-				dispositionNotificationTo = builder.getReplyToRecipient();
-			} else {
-				dispositionNotificationTo = builder.getFromRecipient();
-			}
-		}
-		
-		if (useReturnReceiptTo && valueNullOrEmpty(builder.getDispositionNotificationTo())) {
-			//noinspection IfMayBeConditional
-			if (builder.getReplyToRecipient() != null) {
-				returnReceiptTo = builder.getReplyToRecipient();
-			} else {
-				returnReceiptTo = builder.getFromRecipient();
-			}
-		}
-		
-		if (builder.getDkimPrivateKeyFile() != null) {
-			signWithDomainKey(builder.getDkimPrivateKeyFile(), builder.getSigningDomain(), builder.getDkimSelector());
-		} else if (builder.getDkimPrivateKeyInputStream() != null) {
-			signWithDomainKey(builder.getDkimPrivateKeyInputStream(), builder.getSigningDomain(), builder.getDkimSelector());
-		}
 	}
 }
