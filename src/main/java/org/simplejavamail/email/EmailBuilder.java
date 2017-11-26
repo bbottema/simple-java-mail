@@ -271,10 +271,26 @@ public class EmailBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #from(Recipient)} with given name and email address.
+	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
 	 */
 	public EmailBuilder from(@Nullable final String name, @Nonnull final String fromAddress) {
 		return from(new Recipient(name, checkNonEmptyArgument(fromAddress, "fromAddress"), null));
+	}
+	
+	/**
+	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and email address.
+	 */
+	public EmailBuilder from(@Nullable final String fixedName, @Nonnull final InternetAddress fromAddress) {
+		checkNonEmptyArgument(fromAddress, "fromAddress");
+		return from(new Recipient(fixedName, fromAddress.getAddress(), null));
+	}
+	
+	/**
+	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given email address.
+	 */
+	public EmailBuilder from(@Nonnull final InternetAddress fromAddress) {
+		checkNonEmptyArgument(fromAddress, "fromAddress");
+		return from(new Recipient(fromAddress.getPersonal(), fromAddress.getAddress(), null));
 	}
 	
 	/**
@@ -296,10 +312,33 @@ public class EmailBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #replyTo(Recipient)} with given name and email address.
+	 * Delegates to {@link #replyTo(Recipient)} with a  new {@link Recipient} wrapped around the given email address.
 	 */
-	public EmailBuilder replyTo(@Nullable final String name, @Nonnull final String replyToAddress) {
-		return replyTo(new Recipient(name, checkNonEmptyArgument(replyToAddress, "replyToAddress"), null));
+	public EmailBuilder replyTo(@Nonnull final String replyToAddress) {
+		return replyTo(new Recipient(null, checkNonEmptyArgument(replyToAddress, "replyToAddress"), null));
+	}
+	
+	/**
+	 * Delegates to {@link #replyTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and email address.
+	 */
+	public EmailBuilder replyTo(@Nullable final String fixedName, @Nonnull final String replyToAddress) {
+		return replyTo(new Recipient(fixedName, checkNonEmptyArgument(replyToAddress, "replyToAddress"), null));
+	}
+	
+	/**
+	 * Delegates to {@link #replyTo(Recipient)} with a  new {@link Recipient} wrapped around the given address.
+	 */
+	public EmailBuilder replyTo(@Nonnull final InternetAddress replyToAddress) {
+		checkNonEmptyArgument(replyToAddress, "replyToAddress");
+		return replyTo(new Recipient(replyToAddress.getPersonal(), replyToAddress.getAddress(), null));
+	}
+	
+	/**
+	 * Delegates to {@link #replyTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and address.
+	 */
+	public EmailBuilder replyTo(@Nullable final String fixedName, @Nonnull final InternetAddress replyToAddress) {
+		checkNonEmptyArgument(replyToAddress, "replyToAddress");
+		return replyTo(new Recipient(fixedName, replyToAddress.getAddress(), null));
 	}
 	
 	/**
