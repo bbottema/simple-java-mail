@@ -318,10 +318,33 @@ public class EmailBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #bounceTo(Recipient)} with given name and email address.
+	 * Delegates to {@link #bounceTo(Recipient)} with a new {@link Recipient} wrapped around the email address.
+	 */
+	public EmailBuilder bounceTo(@Nonnull final String bounceToAddress) {
+		return bounceTo(new Recipient(null, checkNonEmptyArgument(bounceToAddress, "bounceToAddress"), null));
+	}
+	
+	/**
+	 * Delegates to {@link #bounceTo(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
 	 */
 	public EmailBuilder bounceTo(@Nullable final String name, @Nonnull final String bounceToAddress) {
 		return bounceTo(new Recipient(name, checkNonEmptyArgument(bounceToAddress, "bounceToAddress"), null));
+	}
+	
+	/**
+	 * Delegates to {@link #bounceTo(Recipient)} with a new {@link Recipient} wrapped around the given address.
+	 */
+	public EmailBuilder bounceTo(@Nonnull final InternetAddress bounceToAddress) {
+		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
+		return bounceTo(new Recipient(bounceToAddress.getPersonal(), bounceToAddress.getAddress(), null));
+	}
+	
+	/**
+	 * Delegates to {@link #bounceTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and address.
+	 */
+	public EmailBuilder bounceTo(@Nullable final String name, @Nonnull final InternetAddress bounceToAddress) {
+		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
+		return bounceTo(new Recipient(name, bounceToAddress.getAddress(), null));
 	}
 	
 	/**
@@ -888,6 +911,22 @@ public class EmailBuilder {
 	}
 	
 	/**
+	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
+	 */
+	public EmailBuilder withDispositionNotificationTo(@Nonnull final InternetAddress address) {
+		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
+		return withDispositionNotificationTo(new Recipient(address.getPersonal(), address.getAddress(), null));
+	}
+	
+	/**
+	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided fixed name and address.
+	 */
+	public EmailBuilder withDispositionNotificationTo(@Nullable final String fixedName, @Nonnull final InternetAddress address) {
+		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
+		return withDispositionNotificationTo(new Recipient(fixedName, address.getAddress(), null));
+	}
+	
+	/**
 	 * Indicates the this email should use the <a href="https://tools.ietf.org/html/rfc8098">NPM flag "Disposition-Notification-To"</a> with the given
 	 * preconfigred {@link Recipient}. This flag can be used to request a return receipt from the recipient to signal that the recipient has read the
 	 * email.
@@ -931,6 +970,22 @@ public class EmailBuilder {
 	public EmailBuilder withReturnReceiptTo(@Nullable final String name, @Nonnull final String address) {
 		checkNonEmptyArgument(address, "address");
 		return withReturnReceiptTo(new Recipient(name, address, null));
+	}
+	
+	/**
+	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
+	 */
+	public EmailBuilder withReturnReceiptTo(@Nonnull final InternetAddress address) {
+		checkNonEmptyArgument(address, "address");
+		return withReturnReceiptTo(new Recipient(address.getPersonal(), address.getAddress(), null));
+	}
+	
+	/**
+	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided fixed name and address.
+	 */
+	public EmailBuilder withReturnReceiptTo(@Nullable final String fixedName, @Nonnull final InternetAddress address) {
+		checkNonEmptyArgument(address, "address");
+		return withReturnReceiptTo(new Recipient(fixedName, address.getAddress(), null));
 	}
 	
 	/**

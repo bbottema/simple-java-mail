@@ -254,26 +254,26 @@ public final class EmailConverter {
 		builder.withHeaders(parsed.getHeaders());
 		final InternetAddress dnTo = parsed.getDispositionNotificationTo();
 		if (dnTo != null) {
-			builder.withDispositionNotificationTo(dnTo.getPersonal(), dnTo.getAddress());
+			builder.withDispositionNotificationTo(dnTo);
 		}
 		final InternetAddress rrTo = parsed.getReturnReceiptTo();
 		if (rrTo != null) {
-			builder.withReturnReceiptTo(rrTo.getPersonal(), rrTo.getAddress());
+			builder.withReturnReceiptTo(rrTo);
 		}
 		final InternetAddress bTo = parsed.getBounceToAddress();
 		if (bTo != null) {
-			builder.bounceTo(bTo.getPersonal(), bTo.getAddress());
+			builder.bounceTo(bTo);
 		}
 		builder.id(parsed.getMessageId());
 		for (final InternetAddress to : parsed.getToAddresses()) {
-			builder.to(to.getPersonal(), to.getAddress());
+			builder.to(to);
 		}
 		//noinspection QuestionableName
 		for (final InternetAddress cc : parsed.getCcAddresses()) {
-			builder.cc(cc.getPersonal(), cc.getAddress());
+			builder.cc(cc);
 		}
 		for (final InternetAddress bcc : parsed.getBccAddresses()) {
-			builder.bcc(bcc.getPersonal(), bcc.getAddress());
+			builder.bcc(bcc);
 		}
 		builder.subject(parsed.getSubject() != null ? parsed.getSubject() : "");
 		builder.text(parsed.getPlainContent());
