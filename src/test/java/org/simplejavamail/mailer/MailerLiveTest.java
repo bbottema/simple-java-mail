@@ -7,6 +7,7 @@ import org.simplejavamail.email.AttachmentResource;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailAssert;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.email.EmailPopulatingBuilder;
 import org.simplejavamail.email.Recipient;
 import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.util.ConfigLoader;
@@ -103,27 +104,27 @@ public class MailerLiveTest {
 		assertThat(normalizeText(attachment2.readAllData())).isEqualTo("On the moon!");
 	}
 
-	private Email assertSendingEmail(final EmailBuilder originalEmailBuilder)
+	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder)
 			throws MessagingException {
-		Email originalEmail = originalEmailBuilder.build();
+		Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
 		mailer.sendMail(originalEmail);
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
 		
 		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
 		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty
-		if (originalEmailBuilder.getReplyToRecipient() == null) {
-			originalEmailBuilder.replyTo(originalEmailBuilder.getFromRecipient());
+		if (originalEmailPopulatingBuilder.getReplyToRecipient() == null) {
+			originalEmailPopulatingBuilder.withReplyTo(originalEmailPopulatingBuilder.getFromRecipient());
 		}
 		// received email will always have an id, so let's make sure we're able to compare to the original email object
-		if (originalEmailBuilder.getHeaders().get("Message-ID") == null) {
-			originalEmailBuilder.addHeader("Message-ID", originalEmail.getId());
+		if (originalEmailPopulatingBuilder.getHeaders().get("Message-ID") == null) {
+			originalEmailPopulatingBuilder.withHeader("Message-ID", originalEmail.getId());
 		}
 		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session, so just ignore this
-		if (originalEmailBuilder.getBounceToRecipient() != null) {
-			receivedEmail.setBounceToRecipient(originalEmailBuilder.getBounceToRecipient());
+		if (originalEmailPopulatingBuilder.getBounceToRecipient() != null) {
+			receivedEmail.setBounceToRecipient(originalEmailPopulatingBuilder.getBounceToRecipient());
 		}
-		assertThat(receivedEmail).isEqualTo(originalEmailBuilder.build());
+		assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());
 		return receivedEmail;
 	}
 	
@@ -131,16 +132,16 @@ public class MailerLiveTest {
 	public void createMailSession_ReplyToMessage()
 			throws IOException, MessagingException {
 		// send initial mail
-		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").build());
+		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		EmailBuilder receivedEmailBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
+		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
 		
 		// send reply to initial mail
-		Email reply = EmailBuilder.builder()
-				.asReplyToAll(assertSendingEmail(receivedEmailBuilder))
+		Email reply = EmailBuilder
+				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder))
 				.from("dummy@domain.com")
-				.text("This is the reply")
-				.build();
+				.withPlainText("This is the reply")
+				.buildEmail();
 		
 		// test received reply to initial mail
 		mailer.sendMail(reply);
@@ -155,25 +156,25 @@ public class MailerLiveTest {
 				new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO),
 				new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO)
 		);
-		assertThat(receivedReply1.getHeaders()).contains(entry("In-Reply-To", receivedEmailBuilder.getId()));
-		assertThat(receivedReply1.getHeaders()).contains(entry("References", receivedEmailBuilder.getId()));
+		assertThat(receivedReply1.getHeaders()).contains(entry("In-Reply-To", receivedEmailPopulatingBuilder.getId()));
+		assertThat(receivedReply1.getHeaders()).contains(entry("References", receivedEmailPopulatingBuilder.getId()));
 	}
 	
 	@Test
 	public void createMailSession_ReplyToMessage_NotAll_AndCustomReferences()
 			throws IOException, MessagingException {
 		// send initial mail
-		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").build());
+		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		EmailBuilder receivedEmailBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
+		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
 		
 		// send reply to initial mail
-		Email reply = EmailBuilder.builder()
-				.asReplyTo(assertSendingEmail(receivedEmailBuilder))
-				.addHeader("References", "dummy-references")
+		Email reply = EmailBuilder
+				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder))
+				.withHeader("References", "dummy-references")
 				.from("dummy@domain.com")
-				.text("This is the reply")
-				.build();
+				.withPlainText("This is the reply")
+				.buildEmail();
 		
 		// test received reply to initial mail
 		mailer.sendMail(reply);
@@ -182,7 +183,7 @@ public class MailerLiveTest {
 		
 		EmailAssert.assertThat(receivedReply).hasSubject("Re: hey");
 		EmailAssert.assertThat(receivedReply).hasOnlyRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO));
-		assertThat(receivedReply.getHeaders()).contains(entry("In-Reply-To", receivedEmailBuilder.getId()));
+		assertThat(receivedReply.getHeaders()).contains(entry("In-Reply-To", receivedEmailPopulatingBuilder.getId()));
 		assertThat(receivedReply.getHeaders()).contains(entry("References", "dummy-references"));
 	}
 	

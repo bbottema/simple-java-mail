@@ -16,21 +16,21 @@ import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 
-public class EmailBuilderTest {
+public class EmailPopulatingBuilderTest {
 	
-	private EmailBuilder builder;
+	private EmailPopulatingBuilder builder;
 	
 	@Before
 	public void setup() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		builder = EmailBuilder.builder();
+		builder = EmailBuilder.startingBlank();
 	}
 
 	@Test
 	public void testBuilderFromAddress() {
 		final Email email = builder
 				.from(new Recipient("lollypop", "lol.pop@somemail.com", null))
-				.build();
+				.buildEmail();
 
 		assertThat(email.getFromRecipient().getName()).isEqualTo("lollypop");
 		assertThat(email.getFromRecipient().getAddress()).isEqualTo("lol.pop@somemail.com");
@@ -42,7 +42,7 @@ public class EmailBuilderTest {
 		final Email email = builder
 				.from("lollypop", "lol.pop@somemail.com") // should be overwritted
 				.from(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
-				.build();
+				.buildEmail();
 
 		assertThat(email.getFromRecipient().getName()).isEqualTo("lollypop2");
 		assertThat(email.getFromRecipient().getAddress()).isEqualTo("lol.pop2@somemail.com");
@@ -52,8 +52,8 @@ public class EmailBuilderTest {
 	@Test
 	public void testBuilderReplyToAddress() {
 		final Email email = builder
-				.replyTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
-				.build();
+				.withReplyTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
+				.buildEmail();
 		
 		assertThat(email.getReplyToRecipient().getName()).isEqualTo("lollypop");
 		assertThat(email.getReplyToRecipient().getAddress()).isEqualTo("lol.pop@somemail.com");
@@ -63,8 +63,8 @@ public class EmailBuilderTest {
 	@Test
 	public void testBuilderBounceToAddress() {
 		final Email email = builder
-				.bounceTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
-				.build();
+				.withBounceTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
+				.buildEmail();
 		
 		assertThat(email.getBounceToRecipient().getName()).isEqualTo("lollypop");
 		assertThat(email.getBounceToRecipient().getAddress()).isEqualTo("lol.pop@somemail.com");
@@ -74,9 +74,9 @@ public class EmailBuilderTest {
 	@Test
 	public void testBuilderReplyToAddressOverwriteWithAlternativeBuilderMethod() {
 		final Email email = builder
-				.replyTo("lollypop", "lol.pop@somemail.com") // should be overwritted
-				.replyTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
-				.build();
+				.withReplyTo("lollypop", "lol.pop@somemail.com") // should be overwritted
+				.withReplyTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
+				.buildEmail();
 		
 		assertThat(email.getReplyToRecipient().getName()).isEqualTo("lollypop2");
 		assertThat(email.getReplyToRecipient().getAddress()).isEqualTo("lol.pop2@somemail.com");
@@ -86,9 +86,9 @@ public class EmailBuilderTest {
 	@Test
 	public void testBuilderBounceToAddressOverwriteWithAlternativeBuilderMethod() {
 		final Email email = builder
-				.bounceTo("lollypop", "lol.pop@somemail.com") // should be overwritted
-				.bounceTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
-				.build();
+				.withBounceTo("lollypop", "lol.pop@somemail.com") // should be overwritted
+				.withBounceTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
+				.buildEmail();
 		
 		assertThat(email.getBounceToRecipient().getName()).isEqualTo("lollypop2");
 		assertThat(email.getBounceToRecipient().getAddress()).isEqualTo("lol.pop2@somemail.com");
@@ -109,7 +109,7 @@ public class EmailBuilderTest {
 				.to(new Recipient("13", "13@candyshop.org", null), new Recipient("14", "14@candyshop.org", null))
 				.to("15", "15a@candyshop.org,15b@candyshop.org")
 				.to("16", "16a@candyshop.org;16b@candyshop.org")
-				.build();
+				.buildEmail();
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				createRecipient("1", "1@candyshop.org", Message.RecipientType.TO),
@@ -141,7 +141,7 @@ public class EmailBuilderTest {
 				.to("6@candyshop.org,7b <7@candyshop.org>")
 				.to("8b <8@candyshop.org>;9@candyshop.org")
 				.to("10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
-				.build();
+				.buildEmail();
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				createRecipient("1b", "1@candyshop.org", Message.RecipientType.TO),
@@ -170,7 +170,7 @@ public class EmailBuilderTest {
 				.cc(new Recipient("13", "13@candyshop.org", null), new Recipient("14", "14@candyshop.org", null))
 				.cc("15", "15a@candyshop.org,15b@candyshop.org")
 				.cc("16", "16a@candyshop.org;16b@candyshop.org")
-				.build();
+				.buildEmail();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				createRecipient("1", "1@candyshop.org", Message.RecipientType.CC),
@@ -202,7 +202,7 @@ public class EmailBuilderTest {
 				.cc("6@candyshop.org,7b <7@candyshop.org>")
 				.cc("8b <8@candyshop.org>;9@candyshop.org")
 				.cc("10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
-				.build();
+				.buildEmail();
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				createRecipient("1b", "1@candyshop.org", Message.RecipientType.CC),
@@ -231,7 +231,7 @@ public class EmailBuilderTest {
 				.bcc(new Recipient("13", "13@candyshop.org", null), new Recipient("14", "14@candyshop.org", null))
 				.bcc("15", "15a@candyshop.org,15b@candyshop.org")
 				.bcc("16", "16a@candyshop.org;16b@candyshop.org")
-				.build();
+				.buildEmail();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				createRecipient("1", "1@candyshop.org", Message.RecipientType.BCC),
@@ -263,7 +263,7 @@ public class EmailBuilderTest {
 				.bcc("6@candyshop.org,7b <7@candyshop.org>")
 				.bcc("8b <8@candyshop.org>;9@candyshop.org")
 				.bcc("10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
-				.build();
+				.buildEmail();
 		
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
 				createRecipient("1b", "1@candyshop.org", Message.RecipientType.BCC),
@@ -281,9 +281,9 @@ public class EmailBuilderTest {
 	@Test
 	public void testBuilderNotificationFlags_DefaultOff() {
 		final Email email = builder
-				.replyTo("replyTo", "1@candyshop.org")
+				.withReplyTo("replyTo", "1@candyshop.org")
 				.from("from", "2@candyshop.org")
-				.build();
+				.buildEmail();
 		
 		assertThat(email.isUseDispositionNotificationTo()).isFalse();
 		assertThat(email.isUseReturnReceiptTo()).isFalse();
@@ -294,13 +294,13 @@ public class EmailBuilderTest {
 	@Test
 	public void testBuilderNotificationFlags_ReDefaultToReplyTo() {
 		final Email email = builder
-				.replyTo("replyTo", "1@candyshop.org")
+				.withReplyTo("replyTo", "1@candyshop.org")
 				.from("from", "2@candyshop.org")
 				.withDispositionNotificationTo("custom@candyshop.com")
 				.withReturnReceiptTo("custom@candyshop.com")
 				.withDispositionNotificationTo()
 				.withReturnReceiptTo()
-				.build();
+				.buildEmail();
 		
 		assertThat(email.isUseDispositionNotificationTo()).isTrue();
 		assertThat(email.isUseReturnReceiptTo()).isTrue();
@@ -311,11 +311,11 @@ public class EmailBuilderTest {
 	@Test
 	public void testBuilderNotificationFlags_DefaultToReplyTo() {
 		final Email email = builder
-				.replyTo("replyTo", "1@candyshop.org")
+				.withReplyTo("replyTo", "1@candyshop.org")
 				.from("from", "2@candyshop.org")
 				.withDispositionNotificationTo()
 				.withReturnReceiptTo()
-				.build();
+				.buildEmail();
 		
 		assertThat(email.isUseDispositionNotificationTo()).isTrue();
 		assertThat(email.isUseReturnReceiptTo()).isTrue();
@@ -326,11 +326,11 @@ public class EmailBuilderTest {
 	@Test
 	public void testBuilderNotificationFlags_CustomAddress() {
 		final Email email = builder
-				.replyTo("replyTo", "1@candyshop.org")
+				.withReplyTo("replyTo", "1@candyshop.org")
 				.from("from", "2@candyshop.org")
 				.withDispositionNotificationTo("customa@candyshop.org")
 				.withReturnReceiptTo("customb@candyshop.org")
-				.build();
+				.buildEmail();
 		
 		assertThat(email.isUseDispositionNotificationTo()).isTrue();
 		assertThat(email.isUseReturnReceiptTo()).isTrue();
@@ -341,17 +341,17 @@ public class EmailBuilderTest {
 	@Test
 	public void testBuilderEmbeddingImages() {
 		builder
-				.embedImage("a", new ByteArrayDataSource(new byte[3], ""))
-				.embedImage(null, new DataSourceWithDummyName())
-				.embedImage("a", new byte[3], "mimetype");
+				.withEmbeddedImage("a", new ByteArrayDataSource(new byte[3], ""))
+				.withEmbeddedImage(null, new DataSourceWithDummyName())
+				.withEmbeddedImage("a", new byte[3], "mimetype");
 		try {
-			builder.embedImage(null, new ByteArrayDataSource(new byte[3], ""));
+			builder.withEmbeddedImage(null, new ByteArrayDataSource(new byte[3], ""));
 			failBecauseExceptionWasNotThrown(EmailException.class);
 		} catch (EmailException e) {
 			// ok
 		}
 		try {
-			builder.embedImage(null, new byte[3], "mimetype");
+			builder.withEmbeddedImage(null, new byte[3], "mimetype");
 			failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
 		} catch (IllegalArgumentException e) {
 			// ok
@@ -361,11 +361,11 @@ public class EmailBuilderTest {
 	@Test
 	public void testBuilderAddingAttachmentsWithMissingNameWithoutExceptions() {
 		builder
-				.addAttachment("a", new ByteArrayDataSource(new byte[3], "text/txt"))
-				.addAttachment(null, new DataSourceWithDummyName())
-				.addAttachment("a", new byte[3], "text/txt")
-				.addAttachment(null, new ByteArrayDataSource(new byte[3], "text/txt"))
-				.addAttachment(null, new byte[3], "text/txt");
+				.withAttachment("a", new ByteArrayDataSource(new byte[3], "text/txt"))
+				.withAttachment(null, new DataSourceWithDummyName())
+				.withAttachment("a", new byte[3], "text/txt")
+				.withAttachment(null, new ByteArrayDataSource(new byte[3], "text/txt"))
+				.withAttachment(null, new byte[3], "text/txt");
 		// ok no exceptions
 	}
 	
@@ -373,7 +373,7 @@ public class EmailBuilderTest {
 	public void testPrependText_ToEmptyText() {
 		Email test = builder
 				.prependText("test")
-				.build();
+				.buildEmail();
 		
 		EmailAssert.assertThat(test).hasText("test");
 	}
@@ -381,10 +381,10 @@ public class EmailBuilderTest {
 	@Test
 	public void testPrependText_ToNonEmptyText() {
 		Email test = builder
-				.text("moo")
-				.textHTML("ignore")
+				.withPlainText("moo")
+				.withHTMLText("ignore")
 				.prependText("test\n")
-				.build();
+				.buildEmail();
 		
 		EmailAssert.assertThat(test).hasText("test\nmoo");
 	}
@@ -393,7 +393,7 @@ public class EmailBuilderTest {
 	public void testPrependTextHTML_ToEmptyText() {
 		Email test = builder
 				.prependTextHTML("test")
-				.build();
+				.buildEmail();
 		
 		EmailAssert.assertThat(test).hasTextHTML("test");
 	}
@@ -401,10 +401,10 @@ public class EmailBuilderTest {
 	@Test
 	public void testPrependTextHTML_ToNonEmptyText() {
 		Email test = builder
-				.text("ignore")
-				.textHTML("moo")
+				.withPlainText("ignore")
+				.withHTMLText("moo")
 				.prependTextHTML("test\n")
-				.build();
+				.buildEmail();
 		
 		EmailAssert.assertThat(test).hasTextHTML("test\nmoo");
 	}
@@ -413,7 +413,7 @@ public class EmailBuilderTest {
 	public void testAppendText_ToEmptyText() {
 		Email test = builder
 				.appendText("test")
-				.build();
+				.buildEmail();
 		
 		EmailAssert.assertThat(test).hasText("test");
 	}
@@ -421,10 +421,10 @@ public class EmailBuilderTest {
 	@Test
 	public void testAppendText_ToNonEmptyText() {
 		Email test = builder
-				.text("moo")
-				.textHTML("ignore")
+				.withPlainText("moo")
+				.withHTMLText("ignore")
 				.appendText("\ntest")
-				.build();
+				.buildEmail();
 		
 		EmailAssert.assertThat(test).hasText("moo\ntest");
 	}
@@ -433,7 +433,7 @@ public class EmailBuilderTest {
 	public void testAppendTextHTML_ToEmptyText() {
 		Email test = builder
 				.appendTextHTML("test")
-				.build();
+				.buildEmail();
 		
 		EmailAssert.assertThat(test).hasTextHTML("test");
 	}
@@ -441,10 +441,10 @@ public class EmailBuilderTest {
 	@Test
 	public void testAppendTextHTML_ToNonEmptyText() {
 		Email test = builder
-				.text("ignore")
-				.textHTML("moo")
+				.withPlainText("ignore")
+				.withHTMLText("moo")
 				.appendTextHTML("\ntest")
-				.build();
+				.buildEmail();
 		
 		EmailAssert.assertThat(test).hasTextHTML("moo\ntest");
 	}
@@ -456,7 +456,7 @@ public class EmailBuilderTest {
 		builder.bcc("name3", "4@domain.com;5@domain.com");
 		builder.to("name4", "6@domain.com;7@domain.com,8@domain.com");
 		
-		assertThat(builder.build().getRecipients()).containsExactlyInAnyOrder(
+		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1", "1@domain.com", TO),
 				new Recipient("name2", "2@domain.com", CC),
 				new Recipient("name2", "3@domain.com", CC),
@@ -475,7 +475,7 @@ public class EmailBuilderTest {
 		builder.bccWithDefaultName("name3", "4@domain.com;name3b <5@domain.com>");
 		builder.toWithDefaultName("name4", "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
 		
-		assertThat(builder.build().getRecipients()).containsExactlyInAnyOrder(
+		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1b", "1@domain.com", TO),
 				new Recipient("name2b", "2@domain.com", CC),
 				new Recipient("name2", "3@domain.com", CC),
@@ -492,7 +492,7 @@ public class EmailBuilderTest {
 		builder.to("name1", "1@domain.com");
 		builder.cc("name2", "2@domain.com", "3@domain.com");
 		
-		assertThat(builder.build().getRecipients()).containsExactlyInAnyOrder(
+		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1", "1@domain.com", TO),
 				new Recipient("name2", "2@domain.com", CC),
 				new Recipient("name2", "3@domain.com", CC)
@@ -519,7 +519,7 @@ public class EmailBuilderTest {
 		builder.bccWithFixedName("bcc_fixed", "bcc included <bcc4@domain.com>");
 		builder.bcc("bcc_fixed", "bcc included <bcc5@domain.com>");
 		
-		assertThat(builder.build().getRecipients()).containsExactlyInAnyOrder(
+		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
 				new Recipient(null, "to1@domain.com", TO),
 				new Recipient("to included", "to2@domain.com", TO),
 				new Recipient("to_default", "to3@domain.com", TO),
@@ -546,7 +546,7 @@ public class EmailBuilderTest {
 		builder.ccWithDefaultName("cc_default", "cc_included <3@domain.com>", "4@domain.com");
 		builder.bccWithDefaultName("bcc_default", "bcc_included <5@domain.com>", "6@domain.com");
 		
-		assertThat(builder.build().getRecipients()).containsExactlyInAnyOrder(
+		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("to_included", "1@domain.com", TO),
 				new Recipient("to_default", "2@domain.com", TO),
 				new Recipient("cc_included", "3@domain.com", CC),

@@ -26,94 +26,94 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 public class Email {
 
 	/**
-	 * @see EmailBuilder#id(String)
+	 * @see EmailPopulatingBuilder#fixingMessageId(String)
 	 */
 	private String id;
 
 	/**
-	 * @see EmailBuilder#from(Recipient)
+	 * @see EmailPopulatingBuilder#from(Recipient)
 	 */
 	private Recipient fromRecipient;
 	
 	/**
-	 * @see EmailBuilder#replyTo(Recipient)
+	 * @see EmailPopulatingBuilder#withReplyTo(Recipient)
 	 */
 	private Recipient replyToRecipient;
 	
 	/**
-	 * @see EmailBuilder#bounceTo(Recipient)
+	 * @see EmailPopulatingBuilder#withBounceTo(Recipient)
 	 */
 	private Recipient bounceToRecipient;
 	
 	/**
-	 * @see EmailBuilder#text(String)
+	 * @see EmailPopulatingBuilder#withPlainText(String)
 	 */
 	private String text;
 
 	/**
-	 * @see EmailBuilder#textHTML(String)
+	 * @see EmailPopulatingBuilder#withHTMLText(String)
 	 */
 	private String textHTML;
 
 	/**
-	 * @see EmailBuilder#subject(String)
+	 * @see EmailPopulatingBuilder#withSubject(String)
 	 */
 	private String subject;
 
 	/**
-	 * @see EmailBuilder#to(Recipient...)
-	 * @see EmailBuilder#cc(Recipient...)
-	 * @see EmailBuilder#bcc(Recipient...)
+	 * @see EmailPopulatingBuilder#to(Recipient...)
+	 * @see EmailPopulatingBuilder#cc(Recipient...)
+	 * @see EmailPopulatingBuilder#bcc(Recipient...)
 	 */
 	private final List<Recipient> recipients;
 
 	/**
-	 * @see EmailBuilder#embedImage(String, DataSource)
+	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource)
 	 */
 	private final List<AttachmentResource> embeddedImages;
 
 	/**
-	 * @see EmailBuilder#addAttachment(String, DataSource)
+	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */
 	private final List<AttachmentResource> attachments;
 
 	/**
-	 * @see EmailBuilder#addHeader(String, Object)
-	 * @see EmailBuilder#asReplyTo(MimeMessage, boolean, String)
+	 * @see EmailPopulatingBuilder#withHeader(String, Object)
+	 * @see EmailPopulatingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	private final Map<String, String> headers;
 	
 	/**
-	 * @see EmailBuilder#withDispositionNotificationTo()
-	 * @see EmailBuilder#withDispositionNotificationTo(Recipient)
+	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
+	 * @see EmailPopulatingBuilder#withDispositionNotificationTo(Recipient)
 	 */
 	private boolean useDispositionNotificationTo;
 	
 	/**
-	 * @see EmailBuilder#withDispositionNotificationTo()
-	 * @see EmailBuilder#withDispositionNotificationTo(Recipient)
+	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
+	 * @see EmailPopulatingBuilder#withDispositionNotificationTo(Recipient)
 	 */
 	private Recipient dispositionNotificationTo;
 	
 	/**
-	 * @see EmailBuilder#withReturnReceiptTo()
-	 * @see EmailBuilder#withReturnReceiptTo(Recipient)
+	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
+	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
 	private boolean useReturnReceiptTo;
 	
 	/**
-	 * @see EmailBuilder#withReturnReceiptTo()
-	 * @see EmailBuilder#withReturnReceiptTo(Recipient)
+	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
+	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
 	private Recipient returnReceiptTo;
 	
 	/**
-	 * @see EmailBuilder#asForwardOf(MimeMessage)
+	 * @see EmailPopulatingBuilder#forwarding(MimeMessage)
 	 */
 	private MimeMessage emailToForward;
 	
 	/**
-	 * @see EmailBuilder#signWithDomainKey(InputStream, String, String)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 */
 	private InputStream dkimPrivateKeyInputStream;
 	
@@ -123,23 +123,23 @@ public class Email {
 	private File dkimPrivateKeyFile; // supported separately, so we don't have to do resource management ourselves for the InputStream
 	
 	/**
-	 * @see EmailBuilder#signWithDomainKey(InputStream, String, String)
-	 * @see EmailBuilder#signWithDomainKey(File, String, String)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
 	private String dkimSigningDomain;
 	
 	/**
-	 * @see EmailBuilder#signWithDomainKey(InputStream, String, String)
-	 * @see EmailBuilder#signWithDomainKey(File, String, String)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
 	private String dkimSelector;
 	
 	/**
-	 * Simply transfers everything from EmailBuilder to this Email instance.
+	 * Simply transfers everything from EmailPopulatingBuilder to this Email instance.
 	 *
-	 * @see EmailBuilder#build()
+	 * @see EmailPopulatingBuilder#buildEmail()
 	 */
-	Email(@Nonnull final EmailBuilder builder) {
+	public Email(@Nonnull final EmailPopulatingBuilder builder) {
 		checkNonEmptyArgument(builder, "builder");
 		recipients = unmodifiableList(builder.getRecipients());
 		embeddedImages = unmodifiableList(builder.getEmbeddedImages());

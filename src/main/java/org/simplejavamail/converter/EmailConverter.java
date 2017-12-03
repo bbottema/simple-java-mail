@@ -6,6 +6,7 @@ import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.Parse
 import org.simplejavamail.converter.internal.msgparser.OutlookMessageParser;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.email.EmailPopulatingBuilder;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookMessage;
@@ -51,54 +52,54 @@ public final class EmailConverter {
 	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
 	 */
 	public static Email mimeMessageToEmail(@Nonnull final MimeMessage mimeMessage) {
-		return mimeMessageToEmailBuilder(mimeMessage).build();
+		return mimeMessageToEmailBuilder(mimeMessage).buildEmail();
 	}
 	
 	/**
 	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
 	 */
-	public static EmailBuilder mimeMessageToEmailBuilder(@Nonnull final MimeMessage mimeMessage) {
+	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@Nonnull final MimeMessage mimeMessage) {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
-		final EmailBuilder emailBuilder = EmailBuilder.builder().ignoringDefaults();
-		buildEmailFromMimeMessage(emailBuilder, MimeMessageParser.parseMimeMessage(mimeMessage));
-		return emailBuilder;
+		final EmailPopulatingBuilder emailPopulatingBuilder = EmailBuilder.ignoringDefaults().startingBlank();
+		buildEmailFromMimeMessage(emailPopulatingBuilder, MimeMessageParser.parseMimeMessage(mimeMessage));
+		return emailPopulatingBuilder;
 	}
 
 	/**
 	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
-		final EmailBuilder emailBuilder = EmailBuilder.builder().ignoringDefaults();
+		final EmailPopulatingBuilder emailPopulatingBuilder = EmailBuilder.ignoringDefaults().startingBlank();
 		final OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgData, "msgData"));
-		buildEmailFromOutlookMessage(emailBuilder, outlookMessage);
-		return emailBuilder.build();
+		buildEmailFromOutlookMessage(emailPopulatingBuilder, outlookMessage);
+		return emailPopulatingBuilder.buildEmail();
 	}
 
 	/**
 	 * @param msgfile The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final File msgfile) {
-		final EmailBuilder emailBuilder = EmailBuilder.builder().ignoringDefaults();
+		final EmailPopulatingBuilder emailPopulatingBuilder = EmailBuilder.ignoringDefaults().startingBlank();
 		final OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgfile, "msgfile"));
-		buildEmailFromOutlookMessage(emailBuilder, outlookMessage);
-		return emailBuilder.build();
+		buildEmailFromOutlookMessage(emailPopulatingBuilder, outlookMessage);
+		return emailPopulatingBuilder.buildEmail();
 	}
 	
 	/**
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final InputStream msgInputStream) {
-		return outlookMsgToEmailBuilder(msgInputStream).build();
+		return outlookMsgToEmailBuilder(msgInputStream).buildEmail();
 	}
 	
 	/**
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
-	public static EmailBuilder outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream) {
-		final EmailBuilder emailBuilder = EmailBuilder.builder().ignoringDefaults();
+	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream) {
+		final EmailPopulatingBuilder emailPopulatingBuilder = EmailBuilder.ignoringDefaults().startingBlank();
 		final OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream"));
-		buildEmailFromOutlookMessage(emailBuilder, outlookMessage);
-		return emailBuilder;
+		buildEmailFromOutlookMessage(emailPopulatingBuilder, outlookMessage);
+		return emailPopulatingBuilder;
 	}
 
 	/**
@@ -242,14 +243,14 @@ public final class EmailConverter {
 		Helpers
 	 */
 
-	private static void buildEmailFromMimeMessage(@Nonnull final EmailBuilder builder, @Nonnull final ParsedMimeMessageComponents parsed) {
+	private static void buildEmailFromMimeMessage(@Nonnull final EmailPopulatingBuilder builder, @Nonnull final ParsedMimeMessageComponents parsed) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(parsed, "parsedMimeMessageComponents");
 		if (parsed.getFromAddress() != null) {
 			builder.from(parsed.getFromAddress().getPersonal(), parsed.getFromAddress().getAddress());
 		}
 		if (parsed.getReplyToAddresses() != null) {
-			builder.replyTo(parsed.getReplyToAddresses().getPersonal(), parsed.getReplyToAddresses().getAddress());
+			builder.withReplyTo(parsed.getReplyToAddresses().getPersonal(), parsed.getReplyToAddresses().getAddress());
 		}
 		builder.withHeaders(parsed.getHeaders());
 		final InternetAddress dnTo = parsed.getDispositionNotificationTo();
@@ -262,9 +263,9 @@ public final class EmailConverter {
 		}
 		final InternetAddress bTo = parsed.getBounceToAddress();
 		if (bTo != null) {
-			builder.bounceTo(bTo);
+			builder.withBounceTo(bTo);
 		}
-		builder.id(parsed.getMessageId());
+		builder.fixingMessageId(parsed.getMessageId());
 		for (final InternetAddress to : parsed.getToAddresses()) {
 			builder.to(to);
 		}
@@ -275,24 +276,24 @@ public final class EmailConverter {
 		for (final InternetAddress bcc : parsed.getBccAddresses()) {
 			builder.bcc(bcc);
 		}
-		builder.subject(parsed.getSubject() != null ? parsed.getSubject() : "");
-		builder.text(parsed.getPlainContent());
-		builder.textHTML(parsed.getHtmlContent());
+		builder.withSubject(parsed.getSubject() != null ? parsed.getSubject() : "");
+		builder.withPlainText(parsed.getPlainContent());
+		builder.withHTMLText(parsed.getHtmlContent());
 		for (final Map.Entry<String, DataSource> cid : parsed.getCidMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
-			builder.embedImage(extractCID(cidName), cid.getValue());
+			builder.withEmbeddedImage(extractCID(cidName), cid.getValue());
 		}
 		for (final Map.Entry<String, DataSource> attachment : parsed.getAttachmentList().entrySet()) {
-			builder.addAttachment(extractCID(attachment.getKey()), attachment.getValue());
+			builder.withAttachment(extractCID(attachment.getKey()), attachment.getValue());
 		}
 	}
 	
-	private static void buildEmailFromOutlookMessage(@Nonnull final EmailBuilder builder, @Nonnull final OutlookMessage outlookMessage) {
+	private static void buildEmailFromOutlookMessage(@Nonnull final EmailPopulatingBuilder builder, @Nonnull final OutlookMessage outlookMessage) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(outlookMessage, "outlookMessage");
 		builder.from(outlookMessage.getFromName(), outlookMessage.getFromEmail());
 		if (!MiscUtil.valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
-			builder.replyTo(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
+			builder.withReplyTo(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
 		}
 		for (final OutlookRecipient to : outlookMessage.getRecipients()) {
 			builder.to(to.getName(), to.getAddress());
@@ -304,17 +305,17 @@ public final class EmailConverter {
 		for (final OutlookRecipient bcc : outlookMessage.getBccRecipients()) {
 			builder.bcc(bcc.getName(), bcc.getAddress());
 		}
-		builder.subject(outlookMessage.getSubject());
-		builder.text(outlookMessage.getBodyText());
-		builder.textHTML(outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML());
+		builder.withSubject(outlookMessage.getSubject());
+		builder.withPlainText(outlookMessage.getBodyText());
+		builder.withHTMLText(outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML());
 
 		for (final Map.Entry<String, OutlookFileAttachment> cid : outlookMessage.fetchCIDMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
 			//noinspection ConstantConditions
-			builder.embedImage(extractCID(cidName), cid.getValue().getData(), cid.getValue().getMimeTag());
+			builder.withEmbeddedImage(extractCID(cidName), cid.getValue().getData(), cid.getValue().getMimeTag());
 		}
 		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
-			builder.addAttachment(attachment.getLongFilename(), attachment.getData(), attachment.getMimeTag());
+			builder.withAttachment(attachment.getLongFilename(), attachment.getData(), attachment.getMimeTag());
 		}
 	}
 
