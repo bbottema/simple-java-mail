@@ -375,7 +375,7 @@ public class EmailPopulatingBuilderTest {
 				.prependText("test")
 				.buildEmail();
 		
-		EmailAssert.assertThat(test).hasText("test");
+		EmailAssert.assertThat(test).hasPlainText("test");
 	}
 	
 	@Test
@@ -386,7 +386,7 @@ public class EmailPopulatingBuilderTest {
 				.prependText("test\n")
 				.buildEmail();
 		
-		EmailAssert.assertThat(test).hasText("test\nmoo");
+		EmailAssert.assertThat(test).hasPlainText("test\nmoo");
 	}
 	
 	@Test
@@ -395,7 +395,7 @@ public class EmailPopulatingBuilderTest {
 				.prependTextHTML("test")
 				.buildEmail();
 		
-		EmailAssert.assertThat(test).hasTextHTML("test");
+		EmailAssert.assertThat(test).hasHTMLText("test");
 	}
 	
 	@Test
@@ -406,7 +406,7 @@ public class EmailPopulatingBuilderTest {
 				.prependTextHTML("test\n")
 				.buildEmail();
 		
-		EmailAssert.assertThat(test).hasTextHTML("test\nmoo");
+		EmailAssert.assertThat(test).hasHTMLText("test\nmoo");
 	}
 	
 	@Test
@@ -415,7 +415,7 @@ public class EmailPopulatingBuilderTest {
 				.appendText("test")
 				.buildEmail();
 		
-		EmailAssert.assertThat(test).hasText("test");
+		EmailAssert.assertThat(test).hasPlainText("test");
 	}
 	
 	@Test
@@ -426,7 +426,7 @@ public class EmailPopulatingBuilderTest {
 				.appendText("\ntest")
 				.buildEmail();
 		
-		EmailAssert.assertThat(test).hasText("moo\ntest");
+		EmailAssert.assertThat(test).hasPlainText("moo\ntest");
 	}
 	
 	@Test
@@ -435,7 +435,7 @@ public class EmailPopulatingBuilderTest {
 				.appendTextHTML("test")
 				.buildEmail();
 		
-		EmailAssert.assertThat(test).hasTextHTML("test");
+		EmailAssert.assertThat(test).hasHTMLText("test");
 	}
 	
 	@Test
@@ -446,7 +446,7 @@ public class EmailPopulatingBuilderTest {
 				.appendTextHTML("\ntest")
 				.buildEmail();
 		
-		EmailAssert.assertThat(test).hasTextHTML("moo\ntest");
+		EmailAssert.assertThat(test).hasHTMLText("moo\ntest");
 	}
 	
 	@Test

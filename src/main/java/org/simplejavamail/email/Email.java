@@ -480,14 +480,14 @@ public class Email {
 	/**
 	 * Bean getter for {@link #text}.
 	 */
-	public String getText() {
+	public String getPlainText() {
 		return text;
 	}
 
 	/**
 	 * Bean getter for {@link #textHTML}.
 	 */
-	public String getTextHTML() {
+	public String getHTMLText() {
 		return textHTML;
 	}
 

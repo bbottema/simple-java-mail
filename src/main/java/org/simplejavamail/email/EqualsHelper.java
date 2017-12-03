@@ -24,13 +24,13 @@ final class EqualsHelper {
 				email2.getBounceToRecipient() != null) {
 			return false;
 		}
-		if (email1.getText() != null ? !email1.getText().equals(email2.getText()) : email2.getText() != null) {
+		if (email1.getPlainText() != null ? !email1.getPlainText().equals(email2.getPlainText()) : email2.getPlainText() != null) {
 			return false;
 		}
 		if (email1.getEmailToForward() != null ? email2.getEmailToForward() == null : email2.getEmailToForward() != null) {
 			return false;
 		}
-		if (email1.getTextHTML() != null ? !email1.getTextHTML().equals(email2.getTextHTML()) : email2.getTextHTML() != null) {
+		if (email1.getHTMLText() != null ? !email1.getHTMLText().equals(email2.getHTMLText()) : email2.getHTMLText() != null) {
 			return false;
 		}
 		if (email1.getSubject() != null ? !email1.getSubject().equals(email2.getSubject()) : email2.getSubject() != null) {

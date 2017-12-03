@@ -85,9 +85,9 @@ public class MailerLiveTest {
 		// Outlook overrode this when saving the .email to match the mail account
 		EmailAssert.assertThat(email).hasRecipients(new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO));
 		EmailAssert.assertThat(email).hasReplyToRecipient(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", null));
-		assertThat(normalizeText(email.getText())).isEqualTo("We should meet up!\n");
+		assertThat(normalizeText(email.getPlainText())).isEqualTo("We should meet up!\n");
 		// Outlook overrode this value too OR converted the original HTML to RTF, from which OutlookMessageParser derived this HTML
-		assertThat(normalizeText(email.getTextHTML())).contains(
+		assertThat(normalizeText(email.getHTMLText())).contains(
 				"<html><body style=\"font-family:'Courier',monospace;font-size:10pt;\">   <br/>      <br/> <b>   We should meet up! <br/>  </b>   <br/>  <img src=\"cid:thumbsup\"> <br/> ");
 		// the RTF was probably created by Outlook based on the HTML when the message was saved
 		assertThat(email.getAttachments()).hasSize(2);

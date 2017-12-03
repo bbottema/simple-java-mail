@@ -147,14 +147,14 @@ public final class MimeMessageHelper {
 	 */
 	private static void setTexts(final Email email, final MimeMultipart multipartAlternativeMessages)
 			throws MessagingException {
-		if (email.getText() != null) {
+		if (email.getPlainText() != null) {
 			final MimeBodyPart messagePart = new MimeBodyPart();
-			messagePart.setText(email.getText(), CHARACTER_ENCODING);
+			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING);
 			multipartAlternativeMessages.addBodyPart(messagePart);
 		}
-		if (email.getTextHTML() != null) {
+		if (email.getHTMLText() != null) {
 			final MimeBodyPart messagePartHTML = new MimeBodyPart();
-			messagePartHTML.setContent(email.getTextHTML(), "text/html; charset=\"" + CHARACTER_ENCODING + "\"");
+			messagePartHTML.setContent(email.getHTMLText(), "text/html; charset=\"" + CHARACTER_ENCODING + "\"");
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
 		}
 	}

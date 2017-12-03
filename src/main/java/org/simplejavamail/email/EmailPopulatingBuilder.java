@@ -47,8 +47,8 @@ import static org.simplejavamail.util.ConfigLoader.getProperty;
 import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
 /**
- * Fluent interface Builder for building {@link Email} instances. An instance of this builder can only be obtained through one of the builder starters
- * on {@link EmailBuilder}.
+ * Fluent interface Builder for populating {@link Email} instances. An instance of this builder can only be obtained through one of the builder
+ * starters on {@link EmailBuilder}.
  *
  * @author Benny Bottema (early work also by Jared Stewart)
  */
@@ -273,7 +273,7 @@ public class EmailPopulatingBuilder {
 	 * @see #withReplyTo(Recipient)
 	 */
 	public EmailPopulatingBuilder from(@Nonnull final Recipient recipient) {
-		checkNonEmptyArgument(recipient, "recipient");
+		checkNonEmptyArgument(recipient, "from recipient");
 		this.fromRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
 		return this;
 	}
@@ -282,14 +282,16 @@ public class EmailPopulatingBuilder {
 	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given email address.
 	 */
 	public EmailPopulatingBuilder withReplyTo(@Nonnull final String replyToAddress) {
-		return withReplyTo(new Recipient(null, checkNonEmptyArgument(replyToAddress, "replyToAddress"), null));
+		checkNonEmptyArgument(replyToAddress, "replyToAddress");
+		return withReplyTo(new Recipient(null, replyToAddress, null));
 	}
 	
 	/**
 	 * Delegates to {@link #withReplyTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and email address.
 	 */
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String fixedName, @Nonnull final String replyToAddress) {
-		return withReplyTo(new Recipient(fixedName, checkNonEmptyArgument(replyToAddress, "replyToAddress"), null));
+		checkNonEmptyArgument(replyToAddress, "replyToAddress");
+		return withReplyTo(new Recipient(fixedName, replyToAddress, null));
 	}
 	
 	/**
@@ -377,7 +379,9 @@ public class EmailPopulatingBuilder {
 		return this;
 	}
 	
-	
+	/**
+	 * @see EmailBuilderInstance#forwarding(MimeMessage)
+	 */
 	EmailPopulatingBuilder withForward(@Nonnull final MimeMessage emailMessageToForward) {
 		this.emailToForward = emailMessageToForward;
 		return this;
@@ -561,31 +565,53 @@ public class EmailPopulatingBuilder {
 	/*
 		BCC: Recipient
 	 */
-	/** Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	/**
+     * Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#BCC}.
+     **/
 	 public EmailPopulatingBuilder bcc							(@Nonnull final Recipient... recipients) { 										 					return withRecipients(asList(recipients), BCC); }
-	/** Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	/**
+     * Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#BCC}.
+     **/
 	 public EmailPopulatingBuilder bcc							(@Nonnull final Collection<Recipient> recipients) {  							 					return withRecipients(recipients, BCC);  }
 	
 	/*
 		BCC: String
 	 */
-	/** Alias for {@link #bccWithFixedName(String, String...)}. */
+	/**
+     * Alias for {@link #bccWithFixedName(String, String...)}.
+     */
 	 public EmailPopulatingBuilder bcc							(@Nullable final String name, String address) { 							 						return bccWithFixedName(name, address); }
-	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name. */
+	/**
+     * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name.
+     */
 	 public EmailPopulatingBuilder bcc							(@Nonnull final String oneOrMoreAddresses) { 														return withRecipientsWithDefaultName(null, asList(oneOrMoreAddresses), BCC); }
-	/** Alias for {@link #bccWithFixedName(String, String...)}. */
+	/**
+     * Alias for {@link #bccWithFixedName(String, String...)}.
+     */
 	 public EmailPopulatingBuilder bcc							(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 					return bccWithFixedName(name, oneOrMoreAddressesEach); }
-	/** Alias for {@link #bccWithFixedName(String, Collection)}. */
+	/**
+     * Alias for {@link #bccWithFixedName(String, Collection)}.
+     */
 	 public EmailPopulatingBuilder bcc							(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return bccWithFixedName(name, oneOrMoreAddressesEach); }
-	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name. */
+	/**
+     * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name.
+     */
 	 public EmailPopulatingBuilder bccMultiple					(@Nonnull final String... oneOrMoreAddressesEach) { 							 					return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), BCC); }
-	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name. */
+	/**
+     * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name.
+     */
 	 public EmailPopulatingBuilder bccAddresses					(@Nonnull final Collection<String> oneOrMoreAddressesEach) { 							 			return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, BCC); }
-	/** Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	/**
+     * Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+     */
 	 public EmailPopulatingBuilder bccWithFixedName				(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) { 					return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), BCC); }
-	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	/**
+     * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+     */
 	 public EmailPopulatingBuilder bccWithDefaultName				(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {	 					return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), BCC); }
-	/** Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
+	/**
+     * Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+     */
 	 public EmailPopulatingBuilder bccWithFixedName				(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, BCC); }
 	/** Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}. */
 	 public EmailPopulatingBuilder bccWithDefaultName				(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) { 			return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, BCC); }
@@ -676,6 +702,13 @@ public class EmailPopulatingBuilder {
 			withRecipient(effectiveName, address.getAddress(), recipientType);
 		}
 		return this;
+	}
+	
+	/**
+	 * Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType} left empty (so it will use the original values).
+	 */
+	public EmailPopulatingBuilder withRecipients(@Nonnull final List<Recipient> recipients) {
+		return withRecipients(recipients, null);
 	}
 	
 	/**
