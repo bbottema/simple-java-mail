@@ -161,6 +161,7 @@ public class EmailBuilder {
 		 *
 		 * @see #replyingTo(MimeMessage, boolean, String)
 		 */
+		@SuppressWarnings("JavaDoc")
 		static final String DEFAULT_QUOTING_MARKUP = "<blockquote style=\"color: gray; border-left: 1px solid #4f4f4f; padding-left: " +
 				"1cm\">%s</blockquote>";
 		

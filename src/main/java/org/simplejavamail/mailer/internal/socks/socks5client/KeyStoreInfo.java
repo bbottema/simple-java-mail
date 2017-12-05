@@ -7,12 +7,12 @@ import org.simplejavamail.internal.util.MiscUtil;
 @SuppressWarnings("SameParameterValue")
 public class KeyStoreInfo {
 
-	private String keyStorePath;
-	private String password;
+	private final String keyStorePath;
+	private final String password;
 	private String type = "JKS";
 
-	public KeyStoreInfo() {
-	}
+//	public KeyStoreInfo() {
+//	}
 
 	public KeyStoreInfo(final String keyStorePath, final String password, final String type) {
 		this.keyStorePath = MiscUtil.checkNotNull(keyStorePath, "Argument [keyStorePath] may not be null");
@@ -20,9 +20,9 @@ public class KeyStoreInfo {
 		this.type = MiscUtil.checkNotNull(type, "Argument [type] may not be null");
 	}
 
-	public KeyStoreInfo(final String keyStorePath, final String password) {
-		this(keyStorePath, password, "JKS");
-	}
+//	public KeyStoreInfo(final String keyStorePath, final String password) {
+//		this(keyStorePath, password, "JKS");
+//	}
 
 	public String getKeyStorePath() {
 		return keyStorePath;

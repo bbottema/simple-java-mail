@@ -278,7 +278,8 @@ public class MailSender {
 			
 			logSession(session);
 			message.saveChanges(); // some headers and id's will be set for this specific message
-			email.setId(message.getMessageID());
+			//noinspection deprecation
+			email.internalSetId(message.getMessageID());
 
 			try {
 				synchronized (this) {

@@ -122,7 +122,7 @@ public class MailerLiveTest {
 		}
 		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session, so just ignore this
 		if (originalEmailPopulatingBuilder.getBounceToRecipient() != null) {
-			receivedEmail.setBounceToRecipient(originalEmailPopulatingBuilder.getBounceToRecipient());
+			originalEmailPopulatingBuilder.clearBounceTo();
 		}
 		assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());
 		return receivedEmail;

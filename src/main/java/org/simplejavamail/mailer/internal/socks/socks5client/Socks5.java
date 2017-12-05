@@ -27,15 +27,15 @@ public class Socks5 {
 
 	private boolean alwaysResolveAddressLocally = false;
 
-	public Socks5(final InetSocketAddress socketAddress, final String username, final String password) {
-		this(socketAddress);
-		setCredentials(new ProxyCredentials(username, password));
-	}
-
-	public Socks5(final String host, final int port)
-			throws UnknownHostException {
-		this(InetAddress.getByName(host), port);
-	}
+//	public Socks5(final InetSocketAddress socketAddress, final String username, final String password) {
+//		this(socketAddress);
+//		setCredentials(new ProxyCredentials(username, password));
+//	}
+//
+//	public Socks5(final String host, final int port)
+//			throws UnknownHostException {
+//		this(InetAddress.getByName(host), port);
+//	}
 
 	Socks5(final InetAddress inetAddress, final int port) {
 		this(new InetSocketAddress(inetAddress, port));
@@ -52,12 +52,12 @@ public class Socks5 {
 		this.setChainProxy(chainProxy);
 	}
 
-	public Socks5(final String host, final int port, final ProxyCredentials credentials)
-			throws UnknownHostException {
-		this.inetAddress = InetAddress.getByName(host);
-		this.port = port;
-		this.credentials = credentials;
-	}
+//	public Socks5(final String host, final int port, final ProxyCredentials credentials)
+//			throws UnknownHostException {
+//		this.inetAddress = InetAddress.getByName(host);
+//		this.port = port;
+//		this.credentials = credentials;
+//	}
 
 	public void buildConnection()
 			throws IOException {

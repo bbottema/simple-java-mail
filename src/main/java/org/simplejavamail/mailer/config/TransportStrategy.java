@@ -169,15 +169,6 @@ public enum TransportStrategy {
 		}
 		
 		/**
-		 * @return {@link #opportunisticTLS}
-		 */
-		@Override
-		@Nullable
-		public Boolean getOpportunisticTLS() {
-			return opportunisticTLS;
-		}
-		
-		/**
 		 * Sets {@link #opportunisticTLS}. Setting <code>null</code> will revert to property value if available or default to {@value
 		 * DEFAULT_OPPORTUNISTIC_TLS}
 		 */
@@ -465,11 +456,10 @@ public enum TransportStrategy {
 	public abstract String propertyNameTimeout();
 	
 	/**
-	 * @see TransportStrategy#SMTP#getOpportunisticTLS()
-	 */
-	@Nullable public Boolean getOpportunisticTLS() { return false; }
-	/**
-	 * @see TransportStrategy#SMTP#setOpportunisticTLS(Boolean)
+	 * Refer to {@link #SMTP}.opportunisticTLS for details. Defaults to {@code false} for all other transport strategies.
+	 * <hr>
+	 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). Setting this flag to false causes
+	 * the {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
 	 */
 	public void setOpportunisticTLS(@Nullable final Boolean opportunisticTLS) {}
 	
