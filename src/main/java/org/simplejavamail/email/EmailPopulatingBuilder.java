@@ -225,7 +225,7 @@ public class EmailPopulatingBuilder {
 	 * <p>
 	 * The id-format should be conform <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
 	 */
-	public EmailPopulatingBuilder fixingMessageId(@Nonnull final String id) {
+	public EmailPopulatingBuilder fixingMessageId(@Nullable final String id) {
 		this.id = id;
 		return this;
 	}
@@ -279,11 +279,10 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given email address.
+	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given email address (or null if missing).
 	 */
-	public EmailPopulatingBuilder withReplyTo(@Nonnull final String replyToAddress) {
-		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(new Recipient(null, replyToAddress, null));
+	public EmailPopulatingBuilder withReplyTo(@Nullable final String replyToAddress) {
+		return withReplyTo(replyToAddress != null ? new Recipient(null, replyToAddress, null) : null);
 	}
 	
 	/**
@@ -319,17 +318,16 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @see #withReplyTo(String, String)
 	 */
-	public EmailPopulatingBuilder withReplyTo(@Nonnull final Recipient recipient) {
-		checkNonEmptyArgument(recipient, "replyToRecipient");
-		this.replyToRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
+	public EmailPopulatingBuilder withReplyTo(@Nullable final Recipient recipient) {
+		this.replyToRecipient = recipient != null ? new Recipient(recipient.getName(), recipient.getAddress(), null) : null;
 		return this;
 	}
 	
 	/**
-	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the email address.
+	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the email address (or null if missing).
 	 */
-	public EmailPopulatingBuilder withBounceTo(@Nonnull final String bounceToAddress) {
-		return withBounceTo(new Recipient(null, checkNonEmptyArgument(bounceToAddress, "bounceToAddress"), null));
+	public EmailPopulatingBuilder withBounceTo(@Nullable final String bounceToAddress) {
+		return withBounceTo(bounceToAddress != null ? new Recipient(null, bounceToAddress, null) : null);
 	}
 	
 	/**
@@ -365,24 +363,23 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @see #withBounceTo(String, String)
 	 */
-	public EmailPopulatingBuilder withBounceTo(@Nonnull final Recipient recipient) {
-		checkNonEmptyArgument(recipient, "bounceToRecipient");
-		this.bounceToRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
+	public EmailPopulatingBuilder withBounceTo(@Nullable final Recipient recipient) {
+		this.bounceToRecipient = recipient != null ? new Recipient(recipient.getName(), recipient.getAddress(), null) : null;
 		return this;
 	}
 	
 	/**
-	 * Sets the subject of this email.
+	 * Sets the optional subject of this email.
 	 */
-	public EmailPopulatingBuilder withSubject(@Nonnull final String subject) {
-		this.subject = checkNonEmptyArgument(subject, "subject");
+	public EmailPopulatingBuilder withSubject(@Nullable final String subject) {
+		this.subject = subject;
 		return this;
 	}
 	
 	/**
 	 * @see EmailBuilderInstance#forwarding(MimeMessage)
 	 */
-	EmailPopulatingBuilder withForward(@Nonnull final MimeMessage emailMessageToForward) {
+	EmailPopulatingBuilder withForward(@Nullable final MimeMessage emailMessageToForward) {
 		this.emailToForward = emailMessageToForward;
 		return this;
 	}
