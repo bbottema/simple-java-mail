@@ -47,6 +47,7 @@
         <java.version>1.7</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <compiler.encoding>UTF-8</compiler.encoding>
+        <spring.version>4.3.11.RELEASE</spring.version>
     </properties>
 
     <dependencies>
@@ -108,21 +109,21 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
-            <version>4.3.5.RELEASE</version>
+            <version>${spring.version}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>4.3.5.RELEASE</version>
+            <version>${spring.version}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
-            <version>4.3.5.RELEASE</version>
+            <version>${spring.version}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
