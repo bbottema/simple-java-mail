@@ -297,34 +297,35 @@ public final class MimeMessageHelper {
 		}
 		return resourceName;
 	}
-
+	
 	/**
 	 * Primes the {@link MimeMessage} instance for signing with DKIM. The signing itself is performed by {@link DkimMessage} and {@link DkimSigner}
 	 * during the physical sending of the message.
 	 *
-	 * @param message The message to be signed when sent.
-	 * @param email   The {@link Email} that contains the relevant signing information
+	 * @param messageToSign                 The message to be signed when sent.
+	 * @param emailContainingSigningDetails The {@link Email} that contains the relevant signing information
+	 *
 	 * @return The original mime message wrapped in a new one that performs signing when sent.
 	 */
-	public static MimeMessage signMessageWithDKIM(final MimeMessage message, final Email email) {
+	public static MimeMessage signMessageWithDKIM(final MimeMessage messageToSign, final Email emailContainingSigningDetails) {
 		try {
 			final DkimSigner dkimSigner;
-			if (email.getDkimPrivateKeyFile() != null) {
+			if (emailContainingSigningDetails.getDkimPrivateKeyFile() != null) {
 				// InputStream is managed by Dkim library
-				dkimSigner = new DkimSigner(email.getDkimSigningDomain(), email.getDkimSelector(),
-						email.getDkimPrivateKeyFile());
+				dkimSigner = new DkimSigner(emailContainingSigningDetails.getDkimSigningDomain(), emailContainingSigningDetails.getDkimSelector(),
+						emailContainingSigningDetails.getDkimPrivateKeyFile());
 			} else {
 				// InputStream is managed by SimpleJavaMail user
-				dkimSigner = new DkimSigner(email.getDkimSigningDomain(), email.getDkimSelector(),
-						email.getDkimPrivateKeyInputStream());
+				dkimSigner = new DkimSigner(emailContainingSigningDetails.getDkimSigningDomain(), emailContainingSigningDetails.getDkimSelector(),
+						emailContainingSigningDetails.getDkimPrivateKeyInputStream());
 			}
-			dkimSigner.setIdentity(email.getFromRecipient().getAddress());
+			dkimSigner.setIdentity(emailContainingSigningDetails.getFromRecipient().getAddress());
 			dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
 			dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
 			dkimSigner.setSigningAlgorithm(SigningAlgorithm.SHA256_WITH_RSA);
 			dkimSigner.setLengthParam(true);
 			dkimSigner.setZParam(false);
-			return new DkimMessage(message, dkimSigner);
+			return new DkimMessage(messageToSign, dkimSigner);
 		} catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException | MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.INVALID_DOMAINKEY, e);
 		}
