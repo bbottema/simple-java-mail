@@ -141,7 +141,7 @@ public class EmailBuilder {
 	
 	/**
 	 * {@link EmailBuilder#ignoringDefaults()} needs to return the same interface, so we need all methods on both class (static) and instance. Since a
-	 * class cannot have a static method and an instance method of the same name, {@link EmailBuilderInstance} provides the instance interface..
+	 * class cannot have a static method and an instance method of the same name, {@link EmailBuilderInstance} provides the instance interface.
 	 */
 	public static final class EmailBuilderInstance {
 		
@@ -183,6 +183,8 @@ public class EmailBuilder {
 		/**
 		 * Most common use case for creating a new email. Starts with an empty email, populated with defaults when set through config properties (if
 		 * not disabled using {@link EmailBuilderInstance#ignoringDefaults()}.
+		 * <p>
+		 * <strong>Note:</strong> Any builder method called after this will override the default value.
 		 *
 		 * @return A new {@link EmailBuilderInstance} to further populate the email with.
 		 */
