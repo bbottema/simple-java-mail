@@ -22,36 +22,36 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * classpath or as environment property.
  * <p>
  * The following properties are allowed:
- * <pre><ul>
- *    <li>simplejavamail.javaxmail.debug</li>
- *    <li>simplejavamail.transportstrategy</li>
- *    <li>simplejavamail.smtp.host</li>
- *    <li>simplejavamail.smtp.port</li>
- *    <li>simplejavamail.smtp.username</li>
- *    <li>simplejavamail.smtp.password</li>
- *    <li>simplejavamail.proxy.host</li>
- *    <li>simplejavamail.proxy.port</li>
- *    <li>simplejavamail.proxy.username</li>
- *    <li>simplejavamail.proxy.password</li>
- *    <li>simplejavamail.proxy.socks5bridge.port</li>
- *    <li>simplejavamail.defaults.subject</li>
- *    <li>simplejavamail.defaults.from.name</li>
- *    <li>simplejavamail.defaults.from.address</li>
- *    <li>simplejavamail.defaults.replyto.name</li>
- *    <li>simplejavamail.defaults.replyto.address</li>
- *    <li>simplejavamail.defaults.bounceto.name</li>
- *    <li>simplejavamail.defaults.bounceto.address</li>
- *    <li>simplejavamail.defaults.to.name</li>
- *    <li>simplejavamail.defaults.to.address</li>
- *    <li>simplejavamail.defaults.cc.name</li>
- *    <li>simplejavamail.defaults.cc.address</li>
- *    <li>simplejavamail.defaults.bcc.name</li>
- *    <li>simplejavamail.defaults.bcc.address</li>
- *    <li>simplejavamail.defaults.poolsize</li>
- *    <li>simplejavamail.defaults.sessiontimeoutmillis</li>
- *    <li>simplejavamail.transport.mode.logging.only</li>
- *    <li>simplejavamail.opportunistic.tls</li>
- * </ul></pre>
+ * <ul>
+ * <li>simplejavamail.javaxmail.debug</li>
+ * <li>simplejavamail.transportstrategy</li>
+ * <li>simplejavamail.smtp.host</li>
+ * <li>simplejavamail.smtp.port</li>
+ * <li>simplejavamail.smtp.username</li>
+ * <li>simplejavamail.smtp.password</li>
+ * <li>simplejavamail.proxy.host</li>
+ * <li>simplejavamail.proxy.port</li>
+ * <li>simplejavamail.proxy.username</li>
+ * <li>simplejavamail.proxy.password</li>
+ * <li>simplejavamail.proxy.socks5bridge.port</li>
+ * <li>simplejavamail.defaults.subject</li>
+ * <li>simplejavamail.defaults.from.name</li>
+ * <li>simplejavamail.defaults.from.address</li>
+ * <li>simplejavamail.defaults.replyto.name</li>
+ * <li>simplejavamail.defaults.replyto.address</li>
+ * <li>simplejavamail.defaults.bounceto.name</li>
+ * <li>simplejavamail.defaults.bounceto.address</li>
+ * <li>simplejavamail.defaults.to.name</li>
+ * <li>simplejavamail.defaults.to.address</li>
+ * <li>simplejavamail.defaults.cc.name</li>
+ * <li>simplejavamail.defaults.cc.address</li>
+ * <li>simplejavamail.defaults.bcc.name</li>
+ * <li>simplejavamail.defaults.bcc.address</li>
+ * <li>simplejavamail.defaults.poolsize</li>
+ * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
+ * <li>simplejavamail.transport.mode.logging.only</li>
+ * <li>simplejavamail.opportunistic.tls</li>
+ * </ul>
  */
 public final class ConfigLoader {
 

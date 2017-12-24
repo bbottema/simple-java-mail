@@ -50,6 +50,9 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
 /**
  * Fluent interface Builder for populating {@link Email} instances. An instance of this builder can only be obtained through one of the builder
  * starters on {@link EmailBuilder}.
+ * <p>
+ * NOTE: for some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
+ * it out, please let me know!
  *
  * @author Benny Bottema (early work also by Jared Stewart)
  */
@@ -1225,7 +1228,7 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Primes this email for signing with a DKIM domain key. Actual signing is done when sending using a <code>Mailer</code>.
-	 * <p/>
+	 * <p>
 	 * Also see:
 	 * <pre><ul>
 	 *     <li>https://postmarkapp.com/guides/dkim</li>

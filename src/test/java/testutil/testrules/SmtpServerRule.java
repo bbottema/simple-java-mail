@@ -22,10 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * SmtpServerRule - a TestRule wrapping a Wiser instance (a SMTP server in Java) started and stoped right before and after each test.
- * <br/>
+ * <br>
  * SmtpServerRule exposes the same methods as the {@link Wiser} instance by delegating the implementation to the instance. These methods, however, can not be
  * used outside a JUnit statement (otherwise a {@link IllegalStateException} is raised).
- * <br/>
+ * <br>
  * The {@link Wiser} instance can be directly retrieved but also only from inside a JUnit statement.
  *
  * @author Sébastien Lesaint

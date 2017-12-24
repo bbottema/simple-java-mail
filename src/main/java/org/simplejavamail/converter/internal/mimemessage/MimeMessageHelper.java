@@ -52,7 +52,7 @@ public final class MimeMessageHelper {
 	/**
 	 * Creates a new {@link MimeMessage} instance coupled to a specific {@link Session} instance and prepares it in the email structure, so that it
 	 * can be filled and send.
-	 * <p/>
+	 * <p>
 	 * Fills subject, from,reply-to, content, sent-date, recipients, texts, embedded images, attachments, content and adds all headers.
 	 *
 	 * @param email   The email message from which the subject and From-address are extracted.
@@ -241,14 +241,16 @@ public final class MimeMessageHelper {
 			message.setHeader("Return-Receipt-To", address.toString());
 		}
 	}
-
+	
 	/**
 	 * Helper method which generates a {@link BodyPart} from an {@link AttachmentResource} (from its {@link DataSource}) and a disposition type
 	 * ({@link Part#INLINE} or {@link Part#ATTACHMENT}). With this the attachment data can be converted into objects that fit in the email structure.
-	 * <br> <br> For every attachment and embedded image a header needs to be set.
+	 * <p>
+	 * For every attachment and embedded image a header needs to be set.
 	 *
 	 * @param attachmentResource An object that describes the attachment and contains the actual content data.
 	 * @param dispositionType    The type of attachment, {@link Part#INLINE} or {@link Part#ATTACHMENT} .
+	 *
 	 * @return An object with the attachment data read for placement in the email structure.
 	 * @throws MessagingException All BodyPart setters.
 	 */
@@ -333,8 +335,9 @@ public final class MimeMessageHelper {
 
 	/**
 	 * This class conveniently wraps all necessary mimemessage parts that need to be filled with content, attachments etc. The root is ultimately sent
-	 * using JavaMail.<br> <br> The constructor creates a new email message constructed from {@link MimeMultipart} as follows:
-	 * <p/>
+	 * using JavaMail.
+	 * <p>
+	 * The constructor creates a new email message constructed from {@link MimeMultipart} as follows:<br>
 	 * <pre>
 	 * - mixed root
 	 * 	- related

@@ -262,7 +262,6 @@ public class EmailBuilder {
 		 * Primes the email with all subject, headers, originally embedded images and recipients needed for a valid RFC reply.
 		 * <p>
 		 * <strong>Note:</strong> replaces subject with "Re: &lt;original subject&gt;" (but never nested).<br>
-		 * <p>
 		 * <strong>Note:</strong> Make sure you set the content before using this API or else the quoted content is lost. Replaces body (text is
 		 * replaced with "> text" and HTML is replaced with the provided or default quoting markup.
 		 *
