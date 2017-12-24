@@ -8,15 +8,15 @@
 
   <div [hidden]="router.url !== '/about'">
     <div class="quick">
-<pre><code>Email email = new EmailBuilder()
+<pre><code>Email email = EmailBuilder.startingBlank()
     .from("lollypop", "lolly.pop@pretzelfun.com")
     .to("C. Cane", "candycane@candyshop.org")
     .cc("C. Bo &lt;chocobo@candyshop.org&gt;")
-    .subject("hey")
-    .text("We should meet up! ;)")
-    .build();
+    .withSubject("hey")
+    .withPlainText("We should meet up! ;)")
+    .buildEmail();
 
-new Mailer().sendMail(email);
+mailer.sendMail(email);
 </code></pre>
       <a [routerLink]="['/download']" class="index-demo-dl" simplePageScroll href="#navigation">Download Simple Java Mail</a>
     </div>

@@ -6,6 +6,7 @@
     <ul>
       <li><a simplePageScroll href="#section-debug-mode">Logging emails instead of sending</a></li>
       <li><a simplePageScroll href="#section-debug-logging">Enable javax.mail debug logging</a></li>
+      <li><a simplePageScroll href="#section-inspect-mailer-email">Inspect a mailer or an email</a></li>
       <li><a simplePageScroll href="#section-mailexception">Catching exceptions</a></li>
       <li><a simplePageScroll href="#section-logging">Logging output</a></li>
       <li><a simplePageScroll href="#section-log4j12" class="indent">Example with log4j12</a></li>
@@ -53,18 +54,41 @@ mailer.sendMail(email); // <-- this email will be logged but not sent
     </div>
     
     <div class="side">
-<pre><code>Mailer mailer = new Mailer(...);
-mailer.setDebug(true);
+<pre><code>MailerBuilder.withDebugLogging();
 
 // or
 mailer.getSession().setDebug(true);
 
 // or
 yourSession.setDebug(true);
-Mailer mailer = new Mailer(yourSession);
+MailerBuilder.usingSession(yourSession);
 </code></pre>
       or:
       <pre><code class="language-properties">simplejavamail.javaxmail.debug=true
+</code></pre>
+    </div>
+  </section>
+  
+  
+  <a href="#section-debug-logging" id="section-inspect-mailer-email" class="section-link h2">&sect;</a>
+  <h2>Inspect a mailer or an email</h2>
+  
+  <section>
+    <div class="view">
+      <p>
+        After building a Mailer or an Email instance, you can read some details back from it and see if it is what you expected.
+      </p>
+    </div>
+    
+    <div class="side">
+<pre><code>email.getAnythingYouCanSetWithABuilder();
+
+mailer.getSession();
+mailer.getTransportStrategy();
+mailer.getServerConfig();
+mailer.getProxyConfig();
+mailer.getOperationalConfig();
+mailer.getEmailAddressCriteria();
 </code></pre>
     </div>
   </section>
@@ -79,18 +103,20 @@ Mailer mailer = new Mailer(yourSession);
         Simple Java Mail throws a <code class="inline">MailException</code> if something goes wrong and logs these by default using SLF4J. This
         includes checked exceptions thrown by underlying frameworks. An exception might be thrown when:
       </p>
-      <ol>
-        <li>1. sending an email</li>
-        <li>2. signing an email with DKIM</li>
-        <li>3. converting from MimeMessage to Email</li>
-      </ol>
+      <ul class="indent">
+        <li>creating an email</li>
+        <li>creating a mailer</li>
+        <li>sending an email</li>
+        <li>signing an email with DKIM</li>
+        <li>validating an address</li>
+        <li>converting an email between various types</li>
+      </ul>
     </div>
     
     <div class="side">
-<pre><code>Email email = new Email();
-
+<pre><code>
 try {{ '{' }}
-   new Mailer().sendMail(email);
+   mailer.sendMail(email);
 {{ '}' }} catch (MailException e) {{ '{' }}
    // handle the exception
 {{ '}' }}
