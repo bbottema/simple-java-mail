@@ -975,6 +975,33 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
+	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}.
+	 */
+	@SuppressWarnings("WeakerAccess")
+	@Nonnull
+	public EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable String name, @Nullable RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach) {
+		return withRecipients(name, false, asList(oneOrMoreAddressesEach), recipientType);
+	}
+	
+	/**
+	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}.
+	 */
+	@SuppressWarnings("WeakerAccess")
+	@Nonnull
+	public EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable String name, @Nullable RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach) {
+		return withRecipients(name, true, asList(oneOrMoreAddressesEach), recipientType);
+	}
+	
+	/**
+	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}.
+	 */
+	@SuppressWarnings("WeakerAccess")
+	@Nonnull
+	public EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nullable RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach) {
+		return withRecipients(name, fixedName, asList(oneOrMoreAddressesEach), recipientType);
+	}
+	
+	/**
 	 * Delegates to {@link #withRecipient(Recipient)} for each address found in not just the collection, but also in every individual address string.
 	 *
 	 * @param fixedName              Indicates whether the provided name should be applied to all addresses, or only to those where a name is
