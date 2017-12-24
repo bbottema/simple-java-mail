@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.mail.Authenticator;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
@@ -86,20 +87,32 @@ public class Mailer {
 	 *
 	 * @see EmailAddressCriteria
 	 */
+	@Nonnull
 	private final EnumSet<EmailAddressCriteria> emailAddressCriteria;
 	
+	@Nullable
+	private final TransportStrategy transportStrategy;
+	
+	@Nullable
+	private final ServerConfig serverConfig;
+	
+	@Nonnull
+	private final ProxyConfig proxyConfig;
+	
 	Mailer(@Nonnull final MailerFromSessionBuilder fromSessionBuilder) {
-		emailAddressCriteria = fromSessionBuilder.getEmailAddressCriteria();
+		this.serverConfig = null;
+		this.transportStrategy = null;
+		this.emailAddressCriteria = fromSessionBuilder.getEmailAddressCriteria();
+		this.proxyConfig = fromSessionBuilder.buildProxyConfig();
 		final Session session = fromSessionBuilder.getSession();
-		final ProxyConfig proxyConfig = fromSessionBuilder.buildProxyConfig();
 		this.mailSender = initFromGenericBuilder(findStrategyForSession(session), proxyConfig, session, fromSessionBuilder);
 	}
 	
 	Mailer(@Nonnull final MailerRegularBuilder regularBuilder) {
-		emailAddressCriteria = regularBuilder.getEmailAddressCriteria();
-		final TransportStrategy transportStrategy = regularBuilder.getTransportStrategy();
-		final ServerConfig serverConfig = regularBuilder.buildServerConfig();
-		final ProxyConfig proxyConfig = regularBuilder.buildProxyConfig();
+		this.serverConfig = regularBuilder.buildServerConfig();
+		this.transportStrategy = regularBuilder.getTransportStrategy();
+		this.emailAddressCriteria = regularBuilder.getEmailAddressCriteria();
+		this.proxyConfig = regularBuilder.buildProxyConfig();
 		final Session session = createMailSession(serverConfig, transportStrategy);
 		this.mailSender = initFromGenericBuilder(transportStrategy, proxyConfig, session, regularBuilder);
 	}
@@ -158,10 +171,43 @@ public class Mailer {
 	}
 	
 	/**
+	 * @return The server connection details. Will be {@code null} in case a custom fixed {@link Session} instance is used.
+	 */
+	@Nullable
+	public ServerConfig getServerConfig() {
+		return this.serverConfig;
+	}
+	
+	/**
+	 * @return The transport strategy to be used. Will be {@code null} in case a custom fixed {@link Session} instance is used.
+	 */
+	@Nullable
+	public TransportStrategy getTransportStrategy() {
+		return this.transportStrategy;
+	}
+	
+	/**
+	 * @return The proxy connection details. Will be empty if no proxy is required.
+	 */
+	@Nonnull
+	public ProxyConfig getProxyConfig() {
+		return this.proxyConfig;
+	}
+	
+	/**
 	 * @return The operational parameters defined using a mailer builder. Includes general things like session timeouts, debug mode, SSL config etc.
 	 */
+	@Nonnull
 	public OperationalConfig getOperationalConfig() {
 		return mailSender.getOperationalConfig();
+	}
+	
+	/**
+	 * @return The effective validation criteria used for email validation. Returns an empty set if no validation should be done.
+	 */
+	@Nonnull
+	public EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
+		return emailAddressCriteria;
 	}
 	
 	/**
