@@ -43,13 +43,6 @@ public class MailerBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link MailerRegularBuilder#withSMTPServer(ServerConfig)}.
-	 */
-	public static MailerRegularBuilder withSMTPServer(@Nonnull final ServerConfig serverConfig) {
-		return new MailerRegularBuilder().withSMTPServer(serverConfig);
-	}
-	
-	/**
 	 * Delegates to {@link MailerRegularBuilder#withSMTPServer(String, Integer, String, String)}.
 	 */
 	public static MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username, @Nullable final String password) {
@@ -195,22 +188,6 @@ public class MailerBuilder {
 		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port) {
 			return withSMTPServerHost(host)
 					.withSMTPServerPort(port);
-		}
-		
-		/**
-		 * Delegates for each contained property respectively to:
-		 * <ul>
-		 * <li>{@link #withSMTPServerHost(String)}</li>
-		 * <li>{@link #withSMTPServerPort(Integer)}</li>
-		 * <li>{@link #withSMTPServerUsername(String)}</li>
-		 * <li>{@link #withSMTPServerPassword(String)}</li>
-		 * </ul>
-		 */
-		public MailerRegularBuilder withSMTPServer(@Nonnull final ServerConfig serverConfig) {
-			return withSMTPServerHost(serverConfig.getHost())
-					.withSMTPServerPort(serverConfig.getPort())
-					.withSMTPServerUsername(serverConfig.getUsername())
-					.withSMTPServerPassword(serverConfig.getPassword());
 		}
 		
 		/**
