@@ -444,7 +444,7 @@ public abstract class MailerGenericBuiler<T extends MailerGenericBuiler> {
 	 *
 	 * @see #trustingSSLHosts(String...)
 	 */
-	public T clearTrustesSSLHosts() {
+	public T clearTrustedSSLHosts() {
 		return trustingSSLHosts();
 	}
 	
