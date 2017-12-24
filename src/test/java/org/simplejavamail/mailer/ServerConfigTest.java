@@ -3,7 +3,6 @@ package org.simplejavamail.mailer;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.util.ConfigLoader;
-import org.simplejavamail.mailer.config.ServerConfig;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
@@ -29,24 +28,6 @@ public class ServerConfigTest {
 			throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
-			new ServerConfig();
-			fail("IllegalArgumentException expected for host");
-		} catch (IllegalArgumentException e) {
-			assertThat(e.getMessage()).containsIgnoringCase("host address");
-		}
-		try {
-			new ServerConfig(null, null);
-			fail("IllegalArgumentException expected for host");
-		} catch (IllegalArgumentException e) {
-			assertThat(e.getMessage()).containsIgnoringCase("host address");
-		}
-		try {
-			new ServerConfig(null, null, null);
-			fail("IllegalArgumentException expected for host");
-		} catch (IllegalArgumentException e) {
-			assertThat(e.getMessage()).containsIgnoringCase("host address");
-		}
-		try {
 			new ServerConfig(null, null, null, null);
 			fail("IllegalArgumentException expected for host");
 		} catch (IllegalArgumentException e) {
@@ -59,18 +40,6 @@ public class ServerConfigTest {
 			throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
-			new ServerConfig("host", null);
-			fail("IllegalArgumentException expected for port");
-		} catch (IllegalArgumentException e) {
-			assertThat(e.getMessage()).containsIgnoringCase("host port");
-		}
-		try {
-			new ServerConfig("host", null, null);
-			fail("IllegalArgumentException expected for port");
-		} catch (IllegalArgumentException e) {
-			assertThat(e.getMessage()).containsIgnoringCase("host port");
-		}
-		try {
 			new ServerConfig("host", null, null, null);
 			fail("IllegalArgumentException expected for port");
 		} catch (IllegalArgumentException e) {
@@ -79,23 +48,10 @@ public class ServerConfigTest {
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_AnonymousLogin()
-			throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		ServerConfig serverConfig = new ServerConfig("host", 1234);
-		ServerConfig serverConfigAlternative1 = new ServerConfig("host", 1234, null);
-		ServerConfig serverConfigAlternative2 = new ServerConfig("host", 1234, null, null);
-		assertThat(serverConfig).isEqualToComparingFieldByField(serverConfigAlternative1).isEqualToComparingFieldByField(serverConfigAlternative2);
-		verifyServerConfig(serverConfig, "host", 1234, null, null);
-	}
-
-	@Test
 	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername()
 			throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfig("host", 1234, "username", null);
-		ServerConfig serverConfigAlternative = new ServerConfig("host", 1234, "username");
-		assertThat(serverConfig).isEqualToComparingFieldByField(serverConfigAlternative);
 		verifyServerConfig(serverConfig, "host", 1234, "username", null);
 
 		try {
@@ -110,45 +66,6 @@ public class ServerConfigTest {
 	public void NoArgconstructor_WithoutConfigFile_Authenticated()
 			throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		ServerConfig serverConfig = new ServerConfig("host", 1234, "username", "password");
-		verifyServerConfig(serverConfig, "host", 1234, "username", "password");
-	}
-
-	@Test
-	public void NoArgconstructor_WithConfigFile_WithoutHost() {
-		ServerConfig emptyServerConfig = new ServerConfig();
-		verifyServerConfig(emptyServerConfig, "smtp.default.com", 25, "username smtp", "password smtp");
-	}
-
-	@Test
-	public void NoArgconstructor_WithConfigFile_WithoutPort() {
-		ServerConfig emptyServerConfig = new ServerConfig("host", null);
-		verifyServerConfig(emptyServerConfig, "host", 25, "username smtp", "password smtp");
-		emptyServerConfig = new ServerConfig("host", null, null, null);
-		verifyServerConfig(emptyServerConfig, "host", 25, "username smtp", "password smtp");
-	}
-
-	@Test
-	public void NoArgconstructor_WithConfigFile_AnonymousLogin()
-			throws Exception {
-		ServerConfig serverConfig = new ServerConfig("host", 1234);
-		ServerConfig serverConfigAlternative1 = new ServerConfig("host", 1234, null);
-		ServerConfig serverConfigAlternative2 = new ServerConfig("host", 1234, null, null);
-		assertThat(serverConfig).isEqualToComparingFieldByField(serverConfigAlternative1).isEqualToComparingFieldByField(serverConfigAlternative2);
-		verifyServerConfig(serverConfig, "host", 1234, "username smtp", "password smtp");
-	}
-
-	@Test
-	public void NoArgconstructor_WithConfigFile_MissingPasswordOrUsername() {
-		ServerConfig serverConfig = new ServerConfig("host", 1234, "username", null);
-		verifyServerConfig(serverConfig, "host", 1234, "username", "password smtp");
-		serverConfig = new ServerConfig("host", 1234, null, "password");
-		verifyServerConfig(serverConfig, "host", 1234, "username smtp", "password");
-	}
-
-	@Test
-	public void NoArgconstructor_WithConfigFile_Authenticated()
-			throws Exception {
 		ServerConfig serverConfig = new ServerConfig("host", 1234, "username", "password");
 		verifyServerConfig(serverConfig, "host", 1234, "username", "password");
 	}
@@ -171,5 +88,4 @@ public class ServerConfigTest {
 		assertThat(serverConfig.getUsername()).isEqualTo(username);
 		assertThat(serverConfig.getPassword()).isEqualTo(password);
 	}
-
 }

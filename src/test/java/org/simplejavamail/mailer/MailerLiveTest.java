@@ -9,7 +9,6 @@ import org.simplejavamail.email.EmailAssert;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
 import org.simplejavamail.email.Recipient;
-import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.util.ConfigLoader;
 import testutil.EmailHelper;
 import testutil.testrules.SmtpServerRule;
@@ -31,17 +30,18 @@ import static testutil.EmailHelper.readOutlookMessage;
 @SuppressWarnings("unused")
 public class MailerLiveTest {
 
-	private static final ServerConfig SERVER_CONFIG = new ServerConfig("localhost", 251);
+	private static final String SERVER_HOST = "localhost";
+	private static final Integer SERVER_PORT = 251;
 
 	@Rule
-	public final SmtpServerRule smtpServerRule = new SmtpServerRule(new TestSmtpServer(SERVER_CONFIG));
+	public final SmtpServerRule smtpServerRule = new SmtpServerRule(new TestSmtpServer(SERVER_HOST, SERVER_PORT));
 
 	private Mailer mailer;
 
 	@Before
 	public void setup() {
 		ConfigLoader.loadProperties(new Properties(), false); // clear out defaults
-		mailer = new Mailer(SERVER_CONFIG);
+		mailer = MailerBuilder.withSMTPServer(SERVER_HOST, SERVER_PORT).buildMailer();
 	}
 	
 	@Test

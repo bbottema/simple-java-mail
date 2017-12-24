@@ -1,15 +1,16 @@
 package org.simplejavamail.mailer.internal.mailsender;
 
-import org.assertj.core.api.ThrowableAssert;
 import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.mailer.config.ProxyConfig;
 
+import javax.annotation.Nonnull;
 import javax.mail.Session;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.simplejavamail.mailer.config.TransportStrategy.SMTP;
@@ -19,39 +20,23 @@ public class MailSenderTest {
 	
 	private Session session;
 	
+	private static final List<String> EMPTY_LIST = Collections.emptyList();
+	
 	@Before
 	public void setup() {
 		session = Session.getDefaultInstance(new Properties());
 	}
 	
-	@Test
-	public void setDebug() {
-		MailSender mailSender = new MailSender(session, null, null);
-		mailSender.setDebug(true);
-		assertThat(session.getDebug()).isTrue();
-		mailSender.setDebug(false);
-		assertThat(session.getDebug()).isFalse();
-	}
-	
-	@Test
-	public void trustHosts_WithoutTransportStrategy() {
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			@Override
-			public void call() throws Throwable {
-				new MailSender(session, null, null).trustHosts();
-			}
-		})
-				.isInstanceOf(MailSenderException.class)
-				.hasMessage("Cannot determine the trust properties to set without a provided transport strategy");
-		
+	@Nonnull
+	private ProxyConfig createEmptyProxyConfig() {
+		return new ProxyConfig(null, null, null, null, -1);
 	}
 	
 	@Test
 	public void trustAllHosts_PLAIN() {
-		MailSender mailSender = new MailSender(session, null, SMTP);
-		mailSender.trustAllHosts(true);
+		new MailSender(session, createDummyOperationalConfig(EMPTY_LIST, true), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
-		mailSender.trustAllHosts(false);
+		new MailSender(session, createDummyOperationalConfig(EMPTY_LIST, false), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
 	}
 	
@@ -59,23 +44,31 @@ public class MailSenderTest {
 	public void trustAllHosts_SMTPS() {
 		ProxyConfig proxyBypassingMock = mock(ProxyConfig.class);
 		when(proxyBypassingMock.requiresProxy()).thenReturn(false);
-		MailSender mailSender = new MailSender(session, proxyBypassingMock, SMTPS);
-		mailSender.trustAllHosts(true);
+		new MailSender(session, createDummyOperationalConfig(EMPTY_LIST, true), proxyBypassingMock, SMTPS);
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isEqualTo("*");
-		mailSender.trustAllHosts(false);
+		new MailSender(session, createDummyOperationalConfig(EMPTY_LIST, false), proxyBypassingMock, SMTPS);
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isNull();
 	}
 	
 	@Test
 	public void trustHosts() {
-		MailSender mailSender = new MailSender(session, null, SMTP);
-		mailSender.trustHosts();
+		new MailSender(session, createDummyOperationalConfig(asList(), false), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
-		mailSender.trustHosts("a");
+		new MailSender(session, createDummyOperationalConfig(asList("a"), false), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a");
-		mailSender.trustHosts("a", "b");
+		new MailSender(session, createDummyOperationalConfig(asList("a", "b"), false), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b");
-		mailSender.trustHosts("a", "b", "c");
+		new MailSender(session, createDummyOperationalConfig(asList("a", "b", "c"), false), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b c");
+	}
+	
+	@Nonnull
+	private List<String> asList(String... args) {
+		return Arrays.asList(args);
+	}
+	
+	@Nonnull
+	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost) {
+		return new OperationalConfig(new Properties(), 0, 0, false, false, hostsToTrust, trustAllSSLHost);
 	}
 }

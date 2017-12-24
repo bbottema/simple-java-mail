@@ -3,12 +3,10 @@ package org.simplejavamail.mailer;
 import net.markenwerk.utils.mail.dkim.DkimMessage;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailPopulatingBuilder;
-import org.simplejavamail.mailer.config.ProxyConfig;
-import org.simplejavamail.mailer.config.ServerConfig;
+import org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.util.ConfigLoader;
 import testutil.ConfigLoaderTestHelper;
@@ -23,14 +21,13 @@ import java.util.Properties;
 
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 import static org.simplejavamail.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_TLS;
 import static org.simplejavamail.util.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 
 @SuppressWarnings("unused")
 public class MailerTest {
-
+	
 	@Before
 	public void restoreOriginalStaticProperties()
 			throws IOException {
@@ -47,15 +44,15 @@ public class MailerTest {
 				+ "simplejavamail.proxy.socks5bridge.port=1081";
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 	}
-
+	
 	@Test
 	public void createMailSession_MinimalConstructor_WithoutConfig()
 			throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-
-		Mailer mailer = new Mailer("host", 25, null, null);
+		
+		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).buildMailer();
 		Session session = mailer.getSession();
-
+		
 		assertThat(session.getDebug()).isFalse();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("host");
 		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
@@ -70,32 +67,24 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.auth")).isNull();
 		assertThat(session.getProperty("mail.smtp.socks.host")).isNull();
 		assertThat(session.getProperty("mail.smtp.socks.port")).isNull();
-
+		
 		// all constructors, providing the same minimal information
-		Mailer alternative1 = new Mailer(new ServerConfig("host", 25));
-		Mailer alternative2 = new Mailer(new ServerConfig("host", 25), (TransportStrategy) null);
-		Mailer alternative3 = new Mailer(new ServerConfig("host", 25), (ProxyConfig) null);
-		Mailer alternative4 = new Mailer(new ServerConfig("host", 25), null, null);
-		Mailer alternative5 = new Mailer(session);
-		Mailer alternative6 = new Mailer(session, null);
-
+		Mailer alternative1 = MailerBuilder.withSMTPServer("host", 25).buildMailer();
+		Mailer alternative2 = MailerBuilder.usingSession(session).buildMailer();
+		
 		assertThat(session.getProperties()).isEqualTo(alternative1.getSession().getProperties());
 		assertThat(session.getProperties()).isEqualTo(alternative2.getSession().getProperties());
-		assertThat(session.getProperties()).isEqualTo(alternative3.getSession().getProperties());
-		assertThat(session.getProperties()).isEqualTo(alternative4.getSession().getProperties());
-		assertThat(session.getProperties()).isEqualTo(alternative5.getSession().getProperties());
-		assertThat(session.getProperties()).isEqualTo(alternative6.getSession().getProperties());
 	}
-
+	
 	@Test
 	public void createMailSession_AnonymousProxyConstructor_WithoutConfig()
 			throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-
+		
 		Mailer mailer = createFullyConfiguredMailer(false, "", SMTP_TLS);
-
+		
 		Session session = mailer.getSession();
-
+		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp host");
 		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
@@ -112,16 +101,16 @@ public class MailerTest {
 		assertThat(session.getProperty("extra1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("value2");
 	}
-
+	
 	@Test
 	public void createMailSession_MaximumConstructor_WithoutConfig()
 			throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-
+		
 		Mailer mailer = createFullyConfiguredMailer(true, "", SMTP_TLS);
-
+		
 		Session session = mailer.getSession();
-
+		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp host");
 		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
@@ -140,7 +129,7 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_MinimalConstructor_WithConfig() {
-		Mailer mailer = new Mailer();
+		Mailer mailer = MailerBuilder.buildMailer();
 		Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
@@ -163,7 +152,7 @@ public class MailerTest {
 		properties.setProperty(OPPORTUNISTIC_TLS.key(), "false");
 		ConfigLoader.loadProperties(properties, true);
 		
-		Mailer mailer = new Mailer(TransportStrategy.SMTP);
+		Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
 		Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
@@ -190,7 +179,7 @@ public class MailerTest {
 		
 		TransportStrategy.SMTP.setOpportunisticTLS(true);
 		
-		Mailer mailer = new Mailer(TransportStrategy.SMTP);
+		Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
 		Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
@@ -250,12 +239,12 @@ public class MailerTest {
 		assertThat(session.getProperty("extra1")).isEqualTo("overridden value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("overridden value2");
 	}
-
+	
 	@Test
 	public void testDKIMPriming()
 			throws IOException, MessagingException {
 		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false);
-
+		
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
 		String privateDERkeyBase64 =
 				"MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAMYuC7ZjFBSWJtP6JH8w1deJE+5sLwkUacZcW4MTVQXTM33BzN8Ec64KO1Hk2B9oxkpdunKt"
@@ -265,18 +254,18 @@ public class MailerTest {
 						+ "pYpqAWJbbR+8scBgVxS+9NLLeHhlx/EvkaZRdLhwRyHAkEAtr1ThkqrFIXHxt9Wczd20HCG+qlgF5gv3WHYx4bSTx2/pBCHgWjzyxtqst1HN7+l5nicdrxsDJVVv+vYJ7FtlQJAWPgG"
 						+ "Zwgvs3Rvv7k5NwifQOEbhbZAigAGCF5Jk/Ijpi6zaUn7754GSn2FOzWgxDguUKe/fcgdHBLai/1jIRVZQQJAXF2xzWMwP+TmX44QxK52QHVI8mhNzcnH7A311gWns6AbLcuLA9quwjU"
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
-
+		
 		emailPopulatingBuilder.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
 		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, signing did not produce an error
 		assertThat(mimeMessage).isInstanceOf(DkimMessage.class);
 	}
-
+	
 	@Test
 	public void testParser()
 			throws Exception {
 		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailHelper.createDummyEmailBuilder(true, false, false);
-
+		
 		// let's try producing and then consuming a MimeMessage ->
 		// (bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session, so just ignore this)
 		emailPopulatingBuilderNormal.clearBounceTo();
@@ -284,28 +273,31 @@ public class MailerTest {
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 		
-
+		
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
 	}
-
+	
 	private Mailer createFullyConfiguredMailer(boolean authenticateProxy, String prefix, TransportStrategy transportStrategy) {
-		ServerConfig serverConfig = new ServerConfig(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp");
-		ProxyConfig proxyConfigAnon = new ProxyConfig(prefix + "proxy host", 1080);
-		ProxyConfig proxyConfigAuth = new ProxyConfig(prefix + "proxy host", 1080, prefix + "username proxy", prefix + "password proxy");
-		proxyConfigAuth.setProxyBridgePort(999);
+		MailerRegularBuilder mailerBuilder = MailerBuilder
+				.withSMTPServer(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp")
+				.withTransportStrategy(transportStrategy)
+				.withDebugLogging(true);
 		
-		ProxyConfig proxyBypassingMock = Mockito.mock(ProxyConfig.class);
-		when(proxyBypassingMock.requiresProxy()).thenReturn(false);
+		if (transportStrategy == SMTP_TLS) {
+			if (authenticateProxy) {
+				mailerBuilder
+						.withProxy(prefix + "proxy host", 1080, prefix + "username proxy", prefix + "password proxy")
+						.withProxyBridgePort(999);
+			} else {
+				mailerBuilder.withProxy(prefix + "proxy host", 1080);
+			}
+		} else if (transportStrategy == SMTPS) {
+			mailerBuilder.clearProxy();
+		}
 		
-		Mailer mailer = transportStrategy == SMTP_TLS
-				? new Mailer(serverConfig, transportStrategy, authenticateProxy ? proxyConfigAuth : proxyConfigAnon)
-				: new Mailer(serverConfig, transportStrategy, proxyBypassingMock); // SLL doesn't support proxy and defaults include proxy
-		
-		mailer.setDebug(true);
-		Properties extraProperties = new Properties();
-		extraProperties.put("extra1", prefix + "value1");
-		extraProperties.put("extra2", prefix + "value2");
-		mailer.applyProperties(extraProperties);
-		return mailer;
+		return mailerBuilder
+				.withProperty("extra1", prefix + "value1")
+				.withProperty("extra2", prefix + "value2")
+				.buildMailer();
 	}
 }

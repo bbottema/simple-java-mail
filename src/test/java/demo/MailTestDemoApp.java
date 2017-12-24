@@ -5,7 +5,7 @@ import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
 import org.simplejavamail.mailer.Mailer;
-import org.simplejavamail.mailer.config.ServerConfig;
+import org.simplejavamail.mailer.MailerBuilder;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import testutil.ConfigLoaderTestHelper;
 
@@ -28,15 +28,23 @@ public class MailTestDemoApp {
 	// if you have 2-factor login turned on, you need to generate a once-per app password
 	// https://security.google.com/settings/security/apppasswords
 	private static final String YOUR_GMAIL_PASSWORD = "your_gmail_password";
-
-	private static final ServerConfig serverConfigSMTP = new ServerConfig("smtp.gmail.com", 25, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD);
-	private static final ServerConfig serverConfigTLS = new ServerConfig("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD);
-	private static final ServerConfig serverConfigSSL = new ServerConfig("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD);
-
+	
+	private static final Mailer mailerSMTP = buildMailer("smtp.gmail.com", 25, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP);
+	private static final Mailer mailerSSL = buildMailer("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTPS);
+	private static final Mailer mailerTLS = buildMailer("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP_TLS);
+	
 	/**
 	 * If you just want to see what email is being sent, just set this to true. It won't actually connect to an SMTP server then.
 	 */
 	private static final boolean LOGGING_MODE = false;
+	
+	private static final Mailer buildMailer(String host, int port, String gMailAddress, String gMailPassword, TransportStrategy strategy) {
+		return MailerBuilder
+				.withSMTPServer(host, port, gMailAddress, gMailPassword)
+				.withTransportStrategy(strategy)
+				.withTransportModeLoggingOnly(LOGGING_MODE)
+				.buildMailer();
+	}
 
 	public static void main(final String[] args)
 			throws Exception {
@@ -68,15 +76,8 @@ public class MailTestDemoApp {
 	}
 
 	private static void sendMail(final Email email) {
-		// ProxyConfig proxyconfig = new ProxyConfig("localhost", 1030);
-		sendMail(serverConfigSMTP, TransportStrategy.SMTP_TLS, email);
-		sendMail(serverConfigTLS, TransportStrategy.SMTP_TLS, email);
-		sendMail(serverConfigSSL, TransportStrategy.SMTPS, email);
-	}
-
-	private static void sendMail(ServerConfig serverConfigSMTP, TransportStrategy smtpTls, Email email) {
-		Mailer mailer = new Mailer(serverConfigSMTP, smtpTls);
-		mailer.setTransportModeLoggingOnly(LOGGING_MODE);
-		mailer.sendMail(email);
+		mailerSMTP.sendMail(email);
+		mailerTLS.sendMail(email);
+		mailerSSL.sendMail(email);
 	}
 }

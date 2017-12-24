@@ -1,6 +1,7 @@
 package org.simplejavamail.springsupport;
 
 import org.simplejavamail.mailer.Mailer;
+import org.simplejavamail.mailer.MailerBuilder;
 import org.simplejavamail.util.ConfigLoader;
 import org.simplejavamail.util.ConfigLoader.Property;
 import org.springframework.beans.factory.annotation.Value;
@@ -78,7 +79,7 @@ public class SimpleJavaMailSpringSupport {
 
 		// this will configure itself with the global config and is read to use
 		// ofcourse this is optional simply as a convenience default
-		return new Mailer();
+		return MailerBuilder.buildMailer();
 	}
 
 	private static void setNullableProperty(final Properties emailProperties, final String key, final String value) {

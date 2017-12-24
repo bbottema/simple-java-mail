@@ -4,11 +4,10 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
-import org.simplejavamail.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
+import org.simplejavamail.mailer.internal.socks.SocksProxyConfig;
 import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5Server;
-import org.simplejavamail.util.ConfigLoader;
 import org.simplejavamail.util.ConfigLoader.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +21,7 @@ import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,8 +36,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * <p>
  * Refer to {@link #send(Email, boolean)} for details.
  * <p>
- * <hr/>
- * <p>
+ * <hr>
  * On a technical note, this is the most complex class in the library (aside from the SOCKS5 bridging server), because it deals with optional
  * asynchronous mailing requests and an optional proxy server that needs to be started and stopped on the fly depending on how many emails are (still)
  * being sent. Especially the combination of asynchronous emails and synchronous emails needs to be managed properly.
@@ -45,18 +44,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 public class MailSender {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MailSender.class);
-	
-	/**
-	 * Defaults to {@code false}, sending mails rather than just only logging the mails.
-	 */
-	private static final boolean DEFAULT_MODE_LOGGING_ONLY = false;
-	
-	/**
-	 * The default maximum timeout value for the transport socket is {@value #DEFAULT_SESSION_TIMEOUT_MILLIS}
-	 * milliseconds. Can be overridden from a config file or through System variable.
-	 */
-	@SuppressWarnings("JavaDoc")
-	private static final int DEFAULT_SESSION_TIMEOUT_MILLIS = 60_000;
 
 	/**
 	 * For multi-threaded scenario's where a batch of emails sent asynchronously, the default maximum number of threads is {@value
@@ -86,6 +73,9 @@ public class MailSender {
 	@Nullable
 	private final TransportStrategy transportStrategy;
 	
+	// FIXME update JavaDoc
+	private final OperationalConfig operationalConfig;
+	
 	/**
 	 * Intermediary SOCKS5 relay server that acts as bridge between JavaMail and remote proxy (since JavaMail only supports anonymous SOCKS proxies).
 	 * Only set when {@link ProxyConfig} is provided with authentication details.
@@ -109,42 +99,29 @@ public class MailSender {
 	 */
 	private Phaser smtpRequestsPhaser;
 	
-	/**
-	 * The timeout to use when sending emails (affects socket connect-, read- and write timeouts). Defaults to
-	 * {@value #DEFAULT_SESSION_TIMEOUT_MILLIS}.
-	 */
-	private int sessionTimeout;
-	
-	/**
-	 * The number of concurrent threads sending an email each. Used only when sending emails asynchronously (batch job mode). Defaults to
-	 * {@value #DEFAULT_POOL_SIZE}.
-	 */
-	private int threadPoolSize;
-
-	/**
-	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
-	 */
-	private boolean transportModeLoggingOnly;
-	
-	/**
-	 * Configures proxy: {@link #configureSessionWithProxy(ProxyConfig, Session, TransportStrategy)}(ProxyConfig, Session, TransportStrategy)
-	 * <p>
-	 * Also initializes:
-	 * <ul>
-	 *     <li>{@link #sessionTimeout} from properties or default {@link #DEFAULT_SESSION_TIMEOUT_MILLIS}</li>
-	 *     <li>{@link #threadPoolSize} from properties or default {@link #DEFAULT_POOL_SIZE}</li>
-	 *     <li>{@link #transportModeLoggingOnly} from properties or default {@link #DEFAULT_MODE_LOGGING_ONLY}</li>
-	 * </ul>
-	 */
-	public MailSender(final Session session, final ProxyConfig proxyConfig, @Nullable final TransportStrategy transportStrategy) {
+	public MailSender(@Nonnull final Session session,
+					  @Nonnull final OperationalConfig operationalConfig,
+					  @Nonnull final ProxyConfig proxyConfig,
+					  @Nullable final TransportStrategy transportStrategy) {
 		this.session = session;
+		this.operationalConfig = operationalConfig;
 		this.transportStrategy = transportStrategy;
 		this.proxyServer = configureSessionWithProxy(proxyConfig, session, transportStrategy);
-		this.threadPoolSize = ConfigLoader.valueOrProperty(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE);
-		this.sessionTimeout = ConfigLoader.valueOrProperty(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS);
-		this.transportModeLoggingOnly = ConfigLoader.valueOrProperty(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_MODE_LOGGING_ONLY);
+		init(operationalConfig);
 	}
-
+	
+	private void init(@Nonnull OperationalConfig operationalConfig) {
+		session.setDebug(operationalConfig.isDebugLogging());
+		session.getProperties().putAll(operationalConfig.getProperties());
+		if (transportStrategy != null) {
+			if (operationalConfig.isTrustAllSSLHost()) {
+				trustAllHosts(true);
+			} else {
+				trustHosts(operationalConfig.getSslHostsToTrust());
+			}
+		}
+	}
+	
 	/**
 	 * If a {@link ProxyConfig} was provided with a host address, then the appropriate properties are set on the {@link Session}, overriding any SOCKS
 	 * properties already there.
@@ -155,13 +132,13 @@ public class MailSender {
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
 	 * @param session           The session with properties to add the new configuration to.
 	 * @param transportStrategy Used to verify if the current combination with proxy is allowed (SMTP with SSL trategy doesn't support any proxy,
-	 *                          virtue of the underlying JavaMail framework).
+	 *                          virtue of the underlying JavaMail framework). Can be omitted if the Session is presumed preconfigured.
 	 * @return null in case of no proxy or anonymous proxy, or a AnonymousSocks5Server proxy bridging server instance in case of authenticated proxy.
 	 */
-	private static AnonymousSocks5Server configureSessionWithProxy(final ProxyConfig proxyConfig, final Session session,
-			final TransportStrategy transportStrategy) {
-		final ProxyConfig effectiveProxyConfig = (proxyConfig != null) ? proxyConfig : new ProxyConfig();
-		if (!effectiveProxyConfig.requiresProxy()) {
+	private static AnonymousSocks5Server configureSessionWithProxy(@Nonnull final ProxyConfig proxyConfig,
+																   @Nonnull final Session session,
+																   @Nullable final TransportStrategy transportStrategy) {
+		if (!proxyConfig.requiresProxy()) {
 			LOGGER.debug("No proxy set, skipping proxy.");
 		} else {
 			if (transportStrategy == TransportStrategy.SMTPS) {
@@ -169,23 +146,24 @@ public class MailSender {
 			}
 			final Properties sessionProperties = session.getProperties();
 			if (transportStrategy != null) {
-				sessionProperties.put(transportStrategy.propertyNameSocksHost(), effectiveProxyConfig.getRemoteProxyHost());
-				sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(effectiveProxyConfig.getRemoteProxyPort()));
+				sessionProperties.put(transportStrategy.propertyNameSocksHost(), proxyConfig.getRemoteProxyHost());
+				sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
 			} else {
 				LOGGER.debug("no transport strategy provided, expecting mail.smtp(s).socks.host and .port properties to be set to proxy " +
 						"config on Session");
 			}
-			if (effectiveProxyConfig.requiresAuthentication()) {
+			if (proxyConfig.requiresAuthentication()) {
 				if (transportStrategy != null) {
 					// wire anonymous proxy request to our own proxy bridge so we can perform authentication to the actual proxy
 					sessionProperties.put(transportStrategy.propertyNameSocksHost(), "localhost");
-					sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(effectiveProxyConfig.getProxyBridgePort()));
+					sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getProxyBridgePort()));
 				} else {
 					LOGGER.debug("no transport strategy provided but authenticated proxy required, expecting mail.smtp(s).socks.host and .port " +
-							"properties to be set to localhost and port " + effectiveProxyConfig.getProxyBridgePort());
+							"properties to be set to localhost and port " + proxyConfig.getProxyBridgePort());
 				}
-				return new AnonymousSocks5Server(new AuthenticatingSocks5Bridge(effectiveProxyConfig),
-						effectiveProxyConfig.getProxyBridgePort());
+				SocksProxyConfig socksProxyConfig = new SocksProxyConfig(proxyConfig.getRemoteProxyHost(), proxyConfig.getRemoteProxyPort(),
+						proxyConfig.getUsername(), proxyConfig.getPassword(), proxyConfig.getProxyBridgePort());
+				return new AnonymousSocks5Server(new AuthenticatingSocks5Bridge(socksProxyConfig), proxyConfig.getProxyBridgePort());
 			}
 		}
 		return null;
@@ -193,11 +171,11 @@ public class MailSender {
 
 	/**
 	 * Processes an {@link Email} instance into a completely configured {@link Message}.
-	 * <p/>
+	 * <p>
 	 * Sends the Sun JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all
 	 * connection details have been configured in the provided {@link Session} instance and finally {@link Transport#sendMessage(Message,
 	 * Address[])}.
-	 * <p/>
+	 * <p>
 	 * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and providing
 	 * a message id.
 	 * <p>
@@ -226,9 +204,9 @@ public class MailSender {
 		if (async) {
 			// start up thread pool if necessary
 			if (executor == null || executor.isTerminated()) {
-				executor = Executors.newFixedThreadPool(threadPoolSize);
+				executor = Executors.newFixedThreadPool(operationalConfig.getThreadPoolSize());
 			}
-			configureSessionWithTimeout(session, sessionTimeout);
+			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
 			executor.execute(new Runnable() {
 				@Override
 				public void run() {
@@ -290,7 +268,7 @@ public class MailSender {
 					}
 				}
 
-				if (!transportModeLoggingOnly) {
+				if (!operationalConfig.isTransportModeLoggingOnly()) {
 					LOGGER.trace("\t\nEmail: {}", email);
 					LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEML(message));
 
@@ -365,18 +343,9 @@ public class MailSender {
 	}
 
 	/**
-	 * Refer to Session{@link Session#setDebug(boolean)}
+	 * @see org.simplejavamail.mailer.MailerGenericBuiler#trustingAllHosts(Boolean)
 	 */
-	public void setDebug(final boolean debug) {
-		session.setDebug(debug);
-	}
-
-	/**
-	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property "mail.smtp(s).ssl.trust" is set to "*".
-	 * <p>
-	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
-	 */
-	public void trustAllHosts(final boolean trustAllHosts) {
+	private void trustAllHosts(final boolean trustAllHosts) {
 		if (transportStrategy != null) {
 			session.getProperties().remove(transportStrategy.propertyNameSSLTrust());
 			if (trustAllHosts) {
@@ -388,30 +357,17 @@ public class MailSender {
 	}
 
 	/**
-	 * Configures the current session to only accept server certificates issued to one of the provided hostnames,
-	 * <strong>and disables certificate issuer validation.</strong>
-	 * <p>
-	 * Passing an empty list resets the current session's trust behavior to the default, and is equivalent to never
-	 * calling this method in the first place.
-	 * <p>
-	 * <strong>Security warning:</strong> Any certificate matching any of the provided host names will be accepted,
-	 * regardless of the certificate issuer; attackers can abuse this behavior by serving a matching self-signed
-	 * certificate during a man-in-the-middle attack.
-	 * <p>
-	 * This method sets the property {@code mail.smtp(s).ssl.trust} to a space-separated list of the provided
-	 * {@code hosts}. If the provided list is empty, {@code mail.smtp(s).ssl.trust} is unset.
-	 *
-	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
+	 * @see org.simplejavamail.mailer.MailerGenericBuiler#trustingSSLHosts(String...)
 	 */
-	public void trustHosts(final String... hosts) {
+	private void trustHosts(@Nonnull final List<String>  hosts) {
 		trustAllHosts(false);
-		if (hosts.length > 0) {
+		if (!hosts.isEmpty()) {
 			if (transportStrategy == null) {
 				throw new MailSenderException(MailSenderException.CANNOT_SET_TRUST_WITHOUT_TRANSPORTSTRATEGY);
 			}
-			final StringBuilder builder = new StringBuilder(hosts[0]);
-			for (int i = 1; i < hosts.length; i++) {
-				builder.append(" ").append(hosts[i]);
+			final StringBuilder builder = new StringBuilder(hosts.get(0));
+			for (int i = 1; i < hosts.size(); i++) {
+				builder.append(" ").append(hosts.get(i));
 			}
 			session.getProperties().setProperty(transportStrategy.propertyNameSSLTrust(), builder.toString());
 		}
@@ -451,46 +407,13 @@ public class MailSender {
 	}
 	
 	/**
-	 * @param properties Properties which will be added to the current {@link Session} instance.
-	 */
-	public void applyProperties(final Properties properties) {
-		session.getProperties().putAll(properties);
-	}
-
-	/**
 	 * For emergencies, when a client really wants access to the internally created {@link Session} instance.
 	 */
 	public Session getSession() {
 		return session;
 	}
 	
-	/**
-	 * @param threadPoolSize The maximum number of threads when sending emails in async fashion.
-	 * @see Property#DEFAULT_POOL_SIZE
-	 */
-	public synchronized void setThreadPoolSize(final int threadPoolSize) {
-		this.threadPoolSize = threadPoolSize;
-	}
-	
-	/**
-	 * @param sessionTimeout The timeout to use when sending emails (affects socket connect-, read- and write timeouts).
-	 * @see Property#DEFAULT_SESSION_TIMEOUT_MILLIS
-	 */
-	public synchronized void setSessionTimeout(final int sessionTimeout) {
-		this.sessionTimeout = sessionTimeout;
-	}
-
-	/**
-	 * Sets the transport mode for this mail sender to logging only, which means no mail will be actually sent out.
-	 */
-	public synchronized void setTransportModeLoggingOnly(final boolean transportModeLoggingOnly) {
-		this.transportModeLoggingOnly = transportModeLoggingOnly;
-	}
-	
-	/**
-	 * @return {@link #transportModeLoggingOnly}
-	 */
-	public boolean isTransportModeLoggingOnly() {
-		return transportModeLoggingOnly;
+	public OperationalConfig getOperationalConfig() {
+		return operationalConfig;
 	}
 }

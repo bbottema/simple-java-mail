@@ -1,24 +1,25 @@
 package testutil.testrules;
 
-import org.simplejavamail.mailer.config.ServerConfig;
-
 import javax.annotation.Nonnull;
 
 public class TestSmtpServer implements SmtpServerSupport {
-	private final ServerConfig serverConfig;
-
-	public TestSmtpServer(final ServerConfig serverConfig) {
-		this.serverConfig = serverConfig;
+	
+	private final String host;
+	private final Integer port;
+	
+	public TestSmtpServer(final String host, final Integer port) {
+		this.host = host;
+		this.port = port;
+	}
+	
+	@Nonnull
+	@Override
+	public String getHostname() {
+		return host;
 	}
 
 	@Override
 	public int getPort() {
-		return serverConfig.getPort();
-	}
-
-	@Nonnull
-	@Override
-	public String getHostname() {
-		return serverConfig.getHost();
+		return port;
 	}
 }
