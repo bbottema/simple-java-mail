@@ -15,7 +15,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 @SuppressWarnings("serial")
 class MimeMessageParseException extends MailException {
 
-	static final String INVALID_DOMAINKEY = "Error signing MimeMessage with DKIM";
 	static final String ERROR_PARSING_FROMADDRESS = "Error parsing from-address";
 	static final String ERROR_PARSING_ADDRESS = "Error parsing [%s] address";
 	static final String ERROR_PARSING_DISPOSITION = "Error parsing MimeMessage disposition";
@@ -34,6 +33,8 @@ class MimeMessageParseException extends MailException {
 	static final String ERROR_GETTING_SUBJECT = "Error getting subject";
 	static final String ERROR_GETTING_MESSAGE_ID = "Error getting message ID";
 	static final String ERROR_PARSING_REPLY_TO_ADDRESSES = "Error parsing replyTo addresses";
+	static final String ERROR_SIGNING_DKIM_LIBRARY_MISSING = "DKIM library not found, make sure it is on the classpath (https://github.com/markenwerk/java-utils-mail-dkim)";
+	static final String ERROR_SIGNING_DKIM_INVALID_DOMAINKEY = "Error signing MimeMessage with DKIM";
 	
 	MimeMessageParseException(@Nonnull final String message, @Nullable final Exception cause) {
 		super(checkNonEmptyArgument(message, "message"), cause);

@@ -48,6 +48,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <compiler.encoding>UTF-8</compiler.encoding>
         <spring.version>4.3.11.RELEASE</spring.version>
+        <powermock.version>1.7.1</powermock.version>
     </properties>
 
     <dependencies>
@@ -90,7 +91,8 @@
         <dependency>
             <groupId>net.markenwerk</groupId>
             <artifactId>utils-mail-dkim</artifactId>
-            <version>1.1.6</version>
+            <version>1.1.10</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.simplejavamail</groupId>
@@ -146,6 +148,18 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>1.10.19</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-module-junit4</artifactId>
+            <version>${powermock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-api-mockito</artifactId>
+            <version>${powermock.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency><!-- SMTP test server -->
@@ -303,7 +317,6 @@
                             <artifactSet>
                                 <includes>
                                     <include>com.github.bbottema:emailaddress-rfc2822</include>
-                                    <include>net.markenwerk:utils-mail-dkim</include>
                                     <include>org.simplejavamail:outlook-message-parser</include>
                                 </includes>
                             </artifactSet>
@@ -311,10 +324,6 @@
                                 <relocation>
                                     <pattern>org.hazlewood.connor.bottema.emailaddress</pattern>
                                     <shadedPattern>org.hazlewood.connor.bottema.emailaddress.simplejavamail</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>net.markenwerk</pattern>
-                                    <shadedPattern>net.markenwerk.simplejavamail</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.simplejavamail.outlookmessageparser</pattern>
