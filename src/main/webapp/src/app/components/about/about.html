@@ -22,8 +22,9 @@
 
     <div class="side">
       <pre><code class="small">EmailBuilder.startingBlank()
-EmailBuilder.replyingTo(emailOrMimeMessage)
-EmailBuilder.forwarding(emailOrMimeMessage)</code></pre>
+EmailBuilder.replyingTo(email)
+EmailBuilder.forwarding(email)
+EmailBuilder.copying(email)</code></pre>
       <pre><code class="small">// Most essentials together (but almost everything is optional):
 
 ConfigLoader.loadProperties("simplejavamail.properties"); // optional default

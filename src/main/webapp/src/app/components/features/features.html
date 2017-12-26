@@ -24,7 +24,7 @@
   <section class="toc">
     <ul>
       <li><a simplePageScroll href="#section-basic-usage">Basic usage</a></li>
-       <li><a simplePageScroll href="#section-builder-api" class="indent">Using the fluent API with the Builder pattern</a></li>
+       <li><a simplePageScroll href="#section-builder-api" class="indent">About the fluent API with the Builder pattern</a></li>
        <li><a simplePageScroll href="#section-reusable-mailer" class="indent">Configure once, reuse many times</a></li>
        <li><a simplePageScroll href="#section-add-recipients" class="indent">Alternative API for almost everything</a></li>
        <li><a simplePageScroll href="#section-sending-asynchronously" class="indent">Asynchronous parallel batch sending</a></li>
@@ -62,7 +62,7 @@
   <section>
     <div class="view">
       <p>
-        Simply create an <code class="inline">Email</code>, populate it with your data, create a <code class="inline">Mailer</code> and send the Email
+        Simply build an <code class="inline">Email</code>, populate it with your data, build a <code class="inline">Mailer</code> and send the Email
         instance. The mailer can be <a simplePageScroll
         href="#section-custom-session">created with your own <code class="inline">Session</code> instance as well</a>.
       </p>
@@ -72,44 +72,42 @@
     </div>
     
     <div class="side">
-<pre><code>Email email = new Email();
+<pre><code>Email email = EmailBuilder.startingBlank()
+    .from("Michel Baker", "m.baker@mbakery.com")
+    .to("mom", "jean.baker@hotmail.com")
+    .to("dad", "StevenOakly1963@hotmail.com")
+    .withSubject("My Bakery is finally open!")
+    .withPlainText("Mom, Dad. We did the opening ceremony of our bakery!!!")
+    .buildEmail();
 
-email.setFromAddress("Michel Baker", "m.baker@mbakery.com");
-email.addNamedToRecipient("mom", "jean.baker@hotmail.com");
-email.addNamedToRecipient("dad", "StevenOakly1963@hotmail.com");
-email.setSubject("My Bakery is finally open!");
-email.setText("Mom, Dad. We did the opening ceremony of our bakery!!!");
-
-new Mailer("server", 25, "username", "password").sendMail(email);
+MailerBuilder.
+  .withSMTPServer("server", 25, "username", "password")
+  .buildMailer()
+  .sendMail(email);
 </code></pre>
     </div>
   </section>
   
   
   <a href="#section-builder-api" id="section-builder-api" class="section-link h3">&sect;</a>
-  <h3>Using the fluent API with the Builder pattern</h3>
+  <h3>About the fluent API with the Builder pattern</h3>
   
   <section>
-    <div class="view">
-      <p>
-        The previous example becomes even more succinct by using the fluent API.
-      </p>
-    </div>
-    
-    <div class="side">
-<pre><code>Email email = new EmailBuilder()
-    .from("Michel Baker", "m.baker@mbakery.com")
-    .to("mom", "jean.baker@hotmail.com")
-    .to("dad", "StevenOakly1963@hotmail.com")
-    .subject("My Bakery is finally open!")
-    .text("Mom, Dad. We did the opening ceremony of our bakery!!!")
-    .build();
-
-new Mailer("server", 25, "username", "password").sendMail(email);
-</code></pre>
-    </div>
+    <p class="wide">
+      The entry classes for the builders are EmailBuilder and MailerBuilder. For both, the first method affects the rest of the builder behavior.
+    </p>
+    <p class="wide">
+      For <strong>EmailBuilder</strong>, the first method initializes the builder differently, either preconfiguring it
+      (<code class="inline">EmailBuilder.copying()</code>, <code class="inline">EmailBuilder.replyingTo()</code>),
+      or by setting values otherwise not possible
+      (<code class="inline">EmailBuilder.forwarding()</code>).
+    </p>
+    <p class="wide">
+      For <strong>MailerBuilder</strong>, the first method determines if you get a full builder API or a reduced API because you provided
+      your own custom Session instance.<br/>
+      <strong>If you provide your own session, a lot of properties are presumed to be preconfigured</strong>, such as SMTP server details.
+    </p>
   </section>
-  
   
   <a href="#section-reusable-mailer" id="section-reusable-mailer" class="section-link h3">&sect;</a>
   <h3>Configure once, reuse many times</h3>
@@ -128,16 +126,17 @@ inhouseMailer.sendMail(email);
 inhouseMailer.sendMail(anotherEmail);
 </code></pre>
       Or as preconfigured Spring bean:
-      <pre><code>
-&lt;bean id=&quot;inhouseMailer&quot; class=&quot;org.simplejavamail.mailer.Mailer&quot;&gt;
-   &lt;constructor-arg value=&quot;server&quot; /&gt;
-   &lt;constructor-arg value=&quot;25&quot; /&gt;
-   &lt;constructor-arg value=&quot;username&quot; /&gt;
-   &lt;constructor-arg value=&quot;password&quot; /&gt;
-&lt;/bean&gt;
+      <pre><code>@Bean
+public Mailer inhouseMailer() {{ '{' }}
+        return MailerBuilder
+            .withSMTPServer(...)
+            .buildMailer();
+{{ '}' }}
 </code></pre>
       Or the default one from Spring support:
       <pre><code>
+@Import(SimpleJavaMailSpringSupport.class)
+
 @Autowired Mailer mailer; // configured completely using default properties
 </code></pre>
     </div>
@@ -152,34 +151,32 @@ inhouseMailer.sendMail(anotherEmail);
       <p class="wide">
         Simple Java Mail has alternative ways to do things for almost everything...
       </p>
+      <p class="wide">
+        For example you can add recipients using <code class="inline">Recipient</code> objects,
+        <code class="inline">String</code> addresses (each can be comma delimited and include optional nested names),
+        <code class="inline">InternetAddress</code> objects, collections of said addresses, default address names or fixed address names.
+      </p>
     </div>
     
     <div>
       <p><code class="inline">Email</code>:</p>
       <pre><code>// You can add your own Recipient instances for example
-email.addRecipients(yourRecipient1, yourRecipient2...);
+currentEmailBuilder.withRecipients(yourRecipient1, yourRecipient2...);
 
 // or add comma / semicolon separated addresses (without names)
 String list = "twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com";
-emailNormal.addBccRecipients(list);
+currentEmailBuilder.bcc(list);
 // or:
-emailNormal.addNamedToRecipients("maintenance group", list);
+currentEmailBuilder.bccWithDefaultName("maintenance group", list);
+currentEmailBuilder.bccWithFixedName("maintenance group", list); // same as .bcc()
 
 // what about a group with one deviating name?
 String list = "bob@sweets.com, gene@sweets.com; Security Group &lt;security@sweets.com&gt;";
-emailNormal.addNamedToRecipients("stakeholders", list);
+currentEmailBuilder.toWithDefaultName("stakeholders", list);
 // bob and gene are named "stakeholders", "Security Group" get its own name
 </code></pre>
-      <p><code class="inline">EmailBuilder</code>:</p>
-      <pre><code>.to(yourRecipient1, yourRecipient2...)
-.cc("stakeholders", "bob@sweets.com", "gene@sweets.com", "Security Group &lt;security@sweets.com&gt;")
-.cc("stakeholders", "bob@sweets.com, gene@sweets.com; Security Group &lt;security@sweets.com&gt;")
-.bcc("twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com")
-...
-.build();
-</code></pre>
       <p>Through properties:</p>
-      <pre><code class="language-properties small">simplejavamail.defaults.bcc.name=
+      <pre><code class="language-properties">simplejavamail.defaults.bcc.name=
 simplejavamail.defaults.bcc.address=twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com
 </code></pre>
     </div>
@@ -223,10 +220,13 @@ simplejavamail.defaults.bcc.address=twister@sweets.com,blue.tongue@sweets.com;ho
     </div>
     
     <div class="side">
-<pre><code>Email email = new Email();
+<pre><code>Email email = ...
 ...
 
-new Mailer(yourSession).sendMail(email);
+MailerBuilder
+    .usingSession(yourSession)
+    .buildMailer()
+    .sendMail(email);
 </code></pre>
     </div>
   </section>
@@ -242,13 +242,7 @@ new Mailer(yourSession).sendMail(email);
     </div>
     
     <div class="side">
-<pre><code>Email email = new Email()
-email.setId("<123@456>");
-</code></pre>
-      Or:
-      <pre><code>Email email = new EmailBuilder()
-    .id("<123@456>")
-    .build();
+<pre><code>currentEmailBuilder.fixingMessageId("<123@456>");
 </code></pre>
     </div>
   </section>
@@ -285,11 +279,11 @@ email.getId(); // <1420232606.6.1509560747190@Cypher>
     </div>
     
     <div class="side">
-<pre><code>Email email = new Email();
+<pre><code class="small">Email email = ...;
 
-new Mailer(..., TransportStrategy.SMTP, ...); // default if omitted
-new Mailer(..., TransportStrategy.SMTPS, ...);
-new Mailer(..., TransportStrategy.SMTP_TLS, ...);
+MailerBuilder.withTransportStrategy(TransportStrategy.SMTP); // default if omitted
+MailerBuilder.withTransportStrategy(TransportStrategy.SMTPS);
+MailerBuilder.withTransportStrategy(TransportStrategy.SMTP_TLS);
 </code></pre>
     </div>
   </section>
@@ -312,9 +306,15 @@ new Mailer(..., TransportStrategy.SMTP_TLS, ...);
     </div>
     
     <div class="side">
-<pre><code>new Mailer("smtp.gmail.com", 25, "your user", "your password", TransportStrategy.SMTP_TLS).sendMail(email);
-new Mailer("smtp.gmail.com", 587, "your user", "your password", TransportStrategy.SMTP_TLS).sendMail(email);
-new Mailer("smtp.gmail.com", 465, "your user", "your password", TransportStrategy.SMTPS).sendMail(email);
+<pre><code>MailerBuilder
+  .withSMTPServer("smtp.gmail.com", 25, "your user", "your password")
+  .withTransportStrategy(TransportStrategy.SMTP_TLS)
+  // or
+  .withSMTPServer("smtp.gmail.com", 587, "your user", "your password")
+  .withTransportStrategy(TransportStrategy.SMTP_TLS)
+  // or
+  .withSMTPServer("smtp.gmail.com", 465, "your user", "your password")
+  .withTransportStrategy(TransportStrategy.SMTPS);
 </code></pre>
     </div>
   </section>
@@ -332,14 +332,11 @@ new Mailer("smtp.gmail.com", 465, "your user", "your password", TransportStrateg
     </div>
     
     <div class="side">
-<pre><code>Email email = new Email();
-
-email.addAttachment("dresscode.txt", new ByteArrayDataSource("Black Tie Optional", "text/plain"));
-email.addAttachment("location.txt", "On the moon!".getBytes(Charset.defaultCharset()), "text/plain");
-
-// ofcourse it can be anything: a pdf, doc, image, csv or anything else
-
-email.addAttachment("invitation.pdf", new FileDataSource("invitation_v8.3.pdf"));
+<pre><code class="small">currentEmailBuilder
+    .withAttachment("dresscode.txt", new ByteArrayDataSource("Black Tie Optional", "text/plain"))
+    .withAttachment("location.txt", "On the moon!".getBytes(Charset.defaultCharset()), "text/plain")
+    // ofcourse it can be anything: a pdf, doc, image, csv or anything else
+    .withAttachment("invitation.pdf", new FileDataSource("invitation_v8.3.pdf"))
 </code></pre>
     </div>
   </section>
@@ -356,12 +353,10 @@ email.addAttachment("invitation.pdf", new FileDataSource("invitation_v8.3.pdf"))
     </div>
     
     <div class="side">
-<pre><code>Email email = new Email();
-
-email.addEmbeddedImage("smiley", new FileDataSource("smiley.jpg"));
+<pre><code class="small">currentEmailBuilder.withEmbeddedImage("smiley", new FileDataSource("smiley.jpg"));
 // this example is included in the demo package in MailTestApp.java
 String base64String = "iVBORw0KGgoAAAANSUhEUgAAA ...snip";
-email.addEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png");
+currentEmailBuilder.withEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png");
 
 // the corresponding HTML should contain the placeholders
 &lt;p&gt;Let&#39;s go!&lt;/p&gt;&lt;img src=&#39;cid:thumbsup&#39;&gt;&lt;br/&gt;
@@ -383,12 +378,13 @@ email.addEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png")
     </div>
     
     <div class="side">
-<pre><code>Email email = new Email();
-
-email.addHeader("X-Priority", 2);
-email.addHeader("X-MC-GoogleAnalyticsCampaign", "halloween_sale");
-email.addHeader("X-MEETUP-RECIP-ID", "71415272");
-email.addHeader("X-my-custom-header", "foo");
+<pre><code>currentEmailBuilder
+    .withHeader("X-Priority", 2);
+    .withHeader("X-MC-GoogleAnalyticsCampaign", "halloween_sale");
+    .withHeader("X-MEETUP-RECIP-ID", "71415272");
+    .withHeader("X-my-custom-header", "foo");
+    // or
+    .withHeaders(yourHeadersMap);
 </code></pre>
     </div>
   </section>
@@ -406,12 +402,12 @@ email.addHeader("X-my-custom-header", "foo");
     </div>
     
     <div class="side">
-<pre><code>Properties props = new Properties();
-props.setProperty("mail.smtp.timeout", 30 * 1000);
-props.setProperty("mail.smtp.connectiontimeout", 10 * 1000);
-
-Mailer mailer = new Mailer();
-mailer.applyProperties(props);
+<pre><code>currentMailerBuilder
+    .withProperty("mail.smtp.timeout", 30 * 1000)
+    .withProperty("mail.smtp.connectiontimeout", 10 * 1000)
+    // or
+    .withProperties(yourPropertiesObject)
+    .withProperties(yourPropertiesMap)
 </code></pre>
     </div>
   </section>
@@ -430,7 +426,7 @@ mailer.applyProperties(props);
     </div>
     
     <div class="side">
-<pre><code>Mailer mailer = new Mailer();
+<pre><code>Mailer mailer = ...;
 
 Session session = mailer.getSession();
 // do your thing with session
@@ -452,15 +448,16 @@ Session session = mailer.getSession();
     </div>
     
     <div class="side">
-<pre><code>Email signedEmail = new Email();
+<pre><code>currentEmailBuilder.
+    .signWithDomainKey(
+       privateKey byte[] / File / InputStream,
+       "your_domain.org",
+       "your_selector");
 
-signedEmail.signWithDomainKey(
-   privateKey byte[] / File / InputStream,
-   "your_domain.org",
-   "your_selector");
-
-new Mailer().sendMail(signedEmail);
+mailer.sendMail(signedEmail);
 </code></pre>
+      You can also directly use the helper method:
+      <pre><code>Mailer.signMessageWithDKIM(mimeMessageToSign, emailContainingSigningDetails);</code></pre>
     </div>
   </section>
   
@@ -482,22 +479,12 @@ new Mailer().sendMail(signedEmail);
     </div>
     
     <div class="side">
-<pre><code class="small">Email email = new Email();
-email.setUseDispositionNotificationTo();
-email.setUseReturnReceiptTo();
-// or:
-email.setDispositionNotificationTo(new Recipient("name", "address@domain.com"));
-email.setReturnReceiptTo(new Recipient("name", "address@domain.com"));
-
-// or:
-Email email = new EmailBuilder()
-  (..)
-  .withDispositionNotificationTo()
-  .withReturnReceiptTo()
-  // or:
-  .withDispositionNotificationTo("on-read@domain.com")
-  .withReturnReceiptTo("name", "on-delivery@domain.com")
-  .build();
+<pre><code class="small">currentEmailBuilder.
+    .withDispositionNotificationTo();
+    .withReturnReceiptTo();
+    // or:
+    .withDispositionNotificationTo(new Recipient("name", "address@domain.com"));
+    .withReturnReceiptTo(new Recipient("name", "address@domain.com"));
 </code></pre>
     </div>
   </section>
@@ -513,10 +500,27 @@ Email email = new EmailBuilder()
         href="https://tools.ietf.org/html/rfc2822">RFC-2822</a>. It does this by including <a
         href="https://github.com/bbottema/email-rfc2822-validator">email-rfc2822-validator</a> in the library.
       </p>
+      <p>
+        Address validation is performed automatically when sending emails, but you can also directly perform validations.
+      </p>
     </div>
     
     <div class="side">
-<pre><code>EmailAddressValidator.isValid("your_address@domain.com",
+<pre><code>currentMailerBuilder
+    .withEmailAddressCriteria(EmailAddressCriteria.RFC_COMPLIANT)
+    // or
+    .withEmailAddressCriteria(
+      of(ALLOW_QUOTED_IDENTIFIERS, ALLOW_PARENS_IN_LOCALPART)
+    )
+    // or
+    .clearEmailAddressCriteria() // turn off validation
+    .resetEmailAddressCriteria() // reset to default
+</code></pre>
+      <pre><code>// you can also directly perform validations.
+mailer.validate(email);
+
+// or use the underlying library included for this
+EmailAddressValidator.isValid("your_address@domain.com",
    EmailAddressCriteria.RFC_COMPLIANT);
 
 // or, fine-tuned to be less strict:
@@ -593,16 +597,11 @@ MimeMessage mimeMessage = EmailConverter.outlookMsgToMimeMessage(getInputStream(
     </div>
     
     <div class="side">
-<pre><code>
-// in similar fashion to setting replyTo address:
-email.setBounceToRecipient(aRecipientInstance); // or
-email.setBounceToAddress("Bob", "bob.techdesk@candyshop.com");
-
-// Or using the Builder:
-Email email = new EmailBuilder()
-    .bounceTo(aRecipientInstance) // or
-    .bounceTo("Bob", "bob.techdesk@candyshop.com")
-    .build();
+<pre><code>// in similar fashion to setting replyTo address:
+currentEmailBuilder
+    .withBounceTo(aRecipientInstance) // or
+    .withBounceTo("Bob", "bob.techdesk@candyshop.com")
+    // or using one of the many alternative methods...
 </code></pre>
     </div>
   </section>
@@ -633,21 +632,18 @@ Email email = new EmailBuilder()
     
     <div class="side">
       <p>Replying to an email:</p>
-<pre><code>
-Email reply = new EmailBuilder()
-				.asReplyTo(receivedEmail) // Email or MimeMessage
-				.from("dummy@domain.com")
-				.prependText("Reply body. Original email included below")
-				.build();
+<pre><code>EmailBuilder
+    .replyingTo(receivedEmail) // Email or MimeMessage
+    .from("dummy@domain.com")
+    .prependText("Reply body. Original email included below")
+    .buildEmail();
 </code></pre>
       <p>Forwarding an email:</p>
-<pre><code>
-// forwarding an email
-Email reply = new EmailBuilder()
-				.asForwardOf(receivedEmail) // Email or MimeMessage
-				.from("dummy@domain.com")
-				.text("Hello? This is Forward. See below email:")
-				.build();
+<pre><code>EmailBuilder
+    .forwarding(receivedEmail) // Email or MimeMessage
+    .from("dummy@domain.com")
+    .text("Hello? This is Forward. See below email:")
+    .buildEmail();
 </code></pre>
     </div>
   </section>
@@ -675,10 +671,10 @@ Email reply = new EmailBuilder()
     
     <div>
 <pre><code>// anonymous proxy
-new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080));
+currentMailerBuilder.withProxy("proxy.host.com", 1080)
 
 // authenticated proxy
-new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username", "proxy password"));
+currentMailerBuilder.withProxy("proxy.host.com", 1080, "proxy username", "proxy password");
 </code></pre>
       <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" href="#section-other-settings">configuration section</a>
          on how to set proxy server defaults and the port on which the proxy bridge runs.</p>
@@ -699,7 +695,7 @@ new Mailer(serverConfig, new ProxyConfig("proxy.host.com", 1080, "proxy username
     
     <div>
 <pre><code>// configure your mailer
-Mailer mailer = new Mailer(/*server settings, proxy etc.*/);
+Mailer mailer = ...;
 
 // perform connection test
 mailer.testConnection(); // no error means success
