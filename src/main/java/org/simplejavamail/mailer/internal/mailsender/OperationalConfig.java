@@ -5,34 +5,51 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * Contains all the configuration that affect how a {@link org.simplejavamail.mailer.Mailer} operates. This includes connection settings such as
+ * timeouts, debug mode and which hosts to trust.
+ * <p>
+ * All of these settings are configured on the {@link org.simplejavamail.mailer.MailerGenericBuiler}.
+ */
 public class OperationalConfig {
 	/**
-	 * Refer to {@link org.simplejavamail.mailer.MailerGenericBuiler#DEFAULT_SESSION_TIMEOUT_MILLIS}.
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withSessionTimeout(Integer)
 	 */
 	private final int sessionTimeout;
 	
 	/**
-	 * Refer to {@link org.simplejavamail.mailer.MailerGenericBuiler#withProperties(Properties)}.
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withProperties(Properties)
 	 */
 	private final Properties properties;
 	
 	/**
-	 * The number of concurrent threads sending an email each. Used only when sending emails asynchronously (batch job mode).
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withThreadPoolSize(Integer)
 	 */
 	private final int threadPoolSize;
 	
 	/**
-	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
 	private final boolean transportModeLoggingOnly;
 	
-	// FIXME JavaDoc
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withDebugLogging(Boolean)
+	 */
 	private final boolean debugLogging;
-	// FIXME JavaDoc
+	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#trustingSSLHosts(String...)
+	 */
 	private final List<String> sslHostsToTrust;
-	// FIXME JavaDoc
+	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#trustingAllHosts(Boolean)
+	 */
 	private final boolean trustAllSSLHost;
 	
+	/**
+	 * For internal use only.
+	 */
 	public OperationalConfig(@Nonnull Properties properties, int sessionTimeout, int threadPoolSize, boolean transportModeLoggingOnly, boolean debugLogging, List<String> sslHostsToTrust, boolean trustAllSSLHost) {
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
@@ -43,30 +60,51 @@ public class OperationalConfig {
 		this.trustAllSSLHost = trustAllSSLHost;
 	}
 	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withSessionTimeout(Integer)
+	 */
 	public int getSessionTimeout() {
 		return sessionTimeout;
 	}
 	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withThreadPoolSize(Integer)
+	 */
 	public int getThreadPoolSize() {
 		return threadPoolSize;
 	}
 	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
+	 */
 	public boolean isTransportModeLoggingOnly() {
 		return transportModeLoggingOnly;
 	}
 	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withDebugLogging(Boolean)
+	 */
 	public boolean isDebugLogging() {
 		return debugLogging;
 	}
 	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#trustingSSLHosts(String...)
+	 */
 	public List<String> getSslHostsToTrust() {
 		return sslHostsToTrust;
 	}
 	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#trustingAllHosts(Boolean)
+	 */
 	public boolean isTrustAllSSLHost() {
 		return trustAllSSLHost;
 	}
 	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withProperties(Properties)
+	 */
 	public Properties getProperties() {
 		return properties;
 	}
