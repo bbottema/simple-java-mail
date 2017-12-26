@@ -8,7 +8,6 @@ import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
 import org.simplejavamail.mailer.internal.socks.SocksProxyConfig;
 import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5Server;
-import org.simplejavamail.util.ConfigLoader.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,23 +45,11 @@ public class MailSender {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MailSender.class);
 
 	/**
-	 * For multi-threaded scenario's where a batch of emails sent asynchronously, the default maximum number of threads is {@value
-	 * #DEFAULT_POOL_SIZE}. Can be overridden from a config file or through System variable.
-	 *
-	 * @see Property#DEFAULT_POOL_SIZE
-	 */
-	@SuppressWarnings("JavaDoc")
-	private static final int DEFAULT_POOL_SIZE = 10;
-
-	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
 	 */
 	private final Session session;
 	
 	/**
-	 * The strategy is used initially to configure as much as possible, such as the Session and proxy configuration, however, at the time of
-	 * actually sending an email, some more properties need to be set based on the current Email instance.
-	 * <p>
 	 * Depending on the transport strategy, these properties are different, that's why we need to keep a global hold on this instance.
 	 * <p>
 	 * <strong>NOTE:</strong><br>
@@ -73,7 +60,9 @@ public class MailSender {
 	@Nullable
 	private final TransportStrategy transportStrategy;
 	
-	// FIXME update JavaDoc
+	/**
+	 * @see OperationalConfig
+	 */
 	private final OperationalConfig operationalConfig;
 	
 	/**
