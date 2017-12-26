@@ -15,6 +15,7 @@
       <li><a simplePageScroll href="#section-why-builders">Why builders?</a></li>
       <li><a simplePageScroll href="#section-what-changed">So what API changed?</a></li>
       <li><a simplePageScroll href="#section-conditional-config">Conditional config?</a></li>
+      <li><a simplePageScroll href="#section-spring-support">Changes to Spring support</a></li>
     </ul>
   </section>
   
@@ -120,5 +121,22 @@ if (yourCondition) {{ '{' }}
 Mailer mailer = builder.buildMailer();
 </code></pre>
     </div>
+  </section>
+  
+  <a href="#section-spring-support" id="section-spring-support" class="section-link h2">&sect;</a>
+  <h2>Changes to Spring support</h2>
+  
+  <section>
+    <p class="wide">
+      The Java configuration has not changed, but the XML configuration is not supported anymore out-of-the-box.
+    </p>
+    <p class="wide">
+      This is because there are not more constructors or bean setters to use when creating a Spring bean in XML.
+      The only way around this for XML configuration, is to provide your own builder method and refer to that from your bean xml.
+    </p>
+    <p class="wide">
+      Refer to the <a simplePageScroll [routerLink]="['/configuration']" href="#section-spring-support">configuration section</a>
+      to see some current Spring examples
+    </p>
   </section>
 </div>

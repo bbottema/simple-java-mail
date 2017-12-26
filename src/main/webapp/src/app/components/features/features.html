@@ -2,6 +2,13 @@
   
   <h1>Simple Java Mail Features</h1>
   
+  <section>
+    <p class="wide">
+      Note, currently 5.0.0 is released as 5.0.0.rc1-SNAPSHOT. To use it, add
+      <a href="https://stackoverflow.com/a/7717234/441662">OSS' snapshots repo</a> to your maven settings.
+    </p>
+  </section>
+  
   <section class="introduction">
     <p class="wide">
       Creating and sending emails is very simple with Simple Java Mail; you don't need to know about the mailing RFC, MimeMessage or any other low
@@ -203,7 +210,7 @@ simplejavamail.defaults.bcc.address=twister@sweets.com,blue.tongue@sweets.com;ho
     <div class="side">
 <pre><code>mailer.sendMail(email, /* async = */ true);
 </code></pre>
-      <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" href="#section-other-settings">configuration section</a>
+      <p>Refer to the <a simplePageScroll [routerLink]="['/configuration']" href="#section-programmatic-api-other">configuration section</a>
          on how to set the thread pool size default.</p>
     </div>
   </section>
