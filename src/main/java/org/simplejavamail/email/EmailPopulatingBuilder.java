@@ -1055,8 +1055,15 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType} left empty (so it will use the original values).
 	 */
-	public EmailPopulatingBuilder withRecipients(@Nonnull final List<Recipient> recipients) {
+	public EmailPopulatingBuilder withRecipients(@Nonnull final Collection<Recipient> recipients) {
 		return withRecipients(recipients, null);
+	}
+	
+	/**
+	 * Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType} left empty (so it will use the original values).
+	 */
+	public EmailPopulatingBuilder withRecipients(@Nonnull final Recipient... recipients) {
+		return withRecipients(asList(recipients), null);
 	}
 	
 	/**

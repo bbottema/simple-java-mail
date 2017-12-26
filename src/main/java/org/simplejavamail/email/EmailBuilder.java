@@ -175,7 +175,7 @@ public class EmailBuilder {
 		/**
 		 * Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.
 		 */
-		public EmailBuilderInstance ignoringDefaults() {
+		EmailBuilderInstance ignoringDefaults() {
 			applyDefaults = false;
 			return this;
 		}
@@ -196,7 +196,7 @@ public class EmailBuilder {
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
 		 * template.
 		 */
-		EmailPopulatingBuilder replyingTo(@Nonnull final Email email) {
+		public EmailPopulatingBuilder replyingTo(@Nonnull final Email email) {
 			return replyingTo(EmailConverter.emailToMimeMessage(email), false, DEFAULT_QUOTING_MARKUP);
 		}
 		
@@ -204,7 +204,7 @@ public class EmailBuilder {
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code> and a default HTML quoting
 		 * template.
 		 */
-		EmailPopulatingBuilder replyingToAll(@Nonnull final Email email) {
+		public EmailPopulatingBuilder replyingToAll(@Nonnull final Email email) {
 			return replyingTo(EmailConverter.emailToMimeMessage(email), true, DEFAULT_QUOTING_MARKUP);
 		}
 		
@@ -213,14 +213,14 @@ public class EmailBuilder {
 		 *
 		 * @see #DEFAULT_QUOTING_MARKUP
 		 */
-		EmailPopulatingBuilder replyingToAll(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
+		public EmailPopulatingBuilder replyingToAll(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
 			return replyingTo(EmailConverter.emailToMimeMessage(email), true, customQuotingTemplate);
 		}
 		
 		/**
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
 		 */
-		EmailPopulatingBuilder replyingTo(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
+		public EmailPopulatingBuilder replyingTo(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
 			return replyingTo(EmailConverter.emailToMimeMessage(email), false, customQuotingTemplate);
 		}
 		
@@ -228,7 +228,7 @@ public class EmailBuilder {
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
 		 * template.
 		 */
-		EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email) {
+		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email) {
 			return replyingTo(email, false, DEFAULT_QUOTING_MARKUP);
 		}
 		
@@ -237,14 +237,14 @@ public class EmailBuilder {
 		 *
 		 * @see #DEFAULT_QUOTING_MARKUP
 		 */
-		EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
+		public EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
 			return replyingTo(email, true, customQuotingTemplate);
 		}
 		
 		/**
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
 		 */
-		EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
+		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
 			return replyingTo(email, false, customQuotingTemplate);
 		}
 		
@@ -254,7 +254,7 @@ public class EmailBuilder {
 		 *
 		 * @see #DEFAULT_QUOTING_MARKUP
 		 */
-		EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage email) {
+		public EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage email) {
 			return replyingTo(email, true, DEFAULT_QUOTING_MARKUP);
 		}
 		
@@ -282,7 +282,7 @@ public class EmailBuilder {
 		 * @see <a href="https://javaee.github.io/javamail/FAQ#reply">Official JavaMail FAQ on replying</a>
 		 * @see javax.mail.internet.MimeMessage#reply(boolean)
 		 */
-		EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage emailMessage, final boolean repyToAll, @Nonnull final String htmlTemplate) {
+		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage emailMessage, final boolean repyToAll, @Nonnull final String htmlTemplate) {
 			final MimeMessage replyMessage;
 			try {
 				replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
@@ -309,7 +309,7 @@ public class EmailBuilder {
 		 *
 		 * @see EmailConverter#emailToMimeMessage(Email)
 		 */
-		EmailPopulatingBuilder forwarding(@Nonnull final Email email) {
+		public EmailPopulatingBuilder forwarding(@Nonnull final Email email) {
 			return forwarding(EmailConverter.emailToMimeMessage(email));
 		}
 		
@@ -327,7 +327,7 @@ public class EmailBuilder {
 		 * material</a>
 		 * @see #forwarding(Email)
 		 */
-		EmailPopulatingBuilder forwarding(@Nonnull final MimeMessage emailMessage) {
+		public EmailPopulatingBuilder forwarding(@Nonnull final MimeMessage emailMessage) {
 			return startingBlank()
 					.withForward(emailMessage)
 					.withSubject("Fwd: " + MimeMessageParser.parseSubject(emailMessage));
