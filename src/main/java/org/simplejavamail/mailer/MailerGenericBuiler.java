@@ -26,7 +26,8 @@ import static org.simplejavamail.util.ConfigLoader.getProperty;
 import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
 /**
- * Builder API that takes care of all generic Mailer properties unrelated to the SMTP server (host, port, username, password and transport strategy).
+ * Builder superclass which contains API to take care of all generic Mailer properties unrelated to the SMTP server
+ * (host, port, username, password and transport strategy).
  * <p>
  * To start a new Mailer builder, refer to {@link MailerBuilder}.
  */

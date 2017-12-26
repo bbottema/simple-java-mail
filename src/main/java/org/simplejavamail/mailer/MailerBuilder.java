@@ -109,6 +109,9 @@ public class MailerBuilder {
 		return new MailerRegularBuilder().buildMailer();
 	}
 	
+	private MailerBuilder() {
+	}
+	
 	/**
 	 * Default builder for generating Mailer instances.
 	 * <p>
@@ -158,10 +161,8 @@ public class MailerBuilder {
 		}
 		
 		/**
-		 * @param host     Delegates to {@link #withSMTPServerHost(String)}.
-		 * @param port     Delegates to {@link #withSMTPServerPort(Integer)}.
-		 * @param username Delegates to {@link #withSMTPServerUsername(String)}.
-		 * @param password Delegates to {@link #withSMTPServerPassword(String)}.
+		 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)}, {@link #withSMTPServerUsername(String)} and {@link
+		 * #withSMTPServerPassword(String)}.
 		 */
 		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username, @Nullable final String password) {
 			return withSMTPServerHost(host)
@@ -171,9 +172,7 @@ public class MailerBuilder {
 		}
 		
 		/**
-		 * @param host     Delegates to {@link #withSMTPServerHost(String)}.
-		 * @param port     Delegates to {@link #withSMTPServerPort(Integer)}.
-		 * @param username Delegates to {@link #withSMTPServerUsername(String)}.
+		 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)} and {@link #withSMTPServerUsername(String)}.
 		 */
 		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username) {
 			return withSMTPServerHost(host)
@@ -182,8 +181,7 @@ public class MailerBuilder {
 		}
 		
 		/**
-		 * @param host Delegates to {@link #withSMTPServerHost(String)}.
-		 * @param port Delegates to {@link #withSMTPServerPort(Integer)}.
+		 * Delegates to {@link #withSMTPServerHost(String)} and {@link #withSMTPServerPort(Integer)}.
 		 */
 		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port) {
 			return withSMTPServerHost(host)

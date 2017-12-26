@@ -429,41 +429,72 @@ public enum TransportStrategy {
 	 * This is mainly for logging purposes.
 	 */
 	private static final String TRANSPORT_STRATEGY_MARKER = "simplejavamail.transportstrategy";
-
+	
 	/**
-	 * Base implementation that simply returns an empty list of properties and a marker for the specific current strategy.
-	 * <p>
-	 * Should be overridden by the various strategies where appropriate.
-	 *
-	 * @return An empty <code>Properties</code> instance.
+	 * For internal use only.
 	 */
 	public Properties generateProperties() {
 		final Properties properties = new Properties();
 		properties.put(TRANSPORT_STRATEGY_MARKER, name());
 		return properties;
 	}
-
+	
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNameHost();
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNamePort();
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNameUsername();
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNameAuthenticate();
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNameSocksHost();
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNameSocksPort();
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNameConnectionTimeout();
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNameWriteTimeout();
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNameEnvelopeFrom();
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNameSSLTrust();
+	/**
+	 * For internal use only.
+	 */
 	public abstract String propertyNameTimeout();
 	
 	/**
-	 * Refer to {@link #SMTP}.opportunisticTLS for details. Defaults to {@code false} for all other transport strategies.
-	 * <hr>
-	 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). Setting this flag to false causes
-	 * the {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
+	 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
+	 * was provided, this value defaults to it default.
+	 * <p>
+	 * Setting this flag to false causes {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
 	 */
 	public void setOpportunisticTLS(@Nullable final Boolean opportunisticTLS) {}
 	
 	/**
+	 * For internal use only.
+	 *
 	 * @param session The session to determine the current transport strategy for
 	 * @return Which strategy matches the current Session properties.
 	 * @see #TRANSPORT_STRATEGY_MARKER

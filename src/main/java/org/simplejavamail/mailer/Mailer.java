@@ -30,9 +30,9 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyForSession;
 
 /**
- * Mailing tool aimed for simplicity, for sending e-mails of any complexity. This includes e-mails with plain text and/or html content, embedded
- * images and separate attachments, SMTP, SMTPS / SSL and SMTP + SSL, custom Session object, DKIM domain signing and even authenticated SOCKS proxy
- * support and threaded batch processing.
+ * Mailing tool created exclusively using {@link MailerBuilder}, aimed for simplicity for sending e-mails of any complexity. This includes e-mails
+ * with plain text and/or html content, embedded images and separate attachments, SMTP, SMTPS / SSL and SMTP + SSL, custom Session object, DKIM domain
+ * signing and even authenticated SOCKS proxy support and threaded batch processing.
  * <p>
  * This mailing tool abstracts the javax.mail API to a higher level easy to use API. This tool works with {@link Email} instances but can also convert
  * traditional {@link MimeMessage} objects to and from {@link Email} object.
@@ -42,37 +42,41 @@ import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyFor
  * <p>
  * Technically, the resulting email structure is as follows:<br>
  * <pre>
- * - root
+ * - mixed root
  * 	- related
  * 		- alternative
- * 			- mail text
- * 			- mail html text
+ * 			- mail tekst
+ * 			- mail html tekst
  * 		- embedded images
+ * 	- forwarded message
  * 	- attachments
  * </pre>
  * <p>
- * Usage example:<br>
+ * Usage example (see <a href="http://www.simplejavamail.org/#/features">simplejavamail.org/features</a> for examples):<br>
  * <pre>
- * Email email = new Email();
- * email.setFromAddress(&quot;lollypop&quot;, &quot;lolly.pop@somemail.com&quot;);
- * email.addRecipient(&quot;Sugar Cane&quot;, &quot;sugar.cane@candystore.org&quot;, RecipientType.TO);
- * email.setText(&quot;We should meet up!!&quot;);
- * email.setTextHTML(&quot;&lt;b&gt;We should meet up!&lt;/b&gt;&quot;);
- * email.setSubject(&quot;Hey&quot;);
- * new Mailer(preconfiguredMailSession).sendMail(email);
+ * Email email = EmailBuilder.startingBlank()
+ * 		.from(&quot;lollypop&quot;, &quot;lolly.pop@somemail.com&quot;);
+ * 		.to(&quot;Sugar Cane&quot;, &quot;sugar.cane@candystore.org&quot;);
+ * 		.withPlainText(&quot;We should meet up!!&quot;);
+ * 		.withHTMLText(&quot;&lt;b&gt;We should meet up!&lt;/b&gt;&quot;);
+ * 		.withSubject(&quot;Hey&quot;);
+ *
+ * MailerBuilder.usingSession(preconfiguredMailSession)
+ * 		.buildMailer()
+ * 		.sendMail(email);
  * // or:
- * new Mailer(&quot;smtp.someserver.com&quot;, 25, &quot;username&quot;, &quot;password&quot;).sendMail(email);
+ * MailerBuilder.withSMTPServer(&quot;smtp.someserver.com&quot;, 25, &quot;username&quot;, &quot;password&quot;)
+ * 		.buildMailer()
+ * 		.sendMail(email);
  * </pre>
  * <p>
- * <a href="http://www.simplejavamail.org">simplejavamail.org</a>
- * <hr>
+ * <a href="http://www.simplejavamail.org">simplejavamail.org</a> <hr>
  * <p>
- * On a technical note, the {@link Mailer} class is the front facade for the public API. It limits itself to creating Session objects, offering
- * various constructors, sorting missing arguments using available properties and finally email validation. The actual sending and proxy configuration
- * is done by the internal {@link MailSender}.
+ * On a technical note, the {@link Mailer} class is the front facade for the public API. It limits itself to preparing for sending, but the actual
+ * sending and proxy configuration is done by the internal {@link MailSender}.
  *
  * @author Benny Bottema
- * @see MimeMessageHelper.MimeEmailMessageWrapper
+ * @see MailerBuilder
  * @see Email
  */
 @SuppressWarnings("WeakerAccess")

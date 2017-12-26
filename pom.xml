@@ -296,6 +296,9 @@
                             <!--<additionalparam>-Xdoclint:none</additionalparam>-->
                             <additionalparam>-Xdoclint:all</additionalparam>
                             <additionalparam>-Xdoclint:-missing</additionalparam>
+                            <show>public</show>
+                            <nohelp>true</nohelp>
+                            <excludePackageNames>*.internal.*</excludePackageNames>
                         </configuration>
                     </execution>
                 </executions>

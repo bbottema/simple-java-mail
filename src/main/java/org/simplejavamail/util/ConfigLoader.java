@@ -18,7 +18,7 @@ import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
- * Contains list of possible properties names and can produce a map of property values, if provided as file "{@value #DEFAULT_CONFIG_FILENAME}" on the
+ * Contains list of possible properties names and can produce a map of property values, if provided as file {@value #DEFAULT_CONFIG_FILENAME} on the
  * classpath or as environment property.
  * <p>
  * The following properties are allowed:
@@ -56,8 +56,11 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 public final class ConfigLoader {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
-
-	private static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
+	
+	/**
+	 * By default this optional file will be loaded from classpath to load initial defaults.
+	 */
+	public static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
 
 	/**
 	 * Initially try to load properties from "{@value #DEFAULT_CONFIG_FILENAME}".
@@ -73,7 +76,10 @@ public final class ConfigLoader {
 		// RESOLVED_PROPERTIES = loadProperties(DEFAULT_CONFIG_FILENAME); <-- not possible
 		loadProperties(DEFAULT_CONFIG_FILENAME, false);
 	}
-
+	
+	/**
+	 * List of all the properties recognized by Simple Java Mail. Can be used to programmatically get, set or remove default values.
+	 */
 	public enum Property {
 		JAVAXMAIL_DEBUG("simplejavamail.javaxmail.debug"),
 		TRANSPORT_STRATEGY("simplejavamail.transportstrategy"),
@@ -115,6 +121,9 @@ public final class ConfigLoader {
 		}
 	}
 
+	private ConfigLoader() {
+	}
+	
 	/**
 	 * @return The value if not null or else the value from config file if provided or else <code>null</code>.
 	 */

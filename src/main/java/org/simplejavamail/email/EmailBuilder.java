@@ -27,8 +27,9 @@ import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
  * @author Benny Bottema
  */
 public class EmailBuilder {
+	
 	/**
-	 * Delegates to {@link EmailBuilderInstance#ignoringDefaults()}.
+	 * Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.
 	 */
 	public static EmailBuilderInstance ignoringDefaults() {
 		return new EmailBuilderInstance().ignoringDefaults();
@@ -139,9 +140,14 @@ public class EmailBuilder {
 		return new EmailBuilderInstance().startingBlank();
 	}
 	
+	private EmailBuilder() {
+	}
+	
 	/**
-	 * {@link EmailBuilder#ignoringDefaults()} needs to return the same interface, so we need all methods on both class (static) and instance. Since a
-	 * class cannot have a static method and an instance method of the same name, {@link EmailBuilderInstance} provides the instance interface.
+	 * Offers the same API as {@link org.simplejavamail.mailer.MailerBuilder}, but as an instance (so we can keep track of state). This is because
+	 * {@link #ignoringDefaults()} is the only method that doesn't return a {@link EmailPopulatingBuilder} but returns to the inital API instead.
+	 * <p>
+	 * As with the EmailBuilder, every other method returns an {@link EmailPopulatingBuilder}.
 	 */
 	public static final class EmailBuilderInstance {
 		
@@ -171,6 +177,9 @@ public class EmailBuilder {
 		 * Flag can be disabled using {@link #ignoringDefaults()}.
 		 */
 		private boolean applyDefaults = true;
+		
+		private EmailBuilderInstance() {
+		}
 		
 		/**
 		 * Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.
