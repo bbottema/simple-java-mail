@@ -14,6 +14,7 @@ import {Debugging} from './app/components/debugging/debugging';
 import {RfcCompliant} from './app/components/rfc/rfc';
 import {Download} from './app/components/download/download';
 import {Contact} from './app/components/contact/contact';
+import {Migrate500} from "./app/components/migrate-5.0.0/migrate-5.0.0";
 import {MavenDependencyDisplay} from './app/components/maven-dependency-display/maven-dependency-display.component';
 
 // enableProdMode();
@@ -30,6 +31,7 @@ require('./index.html');
     RfcCompliant,
     Download,
     Contact,
+    Migrate500,
     MavenDependencyDisplay
   ],
   imports: [
