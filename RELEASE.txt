@@ -20,6 +20,9 @@ emails.
 - #107 You can now easily forward or reply to emails!
 
 Maintenance updates
+
+Complete JavaDoc overhaul. Navigating the JavaDoc should be much more consistent now (builder API being the single *public* source of truth).
+
 - #120 The DKIM library has been made an optional proper Maven dependency (not packaged along anymore)
 - #119 Switched optional Spring dependency version to property and now testing with 4.3.11.RELEASE
 - #113 Updated the underlying JavaMail to 1.6.0

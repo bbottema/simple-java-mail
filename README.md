@@ -93,6 +93,9 @@ emails.
 to true (https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html)
 
 #### Maintenance updates ####
+
+Complete JavaDoc overhaul. Navigating the JavaDoc should be much more consistent now (builder API being the single *public* source of truth).
+
 - [#120](https://github.com/bbottema/simple-java-mail/issues/120) The DKIM library has been made an optional proper Maven dependency (not packaged 
 along anymore)
 - [#119](https://github.com/bbottema/simple-java-mail/issues/119) Switched optional Spring dependency version to property and now testing with 4.3
