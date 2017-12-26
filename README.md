@@ -8,35 +8,52 @@ The Simple Java Mail library is a thin layer on top of the JavaMail smtp mailing
 
 ### [simplejavamail.org](http://www.simplejavamail.org) ###
 
+(starting from v5.0.0)
+
+```java
+EmailBuilder.startingBlank()
+EmailBuilder.replyingTo(email)
+EmailBuilder.forwarding(email)
+EmailBuilder.copying(email)
+```
+
 ```java
 ConfigLoader.loadProperties("simplejavamail.properties"); // optional default
 ConfigLoader.loadProperties("overrides.properties"); // optional extra
 
-Email email = new Email();
+Email email = EmailBuilder.startingBlank()
+          .to("lollypop", "lolly.pop@somemail.com")
+          .to("C. Cane", "candycane@candyshop.org")
+          .ccWithFixedName("C. Bo group", "chocobo1@candyshop.org", "chocobo2@candyshop.org")
+          .withRecipientsUsingFixedName("Tasting Group", BCC,
+                        "taster1@cgroup.org;taster2@cgroup.org;tester &lt;taster3@cgroup.org&gt;")
+          .bcc("Mr Sweetnose &lt;snose@candyshop.org&gt;")
+          .withReplyTo("lollypop", "lolly.pop@othermail.com")
+          .withSubject("hey")
+          .withHTMLText("&lt;img src=&#39;cid:wink1&#39;&gt;&lt;b&gt;We should meet up!&lt;/b&gt;&lt;img src=&#39;cid:wink2&#39;&gt;")
+          .withPlainText("Please view this email in a modern email client!")
+          .withEmbeddedImage("wink1", imageByteArray, "image/png")
+          .withEmbeddedImage("wink2", imageDatesource)
+          .withAttachment("invitation", pdfByteArray, "application/pdf")
+          .withAttachment("dresscode", odfDatasource)
+          .withHeader("X-Priority", 5)
+          .withReturnReceiptTo()
+          .withDispositionNotificationTo("notify-read-emails@candyshop.com")
+          .withBounceTo("tech@candyshop.com")
+          .signWithDomainKey(privateKeyData, "somemail.com", "selector")
+          .buildEmail();
 
-email.setFromAddress("lollypop", "lolly.pop@mymail.com");
-email.setReplyToAddress("lollypop", "lolly.pop@othermail.com");
-email.addNamedToRecipients("lollypop", "lolly.pop@somemail.com");
-email.addNamedToRecipients("C. Cane", "candycane@candyshop.org");
-email.addRecipients("optional default name", CC, "rocky@candyshop.org; Chocobo <chocobo@candyshop.org>");
-email.setSubject("hey");
-email.setText("We should meet up! ;)");
-email.setTextHTML("&lt;img src=&#39;cid:wink1&#39;&gt;&lt;b&gt;We should meet up!&lt;/b&gt;&lt;img src=&#39;cid:wink2&#39;&gt;");
-email.addEmbeddedImage("wink1", imageByteArray, "image/png");
-email.addEmbeddedImage("wink2", imageDatesource);
-email.addAttachment("invitation", pdfByteArray, "application/pdf");
-email.addAttachment("dresscode", odfDatasource);
+Mailer mailer = MailerBuilder
+          .withSMTPServer("smtp.host.com", 587, "user@host.com", "password")
+          .withTransportStrategy(TransportStrategy.SMTP_TLS)
+          .withProxy("socksproxy.host.com", 1080, "proxy user", "proxy password")
+          .withSessionTimeout(10 * 1000)
+          .clearEmailAddressCriteria() // turns off email validation
+          .withProperty("mail.smtp.sendpartial", true)
+          .withDebugLogging(true)
+          .buildMailer();
 
-email.addHeader("X-Priority", 5);
-email.setUseReturnReceiptTo(true);
-
-email.signWithDomainKey(privateKeyData, "somemail.com", "selector");
-
-new Mailer(
-    new ServerConfig("smtp.host.com", 587, "user@host.com", "password"),
-    TransportStrategy.SMTP_TLS,
-    new ProxyConfig("socksproxy.host.com", 1080, "proxy user", "proxy password")
-).sendMail(email);
+mailer.sendMail(email);
 ```
 
 ---
