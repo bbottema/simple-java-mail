@@ -66,11 +66,41 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.4.5</version>
+    <version>5.0.0.rc1-SNAPSHOT</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v5.0.0.rc1 release candidate 1 (26-December-2017)
+
+New features
+- [#116](https://github.com/bbottema/simple-java-mail/issues/116) You can now test the connection to the SMTP server
+- [#115](https://github.com/bbottema/simple-java-mail/issues/115) Create mailers with a very robust MailerBuilder API, able to ignore defaults as well
+- [#114](https://github.com/bbottema/simple-java-mail/issues/114) Create emails with a very robust EmailBuilder API, able to ignore defaults as well
+. Now includes support for InternetAddress. Also copy 
+emails.
+- [#107](https://github.com/bbottema/simple-java-mail/issues/107) You can now easily forward or reply to emails!
+
+Security updates
+- [#111](https://github.com/bbottema/simple-java-mail/issues/111) Protocol properties for SMTPS are now applied properly
+- [#105](https://github.com/bbottema/simple-java-mail/issues/105) SMTP tries to upgrade to TLS while SMTP_TLS now enforces it and for both SMTP_TLS
+ and SMTPS, mail.smtp.ssl.checkserveridentity is set
+to true (https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html)
+
+Maintenance updates
+- [#120](https://github.com/bbottema/simple-java-mail/issues/120) The DKIM library has been made an optional proper Maven dependency (not packaged 
+along anymore)
+- [#119](https://github.com/bbottema/simple-java-mail/issues/119) Switched optional Spring dependency version to property and now testing with 4.3
+.11.RELEASE
+- [#113](https://github.com/bbottema/simple-java-mail/issues/113) Updated the underlying JavaMail to 1.6.0
+
+Bugfixes
+- [#110](https://github.com/bbottema/simple-java-mail/issues/110) Trusted hosts should be space-delimited
+- [#109](https://github.com/bbottema/simple-java-mail/issues/109) Email headers should be allowed to be empty (now conversion errors can occur as 
+well)
+- [#103](https://github.com/bbottema/simple-java-mail/issues/103) Converting to MimeMessage results in an invalid Content-Disposition for attachments
+
 
 [v4.4.5](http://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.5%7Cjar) (2-September-2017)
 
