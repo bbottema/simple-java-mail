@@ -114,11 +114,19 @@ public final class MiscUtil {
 		return TOKEN_DELIMITER_PATTERN.split(withoutTrailingDelimeter, 0);
 	}
 	
+	/**
+	 * @param name         The name to use as fixed name or as default (depending on <code>fixedName</code> flag). Regardless of that flag, if a name
+	 *                     is <code>null</code>, the other one will be used.
+	 * @param fixedName    Determines if the given name should be used as override.
+	 * @param emailAddress An RFC822 compliant email address, which can contain a name inside as well.
+	 */
 	@Nonnull
 	public static Recipient interpretRecipient(@Nullable final String name, boolean fixedName, @Nonnull final String emailAddress, @Nullable final RecipientType type) {
 		try {
 			final InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
-			final String relevantName = (fixedName || parsedAddress.getPersonal() == null) ? name : parsedAddress.getPersonal();
+			final String relevantName = (fixedName || parsedAddress.getPersonal() == null)
+					? defaultTo(name, parsedAddress.getPersonal())
+					: defaultTo(parsedAddress.getPersonal(), name);
 			return new Recipient(relevantName, parsedAddress.getAddress(), type);
 		} catch (final AddressException e) {
 			// InternetAddress failed to parse the email address even in non-strict mode

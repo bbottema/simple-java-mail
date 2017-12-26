@@ -1080,11 +1080,18 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
+	 * Delegates to {@link #withRecipient(String, String, RecipientType)} with the name omitted.
+	 */
+	@SuppressWarnings("WeakerAccess")
+	public EmailPopulatingBuilder withRecipient(@Nonnull final String singleAddress, @Nullable final RecipientType recipientType) {
+		return withRecipient(null, singleAddress, recipientType);
+	}
+	
+	/**
 	 * Adds a new {@link Recipient} instance with the given name, address and {@link RecipientType}.
 	 * <p>
 	 * Note that the email address must be a single address according to RFC822 format. Name can be provided explicitly or as part of the RFC822 email
-	 * address or omitted completely.
-	 * FIXME: test with explicit name and implicit name combined
+	 * address or omitted completely. If provided as method argument, the name overrides any nested name.
 	 *
 	 * @param name          Optional explicit name. Can be included in the email address instead, or omitted completely. A name will show as {@code
 	 *                      "Name Here <address@domain.com>"}
@@ -1094,7 +1101,7 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder withRecipient(@Nullable final String name, @Nonnull final String singleAddress, @Nullable final RecipientType recipientType) {
-		recipients.add(new Recipient(name, singleAddress, recipientType));
+		recipients.add(MiscUtil.interpretRecipient(name, true, singleAddress, recipientType));
 		return this;
 	}
 	
