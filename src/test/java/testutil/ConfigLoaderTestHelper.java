@@ -27,8 +27,11 @@ public class ConfigLoaderTestHelper {
 		return field;
 	}
 
-	public static void clearConfigProperties()
-			throws Exception {
-		setResolvedProperties(new HashMap<Property, Object>());
+	public static void clearConfigProperties() {
+		try {
+			setResolvedProperties(new HashMap<Property, Object>());
+		} catch (Exception e) {
+			throw new RuntimeException(e.getMessage(), e);
+		}
 	}
 }
