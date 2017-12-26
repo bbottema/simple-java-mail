@@ -75,7 +75,6 @@ import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyFor
  * On a technical note, the {@link Mailer} class is the front facade for the public API. It limits itself to preparing for sending, but the actual
  * sending and proxy configuration is done by the internal {@link MailSender}.
  *
- * @author Benny Bottema
  * @see MailerBuilder
  * @see Email
  */

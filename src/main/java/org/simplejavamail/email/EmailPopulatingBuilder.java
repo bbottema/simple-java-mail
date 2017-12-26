@@ -53,8 +53,6 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * <p>
  * NOTE: for some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
- *
- * @author Benny Bottema (early work also by Jared Stewart)
  */
 @SuppressWarnings("UnusedReturnValue")
 public class EmailPopulatingBuilder {

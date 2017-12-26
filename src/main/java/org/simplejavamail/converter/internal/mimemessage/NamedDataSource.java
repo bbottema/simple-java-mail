@@ -9,8 +9,6 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
  * Allows given datasource to be renamed (from {@link javax.activation.DataHandler} perspective).
- *
- * @author Lukas Kosina
  */
 class NamedDataSource implements DataSource {
 

@@ -27,8 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * used outside a JUnit statement (otherwise a {@link IllegalStateException} is raised).
  * <br>
  * The {@link Wiser} instance can be directly retrieved but also only from inside a JUnit statement.
- *
- * @author Sébastien Lesaint
  */
 public class SmtpServerRule extends ExternalResource implements TestRule {
 	private final SmtpServerSupport SmtpServerSupport;

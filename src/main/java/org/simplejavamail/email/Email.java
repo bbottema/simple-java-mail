@@ -15,9 +15,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 
 /**
  * Email message with all necessary data for an effective mailing action, including attachments etc. Exclusively created using {@link EmailBuilder}.
- *
- * // FIXME remove author tags, we have CVS for that
- * @author Benny Bottema
  */
 @SuppressWarnings("SameParameterValue")
 public class Email {

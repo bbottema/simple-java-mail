@@ -9,8 +9,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 
 /**
  * This exception is used to communicate errors during parsing of a {@link javax.mail.internet.MimeMessage}.
- *
- * @author Benny Bottema
  */
 @SuppressWarnings("serial")
 class MimeMessageParseException extends MailException {

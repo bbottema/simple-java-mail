@@ -23,8 +23,6 @@ import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
  * <li>forwarding()</li>
  * <li>copying()</li>
  * </ul>
- *
- * @author Benny Bottema
  */
 public class EmailBuilder {
 	

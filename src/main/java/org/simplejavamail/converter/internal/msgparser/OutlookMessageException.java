@@ -8,10 +8,8 @@ import javax.annotation.Nullable;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
- * This exception is used to communicate errors during parsing of a MsgParser {@link org.simplejavamail.outlookmessageparser.model.OutlookMessage} of Outlook
- * .msg data.
- *
- * @author Benny Bottema
+ * This exception is used to communicate errors during parsing of a MsgParser {@link org.simplejavamail.outlookmessageparser.model.OutlookMessage} of
+ * Outlook .msg data.
  */
 @SuppressWarnings("serial")
 class OutlookMessageException extends MailException {

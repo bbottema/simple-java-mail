@@ -353,8 +353,6 @@ public final class MimeMessageHelper {
 	 * 	- forwarded message
 	 * 	- attachments
 	 * </pre>
-	 *
-	 * @author Benny Bottema
 	 */
 	private static class MimeEmailMessageWrapper {
 

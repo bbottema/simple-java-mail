@@ -4,8 +4,6 @@ import org.simplejavamail.MailException;
 
 /**
  * This exception is used to communicate errors during the creation of an email.
- * 
- * @author Benny Bottema
  */
 @SuppressWarnings("serial")
 class EmailConverterException extends MailException {

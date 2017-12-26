@@ -14,9 +14,6 @@ import static org.simplejavamail.util.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 /**
  * Defines the various types of transport protocols and implements respective properties so that a {@link Session} may be configured using a
  * <code>TransportStrategy</code> implementation.
- *
- * @author Benny Bottema
- * @author Christian Barcenas
  */
 public enum TransportStrategy {
 

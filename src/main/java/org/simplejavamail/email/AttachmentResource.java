@@ -15,7 +15,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * A named immutable email attachment information object. The name can be a simple name, a filename or a named embedded image (eg.
  * &lt;cid:footer&gt;). Contains a {@link DataSource} that is compatible with the javax.mail API.
  *
- * @author Benny Bottema
  * @see DataSource
  */
 public class AttachmentResource {

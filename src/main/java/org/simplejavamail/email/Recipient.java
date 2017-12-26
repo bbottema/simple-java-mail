@@ -9,8 +9,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 
 /**
  * An immutable recipient object, with a name, emailaddress and recipient type (eg {@link RecipientType#BCC}).
- * 
- * @author Benny Bottema
  */
 public final class Recipient {
 
