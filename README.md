@@ -21,6 +21,7 @@ EmailBuilder.copying(email)
 ConfigLoader.loadProperties("simplejavamail.properties"); // optional default
 ConfigLoader.loadProperties("overrides.properties"); // optional extra
 
+// almost everything is optional:
 Email email = EmailBuilder.startingBlank()
           .to("lollypop", "lolly.pop@somemail.com")
           .to("C. Cane", "candycane@candyshop.org")
