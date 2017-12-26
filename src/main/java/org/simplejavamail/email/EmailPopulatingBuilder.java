@@ -1155,7 +1155,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withEmbeddedImage(String, DataSource)} for each embedded image.
 	 */
-	//FIXME properly clone resources
 	public EmailPopulatingBuilder withEmbeddedImages(@Nonnull final List<AttachmentResource> embeddedImages) {
 		for (final AttachmentResource embeddedImage : embeddedImages) {
 			withEmbeddedImage(embeddedImage.getName(), embeddedImage.getDataSource());
