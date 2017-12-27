@@ -66,7 +66,7 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.0.0.rc1-SNAPSHOT</version>
+    <version>4.4.5</version><!-- 5.0.0.rc1-SNAPSHOT in OSS snapshots repo -->
 </dependency>
 ```
 
