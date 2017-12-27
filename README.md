@@ -72,7 +72,7 @@ Simple Java Mail is available in Maven Central:
 
 ### Latest Progress ###
 
-v5.0.0.rc1 release candidate 1 (26-December-2017)
+v5.0.0.rc1-SNAPSHOT (26-December-2017)
 
 This is currently a snapshot. To get access to it, add the [OSS snapshots repo](https://stackoverflow.com/a/7717234/441662) to your maven settings
 
