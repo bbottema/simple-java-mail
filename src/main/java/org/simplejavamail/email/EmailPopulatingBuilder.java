@@ -1004,7 +1004,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param fixedName              Indicates whether the provided name should be applied to all addresses, or only to those where a name is
 	 *                               missing.
-	 * @param oneOrMoreAddressesEach Collection of addresses. Each entry itself can be a delimited list of RFC822 addresses.
+	 * @param oneOrMoreAddressesEach Collection of addresses. Each entry itself can be a delimited list of RFC2822 addresses.
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
@@ -1090,12 +1090,12 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Adds a new {@link Recipient} instance with the given name, address and {@link RecipientType}.
 	 * <p>
-	 * Note that the email address must be a single address according to RFC822 format. Name can be provided explicitly or as part of the RFC822 email
+	 * Note that the email address must be a single address according to RFC2822 format. Name can be provided explicitly or as part of the RFC2822 email
 	 * address or omitted completely. If provided as method argument, the name overrides any nested name.
 	 *
 	 * @param name          Optional explicit name. Can be included in the email address instead, or omitted completely. A name will show as {@code
 	 *                      "Name Here <address@domain.com>"}
-	 * @param singleAddress A single address according to RFC822 format with or without personal name.
+	 * @param singleAddress A single address according to RFC2822 format with or without personal name.
 	 * @param recipientType Optional type of recipient. This is needed for TO, CC and BCC, but not for <em>bounceTo</em>, <em>returnReceiptTo</em>,
 	 *                      <em>replyTo</em>, <em>from</em> etc.
 	 */
@@ -1108,7 +1108,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Adds a new {@link Recipient} instance as copy of the provided recipient (copying name, address and {@link RecipientType}).
 	 * <p>
-	 * Note that the email address must be a single address according to RFC822 format. Name can be provided explicitly or as part of the RFC822 email
+	 * Note that the email address must be a single address according to RFC2822 format. Name can be provided explicitly or as part of the RFC2822 email
 	 * address or omitted completely.
 	 */
 	@SuppressWarnings("WeakerAccess")
