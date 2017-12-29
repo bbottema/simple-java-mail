@@ -1,33 +1,33 @@
 <div class="content">
-  
+
   <h1>Simple Java Mail Features</h1>
-  
+
   <section>
     <p class="wide">
       Note, currently 5.0.0 is released as 5.0.0.rc1-SNAPSHOT. To use it, add
       <a href="https://stackoverflow.com/a/7717234/441662">OSS' snapshots repo</a> to your maven settings.
     </p>
   </section>
-  
+
   <section class="introduction">
     <p class="wide">
       Creating and sending emails is very simple with Simple Java Mail; you don't need to know about the mailing RFC, MimeMessage or any other low
       level <code class="inline">javax.mail</code> API. No anonymous inner classes needed and no <a
       href="http://docs.spring.io/spring/docs/current/spring-framework-reference/html/mail.html">large frameworks</a> needed nor XML.
     </p>
-    
+
     <p class="wide">
       On top of that, Simple Java Mail will do some basic validation checks so that your email is always populated with enough data. It even verifies
       email addresses against <a href="https://tools.ietf.org/html/rfc2822">RFC-2822</a> using the only complete <a
       href="https://github.com/bbottema/email-rfc2822-validator">rfc2822 validator in java</a> in the world.
     </p>
-    
+
     <p class="wide">
       Simple Java Mail also takes care of all the
       <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">connection and security properties</a> for you.
     </p>
   </section>
-  
+
   <section class="toc">
     <ul>
       <li><a simplePageScroll href="#section-basic-usage">Basic usage</a></li>
@@ -55,17 +55,17 @@
       <li><a simplePageScroll href="#section-connection-test">Testing a server connection</a></li>
     </ul>
   </section>
-  
+
   <section class="roadmap">
     <h2>Roadmap</h2>
     <p>Currently everything we can think of is included!</p>
     <p>Got a suggestion? Please post it in the <a
       href="https://github.com/bbottema/simple-java-mail/issues"><strong>issue tracker</strong></a>.</p>
   </section>
-  
+
   <a href="#section-basic-usage" id="section-basic-usage" class="section-link h2">&sect;</a>
   <h2>Basic usage</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -77,7 +77,7 @@
         A Mailer instance is reusable.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>Email email = EmailBuilder.startingBlank()
     .from("Michel Baker", "m.baker@mbakery.com")
@@ -94,11 +94,11 @@ MailerBuilder.
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-builder-api" id="section-builder-api" class="section-link h3">&sect;</a>
   <h3>About the fluent API with the Builder pattern</h3>
-  
+
   <section>
     <p class="wide">
       The entry classes for the builders are EmailBuilder and MailerBuilder. For both, the first method affects the rest of the builder behavior.
@@ -115,17 +115,17 @@ MailerBuilder.
       <strong>If you provide your own session, a lot of properties are presumed to be preconfigured</strong>, such as SMTP server details.
     </p>
   </section>
-  
+
   <a href="#section-reusable-mailer" id="section-reusable-mailer" class="section-link h3">&sect;</a>
   <h3>Configure once, reuse many times</h3>
-  
+
   <section>
     <div class="view">
       <p>
         You can preconfigure a <code class="inline">Mailer</code> and use it many times.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>Mailer inhouseMailer = new Mailer("server", 25, "username", "password");
 
@@ -148,51 +148,144 @@ public Mailer inhouseMailer() {{ '{' }}
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-add-recipients" id="section-add-recipients" class="section-link h3">&sect;</a>
   <h3>Alternative API for almost everything</h3>
-  
+
   <section>
     <div>
       <p class="wide">
         Simple Java Mail has alternative ways to do things for almost everything...
       </p>
       <p class="wide">
-        For example you can add recipients using <code class="inline">Recipient</code> objects,
-        <code class="inline">String</code> addresses (each can be comma delimited and include optional nested names),
-        <code class="inline">InternetAddress</code> objects, collections of said addresses, default address names or fixed address names.
+        For example, when building an email, you can add recipients using
+        <a href="https://github.com/bbottema/simple-java-mail/blob/master/src/main/java/org/simplejavamail/email/Recipient.java"><code class="inline">Recipient</code></a>
+        objects, <a href="">RFC822 compiant <code class="inline">String</code> addresses</a> (each can be comma delimited and include optional nested names),
+        <a href="http://geronimo.apache.org/maven/specs/geronimo-javamail_1.4_spec/1.6/apidocs/javax/mail/internet/InternetAddress.html"><code class="inline">InternetAddress</code></a>
+        objects, collections of said addresses, default address names or fixed address names.
       </p>
     </div>
-    
+
     <div>
-      <p><code class="inline">Email</code>:</p>
       <pre><code>// You can add your own Recipient instances for example
-currentEmailBuilder.withRecipients(yourRecipient1, yourRecipient2...);
+currentEmailBuilder.withRecipients(yourRecipient1, yourRecipient2...);</code></pre>
 
-// or add comma / semicolon separated addresses (without names)
+      <pre><code>// or add comma / semicolon separated addresses (without names)
 String list = "twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com";
-currentEmailBuilder.bcc(list);
-// or:
+currentEmailBuilder.bcc(list);</code></pre>
+      <pre><code>// or:
 currentEmailBuilder.bccWithDefaultName("maintenance group", list);
-currentEmailBuilder.bccWithFixedName("maintenance group", list); // same as .bcc()
+currentEmailBuilder.bccWithFixedName("maintenance group", list); // same as .bcc()</code></pre>
 
-// what about a group with one deviating name?
+      <pre><code>// what about a group with one deviating name?
 String list = "bob@sweets.com, gene@sweets.com; Security Group &lt;security@sweets.com&gt;";
 currentEmailBuilder.toWithDefaultName("stakeholders", list);
-// bob and gene are named "stakeholders", "Security Group" get its own name
-</code></pre>
+// bob and gene are named "stakeholders", "Security Group" get its own name</code></pre>
       <p>Through properties:</p>
       <pre><code class="language-properties">simplejavamail.defaults.bcc.name=
 simplejavamail.defaults.bcc.address=twister@sweets.com,blue.tongue@sweets.com;honey@sweets.com
 </code></pre>
     </div>
+
+    <div>
+      <div class="view">
+        <p>To give you an idea of how flexible the API is for adding recipients:</p>
+      </div>
+      <div class="side">
+      <pre><code class="small">// TO
+.to(Recipient... recipients)
+.to(Collection&lt;Recipient&gt; recipients)
+.to(String name, String address)
+.to(String oneOrMoreAddresses)
+.to(String name, String... oneOrMoreAddressesEach)
+.to(String name, Collection&lt;String&gt; oneOrMoreAddressesEach)
+.toMultiple(String... oneOrMoreAddressesEach)
+.toMultiple(Collection&lt;String&gt; oneOrMoreAddressesEach)
+.toWithFixedName(String name, String... oneOrMoreAddressesEach)
+.toWithDefaultName(String name, String... oneOrMoreAddressesEach)
+.toWithFixedName(String name, Collection&lt;String&gt; oneOrMoreAddressesEach)
+.toWithDefaultName(String name, Collection&lt;String&gt; oneOrMoreAddressesEach)
+.to(String name, InternetAddress address)
+.to(InternetAddress address)
+.to(String name, InternetAddress... oneOrMoreAddressesEach)
+.toAddresses(String name, Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+.toMultiple(InternetAddress... oneOrMoreAddressesEach)
+.toMultipleAddresses(Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+.toAddressesWithFixedName(String name, InternetAddress... oneOrMoreAddressesEach)
+.toAddressesWithDefaultName(String name, InternetAddress... oneOrMoreAddressesEach)
+.toAddressesWithFixedName(String name, Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+.toAddressesWithDefaultName(String name, Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+// CC
+.cc(Recipient... recipients)
+.cc(Collection&lt;Recipient&gt; recipients)
+.cc(String name, String address)
+.cc(String oneOrMoreAddresses)
+.cc(String name, String... oneOrMoreAddressesEach)
+.cc(String name, Collection&lt;String&gt; oneOrMoreAddressesEach)
+.ccMultiple(String... oneOrMoreAddressesEach)
+.ccAddresses(Collection&lt;String&gt; oneOrMoreAddressesEach)
+.ccWithFixedName(String name, String... oneOrMoreAddressesEach)
+.ccWithDefaultName(String name, String... oneOrMoreAddressesEach)
+.ccWithFixedName(String name, Collection&lt;String&gt; oneOrMoreAddressesEach)
+.ccWithDefaultName(String name, Collection&lt;String&gt; oneOrMoreAddressesEach)
+.cc(String name, InternetAddress address)
+.cc(InternetAddress address)
+.cc(String name, InternetAddress... oneOrMoreAddressesEach)
+.ccAddresses(String name, Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+.ccMultiple(InternetAddress... oneOrMoreAddressesEach)
+.ccMultipleAddresses(Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+.ccAddressesWithFixedName(String name, InternetAddress... oneOrMoreAddressesEach)
+.ccAddressesWithDefaultName(String name, InternetAddress... oneOrMoreAddressesEach)
+.ccAddressesWithFixedName(String name, Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+.ccAddressesWithDefaultName(String name, Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+// BCC
+.bcc(Recipient... recipients)
+.bcc(Collection&lt;Recipient&gt; recipients)
+.bcc(String name, String address)
+.bcc(String oneOrMoreAddresses)
+.bcc(String name, String... oneOrMoreAddressesEach)
+.bcc(String name, Collection&lt;String&gt; oneOrMoreAddressesEach)
+.bccMultiple(String... oneOrMoreAddressesEach)
+.bccAddresses(Collection&lt;String&gt; oneOrMoreAddressesEach)
+.bccWithFixedName(String name, String... oneOrMoreAddressesEach)
+.bccWithDefaultName(String name, String... oneOrMoreAddressesEach)
+.bccWithFixedName(String name, Collection&lt;String&gt; oneOrMoreAddressesEach)
+.bccWithDefaultName(String name, Collection&lt;String&gt; oneOrMoreAddressesEach)
+.bcc(String name, InternetAddress address)
+.bcc(InternetAddress address)
+.bcc(String name, InternetAddress... oneOrMoreAddressesEach)
+.bccAddresses(String name, Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+.bccMultiple(InternetAddress... oneOrMoreAddressesEach)
+.bccMultipleAddresses(Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+.bccAddressesWithFixedName(String name, InternetAddress... oneOrMoreAddressesEach)
+.bccAddressesWithDefaultName(String name, InternetAddress... oneOrMoreAddressesEach)
+.bccAddressesWithFixedName(String name, Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+.bccAddressesWithDefaultName(String name, Collection&lt;InternetAddress&gt; oneOrMoreAddressesEach)
+// GENERIC
+.withRecipientsWithDefaultName(String defaultName, Collection&lt;String&gt; oneOrMoreAddressesEach, RecipientType recipientType)
+.withRecipientsWithFixedName(String fixedName, Collection&lt;String&gt; oneOrMoreAddressesEach, RecipientType recipientType)
+.withRecipientsWithDefaultName(String name, RecipientType recipientType, String... oneOrMoreAddressesEach)
+.withRecipientsWithFixedName(String name, RecipientType recipientType, String... oneOrMoreAddressesEach)
+.withRecipients(String name, boolean fixedName, RecipientType recipientType, String... oneOrMoreAddressesEach)
+.withRecipients(String name, boolean fixedName, Collection&lt;String&gt; oneOrMoreAddressesEach, RecipientType recipientType)
+.withAddressesWithDefaultName(String defaultName, Collection&lt;InternetAddress&gt; addresses, RecipientType recipientType)
+.withAddressesWithFixedName(String fixedName, Collection&lt;InternetAddress&gt; addresses, RecipientType recipientType)
+.withAddresses(String name, boolean fixedName, Collection&lt;InternetAddress&gt; addresses, RecipientType recipientType)
+.withRecipients(Collection&lt;Recipient&gt; recipients)
+.withRecipients(Recipient... recipients)
+.withRecipients(Collection&lt;Recipient&gt; recipients, RecipientType fixedRecipientType)
+.withRecipient(String singleAddress, RecipientType recipientType)
+.withRecipient(String name, String singleAddress, RecipientType recipientType)
+.withRecipient(Recipient recipient)</code></pre>
+      </div>
+    </div>
   </section>
-  
-  
+
+
   <a href="#section-sending-asynchronously" id="section-sending-asynchronously" class="section-link h3">&sect;</a>
   <h3>Asynchronous parallel batch sending</h3>
-  
+
   <section>
     <div class="view">
       <p>
@@ -206,7 +299,7 @@ simplejavamail.defaults.bcc.address=twister@sweets.com,blue.tongue@sweets.com;ho
         Depending on the SMTP server (and proxy server if used) this can greatly influence how fast emails are sent.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>mailer.sendMail(email, /* async = */ true);
 </code></pre>
@@ -214,18 +307,18 @@ simplejavamail.defaults.bcc.address=twister@sweets.com,blue.tongue@sweets.com;ho
          on how to set the thread pool size default.</p>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-custom-session" id="section-custom-session" class="section-link h2">&sect;</a>
   <h2>Sending with your own Session instance</h2>
-  
+
   <section>
     <div class="view">
       <p>
         If you prefer to use your own preconfigured <code class="inline">Session</code> instance and still benefit from Simple Java Mail, you can!
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>Email email = ...
 ...
@@ -237,27 +330,27 @@ MailerBuilder
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-custom-id" id="section-custom-id" class="section-link h2">&sect;</a>
   <h2>Setting a custom message ID on sent email</h2>
-  
+
   <section>
     <div class="view">
       <p>Message id's are normally generated by the underlying JavaMail framework, but you can provide your own if required.</p>
       <p>Just make sure your own id's conform to the <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322</a> msg-id format standard</p>
     </div>
-    
+
     <div class="side">
 <pre><code>currentEmailBuilder.fixingMessageId("<123@456>");
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-sent-id" id="section-sent-id" class="section-link h2">&sect;</a>
   <h2>Getting the generated email id after sending</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -265,7 +358,7 @@ MailerBuilder
         Luckily, it's very easy to retrieve it.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>
 mailer.sendMail(email); // id updated during sending!
@@ -273,18 +366,18 @@ email.getId(); // <1420232606.6.1509560747190@Cypher>
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-ssl-tls" id="section-ssl-tls" class="section-link h2">&sect;</a>
   <h2>Sending with SSL and TLS</h2>
-  
+
   <section>
     <div class="view">
       <p>
         Activating SSL or TLS is super easy. Just use the appropriate <code class="inline">TransportStrategy</code> enum.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code class="small">Email email = ...;
 
@@ -294,11 +387,11 @@ MailerBuilder.withTransportStrategy(TransportStrategy.SMTP_TLS);
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-gmail" id="section-gmail" class="section-link h3">&sect;</a>
   <h3>SSL and TLS with Google mail</h3>
-  
+
   <section>
     <div class="view">
       <p>
@@ -311,7 +404,7 @@ MailerBuilder.withTransportStrategy(TransportStrategy.SMTP_TLS);
         from your Google account.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>MailerBuilder
   .withSMTPServer("smtp.gmail.com", 25, "your user", "your password")
@@ -325,11 +418,11 @@ MailerBuilder.withTransportStrategy(TransportStrategy.SMTP_TLS);
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-attachments" id="section-attachments" class="section-link h2">&sect;</a>
   <h2>Adding attachments</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -337,7 +430,7 @@ MailerBuilder.withTransportStrategy(TransportStrategy.SMTP_TLS);
         and <code class="inline">DataSource</code> objects.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code class="small">currentEmailBuilder
     .withAttachment("dresscode.txt", new ByteArrayDataSource("Black Tie Optional", "text/plain"))
@@ -347,18 +440,18 @@ MailerBuilder.withTransportStrategy(TransportStrategy.SMTP_TLS);
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-embedding" id="section-embedding" class="section-link h2">&sect;</a>
   <h2>Embedding images</h2>
-  
+
   <section>
     <div class="view">
       <p>
         Embedding images is simple, but you have to add the placeholders in the HTML yourself.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code class="small">currentEmailBuilder.withEmbeddedImage("smiley", new FileDataSource("smiley.jpg"));
 // this example is included in the demo package in MailTestApp.java
@@ -371,11 +464,11 @@ currentEmailBuilder.withEmbeddedImage("thumbsup", parseBase64Binary(base64String
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-custom-headers" id="section-custom-headers" class="section-link h2">&sect;</a>
   <h2>Setting custom headers</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -383,7 +476,7 @@ currentEmailBuilder.withEmbeddedImage("thumbsup", parseBase64Binary(base64String
         a proxy or monitoring setup in between mail servers. Whatever the case, adding headers is easy.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>currentEmailBuilder
     .withHeader("X-Priority", 2);
@@ -395,11 +488,11 @@ currentEmailBuilder.withEmbeddedImage("thumbsup", parseBase64Binary(base64String
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-custom-properties" id="section-custom-properties" class="section-link h2">&sect;</a>
   <h2>Setting custom properties on the internal Session</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -407,7 +500,7 @@ currentEmailBuilder.withEmbeddedImage("thumbsup", parseBase64Binary(base64String
         <code class="inline">javax.mail</code>, that too is very easy.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>currentMailerBuilder
     .withProperty("mail.smtp.timeout", 30 * 1000)
@@ -418,11 +511,11 @@ currentEmailBuilder.withEmbeddedImage("thumbsup", parseBase64Binary(base64String
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-session-access" id="section-session-access" class="section-link h2">&sect;</a>
   <h2>Direct access to the internal Session</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -431,7 +524,7 @@ currentEmailBuilder.withEmbeddedImage("thumbsup", parseBase64Binary(base64String
                                                                                                        this need</strong>.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>Mailer mailer = ...;
 
@@ -440,11 +533,11 @@ Session session = mailer.getSession();
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-dkim" id="section-dkim" class="section-link h2">&sect;</a>
   <h2>Signing emails with DKIM</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -453,7 +546,7 @@ Session session = mailer.getSession();
         perform the DNS DKIM record check on the given domain.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>currentEmailBuilder.
     .signWithDomainKey(
@@ -467,11 +560,11 @@ mailer.sendMail(signedEmail);
       <pre><code>Mailer.signMessageWithDKIM(mimeMessageToSign, emailContainingSigningDetails);</code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-return-receipt" id="section-return-receipt" class="section-link h2">&sect;</a>
   <h2>Configure delivery / read receipt</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -484,7 +577,7 @@ mailer.sendMail(signedEmail);
         to the <em>replyTo</em> address if available or else the <em>fromAddress</em>.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code class="small">currentEmailBuilder.
     .withDispositionNotificationTo();
@@ -495,11 +588,11 @@ mailer.sendMail(signedEmail);
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-email-validation" id="section-email-validation" class="section-link h2">&sect;</a>
   <h2>Validating Email Addresses</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -511,7 +604,7 @@ mailer.sendMail(signedEmail);
         Address validation is performed automatically when sending emails, but you can also directly perform validations.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>currentMailerBuilder
     .withEmailAddressCriteria(EmailAddressCriteria.RFC_COMPLIANT)
@@ -536,12 +629,12 @@ EmailAddressValidator.isValid("your_address@domain.com",
 </code></pre>
     </div>
   </section>
-  
-  
-  
+
+
+
   <a href="#section-generate-converting" id="section-converting" class="section-link h2">&sect;</a>
   <h2>Converting between, Email, MimeMessage, EML and Outlook .msg</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -557,7 +650,7 @@ EmailAddressValidator.isValid("your_address@domain.com",
          You can even build a mass Outlook .msg to <a href="http://forensicswiki.org/wiki/EML">EML</a> converter if you like!
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code class="small">// from Email
 String eml =              EmailConverter.emailToEML(yourEmail);
@@ -586,11 +679,11 @@ MimeMessage mimeMessage = EmailConverter.outlookMsgToMimeMessage(getInputStream(
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-bouncing-emails" id="section-bouncing-emails" class="section-link h2">&sect;</a>
   <h2>Setting custom recipient for bouncing emails</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -602,7 +695,7 @@ MimeMessage mimeMessage = EmailConverter.outlookMsgToMimeMessage(getInputStream(
         Simple Java Mail offers a convenience method to set this property.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>// in similar fashion to setting replyTo address:
 currentEmailBuilder
@@ -612,11 +705,11 @@ currentEmailBuilder
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-reply-forward" id="section-reply-forward" class="section-link h2">&sect;</a>
   <h2>Replying to and forwarding emails</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -636,7 +729,7 @@ currentEmailBuilder
         </ul>
       </div>
     </div>
-    
+
     <div class="side">
       <p>Replying to an email:</p>
 <pre><code>EmailBuilder
@@ -654,11 +747,11 @@ currentEmailBuilder
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-proxy" id="section-proxy" class="section-link h2">&sect;</a>
   <h2>Send using a proxy</h2>
-  
+
   <section>
     <div>
       <p class="wide">
@@ -675,7 +768,7 @@ currentEmailBuilder
         This temporary server is referred to as the <strong>Proxy Bridging Server</strong>.
       </p>
     </div>
-    
+
     <div>
 <pre><code>// anonymous proxy
 currentMailerBuilder.withProxy("proxy.host.com", 1080)
@@ -687,11 +780,11 @@ currentMailerBuilder.withProxy("proxy.host.com", 1080, "proxy username", "proxy 
          on how to set proxy server defaults and the port on which the proxy bridge runs.</p>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-connection-test" id="section-connection-test" class="section-link h2">&sect;</a>
   <h2>Testing a server connection</h2>
-  
+
   <section>
     <div>
       <p class="wide">
@@ -699,7 +792,7 @@ currentMailerBuilder.withProxy("proxy.host.com", 1080, "proxy username", "proxy 
         proxy, Simple Java Mail got you covered.
       </p>
     </div>
-    
+
     <div>
 <pre><code>// configure your mailer
 Mailer mailer = ...;
