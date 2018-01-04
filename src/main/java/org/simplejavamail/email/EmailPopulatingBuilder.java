@@ -1189,10 +1189,9 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @see #withHeaders(Map)
 	 */
-	public EmailPopulatingBuilder withHeader(@Nonnull final String name, @Nonnull final Object value) {
+	public EmailPopulatingBuilder withHeader(@Nonnull final String name, @Nullable final Object value) {
 		checkNonEmptyArgument(name, "name");
-		checkNonEmptyArgument(value, "value");
-		headers.put(name, String.valueOf(value));
+		headers.put(name, value != null ? String.valueOf(value) : null);
 		return this;
 	}
 	
