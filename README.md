@@ -66,13 +66,13 @@ Simple Java Mail is available in Maven Central:
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.4.5</version><!-- 5.0.0.rc1-SNAPSHOT in OSS snapshots repo -->
+    <version>4.4.5</version><!-- 5.0.0.rc2-SNAPSHOT in OSS snapshots repo -->
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v5.0.0.rc1-SNAPSHOT (26-December-2017)
+v5.0.0.rc2-SNAPSHOT (26-December-2017)
 
 This is currently a snapshot. To get access to it, add the [OSS snapshots repo](https://stackoverflow.com/a/7717234/441662) to your maven settings
 
