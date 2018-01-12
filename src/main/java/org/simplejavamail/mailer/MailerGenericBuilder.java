@@ -31,7 +31,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * <p>
  * To start a new Mailer builder, refer to {@link MailerBuilder}.
  */
-public abstract class MailerGenericBuiler<T extends MailerGenericBuiler> {
+public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	
 	/**
 	 * The default maximum timeout value for the transport socket is {@value #DEFAULT_SESSION_TIMEOUT_MILLIS} milliseconds (affects socket connect-,
@@ -129,7 +129,7 @@ public abstract class MailerGenericBuiler<T extends MailerGenericBuiler> {
 	 * <p>
 	 * <strong>Note:</strong> Any builder methods invoked after this will override the default value.
 	 */
-	MailerGenericBuiler() {
+	MailerGenericBuilder() {
 		if (hasProperty(PROXY_HOST)) {
 			withProxyHost((String) getProperty(PROXY_HOST));
 		}

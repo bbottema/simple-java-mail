@@ -15,7 +15,7 @@ import static org.simplejavamail.util.ConfigLoader.getProperty;
 import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
 /**
- * Entry builder used to start a {@link MailerGenericBuiler} and fully configure a Mailer.
+ * Entry builder used to start a {@link MailerGenericBuilder} and fully configure a Mailer.
  * <p>
  * Any of these methods return a specialized builder, of which there are two:
  * <ul>
@@ -120,7 +120,7 @@ public class MailerBuilder {
 	 *
 	 * @see TransportStrategy
 	 */
-	public static class MailerRegularBuilder extends MailerGenericBuiler<MailerRegularBuilder> {
+	public static class MailerRegularBuilder extends MailerGenericBuilder<MailerRegularBuilder> {
 		
 		private String host;
 		private Integer port;

@@ -4,6 +4,7 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
+import org.simplejavamail.mailer.MailerGenericBuilder;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
 import org.simplejavamail.mailer.internal.socks.SocksProxyConfig;
@@ -331,7 +332,7 @@ public class MailSender {
 	}
 
 	/**
-	 * @see org.simplejavamail.mailer.MailerGenericBuiler#trustingAllHosts(Boolean)
+	 * @see MailerGenericBuilder#trustingAllHosts(Boolean)
 	 */
 	private void trustAllHosts(final boolean trustAllHosts) {
 		if (transportStrategy != null) {
@@ -345,7 +346,7 @@ public class MailSender {
 	}
 
 	/**
-	 * @see org.simplejavamail.mailer.MailerGenericBuiler#trustingSSLHosts(String...)
+	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
 	private void trustHosts(@Nonnull final List<String>  hosts) {
 		trustAllHosts(false);

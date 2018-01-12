@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal.mailsender;
 
+import org.simplejavamail.mailer.MailerGenericBuilder;
+
 import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
@@ -9,7 +11,7 @@ import java.util.Properties;
  * Contains all the configuration that affect how a {@link org.simplejavamail.mailer.Mailer} operates. This includes connection settings such as
  * timeouts, debug mode and which hosts to trust.
  * <p>
- * All of these settings are configured on the {@link org.simplejavamail.mailer.MailerGenericBuiler}.
+ * All of these settings are configured on the {@link MailerGenericBuilder}.
  */
 public class OperationalConfig {
 	/**

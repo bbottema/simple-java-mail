@@ -13,7 +13,7 @@ import javax.mail.Session;
  *
  * @see org.simplejavamail.mailer.config.TransportStrategy
  */
-public class MailerFromSessionBuilder extends MailerGenericBuiler<MailerFromSessionBuilder> {
+public class MailerFromSessionBuilder extends MailerGenericBuilder<MailerFromSessionBuilder> {
 	
 	/**
 	 * @see #usingSession(Session)
