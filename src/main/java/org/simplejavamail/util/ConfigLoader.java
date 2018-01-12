@@ -125,19 +125,19 @@ public final class ConfigLoader {
 	}
 	
 	/**
-	 * @return The value if not null or else the value from config file if provided or else <code>null</code>.
+	 * @return The value if not null or else the value from config file if provided or else {@code null}.
 	 */
 	public static <T> T valueOrProperty(final T value, final Property property) {
 		return valueOrProperty(value, property, null);
 	}
 
 	/**
-	 * Returns the given value if not null and not empty, otherwise tries to resolve the given property and if still not found resot to the default value if
+	 * Returns the given value if not null and not empty, otherwise tries to resolve the given property and if still not found resort to the default value if
 	 * provided.
 	 * <p>
 	 * Null or blank values are never allowed, so they are always ignored.
 	 *
-	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
+	 * @return The value if not null or else the value from config file if provided or else {@code defaultValue}.
 	 */
 	public static <T> T valueOrProperty(final T value, final Property property, final T defaultValue) {
 		if (!valueNullOrEmpty(value)) {

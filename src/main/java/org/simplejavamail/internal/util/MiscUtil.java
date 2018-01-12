@@ -115,8 +115,8 @@ public final class MiscUtil {
 	}
 	
 	/**
-	 * @param name         The name to use as fixed name or as default (depending on <code>fixedName</code> flag). Regardless of that flag, if a name
-	 *                     is <code>null</code>, the other one will be used.
+	 * @param name         The name to use as fixed name or as default (depending on {@code fixedName} flag). Regardless of that flag, if a name
+	 *                     is {@code null}, the other one will be used.
 	 * @param fixedName    Determines if the given name should be used as override.
 	 * @param emailAddress An RFC2822 compliant email address, which can contain a name inside as well.
 	 */

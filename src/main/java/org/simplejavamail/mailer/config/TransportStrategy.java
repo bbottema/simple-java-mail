@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.config;
 
+import org.simplejavamail.mailer.Mailer;
 import org.simplejavamail.util.ConfigLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +14,7 @@ import static org.simplejavamail.util.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 
 /**
  * Defines the various types of transport protocols and implements respective properties so that a {@link Session} may be configured using a
- * <code>TransportStrategy</code> implementation.
+ * {@link TransportStrategy} implementation.
  */
 public enum TransportStrategy {
 
@@ -166,7 +167,7 @@ public enum TransportStrategy {
 		}
 		
 		/**
-		 * Sets {@link #opportunisticTLS}. Setting <code>null</code> will revert to property value if available or default to {@value
+		 * Sets {@link #opportunisticTLS}. Setting {@code null} will revert to property value if available or default to {@value
 		 * DEFAULT_OPPORTUNISTIC_TLS}
 		 */
 		@Override
@@ -421,7 +422,7 @@ public enum TransportStrategy {
 	
 	/**
 	 * Marker property used to track which {@link TransportStrategy} has been used. This way we can differentiate between preconfigured custom
-	 * <code>Session</code> and sessions created by a <code>Mailer</code> instance, without checking each and every property for a specific strategy.
+	 * {@link Session} and sessions created by a {@link Mailer} instance, without checking each and every property for a specific strategy.
 	 * <p>
 	 * This is mainly for logging purposes.
 	 */

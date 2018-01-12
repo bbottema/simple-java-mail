@@ -2,6 +2,7 @@ package org.simplejavamail.email;
 
 import org.simplejavamail.email.EmailBuilder.EmailBuilderInstance;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.mailer.Mailer;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
@@ -213,7 +214,7 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument.
+	 * Delegates to {@link Email#Email(EmailPopulatingBuilder)} with {@code this} as argument.
 	 */
 	public Email buildEmail() {
 		return new Email(this);
@@ -1181,8 +1182,7 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>. example: <code>email.addHeader("X-Priority",
-	 * 2)</code>
+	 * Adds a header to the {@link #headers} list. The value is stored as a {@link String}. example: {@code email.addHeader("X-Priority", 2)}
 	 *
 	 * @param name  The name of the header.
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
@@ -1264,7 +1264,7 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Primes this email for signing with a DKIM domain key. Actual signing is done when sending using a <code>Mailer</code>.
+	 * Primes this email for signing with a DKIM domain key. Actual signing is done when sending using a {@link Mailer}.
 	 * <p>
 	 * Also see:
 	 * <pre><ul>
