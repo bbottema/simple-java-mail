@@ -372,7 +372,7 @@ public final class MimeMessageParser {
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<InternetAddress> parseToAddresses(@Nonnull final MimeMessage mimeMessage) {
-		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.TO));
+		return parseAddresses(mimeMessage, RecipientType.TO);
 	}
 
 	/**
@@ -384,7 +384,7 @@ public final class MimeMessageParser {
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<InternetAddress> parseCcAddresses(@Nonnull final MimeMessage mimeMessage) {
-		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.CC));
+		return parseAddresses(mimeMessage, RecipientType.CC);
 	}
 
 	/**
@@ -396,9 +396,22 @@ public final class MimeMessageParser {
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<InternetAddress> parseBccAddresses(@Nonnull final MimeMessage mimeMessage) {
-		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.BCC));
+		return parseAddresses(mimeMessage, RecipientType.BCC);
 	}
-	
+
+	/**
+	 * Retrieve {@link List} of {@link InternetAddress}es for the specified {@link RecipientType}.
+	 * @param mimeMessage {@link MimeMessage} to parse.
+	 * @return {@link List} of {@link InternetAddress}es for the specified {@link RecipientType}.
+	 * @see #retrieveRecipients(MimeMessage, RecipientType)
+	 * @see #parseInternetAddresses(Address[])
+	 */
+	@SuppressWarnings("WeakerAccess")
+	@Nonnull
+	public static List<InternetAddress> parseAddresses(@Nonnull final MimeMessage mimeMessage, @Nonnull RecipientType recipientType) {
+		return parseInternetAddresses(retrieveRecipients(mimeMessage, recipientType));
+	}
+
 	/**
 	 * Retrieve array of {@link Address}es for the specified {@link RecipientType}.
 	 * @param mimeMessage {@link MimeMessage} to parse.
