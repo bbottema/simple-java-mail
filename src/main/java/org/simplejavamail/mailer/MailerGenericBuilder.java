@@ -343,7 +343,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * @see #trustingAllHosts(Boolean)
 	 */
 	@SuppressWarnings("unchecked")
-	public T trustingSSLHosts(String... sslHostsToTrust) {
+	public T trustingSSLHosts(final String... sslHostsToTrust) {
 		this.sslHostsToTrust = Arrays.asList(sslHostsToTrust);
 		return (T) this;
 	}

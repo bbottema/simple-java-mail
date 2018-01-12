@@ -477,7 +477,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Alias for {@link #toWithFixedName(String, String...)}.
 	 */
-	public EmailPopulatingBuilder to(@Nullable final String name, String address) {
+	public EmailPopulatingBuilder to(@Nullable final String name, final String address) {
 		return toWithFixedName(name, address);
 	}
 	
@@ -551,7 +551,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Alias for {@link #toAddressesWithFixedName(String, InternetAddress...)}.
 	 */
-	public EmailPopulatingBuilder to(@Nullable final String name, InternetAddress address) {
+	public EmailPopulatingBuilder to(@Nullable final String name, final InternetAddress address) {
 		return toAddressesWithFixedName(name, address);
 	}
 	
@@ -643,7 +643,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Alias for {@link #ccWithFixedName(String, String...)}.
 	 */
-	public EmailPopulatingBuilder cc(@Nullable final String name, String address) {
+	public EmailPopulatingBuilder cc(@Nullable final String name, final String address) {
 		return ccWithFixedName(name, address);
 	}
 	
@@ -717,7 +717,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Alias for {@link #ccAddressesWithFixedName(String, InternetAddress...)}.
 	 */
-	public EmailPopulatingBuilder cc(@Nullable final String name, InternetAddress address) {
+	public EmailPopulatingBuilder cc(@Nullable final String name, final InternetAddress address) {
 		return ccAddressesWithFixedName(name, address);
 	}
 	
@@ -810,7 +810,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Alias for {@link #bccWithFixedName(String, String...)}.
 	 */
-	public EmailPopulatingBuilder bcc(@Nullable final String name, String address) {
+	public EmailPopulatingBuilder bcc(@Nullable final String name, final String address) {
 		return bccWithFixedName(name, address);
 	}
 	
@@ -884,7 +884,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Alias for {@link #bccAddressesWithFixedName(String, InternetAddress...)}.
 	 */
-	public EmailPopulatingBuilder bcc(@Nullable final String name, InternetAddress address) {
+	public EmailPopulatingBuilder bcc(@Nullable final String name, final InternetAddress address) {
 		return bccAddressesWithFixedName(name, address);
 	}
 	
@@ -958,7 +958,7 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable final String defaultName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
+	public EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable final String defaultName, @Nonnull final Collection<String> oneOrMoreAddressesEach, @Nullable final RecipientType recipientType) {
 		return withRecipients(defaultName, false, oneOrMoreAddressesEach, recipientType);
 	}
 	
@@ -968,7 +968,7 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable final String fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
+	public EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable final String fixedName, @Nonnull final Collection<String> oneOrMoreAddressesEach, @Nullable final RecipientType recipientType) {
 		return withRecipients(fixedName, true, oneOrMoreAddressesEach, recipientType);
 	}
 	
@@ -977,7 +977,7 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable String name, @Nullable RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach) {
+	public EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable final String name, @Nullable final RecipientType recipientType, @Nonnull final String... oneOrMoreAddressesEach) {
 		return withRecipients(name, false, asList(oneOrMoreAddressesEach), recipientType);
 	}
 	
@@ -986,7 +986,7 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable String name, @Nullable RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach) {
+	public EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable final String name, @Nullable final RecipientType recipientType, @Nonnull final String... oneOrMoreAddressesEach) {
 		return withRecipients(name, true, asList(oneOrMoreAddressesEach), recipientType);
 	}
 	
@@ -995,7 +995,7 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nullable RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach) {
+	public EmailPopulatingBuilder withRecipients(@Nullable final String name, final boolean fixedName, @Nullable final RecipientType recipientType, @Nonnull final String... oneOrMoreAddressesEach) {
 		return withRecipients(name, fixedName, asList(oneOrMoreAddressesEach), recipientType);
 	}
 	
@@ -1008,9 +1008,9 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
-		for (String oneOrMoreAddresses : oneOrMoreAddressesEach) {
-			for (String emailAddress : extractEmailAddresses(oneOrMoreAddresses)) {
+	public EmailPopulatingBuilder withRecipients(@Nullable final String name, final boolean fixedName, @Nonnull final Collection<String> oneOrMoreAddressesEach, @Nullable final RecipientType recipientType) {
+		for (final String oneOrMoreAddresses : oneOrMoreAddressesEach) {
+			for (final String emailAddress : extractEmailAddresses(oneOrMoreAddresses)) {
 				withRecipient(MiscUtil.interpretRecipient(name, fixedName, emailAddress, recipientType));
 			}
 		}
@@ -1022,7 +1022,7 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public EmailPopulatingBuilder withAddressesWithDefaultName(@Nullable final String defaultName, @Nonnull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
+	public EmailPopulatingBuilder withAddressesWithDefaultName(@Nullable final String defaultName, @Nonnull final Collection<InternetAddress> addresses, @Nullable final RecipientType recipientType) {
 		return withAddresses(defaultName, false, addresses, recipientType);
 	}
 	
@@ -1031,7 +1031,7 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public EmailPopulatingBuilder withAddressesWithFixedName(@Nullable final String fixedName, @Nonnull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
+	public EmailPopulatingBuilder withAddressesWithFixedName(@Nullable final String fixedName, @Nonnull final Collection<InternetAddress> addresses, @Nullable final RecipientType recipientType) {
 		return withAddresses(fixedName, true, addresses, recipientType);
 	}
 	
@@ -1042,9 +1042,9 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public EmailPopulatingBuilder withAddresses(@Nullable String name, boolean fixedName, @Nonnull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
-		for (InternetAddress address : addresses) {
-			String effectiveName = (fixedName || valueNullOrEmpty(address.getPersonal())) ? name : address.getPersonal();
+	public EmailPopulatingBuilder withAddresses(@Nullable final String name, final boolean fixedName, @Nonnull final Collection<InternetAddress> addresses, @Nullable final RecipientType recipientType) {
+		for (final InternetAddress address : addresses) {
+			final String effectiveName = (fixedName || valueNullOrEmpty(address.getPersonal())) ? name : address.getPersonal();
 			withRecipient(effectiveName, address.getAddress(), recipientType);
 		}
 		return this;
@@ -1072,8 +1072,8 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public EmailPopulatingBuilder withRecipients(@Nonnull Collection<Recipient> recipients, @Nullable RecipientType fixedRecipientType) {
-		for (Recipient recipient : recipients) {
+	public EmailPopulatingBuilder withRecipients(@Nonnull final Collection<Recipient> recipients, @Nullable final RecipientType fixedRecipientType) {
+		for (final Recipient recipient : recipients) {
 			withRecipient(recipient.getName(), recipient.getAddress(), defaultTo(fixedRecipientType, recipient.getType()));
 		}
 		return this;
@@ -1174,7 +1174,7 @@ public class EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public <T> EmailPopulatingBuilder withHeaders(@Nonnull final Map<String, T> headers) {
-		for (Map.Entry<String, T> headerEntry : headers.entrySet()) {
+		for (final Map.Entry<String, T> headerEntry : headers.entrySet()) {
 			withHeader(headerEntry.getKey(), headerEntry.getValue());
 		}
 		return this;

@@ -408,7 +408,7 @@ public final class MimeMessageParser {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
-	public static List<InternetAddress> parseAddresses(@Nonnull final MimeMessage mimeMessage, @Nonnull RecipientType recipientType) {
+	public static List<InternetAddress> parseAddresses(@Nonnull final MimeMessage mimeMessage, @Nonnull final RecipientType recipientType) {
 		return parseInternetAddresses(retrieveRecipients(mimeMessage, recipientType));
 	}
 

@@ -1,7 +1,6 @@
 package org.simplejavamail.internal.util;
 
 import org.junit.Test;
-import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,42 +54,42 @@ public class MiscUtilTest {
 	
 	@Test
 	public void testExtractEmailAddresses_SingleAddress() {
-		String[] singleAddressList = MiscUtil.extractEmailAddresses("a@b.com");
+		final String[] singleAddressList = MiscUtil.extractEmailAddresses("a@b.com");
 		assertThat(singleAddressList).hasSize(1);
 		assertThat(singleAddressList).contains("a@b.com");
 	}
 	
 	@Test
 	public void testExtractEmailAddresses_MultipleAddressesWithCommas() {
-		String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com,a2@b.com,a3@b.com");
+		final String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com,a2@b.com,a3@b.com");
 		assertThat(singleAddressList).hasSize(3);
 		assertThat(singleAddressList).contains("a1@b.com", "a2@b.com", "a3@b.com");
 	}
 	
 	@Test
 	public void testExtractEmailAddresses_MultipleAddressesWithSemicolons() {
-		String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com;a2@b.com;a3@b.com");
+		final String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com;a2@b.com;a3@b.com");
 		assertThat(singleAddressList).hasSize(3);
 		assertThat(singleAddressList).contains("a1@b.com", "a2@b.com", "a3@b.com");
 	}
 	
 	@Test
 	public void testExtractEmailAddresses_MultipleAddressesMixedCommasAndSemicolons() {
-		String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com,a2@b.com;a3@b.com;a4@b.com,a5@b.com");
+		final String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com,a2@b.com;a3@b.com;a4@b.com,a5@b.com");
 		assertThat(singleAddressList).hasSize(5);
 		assertThat(singleAddressList).contains("a1@b.com", "a2@b.com", "a3@b.com", "a4@b.com", "a5@b.com");
 	}
 	
 	@Test
 	public void testExtractEmailAddresses_MultipleAddressesTralingSpaces() {
-		String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com, a2@b.com ;a3@b.com;a4@b.com , a5@b.com,a6@b.com");
+		final String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com, a2@b.com ;a3@b.com;a4@b.com , a5@b.com,a6@b.com");
 		assertThat(singleAddressList).hasSize(6);
 		assertThat(singleAddressList).contains("a1@b.com", "a2@b.com", "a3@b.com", "a4@b.com", "a5@b.com", "a6@b.com");
 	}
 	
 	@Test
 	public void testExtractEmailAddresses() {
-		String testInput = "name@domain.com,Sixpack, \"Joe 1\" <name@domain.com>, Sixpack, Joe 2 <name@domain.com> ;Sixpack, Joe, 3<name@domain" +
+		final String testInput = "name@domain.com,Sixpack, \"Joe 1\" <name@domain.com>, Sixpack, Joe 2 <name@domain.com> ;Sixpack, Joe, 3<name@domain" +
 				".com> , nameFoo@domain.com,nameBar@domain.com;nameBaz@domain.com; \" Joe Sixpack 4 \"  <name@domain.com>;";
 		assertThat(MiscUtil.extractEmailAddresses(testInput)).containsExactlyInAnyOrder(
 				"name@domain.com",

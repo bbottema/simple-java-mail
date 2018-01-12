@@ -97,7 +97,7 @@ public class MailerBuilder {
 	 * <strong>Note:</strong> Assumes you don't want to use your own {@link Session} object (otherwise start with {@link #usingSession(Session)}
 	 * instead).
 	 */
-	public static MailerRegularBuilder withDebugLogging(Boolean debugLogging) {
+	public static MailerRegularBuilder withDebugLogging(final Boolean debugLogging) {
 		return new MailerRegularBuilder().withDebugLogging(debugLogging);
 	}
 	

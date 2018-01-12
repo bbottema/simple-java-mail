@@ -15,9 +15,8 @@ import static org.assertj.core.api.Assertions.fail;
 public class MailerBuilderProxyConfigTest {
 
 	@Before
-	public void restoreOriginalStaticProperties()
-			throws IOException {
-		String s = "simplejavamail.proxy.host=proxy.default.com\n"
+	public void restoreOriginalStaticProperties() {
+		final String s = "simplejavamail.proxy.host=proxy.default.com\n"
 				+ "simplejavamail.proxy.port=1080\n"
 				+ "simplejavamail.proxy.username=username proxy\n"
 				+ "simplejavamail.proxy.password=password proxy\n"
@@ -26,18 +25,16 @@ public class MailerBuilderProxyConfigTest {
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_WithoutHost()
-			throws Exception {
+	public void NoArgconstructor_WithoutConfigFile_WithoutHost() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		ProxyConfig emptyProxyConfig = new ProxyConfig(null, null, null, null, -1);
+		final ProxyConfig emptyProxyConfig = new ProxyConfig(null, null, null, null, -1);
 		verifyProxyConfig(emptyProxyConfig, null, null, null, null, -1);
 		assertThat(emptyProxyConfig.requiresProxy()).isFalse();
 		assertThat(emptyProxyConfig.requiresAuthentication()).isFalse();
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_WithoutPort()
-			throws Exception {
+	public void NoArgconstructor_WithoutConfigFile_WithoutPort() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
 			MailerBuilder
@@ -46,7 +43,7 @@ public class MailerBuilderProxyConfigTest {
 					.withProxy("host", null)
 					.buildMailer();
 			fail("IllegalArgumentException expected for proxy port");
-		} catch (IllegalArgumentException e) {
+		} catch (final IllegalArgumentException e) {
 			assertThat(e.getMessage()).containsIgnoringCase("proxyHost provided, but not a proxyPort");
 		}
 		try {
@@ -56,14 +53,13 @@ public class MailerBuilderProxyConfigTest {
 					.withProxy("host", null, null, null)
 					.buildMailer();
 			fail("IllegalArgumentException expected for proxy port");
-		} catch (IllegalArgumentException e) {
+		} catch (final IllegalArgumentException e) {
 			assertThat(e.getMessage()).containsIgnoringCase("proxyHost provided, but not a proxyPort");
 		}
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername()
-			throws Exception {
+	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 
 		try {
@@ -72,7 +68,7 @@ public class MailerBuilderProxyConfigTest {
 					.withProxy("host", 1234, "username", null)
 					.buildMailer();
 			fail("IllegalArgumentException expected for password");
-		} catch (IllegalArgumentException e) {
+		} catch (final IllegalArgumentException e) {
 			assertThat(e.getMessage()).containsIgnoringCase("password");
 		}
 		try {
@@ -82,12 +78,12 @@ public class MailerBuilderProxyConfigTest {
 					.withProxy("host", 1234, null, "password")
 					.buildMailer();
 			fail("IllegalArgumentException expected for username");
-		} catch (IllegalArgumentException e) {
+		} catch (final IllegalArgumentException e) {
 			assertThat(e.getMessage()).containsIgnoringCase("username");
 		}
 	}
 
-	private void verifyProxyConfig(ProxyConfig proxyConfig, String host, Integer port, String username, String password, int defaultProxyBridgePort) {
+	private void verifyProxyConfig(final ProxyConfig proxyConfig, final String host, final Integer port, final String username, final String password, final int defaultProxyBridgePort) {
 		assertThat(proxyConfig.getRemoteProxyHost()).isEqualTo(host);
 		assertThat(proxyConfig.getRemoteProxyPort()).isEqualTo(port);
 		assertThat(proxyConfig.getUsername()).isEqualTo(username);

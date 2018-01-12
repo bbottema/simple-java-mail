@@ -32,13 +32,12 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 	private final SmtpServerSupport SmtpServerSupport;
 	private Wiser wiser;
 
-	public SmtpServerRule(@Nonnull SmtpServerSupport SmtpServerSupport) {
+	public SmtpServerRule(@Nonnull final SmtpServerSupport SmtpServerSupport) {
 		this.SmtpServerSupport = Preconditions.checkNotNull(SmtpServerSupport);
 	}
 
 	@Override
-	protected void before()
-			throws Throwable {
+	protected void before() {
 		this.wiser = new Wiser();
 		this.wiser.setPort(SmtpServerSupport.getPort());
 		this.wiser.setHostname(SmtpServerSupport.getHostname());
@@ -63,15 +62,15 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 	}
 	
 	@Nonnull
-	public MimeMessage getOnlyMessage(String envelopeReceiver)
+	public MimeMessage getOnlyMessage(final String envelopeReceiver)
 			throws MessagingException {
 		checkState("getMessages()");
-		List<WiserMessage> messages = getMessages();
+		final List<WiserMessage> messages = getMessages();
 		assertThat(messages).hasSize(1);
-		Iterator<WiserMessage> iterator = messages.iterator();
-		WiserMessage wiserMessage = iterator.next();
+		final Iterator<WiserMessage> iterator = messages.iterator();
+		final WiserMessage wiserMessage = iterator.next();
 		assertThat(wiserMessage.getEnvelopeReceiver()).isEqualTo(envelopeReceiver);
-		MimeMessage mimeMessage = wiserMessage.getMimeMessage();
+		final MimeMessage mimeMessage = wiserMessage.getMimeMessage();
 		iterator.remove();
 		return mimeMessage;
 	}
@@ -80,24 +79,24 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 	public MimeMessage getOnlyMessage()
 			throws MessagingException {
 		checkState("getMessages()");
-		List<WiserMessage> messages = getMessages();
+		final List<WiserMessage> messages = getMessages();
 		assertThat(messages).hasSize(1);
-		Iterator<WiserMessage> iterator = messages.iterator();
-		MimeMessage mimeMessage = iterator.next().getMimeMessage();
+		final Iterator<WiserMessage> iterator = messages.iterator();
+		final MimeMessage mimeMessage = iterator.next().getMimeMessage();
 		iterator.remove();
 		return mimeMessage;
 	}
 	
 	@Nonnull
-	public MimeMessage getMessage(String envelopeReceiver)
+	public MimeMessage getMessage(final String envelopeReceiver)
 			throws MessagingException {
 		checkState("getMessages()");
-		List<WiserMessage> messages = getMessages();
-		Iterator<WiserMessage> iterator = messages.iterator();
+		final List<WiserMessage> messages = getMessages();
+		final Iterator<WiserMessage> iterator = messages.iterator();
 		while (iterator.hasNext()) {
-			WiserMessage wiserMessage = iterator.next();
+			final WiserMessage wiserMessage = iterator.next();
 			if (wiserMessage.getEnvelopeReceiver().equals(envelopeReceiver)) {
-				MimeMessage mimeMessage = wiserMessage.getMimeMessage();
+				final MimeMessage mimeMessage = wiserMessage.getMimeMessage();
 				iterator.remove();
 				return mimeMessage;
 			}
@@ -111,24 +110,24 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 		return wiser.getServer();
 	}
 
-	public boolean accept(String from, String recipient) {
+	public boolean accept(final String from, final String recipient) {
 		checkState("accept(String, String)");
 		return wiser.accept(from, recipient);
 	}
 
-	public void deliver(String from, String recipient, InputStream data)
-			throws TooMuchDataException, IOException {
+	public void deliver(final String from, final String recipient, final InputStream data)
+			throws IOException {
 		checkState("deliver(String, String, InputStream)");
 		wiser.deliver(from, recipient, data);
 	}
 
-	public void dumpMessages(PrintStream out)
+	public void dumpMessages(final PrintStream out)
 			throws MessagingException {
 		checkState("dumpMessages(PrintStream)");
 		wiser.dumpMessages(out);
 	}
 
-	private void checkState(String method) {
+	private void checkState(final String method) {
 		if (this.wiser == null) {
 			throw new IllegalStateException(format("%s must not be called outside of a JUnit statement", method));
 		}

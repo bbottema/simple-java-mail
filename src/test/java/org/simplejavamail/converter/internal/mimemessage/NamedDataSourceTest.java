@@ -18,34 +18,34 @@ public class NamedDataSourceTest {
     private DataSource dataSource;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         when(dataSource.getName()).thenReturn("testName");
     }
 
     @Test
-    public void renameWillWork() throws Exception {
-        DataSource testDataSource = new NamedDataSource("newName", dataSource);
+    public void renameWillWork() {
+        final DataSource testDataSource = new NamedDataSource("newName", dataSource);
         assertThat(testDataSource.getName()).isEqualTo("newName");
         verifyZeroInteractions(dataSource);
     }
 
     @Test
     public void inputStreamWillBeTheSame1() throws Exception {
-        DataSource testDataSource = new NamedDataSource("newName", dataSource);
+        final DataSource testDataSource = new NamedDataSource("newName", dataSource);
         testDataSource.getInputStream();
         verify(dataSource).getInputStream();
     }
 
     @Test
     public void outputStreamWillBeTheSame1() throws Exception {
-        DataSource testDataSource = new NamedDataSource("newName", dataSource);
+        final DataSource testDataSource = new NamedDataSource("newName", dataSource);
         testDataSource.getOutputStream();
         verify(dataSource).getOutputStream();
     }
 
     @Test
-    public void contentTypeStreamWillBeTheSame1() throws Exception {
-        DataSource testDataSource = new NamedDataSource("newName", dataSource);
+    public void contentTypeStreamWillBeTheSame1() {
+        final DataSource testDataSource = new NamedDataSource("newName", dataSource);
         testDataSource.getContentType();
         verify(dataSource).getContentType();
     }

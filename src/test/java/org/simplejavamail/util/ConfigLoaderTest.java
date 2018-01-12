@@ -48,7 +48,7 @@ public class ConfigLoaderTest {
 	@Test
 	public void valueOrProperty()
 			throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
+		final Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
@@ -60,7 +60,7 @@ public class ConfigLoaderTest {
 	@Test
 	public void valueOrPropertyDefaultValue()
 			throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
+		final Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
@@ -73,7 +73,7 @@ public class ConfigLoaderTest {
 	@Test
 	public void valueOrPropertyEmptyDefaultValue()
 			throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
+		final Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "default");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
@@ -86,7 +86,7 @@ public class ConfigLoaderTest {
 	@Test
 	public void valueOrPropertyDefaultValueEmptyDefault()
 			throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
+		final Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
@@ -97,9 +97,8 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void overridefromSystemVariables()
-			throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
+	public void overridefromSystemVariables() {
+		final Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
 
 		assertThat(ConfigLoader.valueOrProperty("value", PROXY_USERNAME, "backup")).isEqualTo("value");
@@ -118,7 +117,7 @@ public class ConfigLoaderTest {
 	@Test
 	public void hasProperty()
 			throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
+		final Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue1");
 		properties.put(DEFAULT_FROM_ADDRESS, "preconfiguredValue2");
 		properties.put(DEFAULT_BCC_NAME, null);
@@ -133,7 +132,7 @@ public class ConfigLoaderTest {
 	@Test
 	public void getProperty()
 			throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
+		final Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue1");
 		properties.put(DEFAULT_FROM_ADDRESS, "preconfiguredValue2");
 		properties.put(DEFAULT_BCC_NAME, null);
@@ -162,8 +161,7 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesFromFileClassPath()
-			throws Exception {
+	public void loadPropertiesFromFileClassPath() {
 		ConfigLoader.loadProperties("simplejavamail.properties", false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
 		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
@@ -190,11 +188,10 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesAddingMode()
-			throws Exception {
-		String s1 = "simplejavamail.javaxmail.debug=true\n"
+	public void loadPropertiesAddingMode() {
+		final String s1 = "simplejavamail.javaxmail.debug=true\n"
 				+ "simplejavamail.transportstrategy=SMTPS";
-		String s2 = "simplejavamail.defaults.to.name=To Default\n"
+		final String s2 = "simplejavamail.defaults.to.name=To Default\n"
 				+ "simplejavamail.defaults.to.address=to@default.com";
 
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s1.getBytes()), false);
@@ -209,10 +206,9 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesFromInputStream()
-			throws IOException {
+	public void loadPropertiesFromInputStream() {
 
-		String s = "simplejavamail.javaxmail.debug=true\n"
+		final String s = "simplejavamail.javaxmail.debug=true\n"
 				+ "simplejavamail.transportstrategy=SMTPS\n"
 				+ "simplejavamail.smtp.host=smtp.default.com\n"
 				+ "simplejavamail.smtp.port=25\n"
@@ -229,9 +225,8 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesFromProperties()
-			throws IOException {
-		Properties source = new Properties();
+	public void loadPropertiesFromProperties() {
+		final Properties source = new Properties();
 		source.put("simplejavamail.javaxmail.debug", "true");
 		source.put("simplejavamail.transportstrategy", "SMTPS");
 		source.put("simplejavamail.smtp.host", "smtp.default.com");
@@ -249,9 +244,8 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesFromObjectProperties()
-			throws IOException {
-		Properties source = new Properties();
+	public void loadPropertiesFromObjectProperties() {
+		final Properties source = new Properties();
 		source.put("simplejavamail.javaxmail.debug", true);
 		source.put("simplejavamail.transportstrategy", TransportStrategy.SMTPS);
 		source.put("simplejavamail.smtp.host", "smtp.default.com");

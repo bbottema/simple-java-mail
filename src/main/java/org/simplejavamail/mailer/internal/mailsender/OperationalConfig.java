@@ -52,7 +52,7 @@ public class OperationalConfig {
 	/**
 	 * For internal use only.
 	 */
-	public OperationalConfig(@Nonnull Properties properties, int sessionTimeout, int threadPoolSize, boolean transportModeLoggingOnly, boolean debugLogging, List<String> sslHostsToTrust, boolean trustAllSSLHost) {
+	public OperationalConfig(@Nonnull final Properties properties, final int sessionTimeout, final int threadPoolSize, final boolean transportModeLoggingOnly, final boolean debugLogging, final List<String> sslHostsToTrust, final boolean trustAllSSLHost) {
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
 		this.threadPoolSize = threadPoolSize;

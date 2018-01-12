@@ -121,7 +121,7 @@ public final class MiscUtil {
 	 * @param emailAddress An RFC2822 compliant email address, which can contain a name inside as well.
 	 */
 	@Nonnull
-	public static Recipient interpretRecipient(@Nullable final String name, boolean fixedName, @Nonnull final String emailAddress, @Nullable final RecipientType type) {
+	public static Recipient interpretRecipient(@Nullable final String name, final boolean fixedName, @Nonnull final String emailAddress, @Nullable final RecipientType type) {
 		try {
 			final InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
 			final String relevantName = (fixedName || parsedAddress.getPersonal() == null)
@@ -141,11 +141,11 @@ public final class MiscUtil {
 		return value != null ? value : defaultValue;
 	}
 	
-	public static boolean classAvailable(@Nonnull String className) {
+	public static boolean classAvailable(@Nonnull final String className) {
 		try {
 			Class.forName(className);
 			return true;
-		} catch (ClassNotFoundException e) {
+		} catch (final ClassNotFoundException e) {
 			return false;
 		}
 	}

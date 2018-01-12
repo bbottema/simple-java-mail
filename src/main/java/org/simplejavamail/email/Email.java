@@ -184,7 +184,7 @@ public class Email {
 	}
 	
 	/**
-	 * @deprecated Don't use this method, refer to EmailPopulatingBuilder#fixingMessageId(String) instead. This method is used internally to update
+	 * @deprecated Don't use this method, refer to {@link EmailPopulatingBuilder#fixingMessageId(String)} instead. This method is used internally to update
 	 * the message id once a mail has been sent.
 	 */
 	@Deprecated

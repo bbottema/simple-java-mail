@@ -42,7 +42,7 @@ public class MailSenderTest {
 	
 	@Test
 	public void trustAllHosts_SMTPS() {
-		ProxyConfig proxyBypassingMock = mock(ProxyConfig.class);
+		final ProxyConfig proxyBypassingMock = mock(ProxyConfig.class);
 		when(proxyBypassingMock.requiresProxy()).thenReturn(false);
 		new MailSender(session, createDummyOperationalConfig(EMPTY_LIST, true), proxyBypassingMock, SMTPS);
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isEqualTo("*");
@@ -63,12 +63,12 @@ public class MailSenderTest {
 	}
 	
 	@Nonnull
-	private List<String> asList(String... args) {
+	private List<String> asList(final String... args) {
 		return Arrays.asList(args);
 	}
 	
 	@Nonnull
-	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost) {
+	private OperationalConfig createDummyOperationalConfig(final List<String> hostsToTrust, final boolean trustAllSSLHost) {
 		return new OperationalConfig(new Properties(), 0, 0, false, false, hostsToTrust, trustAllSSLHost);
 	}
 }

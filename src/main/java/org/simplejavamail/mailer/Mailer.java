@@ -120,8 +120,8 @@ public class Mailer {
 		this.mailSender = initFromGenericBuilder(transportStrategy, proxyConfig, session, regularBuilder);
 	}
 	
-	private MailSender initFromGenericBuilder(@Nonnull TransportStrategy transportStrategy, @Nonnull ProxyConfig proxyConfig, @Nonnull Session session, @Nonnull final MailerGenericBuilder<?> genericBuiler) {
-		OperationalConfig operationalConfig = genericBuiler.buildOperationalConfig();
+	private MailSender initFromGenericBuilder(@Nonnull final TransportStrategy transportStrategy, @Nonnull final ProxyConfig proxyConfig, @Nonnull final Session session, @Nonnull final MailerGenericBuilder<?> genericBuiler) {
+		final OperationalConfig operationalConfig = genericBuiler.buildOperationalConfig();
 		return new MailSender(session, operationalConfig, proxyConfig, transportStrategy);
 	}
 	

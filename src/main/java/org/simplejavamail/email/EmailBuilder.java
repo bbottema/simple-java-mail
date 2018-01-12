@@ -362,7 +362,7 @@ public class EmailBuilder {
 		 * Preconfigures the builder with all the properties from the given email that are non-null.
 		 */
 		public EmailPopulatingBuilder copying(@Nonnull final Email email) {
-			EmailPopulatingBuilder builder = new EmailPopulatingBuilder(applyDefaults);
+			final EmailPopulatingBuilder builder = new EmailPopulatingBuilder(applyDefaults);
 			if (email.getId() != null) {
 				builder.fixingMessageId(email.getId());
 			}

@@ -29,9 +29,8 @@ import static org.simplejavamail.util.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 public class MailerTest {
 	
 	@Before
-	public void restoreOriginalStaticProperties()
-			throws IOException {
-		String s = "simplejavamail.javaxmail.debug=true\n"
+	public void restoreOriginalStaticProperties() {
+		final String s = "simplejavamail.javaxmail.debug=true\n"
 				+ "simplejavamail.transportstrategy=SMTP_TLS\n"
 				+ "simplejavamail.smtp.host=smtp.default.com\n"
 				+ "simplejavamail.smtp.port=25\n"
@@ -46,12 +45,11 @@ public class MailerTest {
 	}
 	
 	@Test
-	public void createMailSession_MinimalConstructor_WithoutConfig()
-			throws Exception {
+	public void createMailSession_MinimalConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
-		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).buildMailer();
-		Session session = mailer.getSession();
+		final Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).buildMailer();
+		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isFalse();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("host");
@@ -69,21 +67,20 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.socks.port")).isNull();
 		
 		// all constructors, providing the same minimal information
-		Mailer alternative1 = MailerBuilder.withSMTPServer("host", 25).buildMailer();
-		Mailer alternative2 = MailerBuilder.usingSession(session).buildMailer();
+		final Mailer alternative1 = MailerBuilder.withSMTPServer("host", 25).buildMailer();
+		final Mailer alternative2 = MailerBuilder.usingSession(session).buildMailer();
 		
 		assertThat(session.getProperties()).isEqualTo(alternative1.getSession().getProperties());
 		assertThat(session.getProperties()).isEqualTo(alternative2.getSession().getProperties());
 	}
 	
 	@Test
-	public void createMailSession_AnonymousProxyConstructor_WithoutConfig()
-			throws Exception {
+	public void createMailSession_AnonymousProxyConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
-		Mailer mailer = createFullyConfiguredMailer(false, "", SMTP_TLS);
+		final Mailer mailer = createFullyConfiguredMailer(false, "", SMTP_TLS);
 		
-		Session session = mailer.getSession();
+		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp host");
@@ -103,13 +100,12 @@ public class MailerTest {
 	}
 	
 	@Test
-	public void createMailSession_MaximumConstructor_WithoutConfig()
-			throws Exception {
+	public void createMailSession_MaximumConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
-		Mailer mailer = createFullyConfiguredMailer(true, "", SMTP_TLS);
+		final Mailer mailer = createFullyConfiguredMailer(true, "", SMTP_TLS);
 		
-		Session session = mailer.getSession();
+		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp host");
@@ -129,8 +125,8 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_MinimalConstructor_WithConfig() {
-		Mailer mailer = MailerBuilder.buildMailer();
-		Session session = mailer.getSession();
+		final Mailer mailer = MailerBuilder.buildMailer();
+		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp.default.com");
@@ -148,12 +144,12 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_MinimalConstructor_WithConfig_OPPORTUNISTIC_TLS() {
-		Properties properties = new Properties();
+		final Properties properties = new Properties();
 		properties.setProperty(OPPORTUNISTIC_TLS.key(), "false");
 		ConfigLoader.loadProperties(properties, true);
 		
-		Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
-		Session session = mailer.getSession();
+		final Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
+		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp.default.com");
@@ -173,14 +169,14 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_MinimalConstructor_WithConfig_OPPORTUNISTIC_TLS_Manually_Disabled() {
-		Properties properties = new Properties();
+		final Properties properties = new Properties();
 		properties.setProperty(OPPORTUNISTIC_TLS.key(), "false");
 		ConfigLoader.loadProperties(properties, true);
 		
 		TransportStrategy.SMTP.setOpportunisticTLS(true);
 		
-		Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
-		Session session = mailer.getSession();
+		final Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
+		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp.default.com");
@@ -200,11 +196,10 @@ public class MailerTest {
 	}
 	
 	@Test
-	public void createMailSession_MaximumConstructor_WithConfig()
-			throws Exception {
-		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTP_TLS);
+	public void createMailSession_MaximumConstructor_WithConfig() {
+		final Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTP_TLS);
 		
-		Session session = mailer.getSession();
+		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("overridden smtp host");
@@ -223,11 +218,10 @@ public class MailerTest {
 	}
 	
 	@Test
-	public void createMailSession_MaximumConstructor_WithConfig_TLS()
-			throws Exception {
-		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTPS);
+	public void createMailSession_MaximumConstructor_WithConfig_TLS() {
+		final Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTPS);
 		
-		Session session = mailer.getSession();
+		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtps.host")).isEqualTo("overridden smtp host");
@@ -242,11 +236,11 @@ public class MailerTest {
 	
 	@Test
 	public void testDKIMPriming()
-			throws IOException, MessagingException {
+			throws IOException {
 		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false);
 		
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
-		String privateDERkeyBase64 =
+		final String privateDERkeyBase64 =
 				"MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAMYuC7ZjFBSWJtP6JH8w1deJE+5sLwkUacZcW4MTVQXTM33BzN8Ec64KO1Hk2B9oxkpdunKt"
 						+ "BggwbWMlGU5gGu4PpQ20cdPcfBIkUMlQKaakHPPGNYaF9dQaZIRy8XON6g1sOJGALXtUYX1r5hdDH13kC/YBw9f1Dsi2smrB0qabAgMBAAECgYAdWbBuYJoWum4hssg49hiVhT2ob+k"
 						+ "/ZQCNWhxLe096P18+3rbiyJwBSI6kgEnpzPChDuSQG0PrbpCkwFfRHbafDIPiMi5b6YZkJoFmmOmBHsewS1VdR/phk+aPQV2SoJ0S0FAGZkOnOkagHfmEMSgjZzTpJouu5NU8mwqz8z"
@@ -256,7 +250,7 @@ public class MailerTest {
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
 		
 		emailPopulatingBuilder.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
-		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
+		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, signing did not produce an error
 		assertThat(mimeMessage).isInstanceOf(DkimMessage.class);
 	}
@@ -269,7 +263,7 @@ public class MailerTest {
 		// let's try producing and then consuming a MimeMessage ->
 		// (bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session, so just ignore this)
 		emailPopulatingBuilderNormal.clearBounceTo();
-		Email emailNormal = emailPopulatingBuilderNormal.buildEmail();
+		final Email emailNormal = emailPopulatingBuilderNormal.buildEmail();
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 		
@@ -277,8 +271,8 @@ public class MailerTest {
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
 	}
 	
-	private Mailer createFullyConfiguredMailer(boolean authenticateProxy, String prefix, TransportStrategy transportStrategy) {
-		MailerRegularBuilder mailerBuilder = MailerBuilder
+	private Mailer createFullyConfiguredMailer(final boolean authenticateProxy, final String prefix, final TransportStrategy transportStrategy) {
+		final MailerRegularBuilder mailerBuilder = MailerBuilder
 				.withSMTPServer(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp")
 				.withTransportStrategy(transportStrategy)
 				.withDebugLogging(true);

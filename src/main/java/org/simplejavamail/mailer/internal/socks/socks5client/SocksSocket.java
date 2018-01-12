@@ -1,16 +1,19 @@
-
-
 package org.simplejavamail.mailer.internal.socks.socks5client;
 
-import org.simplejavamail.mailer.internal.socks.common.SocksException;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.mailer.internal.socks.common.SocksException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
