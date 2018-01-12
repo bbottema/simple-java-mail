@@ -45,7 +45,7 @@ public class MailSender {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MailSender.class);
 
 	/**
-	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
+	 * Used to actually send the email. This {@link Session} can come from being passed in the default constructor, or made by {@link org.simplejavamail.mailer.Mailer} directly.
 	 */
 	private final Session session;
 	
@@ -55,7 +55,7 @@ public class MailSender {
 	 * <strong>NOTE:</strong><br>
 	 * This is an optional parameter and as such some functions will throw an error when used (such as {@link #trustAllHosts(boolean)}) or
 	 * will skip setting optional properties (such as default timeouts) and also skip mandatory properties which are assumed to be preconfigured on
-	 * the Session instance (these will be logged on DEBUG level, such as proxy host and port properties).
+	 * the {@link Session} instance (these will be logged on DEBUG level, such as proxy host and port properties).
 	 */
 	@Nullable
 	private final TransportStrategy transportStrategy;
@@ -99,7 +99,7 @@ public class MailSender {
 		init(operationalConfig);
 	}
 	
-	private void init(@Nonnull OperationalConfig operationalConfig) {
+	private void init(@Nonnull final OperationalConfig operationalConfig) {
 		session.setDebug(operationalConfig.isDebugLogging());
 		session.getProperties().putAll(operationalConfig.getProperties());
 		if (transportStrategy != null) {
@@ -115,7 +115,7 @@ public class MailSender {
 	 * If a {@link ProxyConfig} was provided with a host address, then the appropriate properties are set on the {@link Session}, overriding any SOCKS
 	 * properties already there.
 	 * <p>
-	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>, which are set to "localhost" and {@link
+	 * These properties are {@code mail.smtp(s).socks.host} and {@code mail.smtp(s).socks.port"}, which are set to "localhost" and {@link
 	 * ProxyConfig#getProxyBridgePort()}.
 	 *
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
@@ -150,7 +150,7 @@ public class MailSender {
 					LOGGER.debug("no transport strategy provided but authenticated proxy required, expecting mail.smtp(s).socks.host and .port " +
 							"properties to be set to localhost and port " + proxyConfig.getProxyBridgePort());
 				}
-				SocksProxyConfig socksProxyConfig = new SocksProxyConfig(proxyConfig.getRemoteProxyHost(), proxyConfig.getRemoteProxyPort(),
+				final SocksProxyConfig socksProxyConfig = new SocksProxyConfig(proxyConfig.getRemoteProxyHost(), proxyConfig.getRemoteProxyPort(),
 						proxyConfig.getUsername(), proxyConfig.getPassword(), proxyConfig.getProxyBridgePort());
 				return new AnonymousSocks5Server(new AuthenticatingSocks5Bridge(socksProxyConfig), proxyConfig.getProxyBridgePort());
 			}

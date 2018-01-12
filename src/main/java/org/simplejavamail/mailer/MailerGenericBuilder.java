@@ -41,22 +41,23 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	public static final int DEFAULT_SESSION_TIMEOUT_MILLIS = 60_000;
 	
 	/**
-	 * For multi-threaded scenario's where a batch of emails sent asynchronously, the default maximum number of threads is {@value
-	 * #DEFAULT_POOL_SIZE}. Can be overridden from a config file or through System variable.
+	 * For multi-threaded scenario's where a batch of emails sent asynchronously, the default maximum number of threads is {@value #DEFAULT_POOL_SIZE}.
+	 * Can be overridden from a config file or through System variable.
 	 */
 	@SuppressWarnings("JavaDoc")
 	public static final int DEFAULT_POOL_SIZE = 10;
 	
 	/**
-	 * The temporary intermediary SOCKS5 relay server bridge is a server that sits in between JavaMail and the remote proxy. Default port is {@value
-	 * #DEFAULT_PROXY_BRIDGE_PORT}.
+	 * The temporary intermediary SOCKS5 relay server bridge is a server that sits in between JavaMail and the remote proxy.
+	 * Default port is {@value #DEFAULT_PROXY_BRIDGE_PORT}.
 	 */
 	@SuppressWarnings("JavaDoc")
 	public static final int DEFAULT_PROXY_BRIDGE_PORT = 1081;
 	
 	/**
-	 * Defaults to {@value DEFAULT_TRANSPORT_MODE_LOGGING_ONLY}, sending mails rather than just only logging the mails.
+	 * Defaults to {@value #DEFAULT_TRANSPORT_MODE_LOGGING_ONLY}, sending mails rather than just only logging the mails.
 	 */
+	@SuppressWarnings("JavaDoc")
 	public static final boolean DEFAULT_TRANSPORT_MODE_LOGGING_ONLY = false;
 	
 	/**
@@ -117,7 +118,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withProperties(Properties)
 	 */
-	private Properties properties = new Properties();
+	private final Properties properties = new Properties();
 	
 	/**
 	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
@@ -185,6 +186,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Delegates to {@link #withProxyHost(String)} and {@link #withProxyPort(Integer)}.
 	 */
+	@SuppressWarnings("unchecked")
 	public T withProxy(@Nullable final String proxyHost, @Nullable final Integer proxyPort) {
 		return (T) withProxyHost(proxyHost)
 				.withProxyPort(proxyPort);
@@ -199,6 +201,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * <li>{@link #withProxyPassword(String)}</li>
 	 * </ol>
 	 */
+	@SuppressWarnings("unchecked")
 	public T withProxy(@Nullable final String proxyHost, @Nullable final Integer proxyPort, @Nullable final String proxyUsername, @Nullable final String proxyPassword) {
 		return (T) withProxyHost(proxyHost)
 				.withProxyPort(proxyPort)
@@ -209,6 +212,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Sets the optional proxy host, which will override any default that might have been set (through properties file or programmatically).
 	 */
+	@SuppressWarnings("unchecked")
 	public T withProxyHost(@Nullable final String proxyHost) {
 		this.proxyHost = proxyHost;
 		return (T) this;
@@ -220,6 +224,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * Proxy port is required if a proxyHost has been configured.
 	 */
 	// TODO take default port from transport strategy
+	@SuppressWarnings("unchecked")
 	public T withProxyPort(@Nullable final Integer proxyPort) {
 		this.proxyPort = proxyPort;
 		return (T) this;
@@ -232,9 +237,9 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * support this directly.
 	 * <p>
 	 * The path will be: <br>
-	 * {@code Simple Java Mail -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS
-	 * proxy}.
+	 * {@code Simple Java Mail -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy}.
 	 */
+	@SuppressWarnings("unchecked")
 	public T withProxyUsername(@Nullable final String proxyUsername) {
 		this.proxyUsername = proxyUsername;
 		return (T) this;
@@ -245,6 +250,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 *
 	 * @see #withProxyUsername(String)
 	 */
+	@SuppressWarnings("unchecked")
 	public T withProxyPassword(@Nullable final String proxyPassword) {
 		this.proxyPassword = proxyPassword;
 		return (T) this;
@@ -258,6 +264,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 *
 	 * @see #withProxyUsername(String)
 	 */
+	@SuppressWarnings("unchecked")
 	public T withProxyBridgePort(@Nullable final Integer proxyBridgePort) {
 		this.proxyBridgePort = proxyBridgePort;
 		return (T) this;
@@ -267,6 +274,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * This flag is set on the Session instance through {@link Session#setDebug(boolean)} so that it generates debug information. To get more
 	 * information out of the underlying JavaMail framework or out of Simple Java Mail, increase logging config of your chosen logging framework.
 	 */
+	@SuppressWarnings("unchecked")
 	public T withDebugLogging(@Nullable final Boolean debugLogging) {
 		this.debugLogging = debugLogging;
 		return (T) this;
@@ -275,13 +283,14 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Controls the timeout to use when sending emails (affects socket connect-, read- and write timeouts).
 	 */
+	@SuppressWarnings("unchecked")
 	public T withSessionTimeout(@Nullable final Integer sessionTimeout) {
 		this.sessionTimeout = sessionTimeout;
 		return (T) this;
 	}
 	
 	/**
-	 * Sets the email address validation restrictions when validating and sending emails using the current <code>Mailer</code> instance.
+	 * Sets the email address validation restrictions when validating and sending emails using the current @{link Mailer} instance.
 	 * <p>
 	 * Defaults to {@link EmailAddressCriteria#RFC_COMPLIANT} if not overridden with a ({@code null}) value.
 	 *
@@ -289,6 +298,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * @see #clearEmailAddressCriteria()
 	 * @see #resetEmailAddressCriteria()
 	 */
+	@SuppressWarnings("unchecked")
 	public T withEmailAddressCriteria(@Nonnull final EnumSet<EmailAddressCriteria> emailAddressCriteria) {
 		this.emailAddressCriteria = emailAddressCriteria.clone();
 		return (T) this;
@@ -299,6 +309,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 *
 	 * @see #resetThreadpoolSize()
 	 */
+	@SuppressWarnings("unchecked")
 	public T withThreadPoolSize(@Nonnull final Integer defaultPoolSize) {
 		this.threadPoolSize = defaultPoolSize;
 		return (T) this;
@@ -309,6 +320,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 *
 	 * @see #resetTransportModeLoggingOnly()
 	 */
+	@SuppressWarnings("unchecked")
 	public T withTransportModeLoggingOnly(@Nonnull final Boolean transportModeLoggingOnly) {
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		return (T) this;
@@ -327,35 +339,37 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * This method sets the property {@code mail.smtp.ssl.trust} to a space-separated list of the provided {@code hosts}. If the provided list is
 	 * empty, {@code mail.smtp.ssl.trust} is unset.
 	 *
-	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
+	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust">{@code mail.smtp.ssl.trust}</a>
 	 * @see #trustingAllHosts(Boolean)
 	 */
+	@SuppressWarnings("unchecked")
 	public T trustingSSLHosts(String... sslHostsToTrust) {
 		this.sslHostsToTrust = Arrays.asList(sslHostsToTrust);
 		return (T) this;
 	}
 	
 	/**
-	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property "mail.smtp(s).ssl.trust" is set to "*".
+	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property {@code mail.smtp.ssl.trust} is set to "*".
 	 * <p>
-	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
-	 *
+	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust">{@code mail.smtp(s).ssl.trust}</a>
 	 * @see #trustingSSLHosts(String...)
 	 */
+	@SuppressWarnings("unchecked")
 	private T trustingAllHosts(@Nonnull final Boolean trustAllHosts) {
 		this.trustAllSSLHost = trustAllHosts;
 		return (T) this;
 	}
 	
 	/**
-	 * Adds the given properties to the total list applied to the {@link Session} when building a mailer.
+	 * Adds the given properties to the total list applied to the {@link Session} when building a {@link Mailer}.
 	 *
 	 * @see #withProperties(Map)
 	 * @see #withProperty(String, String)
 	 * @see #clearProperties()
 	 */
+	@SuppressWarnings("unchecked")
 	public T withProperties(@Nonnull final Properties properties) {
-		for (Map.Entry<Object, Object> property : properties.entrySet()) {
+		for (final Map.Entry<Object, Object> property : properties.entrySet()) {
 			this.properties.put(property.getKey(), property.getValue());
 		}
 		return (T) this;
@@ -365,8 +379,9 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * @see #withProperties(Properties)
 	 * @see #clearProperties()
 	 */
+	@SuppressWarnings("unchecked")
 	public T withProperties(@Nonnull final Map<String, String> properties) {
-		for (Map.Entry<String, String> property : properties.entrySet()) {
+		for (final Map.Entry<String, String> property : properties.entrySet()) {
 			this.properties.put(property.getKey(), property.getValue());
 		}
 		return (T) this;
@@ -376,6 +391,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * @see #withProperties(Properties)
 	 * @see #clearProperties()
 	 */
+	@SuppressWarnings("unchecked")
 	public T withProperty(@Nonnull final String propertyName, @Nullable final String propertyValue) {
 		if (propertyValue == null) {
 			this.properties.remove(propertyName);
@@ -425,6 +441,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Empties all proxy configuration.
 	 */
+	@SuppressWarnings("unchecked")
 	public T clearProxy() {
 		return (T) withProxy(null, null, null, null)
 				.withProxyBridgePort(null);
@@ -454,6 +471,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 *
 	 * @see #withProperties(Properties)
 	 */
+	@SuppressWarnings("unchecked")
 	public T clearProperties() {
 		properties.clear();
 		return (T) this;

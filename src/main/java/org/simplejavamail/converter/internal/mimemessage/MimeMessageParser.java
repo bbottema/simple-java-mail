@@ -326,7 +326,10 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_DECODING_TEXT, e);
 		}
 	}
-	
+
+	/**
+	 * {@link InputStream} will be wrapped in a buffer.
+	 */
 	@Nonnull
 	private static byte[] readContent(@Nonnull final InputStream is) {
 		final BufferedInputStream isReader = new BufferedInputStream(is);
@@ -359,26 +362,50 @@ public final class MimeMessageParser {
 		}
 		return fullMimeType;
 	}
-	
-	
+
+	/**
+	 * Retrieve {@link List} of TO {@link InternetAddress}es.
+	 * @param mimeMessage {@link MimeMessage} to parse.
+	 * @return {@link List} of To {@link InternetAddress}es.
+	 * @see #parseAddresses(MimeMessage, RecipientType)
+	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<InternetAddress> parseToAddresses(@Nonnull final MimeMessage mimeMessage) {
 		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.TO));
 	}
-	
+
+	/**
+	 * Retrieve {@link List} of CC {@link InternetAddress}es.
+	 * @param mimeMessage {@link MimeMessage} to parse.
+	 * @return {@link List} of CC {@link InternetAddress}es.
+	 * @see #parseAddresses(MimeMessage, RecipientType)
+	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<InternetAddress> parseCcAddresses(@Nonnull final MimeMessage mimeMessage) {
 		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.CC));
 	}
-	
+
+	/**
+	 * Retrieve {@link List} of BCC {@link InternetAddress}es.
+	 * @param mimeMessage {@link MimeMessage} to parse.
+	 * @return {@link List} of BCC {@link InternetAddress}es.
+	 * @see #parseAddresses(MimeMessage, RecipientType)
+	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<InternetAddress> parseBccAddresses(@Nonnull final MimeMessage mimeMessage) {
 		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.BCC));
 	}
 	
+	/**
+	 * Retrieve array of {@link Address}es for the specified {@link RecipientType}.
+	 * @param mimeMessage {@link MimeMessage} to parse.
+	 * @param recipientType {@link RecipientType} to retrieve.
+	 * @return Array of {@link Address}es for the specified {@link RecipientType}.
+	 * @see MimeMessage#getRecipients(RecipientType)
+	 */
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
 	public static Address[] retrieveRecipients(@Nonnull final MimeMessage mimeMessage, final RecipientType recipientType) {
@@ -388,7 +415,13 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_GETTING_RECIPIENTS, recipientType), e);
 		}
 	}
-	
+
+	/**
+	 * Retrieve {@link List} of {@link InternetAddress}es from the specified {@link Address}es.
+	 * @param recipients {@link Address}es to parse.
+	 * @return {@link List} of {@link InternetAddress}es from the specified {@link Address}es.
+	 * @see MimeMessage#getRecipients(RecipientType)
+	 */
 	@Nonnull
 	private static List<InternetAddress> parseInternetAddresses(@Nullable final Address[] recipients) {
 		final List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<Address>();
