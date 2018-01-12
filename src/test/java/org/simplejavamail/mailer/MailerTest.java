@@ -27,7 +27,36 @@ import static org.simplejavamail.util.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 
 @SuppressWarnings("unused")
 public class MailerTest {
-	
+
+	private static final String MAIL_SMTP_HOST = "mail.smtp.host";
+	private static final String MAIL_SMTP_STARTTLS_ENABLE = "mail.smtp.starttls.enable";
+	private static final String MAIL_SMTP_STARTTLS_REQUIRED = "mail.smtp.starttls.required";
+	private static final String MAIL_SMTP_SSL_TRUST = "mail.smtp.ssl.trust";
+	private static final String MAIL_SMTP_SSL_CHECKSERVERIDENTITY = "mail.smtp.ssl.checkserveridentity";
+	private static final String MAIL_SMTP_PORT = "mail.smtp.port";
+	private static final String MAIL_TRANSPORT_PROTOCOL = "mail.transport.protocol";
+	private static final String MAIL_SMTP_USERNAME = "mail.smtp.username";
+	private static final String MAIL_SMTP_AUTH = "mail.smtp.auth";
+	private static final String MAIL_SMTP_SOCKS_HOST = "mail.smtp.socks.host";
+	private static final String MAIL_SMTP_SOCKS_PORT = "mail.smtp.socks.port";
+	private static final String EXTRA_1 = "extra1";
+	private static final String EXTRA_2 = "extra2";
+	private static final String VALUE_1 = "value1";
+	private static final String VALUE_2 = "value2";
+	private static final String PORT_25 = "25";
+	private static final String STR_1081 = "1081";
+	private static final String SMTP = "smtp";
+	private static final String USERNAME_SMTP = "username smtp";
+	private static final String SMTP_HOST = "smtp host";
+	private static final String PROXY_HOST = "proxy host";
+	private static final String HOST = "host";
+	private static final String LOCALHOST = "localhost";
+	private static final String SMTP_DEFAULT_COM = "smtp.default.com";
+	private static final String OVERRIDDEN_ = "overridden ";
+	private static final String OVERRIDDEN_SMTP_HOST = "overridden smtp host";
+	private static final String FALSE = "false";
+	private static final String TRUE = "true";
+
 	@Before
 	public void restoreOriginalStaticProperties() {
 		final String s = "simplejavamail.javaxmail.debug=true\n"
@@ -48,26 +77,26 @@ public class MailerTest {
 	public void createMailSession_MinimalConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
-		final Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).buildMailer();
+		final Mailer mailer = MailerBuilder.withSMTPServer(HOST, 25, null, null).buildMailer();
 		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isFalse();
-		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("host");
-		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
-		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
+
+		assertThat(session.getProperty(MAIL_SMTP_HOST)).isEqualTo(HOST);
+		assertThat(session.getProperty(MAIL_SMTP_PORT)).isEqualTo(PORT_25);
+		assertThat(session.getProperty(MAIL_TRANSPORT_PROTOCOL)).isEqualTo(SMTP);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_ENABLE)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_REQUIRED)).isEqualTo(FALSE);
+		assertThat(session.getProperty(MAIL_SMTP_SSL_TRUST)).isEqualTo("*");
+		assertThat(session.getProperty(MAIL_SMTP_SSL_CHECKSERVERIDENTITY)).isEqualTo(FALSE);
 		
-		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
-		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("false");
-		
-		assertThat(session.getProperty("mail.smtp.username")).isNull();
-		assertThat(session.getProperty("mail.smtp.auth")).isNull();
-		assertThat(session.getProperty("mail.smtp.socks.host")).isNull();
-		assertThat(session.getProperty("mail.smtp.socks.port")).isNull();
+		assertThat(session.getProperty(MAIL_SMTP_USERNAME)).isNull();
+		assertThat(session.getProperty(MAIL_SMTP_AUTH)).isNull();
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_HOST)).isNull();
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_PORT)).isNull();
 		
 		// all constructors, providing the same minimal information
-		final Mailer alternative1 = MailerBuilder.withSMTPServer("host", 25).buildMailer();
+		final Mailer alternative1 = MailerBuilder.withSMTPServer(HOST, 25).buildMailer();
 		final Mailer alternative2 = MailerBuilder.usingSession(session).buildMailer();
 		
 		assertThat(session.getProperties()).isEqualTo(alternative1.getSession().getProperties());
@@ -83,20 +112,20 @@ public class MailerTest {
 		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
-		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp host");
-		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
-		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
+		assertThat(session.getProperty(MAIL_SMTP_HOST)).isEqualTo(SMTP_HOST);
+		assertThat(session.getProperty(MAIL_SMTP_PORT)).isEqualTo(PORT_25);
+		assertThat(session.getProperty(MAIL_TRANSPORT_PROTOCOL)).isEqualTo(SMTP);
 		
-		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_ENABLE)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_REQUIRED)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_SSL_CHECKSERVERIDENTITY)).isEqualTo(TRUE);
 		
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
-		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("proxy host");
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1080");
-		assertThat(session.getProperty("extra1")).isEqualTo("value1");
-		assertThat(session.getProperty("extra2")).isEqualTo("value2");
+		assertThat(session.getProperty(MAIL_SMTP_USERNAME)).isEqualTo(USERNAME_SMTP);
+		assertThat(session.getProperty(MAIL_SMTP_AUTH)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_HOST)).isEqualTo(PROXY_HOST);
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_PORT)).isEqualTo("1080");
+		assertThat(session.getProperty(EXTRA_1)).isEqualTo(VALUE_1);
+		assertThat(session.getProperty(EXTRA_2)).isEqualTo(VALUE_2);
 	}
 	
 	@Test
@@ -108,19 +137,19 @@ public class MailerTest {
 		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
-		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp host");
-		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
-		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
-		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
-		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
+		assertThat(session.getProperty(MAIL_SMTP_HOST)).isEqualTo(SMTP_HOST);
+		assertThat(session.getProperty(MAIL_SMTP_PORT)).isEqualTo(PORT_25);
+		assertThat(session.getProperty(MAIL_TRANSPORT_PROTOCOL)).isEqualTo(SMTP);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_ENABLE)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_REQUIRED)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_SSL_CHECKSERVERIDENTITY)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_USERNAME)).isEqualTo(USERNAME_SMTP);
+		assertThat(session.getProperty(MAIL_SMTP_AUTH)).isEqualTo(TRUE);
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("999");
-		assertThat(session.getProperty("extra1")).isEqualTo("value1");
-		assertThat(session.getProperty("extra2")).isEqualTo("value2");
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_HOST)).isEqualTo(LOCALHOST);
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_PORT)).isEqualTo("999");
+		assertThat(session.getProperty(EXTRA_1)).isEqualTo(VALUE_1);
+		assertThat(session.getProperty(EXTRA_2)).isEqualTo(VALUE_2);
 	}
 	
 	@Test
@@ -129,48 +158,49 @@ public class MailerTest {
 		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
-		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp.default.com");
-		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
-		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
-		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
-		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
+
+		assertThat(session.getProperty(MAIL_SMTP_HOST)).isEqualTo(SMTP_DEFAULT_COM);
+		assertThat(session.getProperty(MAIL_SMTP_PORT)).isEqualTo(PORT_25);
+		assertThat(session.getProperty(MAIL_TRANSPORT_PROTOCOL)).isEqualTo(SMTP);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_ENABLE)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_REQUIRED)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_SSL_CHECKSERVERIDENTITY)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_USERNAME)).isEqualTo(USERNAME_SMTP);
+		assertThat(session.getProperty(MAIL_SMTP_AUTH)).isEqualTo(TRUE);
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_HOST)).isEqualTo(LOCALHOST);
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_PORT)).isEqualTo(STR_1081);
 	}
 	
 	@Test
 	public void createMailSession_MinimalConstructor_WithConfig_OPPORTUNISTIC_TLS() {
 		final Properties properties = new Properties();
-		properties.setProperty(OPPORTUNISTIC_TLS.key(), "false");
+		properties.setProperty(OPPORTUNISTIC_TLS.key(), FALSE);
 		ConfigLoader.loadProperties(properties, true);
 		
 		final Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
 		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
-		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp.default.com");
-		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
-		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
+		assertThat(session.getProperty(MAIL_SMTP_HOST)).isEqualTo(SMTP_DEFAULT_COM);
+		assertThat(session.getProperty(MAIL_SMTP_PORT)).isEqualTo(PORT_25);
+		assertThat(session.getProperty(MAIL_TRANSPORT_PROTOCOL)).isEqualTo(SMTP);
 		
-		assertThat(session.getProperty("mail.smtp.starttls.enable")).isNull();
-		assertThat(session.getProperty("mail.smtp.starttls.required")).isNull();
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_ENABLE)).isNull();
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_REQUIRED)).isNull();
+		assertThat(session.getProperty(MAIL_SMTP_SSL_CHECKSERVERIDENTITY)).isNull();
 		
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
-		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
+		assertThat(session.getProperty(MAIL_SMTP_USERNAME)).isEqualTo(USERNAME_SMTP);
+		assertThat(session.getProperty(MAIL_SMTP_AUTH)).isEqualTo(TRUE);
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_HOST)).isEqualTo(LOCALHOST);
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_PORT)).isEqualTo(STR_1081);
 	}
 	
 	@Test
 	public void createMailSession_MinimalConstructor_WithConfig_OPPORTUNISTIC_TLS_Manually_Disabled() {
 		final Properties properties = new Properties();
-		properties.setProperty(OPPORTUNISTIC_TLS.key(), "false");
+		properties.setProperty(OPPORTUNISTIC_TLS.key(), FALSE);
 		ConfigLoader.loadProperties(properties, true);
 		
 		TransportStrategy.SMTP.setOpportunisticTLS(true);
@@ -179,59 +209,58 @@ public class MailerTest {
 		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
-		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp.default.com");
-		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
-		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
+		assertThat(session.getProperty(MAIL_SMTP_HOST)).isEqualTo(SMTP_DEFAULT_COM);
+		assertThat(session.getProperty(MAIL_SMTP_PORT)).isEqualTo(PORT_25);
+		assertThat(session.getProperty(MAIL_TRANSPORT_PROTOCOL)).isEqualTo(SMTP);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_ENABLE)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_REQUIRED)).isEqualTo(FALSE);
+		assertThat(session.getProperty(MAIL_SMTP_SSL_TRUST)).isEqualTo("*");
+		assertThat(session.getProperty(MAIL_SMTP_SSL_CHECKSERVERIDENTITY)).isEqualTo(FALSE);
 		
-		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
-		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("false");
-		
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
-		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
+		assertThat(session.getProperty(MAIL_SMTP_USERNAME)).isEqualTo(USERNAME_SMTP);
+		assertThat(session.getProperty(MAIL_SMTP_AUTH)).isEqualTo(TRUE);
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_HOST)).isEqualTo(LOCALHOST);
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_PORT)).isEqualTo(STR_1081);
 	}
 	
 	@Test
 	public void createMailSession_MaximumConstructor_WithConfig() {
-		final Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTP_TLS);
+		final Mailer mailer = createFullyConfiguredMailer(false, OVERRIDDEN_, SMTP_TLS);
 		
 		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
-		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("overridden smtp host");
-		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
-		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
-		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("overridden username smtp");
-		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
+		assertThat(session.getProperty(MAIL_SMTP_HOST)).isEqualTo(OVERRIDDEN_SMTP_HOST);
+		assertThat(session.getProperty(MAIL_SMTP_PORT)).isEqualTo(PORT_25);
+		assertThat(session.getProperty(MAIL_TRANSPORT_PROTOCOL)).isEqualTo(SMTP);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_ENABLE)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_STARTTLS_REQUIRED)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_SSL_CHECKSERVERIDENTITY)).isEqualTo(TRUE);
+		assertThat(session.getProperty(MAIL_SMTP_USERNAME)).isEqualTo("overridden username smtp");
+		assertThat(session.getProperty(MAIL_SMTP_AUTH)).isEqualTo(TRUE);
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
-		assertThat(session.getProperty("extra1")).isEqualTo("overridden value1");
-		assertThat(session.getProperty("extra2")).isEqualTo("overridden value2");
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_HOST)).isEqualTo(LOCALHOST);
+		assertThat(session.getProperty(MAIL_SMTP_SOCKS_PORT)).isEqualTo(STR_1081);
+		assertThat(session.getProperty(EXTRA_1)).isEqualTo("overridden value1");
+		assertThat(session.getProperty(EXTRA_2)).isEqualTo("overridden value2");
 	}
 	
 	@Test
 	public void createMailSession_MaximumConstructor_WithConfig_TLS() {
-		final Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTPS);
+		final Mailer mailer = createFullyConfiguredMailer(false, OVERRIDDEN_, SMTPS);
 		
 		final Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
-		assertThat(session.getProperty("mail.smtps.host")).isEqualTo("overridden smtp host");
-		assertThat(session.getProperty("mail.smtps.port")).isEqualTo("25");
-		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtps");
-		assertThat(session.getProperty("mail.smtps.quitwait")).isEqualTo("false");
+		assertThat(session.getProperty("mail.smtps.host")).isEqualTo(OVERRIDDEN_SMTP_HOST);
+		assertThat(session.getProperty("mail.smtps.port")).isEqualTo(PORT_25);
+		assertThat(session.getProperty(MAIL_TRANSPORT_PROTOCOL)).isEqualTo("smtps");
+		assertThat(session.getProperty("mail.smtps.quitwait")).isEqualTo(FALSE);
 		assertThat(session.getProperty("mail.smtps.username")).isEqualTo("overridden username smtp");
-		assertThat(session.getProperty("mail.smtps.auth")).isEqualTo("true");
-		assertThat(session.getProperty("extra1")).isEqualTo("overridden value1");
-		assertThat(session.getProperty("extra2")).isEqualTo("overridden value2");
+		assertThat(session.getProperty("mail.smtps.auth")).isEqualTo(TRUE);
+		assertThat(session.getProperty(EXTRA_1)).isEqualTo("overridden value1");
+		assertThat(session.getProperty(EXTRA_2)).isEqualTo("overridden value2");
 	}
 	
 	@Test
@@ -273,25 +302,25 @@ public class MailerTest {
 	
 	private Mailer createFullyConfiguredMailer(final boolean authenticateProxy, final String prefix, final TransportStrategy transportStrategy) {
 		final MailerRegularBuilder mailerBuilder = MailerBuilder
-				.withSMTPServer(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp")
+				.withSMTPServer(prefix + SMTP_HOST, 25, prefix + USERNAME_SMTP, prefix + "password smtp")
 				.withTransportStrategy(transportStrategy)
 				.withDebugLogging(true);
 		
 		if (transportStrategy == SMTP_TLS) {
 			if (authenticateProxy) {
 				mailerBuilder
-						.withProxy(prefix + "proxy host", 1080, prefix + "username proxy", prefix + "password proxy")
+						.withProxy(prefix + PROXY_HOST, 1080, prefix + "username proxy", prefix + "password proxy")
 						.withProxyBridgePort(999);
 			} else {
-				mailerBuilder.withProxy(prefix + "proxy host", 1080);
+				mailerBuilder.withProxy(prefix + PROXY_HOST, 1080);
 			}
 		} else if (transportStrategy == SMTPS) {
 			mailerBuilder.clearProxy();
 		}
 		
 		return mailerBuilder
-				.withProperty("extra1", prefix + "value1")
-				.withProperty("extra2", prefix + "value2")
+				.withProperty(EXTRA_1, prefix + VALUE_1)
+				.withProperty(EXTRA_2, prefix + VALUE_2)
 				.buildMailer();
 	}
 }
