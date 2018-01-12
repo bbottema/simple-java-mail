@@ -45,7 +45,8 @@ public enum TransportStrategy {
      * </ul>
 	 */
 	SMTP {
-		
+		String getProtocol() {return "smtp";}
+
 		/**
 		 * Defaults to enabled opportunistic TLS behavior ({@link #opportunisticTLS}), in case value was not programmatically set or provided
 		 * as property value.
@@ -67,103 +68,14 @@ public enum TransportStrategy {
 		@Override
 		public Properties generateProperties() {
 			final Properties props = super.generateProperties();
-			props.put("mail.transport.protocol", "smtp");
 			if (ConfigLoader.valueOrProperty(opportunisticTLS, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS)) {
 				LOGGER.debug("Opportunistic TLS mode enabled for SMTP plain protocol.");
-				props.put("mail.smtp.starttls.enable", "true");
-				props.put("mail.smtp.starttls.required", "false");
-				props.put("mail.smtp.ssl.trust", "*");
-				props.put("mail.smtp.ssl.checkserveridentity", "false");
+				props.put(getPropertyString(PROTOCOL + STARTTLS_ENABLE), TRUE);
+				props.put(getPropertyString(PROTOCOL + STARTTLS_REQUIRED), FALSE);
+				props.put(propertyNameSSLTrust(), "*");
+				props.put(getPropertyString(SSL_CHECK_SERVER_IDENTITY), FALSE);
 			}
 			return props;
-		}
-
-		/**
-		 * @return "mail.smtp.host"
-		 */
-		@Override
-		public String propertyNameHost() {
-			return "mail.smtp.host";
-		}
-
-		/**
-		 * @return "mail.smtp.port"
-		 */
-		@Override
-		public String propertyNamePort() {
-			return "mail.smtp.port";
-		}
-
-		/**
-		 * @return "mail.smtp.username"
-		 */
-		@Override
-		public String propertyNameUsername() {
-			return "mail.smtp.username";
-		}
-
-		/**
-		 * @return "mail.smtp.auth"
-		 */
-		@Override
-		public String propertyNameAuthenticate() {
-			return "mail.smtp.auth";
-		}
-		
-		/**
-		 * @return "mail.smtp.socks.host"
-		 */
-		@Override
-		public String propertyNameSocksHost() {
-			return "mail.smtp.socks.host";
-		}
-		
-		/**
-		 * @return "mail.smtp.socks.port"
-		 */
-		@Override
-		public String propertyNameSocksPort() {
-			return "mail.smtp.socks.port";
-		}
-		
-		/**
-		 * @return "mail.smtp.connectiontimeout"
-		 */
-		@Override
-		public String propertyNameConnectionTimeout() {
-			return "mail.smtp.connectiontimeout";
-		}
-		
-		/**
-		 * @return "mail.smtp.timeout"
-		 */
-		@Override
-		public String propertyNameTimeout() {
-			return "mail.smtp.timeout";
-		}
-		
-		/**
-		 * @return "mail.smtp.writetimeout"
-		 */
-		@Override
-		public String propertyNameWriteTimeout() {
-			return "mail.smtp.writetimeout";
-		}
-		
-		/**
-		 * @return "mail.smtp.from"
-		 */
-		@Override
-		public String propertyNameEnvelopeFrom() {
-			return "mail.smtp.from";
-		}
-		
-		/**
-		 * @return "mail.smtp.ssl.trust"
-		 */
-		@Override
-		public String propertyNameSSLTrust() {
-			return "mail.smtp.ssl.trust";
 		}
 		
 		/**
@@ -200,104 +112,17 @@ public enum TransportStrategy {
 	 * </ul>
 	 */
 	SMTPS {
+		String getProtocol() {return "smtps";}
+
 		/**
 		 * @see TransportStrategy#SMTPS
 		 */
 		@Override
 		public Properties generateProperties() {
 			final Properties properties = super.generateProperties();
-			properties.put("mail.transport.protocol", "smtps");
-			properties.put("mail.smtps.ssl.checkserveridentity", "true");
-			properties.put("mail.smtps.quitwait", "false");
+			properties.put(getPropertyString(SSL_CHECK_SERVER_IDENTITY), TRUE);
+			properties.put(getPropertyString(PROTOCOL + "quitwait"), FALSE);
 			return properties;
-		}
-
-		/**
-		 * @return "mail.smtps.host"
-		 */
-		@Override
-		public String propertyNameHost() {
-			return "mail.smtps.host";
-		}
-
-		/**
-		 * @return "mail.smtps.port"
-		 */
-		@Override
-		public String propertyNamePort() {
-			return "mail.smtps.port";
-		}
-
-		/**
-		 * @return "mail.smtps.username"
-		 */
-		@Override
-		public String propertyNameUsername() {
-			return "mail.smtps.username";
-		}
-
-		/**
-		 * @return "mail.smtps.auth"
-		 */
-		@Override
-		public String propertyNameAuthenticate() {
-			return "mail.smtps.auth";
-		}
-		
-		/**
-		 * @return "mail.smtps.socks.host"
-		 */
-		@Override
-		public String propertyNameSocksHost() {
-			return "mail.smtps.socks.host";
-		}
-		
-		/**
-		 * @return "mail.smtps.socks.port"
-		 */
-		@Override
-		public String propertyNameSocksPort() {
-			return "mail.smtps.socks.port";
-		}
-		
-		/**
-		 * @return "mail.smtps.connectiontimeout"
-		 */
-		@Override
-		public String propertyNameConnectionTimeout() {
-			return "mail.smtps.connectiontimeout";
-		}
-		
-		/**
-		 * @return "mail.smtps.timeout"
-		 */
-		@Override
-		public String propertyNameTimeout() {
-			return "mail.smtps.timeout";
-		}
-		
-		/**
-		 * @return "mail.smtps.writetimeout"
-		 */
-		@Override
-		public String propertyNameWriteTimeout() {
-			return "mail.smtps.writetimeout";
-		}
-		
-		/**
-		 * @return "mail.smtps.from"
-		 */
-		@Override
-		public String propertyNameEnvelopeFrom() {
-			return "mail.smtps.from";
-		}
-		
-		/**
-		 * @return "mail.smtps.ssl.trust"
-		 */
-		@Override
-		public String propertyNameSSLTrust() {
-			return "mail.smtps.ssl.trust";
 		}
 	},
 	/**
@@ -316,108 +141,49 @@ public enum TransportStrategy {
 	 * </ul>
 	 */
 	SMTP_TLS {
+		String getProtocol() {return "smtp";}
+
 		/**
 		 * @see TransportStrategy#SMTP_TLS
 		 */
 		@Override
 		public Properties generateProperties() {
 			final Properties props = super.generateProperties();
-			props.put("mail.transport.protocol", "smtp");
-			props.put("mail.smtp.starttls.enable", "true");
-			props.put("mail.smtp.starttls.required", "true");
-			props.put("mail.smtp.ssl.checkserveridentity", "true");
+			props.put(getPropertyString(PROTOCOL + STARTTLS_ENABLE), TRUE);
+			props.put(getPropertyString(PROTOCOL + STARTTLS_REQUIRED), TRUE);
+			props.put(getPropertyString(SSL_CHECK_SERVER_IDENTITY), TRUE);
 			return props;
 		}
-
-		/**
-		 * @return "mail.smtp.host"
-		 */
-		@Override
-		public String propertyNameHost() {
-			return "mail.smtp.host";
-		}
-
-		/**
-		 * @return "mail.smtp.port"
-		 */
-		@Override
-		public String propertyNamePort() {
-			return "mail.smtp.port";
-		}
-
-		/**
-		 * @return "mail.smtp.username"
-		 */
-		@Override
-		public String propertyNameUsername() {
-			return "mail.smtp.username";
-		}
-
-		/**
-		 * @return "mail.smtp.auth"
-		 */
-		@Override
-		public String propertyNameAuthenticate() {
-			return "mail.smtp.auth";
-		}
-		
-		/**
-		 * @return "mail.smtp.socks.host"
-		 */
-		@Override
-		public String propertyNameSocksHost() {
-			return "mail.smtp.socks.host";
-		}
-		
-		/**
-		 * @return "mail.smtp.socks.port"
-		 */
-		@Override
-		public String propertyNameSocksPort() {
-			return "mail.smtp.socks.port";
-		}
-		
-		/**
-		 * @return "mail.smtp.connectiontimeout"
-		 */
-		@Override
-		public String propertyNameConnectionTimeout() {
-			return "mail.smtp.connectiontimeout";
-		}
-		
-		/**
-		 * @return "mail.smtp.timeout"
-		 */
-		@Override
-		public String propertyNameTimeout() {
-			return "mail.smtp.timeout";
-		}
-		
-		/**
-		 * @return "mail.smtp.writetimeout"
-		 */
-		@Override
-		public String propertyNameWriteTimeout() {
-			return "mail.smtp.writetimeout";
-		}
-		
-		/**
-		 * @return "mail.smtp.from"
-		 */
-		@Override
-		public String propertyNameEnvelopeFrom() {
-			return "mail.smtp.from";
-		}
-		
-		/**
-		 * @return "mail.smtp.ssl.trust"
-		 */
-		@Override
-		public String propertyNameSSLTrust() {
-			return "mail.smtp.ssl.trust";
-		}
 	};
-	
+
+	private static final String FALSE = "false";
+	private static final String TRUE = "true";
+	private static final String MAIL = "mail.";
+	private static final String PROTOCOL = MAIL + "%s.";
+	private static final String MAIL_TRANSPORT_PROTOCOL = MAIL + "transport.protocol";
+	private static final String HOST = PROTOCOL + "host";
+	private static final String SOCKS_HOST = PROTOCOL + "socks.host";
+	private static final String PORT = PROTOCOL + "port";
+	private static final String SOCKS_PORT = PROTOCOL + "socks.port";
+	private static final String AUTH = PROTOCOL + "auth";
+	private static final String USERNAME = PROTOCOL + "username";
+	private static final String CONNECTION_TIMEOUT = PROTOCOL + "connectiontimeout";
+	private static final String TIMEOUT = PROTOCOL + "timeout";
+	private static final String WRITE_TIMEOUT = PROTOCOL + "writetimeout";
+	private static final String FROM = PROTOCOL + "from";;
+	private static final String SSL = PROTOCOL + "ssl.";
+	private static final String SSL_CHECK_SERVER_IDENTITY = SSL + "checkserveridentity";
+	private static final String SSL_TRUST = SSL + "trust";
+	private static final String STARTTLS = "starttls.";
+	private static final String STARTTLS_ENABLE = STARTTLS + "enable";
+	private static final String STARTTLS_REQUIRED = STARTTLS + "required";
+
+	protected String getPropertyString(final String propertyName) {
+		return format(propertyName, getProtocol());
+	}
+
+	abstract String getProtocol();
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(TransportStrategy.class);
 	
 	/**
@@ -434,53 +200,76 @@ public enum TransportStrategy {
 	public Properties generateProperties() {
 		final Properties properties = new Properties();
 		properties.put(TRANSPORT_STRATEGY_MARKER, name());
+		properties.put(MAIL_TRANSPORT_PROTOCOL, getProtocol());
 		return properties;
 	}
-	
+
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNameHost();
+	public String propertyNameHost() {
+		return getPropertyString(HOST);
+	}
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNamePort();
+	public String propertyNamePort() {
+		return getPropertyString(PORT);
+	}
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNameUsername();
+	public String propertyNameUsername() {
+		return getPropertyString(USERNAME);
+	}
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNameAuthenticate();
+	public String propertyNameAuthenticate() {
+		return getPropertyString(AUTH);
+	}
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNameSocksHost();
+	public String propertyNameSocksHost() {
+		return getPropertyString(SOCKS_HOST);
+	}
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNameSocksPort();
+	public String propertyNameSocksPort() {
+		return getPropertyString(SOCKS_PORT);
+	}
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNameConnectionTimeout();
+	public String propertyNameConnectionTimeout() {
+		return getPropertyString(CONNECTION_TIMEOUT);
+	}
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNameWriteTimeout();
+	public String propertyNameWriteTimeout() {
+		return getPropertyString(WRITE_TIMEOUT);
+	}
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNameEnvelopeFrom();
+	public String propertyNameEnvelopeFrom() {
+		return getPropertyString(FROM);
+	}
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNameSSLTrust();
+	public String propertyNameSSLTrust() {
+		return getPropertyString(SSL_TRUST);
+	}
 	/**
 	 * For internal use only.
 	 */
-	public abstract String propertyNameTimeout();
+	public String propertyNameTimeout() {
+		return getPropertyString(TIMEOUT);
+	}
 	
 	/**
 	 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
