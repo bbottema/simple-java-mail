@@ -1,4 +1,4 @@
-[![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE-2.0.txt) [![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/https/oss.sonatype.org/org.simplejavamail/simple-java-mail.svg)](https://stackoverflow.com/questions/7715321/how-to-download-snapshot-version-from-maven-snapshot-repository/7717234#7717234) [![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22) [![Javadocs](https://img.shields.io/badge/javadoc-4.4.5-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) [![Build Status](https://img.shields.io/travis/bbottema/simple-java-mail.svg?style=flat)](https://travis-ci.org/bbottema/simple-java-mail) [![Codacy](https://img.shields.io/codacy/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
+[![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE-2.0.txt) [![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22) [![Javadocs](https://img.shields.io/badge/javadoc-4.4.5-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) [![Build Status](https://img.shields.io/travis/bbottema/simple-java-mail.svg?style=flat)](https://travis-ci.org/bbottema/simple-java-mail) [![Codacy](https://img.shields.io/codacy/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
 
 # Simple Java Mail #
 
@@ -66,15 +66,13 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>4.4.5</version><!-- 5.0.0.rc2-SNAPSHOT in OSS snapshots repo -->
+    <version>5.0.0</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v5.0.0.rc2-SNAPSHOT (26-December-2017)
-
-This is currently a snapshot. To get access to it, add the [OSS snapshots repo](https://stackoverflow.com/a/7717234/441662) to your maven settings
+v5.0.0 (14-Februari-2018)
 
 Also see the [migration notes](http://www.simplejavamail.org/#/migrate500)
 
