@@ -319,15 +319,10 @@
                         <configuration>
                             <artifactSet>
                                 <includes>
-                                    <include>com.github.bbottema:emailaddress-rfc2822</include>
                                     <include>org.simplejavamail:outlook-message-parser</include>
                                 </includes>
                             </artifactSet>
                             <relocations>
-                                <relocation>
-                                    <pattern>org.hazlewood.connor.bottema.emailaddress</pattern>
-                                    <shadedPattern>org.hazlewood.connor.bottema.emailaddress.simplejavamail</shadedPattern>
-                                </relocation>
                                 <relocation>
                                     <pattern>org.simplejavamail.outlookmessageparser</pattern>
                                     <shadedPattern>org.simplejavamail.outlookmessageparser.simplejavamail</shadedPattern>

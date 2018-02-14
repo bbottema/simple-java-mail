@@ -92,6 +92,7 @@ Also see the [migration notes](http://www.simplejavamail.org/#/migrate500)
 
 Complete [Javadoc](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) overhaul. Navigating the Javadoc should be much more consistent now (builder API being the single *public* source of truth).
 
+- [#122](https://github.com/bbottema/simple-java-mail/issues/122) The email-rfc2822-validator library has been made a proper Maven dependency (not packaged along anymore)
 - [#120](https://github.com/bbottema/simple-java-mail/issues/120) The DKIM library has been made an optional proper Maven dependency (not packaged along anymore)
 - [#119](https://github.com/bbottema/simple-java-mail/issues/119) Switched optional Spring dependency version to property and now testing with 4.3.11.RELEASE
 - [#113](https://github.com/bbottema/simple-java-mail/issues/113) Updated the underlying JavaMail to 1.6.0
