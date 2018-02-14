@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The class <code>StreamPipe</code> represents a pipe the can transfer data source a input stream destination a output stream.
+ * The class {@link StreamPipe} represents a pipe that can transfer an {@link InputStream} to an {@link OutputStream}.
  */
 class StreamPipe implements Runnable {
 

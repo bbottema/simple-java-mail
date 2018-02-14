@@ -200,7 +200,7 @@ public class EmailBuilder {
 		}
 		
 		/**
-		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
+		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to {@code false} and a default HTML quoting
 		 * template.
 		 */
 		public EmailPopulatingBuilder replyingTo(@Nonnull final Email email) {
@@ -208,7 +208,7 @@ public class EmailBuilder {
 		}
 		
 		/**
-		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code> and a default HTML quoting
+		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to {@code true} and a default HTML quoting
 		 * template.
 		 */
 		public EmailPopulatingBuilder replyingToAll(@Nonnull final Email email) {
@@ -216,7 +216,7 @@ public class EmailBuilder {
 		}
 		
 		/**
-		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code>.
+		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to {@code true}.
 		 *
 		 * @see #DEFAULT_QUOTING_MARKUP
 		 */
@@ -225,14 +225,14 @@ public class EmailBuilder {
 		}
 		
 		/**
-		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
+		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to {@code false}.
 		 */
 		public EmailPopulatingBuilder replyingTo(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
 			return replyingTo(EmailConverter.emailToMimeMessage(email), false, customQuotingTemplate);
 		}
 		
 		/**
-		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
+		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to {@code false} and a default HTML quoting
 		 * template.
 		 */
 		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email) {
@@ -240,7 +240,7 @@ public class EmailBuilder {
 		}
 		
 		/**
-		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code>.
+		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to {@code true}.
 		 *
 		 * @see #DEFAULT_QUOTING_MARKUP
 		 */
@@ -249,14 +249,14 @@ public class EmailBuilder {
 		}
 		
 		/**
-		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
+		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to {@code false}.
 		 */
 		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
 			return replyingTo(email, false, customQuotingTemplate);
 		}
 		
 		/**
-		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code> and a default HTML quoting
+		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to {@code true} and a default HTML quoting
 		 * template.
 		 *
 		 * @see #DEFAULT_QUOTING_MARKUP
@@ -362,7 +362,7 @@ public class EmailBuilder {
 		 * Preconfigures the builder with all the properties from the given email that are non-null.
 		 */
 		public EmailPopulatingBuilder copying(@Nonnull final Email email) {
-			EmailPopulatingBuilder builder = new EmailPopulatingBuilder(applyDefaults);
+			final EmailPopulatingBuilder builder = new EmailPopulatingBuilder(applyDefaults);
 			if (email.getId() != null) {
 				builder.fixingMessageId(email.getId());
 			}

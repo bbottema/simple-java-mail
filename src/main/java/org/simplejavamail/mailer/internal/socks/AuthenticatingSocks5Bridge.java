@@ -1,7 +1,12 @@
 package org.simplejavamail.mailer.internal.socks;
 
 import org.simplejavamail.mailer.internal.socks.common.Socks5Bridge;
-import org.simplejavamail.mailer.internal.socks.socks5client.*;
+import org.simplejavamail.mailer.internal.socks.socks5client.KeyStoreInfo;
+import org.simplejavamail.mailer.internal.socks.socks5client.ProxyCredentials;
+import org.simplejavamail.mailer.internal.socks.socks5client.SSLConfiguration;
+import org.simplejavamail.mailer.internal.socks.socks5client.SSLSocks5;
+import org.simplejavamail.mailer.internal.socks.socks5client.Socks5;
+import org.simplejavamail.mailer.internal.socks.socks5client.SocksSocket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

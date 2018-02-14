@@ -210,7 +210,7 @@ public final class MimeMessageHelper {
 	 * Sets all headers on the {@link Message} instance. Since we're not using a high-level JavaMail method, the JavaMail library says we need to do
 	 * some encoding and 'folding' manually, to get the value right for the headers (see {@link MimeUtility}.
 	 * <p>
-	 * Furthermore sets the notification flags <code>Disposition-Notification-To</code> and <code>Return-Receipt-To</code> if provided. It used
+	 * Furthermore sets the notification flags {@code Disposition-Notification-To} and {@code Return-Receipt-To} if provided. It used
 	 * JavaMail's built in method for producing an RFC compliant email address (see {@link InternetAddress#toString()}).
 	 *
 	 * @param email   The message in which the headers are defined.

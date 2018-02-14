@@ -33,7 +33,7 @@ public class AttachmentResource {
 	 * Constructor; initializes the attachment resource with a name and data.
 	 *
 	 * @param name       The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;). Leave
-	 *                   <code>null</code> to fall back on {@link DataSource#getName()}.
+	 *                   {@code null} to fall back on {@link DataSource#getName()}.
 	 * @param dataSource The attachment data. If no name was provided, the name of this datasource is used if provided.
 	 * @see DataSource
 	 */

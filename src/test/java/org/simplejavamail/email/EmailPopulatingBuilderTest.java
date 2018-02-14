@@ -21,7 +21,7 @@ public class EmailPopulatingBuilderTest {
 	private EmailPopulatingBuilder builder;
 	
 	@Before
-	public void setup() throws Exception {
+	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		builder = EmailBuilder.startingBlank();
 	}
@@ -347,13 +347,13 @@ public class EmailPopulatingBuilderTest {
 		try {
 			builder.withEmbeddedImage(null, new ByteArrayDataSource(new byte[3], ""));
 			failBecauseExceptionWasNotThrown(EmailException.class);
-		} catch (EmailException e) {
+		} catch (final EmailException e) {
 			// ok
 		}
 		try {
 			builder.withEmbeddedImage(null, new byte[3], "mimetype");
 			failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-		} catch (IllegalArgumentException e) {
+		} catch (final IllegalArgumentException e) {
 			// ok
 		}
 	}
@@ -371,7 +371,7 @@ public class EmailPopulatingBuilderTest {
 	
 	@Test
 	public void testPrependText_ToEmptyText() {
-		Email test = builder
+		final Email test = builder
 				.prependText("test")
 				.buildEmail();
 		
@@ -380,7 +380,7 @@ public class EmailPopulatingBuilderTest {
 	
 	@Test
 	public void testPrependText_ToNonEmptyText() {
-		Email test = builder
+		final Email test = builder
 				.withPlainText("moo")
 				.withHTMLText("ignore")
 				.prependText("test\n")
@@ -391,7 +391,7 @@ public class EmailPopulatingBuilderTest {
 	
 	@Test
 	public void testPrependTextHTML_ToEmptyText() {
-		Email test = builder
+		final Email test = builder
 				.prependTextHTML("test")
 				.buildEmail();
 		
@@ -400,7 +400,7 @@ public class EmailPopulatingBuilderTest {
 	
 	@Test
 	public void testPrependTextHTML_ToNonEmptyText() {
-		Email test = builder
+		final Email test = builder
 				.withPlainText("ignore")
 				.withHTMLText("moo")
 				.prependTextHTML("test\n")
@@ -411,7 +411,7 @@ public class EmailPopulatingBuilderTest {
 	
 	@Test
 	public void testAppendText_ToEmptyText() {
-		Email test = builder
+		final Email test = builder
 				.appendText("test")
 				.buildEmail();
 		
@@ -420,7 +420,7 @@ public class EmailPopulatingBuilderTest {
 	
 	@Test
 	public void testAppendText_ToNonEmptyText() {
-		Email test = builder
+		final Email test = builder
 				.withPlainText("moo")
 				.withHTMLText("ignore")
 				.appendText("\ntest")
@@ -431,7 +431,7 @@ public class EmailPopulatingBuilderTest {
 	
 	@Test
 	public void testAppendTextHTML_ToEmptyText() {
-		Email test = builder
+		final Email test = builder
 				.appendTextHTML("test")
 				.buildEmail();
 		
@@ -440,7 +440,7 @@ public class EmailPopulatingBuilderTest {
 	
 	@Test
 	public void testAppendTextHTML_ToNonEmptyText() {
-		Email test = builder
+		final Email test = builder
 				.withPlainText("ignore")
 				.withHTMLText("moo")
 				.appendTextHTML("\ntest")

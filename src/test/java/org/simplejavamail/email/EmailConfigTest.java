@@ -16,9 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class EmailConfigTest {
 
 	@Before
-	public void restoreOriginalStaticProperties()
-			throws IOException {
-		String s = "simplejavamail.defaults.from.name=From Default\n"
+	public void restoreOriginalStaticProperties() {
+		final String s = "simplejavamail.defaults.from.name=From Default\n"
 				+ "simplejavamail.defaults.from.address=from@default.com\n"
 				+ "simplejavamail.defaults.replyto.name=Reply-To Default\n"
 				+ "simplejavamail.defaults.replyto.address=reply-to@default.com\n"
@@ -34,10 +33,9 @@ public class EmailConfigTest {
 	}
 
 	@Test
-	public void emailConstructor_WithoutConfig()
-			throws Exception {
+	public void emailConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		Email email = EmailBuilder.startingBlank().buildEmail();
+		final Email email = EmailBuilder.startingBlank().buildEmail();
 		assertThat(email.getFromRecipient()).isNull();
 		assertThat(email.getReplyToRecipient()).isNull();
 		assertThat(email.getBounceToRecipient()).isNull();
@@ -46,7 +44,7 @@ public class EmailConfigTest {
 
 	@Test
 	public void emailConstructor_WithConfig() {
-		Email email = EmailBuilder.startingBlank().buildEmail();
+		final Email email = EmailBuilder.startingBlank().buildEmail();
 		assertThat(email.getFromRecipient()).isEqualToComparingFieldByField(new Recipient("From Default", "from@default.com", null));
 		assertThat(email.getReplyToRecipient()).isEqualToComparingFieldByField(new Recipient("Reply-To Default", "reply-to@default.com", null));
 		assertThat(email.getBounceToRecipient()).isEqualToComparingFieldByField(new Recipient("Bounce-To Default", "bounce-to@default.com", null));

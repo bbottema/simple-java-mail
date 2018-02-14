@@ -120,8 +120,8 @@ public class Mailer {
 		this.mailSender = initFromGenericBuilder(transportStrategy, proxyConfig, session, regularBuilder);
 	}
 	
-	private MailSender initFromGenericBuilder(@Nonnull TransportStrategy transportStrategy, @Nonnull ProxyConfig proxyConfig, @Nonnull Session session, @Nonnull final MailerGenericBuilder<?> genericBuiler) {
-		OperationalConfig operationalConfig = genericBuiler.buildOperationalConfig();
+	private MailSender initFromGenericBuilder(@Nonnull final TransportStrategy transportStrategy, @Nonnull final ProxyConfig proxyConfig, @Nonnull final Session session, @Nonnull final MailerGenericBuilder<?> genericBuilder) {
+		final OperationalConfig operationalConfig = genericBuilder.buildOperationalConfig();
 		return new MailSender(session, operationalConfig, proxyConfig, transportStrategy);
 	}
 	
@@ -129,16 +129,16 @@ public class Mailer {
 	 * Instantiates and configures the {@link Session} instance. Delegates resolving transport protocol specific properties to the given {@link
 	 * TransportStrategy} in two ways: <ol> <li>request an initial property list which the strategy may pre-populate</li> <li>by requesting the
 	 * property names according to the respective transport protocol it handles (for the host property for example it would be
-	 * <em>"mail.smtp.host"</em> for SMTP and <em>"mail.smtps.host"</em> for SMTPS)</li> </ol>
+	 * {@code mail.smtp.host} for SMTP and {@code mail.smtps.host} for SMTPS)</li> </ol>
 	 * <p>
 	 * Furthermore adds proxy SOCKS properties if a proxy configuration was provided, overwriting any SOCKS properties already present.
 	 *
 	 * @param serverConfig      Remote SMTP server details.
-	 * @param transportStrategy The transport protocol strategy enum that actually handles the session configuration. Session configuration meaning
-	 *                          setting the right properties for the appropriate transport type (ie. <em>"mail.smtp.host"</em> for SMTP,
-	 *                          <em>"mail.smtps.host"</em> for SMTPS).
+	 * @param transportStrategy The transport protocol strategy enum that actually handles the session configuration. {@link Session} configuration meaning
+	 *                          setting the right properties for the appropriate transport type (ie. {@code mail.smtp.host} for SMTP,
+	 *                          {@code mail.smtps.host} for SMTPS).
 	 *
-	 * @return A fully configured <code>Session</code> instance complete with transport protocol settings.
+	 * @return A fully configured {@link Session} instance complete with transport protocol settings.
 	 * @see TransportStrategy#generateProperties()
 	 * @see TransportStrategy#propertyNameHost()
 	 * @see TransportStrategy#propertyNamePort()
@@ -223,7 +223,7 @@ public class Mailer {
 	}
 	
 	/**
-	 * Delegates to {@link #sendMail(Email, boolean)}, with <code>async = false</code>. This method returns only when the email has been processed by
+	 * Delegates to {@link #sendMail(Email, boolean)}, with {@code async = false}. This method returns only when the email has been processed by
 	 * the target SMTP server.
 	 */
 	public final void sendMail(final Email email) {
@@ -255,7 +255,7 @@ public class Mailer {
 	 *
 	 * @param email The email that needs to be configured correctly.
 	 *
-	 * @return Always <code>true</code> (throws a {@link MailException} exception if validation fails).
+	 * @return Always {@code true} (throws a {@link MailException} exception if validation fails).
 	 * @throws MailException Is being thrown in any of the above causes.
 	 * @see EmailAddressValidator
 	 */

@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.net.Socket;
 
 /**
- * The class <code>SocketPipe</code> represents pipe that can transfer data from one socket to another socket. The tow socket should be
+ * The class {@link SocketPipe} represents pipe that can transfer data from one {@link Socket} to another socket. The tow socket should be
  * connected sockets. If any of the them occurred error the pipe will close all of them.
  */
 public class SocketPipe {
@@ -32,7 +32,7 @@ public class SocketPipe {
 	private final PipeListener listener = new PipeListener();
 
 	/**
-	 * Constructs SocketPipe instance by tow connected sockets.
+	 * Constructs SocketPipe instance by tow connected {@link Socket}s.
 	 */
 	public SocketPipe(final Socket socket1, final Socket socket2)
 			throws IOException {

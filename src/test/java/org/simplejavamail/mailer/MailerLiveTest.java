@@ -77,7 +77,7 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_OutlookMessageTest()
 			throws IOException, MessagingException {
-		Email email = assertSendingEmail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"));
+		final Email email = assertSendingEmail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"));
 
 		// Google SMTP overrode this, Outlook recognized it as: Benny Bottema <b.bottema@gmail.com>; on behalf of; lollypop <b.bottema@projectnibble.org>
 		EmailAssert.assertThat(email).hasFromRecipient(new Recipient("lollypop", "b.bottema@projectnibble.org", null));
@@ -92,9 +92,9 @@ public class MailerLiveTest {
 		// the RTF was probably created by Outlook based on the HTML when the message was saved
 		assertThat(email.getAttachments()).hasSize(2);
 		assertThat(email.getEmbeddedImages()).hasSize(1);
-		AttachmentResource attachment1 = email.getAttachments().get(0);
-		AttachmentResource attachment2 = email.getAttachments().get(1);
-		AttachmentResource embeddedImg = email.getEmbeddedImages().get(0);
+		final AttachmentResource attachment1 = email.getAttachments().get(0);
+		final AttachmentResource attachment2 = email.getAttachments().get(1);
+		final AttachmentResource embeddedImg = email.getEmbeddedImages().get(0);
 		// Outlook overrode dresscode.txt, presumably because it was more than 8 character long??
 		assertAttachmentMetadata(attachment1, "text/plain", "dresscode.txt");
 		assertAttachmentMetadata(attachment2, "text/plain", "location.txt");
@@ -106,12 +106,12 @@ public class MailerLiveTest {
 
 	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder)
 			throws MessagingException {
-		Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
+		final Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
 		mailer.sendMail(originalEmail);
-		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		final MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
 		
-		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
+		final Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
 		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty
 		if (originalEmailPopulatingBuilder.getReplyToRecipient() == null) {
 			originalEmailPopulatingBuilder.withReplyTo(originalEmailPopulatingBuilder.getFromRecipient());
@@ -130,14 +130,14 @@ public class MailerLiveTest {
 	
 	@Test
 	public void createMailSession_ReplyToMessage()
-			throws IOException, MessagingException {
+			throws MessagingException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
-		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
+		final MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		final EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
 		
 		// send reply to initial mail
-		Email reply = EmailBuilder
+		final Email reply = EmailBuilder
 				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder))
 				.from("dummy@domain.com")
 				.withPlainText("This is the reply")
@@ -145,10 +145,10 @@ public class MailerLiveTest {
 		
 		// test received reply to initial mail
 		mailer.sendMail(reply);
-		MimeMessage receivedMimeMessageReply1 = smtpServerRule.getMessage("lo.pop.replyto@somemail.com");
-		MimeMessage receivedMimeMessageReply2 = smtpServerRule.getMessage("benny.bottema@aegon.nl");
-		Email receivedReply1 = mimeMessageToEmail(receivedMimeMessageReply1);
-		Email receivedReply2 = mimeMessageToEmail(receivedMimeMessageReply2);
+		final MimeMessage receivedMimeMessageReply1 = smtpServerRule.getMessage("lo.pop.replyto@somemail.com");
+		final MimeMessage receivedMimeMessageReply2 = smtpServerRule.getMessage("benny.bottema@aegon.nl");
+		final Email receivedReply1 = mimeMessageToEmail(receivedMimeMessageReply1);
+		final Email receivedReply2 = mimeMessageToEmail(receivedMimeMessageReply2);
 		
 		assertThat(receivedReply1).isEqualTo(receivedReply2);
 		EmailAssert.assertThat(receivedReply1).hasSubject("Re: hey");
@@ -162,14 +162,14 @@ public class MailerLiveTest {
 	
 	@Test
 	public void createMailSession_ReplyToMessage_NotAll_AndCustomReferences()
-			throws IOException, MessagingException {
+			throws MessagingException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
-		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
+		final MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		final EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
 		
 		// send reply to initial mail
-		Email reply = EmailBuilder
+		final Email reply = EmailBuilder
 				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder))
 				.withHeader("References", "dummy-references")
 				.from("dummy@domain.com")
@@ -178,8 +178,8 @@ public class MailerLiveTest {
 		
 		// test received reply to initial mail
 		mailer.sendMail(reply);
-		MimeMessage receivedMimeMessageReply1 = smtpServerRule.getOnlyMessage("lo.pop.replyto@somemail.com");
-		Email receivedReply = mimeMessageToEmail(receivedMimeMessageReply1);
+		final MimeMessage receivedMimeMessageReply1 = smtpServerRule.getOnlyMessage("lo.pop.replyto@somemail.com");
+		final Email receivedReply = mimeMessageToEmail(receivedMimeMessageReply1);
 		
 		EmailAssert.assertThat(receivedReply).hasSubject("Re: hey");
 		EmailAssert.assertThat(receivedReply).hasOnlyRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO));
@@ -187,7 +187,7 @@ public class MailerLiveTest {
 		assertThat(receivedReply.getHeaders()).contains(entry("References", "dummy-references"));
 	}
 	
-	private void assertAttachmentMetadata(AttachmentResource embeddedImg, String mimeType, String filename) {
+	private void assertAttachmentMetadata(final AttachmentResource embeddedImg, final String mimeType, final String filename) {
 		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo(mimeType);
 		assertThat(embeddedImg.getName()).isEqualTo(filename);
 	}
