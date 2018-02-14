@@ -132,7 +132,7 @@ public final class ConfigLoader {
 	}
 
 	/**
-	 * Returns the given value if not null and not empty, otherwise tries to resolve the given property and if still not found resot to the default value if
+	 * Returns the given value if not null and not empty, otherwise tries to resolve the given property and if still not found resort to the default value if
 	 * provided.
 	 * <p>
 	 * Null or blank values are never allowed, so they are always ignored.
