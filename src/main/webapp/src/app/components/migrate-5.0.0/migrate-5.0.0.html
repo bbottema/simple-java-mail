@@ -1,14 +1,14 @@
 <div class="content">
-  
+
   <h1>Migrating to 5.0.0</h1>
-  
+
   <section>
     <p class="wide">
       Note, currently 5.0.0 is released as 5.0.0.rc2-SNAPSHOT. To use it, add
       <a href="https://stackoverflow.com/a/7717234/441662">OSS' snapshots repo</a> to your maven settings.
     </p>
   </section>
-  
+
   <section class="toc">
     <ul>
       <li><a simplePageScroll href="#section-builders">Builders all the way down</a></li>
@@ -16,12 +16,13 @@
       <li><a simplePageScroll href="#section-what-changed">So what API changed?</a></li>
       <li><a simplePageScroll href="#section-conditional-config">Conditional config?</a></li>
       <li><a simplePageScroll href="#section-spring-support">Changes to Spring support</a></li>
+      <li><a simplePageScroll href="#section-transportstrategy-renamed">TransportStrategy renamed</a></li>
     </ul>
   </section>
-  
+
   <a href="#section-builders" id="section-builders" class="section-link h2">&sect;</a>
   <h2>Builders all the way down</h2>
-  
+
   <section>
     <p class="wide">
       With all the possible ways to configure Email and Mailer instances, the library had only one option left to streamline API, avoid the
@@ -29,10 +30,10 @@
       managable: <a href="https://martinfowler.com/bliki/FluentInterface.html">fluent builders</a>.
     </p>
   </section>
-  
+
   <a href="#section-why-builders" id="section-why-builders" class="section-link h2">&sect;</a>
   <h2>Why builders?</h2>
-  
+
   <section>
     <div class="wide">
       <ol class="indent">
@@ -44,10 +45,10 @@
       </ol>
     </div>
   </section>
-  
+
   <a href="#section-what-changed" id="section-what-changed" class="section-link h2">&sect;</a>
   <h2>So what API changed?</h2>
-  
+
   <section>
     <div class="view">
       <p>All the constructors and mutation methods of <code class="inline">Mailer</code> have been replaced by the
@@ -77,7 +78,7 @@ Mailer mailer = MailerBuilder.
       </code></pre>
     </div>
   </section>
-  
+
   <section>
     <div class="view">
       <p>
@@ -102,10 +103,10 @@ mailer.getEmailAddressCriteria();
 </code></pre>
     </div>
   </section>
-  
+
   <a href="#section-conditional-config" id="section-conditional-config" class="section-link h2">&sect;</a>
   <h2>Conditional configuration</h2>
-  
+
   <section>
     <div class="view">
       <p>Here's a simple example of conditional configuration using builders</p>
@@ -122,21 +123,48 @@ Mailer mailer = builder.buildMailer();
 </code></pre>
     </div>
   </section>
-  
+
   <a href="#section-spring-support" id="section-spring-support" class="section-link h2">&sect;</a>
   <h2>Changes to Spring support</h2>
-  
+
   <section>
     <p class="wide">
-      The Java configuration has not changed, but the XML configuration is not supported anymore out-of-the-box.
+      The Java configuration has not changed, but Spring beans in XML configuration is not supported anymore out-of-the-box.
     </p>
     <p class="wide">
-      This is because there are not more constructors or bean setters to use when creating a Spring bean in XML.
-      The only way around this for XML configuration, is to provide your own builder method and refer to that from your bean xml.
+      This is because there are no constructors or bean setters/getters anymore, which you would normally use to create a Spring bean in XML.
+      The only way around this for XML configuration, is to provide your own builder method and refer to that from your bean xml so you can utilize the new builder API.
     </p>
     <p class="wide">
       Refer to the <a simplePageScroll [routerLink]="['/configuration']" href="#section-spring-support">configuration section</a>
       to see some current Spring examples
     </p>
+  </section>
+
+  <a href="#section-transportstrategy-renamed" id="section-transportstrategy-renamed" class="section-link h2">&sect;</a>
+  <h2>TransportStrategy renamed</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Due to security updates
+        <a href="https://github.com/bbottema/simple-java-mail/issues/105">#105</a> and
+        <a href="https://github.com/bbottema/simple-java-mail/issues/111">#111</a> a rename of the TransportStrategy enum was in order.
+      </p>
+      <p>
+        This is because there are not more constructors or bean setters to use when creating a Spring bean in XML.
+        The only way around this for XML configuration, is to provide your own builder method and refer to that from your bean xml.
+      </p>
+    </div>
+    <div class="side">
+      For v4, here are the possible values:
+      <pre><code class="language-properties">simplejavamail.transportstrategy=SMTP_PLAIN
+simplejavamail.transportstrategy=SMTP_SSL
+simplejavamail.transportstrategy=SMTP_TLS</code></pre>
+      For v5, the following will work:
+      <pre><code class="language-properties">simplejavamail.transportstrategy=SMTP
+simplejavamail.transportstrategy=SMTPS
+simplejavamail.transportstrategy=SMTP_TLS</code></pre>
+    </div>
   </section>
 </div>
