@@ -1,14 +1,13 @@
 <div class="content">
-  
+
   <h1>Logging & Debugging</h1>
-  
+
   <section>
     <p class="wide">
-      Note, currently 5.0.0 is released as 5.0.0.rc2-SNAPSHOT. To use it, add
-      <a href="https://stackoverflow.com/a/7717234/441662">OSS' snapshots repo</a> to your maven settings.
+      Upgrading to 5.0.0? Read the <a [routerLink]="['/migrate500']" simplePageScroll href="#navigation">migration notes</a>.
     </p>
   </section>
-  
+
   <section class="toc">
     <ul>
       <li><a simplePageScroll href="#section-debug-mode">Logging emails instead of sending</a></li>
@@ -21,11 +20,11 @@
       <li><a simplePageScroll href="#section-logback" class="indent">Example with logback</a></li>
     </ul>
   </section>
-  
-  
+
+
   <a href="#section-debug-mode" id="section-debug-mode" class="section-link h2">&sect;</a>
   <h2>Logging emails instead of sending</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -35,7 +34,7 @@
         Note: normally emails are always logged on <code>Level.DEBUG</code> level, but in logging mode emails are logged in <code>Level.INFO</code>.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>Mailer mailer = new Mailer(...);
 mailer.setTransportModeLoggingOnly(true);
@@ -47,11 +46,11 @@ mailer.sendMail(email); // <-- this email will be logged but not sent
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-debug-logging" id="section-debug-logging" class="section-link h2">&sect;</a>
   <h2>Enable javax.mail debug logging</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -59,7 +58,7 @@ mailer.sendMail(email); // <-- this email will be logged but not sent
         the internal Session instance.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>MailerBuilder.withDebugLogging();
 
@@ -75,18 +74,18 @@ MailerBuilder.usingSession(yourSession);
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-debug-logging" id="section-inspect-mailer-email" class="section-link h2">&sect;</a>
   <h2>Inspect a mailer or an email</h2>
-  
+
   <section>
     <div class="view">
       <p>
         After building a Mailer or an Email instance, you can read some details back from it and see if it is what you expected.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code>email.getAnythingYouCanSetWithABuilder();
 
@@ -99,11 +98,11 @@ mailer.getEmailAddressCriteria();
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-mailexception" id="section-mailexception" class="section-link h2">&sect;</a>
   <h2>Catching exceptions</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -119,7 +118,7 @@ mailer.getEmailAddressCriteria();
         <li>converting an email between various types</li>
       </ul>
     </div>
-    
+
     <div class="side">
 <pre><code>
 try {{ '{' }}
@@ -130,10 +129,10 @@ try {{ '{' }}
 </code></pre>
     </div>
   </section>
-  
+
   <a href="#section-logging" id="section-logging" class="section-link h2">&sect;</a>
   <h2>Logging output</h2>
-  
+
   <section>
     <div class="view">
       <p>
@@ -164,10 +163,10 @@ try {{ '{' }}
       </p>
     </div>
   </section>
-  
+
   <a href="#section-log4j12" id="section-log4j12" class="section-link h3">&sect;</a>
   <h3>Example with log4j12</h3>
-  
+
   <section>
     <div class="view">
       <p>
@@ -175,7 +174,7 @@ try {{ '{' }}
         slf4j-to-log4j impl included on the classpath as well as log4j12 itself and the log4j.xml with the config.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code class="language-markup small">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;!DOCTYPE log4j:configuration SYSTEM &quot;log4j.dtd&quot;&gt;
@@ -209,10 +208,10 @@ try {{ '{' }}
 </code></pre>
     </div>
   </section>
-  
+
   <a href="#section-log4j2" id="section-log4j2" class="section-link h3">&sect;</a>
   <h3>Example with log4j2</h3>
-  
+
   <section>
     <div class="view">
       <p>
@@ -220,7 +219,7 @@ try {{ '{' }}
         included on the classpath as well as log4j2 itself and the log4j2.xml with the config.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code class="language-markup small">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;configuration status=&quot;OFF&quot;&gt;
@@ -248,10 +247,10 @@ try {{ '{' }}
 </code></pre>
     </div>
   </section>
-  
+
   <a href="#section-logback" id="section-logback" class="section-link h3">&sect;</a>
   <h3>Example with logback</h3>
-  
+
   <section>
     <div class="view">
       <p>
@@ -259,7 +258,7 @@ try {{ '{' }}
         classpath as well as logback-core and the logback.xml with the config.
       </p>
     </div>
-    
+
     <div class="side">
 <pre><code class="language-markup small">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;configuration&gt;

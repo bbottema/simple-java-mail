@@ -1,14 +1,13 @@
 <div class="content">
 
   <h1>Configuration</h1>
-  
+
   <section>
     <p class="wide">
-      Note, currently 5.0.0 is released as 5.0.0.rc2-SNAPSHOT. To use it, add
-      <a href="https://stackoverflow.com/a/7717234/441662">OSS' snapshots repo</a> to your maven settings.
+      Upgrading to 5.0.0? Read the <a [routerLink]="['/migrate500']" simplePageScroll href="#navigation">migration notes</a>.
     </p>
   </section>
-  
+
     <section>
       <p class="wide">
         Simple Java Mail provides full configuration through <strong>programmatic API</strong> as well as <strong>system variables</strong>, <strong>environment variables</strong> and <strong>properties files</strong> (including Spring).
@@ -43,11 +42,11 @@
       <li><a simplePageScroll href="#section-spring-support">Spring support</a></li>
     </ul>
   </section>
-  
-  
+
+
   <a href="#section-transport-strategies" id="section-transport-strategies" class="section-link h2">&sect;</a>
   <h2>Transport strategies</h2>
-  
+
   <section>
     <div>
       <p class="wide">
@@ -61,11 +60,11 @@
       <p>Let's quickly review them one-by-one.</p>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-transport-strategy-smtp" id="section-transport-strategy-smtp" class="section-link h3">&sect;</a>
   <h3>TransportStrategy.SMTP</h3>
-  
+
   <section>
     <div class="view">
       <p>
@@ -115,11 +114,11 @@ simplejavamail.opportunistic.tls=false
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-transport-strategy-smtps" id="section-transport-strategy-smtps" class="section-link h3">&sect;</a>
   <h3>TransportStrategy.SMTPS</h3>
-  
+
   <section>
     <div class="view">
       <p>SMTP entirely encapsulated by TLS. Commonly known as SMTPS.</p>
@@ -139,11 +138,11 @@ Mailer mailer = MailerBuilder.buildMailer();
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-transport-strategy-tls" id="section-transport-strategy-tls" class="section-link h3">&sect;</a>
   <h3>TransportStrategy.SMTP_TLS</h3>
-  
+
   <section>
     <div class="view">
       <p>Plaintext SMTP with a mandatory, authenticated STARTTLS upgrade.</p>
@@ -182,11 +181,11 @@ Mailer mailer = MailerBuilder.buildMailer();
       </blockquote>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-programmatic-api-common" id="section-programmatic-api-common" class="section-link h2">&sect;</a>
   <h2>Programmatic API - common settings</h2>
-  
+
   <section>
     <div>
       <p>
@@ -194,7 +193,7 @@ Mailer mailer = MailerBuilder.buildMailer();
         through them.
       </p>
     </div>
-    
+
     <div>
 <pre><code class="small">// start with a builder
 MailerBuilder.withSMTPServer("smtp.host.com", 25, "username", "password");
@@ -264,8 +263,8 @@ MailerBuilder
 </code></pre>
     </div>
   </section>
-  
-  
+
+
   <a href="#section-programmatic-api-other" id="section-programmatic-api-other" class="section-link h3">&sect;</a>
   <h3>Programmatic API - other settings</h3>
 
@@ -289,7 +288,7 @@ currentMailerBuilder.withEmailAddressCriteria(EmailAddressCriteria.DEFAULT);
 currentMailerBuilder.withEmailAddressCriteria(EmailAddressCriteria.RFC_COMPLIANT);
 currentMailerBuilder.withEmailAddressCriteria(EnumSet
        .of(ALLOW_QUOTED_IDENTIFIERS, ALLOW_PARENS_IN_LOCALPART));
-       
+
 // reset to default RFC compliant checks:
 currentMailerBuilder.resetmailAddressCriteria();
 // deactivate email validation completely:
