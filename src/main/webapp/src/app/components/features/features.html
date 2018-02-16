@@ -545,6 +545,12 @@ Session session = mailer.getSession();
         domain keys. It uses <a href="https://github.com/markenwerk/java-utils-mail-dkim">java-utils-mail-dkim</a> (dependency packaged along) to
         perform the DNS DKIM record check on the given domain.
       </p>
+      <p>DKIM is an optional feature and if you want to use it, you need to include the following dependency in your project:</p>
+      <pre><code class="small language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;net.markenwerk&lt;/groupId&gt;
+    &lt;artifactId&gt;utils-mail-dkim&lt;/artifactId&gt;
+    &lt;version&gt;X.X.X&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
     </div>
 
     <div class="side">
