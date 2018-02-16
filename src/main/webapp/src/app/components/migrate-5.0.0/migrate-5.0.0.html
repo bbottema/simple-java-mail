@@ -17,6 +17,7 @@
       <li><a simplePageScroll href="#section-conditional-config">Conditional config?</a></li>
       <li><a simplePageScroll href="#section-spring-support">Changes to Spring support</a></li>
       <li><a simplePageScroll href="#section-transportstrategy-renamed">TransportStrategy renamed</a></li>
+      <li><a simplePageScroll href="#section-libraries-unshaded">Libraries DKIM and email-rfc2822-validator not included in the JAR anymore</a></li>
     </ul>
   </section>
 
@@ -165,6 +166,40 @@ simplejavamail.transportstrategy=SMTP_TLS</code></pre>
       <pre><code class="language-properties">simplejavamail.transportstrategy=SMTP
 simplejavamail.transportstrategy=SMTPS
 simplejavamail.transportstrategy=SMTP_TLS</code></pre>
+    </div>
+  </section>
+
+  <a href="#section-libraries-unshaded" id="section-libraries-unshaded" class="section-link h2">&sect;</a>
+  <h2>Libraries DKIM and email-validator not included in the JAR anymore</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        Due to issues with updating
+        (<a href="https://github.com/bbottema/simple-java-mail/issues/120">#120</a>) and downloading sources
+        (<a href="https://github.com/bbottema/simple-java-mail/issues/122">#122</a>) for the externals libraries DKIM and email-rfc2822-validator,
+        these dependencies are not included in the generated Simple Java Mail JAR anymore.
+      </p>
+      <p>
+        Instead, they are now included and updated like regular Maven dependencies again.
+      </p>
+      <p>
+        <strong>Note that the DKIM library is optional and only loaded when using the DKIM API, but email-rfc2822-validator is (still) included by default.</strong>
+      </p>
+    </div>
+    <div class="side">
+      To include the DKIM library:
+      <pre><code class="language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;net.markenwerk&lt;/groupId&gt;
+    &lt;artifactId&gt;utils-mail-dkim&lt;/artifactId&gt;
+    &lt;version&gt;X.X.X&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+      email-rfc2822-validator is included by default, but you can update the version as follows:
+      <pre><code class="language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;com.github.bbottema&lt;/groupId&gt;
+    &lt;artifactId&gt;emailaddress-rfc2822&lt;/artifactId&gt;
+    &lt;version&gt;X.X.X&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
     </div>
   </section>
 </div>
