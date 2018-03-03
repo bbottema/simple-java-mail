@@ -140,13 +140,4 @@ public final class MiscUtil {
 	public static <T> T defaultTo(@Nullable final T value, @Nullable final T defaultValue) {
 		return value != null ? value : defaultValue;
 	}
-	
-	public static boolean classAvailable(@Nonnull String className) {
-		try {
-			Class.forName(className);
-			return true;
-		} catch (ClassNotFoundException e) {
-			return false;
-		}
-	}
 }

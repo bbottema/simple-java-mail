@@ -33,7 +33,6 @@ import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
-import static org.simplejavamail.internal.util.MiscUtil.classAvailable;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
@@ -311,10 +310,6 @@ public final class MimeMessageHelper {
 	 * @return The original mime message wrapped in a new one that performs signing when sent.
 	 */
 	public static MimeMessage signMessageWithDKIM(final MimeMessage messageToSign, final Email emailContainingSigningDetails) {
-		if (!classAvailable("net.markenwerk.utils.mail.dkim.DkimSigner")) {
-			throw new MimeMessageParseException(MimeMessageParseException.ERROR_SIGNING_DKIM_LIBRARY_MISSING, null);
-		}
-		
 		try {
 			final DkimSigner dkimSigner;
 			if (emailContainingSigningDetails.getDkimPrivateKeyFile() != null) {
