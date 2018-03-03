@@ -3,6 +3,8 @@ package org.simplejavamail.converter.internal.mimemessage;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.BDDMockito;
+import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -91,6 +93,35 @@ public class MimeMessageHelperTest {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
+		
+		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+			@Override
+			public void call() throws Throwable {
+				EmailConverter.emailToMimeMessage(email);
+			}
+		})
+				.hasMessage(MimeMessageParseException.ERROR_SIGNING_DKIM_INVALID_DOMAINKEY);
+	}
+	
+	@Test
+	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseDKIMLibraryIsMissing() throws IOException {
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false)
+				.signWithDomainKey("dummykey", "moo.com", "selector")
+				.buildEmail();
+		
+		PowerMockito.mockStatic(MiscUtil.class);
+		BDDMockito.given(MiscUtil.classAvailable("net.markenwerk.utils.mail.dkim.DkimSigner")).willReturn(false);
+		
+		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+			@Override
+			public void call() throws Throwable {
+				EmailConverter.emailToMimeMessage(email);
+			}
+		})
+				.hasMessage(MimeMessageParseException.ERROR_SIGNING_DKIM_LIBRARY_MISSING);
+		
+		PowerMockito.mockStatic(MiscUtil.class);
+		BDDMockito.given(MiscUtil.classAvailable("net.markenwerk.utils.mail.dkim.DkimSigner")).willReturn(true);
 		
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
 			@Override
