@@ -86,7 +86,7 @@
     .withPlainText("Mom, Dad. We did the opening ceremony of our bakery!!!")
     .buildEmail();
 
-MailerBuilder.
+MailerBuilder
   .withSMTPServer("server", 25, "username", "password")
   .buildMailer()
   .sendMail(email);
