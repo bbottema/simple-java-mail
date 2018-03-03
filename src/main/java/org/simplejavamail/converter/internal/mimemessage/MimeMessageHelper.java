@@ -1,9 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import net.markenwerk.utils.mail.dkim.Canonicalization;
 import net.markenwerk.utils.mail.dkim.DkimMessage;
 import net.markenwerk.utils.mail.dkim.DkimSigner;
-import net.markenwerk.utils.mail.dkim.SigningAlgorithm;
 import org.simplejavamail.email.AttachmentResource;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
@@ -22,15 +20,13 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimeUtility;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
+import static java.lang.Class.forName;
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.classAvailable;
@@ -316,25 +312,11 @@ public final class MimeMessageHelper {
 		}
 		
 		try {
-			final DkimSigner dkimSigner;
-			if (emailContainingSigningDetails.getDkimPrivateKeyFile() != null) {
-				// InputStream is managed by Dkim library
-				dkimSigner = new DkimSigner(emailContainingSigningDetails.getDkimSigningDomain(), emailContainingSigningDetails.getDkimSelector(),
-						emailContainingSigningDetails.getDkimPrivateKeyFile());
-			} else {
-				// InputStream is managed by SimpleJavaMail user
-				dkimSigner = new DkimSigner(emailContainingSigningDetails.getDkimSigningDomain(), emailContainingSigningDetails.getDkimSelector(),
-						emailContainingSigningDetails.getDkimPrivateKeyInputStream());
-			}
-			dkimSigner.setIdentity(emailContainingSigningDetails.getFromRecipient().getAddress());
-			dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
-			dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
-			dkimSigner.setSigningAlgorithm(SigningAlgorithm.SHA256_WITH_RSA);
-			dkimSigner.setLengthParam(true);
-			dkimSigner.setZParam(false);
-			return new DkimMessage(messageToSign, dkimSigner);
-		} catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException | MessagingException e) {
-			throw new MimeMessageParseException(MimeMessageParseException.ERROR_SIGNING_DKIM_INVALID_DOMAINKEY, e);
+			// make sure the DKIM classes are only loaded when needed
+			return ((IDKIMSigner) forName("org.simplejavamail.converter.internal.mimemessage.DKIMSigner").newInstance())
+					.signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
+		} catch (Exception e) {
+			throw new MimeMessageParseException(e.getMessage(), e);
 		}
 	}
 
