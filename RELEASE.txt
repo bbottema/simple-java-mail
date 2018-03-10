@@ -3,8 +3,15 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.0.0</version>
+    <version>5.0.1</version>
 </dependency>
+
+v5.0.1 (10-March-2018)
+
+- #130 java.lang.ClassNotFoundException: net.markenwerk.utils.mail.dkim.DkimMessage
+
+Solves the issue of missing optional class DKIM even when not used
+
 
 v5.0.0 (14-Februari-2018)
 

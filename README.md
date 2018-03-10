@@ -8,8 +8,6 @@ The Simple Java Mail library is a thin layer on top of the [JavaMail smtp mailin
 
 ### [simplejavamail.org](http://www.simplejavamail.org) ###
 
-(starting from v5.0.0)
-
 ```java
 EmailBuilder.startingBlank()
 EmailBuilder.replyingTo(email)
@@ -66,11 +64,18 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.0.0</version>
+    <version>5.0.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v5.0.1 (10-March-2018)
+
+- [#130](https://github.com/bbottema/simple-java-mail/issues/130) java.lang.ClassNotFoundException: net.markenwerk.utils.mail.dkim.DkimMessage
+
+Solves the issue of missing optional class DKIM even when not used 
+
 
 v5.0.0 (14-Februari-2018)
 
