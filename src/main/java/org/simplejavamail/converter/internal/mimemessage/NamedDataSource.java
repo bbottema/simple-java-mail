@@ -1,6 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import javax.activation.DataSource;
+import javax.mail.EncodingAware;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -10,7 +11,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 /**
  * Allows given datasource to be renamed (from {@link javax.activation.DataHandler} perspective).
  */
-class NamedDataSource implements DataSource {
+class NamedDataSource implements DataSource, EncodingAware {
 
 	/**
 	 * Original data source used for attachment.
@@ -68,5 +69,16 @@ class NamedDataSource implements DataSource {
 	@Override
 	public String getName() {
 		return !valueNullOrEmpty(name) ? name : dataSource.getName();
+	}
+	
+	/**
+	 * Optimization to help Java Mail determine encoding for attachments.
+	 *
+	 * @return The encoding from the nested data source if it implements {@link EncodingAware} as well.
+	 * @see <a href="https://github.com/bbottema/simple-java-mail/issues/131">Bug report #131</a>
+	 */
+	@Override
+	public String getEncoding() {
+		return (this.dataSource instanceof EncodingAware) ? ((EncodingAware) this.dataSource).getEncoding() : null;
 	}
 }
