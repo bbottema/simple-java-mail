@@ -64,11 +64,17 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.0.1</version>
+    <version>5.0.2</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v5.0.2 (7-April-2018)
+
+- [#135](https://github.com/bbottema/simple-java-mail/issues/135) trustingAllHosts should be public on the Builder API
+- [#131](https://github.com/bbottema/simple-java-mail/issues/131) NamedDataSource should implement EncodingAware
+
 
 v5.0.1 (10-March-2018)
 

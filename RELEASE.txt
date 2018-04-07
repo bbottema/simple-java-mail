@@ -3,8 +3,16 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.0.1</version>
+    <version>5.0.2</version>
 </dependency>
+
+v5.0.2 (7-April-2018)
+
+- #135: trustingAllHosts should be public on the Builder API
+- #131: NamedDataSource should implement EncodingAware
+
+Solves the issue of missing optional class DKIM even when not used
+
 
 v5.0.1 (10-March-2018)
 
