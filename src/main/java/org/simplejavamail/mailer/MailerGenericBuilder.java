@@ -342,7 +342,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 *
 	 * @see #trustingSSLHosts(String...)
 	 */
-	private T trustingAllHosts(@Nonnull final Boolean trustAllHosts) {
+	public T trustingAllHosts(@Nonnull final Boolean trustAllHosts) {
 		this.trustAllSSLHost = trustAllHosts;
 		return (T) this;
 	}
