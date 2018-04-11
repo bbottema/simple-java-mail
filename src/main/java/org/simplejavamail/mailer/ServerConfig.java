@@ -7,7 +7,7 @@ import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
-class ServerConfig {
+public class ServerConfig {
 	private final String host;
 	private final Integer port;
 	private final String username;
