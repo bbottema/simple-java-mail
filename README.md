@@ -64,11 +64,16 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.0.2</version>
+    <version>5.0.3</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+v5.0.3 (11-April-2018)
+
+- [#136](https://github.com/bbottema/simple-java-mail/issues/136) ServerConfig class should be public API
+
 
 v5.0.2 (7-April-2018)
 
