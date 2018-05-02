@@ -116,10 +116,10 @@ public final class MimeMessageParser {
 		
 		final String disposition = parseDisposition(currentPart);
 		
-		if (isMimeType(currentPart, "text/plain") && parsedComponents.plainContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			parsedComponents.plainContent = parseContent(currentPart);
-		} else if (isMimeType(currentPart, "text/html") && parsedComponents.htmlContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			parsedComponents.htmlContent = parseContent(currentPart);
+		if (isMimeType(currentPart, "text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+			parsedComponents.plainContent.append(parseContent(currentPart));
+		} else if (isMimeType(currentPart, "text/html") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+			parsedComponents.htmlContent.append(parseContent(currentPart));
 		} else if (isMimeType(currentPart, "multipart/*")) {
 			final Multipart mp = parseContent(currentPart);
 			for (int i = 0, count = countBodyParts(mp); i < count; i++) {
@@ -457,9 +457,9 @@ public final class MimeMessageParser {
 		private InternetAddress dispositionNotificationTo;
 		private InternetAddress returnReceiptTo;
 		private InternetAddress bounceToAddress;
-		private String plainContent;
-		private String htmlContent;
-		
+		private StringBuilder plainContent = new StringBuilder();
+		private StringBuilder htmlContent = new StringBuilder();
+
 		public String getMessageId() {
 			return messageId;
 		}
@@ -513,11 +513,11 @@ public final class MimeMessageParser {
 		}
 		
 		public String getPlainContent() {
-			return plainContent;
+			return plainContent.length() == 0 ? null : plainContent.toString();
 		}
-		
+
 		public String getHtmlContent() {
-			return htmlContent;
+			return htmlContent.length() == 0 ? null : htmlContent.toString();
 		}
 	}
 }
