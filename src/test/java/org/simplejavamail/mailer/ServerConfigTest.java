@@ -6,7 +6,6 @@ import org.simplejavamail.util.ConfigLoader;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -14,8 +13,7 @@ import static org.assertj.core.api.Assertions.fail;
 public class ServerConfigTest {
 
 	@Before
-	public void restoreOriginalStaticProperties()
-			throws IOException {
+	public void restoreOriginalStaticProperties() {
 		String s = "simplejavamail.smtp.host=smtp.default.com\n"
 				+ "simplejavamail.smtp.port=25\n"
 				+ "simplejavamail.smtp.username=username smtp\n"
@@ -24,9 +22,9 @@ public class ServerConfigTest {
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_WithoutHost()
-			throws Exception {
+	public void NoArgconstructor_WithoutConfigFile_WithoutHost() {
 		ConfigLoaderTestHelper.clearConfigProperties();
+		
 		try {
 			new ServerConfig(null, null, null, null);
 			fail("IllegalArgumentException expected for host");
@@ -36,8 +34,7 @@ public class ServerConfigTest {
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_WithoutPort()
-			throws Exception {
+	public void NoArgconstructor_WithoutConfigFile_WithoutPort() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
 			new ServerConfig("host", null, null, null);
@@ -48,8 +45,7 @@ public class ServerConfigTest {
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername()
-			throws Exception {
+	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfig("host", 1234, "username", null);
 		verifyServerConfig(serverConfig, "host", 1234, "username", null);
@@ -63,16 +59,14 @@ public class ServerConfigTest {
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_Authenticated()
-			throws Exception {
+	public void NoArgconstructor_WithoutConfigFile_Authenticated() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfig("host", 1234, "username", "password");
 		verifyServerConfig(serverConfig, "host", 1234, "username", "password");
 	}
 
 	@Test
-	public void testToString()
-			throws Exception {
+	public void testToString() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfig("host", 1234, null, null);
 		assertThat(serverConfig.toString()).isEqualTo("host:1234");
