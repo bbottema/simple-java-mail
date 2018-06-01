@@ -43,6 +43,7 @@
       <li><a simplePageScroll href="#section-embedding">Embedding images</a></li>
       <li><a simplePageScroll href="#section-custom-headers">Setting custom headers</a></li>
       <li><a simplePageScroll href="#section-custom-properties">Setting custom properties on the internal Session</a></li>
+      <li><a simplePageScroll href="#section-icalendar-vevent">Sending a Calendar event (iCalendar vEvent)</a></li>
       <li><a simplePageScroll href="#section-session-access">Direct access to the internal Session</a></li>
       <li><a simplePageScroll href="#section-dkim">Signing emails with DKIM</a></li>
       <li><a simplePageScroll href="#section-return-receipt">Configure delivery / read receipt</a></li>
@@ -507,6 +508,46 @@ currentEmailBuilder.withEmbeddedImage("thumbsup", parseBase64Binary(base64String
     // or
     .withProperties(yourPropertiesObject)
     .withProperties(yourPropertiesMap)
+</code></pre>
+    </div>
+  </section>
+  
+  
+  <a href="#section-icalendar-vevent" id="section-icalendar-vevent" class="section-link h2">&sect;</a>
+  <h2>Sending a Calendar event (iCalendar vEvent)</h2>
+
+  <section>
+    <div class="view">
+      <p>
+        You want to send a nice Calendar event (.ics) that a client such as Outlook processes nicely?
+      </p>
+      <p>Easy!</p>
+      <p>
+        Produce a Calendar event String (manually or by using a library such as <a href="https://github.com/ical4j/ical4j/wiki/Examples">ical4j</a>) and pass it to
+        the <code class="inline">EmailBuilder</code>.
+      </p>
+      <p>
+        See the <a href="https://github.com/bbottema/simple-java-mail/blob/master/src/test/java/demo/MailTestDemoApp.java#L69">test demo app</a> included in the
+        Simple Java Mail source for a working example.
+      </p>
+    </div>
+
+    <div class="side">
+<pre><code class="small">// Create a Calendar with ical4j
+Calendar icsCalendar = new Calendar();
+icsCalendar.getProperties().add(new ProdId("-//Events Calendar//iCal4j 1.0//EN"));
+icsCalendar.getProperties().add(Version.VERSION_2_0);
+
+(..) // add attendees, organizer, end/start date and whatever else you need
+
+// Produce calendar string
+ByteArrayOutputStream bOutStream = new ByteArrayOutputStream();
+new CalendarOutputter().output(icsCalendar, bOutStream);
+String yourICalEventString = bOutStream.toString("UTF-8")
+
+// Let Simple Java Mail handle the rest
+currentEmailBuilder
+    .withCalendarText(CalendarMethod.REQUEST, yourICalEventString)
 </code></pre>
     </div>
   </section>
