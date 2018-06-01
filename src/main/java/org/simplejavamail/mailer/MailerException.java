@@ -14,10 +14,10 @@ class MailerException extends MailException {
 	static final String INVALID_SENDER = "Invalid FROM address: %s";
 	static final String INVALID_DISPOSITIONNOTIFICATIONTO = "Invalid \"Disposition Notification To\" address: %s";
 	static final String INVALID_RETURNRECEIPTTO = "Invalid \"Return Receipt To\" address: %s";
-	static final String MISSING_SENDER = "Email is not valid: missing sender";
+	static final String MISSING_SENDER = "Email is not valid: missing sender. Provide with emailBuilder.from(...)";
 	static final String MISSING_RECIPIENT = "Email is not valid: missing recipients";
-	static final String MISSING_DISPOSITIONNOTIFICATIONTO = "Email is not valid: missing \"Disposition Notification To\" address";
-	static final String MISSING_RETURNRECEIPTTO = "Email is not valid: missing \"Return Receipt To\" address";
+	static final String MISSING_DISPOSITIONNOTIFICATIONTO = "Email is not valid: it is set to use \"Disposition Notification To\", but the address is empty";
+	static final String MISSING_RETURNRECEIPTTO = "Email is not valid: it is set to use \"Return Receipt To\", but the address is empty";
 	static final String INJECTION_SUSPECTED = "Suspected of injection attack, field: %s with suspicious value: %s";
 
 	MailerException(final String message) {
