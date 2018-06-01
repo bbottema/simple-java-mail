@@ -27,6 +27,12 @@ final class EqualsHelper {
 		if (email1.getPlainText() != null ? !email1.getPlainText().equals(email2.getPlainText()) : email2.getPlainText() != null) {
 			return false;
 		}
+		if (email1.getCalendarText() != null ? !email1.getCalendarText().equals(email2.getCalendarText()) : email2.getCalendarText() != null) {
+			return false;
+		}
+		if (email1.getCalendarMethod() != null ? !email1.getCalendarMethod().equals(email2.getCalendarMethod()) : email2.getCalendarMethod() != null) {
+			return false;
+		}
 		if (email1.getEmailToForward() != null ? email2.getEmailToForward() == null : email2.getEmailToForward() != null) {
 			return false;
 		}

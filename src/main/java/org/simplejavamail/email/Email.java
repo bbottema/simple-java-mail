@@ -50,6 +50,16 @@ public class Email {
 	private final String textHTML;
 	
 	/**
+	 * @see EmailPopulatingBuilder#withCalendarText(CalendarMethod, String)
+	 */
+	private final CalendarMethod calendarMethod;
+	
+	/**
+	 * @see EmailPopulatingBuilder#withCalendarText(CalendarMethod, String)
+	 */
+	private final String textCalendar;
+	
+	/**
 	 * @see EmailPopulatingBuilder#withSubject(String)
 	 */
 	private final String subject;
@@ -146,6 +156,8 @@ public class Email {
 		bounceToRecipient = builder.getBounceToRecipient();
 		text = builder.getText();
 		textHTML = builder.getTextHTML();
+		calendarMethod = builder.getCalendarMethod();
+		textCalendar = builder.getTextCalendar();
 		subject = builder.getSubject();
 		
 		useDispositionNotificationTo = builder.isUseDispositionNotificationTo();
@@ -213,6 +225,7 @@ public class Email {
 				",\n\tbounceToRecipient=" + bounceToRecipient +
 				",\n\ttext='" + text + '\'' +
 				",\n\ttextHTML='" + textHTML + '\'' +
+				",\n\ttextCalendar='" + textCalendar + '\'' +
 				",\n\tsubject='" + subject + '\'' +
 				",\n\trecipients=" + recipients;
 		if (!valueNullOrEmpty(dkimSigningDomain)) {
@@ -331,7 +344,21 @@ public class Email {
 	public String getHTMLText() {
 		return textHTML;
 	}
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#withCalendarText(CalendarMethod, String)
+	 */
+	public CalendarMethod getCalendarMethod() {
+		return calendarMethod;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withCalendarText(CalendarMethod, String)
+	 */
+	public String getCalendarText() {
+		return textCalendar;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */

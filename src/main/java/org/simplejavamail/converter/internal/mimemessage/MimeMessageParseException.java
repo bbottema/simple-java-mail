@@ -20,6 +20,7 @@ class MimeMessageParseException extends MailException {
 	static final String ERROR_PARSING_MULTIPART_COUNT = "Error parsing MimeMessage multipart count";
 	static final String ERROR_GETTING_BODYPART_AT_INDEX = "Error getting bodypart at index %s";
 	static final String ERROR_GETTING_CONTENT_ID = "Error getting content ID";
+	static final String ERROR_GETTING_CALENDAR_CONTENTTYPE = "Error getting content type from Calendar bodypart. Unable to determine Calendar METHOD";
 	static final String ERROR_GETTING_FILENAME = "Error getting file name";
 	static final String ERROR_GETTING_ALL_HEADERS = "Error getting all headers";
 	static final String ERROR_GETTING_DATAHANDLER = "Error getting data handler";

@@ -91,6 +91,10 @@ public class EmailPopulatingBuilder {
 	 * @see #withHTMLText(String)
 	 */
 	private String textHTML;
+
+	private CalendarMethod calendarMethod;
+
+	private String textCalendar;
 	
 	/**
 	 * @see #to(Recipient...)
@@ -450,6 +454,20 @@ public class EmailPopulatingBuilder {
 	 */
 	public EmailPopulatingBuilder appendTextHTML(@Nonnull final String textHTML) {
 		this.textHTML = defaultTo(this.textHTML, "") + textHTML;
+		return this;
+	}
+
+	/**
+	 * Sets the optional calendar details that clients such as Outlook might be able to handle. Will be set as alternative bodypart similar to
+	 * {@link #withPlainText(String)} and {@link #withHTMLText(String)}.
+	 * <p>
+	 * The body is free form text, which you should can produce with a library such as
+	 * <a href="https://github.com/ical4j/ical4j/wiki/Examples">ical4j</a>. Also see the Test demo app in Simple Java Mail's source for a working
+	 * example.
+	 */
+	public EmailPopulatingBuilder withCalendarText(@Nonnull final CalendarMethod calendarMethod, @Nonnull final String textCalendar) {
+		this.calendarMethod = calendarMethod;
+		this.textCalendar = textCalendar;
 		return this;
 	}
 	
@@ -1583,7 +1601,18 @@ public class EmailPopulatingBuilder {
 	public String getTextHTML() {
 		return textHTML;
 	}
-	
+
+	/**
+	 * @see #withCalendarText(CalendarMethod, String)
+	 */
+	public CalendarMethod getCalendarMethod () {
+		 return calendarMethod;
+	}
+
+	public String getTextCalendar () {
+		return textCalendar;
+	}
+
 	/**
 	 * @see #withSubject(String)
 	 */

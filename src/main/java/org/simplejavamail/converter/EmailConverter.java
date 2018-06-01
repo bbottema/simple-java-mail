@@ -4,6 +4,7 @@ import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.msgparser.OutlookMessageParser;
+import org.simplejavamail.email.CalendarMethod;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
@@ -279,6 +280,11 @@ public final class EmailConverter {
 		builder.withSubject(parsed.getSubject() != null ? parsed.getSubject() : "");
 		builder.withPlainText(parsed.getPlainContent());
 		builder.withHTMLText(parsed.getHtmlContent());
+		
+		if (parsed.getCalendarMethod() != null) {
+			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), parsed.getCalendarContent());
+		}
+		
 		for (final Map.Entry<String, DataSource> cid : parsed.getCidMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
 			builder.withEmbeddedImage(extractCID(cidName), cid.getValue());

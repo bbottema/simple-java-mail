@@ -273,7 +273,6 @@ public class MailerTest {
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 		
-		
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
 	}
 	

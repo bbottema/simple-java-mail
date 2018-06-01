@@ -1,12 +1,14 @@
 package demo;
 
 import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.email.CalendarMethod;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
 import org.simplejavamail.mailer.Mailer;
 import org.simplejavamail.mailer.MailerBuilder;
 import org.simplejavamail.mailer.config.TransportStrategy;
+import testutil.CalendarHelper;
 import testutil.ConfigLoaderTestHelper;
 
 import javax.mail.internet.MimeMessage;
@@ -64,6 +66,7 @@ public class MailTestDemoApp {
 		emailPopulatingBuilderNormal.withAttachment("location.txt", "On the moon!".getBytes(Charset.defaultCharset()), "text/plain");
 		String base64String = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABeElEQVRYw2NgoAAYGxu3GxkZ7TY1NZVloDcAWq4MxH+B+D8Qv3FwcOCgtwM6oJaDMTAUXOhmuYqKCjvQ0pdoDrCnmwNMTEwakC0H4u8GBgYC9Ap6DSD+iewAoIPm0ctyLqBlp9F8/x+YE4zpYT8T0LL16JYD8U26+B7oyz4sloPwenpYno3DchCeROsUbwa05A8eB3wB4kqgIxOAuArIng7EW4H4EhC/B+JXQLwDaI4ryZaDSjeg5mt4LCcFXyIn1fdSyXJQVt1OtMWGhoai0OD8T0W8GohZifE1PxD/o7LlsPLiFNAKRrwOABWptLAcqc6QGDAHQEOAYaAc8BNotsJAOgAUAosG1AFA/AtUoY3YEFhKMAvS2AE7iC1+WaG1H6gY3gzE36hUFJ8mqzbU1dUVBBqQBzTgIDQRkWo5qCZdpaenJ0Zx1aytrc0DDB0foIG1oAYKqC0IZK8D4n1AfA6IzwPxXpCFoGoZVEUDaRGGUTAKRgEeAAA2eGJC+ETCiAAAAABJRU5ErkJggg==";
 		emailPopulatingBuilderNormal.withEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png");
+		emailPopulatingBuilderNormal.withCalendarText(CalendarMethod.REQUEST, CalendarHelper.createCalendarEvent());
 		
 		// let's try producing and then consuming a MimeMessage ->
 		Email emailNormal = emailPopulatingBuilderNormal.buildEmail();

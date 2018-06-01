@@ -135,7 +135,7 @@ public final class MimeMessageHelper {
 	}
 
 	/**
-	 * Fills the {@link Message} instance with the content bodies (text and html).
+	 * Fills the {@link Message} instance with the content bodies (text, html and calendar).
 	 *
 	 * @param email                        The message in which the content is defined.
 	 * @param multipartAlternativeMessages See {@link MimeMultipart#addBodyPart(BodyPart)}
@@ -153,6 +153,11 @@ public final class MimeMessageHelper {
 			final MimeBodyPart messagePartHTML = new MimeBodyPart();
 			messagePartHTML.setContent(email.getHTMLText(), "text/html; charset=\"" + CHARACTER_ENCODING + "\"");
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
+		}
+		if (email.getCalendarText() != null && email.getCalendarMethod() != null) {
+			final MimeBodyPart messagePartCalendar = new MimeBodyPart();
+			messagePartCalendar.setContent(email.getCalendarText(), "text/calendar; charset=\"" + CHARACTER_ENCODING + "\"; method=\"" + email.getCalendarMethod().toString() + "\"");
+			multipartAlternativeMessages.addBodyPart(messagePartCalendar);
 		}
 	}
 	

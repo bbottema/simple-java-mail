@@ -1,7 +1,13 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import com.sun.mail.handlers.text_plain;
+import org.simplejavamail.internal.util.Preconditions;
+
+import javax.activation.ActivationDataFlavor;
+import javax.activation.CommandMap;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
+import javax.activation.MailcapCommandMap;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Address;
@@ -31,6 +37,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -91,6 +99,10 @@ public final class MimeMessageParser {
 		HEADERS_TO_IGNORE.add("Content-ID");
 		HEADERS_TO_IGNORE.add("name");
 		HEADERS_TO_IGNORE.add("From");
+		
+		MailcapCommandMap mc = (MailcapCommandMap)CommandMap.getDefaultCommandMap();
+		mc.addMailcap("text/calendar;; x-java-content-handler=" + text_calendar.class.getName());
+		CommandMap.setDefaultCommandMap(mc);
 	}
 
 	/**
@@ -120,6 +132,9 @@ public final class MimeMessageParser {
 			parsedComponents.plainContent.append(parseContent(currentPart));
 		} else if (isMimeType(currentPart, "text/html") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.htmlContent.append(parseContent(currentPart));
+		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+			parsedComponents.calendarContent = parseContent(currentPart);
+			parsedComponents.calendarMethod = parseCalendarMethod(currentPart);
 		} else if (isMimeType(currentPart, "multipart/*")) {
 			final Multipart mp = parseContent(currentPart);
 			for (int i = 0, count = countBodyParts(mp); i < count; i++) {
@@ -165,6 +180,23 @@ public final class MimeMessageParser {
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_FILENAME, e);
 		}
+	}
+	
+	/**
+	 * @return Returns the "method" part from the Calendar content type (such as "{@code text/calendar; charset="UTF-8"; method="REQUEST"}").
+	 */
+	@SuppressWarnings("WeakerAccess")
+	public static String parseCalendarMethod(@Nonnull MimePart currentPart) {
+		Pattern compile = Pattern.compile("method=\"(.*?)\"");
+		final String contentType;
+		try {
+			contentType = currentPart.getDataHandler().getContentType();
+		} catch (final MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CALENDAR_CONTENTTYPE, e);
+		}
+		Matcher matcher = compile.matcher(contentType);
+		Preconditions.assumeTrue(matcher.find(), "Calendar METHOD not found in bodypart content type");
+		return matcher.group(1);
 	}
 	
 	@SuppressWarnings("WeakerAccess")
@@ -457,9 +489,10 @@ public final class MimeMessageParser {
 		private InternetAddress dispositionNotificationTo;
 		private InternetAddress returnReceiptTo;
 		private InternetAddress bounceToAddress;
-		private StringBuilder plainContent = new StringBuilder();
-		private StringBuilder htmlContent = new StringBuilder();
-
+		private StringBuilder plainContent= new StringBuilder();
+		private StringBuilder htmlContent= new StringBuilder();
+		private String calendarMethod;
+		private String calendarContent;
 		public String getMessageId() {
 			return messageId;
 		}
@@ -518,6 +551,28 @@ public final class MimeMessageParser {
 
 		public String getHtmlContent() {
 			return htmlContent.length() == 0 ? null : htmlContent.toString();
+		}
+		
+		public String getCalendarContent() {
+			return calendarContent;
+		}
+		
+		public String getCalendarMethod() {
+			return calendarMethod;
+		}
+	}
+	
+	/**
+	 * DataContentHandler for text/calendar, based on {@link com.sun.mail.handlers.text_html}.
+	 */
+	public static class text_calendar extends text_plain {
+		private static ActivationDataFlavor[] myDF = {
+				new ActivationDataFlavor(String.class, "text/calendar", "iCalendar String")
+		};
+		
+		@Override
+		protected ActivationDataFlavor[] getDataFlavors() {
+			return myDF;
 		}
 	}
 }
