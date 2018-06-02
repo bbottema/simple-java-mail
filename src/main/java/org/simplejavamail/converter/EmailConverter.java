@@ -1,8 +1,8 @@
 package org.simplejavamail.converter;
 
-import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.converter.internal.msgparser.OutlookMessageParser;
 import org.simplejavamail.email.CalendarMethod;
 import org.simplejavamail.email.Email;
@@ -31,7 +31,6 @@ import java.util.Properties;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper.produceMimeMessage;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -153,11 +152,11 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Refer to {@link MimeMessageHelper#produceMimeMessage(Email, Session)}
+	 * Refer to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session)}
 	 */
 	public static MimeMessage emailToMimeMessage(@Nonnull final Email email, @Nonnull final Session session) {
 		try {
-			return produceMimeMessage(checkNonEmptyArgument(email, "email"), checkNonEmptyArgument(session, "session"));
+			return MimeMessageProducerHelper.produceMimeMessage(checkNonEmptyArgument(email, "email"), checkNonEmptyArgument(session, "session"));
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
 			throw new RuntimeException(e.getMessage(), e);

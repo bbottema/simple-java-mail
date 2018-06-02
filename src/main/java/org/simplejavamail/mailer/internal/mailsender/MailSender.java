@@ -1,7 +1,7 @@
 package org.simplejavamail.mailer.internal.mailsender;
 
 import org.simplejavamail.MailException;
-import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
 import org.simplejavamail.mailer.MailerGenericBuilder;
@@ -237,7 +237,7 @@ public class MailSender {
 		LOGGER.trace("sending email...");
 		try {
 			// fill and send wrapped mime message parts
-			final MimeMessage message = MimeMessageHelper.produceMimeMessage(
+			final MimeMessage message = MimeMessageProducerHelper.produceMimeMessage(
 					checkNonEmptyArgument(email, "email"),
 					checkNonEmptyArgument(session, "session"));
 			
