@@ -7,7 +7,7 @@ import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
-public class MimeMessageProducerMixed extends MimeMessageProducer {
+class MimeMessageProducerMixed extends MimeMessageProducer {
 	@Override
 	boolean compatibleWithEmail(@Nonnull Email email) {
 		return emailContainsMixedContent(email) && !emailContainsRelatedContent(email) && !emailContainsAlternativeContent(email);

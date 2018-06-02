@@ -120,6 +120,7 @@ public class MailerBuilder {
 	 *
 	 * @see TransportStrategy
 	 */
+	@SuppressWarnings("WeakerAccess")
 	public static class MailerRegularBuilder extends MailerGenericBuilder<MailerRegularBuilder> {
 		
 		private String host;

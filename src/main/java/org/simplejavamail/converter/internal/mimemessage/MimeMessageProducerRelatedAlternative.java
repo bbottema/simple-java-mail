@@ -8,7 +8,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
-public class MimeMessageProducerRelatedAlternative extends MimeMessageProducer {
+class MimeMessageProducerRelatedAlternative extends MimeMessageProducer {
 	@Override
 	boolean compatibleWithEmail(@Nonnull Email email) {
 		return !emailContainsMixedContent(email) && emailContainsRelatedContent(email) && emailContainsAlternativeContent(email);

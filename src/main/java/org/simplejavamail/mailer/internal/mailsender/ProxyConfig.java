@@ -53,7 +53,7 @@ public class ProxyConfig {
 		return str;
 	}
 	
-	public int getProxyBridgePort() {
+	public Integer getProxyBridgePort() {
 		return proxyBridgePort;
 	}
 	

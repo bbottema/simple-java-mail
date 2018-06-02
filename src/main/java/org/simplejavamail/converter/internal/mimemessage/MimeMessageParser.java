@@ -489,8 +489,8 @@ public final class MimeMessageParser {
 		private InternetAddress dispositionNotificationTo;
 		private InternetAddress returnReceiptTo;
 		private InternetAddress bounceToAddress;
-		private StringBuilder plainContent= new StringBuilder();
-		private StringBuilder htmlContent= new StringBuilder();
+		private final StringBuilder plainContent= new StringBuilder();
+		private final StringBuilder htmlContent= new StringBuilder();
 		private String calendarMethod;
 		private String calendarContent;
 		public String getMessageId() {
@@ -565,8 +565,8 @@ public final class MimeMessageParser {
 	/**
 	 * DataContentHandler for text/calendar, based on {@link com.sun.mail.handlers.text_html}.
 	 */
-	public static class text_calendar extends text_plain {
-		private static ActivationDataFlavor[] myDF = {
+	static class text_calendar extends text_plain {
+		private static final ActivationDataFlavor[] myDF = {
 				new ActivationDataFlavor(String.class, "text/calendar", "iCalendar String")
 		};
 		

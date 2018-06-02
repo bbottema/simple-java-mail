@@ -87,6 +87,7 @@ public class Socks5Handler implements Runnable {
 			bindPort = socket.getLocalPort();
 			reply = ServerReply.SUCCEEDED;
 		} catch (final IOException e) {
+			//noinspection IfCanBeSwitch
 			if (e.getMessage().equals("Connection refused")) {
 				reply = ServerReply.CONNECTION_REFUSED;
 			} else if (e.getMessage().equals("Operation timed out")) {

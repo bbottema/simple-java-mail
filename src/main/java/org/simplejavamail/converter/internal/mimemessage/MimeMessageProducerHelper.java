@@ -20,7 +20,7 @@ import java.util.List;
  */
 public final class MimeMessageProducerHelper {
 	
-	private static List<MimeMessageProducer> mimeMessageProducers = Arrays.asList(
+	private static final List<MimeMessageProducer> mimeMessageProducers = Arrays.asList(
 			new MimeMessageProducerSimple(),
 			new MimeMessageProducerAlternative(),
 			new MimeMessageProducerRelated(),

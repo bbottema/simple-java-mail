@@ -9,7 +9,7 @@ public class KeyStoreInfo {
 
 	private final String keyStorePath;
 	private final String password;
-	private String type = "JKS";
+	private final String type /*= "JKS"*/;
 
 //	public KeyStoreInfo() {
 //	}

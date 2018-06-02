@@ -205,6 +205,7 @@ public class Email {
 		this.id = id;
 	}
 	
+	@SuppressWarnings("SameReturnValue")
 	@Override
 	public int hashCode() {
 		return 0;

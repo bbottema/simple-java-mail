@@ -31,6 +31,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * <p>
  * To start a new Mailer builder, refer to {@link MailerBuilder}.
  */
+@SuppressWarnings({"UnusedReturnValue", "unchecked", "WeakerAccess"})
 public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	
 	/**
@@ -57,6 +58,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Defaults to {@value DEFAULT_TRANSPORT_MODE_LOGGING_ONLY}, sending mails rather than just only logging the mails.
 	 */
+	@SuppressWarnings("JavaDoc")
 	public static final boolean DEFAULT_TRANSPORT_MODE_LOGGING_ONLY = false;
 	
 	/**
@@ -117,7 +119,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withProperties(Properties)
 	 */
-	private Properties properties = new Properties();
+	private final Properties properties = new Properties();
 	
 	/**
 	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.

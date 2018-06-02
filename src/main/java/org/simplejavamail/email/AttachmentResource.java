@@ -79,6 +79,7 @@ public class AttachmentResource {
 		return name;
 	}
 
+	@SuppressWarnings("SameReturnValue")
 	@Override
 	public int hashCode() {
 		return 0;

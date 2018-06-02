@@ -27,6 +27,7 @@ import java.util.Properties;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.mailer.config.TransportStrategy.findStrategyForSession;
 
 /**
@@ -108,7 +109,8 @@ public class Mailer {
 		this.emailAddressCriteria = fromSessionBuilder.getEmailAddressCriteria();
 		this.proxyConfig = fromSessionBuilder.buildProxyConfig();
 		final Session session = fromSessionBuilder.getSession();
-		this.mailSender = initFromGenericBuilder(findStrategyForSession(session), proxyConfig, session, fromSessionBuilder);
+		TransportStrategy strategyInUse = findStrategyForSession(checkNonEmptyArgument(session, "session"));
+		this.mailSender = initFromGenericBuilder(strategyInUse, proxyConfig, session, fromSessionBuilder);
 	}
 	
 	Mailer(@Nonnull final MailerRegularBuilder regularBuilder) {
@@ -120,7 +122,7 @@ public class Mailer {
 		this.mailSender = initFromGenericBuilder(transportStrategy, proxyConfig, session, regularBuilder);
 	}
 	
-	private MailSender initFromGenericBuilder(@Nonnull TransportStrategy transportStrategy, @Nonnull ProxyConfig proxyConfig, @Nonnull Session session, @Nonnull final MailerGenericBuilder<?> genericBuiler) {
+	private MailSender initFromGenericBuilder(@Nullable TransportStrategy transportStrategy, @Nonnull ProxyConfig proxyConfig, @Nonnull Session session, @Nonnull final MailerGenericBuilder<?> genericBuiler) {
 		OperationalConfig operationalConfig = genericBuiler.buildOperationalConfig();
 		return new MailSender(session, operationalConfig, proxyConfig, transportStrategy);
 	}
@@ -271,32 +273,33 @@ public class Mailer {
 			throw new MailerException(MailerException.MISSING_DISPOSITIONNOTIFICATIONTO);
 		} else if (email.isUseReturnReceiptTo() && email.getReturnReceiptTo() == null) {
 			throw new MailerException(MailerException.MISSING_RETURNRECEIPTTO);
-		} else if (emailAddressCriteria != null) {
-			if (!EmailAddressValidator.isValid(email.getFromRecipient().getAddress(), emailAddressCriteria)) {
-				throw new MailerException(format(MailerException.INVALID_SENDER, email));
-			}
-			for (final Recipient recipient : email.getRecipients()) {
-				if (!EmailAddressValidator.isValid(recipient.getAddress(), emailAddressCriteria)) {
-					throw new MailerException(format(MailerException.INVALID_RECIPIENT, email));
+		} else //noinspection ConstantConditions - depends on how the API is used (current demo classes cause this warning)
+			if (emailAddressCriteria != null) {
+				if (!EmailAddressValidator.isValid(email.getFromRecipient().getAddress(), emailAddressCriteria)) {
+					throw new MailerException(format(MailerException.INVALID_SENDER, email));
+				}
+				for (final Recipient recipient : email.getRecipients()) {
+					if (!EmailAddressValidator.isValid(recipient.getAddress(), emailAddressCriteria)) {
+						throw new MailerException(format(MailerException.INVALID_RECIPIENT, email));
+					}
+				}
+				if (email.getReplyToRecipient() != null && !EmailAddressValidator
+						.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
+					throw new MailerException(format(MailerException.INVALID_REPLYTO, email));
+				}
+				if (email.getBounceToRecipient() != null && !EmailAddressValidator
+						.isValid(email.getBounceToRecipient().getAddress(), emailAddressCriteria)) {
+					throw new MailerException(format(MailerException.INVALID_BOUNCETO, email));
+				}
+				if (email.isUseDispositionNotificationTo() && !EmailAddressValidator
+						.isValid(email.getDispositionNotificationTo().getAddress(), emailAddressCriteria)) {
+					throw new MailerException(format(MailerException.INVALID_DISPOSITIONNOTIFICATIONTO, email));
+				}
+				if (email.isUseReturnReceiptTo() && !EmailAddressValidator
+						.isValid(email.getReturnReceiptTo().getAddress(), emailAddressCriteria)) {
+					throw new MailerException(format(MailerException.INVALID_RETURNRECEIPTTO, email));
 				}
 			}
-			if (email.getReplyToRecipient() != null && !EmailAddressValidator
-					.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
-				throw new MailerException(format(MailerException.INVALID_REPLYTO, email));
-			}
-			if (email.getBounceToRecipient() != null && !EmailAddressValidator
-					.isValid(email.getBounceToRecipient().getAddress(), emailAddressCriteria)) {
-				throw new MailerException(format(MailerException.INVALID_BOUNCETO, email));
-			}
-			if (email.isUseDispositionNotificationTo() && !EmailAddressValidator
-					.isValid(email.getDispositionNotificationTo().getAddress(), emailAddressCriteria)) {
-				throw new MailerException(format(MailerException.INVALID_DISPOSITIONNOTIFICATIONTO, email));
-			}
-			if (email.isUseReturnReceiptTo() && !EmailAddressValidator
-					.isValid(email.getReturnReceiptTo().getAddress(), emailAddressCriteria)) {
-				throw new MailerException(format(MailerException.INVALID_RETURNRECEIPTTO, email));
-			}
-		}
 		
 		// check for illegal values
 		scanForInjectionAttack(email.getSubject(), "email.subject");
