@@ -54,7 +54,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * NOTE: for some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
  */
-@SuppressWarnings("UnusedReturnValue")
+@SuppressWarnings({"UnusedReturnValue", "WeakerAccess", "unused"})
 public class EmailPopulatingBuilder {
 	
 	/**
@@ -551,7 +551,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#TO}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder toWithFixedName(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) {
 		return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, TO);
 	}
@@ -611,7 +610,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#TO}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder toAddressesWithFixedName(@Nullable final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) {
 		return withAddressesWithFixedName(name, asList(oneOrMoreAddressesEach), TO);
 	}
@@ -626,7 +624,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#TO}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder toAddressesWithFixedName(@Nullable final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) {
 		return withAddressesWithFixedName(name, oneOrMoreAddressesEach, TO);
 	}
@@ -717,7 +714,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#CC}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder ccWithFixedName(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) {
 		return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, CC);
 	}
@@ -777,7 +773,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#CC}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) {
 		return withAddressesWithFixedName(name, asList(oneOrMoreAddressesEach), CC);
 	}
@@ -792,7 +787,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#CC}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) {
 		return withAddressesWithFixedName(name, oneOrMoreAddressesEach, CC);
 	}
@@ -884,7 +878,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder bccWithFixedName(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) {
 		return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, BCC);
 	}
@@ -944,7 +937,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) {
 		return withAddressesWithFixedName(name, asList(oneOrMoreAddressesEach), BCC);
 	}
@@ -959,7 +951,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) {
 		return withAddressesWithFixedName(name, oneOrMoreAddressesEach, BCC);
 	}
@@ -974,7 +965,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}, leaving existing names in tact and defaulting when missing.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable final String defaultName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
 		return withRecipients(defaultName, false, oneOrMoreAddressesEach, recipientType);
@@ -984,7 +974,6 @@ public class EmailPopulatingBuilder {
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}, assigning or overwriting existing names with the provided.
 	 * name.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable final String fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
 		return withRecipients(fixedName, true, oneOrMoreAddressesEach, recipientType);
@@ -993,7 +982,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable String name, @Nullable RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach) {
 		return withRecipients(name, false, asList(oneOrMoreAddressesEach), recipientType);
@@ -1002,7 +990,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable String name, @Nullable RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach) {
 		return withRecipients(name, true, asList(oneOrMoreAddressesEach), recipientType);
@@ -1011,7 +998,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nullable RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach) {
 		return withRecipients(name, fixedName, asList(oneOrMoreAddressesEach), recipientType);
@@ -1024,7 +1010,6 @@ public class EmailPopulatingBuilder {
 	 *                               missing.
 	 * @param oneOrMoreAddressesEach Collection of addresses. Each entry itself can be a delimited list of RFC2822 addresses.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
 		for (String oneOrMoreAddresses : oneOrMoreAddressesEach) {
@@ -1038,7 +1023,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withAddresses(String, boolean, Collection, RecipientType)}, leaving existing names in tact and defaulting when missing.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public EmailPopulatingBuilder withAddressesWithDefaultName(@Nullable final String defaultName, @Nonnull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
 		return withAddresses(defaultName, false, addresses, recipientType);
@@ -1047,7 +1031,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withAddresses(String, boolean, Collection, RecipientType)}, assigning or overwriting existing names with the provided.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public EmailPopulatingBuilder withAddressesWithFixedName(@Nullable final String fixedName, @Nonnull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
 		return withAddresses(fixedName, true, addresses, recipientType);
@@ -1058,7 +1041,6 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param fixedName Indicates whether the provided name should be applied to all addresses, or only to those where a name is missing.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public EmailPopulatingBuilder withAddresses(@Nullable String name, boolean fixedName, @Nonnull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
 		for (InternetAddress address : addresses) {
@@ -1088,7 +1070,6 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param fixedRecipientType Optional. Fixes all recipients to the given type. If omitted, the types are not removed, but kept as-is.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public EmailPopulatingBuilder withRecipients(@Nonnull Collection<Recipient> recipients, @Nullable RecipientType fixedRecipientType) {
 		for (Recipient recipient : recipients) {
@@ -1100,7 +1081,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipient(String, String, RecipientType)} with the name omitted.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder withRecipient(@Nonnull final String singleAddress, @Nullable final RecipientType recipientType) {
 		return withRecipient(null, singleAddress, recipientType);
 	}
@@ -1117,7 +1097,6 @@ public class EmailPopulatingBuilder {
 	 * @param recipientType Optional type of recipient. This is needed for TO, CC and BCC, but not for <em>bounceTo</em>, <em>returnReceiptTo</em>,
 	 *                      <em>replyTo</em>, <em>from</em> etc.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder withRecipient(@Nullable final String name, @Nonnull final String singleAddress, @Nullable final RecipientType recipientType) {
 		recipients.add(MiscUtil.interpretRecipient(name, true, singleAddress, recipientType));
 		return this;
@@ -1129,7 +1108,6 @@ public class EmailPopulatingBuilder {
 	 * Note that the email address must be a single address according to RFC2822 format. Name can be provided explicitly or as part of the RFC2822 email
 	 * address or omitted completely.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder withRecipient(@Nonnull final Recipient recipient) {
 		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType()));
 		return this;
@@ -1167,7 +1145,6 @@ public class EmailPopulatingBuilder {
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, byte[], String)
 	 * @see EmailPopulatingBuilder#withEmbeddedImages(List)
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public EmailPopulatingBuilder withEmbeddedImage(@Nullable final String name, @Nonnull final DataSource imagedata) {
 		checkNonEmptyArgument(imagedata, "imagedata");
 		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName())) {
@@ -1190,7 +1167,6 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withHeader(String, Object)} for each header in the provided {@code Map}.
 	 */
-	@SuppressWarnings("WeakerAccess")
 	public <T> EmailPopulatingBuilder withHeaders(@Nonnull final Map<String, T> headers) {
 		for (Map.Entry<String, T> headerEntry : headers.entrySet()) {
 			withHeader(headerEntry.getKey(), headerEntry.getValue());
