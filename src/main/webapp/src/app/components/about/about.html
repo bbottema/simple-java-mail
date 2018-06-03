@@ -18,10 +18,10 @@
       <p>This library relieves you of having to deal with low level API such as MimeMessage, fuzzy try
         catch constructions, inner classes and other nonsense. You just want to send an email!</p>
       <br/>
-      <p>But don't let looks deceive you, this library does everything: it is a <strong>feature complete</strong>
-        mailing library, yet it is <strong>small</strong> and <strong>lightweight</strong>. It is fully <strong><a
-          simplePageScroll [routerLink]="['/rfc']" href="#navigation">RFC compliant</a></strong> and looks good in all
-        email clients.</p>
+      <p>But don't let looks deceive you, this library does everything: it is a <strong>robust, feature complete</strong>
+        mailing library, yet it is <strong>small</strong> and <strong>lightweight</strong>.
+        It is fully <strong><a simplePageScroll [routerLink]="['/rfc']" href="#navigation">RFC compliant</a></strong> and
+        looks good in all email clients.</p>
       <br/>
       <p>It's also the only java mailing library in the world that can send through authenticated SOCKS proxy.</p>
     </div>
@@ -47,6 +47,7 @@ Email email = EmailBuilder.startingBlank()
           .withSubject("hey")
           .withHTMLText("&lt;img src=&#39;cid:wink1&#39;&gt;&lt;b&gt;We should meet up!&lt;/b&gt;&lt;img src=&#39;cid:wink2&#39;&gt;")
           .withPlainText("Please view this email in a modern email client!")
+          .withCalendar(CalendarMethod.REQUEST, iCalendarText)
           .withEmbeddedImage("wink1", imageByteArray, "image/png")
           .withEmbeddedImage("wink2", imageDatesource)
           .withAttachment("invitation", pdfByteArray, "application/pdf")
