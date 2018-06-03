@@ -6,6 +6,7 @@
     <ul>
       <li><a simplePageScroll href="#section-why">Why RFC compliancy matters</a></li>
       <li><a simplePageScroll href="#section-how">How is Simple Java Mail RFC compliant?</a></li>
+      <li><a simplePageScroll href="#section-explore-multipart">Explore the multipart structures used by Simple Java Mail</a></li>
     </ul>
   </section>
 
@@ -62,6 +63,49 @@
           the content of the email, rather than email's technical low level structure.
         </li>
       </ol>
+    </div>
+  </section>
+  
+  
+  <a href="#section-explore-multipart" id="#section-explore-multipart" class="section-link h2">&sect;</a>
+  <h2>Explore the multipart structures used by Simple Java Mail</h2>
+  
+  <section>
+    <div class="view">
+      <p>Configure your email:</p>
+  
+      <form>
+        <div>
+          <input type="checkbox" id="usePlainText" name="usePlainText" [(ngModel)]="usePlainText" (ngModelChange)="updateMessageStructure()">
+          <label for="usePlainText">Plain text body</label>
+        </div>
+        <div>
+          <input type="checkbox" id="useHTMLText" name="useHTMLText" [(ngModel)]="useHTMLText" (ngModelChange)="updateMessageStructure()">
+          <label for="useHTMLText">HTML text body</label>
+        </div>
+        <div class="indent">
+          <input type="checkbox" id="useEmbeddedContent" name="useEmbeddedContent" [(ngModel)]="useEmbeddedContent" (ngModelChange)="updateMessageStructure()"
+                 [disabled]="!useHTMLText">
+          <label for="useEmbeddedContent">HTML body contains embedded content (such as image)</label>
+        </div>
+        <div>
+          <input type="checkbox" id="useCalendarEvent" name="useCalendarEvent" [(ngModel)]="useCalendarEvent" (ngModelChange)="updateMessageStructure()">
+          <label for="useCalendarEvent">iCalendar event</label>
+        </div>
+        <div>
+          <input type="checkbox" id="useAttachments" name="useAttachments" [(ngModel)]="useAttachments" (ngModelChange)="updateMessageStructure()">
+          <label for="useAttachments">Downloadable attachments</label>
+        </div>
+        <div>
+          <input type="checkbox" id="useEmailForward" name="useEmailForward" [(ngModel)]="useEmailForward" (ngModelChange)="updateMessageStructure()">
+          <label for="useEmailForward">Forwards another email</label>
+        </div>
+      </form>
+      
+    </div>
+    <div class="side padded">
+      <p>Structure used for email:</p>
+      <div [innerHTML]="messageStructure"></div>
     </div>
   </section>
 </div>

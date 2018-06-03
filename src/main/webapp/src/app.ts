@@ -1,5 +1,6 @@
 import { NgModule, enableProdMode } from '@angular/core'
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { rootRouterConfig } from './app/simple-java-mail-routes';
 import { SimpleJavaMailApp } from './app/simple-java-mail-app';
 import { BrowserModule } from '@angular/platform-browser';
@@ -37,6 +38,7 @@ require('./index.html');
   imports: [
     BrowserModule,
     HttpModule,
+    FormsModule,
     RouterModule.forRoot(rootRouterConfig, { useHash: true }),
     Ng2SimplePageScrollModule.forRoot()
   ],
