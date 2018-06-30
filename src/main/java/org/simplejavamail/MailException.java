@@ -10,7 +10,7 @@ public abstract class MailException extends RuntimeException {
 		super(message);
 	}
 
-	protected MailException(final String message, final Exception cause) {
+	protected MailException(final String message, final Throwable cause) {
 		super(message, cause);
 	}
 }

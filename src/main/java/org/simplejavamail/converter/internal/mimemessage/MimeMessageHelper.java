@@ -5,6 +5,7 @@ import net.markenwerk.utils.mail.dkim.DkimSigner;
 import org.simplejavamail.email.AttachmentResource;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
+import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -25,9 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 
-import static java.lang.Class.forName;
 import static java.lang.String.format;
-import static org.simplejavamail.internal.util.MiscUtil.classAvailable;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
@@ -49,7 +48,9 @@ public class MimeMessageHelper {
 	}
 	
 	static void setFrom(Email email, MimeMessage message) throws UnsupportedEncodingException, MessagingException {
-		message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName(), CHARACTER_ENCODING));
+		if (email.getFromRecipient() != null) {
+			message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName(), CHARACTER_ENCODING));
+		}
 	}
 	
 	/**
@@ -285,16 +286,11 @@ public class MimeMessageHelper {
 	 * @return The original mime message wrapped in a new one that performs signing when sent.
 	 */
 	public static MimeMessage signMessageWithDKIM(final MimeMessage messageToSign, final Email emailContainingSigningDetails) {
-		if (!classAvailable("net.markenwerk.utils.mail.dkim.DkimSigner")) {
-			throw new MimeMessageParseException(MimeMessageParseException.ERROR_SIGNING_DKIM_LIBRARY_MISSING, null);
-		}
-		
-		try {
-			// make sure the DKIM classes are only loaded when needed
-			return ((IDKIMSigner) forName("org.simplejavamail.converter.internal.mimemessage.DKIMSigner").newInstance())
-					.signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
-		} catch (Exception e) {
-			throw new MimeMessageParseException(e.getMessage(), e);
-		}
+		return MiscUtil.<IDKIMSigner>loadLibraryClass(
+				"net.markenwerk.utils.mail.dkim.DkimSigner",
+				"org.simplejavamail.converter.internal.mimemessage.DKIMSigner",
+				MimeMessageParseException.ERROR_SIGNING_DKIM_LIBRARY_MISSING,
+				MimeMessageParseException.ERROR_LOADING_DKIM_LIBRARY)
+				.signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
 	}
 }

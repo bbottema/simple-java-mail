@@ -1,4 +1,4 @@
-package org.simplejavamail.converter.internal.msgparser;
+package org.simplejavamail.converter.internal.outlook;
 
 import org.simplejavamail.MailException;
 

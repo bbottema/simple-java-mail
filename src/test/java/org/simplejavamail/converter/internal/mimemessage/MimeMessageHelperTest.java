@@ -19,6 +19,7 @@ import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(MiscUtil.class)
@@ -110,18 +111,20 @@ public class MimeMessageHelperTest {
 				.buildEmail();
 		
 		PowerMockito.mockStatic(MiscUtil.class);
+		BDDMockito.given(MiscUtil.loadLibraryClass(any(String.class), any(String.class), any(String.class), any(String.class))).willCallRealMethod();
 		BDDMockito.given(MiscUtil.classAvailable("net.markenwerk.utils.mail.dkim.DkimSigner")).willReturn(false);
 		
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
 			@Override
-			public void call() throws Throwable {
+			public void call() {
 				EmailConverter.emailToMimeMessage(email);
 			}
 		})
 				.hasMessage(MimeMessageParseException.ERROR_SIGNING_DKIM_LIBRARY_MISSING);
 		
 		PowerMockito.mockStatic(MiscUtil.class);
-		BDDMockito.given(MiscUtil.classAvailable("net.markenwerk.utils.mail.dkim.DkimSigner")).willReturn(true);
+		BDDMockito.given(MiscUtil.loadLibraryClass(any(String.class), any(String.class), any(String.class), any(String.class))).willCallRealMethod();
+		BDDMockito.given(MiscUtil.classAvailable("net.markenwerk.utils.mail.dkim.DkimSigner")).willCallRealMethod();
 		
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
 			@Override

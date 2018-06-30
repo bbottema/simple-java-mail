@@ -3,15 +3,11 @@ package org.simplejavamail.converter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
-import org.simplejavamail.converter.internal.msgparser.OutlookMessageParser;
 import org.simplejavamail.email.CalendarMethod;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
 import org.simplejavamail.internal.util.MiscUtil;
-import org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment;
-import org.simplejavamail.outlookmessageparser.model.OutlookMessage;
-import org.simplejavamail.outlookmessageparser.model.OutlookRecipient;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
@@ -36,6 +32,8 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 
 /**
  * Utility to help convert {@link org.simplejavamail.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
+ *
+ * If you use the Outlook parsing API, make sure you load the following dependency: <em>org.simplejavamail::outlook-message-parser</em>
  */
 @SuppressWarnings("WeakerAccess")
 public final class EmailConverter {
@@ -69,20 +67,24 @@ public final class EmailConverter {
 	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailBuilder.ignoringDefaults().startingBlank();
-		final OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgData, "msgData"));
-		buildEmailFromOutlookMessage(emailPopulatingBuilder, outlookMessage);
-		return emailPopulatingBuilder.buildEmail();
+		return MiscUtil.<IOutlookEmailConverter>loadLibraryClass(
+				"org.simplejavamail.outlookmessageparser.OutlookMessageParser",
+				"org.simplejavamail.converter.internal.outlook.OutlookEmailConverter",
+				EmailConverterException.ERROR_OUTLOOK_MSGPARSER_LIBRARY_MISSING,
+				EmailConverterException.ERROR_LOADING_OUTLOOK_MSGPARSER_LIBRARY)
+				.outlookMsgToEmail(msgData);
 	}
 
 	/**
-	 * @param msgfile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
-	public static Email outlookMsgToEmail(@Nonnull final File msgfile) {
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailBuilder.ignoringDefaults().startingBlank();
-		final OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgfile, "msgfile"));
-		buildEmailFromOutlookMessage(emailPopulatingBuilder, outlookMessage);
-		return emailPopulatingBuilder.buildEmail();
+	public static Email outlookMsgToEmail(@Nonnull final File msgFile) {
+		return MiscUtil.<IOutlookEmailConverter>loadLibraryClass(
+				"org.simplejavamail.outlookmessageparser.OutlookMessageParser",
+				"org.simplejavamail.converter.internal.outlook.OutlookEmailConverter",
+				EmailConverterException.ERROR_OUTLOOK_MSGPARSER_LIBRARY_MISSING,
+				EmailConverterException.ERROR_LOADING_OUTLOOK_MSGPARSER_LIBRARY)
+				.outlookMsgToEmail(msgFile);
 	}
 	
 	/**
@@ -96,10 +98,12 @@ public final class EmailConverter {
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream) {
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailBuilder.ignoringDefaults().startingBlank();
-		final OutlookMessage outlookMessage = OutlookMessageParser.parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream"));
-		buildEmailFromOutlookMessage(emailPopulatingBuilder, outlookMessage);
-		return emailPopulatingBuilder;
+		return MiscUtil.<IOutlookEmailConverter>loadLibraryClass(
+				"org.simplejavamail.outlookmessageparser.OutlookMessageParser",
+				"org.simplejavamail.converter.internal.outlook.OutlookEmailConverter",
+				EmailConverterException.ERROR_OUTLOOK_MSGPARSER_LIBRARY_MISSING,
+				EmailConverterException.ERROR_LOADING_OUTLOOK_MSGPARSER_LIBRARY)
+				.outlookMsgToEmailBuilder(msgInputStream);
 	}
 
 	/**
@@ -290,37 +294,6 @@ public final class EmailConverter {
 		}
 		for (final Map.Entry<String, DataSource> attachment : parsed.getAttachmentList().entrySet()) {
 			builder.withAttachment(extractCID(attachment.getKey()), attachment.getValue());
-		}
-	}
-	
-	private static void buildEmailFromOutlookMessage(@Nonnull final EmailPopulatingBuilder builder, @Nonnull final OutlookMessage outlookMessage) {
-		checkNonEmptyArgument(builder, "emailBuilder");
-		checkNonEmptyArgument(outlookMessage, "outlookMessage");
-		builder.from(outlookMessage.getFromName(), outlookMessage.getFromEmail());
-		if (!MiscUtil.valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
-			builder.withReplyTo(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
-		}
-		for (final OutlookRecipient to : outlookMessage.getRecipients()) {
-			builder.to(to.getName(), to.getAddress());
-		}
-		//noinspection QuestionableName
-		for (final OutlookRecipient cc : outlookMessage.getCcRecipients()) {
-			builder.cc(cc.getName(), cc.getAddress());
-		}
-		for (final OutlookRecipient bcc : outlookMessage.getBccRecipients()) {
-			builder.bcc(bcc.getName(), bcc.getAddress());
-		}
-		builder.withSubject(outlookMessage.getSubject());
-		builder.withPlainText(outlookMessage.getBodyText());
-		builder.withHTMLText(outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML());
-
-		for (final Map.Entry<String, OutlookFileAttachment> cid : outlookMessage.fetchCIDMap().entrySet()) {
-			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
-			//noinspection ConstantConditions
-			builder.withEmbeddedImage(extractCID(cidName), cid.getValue().getData(), cid.getValue().getMimeTag());
-		}
-		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
-			builder.withAttachment(attachment.getLongFilename(), attachment.getData(), attachment.getMimeTag());
 		}
 	}
 
