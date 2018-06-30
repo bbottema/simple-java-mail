@@ -18,7 +18,7 @@ import {Contact} from './app/components/contact/contact';
 import {Dependencies} from "./app/components/dependencies/dependencies";
 import {MavenDependencyDisplay} from './app/components/maven-dependency-display/maven-dependency-display.component';
 
-enableProdMode();
+// enableProdMode();
 
 require('./index.html');
 
