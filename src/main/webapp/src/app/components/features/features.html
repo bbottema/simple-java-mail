@@ -2,29 +2,36 @@
 
   <h1>Simple Java Mail Features</h1>
 
-  <section>
-    <p class="wide">
-      Upgrading to 5.0.0? Read the <a [routerLink]="['/migrate500']" simplePageScroll href="#navigation">migration notes</a>.
-    </p>
-  </section>
-
   <section class="introduction">
     <p class="wide">
       Creating and sending emails is very simple with Simple Java Mail; you don't need to know about the mailing RFC, MimeMessage or any other low
       level <code class="inline">javax.mail</code> API. No anonymous inner classes needed and no <a
       href="http://docs.spring.io/spring/docs/current/spring-framework-reference/html/mail.html">large frameworks</a> needed nor XML.
     </p>
-
+    
+    <h3>Features always used by default</h3>
     <p class="wide">
-      On top of that, Simple Java Mail will do some basic validation checks so that your email is always populated with enough data. It even verifies
-      email addresses against <a href="https://tools.ietf.org/html/rfc2822">RFC-2822</a> using the only complete <a
-      href="https://github.com/bbottema/email-rfc2822-validator">rfc2822 validator in java</a> in the world.
-    </p>
-
-    <p class="wide">
+      Simple Java Mail will do some basic validation checks so that your email is always populated with enough data.
+      It also checks for CRLF injection attacks. It even verifies email addresses against
+      <a href="https://tools.ietf.org/html/rfc2822">RFC-2822</a> using the only complete
+      <a href="https://github.com/bbottema/email-rfc2822-validator">rfc2822 validator in java</a> in the world.
       Simple Java Mail also takes care of all the
       <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">connection and security properties</a> for you.
     </p>
+  
+    <h3>Builders all the way down</h3>
+    <p class="wide">
+        With all the possible ways to configure Email and Mailer instances, the library had only one option left to streamline API, avoid the
+        <a href="http://codethataint.com/blog/telescoping-constructor-pattern-java/">Telescoping Constructor</a> anti-pattern and keep things
+        managable: <a href="https://martinfowler.com/bliki/FluentInterface.html">fluent builders</a>.
+      </p>
+      <ol class="indent">
+        <li>With fluent builders, we can tightly control <strong>valid combinations</strong>, logical <strong>decision paths</strong> and easily <strong>provide
+          alternative methods</strong>.
+        </li>
+        <li>At the same time we can concentrate all mutation logic in the builders and produce mostly <strong>immutable objects</strong>.</li>
+        <li>Finally, we're able to <strong>centralize our documentation</strong> around the builders and refer to it from wherever it is used.</li>
+      </ol>
   </section>
 
   <section class="toc">
@@ -190,7 +197,7 @@ simplejavamail.defaults.bcc.address=twister@sweets.com,blue.tongue@sweets.com;ho
 
     <div>
       <div class="view">
-        <p>To give you an idea of how flexible the API is for adding recipients:</p>
+        <p>To give you an idea of how flexible the API is for <strong>just adding recipients:</strong></p>
       </div>
       <div class="side">
       <pre><code class="small">// TO
@@ -693,8 +700,17 @@ EmailAddressValidator.isValid("your_address@domain.com",
         If you already have a MimeMessage, you can it into an Email instance, complete with embedded images and attachments, headers intact.
       </p>
       <p>
-         You can even build a mass Outlook .msg to <a href="http://forensicswiki.org/wiki/EML">EML</a> converter if you like!
+        You can even build a mass Outlook .msg to <a href="http://forensicswiki.org/wiki/EML">EML</a> converter if you like!
       </p>
+      <p>
+        To enable Outlook message parsing support, include the
+        <a href="https://github.com/bbottema/outlook-message-parser">outlook-message-parser</a> dependency:
+      </p>
+      <pre><code class="small language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;org.simplejavamail&lt;/groupId&gt;
+    &lt;artifactId&gt;outlook-message-parser&lt;/artifactId&gt;
+    &lt;version&gt;X.X.X&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
     </div>
 
     <div class="side">

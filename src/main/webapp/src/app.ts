@@ -15,10 +15,10 @@ import {Debugging} from './app/components/debugging/debugging';
 import {RfcCompliant} from './app/components/rfc/rfc';
 import {Download} from './app/components/download/download';
 import {Contact} from './app/components/contact/contact';
-import {Migrate500} from "./app/components/migrate-5.0.0/migrate-5.0.0";
+import {Dependencies} from "./app/components/dependencies/dependencies";
 import {MavenDependencyDisplay} from './app/components/maven-dependency-display/maven-dependency-display.component';
 
-// enableProdMode();
+enableProdMode();
 
 require('./index.html');
 
@@ -32,7 +32,7 @@ require('./index.html');
     RfcCompliant,
     Download,
     Contact,
-    Migrate500,
+    Dependencies,
     MavenDependencyDisplay
   ],
   imports: [

@@ -2,7 +2,7 @@ var webpack = require('webpack');
 var path = require('path');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 
-var PROD = false;
+var PROD = true;
 
 // Webpack Config
 var webpackConfig = {
