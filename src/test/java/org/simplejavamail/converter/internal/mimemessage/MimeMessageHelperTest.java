@@ -82,6 +82,14 @@ public class MimeMessageHelperTest {
 		assertThat(MimeMessageHelper.determineResourceName(resource7, true)).isEqualTo("the resource.txt");
 	}
 	
+	@Test
+	public void determineResourceName_ignoreExtensionFromResource()
+			throws IOException {
+		AttachmentResource resource7 = new AttachmentResource("the resource.txt", getDataSource("blahblah.1/www/get?id=3"));
+		assertThat(MimeMessageHelper.determineResourceName(resource7, false)).isEqualTo("the resource.txt");
+		assertThat(MimeMessageHelper.determineResourceName(resource7, true)).isEqualTo("the resource.txt");
+	}
+	
 	private ByteArrayDataSource getDataSource(String name)
 			throws IOException {
 		ByteArrayDataSource ds = new ByteArrayDataSource("", "text/text");

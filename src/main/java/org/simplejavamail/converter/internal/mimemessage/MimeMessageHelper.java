@@ -263,7 +263,7 @@ public class MimeMessageHelper {
 		if (includeExtension && !valueNullOrEmpty(datasourceName)) {
 			@SuppressWarnings("UnnecessaryLocalVariable") final
 			String possibleFilename = datasourceName;
-			if (possibleFilename.contains(".")) {
+			if (!resourceName.contains(".") && possibleFilename.contains(".")) {
 				final String extension = possibleFilename.substring(possibleFilename.lastIndexOf("."), possibleFilename.length());
 				if (!resourceName.endsWith(extension)) {
 					resourceName += extension;
