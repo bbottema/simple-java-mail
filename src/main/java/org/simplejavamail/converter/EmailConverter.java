@@ -28,6 +28,7 @@ import java.util.Properties;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
+import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
@@ -105,7 +106,18 @@ public final class EmailConverter {
 				EmailConverterException.ERROR_LOADING_OUTLOOK_MSGPARSER_LIBRARY)
 				.outlookMsgToEmailBuilder(msgInputStream);
 	}
-
+	
+	/**
+	 * Delegates to {@link #emlToEmail(String)} with the full string value read from the given <code>InputStream</code>.
+	 */
+	public static Email emlToEmail(@Nonnull final InputStream emlInputStream) {
+		try {
+			return emlToEmail(readInputStreamToString(checkNonEmptyArgument(emlInputStream, "emlInputStream"), UTF_8));
+		} catch (IOException e) {
+			throw new EmailConverterException(EmailConverterException.ERROR_READING_EML_INPUTSTREAM, e);
+		}
+	}
+	
 	/**
 	 * Delegates to {@link #emlToMimeMessage(String, Session)} using a dummy {@link Session} instance and passes the result to {@link
 	 * #mimeMessageToEmail(MimeMessage)};
@@ -113,6 +125,26 @@ public final class EmailConverter {
 	public static Email emlToEmail(@Nonnull final String eml) {
 		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
 		return mimeMessageToEmail(mimeMessage);
+	}
+	
+	/**
+	 * Delegates to {@link #emlToEmail(String)} with the full string value read from the given <code>InputStream</code>.
+	 */
+	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final InputStream emlInputStream) {
+		try {
+			return emlToEmailBuilder(readInputStreamToString(checkNonEmptyArgument(emlInputStream, "emlInputStream"), UTF_8));
+		} catch (IOException e) {
+			throw new EmailConverterException(EmailConverterException.ERROR_READING_EML_INPUTSTREAM, e);
+		}
+	}
+	
+	/**
+	 * Delegates to {@link #emlToMimeMessage(String, Session)} using a dummy {@link Session} instance and passes the result to {@link
+	 * #mimeMessageToEmail(MimeMessage)};
+	 */
+	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final String eml) {
+		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
+		return mimeMessageToEmailBuilder(mimeMessage);
 	}
 
 	/*
@@ -163,7 +195,7 @@ public final class EmailConverter {
 			return MimeMessageProducerHelper.produceMimeMessage(checkNonEmptyArgument(email, "email"), checkNonEmptyArgument(session, "session"));
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new RuntimeException(e.getMessage(), e);
+			throw new AssertionError(e.getMessage(), e);
 		}
 	}
 
