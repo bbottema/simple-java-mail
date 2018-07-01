@@ -24,6 +24,7 @@ import javax.mail.internet.MimeMessage;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Future;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -236,10 +237,11 @@ public class Mailer {
 	 * @see MailSender#send(Email, boolean)
 	 * @see #validate(Email)
 	 */
-	public final synchronized void sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
+	public final synchronized Future<?> sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (validate(email)) {
-			mailSender.send(email, async);
+			return mailSender.send(email, async);
 		}
+		throw new AssertionError("Email not valid, but no MailException was thrown for it");
 	}
 	
 	/**

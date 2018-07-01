@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.Phaser;
 
 import static java.lang.String.format;
@@ -177,10 +178,11 @@ public class MailSender {
 	 * @param email The information for the email to be sent.
 	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
 	 *              send the email and this method returns immediately.
+	 * @return A {@link Future} or null if not <em>async</em>.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
 	 * @see Executors#newFixedThreadPool(int)
 	 */
-	public final synchronized void send(final Email email, final boolean async) {
+	public final synchronized Future<?> send(final Email email, final boolean async) {
 		/*
             we need to track even non-async emails to prevent async emails from shutting down
             the proxy bridge server (or connection pool in async mode) while a non-async email is still being processed
@@ -196,7 +198,7 @@ public class MailSender {
 				executor = Executors.newFixedThreadPool(operationalConfig.getThreadPoolSize());
 			}
 			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
-			executor.execute(new Runnable() {
+			return executor.submit(new Runnable() {
 				@Override
 				public void run() {
 					sendMailClosure(session, email);
@@ -209,6 +211,7 @@ public class MailSender {
 			});
 		} else {
 			sendMailClosure(session, email);
+			return null;
 		}
 	}
 	
