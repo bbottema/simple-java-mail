@@ -303,7 +303,7 @@ mailer.getSession().getProperties().setProperty("mail.smtp.sendpartial", true);
 </code></pre>
 <pre><code class="small">
 // trust all hosts for SSL connections, don't validate keys
-currentMailerBuilder.trustingAllSSLHosts(true);
+currentMailerBuilder.trustingAllHosts(true);
 </code></pre>
 <pre><code class="small">
 // white list hosts for SSL connections, don't validate keys for these
