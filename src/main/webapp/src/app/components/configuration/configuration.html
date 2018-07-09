@@ -229,13 +229,13 @@ currentMailerBuilder
       <pre><code class="small">
 // anonymous smtp + anonymous proxy + default SMTP protocol strategy
 currentMailerBuilder
-        .withSMTPHost("smtp.host.com").withSMTPServerPort(25)
-        .withProxyHost("proxy.host.com").withSMTPPort(1080);
+        .withSMTPServer("smtp.host.com").withSMTPServerPort(25)
+        .withProxyHost("proxy.host.com").withProxyPort(1080);
 </code></pre>
       <pre><code class="small">
 // configure everything!
 MailerBuilder
-        .withSMTPHost("smtp.host.com", 587, "user@host.com", "password")
+        .withSMTPServer("smtp.host.com", 587, "user@host.com", "password")
         .withTransportStrategy(TransportStrategy.SMTP_TLS);
         .withProxyHost("socksproxy.host.com", 1080, "proxy user", "proxy password");
         .buildMailer()
@@ -477,7 +477,7 @@ ConfigLoader.loadProperties(myOwnProperties, true);
 
 <pre><code>// override only the port and connection type, leave everything else to config files
 Mailer mailer = MailerBuilder
-                  .withSMTPPort(587)
+                  .withSMTPServerPort(587)
                   .withTransportStrategy(TransportStrategy.SMTP_TLS)
                   .buildMailer();
 </code></pre>
