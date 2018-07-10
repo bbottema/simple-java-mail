@@ -564,6 +564,8 @@ public final class MimeMessageParser {
 	
 	/**
 	 * DataContentHandler for text/calendar, based on {@link com.sun.mail.handlers.text_html}.
+	 * <p>
+	 * The unfortunate class name matches Java Mail's handler naming convention.
 	 */
 	static class text_calendar extends text_plain {
 		private static final ActivationDataFlavor[] myDF = {
