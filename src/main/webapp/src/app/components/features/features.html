@@ -41,6 +41,7 @@
        <li><a simplePageScroll href="#section-reusable-mailer" class="indent">Configure once, reuse many times</a></li>
        <li><a simplePageScroll href="#section-add-recipients" class="indent">Alternative API for almost everything</a></li>
        <li><a simplePageScroll href="#section-sending-asynchronously" class="indent">Asynchronous parallel batch sending</a></li>
+       <li><a simplePageScroll href="#section-handling-async-result" class="indent">Handling asynchronous mailing result</a></li>
       <li><a simplePageScroll href="#section-custom-session">Sending with your own Session instance</a></li>
       <li><a simplePageScroll href="#section-custom-id">Setting a custom message ID on sent email</a></li>
       <li><a simplePageScroll href="#section-sent-id">Getting the generated email id after sending</a></li>
@@ -288,8 +289,46 @@ simplejavamail.defaults.bcc.address=twister@sweets.com,blue.tongue@sweets.com;ho
       </div>
     </div>
   </section>
+  
+  
+  <a href="#section-handling-async-result" id="section-handling-async-result" class="section-link h3">&sect;</a>
+  <h3>Handling asynchronous mailing result</h3>
+  
+  <section>
+    <div class="view">
+      <p>
+        To handle the successful or erroneous result of an async sent email, you can utilize one of the response's async helpers:
+        <em>Handler</em> or <em>Future</em>.
+      </p>
+    </div>
+    
+    <div class="side">
+      <p>Using Handler:</p>
+      <pre><code class="small">AsyncResponse asyncResponse = mailer.sendMail(email, true);
+// also! mailer.testConnection(email, true);
 
+asyncResponse.onSuccess(() -> System.out.println("Success"));
+asyncResponse.onException((e) -> System.err.println("error"));
+</code></pre>
+      <p>Using Java's native Future:</p>
+<pre><code class="small">Future<?> f = asyncResponse.getFuture();
 
+// f.get() actually blocks until done, below is an example custom loop
+// for checking result in a non-blocking way:
+while (!f.isDone()) Thread.sleep(100);
+
+// result is in, check it
+try {{ '{' }}
+  f.get(); // without the above loop, this would actually block until done
+  System.err.println("success");
+} catch (ExecutionException e) {{ '{' }}
+  System.err.println("error");
+}
+</code></pre>
+    </div>
+  </section>
+  
+  
   <a href="#section-sending-asynchronously" id="section-sending-asynchronously" class="section-link h3">&sect;</a>
   <h3>Asynchronous parallel batch sending</h3>
 
@@ -848,19 +887,23 @@ currentMailerBuilder.withProxy("proxy.host.com", 1080, "proxy username", "proxy 
   <h2>Testing a server connection</h2>
 
   <section>
-    <div>
-      <p class="wide">
+    <div class="view">
+      <p>
         If you just want to do a connection test using your current configuration, including transport strategy and (authenticated)
         proxy, Simple Java Mail got you covered.
       </p>
+      <p>
+        The connection test can also be done asynchronously and the result can be handled asynchronously as well. Take a look at
+        <a simplePageScroll href="#section-handling-async-result">Handling asynchronous mailing result</a>.
+      </p>
     </div>
 
-    <div>
+    <div class="side">
 <pre><code>// configure your mailer
 Mailer mailer = ...;
 
 // perform connection test
-mailer.testConnection(); // no error means success
+mailer.testConnection(/* async? */); // no error means success
 </code></pre>
     </div>
   </section>

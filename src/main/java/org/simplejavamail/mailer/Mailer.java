@@ -24,7 +24,6 @@ import javax.mail.internet.MimeMessage;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Future;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -217,12 +216,21 @@ public class Mailer {
 	}
 	
 	/**
+	 * Delegates to {@link #testConnection(boolean)} with async == <code>false</code>.
+	 */
+	public void testConnection() {
+		this.testConnection(false);
+	}
+	
+	/**
 	 * Tries to connect to the configured SMTP server, including (authenticated) proxy if set up.
 	 * <p>
 	 * Note: synchronizes on the thread for sending mails so that we don't get into race condition conflicts with emails actually being sent.
+	 *
+	 * @return An AsyncResponse in case of async == true, otherwise <code>null</code>.
 	 */
-	public void testConnection() {
-		mailSender.testConnection();
+	public AsyncResponse testConnection(boolean async) {
+		return mailSender.testConnection(async);
 	}
 	
 	/**
@@ -237,7 +245,7 @@ public class Mailer {
 	 * @see MailSender#send(Email, boolean)
 	 * @see #validate(Email)
 	 */
-	public final synchronized Future<?> sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
+	public final synchronized AsyncResponse sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (validate(email)) {
 			return mailSender.send(email, async);
 		}
