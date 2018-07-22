@@ -90,13 +90,6 @@ public class EmailBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link EmailBuilderInstance#replyingTo(MimeMessage, boolean, String)}.
-	 */
-	public static EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage emailMessage, final boolean repyToAll, @Nonnull final String htmlTemplate) {
-		return new EmailBuilderInstance().replyingTo(emailMessage, repyToAll, htmlTemplate);
-	}
-	
-	/**
 	 * Delegates to {@link EmailBuilderInstance#forwarding(Email)}.
 	 */
 	public static EmailPopulatingBuilder forwarding(@Nonnull final Email email) {
