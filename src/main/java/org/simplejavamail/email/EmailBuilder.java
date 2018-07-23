@@ -2,6 +2,7 @@ package org.simplejavamail.email;
 
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
+import org.simplejavamail.internal.clisupport.CliSupported;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
@@ -140,6 +141,7 @@ public class EmailBuilder {
 	 * <p>
 	 * As with the EmailBuilder, every other method returns an {@link EmailPopulatingBuilder}.
 	 */
+	@CliSupported("")
 	public static final class EmailBuilderInstance {
 		
 		/**

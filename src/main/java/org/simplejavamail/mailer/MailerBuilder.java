@@ -26,6 +26,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * @see MailerFromSessionBuilder
  * @see MailerRegularBuilder
  */
+@SuppressWarnings("WeakerAccess")
 public class MailerBuilder {
 	
 	/**
