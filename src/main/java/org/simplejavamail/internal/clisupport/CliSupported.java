@@ -9,13 +9,13 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.METHOD})
 public @interface CliSupported {
 	
-	public String value();
+	public String paramPrefix() default "";
 	
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.PARAMETER)
 	public @interface CliParam {
 		
-		public String name();
+		public String name() default "";
 		public String example();
 	}
 }

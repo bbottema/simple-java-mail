@@ -1,6 +1,7 @@
 package org.simplejavamail.email;
 
 import org.simplejavamail.email.EmailBuilder.EmailBuilderInstance;
+import org.simplejavamail.internal.clisupport.CliSupported;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
@@ -27,6 +28,7 @@ import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
+import static org.simplejavamail.internal.clisupport.CliSupported.*;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -54,6 +56,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * NOTE: for some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
  */
+@CliSupported(paramPrefix = "email")
 @SuppressWarnings({"UnusedReturnValue", "WeakerAccess", "unused"})
 public class EmailPopulatingBuilder {
 	
@@ -230,7 +233,8 @@ public class EmailPopulatingBuilder {
 	 * <p>
 	 * The id-format should be conform <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
 	 */
-	public EmailPopulatingBuilder fixingMessageId(@Nullable final String id) {
+	@CliSupported
+	public EmailPopulatingBuilder fixingMessageId(@Nullable @CliParam(name = "id", example = "\"<123@456>\"") final String id) {
 		this.id = id;
 		return this;
 	}

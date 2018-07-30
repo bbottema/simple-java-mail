@@ -1,38 +1,25 @@
 package org.simplejavamail.internal.clisupport;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-class CliParam {
+public class CliParam {
+	private final Class<?> argumentType;
 	private final String name;
-	private final List<Class<?>> requiredTypes;
-	private final Collection<CliParam> validNextParams = new ArrayList<>();
+	private final String example;
 	
-	private List<String> rawValues;
-	
-	CliParam(String name, List<Class<?>> requiredTypes) {
+	public CliParam(Class<?> argumentType, String name, String example) {
+		this.argumentType = argumentType;
 		this.name = name;
-		this.requiredTypes = requiredTypes;
+		this.example = example;
+	}
+	
+	public Class<?> getArgumentType() {
+		return argumentType;
 	}
 	
 	public String getName() {
 		return name;
 	}
 	
-	public List<Class<?>> getRequiredTypes() {
-		return requiredTypes;
-	}
-	
-	public Collection<CliParam> getValidNextParams() {
-		return validNextParams;
-	}
-	
-	public List<String> getRawValues() {
-		return rawValues;
-	}
-	
-	public void setRawValues(List<String> rawValues) {
-		this.rawValues = rawValues;
+	public String getExample() {
+		return example;
 	}
 }

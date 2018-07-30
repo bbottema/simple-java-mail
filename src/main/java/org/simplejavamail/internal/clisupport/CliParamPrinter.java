@@ -4,7 +4,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 
 public class CliParamPrinter {
-	public void printCliParams(Collection<CliParam> cliParams, PrintStream out) {
-		out.println(moo);
+	public static void printCliParams(Collection<CliOptionFlag> cliOptionFlags, PrintStream out) {
+		out.println(cliOptionFlags);
 	}
 }

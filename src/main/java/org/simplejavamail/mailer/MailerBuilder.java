@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.internal.clisupport.CliSupported;
 import org.simplejavamail.mailer.config.TransportStrategy;
 
 import javax.annotation.Nonnull;
@@ -122,6 +123,7 @@ public class MailerBuilder {
 	 * @see TransportStrategy
 	 */
 	@SuppressWarnings("WeakerAccess")
+	@CliSupported(paramPrefix = "mailer")
 	public static class MailerRegularBuilder extends MailerGenericBuilder<MailerRegularBuilder> {
 		
 		private String host;

@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.util.regex.Pattern.compile;
+import static org.simplejavamail.internal.clisupport.CliSupported.*;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 
 /**
@@ -141,7 +142,7 @@ public class EmailBuilder {
 	 * <p>
 	 * As with the EmailBuilder, every other method returns an {@link EmailPopulatingBuilder}.
 	 */
-	@CliSupported("")
+	@CliSupported(paramPrefix = "email")
 	public static final class EmailBuilderInstance {
 		
 		/**
@@ -177,6 +178,7 @@ public class EmailBuilder {
 		/**
 		 * Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.
 		 */
+		@CliSupported
 		EmailBuilderInstance ignoringDefaults() {
 			applyDefaults = false;
 			return this;
@@ -190,6 +192,7 @@ public class EmailBuilder {
 		 *
 		 * @return A new {@link EmailBuilderInstance} to further populate the email with.
 		 */
+		@CliSupported
 		public EmailPopulatingBuilder startingBlank() {
 			return new EmailPopulatingBuilder(applyDefaults);
 		}
@@ -230,7 +233,8 @@ public class EmailBuilder {
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
 		 * template.
 		 */
-		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email) {
+		@CliSupported
+		public EmailPopulatingBuilder replyingTo(@Nonnull @CliParam(example = "\"<EML string>\"") final MimeMessage email) {
 			return replyingTo(email, false, DEFAULT_QUOTING_MARKUP);
 		}
 		

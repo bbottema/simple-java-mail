@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.internal.clisupport.CliSupported;
+
 import javax.annotation.Nonnull;
 import javax.mail.Message;
 import javax.mail.Session;
@@ -13,6 +15,7 @@ import javax.mail.Session;
  *
  * @see org.simplejavamail.mailer.config.TransportStrategy
  */
+@CliSupported(paramPrefix = "mailer")
 public class MailerFromSessionBuilder extends MailerGenericBuilder<MailerFromSessionBuilder> {
 	
 	/**
