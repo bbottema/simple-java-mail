@@ -9,11 +9,11 @@ import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
 public class DemoAppBase {
 	
-	static final String YOUR_GMAIL_ADDRESS = "b.bottema@gmail.com";
+	static final String YOUR_GMAIL_ADDRESS = "yourname@gmail.com";
 	
 	// if you have 2-factor login turned on, you need to generate a once-per app password
 	// https://security.google.com/settings/security/apppasswords
-	private static final String YOUR_GMAIL_PASSWORD = "kjqyokyjoxkvensd";
+	private static final String YOUR_GMAIL_PASSWORD = "<your password>";
 	
 	/**
 	 * If you just want to see what email is being sent, just set this to true. It won't actually connect to an SMTP server then.
