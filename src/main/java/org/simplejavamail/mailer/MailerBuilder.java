@@ -1,6 +1,6 @@
 package org.simplejavamail.mailer;
 
-import org.simplejavamail.internal.clisupport.CliSupported;
+import org.simplejavamail.internal.clisupport.annotation.CliSupported;
 import org.simplejavamail.mailer.config.TransportStrategy;
 
 import javax.annotation.Nonnull;

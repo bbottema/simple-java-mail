@@ -8,12 +8,14 @@ import java.util.List;
 class CliOptionFlag {
 	private final String name;
 	private final List<CliParam> possibleParams;
+	private final String helpLabel;
 	private Collection<CliOptionFlag> validNextOptions = new ArrayList<>();
 	
 	private List<String> rawValues;
 	
-	CliOptionFlag(String name, List<CliParam> possibleArguments) {
+	CliOptionFlag(String name, String helpLabel, List<CliParam> possibleArguments) {
 		this.name = name;
+		this.helpLabel = helpLabel;
 		this.possibleParams = possibleArguments;
 	}
 	
@@ -39,5 +41,9 @@ class CliOptionFlag {
 	
 	public void setValidNextOptions(Collection<CliOptionFlag> validNextOptions) {
 		this.validNextOptions = validNextOptions;
+	}
+	
+	public String getHelpLabel() {
+		return helpLabel;
 	}
 }

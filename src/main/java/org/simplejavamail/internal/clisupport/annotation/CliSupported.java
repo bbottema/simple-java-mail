@@ -1,4 +1,4 @@
-package org.simplejavamail.internal.clisupport;
+package org.simplejavamail.internal.clisupport.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -9,13 +9,16 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.METHOD})
 public @interface CliSupported {
 	
-	public String paramPrefix() default "";
+	String paramPrefix() default "";
+	
+	// FIXME this should be on CliParam, CliSupported corresponds with Command on picocli, while CliParam corresponds to OptionsSpec
+	String helpLabel() default "";
 	
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.PARAMETER)
-	public @interface CliParam {
+	@interface CliParam {
 		
-		public String name() default "";
-		public String example();
+		String name() default "";
+		String example();
 	}
 }

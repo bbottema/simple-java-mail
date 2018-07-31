@@ -1,7 +1,7 @@
 package org.simplejavamail.email;
 
 import org.simplejavamail.email.EmailBuilder.EmailBuilderInstance;
-import org.simplejavamail.internal.clisupport.CliSupported;
+import org.simplejavamail.internal.clisupport.annotation.CliSupported;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
@@ -28,7 +28,7 @@ import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
-import static org.simplejavamail.internal.clisupport.CliSupported.*;
+import static org.simplejavamail.internal.clisupport.annotation.CliSupported.*;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;

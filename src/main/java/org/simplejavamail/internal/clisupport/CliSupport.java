@@ -3,77 +3,60 @@ package org.simplejavamail.internal.clisupport;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.mailer.MailerBuilder;
 import org.simplejavamail.mailer.MailerFromSessionBuilder;
+import picocli.CommandLine;
 
-import javax.annotation.Nonnull;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
+import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import static org.simplejavamail.internal.clisupport.BuildToCliOptionsMapper.generateOptionsNetwork;
+import static picocli.CommandLine.Model.*;
 
 public class CliSupport {
 	
-	private static final Class<?>[] RELEVANT_BUILDER_ROOT_API = {
-			EmailBuilder.EmailBuilderInstance.class,
-			MailerBuilder.MailerRegularBuilder.class,
-			MailerFromSessionBuilder.class
-	};
+	private static final Class<?>[] RELEVANT_BUILDER_ROOT_API = {EmailBuilder.EmailBuilderInstance.class, MailerBuilder.MailerRegularBuilder.class, MailerFromSessionBuilder.class};
 	
 	public static void runCLI(String[] args) {
-		Collection<CliOptionFlag> parameterMap = generateOptionsNetwork(new HashMap<Class<?>, Collection<CliOptionFlag>>());
-		CliParamPrinter.printCliParams(parameterMap, System.out);
+		Collection<CliOptionFlag> parameterMap = generateOptionsNetwork(RELEVANT_BUILDER_ROOT_API, new HashMap<Class<?>, Collection<CliOptionFlag>>());
+		configurePicoCli(parameterMap);
+		System.out.println(parameterMap);
 	}
 	
-	private static Collection<CliOptionFlag> generateOptionsNetwork(Map<Class<?>, Collection<CliOptionFlag>> optionFollowupCombinations) {
-		ArrayList<CliOptionFlag> cliOptionFlags = new ArrayList<>();
-		for (Class<?> apiRoot : RELEVANT_BUILDER_ROOT_API) {
-			cliOptionFlags.addAll(generateOptionsNetwork(apiRoot, optionFollowupCombinations));
-		}
-		return cliOptionFlags;
+	private static CommandLine configurePicoCli(Collection<CliOptionFlag> parameterMap) {
+		CommandSpec mainCommand = CommandSpec.create()
+				.name("send")
+				.version("6.0.0")
+				.mixinStandardHelpOptions(true);
+		configureOptionFlags(mainCommand, parameterMap);
+		return new CommandLine(mainCommand);
 	}
 	
-	private static Collection<CliOptionFlag> generateOptionsNetwork(Class<?> apiNode, Map<Class<?>, Collection<CliOptionFlag>> optionsLists) {
-		List<CliOptionFlag> cliOptions = new ArrayList<>();
-		
-		for (Method m : apiNode.getMethods()) {
-			if (m.isAnnotationPresent(CliSupported.class)) {
-				CliOptionFlag cliOption = new CliOptionFlag(determineCliOptionFlagName(apiNode, m), getArgumentsForCliParam(m));
-				cliOptions.add(cliOption);
-				
-				if (m.getReturnType().isAnnotationPresent(CliSupported.class)) {
-					if (!optionsLists.containsKey(m.getReturnType())) {
-						optionsLists.put(m.getReturnType(), new ArrayList<CliOptionFlag>());
-						optionsLists.get(m.getReturnType()).addAll(generateOptionsNetwork(m.getReturnType(), optionsLists));
-					}
-					cliOption.setValidNextOptions(optionsLists.get(m.getReturnType()));
-				}
-			}
+	private static void configureOptionFlags(CommandSpec spec, Collection<CliOptionFlag> parameterMap) {
+		for (CliOptionFlag cliOptionFlag : parameterMap) {
+			CommandSpec cmd = CommandSpec.create();
+			cmd.addOption(OptionSpec.builder("-" + cliOptionFlag.getName())
+					.paramLabel(cliOptionFlag.getHelpLabel())
+					.type(int.class)
+					.description("number of times to execute").build());
 		}
 		
-		return cliOptions;
-	}
-	
-	@Nonnull
-	private static String determineCliOptionFlagName(Class<?> apiNode, Method m) {
-		String cliParamPrefix = apiNode.getAnnotation(CliSupported.class).paramPrefix();
-		return (!cliParamPrefix.isEmpty() ? cliParamPrefix + ":" : "") + m.getName();
-	}
-	
-	@Nonnull
-	private static List<CliParam> getArgumentsForCliParam(Method m) {
-		List<CliParam> cliParams = new ArrayList<>();
-		for (Class<?> p : m.getParameterTypes()) {
-			if (p.isAnnotationPresent(CliSupported.CliParam.class)) {
-				CliSupported.CliParam cliParamAnnotation = p.getAnnotation(CliSupported.CliParam.class);
-				cliParams.add(new CliParam(p, determineCliParamName(cliParamAnnotation, p), cliParamAnnotation.example()));
-			}
-		}
-		return cliParams;
-	}
-	
-	@Nonnull
-	private static String determineCliParamName(CliSupported.CliParam cliParamAnnotation, Class<?> cliArgument) {
-		return !cliParamAnnotation.name().isEmpty() ? cliParamAnnotation.name() : cliArgument.getSimpleName();
+		spec.addOption(OptionSpec.builder("-c", "--count")
+				.paramLabel("COUNT")
+				.type(int.class)
+				.description("number of times to execute").build());
+		spec.addPositional(PositionalParamSpec.builder()
+				.paramLabel("FILES")
+				.type(List.class)
+				.auxiliaryTypes(File.class)
+				.description("The files to process").build());
+		
+		CommandSpec subCmd = CommandSpec.create();
+		subCmd.addOption(OptionSpec.builder("-b", "--blah")
+				.paramLabel("BLAH")
+				.type(String.class)
+				.description("number of moomoo's").build());
+		
+		spec.addSubcommand("moo", subCmd);
 	}
 }

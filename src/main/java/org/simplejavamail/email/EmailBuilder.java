@@ -2,7 +2,7 @@ package org.simplejavamail.email;
 
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
-import org.simplejavamail.internal.clisupport.CliSupported;
+import org.simplejavamail.internal.clisupport.annotation.CliSupported;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.util.regex.Pattern.compile;
-import static org.simplejavamail.internal.clisupport.CliSupported.*;
+import static org.simplejavamail.internal.clisupport.annotation.CliSupported.*;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 
 /**
@@ -178,7 +178,7 @@ public class EmailBuilder {
 		/**
 		 * Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.
 		 */
-		@CliSupported
+		@CliSupported()
 		EmailBuilderInstance ignoringDefaults() {
 			applyDefaults = false;
 			return this;
