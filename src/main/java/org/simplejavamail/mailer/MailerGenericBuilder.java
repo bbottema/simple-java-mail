@@ -375,14 +375,16 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
+	 * Sets property or removes it if the provided value is <code>null</code>. If provided, the value is always converted <code>toString()</code>.
+	 *
 	 * @see #withProperties(Properties)
 	 * @see #clearProperties()
 	 */
-	public T withProperty(@Nonnull final String propertyName, @Nullable final String propertyValue) {
+	public T withProperty(@Nonnull final String propertyName, @Nullable final Object propertyValue) {
 		if (propertyValue == null) {
 			this.properties.remove(propertyName);
 		} else {
-			this.properties.put(propertyName, propertyValue);
+			this.properties.put(propertyName, propertyValue.toString());
 		}
 		return (T) this;
 	}
