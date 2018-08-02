@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.internal.clisupport.annotation.CliCommand;
+import org.simplejavamail.internal.clisupport.annotation.CliParam;
 import org.simplejavamail.internal.clisupport.annotation.CliSupported;
 import org.simplejavamail.mailer.config.TransportStrategy;
 
@@ -159,7 +161,8 @@ public class MailerBuilder {
 		/**
 		 * Sets the optional transport strategy of this mailer. Will default to {@link TransportStrategy#SMTP} is left empty.
 		 */
-		public MailerRegularBuilder withTransportStrategy(@Nonnull final TransportStrategy transportStrategy) {
+		@CliCommand
+		public MailerRegularBuilder withTransportStrategy(@Nonnull @CliParam(name = "transportStrategy", helpLabel = "STRATEGY") final TransportStrategy transportStrategy) {
 			this.transportStrategy = transportStrategy;
 			return this;
 		}

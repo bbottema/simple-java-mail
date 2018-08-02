@@ -6,7 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
-public @interface CliSupported {
-	String paramPrefix();
+@Target(ElementType.METHOD)
+public @interface CliCommandDelegate {
+	Class delegateClass();
+	String delegateMethod();
+	Class<?>[] delegateParameters();
 }

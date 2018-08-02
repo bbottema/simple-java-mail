@@ -6,7 +6,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
-public @interface CliSupported {
-	String paramPrefix();
+@Target(ElementType.PARAMETER)
+public @interface CliParam {
+	String name();
+	String description() default "";
+	String helpLabel();
+	String[] example() default {};
 }

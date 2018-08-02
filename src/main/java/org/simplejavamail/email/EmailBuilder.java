@@ -2,6 +2,9 @@ package org.simplejavamail.email;
 
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
+import org.simplejavamail.internal.clisupport.annotation.CliCommand;
+import org.simplejavamail.internal.clisupport.annotation.CliCommandDelegate;
+import org.simplejavamail.internal.clisupport.annotation.CliParam;
 import org.simplejavamail.internal.clisupport.annotation.CliSupported;
 
 import javax.annotation.Nonnull;
@@ -11,7 +14,6 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.util.regex.Pattern.compile;
-import static org.simplejavamail.internal.clisupport.annotation.CliSupported.*;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 
 /**
@@ -178,7 +180,7 @@ public class EmailBuilder {
 		/**
 		 * Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.
 		 */
-		@CliSupported()
+		@CliCommand
 		EmailBuilderInstance ignoringDefaults() {
 			applyDefaults = false;
 			return this;
@@ -192,7 +194,9 @@ public class EmailBuilder {
 		 *
 		 * @return A new {@link EmailBuilderInstance} to further populate the email with.
 		 */
-		@CliSupported
+		@CliCommand(description = "Most common use case for creating a new email. Starts with an empty email, populated with defaults when set " +
+				"through config properties (if not disabled using --ignoringDefaults\n\nNote: Any option used after this will override the default " +
+				"value)")
 		public EmailPopulatingBuilder startingBlank() {
 			return new EmailPopulatingBuilder(applyDefaults);
 		}
@@ -233,8 +237,10 @@ public class EmailBuilder {
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
 		 * template.
 		 */
-		@CliSupported
-		public EmailPopulatingBuilder replyingTo(@Nonnull @CliParam(example = "\"<EML string>\"") final MimeMessage email) {
+		@CliCommand(description = "Delegates to --replyingTo with replyToAll set to \"false\" and a default HTML quoting")
+		@CliCommandDelegate(delegateClass = EmailPopulatingBuilder.class, delegateMethod = "replyingTo",
+				delegateParameters = { MimeMessage.class, boolean.class, String.class })
+		public EmailPopulatingBuilder replyingTo(@Nonnull @CliParam(name = "email", helpLabel = "<EML FILE>", description = "Path to .eml file") final MimeMessage email) {
 			return replyingTo(email, false, DEFAULT_QUOTING_MARKUP);
 		}
 		

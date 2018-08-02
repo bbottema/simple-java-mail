@@ -1,6 +1,8 @@
 package org.simplejavamail.email;
 
 import org.simplejavamail.email.EmailBuilder.EmailBuilderInstance;
+import org.simplejavamail.internal.clisupport.annotation.CliCommand;
+import org.simplejavamail.internal.clisupport.annotation.CliParam;
 import org.simplejavamail.internal.clisupport.annotation.CliSupported;
 import org.simplejavamail.internal.util.MiscUtil;
 
@@ -28,7 +30,6 @@ import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
-import static org.simplejavamail.internal.clisupport.annotation.CliSupported.*;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -233,8 +234,8 @@ public class EmailPopulatingBuilder {
 	 * <p>
 	 * The id-format should be conform <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
 	 */
-	@CliSupported
-	public EmailPopulatingBuilder fixingMessageId(@Nullable @CliParam(name = "id", example = "\"<123@456>\"") final String id) {
+	@CliCommand
+	public EmailPopulatingBuilder fixingMessageId(@Nullable @CliParam(name="id", helpLabel = "MIMEMESSAGE_ID", example = "\"<123@456>\"") final String id) {
 		this.id = id;
 		return this;
 	}

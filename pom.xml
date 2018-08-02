@@ -109,7 +109,7 @@
         <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
-            <version>3.3.0</version>
+            <version>3.4.0</version>
             <optional>true</optional>
         </dependency>
 
@@ -220,6 +220,19 @@
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <encoding>${compiler.encoding}</encoding>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <configuration>
+                    <mainClass>org.simplejavamail.cli.SimpleJavaMail</mainClass>
+                    <arguments>
+                        <argument>email:startingBlank</argument>
+                        <argument>--help</argument>
+                    </arguments>
                 </configuration>
             </plugin>
 
