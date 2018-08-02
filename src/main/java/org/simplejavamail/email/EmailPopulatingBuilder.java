@@ -115,7 +115,7 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * @see #withHeader(String, Object)
-	 * @see EmailBuilder#replyingTo(MimeMessage, boolean, String)
+	 * @see EmailBuilderInstance#replyingTo(MimeMessage, boolean, String)
 	 */
 	private final Map<String, String> headers;
 	
@@ -1621,7 +1621,7 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * @see #withHeader(String, Object)
-	 * @see EmailBuilder#replyingTo(MimeMessage, boolean, String)
+	 * @see EmailBuilderInstance#replyingTo(MimeMessage, boolean, String)
 	 */
 	public Map<String, String> getHeaders() {
 		return new HashMap<>(headers);
