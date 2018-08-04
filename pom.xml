@@ -214,6 +214,7 @@
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <encoding>${compiler.encoding}</encoding>
+                    <compilerArgument>-Xlint:all</compilerArgument>
                 </configuration>
             </plugin>
 
@@ -241,16 +242,19 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>3.1.0</version>
                 <configuration>
                     <archive>  
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
                     </archive> 
                 </configuration>
             </plugin>  
-            <plugin>   
+            <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>3.5.1</version>
                 <executions>
                     <execution>
                         <id>bundle-manifest</id>
