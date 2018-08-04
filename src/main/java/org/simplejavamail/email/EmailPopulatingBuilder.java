@@ -234,7 +234,7 @@ public class EmailPopulatingBuilder {
 	 * <p>
 	 * The id-format should be conform <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
 	 */
-	@CliCommand
+	@CliCommand(description = "FIXME")
 	public EmailPopulatingBuilder fixingMessageId(@Nullable @CliParam(name="id", helpLabel = "MIMEMESSAGE_ID", example = "\"<123@456>\"") final String id) {
 		this.id = id;
 		return this;

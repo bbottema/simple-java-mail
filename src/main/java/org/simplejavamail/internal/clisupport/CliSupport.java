@@ -4,12 +4,18 @@ import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.mailer.MailerBuilder;
 import org.simplejavamail.mailer.MailerFromSessionBuilder;
 import picocli.CommandLine;
+import picocli.CommandLine.Help.Ansi;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 
-import static org.simplejavamail.internal.clisupport.BuilderToCliCommandsMapper.generateCommandsAndSubcommands;
+import static java.lang.String.format;
+import static java.lang.System.err;
+import static java.lang.System.out;
+import static org.simplejavamail.internal.clisupport.BuilderApiToCliCommandsMapper.generateCommandsAndSubcommands;
 import static picocli.CommandLine.Model.CommandSpec;
 import static picocli.CommandLine.Model.OptionSpec;
 
@@ -22,32 +28,76 @@ public class CliSupport {
 		CommandLine commandLine = configurePicoCli(parameterMap);
 		
 		CommandLine.ParseResult pr = commandLine.parseArgs(args);
-		CommandLine.printHelpIfRequested(pr);
+		CommandLine.printHelpIfRequested(pr.asCommandLineList(), out, err, Ansi.ON);
 	}
 	
 	private static CommandLine configurePicoCli(Collection<CliCommandData> parameterMap) {
-		CommandSpec mainCommand = CommandSpec.create()
-				.name("send")
-				.version("6.0.0")
-				.mixinStandardHelpOptions(true);
-		configureCommands(mainCommand, parameterMap);
-		return new CommandLine(mainCommand);
+		CommandSpec rootCommand = applyingCommandDefaults(CommandSpec.create(), true, "SimpleJavaMail", null)
+				.version("Simple Java Mail 6.0.0");
+		
+		rootCommand.usageMessage()
+				.customSynopsis("%n" +
+						"\tsend     [FLAGS] email:directives mailer:directives",
+						"\tconnect  [FLAGS] mailer:directives",
+						"\tvalidate [FLAGS] email:directives mailer:directives")
+				.description("Simple Java Mail Command Line Interface.%n" +
+						"%n" +
+						"All CLI support is a direct translation of the Simple Java Mail builder API and translates back into builder calls. " +
+						"As such, the @|bold order of directives matters as well as combinations|@! Furthermore, all documentation is taken from the " +
+						"builder API Javadoc.%n" +
+						"%n" +
+						"Note: All the regular functionality regarding properties and config files work with the CLI so you can provides defaults " +
+						"as long as they are visible (on class path).");
+		
+		CommandSpec sendCmd = applyingCommandDefaults(CommandSpec.create(), false, "send", "Send an email");
+		sendCmd.usageMessage().customSynopsis("\tsend [FLAGS] email:directives mailer:directives");
+		CommandSpec connectCmd = applyingCommandDefaults(CommandSpec.create(), false, "connect", "Test a server connection");
+		connectCmd.usageMessage().customSynopsis("\tconnect [FLAGS] mailer:directives");
+		CommandSpec validateCmd = applyingCommandDefaults(CommandSpec.create(), false, "validate", "Validate an email");
+		validateCmd.usageMessage().customSynopsis("\tvalidate [FLAGS] email:directives mailer:directives");
+		
+		configureCommands(sendCmd, parameterMap);
+		configureCommands(connectCmd, parameterMap);
+		configureCommands(validateCmd, parameterMap);
+		
+		rootCommand.addSubcommand(sendCmd.name(), sendCmd);
+		rootCommand.addSubcommand(connectCmd.name(), connectCmd);
+		rootCommand.addSubcommand(validateCmd.name(), validateCmd);
+		
+		return new CommandLine(rootCommand);
 	}
 	
-	private static void configureCommands(CommandSpec spec, Collection<CliCommandData> parameterMap) {
+	private static void configureCommands(CommandSpec rootCommand, Collection<CliCommandData> parameterMap) {
 		for (CliCommandData cliCommand : parameterMap) {
-			CommandSpec cmd = CommandSpec.create().mixinStandardHelpOptions(true);
+			CommandSpec builderApiCmd = applyingCommandDefaults(CommandSpec.create(), false, cliCommand.getName(), cliCommand.getDescription());
 			
 			for (CliParamData cliParamData : cliCommand.getPossibleParams()) {
-				cmd.addOption(OptionSpec.builder(cliParamData.getName())
+				builderApiCmd.addOption(OptionSpec.builder(cliParamData.getName())
 						.paramLabel(cliParamData.getHelpLabel())
 						.type(cliParamData.getParamType())
 						.description(determineDescription(cliParamData))
 						.build());
 			}
 			
-			spec.addSubcommand(cliCommand.getName(), cmd);
+			rootCommand.addSubcommand(builderApiCmd.name(), builderApiCmd);
 		}
+	}
+	
+	private static CommandSpec applyingCommandDefaults(@Nonnull CommandSpec cmd, boolean isForRootCmd, @Nonnull String name, @Nullable String description) {
+		cmd
+				.name(name)
+				.mixinStandardHelpOptions(true)
+				.usageMessage()
+				.description(description)
+				.headerHeading("%n@|bold,underline Usage|@:")
+				.commandListHeading(format("%n@|bold,underline %s|@:%n", isForRootCmd ? "Commands" : "Directives"))
+				.synopsisHeading(" ")
+				.descriptionHeading("%n@|bold,underline Description|@:%n")
+				.optionListHeading("%n@|bold,underline Flags|@:%n")
+				.parameterListHeading("%n@|bold,underline Parameters|@:%n")
+				.footerHeading("%n")
+				.footer("@|faint,italic http://www.simplejavamail.org/#/cli|@");
+		return cmd;
 	}
 	
 	private static String determineDescription(CliParamData cliParamData) {

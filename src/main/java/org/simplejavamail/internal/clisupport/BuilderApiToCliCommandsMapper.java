@@ -14,9 +14,9 @@ import java.util.Map;
 
 import static java.lang.String.format;
 
-final class BuilderToCliCommandsMapper {
+final class BuilderApiToCliCommandsMapper {
 	
-	private BuilderToCliCommandsMapper() {
+	private BuilderApiToCliCommandsMapper() {
 	}
 	
 	 static Collection<CliCommandData> generateCommandsAndSubcommands(Class<?>[] relevantBuilderRootApi, Map<Class<?>, Collection<CliCommandData>> optionsMappedForClass) {
@@ -34,6 +34,7 @@ final class BuilderToCliCommandsMapper {
 			if (m.isAnnotationPresent(CliCommand.class)) {
 				CliCommandData cliCommand = new CliCommandData(
 						determineCliCommandName(apiNode, m),
+						m.getAnnotation(CliCommand.class).description(),
 						getArgumentsForCliParam(m));
 				cliCommands.add(cliCommand);
 				

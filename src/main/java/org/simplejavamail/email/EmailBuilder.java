@@ -180,7 +180,7 @@ public class EmailBuilder {
 		/**
 		 * Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.
 		 */
-		@CliCommand
+		@CliCommand(description = "Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.")
 		EmailBuilderInstance ignoringDefaults() {
 			applyDefaults = false;
 			return this;
@@ -195,8 +195,8 @@ public class EmailBuilder {
 		 * @return A new {@link EmailBuilderInstance} to further populate the email with.
 		 */
 		@CliCommand(description = "Most common use case for creating a new email. Starts with an empty email, populated with defaults when set " +
-				"through config properties (if not disabled using --ignoringDefaults\n\nNote: Any option used after this will override the default " +
-				"value)")
+				"through config properties (if not disabled using --ignoringDefaults)\n\nNote: Any option used after this will override the default " +
+				"value.")
 		public EmailPopulatingBuilder startingBlank() {
 			return new EmailPopulatingBuilder(applyDefaults);
 		}

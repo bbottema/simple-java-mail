@@ -159,9 +159,9 @@ public class MailerBuilder {
 		}
 		
 		/**
-		 * Sets the optional transport strategy of this mailer. Will default to {@link TransportStrategy#SMTP} is left empty.
+		 * Sets the optional transport strategy of this mailer. Will default to {@link TransportStrategy#SMTP} if left empty.
 		 */
-		@CliCommand
+		@CliCommand(description = "Sets the optional transport strategy of this mailer. Will default to \"SMTP\" if left empty.")
 		public MailerRegularBuilder withTransportStrategy(@Nonnull @CliParam(name = "transportStrategy", helpLabel = "STRATEGY") final TransportStrategy transportStrategy) {
 			this.transportStrategy = transportStrategy;
 			return this;
