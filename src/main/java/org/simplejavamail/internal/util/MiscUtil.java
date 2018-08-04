@@ -140,7 +140,8 @@ public final class MiscUtil {
 	public static <T> T defaultTo(@Nullable final T value, @Nullable final T defaultValue) {
 		return value != null ? value : defaultValue;
 	}
-	
+
+	@SuppressWarnings("unchecked")
 	public static <T> T loadLibraryClass(@Nonnull String libraryClassWhichShouldBeAvailable,
 										 @Nonnull String apiClassToLoad,
 										 @Nonnull String libraryNotFoundMessage,
@@ -150,7 +151,6 @@ public final class MiscUtil {
 		}
 		
 		try {
-			//noinspection unchecked
 			return (T) Class.forName(apiClassToLoad).newInstance();
 		} catch (Exception | NoClassDefFoundError e) {
 			throw new LibraryLoaderException(otherExceptions, e);

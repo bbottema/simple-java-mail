@@ -157,8 +157,8 @@ public final class ConfigLoader {
 		return !valueNullOrEmpty(RESOLVED_PROPERTIES.get(property));
 	}
 
+	@SuppressWarnings("unchecked")
 	public static synchronized <T> T getProperty(final Property property) {
-		//noinspection unchecked
 		return (T) RESOLVED_PROPERTIES.get(property);
 	}
 

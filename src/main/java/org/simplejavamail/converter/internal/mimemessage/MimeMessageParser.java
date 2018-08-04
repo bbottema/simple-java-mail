@@ -227,10 +227,9 @@ public final class MimeMessageParser {
 		}
 	}
 	
-	@SuppressWarnings("WeakerAccess")
+	@SuppressWarnings({"WeakerAccess", "unchecked"})
 	public static <T> T parseContent(@Nonnull final MimePart currentPart) {
 		try {
-			//noinspection unchecked
 			return (T) currentPart.getContent();
 		} catch (IOException | MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CONTENT, e);

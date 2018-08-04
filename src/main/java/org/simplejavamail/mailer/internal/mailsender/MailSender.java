@@ -242,6 +242,7 @@ public class MailSender {
 			this.email = email;
 		}
 		
+		@SuppressWarnings("deprecation")
 		@Override
 		public void run() {
 			LOGGER.trace("sending email...");
@@ -255,14 +256,16 @@ public class MailSender {
 				
 				logSession(session);
 				message.saveChanges(); // some headers and id's will be set for this specific message
-				//noinspection deprecation
 				email.internalSetId(message.getMessageID());
 				
 				try {
 					synchronized (this) {
-						//noinspection ConstantConditions
-						if (needsAuthenticatedProxy() && !proxyServer.isRunning()) {
-							LOGGER.trace("starting proxy bridge");
+						if (needsAuthenticatedProxy()) {
+							assert proxyServer != null; // actually superfluous, but otherwise IntelliJ won't shut up
+							if (!proxyServer.isRunning()) {
+								LOGGER.trace("starting proxy bridge");
+								proxyServer.start();
+							}
 							proxyServer.start();
 						}
 					}
