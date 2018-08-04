@@ -32,7 +32,7 @@ public class CliSupport {
 	}
 	
 	private static CommandLine configurePicoCli(Collection<CliCommandData> parameterMap) {
-		CommandSpec rootCommand = applyingCommandDefaults(CommandSpec.create(), true, "SimpleJavaMail", null)
+		CommandSpec rootCommand = applyingCommandDefaults(CommandSpec.create(), true, "SimpleJavaMail", (String) null)
 				.version("Simple Java Mail 6.0.0");
 		
 		rootCommand.usageMessage()
@@ -64,18 +64,19 @@ public class CliSupport {
 		rootCommand.addSubcommand(connectCmd.name(), connectCmd);
 		rootCommand.addSubcommand(validateCmd.name(), validateCmd);
 		
-		return new CommandLine(rootCommand);
+		return new CommandLine(rootCommand).setUsageHelpWidth(180);
 	}
 	
 	private static void configureCommands(CommandSpec rootCommand, Collection<CliCommandData> parameterMap) {
 		for (CliCommandData cliCommand : parameterMap) {
-			CommandSpec builderApiCmd = applyingCommandDefaults(CommandSpec.create(), false, cliCommand.getName(), cliCommand.getDescription());
+			CommandSpec builderApiCmd = applyingCommandDefaults(CommandSpec.create(), false, cliCommand.getName(), cliCommand.getDescription().toArray(new String[]{}));
 			
 			for (CliParamData cliParamData : cliCommand.getPossibleParams()) {
 				builderApiCmd.addOption(OptionSpec.builder(cliParamData.getName())
 						.paramLabel(cliParamData.getHelpLabel())
 						.type(cliParamData.getParamType())
 						.description(determineDescription(cliParamData))
+						.required(cliParamData.isRequired())
 						.build());
 			}
 			
@@ -83,17 +84,17 @@ public class CliSupport {
 		}
 	}
 	
-	private static CommandSpec applyingCommandDefaults(@Nonnull CommandSpec cmd, boolean isForRootCmd, @Nonnull String name, @Nullable String description) {
+	private static CommandSpec applyingCommandDefaults(@Nonnull CommandSpec cmd, boolean isForRootCmd, @Nonnull String name, @Nullable String... descriptions) {
 		cmd
 				.name(name)
 				.mixinStandardHelpOptions(true)
 				.usageMessage()
-				.description(description)
+				.description(descriptions)
 				.headerHeading("%n@|bold,underline Usage|@:")
 				.commandListHeading(format("%n@|bold,underline %s|@:%n", isForRootCmd ? "Commands" : "Directives"))
 				.synopsisHeading(" ")
 				.descriptionHeading("%n@|bold,underline Description|@:%n")
-				.optionListHeading("%n@|bold,underline Flags|@:%n")
+				.optionListHeading("%n@|bold,underline Flags/Parameters|@:%n")
 				.parameterListHeading("%n@|bold,underline Parameters|@:%n")
 				.footerHeading("%n")
 				.footer("@|faint,italic http://www.simplejavamail.org/#/cli|@");

@@ -8,5 +8,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface CliCommand {
-	String description();
+	String nameOverride() default ""; // to work around duplicate CLI commands for overloaded methods
+	String[] description();
 }

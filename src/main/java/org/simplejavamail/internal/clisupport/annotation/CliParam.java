@@ -11,5 +11,6 @@ public @interface CliParam {
 	String name();
 	String description() default "";
 	String helpLabel();
+	boolean required() default true;
 	String[] example() default {};
 }

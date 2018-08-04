@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface CliCommandDelegate {
-	Class delegateClass();
+	Class<?> delegateClass();
 	String delegateMethod();
 	Class<?>[] delegateParameters();
 }

@@ -195,7 +195,7 @@ public class EmailBuilder {
 		 * @return A new {@link EmailBuilderInstance} to further populate the email with.
 		 */
 		@CliCommand(description = "Most common use case for creating a new email. Starts with an empty email, populated with defaults when set " +
-				"through config properties (if not disabled using --ignoringDefaults)\n\nNote: Any option used after this will override the default " +
+				"through config properties (if not disabled using @|italic ignoringDefaults|@). @|bold Note|@: Any option used after this will override the default " +
 				"value.")
 		public EmailPopulatingBuilder startingBlank() {
 			return new EmailPopulatingBuilder(applyDefaults);
@@ -237,10 +237,11 @@ public class EmailBuilder {
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
 		 * template.
 		 */
-		@CliCommand(description = "Delegates to --replyingTo with replyToAll set to \"false\" and a default HTML quoting")
-		@CliCommandDelegate(delegateClass = EmailPopulatingBuilder.class, delegateMethod = "replyingTo",
+		@CliCommand(nameOverride = "replyingToSenderWithDefaultQuoteMarkup",
+				description = "Like --replyingTo, with with @|italic replyToAll|@ set to \"false\" and a default HTML quoting.")
+		@CliCommandDelegate(delegateClass = EmailBuilderInstance.class, delegateMethod = "replyingTo",
 				delegateParameters = { MimeMessage.class, boolean.class, String.class })
-		public EmailPopulatingBuilder replyingTo(@Nonnull @CliParam(name = "email", helpLabel = "<EML FILE>", description = "Path to .eml file") final MimeMessage email) {
+		public EmailPopulatingBuilder replyingTo(@Nonnull @CliParam(name = "email", helpLabel = "FILE", description = "Path to .eml file") final MimeMessage email) {
 			return replyingTo(email, false, DEFAULT_QUOTING_MARKUP);
 		}
 		
@@ -295,7 +296,17 @@ public class EmailBuilder {
 		 * @see <a href="https://javaee.github.io/javamail/FAQ#reply">Official JavaMail FAQ on replying</a>
 		 * @see javax.mail.internet.MimeMessage#reply(boolean)
 		 */
-		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage emailMessage, final boolean repyToAll, @Nonnull final String htmlTemplate) {
+		@CliCommand(description = {"Primes the email with all subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply.",
+				"@|bold Note 1|@: replaces subject with \"Re: <original subject>\" (but never nested).",
+				"@|bold Note 2|@: always sets both plain text and HTML text, so if you update the content body, be sure to update HTML as well. ",
+				"@|bold Note 3|@: sets body content: text is replaced with \"> text\" and HTML is replaced with the provided (or default) quoting markup (add your own content with @|italic .prependText()|@ and @|italic .prependTextHTML()|@)."})
+		public EmailPopulatingBuilder replyingTo(
+				@CliParam(name = "emailMessage", helpLabel = "FILE", description = "The message from which we harvest recipients, original content to quote (including embedded images), message ID to include.")
+				@Nonnull final MimeMessage emailMessage,
+				@CliParam(name = "replyToAll", helpLabel = "BOOL", description = "Indicates whether all original receivers should be included in this new reply. Also see MimeMessage.reply(boolean).")
+				final boolean repyToAll,
+				@CliParam(name = "htmlTemplate", helpLabel = "STRING", description = "A valid HTML that contains the string {@code \"%s\"}. Be advised that HTML is very limited in emails.")
+				@Nonnull final String htmlTemplate) {
 			final MimeMessage replyMessage;
 			try {
 				replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
