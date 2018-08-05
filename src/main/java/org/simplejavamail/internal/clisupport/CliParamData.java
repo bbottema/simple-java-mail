@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.clisupport;
 
+import java.util.Arrays;
+
 public class CliParamData {
 	private final Class<?> paramType;
 	private final String name;
@@ -15,6 +17,21 @@ public class CliParamData {
 		this.description = description;
 		this.required = required;
 		this.examples = examples;
+	}
+	
+	String formatDescription() {
+		if (getExamples().length == 0) {
+			return getDescription();
+		} else if (getExamples().length == 1) {
+			return getDescription() + "\nexample: " + getExamples()[0];
+		} else {
+			return getDescription() + "\nexamples: " + formatExamplesText(getExamples());
+		}
+	}
+	
+	private static String formatExamplesText(String[] examples) {
+		String examplesArray = Arrays.toString(examples);
+		return examplesArray.substring(1, examplesArray.length() - 1);
 	}
 	
 	public Class<?> getParamType() {

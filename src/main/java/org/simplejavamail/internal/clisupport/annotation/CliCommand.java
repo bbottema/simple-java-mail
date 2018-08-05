@@ -10,4 +10,5 @@ import java.lang.annotation.Target;
 public @interface CliCommand {
 	String nameOverride() default ""; // to work around duplicate CLI commands for overloaded methods
 	String[] description();
+	CliSupported.RootCommand[] applicableRootCommands() default {};
 }

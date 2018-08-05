@@ -30,6 +30,8 @@ import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
+import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.send;
+import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.validate;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -57,7 +59,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * NOTE: for some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
  */
-@CliSupported(paramPrefix = "email")
+@CliSupported(paramPrefix = "email", applicableRootCommands = {send, validate})
 @SuppressWarnings({"UnusedReturnValue", "WeakerAccess", "unused"})
 public class EmailPopulatingBuilder {
 	

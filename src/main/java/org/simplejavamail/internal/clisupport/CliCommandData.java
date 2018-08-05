@@ -1,39 +1,67 @@
 package org.simplejavamail.internal.clisupport;
 
-import java.util.ArrayList;
+import org.simplejavamail.internal.clisupport.annotation.CliSupported;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-class CliCommandData {
+class CliCommandData implements Comparable<CliCommandData> {
 	private final String name;
 	private final List<String> description;
 	private final List<CliParamData> possibleParams;
-	private Collection<CliCommandData> subCommands = new ArrayList<>();
+	private final Collection<CliSupported.RootCommand> applicableRootCommands;
+	private final Collection<CliCommandData> subCommands;
 	
-	CliCommandData(String name, List<String> description, List<CliParamData> possibleArguments) {
+	CliCommandData(String name, List<String> description, List<CliParamData> possibleArguments, Collection<CliSupported.RootCommand> applicableRootCommands, Collection<CliCommandData> subCommands) {
 		this.name = name;
-		this.description = description;
-		this.possibleParams = possibleArguments;
+		this.description = Collections.unmodifiableList(description);
+		this.possibleParams = Collections.unmodifiableList(possibleArguments);
+		this.applicableRootCommands = Collections.unmodifiableCollection(applicableRootCommands);
+		this.subCommands = Collections.unmodifiableCollection(subCommands);
 	}
 	
-	String getName() {
+	@Override
+	public String toString() {
 		return name;
 	}
 	
-	List<CliParamData> getPossibleParams() {
+	boolean applicableToRootCommand(CliSupported.RootCommand name) {
+		return this.applicableRootCommands.contains(CliSupported.RootCommand.all) ||
+				this.applicableRootCommands.contains(name);
+	}
+	
+	@Override
+	public int compareTo(CliCommandData o) {
+		int prefixOrder = getNamePrefix().compareTo(o.getNamePrefix());
+		return prefixOrder != 0 ? prefixOrder : getNameAfterPrefix().compareTo(o.getNameAfterPrefix());
+	}
+	
+	private String getNamePrefix() {
+		return getName().substring(0, getName().indexOf(":"));
+	}
+	
+	private String getNameAfterPrefix() {
+		return getName().substring(getName().indexOf(":"));
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	public List<String> getDescription() {
+		return description;
+	}
+	
+	public List<CliParamData> getPossibleParams() {
 		return possibleParams;
 	}
 	
-	Collection<CliCommandData> getSubCommands() {
-		return Collections.unmodifiableCollection(subCommands);
+	public Collection<CliSupported.RootCommand> getApplicableRootCommands() {
+		return applicableRootCommands;
 	}
 	
-	void setSubCommands(Collection<CliCommandData> subCommands) {
-		this.subCommands = subCommands;
-	}
-	
-	List<String> getDescription() {
-		return description;
+	public Collection<CliCommandData> getSubCommands() {
+		return subCommands;
 	}
 }

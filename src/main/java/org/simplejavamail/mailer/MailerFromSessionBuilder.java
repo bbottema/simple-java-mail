@@ -6,6 +6,10 @@ import javax.annotation.Nonnull;
 import javax.mail.Message;
 import javax.mail.Session;
 
+import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.connect;
+import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.send;
+import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.validate;
+
 /**
  * Builder that supports a fixed {@link Session} instance. Allows configuring all generic Mailer settings, but not SMTP and transport strategy
  * details.
@@ -15,7 +19,7 @@ import javax.mail.Session;
  *
  * @see org.simplejavamail.mailer.config.TransportStrategy
  */
-@CliSupported(paramPrefix = "mailer")
+@CliSupported(paramPrefix = "mailer", applicableRootCommands = {send, connect, validate})
 public class MailerFromSessionBuilder extends MailerGenericBuilder<MailerFromSessionBuilder> {
 	
 	/**

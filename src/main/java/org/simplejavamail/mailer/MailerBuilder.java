@@ -9,6 +9,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Session;
 
+import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.connect;
+import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.send;
+import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.validate;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_HOST;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PORT;
@@ -125,7 +128,7 @@ public class MailerBuilder {
 	 * @see TransportStrategy
 	 */
 	@SuppressWarnings("WeakerAccess")
-	@CliSupported(paramPrefix = "mailer")
+	@CliSupported(paramPrefix = "mailer", applicableRootCommands = {send, connect, validate})
 	public static class MailerRegularBuilder extends MailerGenericBuilder<MailerRegularBuilder> {
 		
 		private String host;
@@ -161,7 +164,7 @@ public class MailerBuilder {
 		/**
 		 * Sets the optional transport strategy of this mailer. Will default to {@link TransportStrategy#SMTP} if left empty.
 		 */
-		@CliCommand(description = "Sets the optional transport strategy of this mailer. Will default to \"SMTP\" if left empty.")
+		@CliCommand(description = "Sets the optional transport strategy of this mailer. Will default to SMTP if left empty.")
 		public MailerRegularBuilder withTransportStrategy(@Nonnull @CliParam(name = "transportStrategy", helpLabel = "STRATEGY") final TransportStrategy transportStrategy) {
 			this.transportStrategy = transportStrategy;
 			return this;

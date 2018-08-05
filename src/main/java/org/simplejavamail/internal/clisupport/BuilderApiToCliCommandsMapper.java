@@ -9,20 +9,21 @@ import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 import static java.lang.String.format;
+import static java.util.Arrays.asList;
 
 final class BuilderApiToCliCommandsMapper {
 	
 	private BuilderApiToCliCommandsMapper() {
 	}
 	
-	 static Collection<CliCommandData> generateCommandsAndSubcommands(Class<?>[] relevantBuilderRootApi, Map<Class<?>, Collection<CliCommandData>> optionsMappedForClass) {
-		List<CliCommandData> cliCommands = new ArrayList<>();
+	 static TreeSet<CliCommandData> generateCommandsAndSubcommands(Class<?>[] relevantBuilderRootApi, Map<Class<?>, Collection<CliCommandData>> optionsMappedForClass) {
+		TreeSet<CliCommandData> cliCommands = new TreeSet<>();
 		for (Class<?> apiRoot : relevantBuilderRootApi) {
 			cliCommands.addAll(generateCommandsAndSubcommands(apiRoot, optionsMappedForClass));
 		}
@@ -34,28 +35,38 @@ final class BuilderApiToCliCommandsMapper {
 		
 		for (Method m : apiNode.getMethods()) {
 			if (m.isAnnotationPresent(CliCommand.class)) {
-				CliCommandData cliCommand = new CliCommandData(
-						determineCliCommandName(apiNode, m),
-						determineCliCommandDescriptions(m),
-						getArgumentsForCliParam(m));
-				cliCommands.add(cliCommand);
 				
+				Collection<CliCommandData> subCommands = new ArrayList<>();
 				if (m.getReturnType().isAnnotationPresent(CliSupported.class)) {
 					if (!commandList.containsKey(m.getReturnType())) {
 						commandList.put(m.getReturnType(), new ArrayList<CliCommandData>());
 						commandList.get(m.getReturnType()).addAll(generateCommandsAndSubcommands(m.getReturnType(), commandList));
 					}
-					cliCommand.setSubCommands(commandList.get(m.getReturnType()));
+					subCommands.addAll(commandList.get(m.getReturnType()));
 				}
+				
+				cliCommands.add(new CliCommandData(
+						determineCliCommandName(apiNode, m),
+						determineCliCommandDescriptions(m),
+						getArgumentsForCliParam(m), determineApplicableRootCommands(apiNode, m),
+						subCommands));
 			}
 		}
 		
 		return cliCommands;
 	}
 	
+	private static Collection<CliSupported.RootCommand> determineApplicableRootCommands(Class<?> apiNode, Method m) {
+		CliSupported cliSupportedApiNode = apiNode.getAnnotation(CliSupported.class);
+		CliCommand cliCommand = m.getAnnotation(CliCommand.class);
+		return cliCommand.applicableRootCommands().length > 0
+				? asList(cliCommand.applicableRootCommands())
+				: asList(cliSupportedApiNode.applicableRootCommands());
+	}
+	
 	@Nonnull
 	private static List<String> determineCliCommandDescriptions(Method m) {
-		List<String> declaredDescriptions = new ArrayList<>(Arrays.asList(m.getAnnotation(CliCommand.class).description()));
+		List<String> declaredDescriptions = new ArrayList<>(asList(m.getAnnotation(CliCommand.class).description()));
 		
 		if (m.isAnnotationPresent(CliCommandDelegate.class)) {
 			declaredDescriptions.add("@|underline INCLUDED DOCUMENTATION|@:");

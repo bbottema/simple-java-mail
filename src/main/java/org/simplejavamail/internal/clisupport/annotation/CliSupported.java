@@ -8,5 +8,11 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
 public @interface CliSupported {
+	
+	enum RootCommand {
+		send, connect, validate, convert, all
+	}
+	
 	String paramPrefix();
+	RootCommand[] applicableRootCommands();
 }
