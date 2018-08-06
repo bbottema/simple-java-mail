@@ -136,7 +136,7 @@ public class CliSupport {
 	}
 
 	private static String[] determineDescription(CliCommandData cliCommand, boolean fullDescription) {
-		List<String> descriptions = new ArrayList<>(cliCommand.getDescription());
+		final List<String> descriptions = new ArrayList<>(cliCommand.getDescription());
 		
 		if (!cliCommand.getPossibleParams().isEmpty()) {
 			descriptions.add("%n@|bold,underline Parameters|@:");
@@ -145,6 +145,7 @@ public class CliSupport {
 			}
 		}
 		
+		// hide multi-line descriptions when usage is not focussed on the current option (ie. --current-option--help)
 		if (!fullDescription && descriptions.size() > 1) {
 			return new String[] {descriptions.get(0) + " (...more)"};
 		} else {
