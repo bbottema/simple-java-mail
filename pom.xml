@@ -106,12 +106,12 @@
             <version>1.1.16</version>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>info.picocli</groupId>
-            <artifactId>picocli</artifactId>
-            <version>3.4.0</version>
-            <optional>true</optional>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>info.picocli</groupId>-->
+            <!--<artifactId>picocli</artifactId>-->
+            <!--<version>3.4.0</version>-->
+            <!--<optional>true</optional>-->
+        <!--</dependency>-->
 
         <!-- utility -->
         <dependency><!-- gives us @NonNull annotations-->
@@ -231,6 +231,8 @@
                 <configuration>
                     <mainClass>org.simplejavamail.cli.SimpleJavaMail</mainClass>
                     <arguments>
+                        <argument>send</argument>
+                        <!--<argument>email:replyingToSenderWithDefaultQuoteMarkup</argument>-->
                         <argument>email:startingBlank</argument>
                         <argument>--help</argument>
                     </arguments>
