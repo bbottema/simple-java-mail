@@ -233,8 +233,8 @@
                     <arguments>
                         <argument>send</argument>
                         <!--<argument>email:replyingToSenderWithDefaultQuoteMarkup</argument>-->
-                        <argument>email:startingBlank</argument>
-                        <argument>--help</argument>
+                        <!--<argument>email:startingBlank</argument>-->
+                        <argument>email:startingBlank--help</argument>
                     </arguments>
                 </configuration>
             </plugin>

@@ -117,6 +117,6 @@ final class BuilderApiToCliCommandsMapper {
 	
 	@Nonnull
 	private static String determineCliParamName(CliParam cliParamAnnotation, Class<?> cliParamType) {
-		return "--" + (!cliParamAnnotation.name().isEmpty() ? cliParamAnnotation.name() : cliParamType.getSimpleName());
+		return !cliParamAnnotation.name().isEmpty() ? cliParamAnnotation.name() : cliParamType.getSimpleName();
 	}
 }

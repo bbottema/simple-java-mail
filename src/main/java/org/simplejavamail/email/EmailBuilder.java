@@ -307,7 +307,7 @@ public class EmailBuilder {
 				@Nonnull final MimeMessage emailMessage,
 				@CliParam(name = "replyToAll", helpLabel = "BOOL", description = "Indicates whether all original receivers should be included in this new reply. Also see MimeMessage.reply(boolean).")
 				final boolean repyToAll,
-				@CliParam(name = "htmlTemplate", helpLabel = "STRING", description = "A valid HTML that contains the string {@code \"%s\"}. Be advised that HTML is very limited in emails.")
+				@CliParam(name = "htmlTemplate", helpLabel = "STRING", description = "A valid HTML that contains the string \"%%s\". Be advised that HTML is very limited in emails.")
 				@Nonnull final String htmlTemplate) {
 			final MimeMessage replyMessage;
 			try {
