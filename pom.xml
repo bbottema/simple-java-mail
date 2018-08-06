@@ -232,9 +232,11 @@
                     <mainClass>org.simplejavamail.cli.SimpleJavaMail</mainClass>
                     <arguments>
                         <argument>send</argument>
-                        <!--<argument>email:replyingToSenderWithDefaultQuoteMarkup</argument>-->
-                        <!--<argument>email:startingBlank</argument>-->
-                        <argument>email:startingBlank--help</argument>
+                        <argument>--email:replyingToSenderWithDefaultQuoteMarkup--help</argument>
+                        <!--<argument>&#45;&#45;email:replyingTo&#45;&#45;help</argument>-->
+                        <!--<argument>&#45;&#45;email:startingBlank</argument>-->
+                        <!--<argument>&#45;&#45;email:startingBlank&#45;&#45;help</argument>-->
+                        <!--<argument>&#45;&#45;help</argument>-->
                     </arguments>
                 </configuration>
             </plugin>

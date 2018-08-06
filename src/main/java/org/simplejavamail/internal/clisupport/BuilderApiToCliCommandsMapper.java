@@ -69,8 +69,10 @@ final class BuilderApiToCliCommandsMapper {
 		List<String> declaredDescriptions = new ArrayList<>(asList(m.getAnnotation(CliCommand.class).description()));
 		
 		if (m.isAnnotationPresent(CliCommandDelegate.class)) {
-			declaredDescriptions.add("@|underline INCLUDED DOCUMENTATION|@:");
-			declaredDescriptions.addAll(determineCliCommandDescriptions(findDeferredMethod(m.getAnnotation(CliCommandDelegate.class))));
+			CliCommandDelegate delegate = m.getAnnotation(CliCommandDelegate.class);
+			CliSupported apiNode = delegate.delegateClass().getAnnotation(CliSupported.class);
+			declaredDescriptions.add(format("\n@|underline INCLUDED FROM |@@|underline,cyan --%s:%s|@:", apiNode.paramPrefix(), delegate.delegateMethod()));
+			declaredDescriptions.addAll(determineCliCommandDescriptions(findDeferredMethod(delegate)));
 		}
 		
 		return declaredDescriptions;
@@ -89,7 +91,7 @@ final class BuilderApiToCliCommandsMapper {
 		String cliCommandPrefix = apiNode.getAnnotation(CliSupported.class).paramPrefix();
 		String cliCommandNameOverride = m.getAnnotation(CliCommand.class).nameOverride();
 		String effectiveCommandName = cliCommandNameOverride.isEmpty() ? m.getName() : cliCommandNameOverride;
-		return (!cliCommandPrefix.isEmpty() ? cliCommandPrefix + ":" : "") + effectiveCommandName;
+		return "--" + (!cliCommandPrefix.isEmpty() ? cliCommandPrefix + ":" : "") + effectiveCommandName;
 	}
 	
 	@Nonnull
