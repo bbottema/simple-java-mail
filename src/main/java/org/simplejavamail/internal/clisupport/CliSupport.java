@@ -28,18 +28,18 @@ public class CliSupport {
 
 	private static final int TEXT_WIDTH = 150;
 	private static final String OPTION_HELP_POSTFIX = "--help";
+	private static final String EMPTY_PARAM_LABEL = "<empty>";
 
 	public static void runCLI(String[] args) {
 		TreeSet<CliCommandData> parameterMap = generateCommandsAndSubcommands(RELEVANT_BUILDER_ROOT_API, new HashMap<Class<?>, Collection<CliCommandData>>());
-		CommandLine.ParseResult pr = configurePicoCli(parameterMap)
-				.parseArgs(args);
+		CommandLine.ParseResult pr = configurePicoCli(parameterMap).parseArgs(args);
 
 		if (pr.isUsageHelpRequested() || (pr.hasSubcommand() && pr.subcommand().isUsageHelpRequested())) {
 			CommandLine.printHelpIfRequested(pr.asCommandLineList(), out, err, Ansi.ON);
 		} else {
 			OptionSpec matchedOptionForHelp = checkHelpWantedForOptions(pr);
 			if (matchedOptionForHelp != null) {
-				CommandSpec command = convertOptionToCommandUsage(matchedOptionForHelp);
+				CommandSpec command = convertOptionToCommandForUsageDisplay(matchedOptionForHelp);
 				CommandLine.usage(new CommandLine(command).setUsageHelpWidth(TEXT_WIDTH), out, Ansi.ON);
 			}
 		}
@@ -55,7 +55,7 @@ public class CliSupport {
 		return pr.hasSubcommand() ? checkHelpWantedForOptions(pr.subcommand()) : null;
 	}
 	
-	private static CommandSpec convertOptionToCommandUsage(OptionSpec matchedOption) {
+	private static CommandSpec convertOptionToCommandForUsageDisplay(OptionSpec matchedOption) {
 		CommandSpec command = CommandSpec.create();
 		command.usageMessage()
 				.customSynopsis(determineCustomSynopsis(matchedOption))
@@ -72,7 +72,7 @@ public class CliSupport {
 		final String NT = "@|cyan %s|@";
 		final String NTP = "@|cyan %s|@ @|yellow %s|@";
 		
-		return matchedOption.paramLabel().equals("PARAM")
+		return matchedOption.paramLabel().equals(EMPTY_PARAM_LABEL)
 				? format(NT, matchedOption.longestName())
 				: format(NTP, matchedOption.longestName(), matchedOption.paramLabel());
 	}
@@ -131,7 +131,6 @@ public class CliSupport {
 						.help(true)
 						.paramLabel(determineParamLabel(cliCommand.getPossibleParams()))
 						.description(determineDescription(cliCommand, true))
-						//.required(/*FIXME cliCommand.isRequired()*/)
 						.build());
 			}
 		}
@@ -160,7 +159,8 @@ public class CliSupport {
 		for (CliParamData possibleParam : possibleParams) {
 			paramLabel.append(possibleParam.getName()).append("=").append(possibleParam.getHelpLabel()).append(" ");
 		}
-		return paramLabel.toString().trim();
+		String declaredParamLabel = paramLabel.toString().trim();
+		return declaredParamLabel.isEmpty() ? EMPTY_PARAM_LABEL : declaredParamLabel;
 	}
 
 	private static CommandSpec createDefaultCommandSpec(@Nonnull String name, @Nullable String... descriptions) {
