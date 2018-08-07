@@ -33,10 +33,8 @@ public class CliSupport {
 	public static void runCLI(String[] args) {
 		TreeSet<CliCommandData> parameterMap = generateCommandsAndSubcommands(RELEVANT_BUILDER_ROOT_API, new HashMap<Class<?>, Collection<CliCommandData>>());
 		CommandLine.ParseResult pr = configurePicoCli(parameterMap).parseArgs(args);
-
-		if (pr.isUsageHelpRequested() || (pr.hasSubcommand() && pr.subcommand().isUsageHelpRequested())) {
-			CommandLine.printHelpIfRequested(pr.asCommandLineList(), out, err, Ansi.ON);
-		} else {
+		
+		if (!CommandLine.printHelpIfRequested(pr.asCommandLineList(), out, err, Ansi.ON)) {
 			OptionSpec matchedOptionForHelp = checkHelpWantedForOptions(pr);
 			if (matchedOptionForHelp != null) {
 				CommandSpec command = convertOptionToCommandForUsageDisplay(matchedOptionForHelp);
@@ -124,7 +122,7 @@ public class CliSupport {
 						//.required(/*FIXME cliCommand.isRequired()*/)
 						.build());
 				rootCommand.addOption(OptionSpec.builder(cliCommand.getName() + OPTION_HELP_POSTFIX)
-						.type(List.class)
+						.type(List.class) // cannot use .usageHelp(true), because this cannot be boolean, because description
 						.auxiliaryTypes(String.class)
 						.arity("0")
 						.hidden(true)
@@ -136,24 +134,28 @@ public class CliSupport {
 		}
 	}
 
+	// hide multi-line descriptions when usage is not focussed on the current option (ie. --current-option--help)
 	private static String[] determineDescription(CliCommandData cliCommand, boolean fullDescription) {
-		final List<String> descriptions = new ArrayList<>(cliCommand.getDescription());
-		
-		if (!cliCommand.getPossibleParams().isEmpty()) {
-			descriptions.add("%n@|bold,underline Parameters|@:");
-			for (CliParamData possibleParam : cliCommand.getPossibleParams()) {
-				descriptions.add(format("@|yellow %s|@: %s", possibleParam.getName(), possibleParam.formatDescription()));
-			}
-		}
-		
-		// hide multi-line descriptions when usage is not focussed on the current option (ie. --current-option--help)
+		final List<String> descriptions = formatCommandDescriptions(cliCommand);
 		if (!fullDescription && descriptions.size() > 1) {
 			return new String[] {descriptions.get(0) + " (...more)"};
 		} else {
 			return descriptions.toArray(new String[]{});
 		}
 	}
-
+	
+	@Nonnull
+	private static List<String> formatCommandDescriptions(CliCommandData cliCommand) {
+		final List<String> descriptions = new ArrayList<>(cliCommand.getDescription());
+		if (!cliCommand.getPossibleParams().isEmpty()) {
+			descriptions.add("%n@|bold,underline Parameters|@:");
+			for (CliParamData possibleParam : cliCommand.getPossibleParams()) {
+				descriptions.add(format("@|yellow %s|@: %s", possibleParam.getName(), possibleParam.formatDescription()));
+			}
+		}
+		return descriptions;
+	}
+	
 	private static String determineParamLabel(List<CliParamData> possibleParams) {
 		final StringBuilder paramLabel = new StringBuilder();
 		for (CliParamData possibleParam : possibleParams) {
