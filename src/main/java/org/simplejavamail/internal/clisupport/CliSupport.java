@@ -25,8 +25,10 @@ import static picocli.CommandLine.Model.OptionSpec;
 public class CliSupport {
 	
 	private static final Class<?>[] RELEVANT_BUILDER_ROOT_API = {EmailBuilder.EmailBuilderInstance.class, MailerBuilder.MailerRegularBuilder.class, MailerFromSessionBuilder.class};
+
 	private static final int TEXT_WIDTH = 150;
-	
+	private static final String OPTION_HELP_POSTFIX = "--help";
+
 	public static void runCLI(String[] args) {
 		TreeSet<CliCommandData> parameterMap = generateCommandsAndSubcommands(RELEVANT_BUILDER_ROOT_API, new HashMap<Class<?>, Collection<CliCommandData>>());
 		CommandLine.ParseResult pr = configurePicoCli(parameterMap)
@@ -46,7 +48,7 @@ public class CliSupport {
 	@Nullable
 	private static OptionSpec checkHelpWantedForOptions(CommandLine.ParseResult pr) {
 		for (OptionSpec matchedOption : pr.matchedOptions()) {
-			if (matchedOption.longestName().endsWith("--help")) {
+			if (matchedOption.longestName().endsWith(OPTION_HELP_POSTFIX)) {
 				return matchedOption;
 			}
 		}
@@ -121,7 +123,7 @@ public class CliSupport {
 						.description(determineDescription(cliCommand, false))
 						//.required(/*FIXME cliCommand.isRequired()*/)
 						.build());
-				rootCommand.addOption(OptionSpec.builder(cliCommand.getName() + "--help")
+				rootCommand.addOption(OptionSpec.builder(cliCommand.getName() + OPTION_HELP_POSTFIX)
 						.type(List.class)
 						.auxiliaryTypes(String.class)
 						.arity("0")
