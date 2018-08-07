@@ -2,6 +2,8 @@ package org.simplejavamail.internal.clisupport;
 
 import org.junit.Test;
 import org.simplejavamail.internal.clisupport.annotation.CliSupported;
+import org.simplejavamail.internal.clisupport.model.CliCommandData;
+import org.simplejavamail.internal.clisupport.model.CliParamData;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;

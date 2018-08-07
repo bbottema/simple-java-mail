@@ -1,4 +1,4 @@
-package org.simplejavamail.internal.clisupport;
+package org.simplejavamail.internal.clisupport.model;
 
 import java.util.Arrays;
 
@@ -19,7 +19,7 @@ public class CliParamData {
 		this.examples = examples;
 	}
 	
-	String formatDescription() {
+	public String formatDescription() {
 		if (getExamples().length == 0) {
 			return getDescription();
 		} else if (getExamples().length == 1) {

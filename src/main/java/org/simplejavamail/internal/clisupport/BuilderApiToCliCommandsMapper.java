@@ -4,6 +4,8 @@ import org.simplejavamail.internal.clisupport.annotation.CliCommand;
 import org.simplejavamail.internal.clisupport.annotation.CliCommandDelegate;
 import org.simplejavamail.internal.clisupport.annotation.CliParam;
 import org.simplejavamail.internal.clisupport.annotation.CliSupported;
+import org.simplejavamail.internal.clisupport.model.CliCommandData;
+import org.simplejavamail.internal.clisupport.model.CliParamData;
 
 import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;

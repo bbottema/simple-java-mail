@@ -1,4 +1,4 @@
-package org.simplejavamail.internal.clisupport;
+package org.simplejavamail.internal.clisupport.model;
 
 import org.simplejavamail.internal.clisupport.annotation.CliSupported;
 
@@ -6,14 +6,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-class CliCommandData implements Comparable<CliCommandData> {
+public class CliCommandData implements Comparable<CliCommandData> {
 	private final String name;
 	private final List<String> description;
 	private final List<CliParamData> possibleParams;
 	private final Collection<CliSupported.RootCommand> applicableRootCommands;
 	private final Collection<CliCommandData> subCommands;
 	
-	CliCommandData(String name, List<String> description, List<CliParamData> possibleArguments, Collection<CliSupported.RootCommand> applicableRootCommands, Collection<CliCommandData> subCommands) {
+	public CliCommandData(String name, List<String> description, List<CliParamData> possibleArguments, Collection<CliSupported.RootCommand> applicableRootCommands, Collection<CliCommandData> subCommands) {
 		this.name = name;
 		this.description = Collections.unmodifiableList(description);
 		this.possibleParams = Collections.unmodifiableList(possibleArguments);
@@ -26,7 +26,7 @@ class CliCommandData implements Comparable<CliCommandData> {
 		return name;
 	}
 	
-	boolean applicableToRootCommand(CliSupported.RootCommand name) {
+	public boolean applicableToRootCommand(CliSupported.RootCommand name) {
 		return this.applicableRootCommands.contains(CliSupported.RootCommand.all) ||
 				this.applicableRootCommands.contains(name);
 	}
