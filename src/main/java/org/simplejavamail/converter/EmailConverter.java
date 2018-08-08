@@ -18,6 +18,8 @@ import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -196,6 +198,30 @@ public final class EmailConverter {
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
 			throw new AssertionError(e.getMessage(), e);
+		}
+	}
+	
+	/**
+	 * Delegates to {@link #emlToMimeMessage(File, Session)}, using {@link #createDummySession()}.
+	 *
+	 * @see #emlToMimeMessage(File, Session)
+	 */
+	@Nonnull
+	public static MimeMessage emlToMimeMessage(@Nonnull final File emlFile) {
+		return emlToMimeMessage(emlFile, createDummySession());
+	}
+	
+	/**
+	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
+	 *
+	 * @see MimeMessage#MimeMessage(Session, InputStream)
+	 */
+	public static MimeMessage emlToMimeMessage(@Nonnull final File emlFile, @Nonnull final Session session) {
+		try {
+			InputStream source = new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile"));
+			return new MimeMessage(session, source);
+		} catch (final MessagingException | FileNotFoundException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML, e.getMessage()), e);
 		}
 	}
 
