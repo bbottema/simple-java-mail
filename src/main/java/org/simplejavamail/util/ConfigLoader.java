@@ -249,7 +249,7 @@ public final class ConfigLoader {
 		final Map<Property, Object> resolvedProps = new HashMap<>();
 		for (final Property prop : Property.values()) {
 			if (System.getProperty(prop.key) != null) {
-				System.out.println(prop.key + ": " + System.getProperty(prop.key));
+				LOGGER.debug(prop.key + ": " + System.getProperty(prop.key));
 			}
 			final Object asSystemProperty = parsePropertyValue(System.getProperty(prop.key));
 			if (asSystemProperty != null) {
