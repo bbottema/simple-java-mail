@@ -21,7 +21,6 @@ public class CliSupport {
 	private static final TreeSet<CliOptionData> COMMANDS_AND_OPTIONS = generateCommandsAndSubcommands(RELEVANT_BUILDER_ROOT_API, new HashMap<Class<?>, Collection<CliOptionData>>());
 	private static final CommandLine COMMAND_LINE = CliCommandLineProducer.configurePicoCli(COMMANDS_AND_OPTIONS, TEXT_WIDTH);
 
-	
 	public static void runCLI(String[] args) {
 		ParseResult pr = COMMAND_LINE.parseArgs(args);
 		

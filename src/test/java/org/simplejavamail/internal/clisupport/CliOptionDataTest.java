@@ -36,7 +36,8 @@ public class CliOptionDataTest {
 	
 	@Nonnull
 	private CliOptionData createDummyCommand(List<CliOptionData> unsortedSet, String prefix, String name) {
-		CliOptionData instance = new CliOptionData(prefix + ":" + name, new ArrayList<String>(), new ArrayList<CliOptionValueData>(), new ArrayList<CliCommand>());
+		@SuppressWarnings("ConstantConditions")
+		CliOptionData instance = new CliOptionData(prefix + ":" + name, new ArrayList<String>(), new ArrayList<CliOptionValueData>(), new ArrayList<CliCommand>(), null);
 		unsortedSet.add(instance);
 		return instance;
 	}

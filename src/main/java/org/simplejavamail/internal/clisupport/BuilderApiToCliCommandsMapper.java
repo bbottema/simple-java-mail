@@ -42,7 +42,8 @@ final class BuilderApiToCliCommandsMapper {
 						determineCliCommandName(apiNode, m),
 						determineCliCommandDescriptions(m),
 						getArgumentsForCliOption(m),
-						determineApplicableRootCommands(apiNode, m)));
+						determineApplicableRootCommands(apiNode, m),
+						m));
 			}
 		}
 		

@@ -20,6 +20,7 @@ class CliCommandLineProducer {
     static final String OPTION_HELP_POSTFIX = "--help";
     static final String EMPTY_PARAM_LABEL = "<empty>";
     
+    @SuppressWarnings("SameParameterValue")
     static CommandLine configurePicoCli(TreeSet<CliOptionData> parameterMap, int textWidth) {
         CommandSpec rootCommandsHolder = createDefaultCommandSpec("SimpleJavaMail",
                 "Simple Java Mail CliCommand Line Interface.%n" +
@@ -61,7 +62,7 @@ class CliCommandLineProducer {
                 rootCommand.addOption(OptionSpec.builder(cliOptionData.getName())
                         .type(List.class)
                         .auxiliaryTypes(String.class)
-                        .arity(String.valueOf(cliOptionData.getPossibleOptionValues().isEmpty() ? "0" : "1"))
+                        .arity(String.valueOf(cliOptionData.getPossibleOptionValues().size()))
                         .paramLabel(determineParamLabel(cliOptionData.getPossibleOptionValues()))
                         .description(determineDescription(cliOptionData, false))
                         //.required(/*FIXME cliCommand.isRequired()*/)
@@ -104,7 +105,7 @@ class CliCommandLineProducer {
     private static String determineParamLabel(List<CliOptionValueData> possibleParams) {
         final StringBuilder paramLabel = new StringBuilder();
         for (CliOptionValueData possibleParam : possibleParams) {
-            paramLabel.append(possibleParam.getName()).append("=").append(possibleParam.getHelpLabel()).append(" ");
+            paramLabel.append(possibleParam.getName()).append("(=").append(possibleParam.getHelpLabel()).append(") ");
         }
         String declaredParamLabel = paramLabel.toString().trim();
         return declaredParamLabel.isEmpty() ? EMPTY_PARAM_LABEL : declaredParamLabel;
