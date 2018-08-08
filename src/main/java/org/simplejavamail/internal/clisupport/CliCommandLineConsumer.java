@@ -82,7 +82,7 @@ class CliCommandLineConsumer {
                 throw new CliExecutionException(format(CliExecutionException.DID_NOT_RECOGNIZE_EMAIL_FILETYPE, stringValue));
             }
         } else {
-            throw new AssertionError(format("unexepcted targettype %s for input value %s", targetType, stringValue));
+            throw new AssertionError(format("unexpected target type %s for input value %s", targetType, stringValue));
         }
     }
     
