@@ -43,6 +43,15 @@ abstract class MimeMessageProducer {
 					setHeader("Message-ID", email.getId());
 				}
 			}
+			
+			@Override
+			public String toString() {
+				try {
+					return "MimeMessage<id:" + super.getMessageID() + ", subject:" + super.getSubject() + ">";
+				} catch (MessagingException e) {
+					throw new AssertionError("should not reach here");
+				}
+			}
 		};
 		
 		// set basic email properties
