@@ -106,7 +106,7 @@ import static picocli.CommandLine.Model.ArgsReflection.abbreviate;
  * </p><h2>Example</h2>
  * <pre>import static picocli.CommandLine.*;
  *
- * &#064;Command(mixinStandardHelpOptions = true, version = "v3.0.0",
+ * &#064;CliCommand(mixinStandardHelpOptions = true, version = "v3.0.0",
  *         header = "Encrypt FILE(s), or standard input, to standard output or to the output file.")
  * public class Encrypt {
  *
@@ -161,7 +161,7 @@ public class CommandLine {
 
     /**
      * Constructs a new {@code CommandLine} interpreter with the specified object (which may be an annotated user object or a {@link CommandSpec CommandSpec}) and a default subcommand factory.
-     * <p>The specified object may be a {@link CommandSpec CommandSpec} object, or it may be a {@code @Command}-annotated
+     * <p>The specified object may be a {@link CommandSpec CommandSpec} object, or it may be a {@code @CliCommand}-annotated
      * user object with {@code @Option} and {@code @Parameters}-annotated fields, in which case picocli automatically
      * constructs a {@code CommandSpec} from this user object.
      * </p><p>
@@ -176,7 +176,7 @@ public class CommandLine {
     }
     /**
      * Constructs a new {@code CommandLine} interpreter with the specified object (which may be an annotated user object or a {@link CommandSpec CommandSpec}) and object factory.
-     * <p>The specified object may be a {@link CommandSpec CommandSpec} object, or it may be a {@code @Command}-annotated
+     * <p>The specified object may be a {@link CommandSpec CommandSpec} object, or it may be a {@code @CliCommand}-annotated
      * user object with {@code @Option} and {@code @Parameters}-annotated fields, in which case picocli automatically
      * constructs a {@code CommandSpec} from this user object.
      *  </p><p> If the specified command object is an interface {@code Class} with {@code @Option} and {@code @Parameters}-annotated methods,
@@ -955,7 +955,7 @@ public class CommandLine {
         }
         throw new ExecutionException(parsed, "Parsed command (" + command + ") is not Runnable or Callable");
     }
-    /** Command line parse result handler that returns a value. This handler prints help if requested, and otherwise calls
+    /** CliCommand line parse result handler that returns a value. This handler prints help if requested, and otherwise calls
      * {@link #handle(CommandLine.ParseResult)} with the parse result. Facilitates implementation of the {@link IParseResultHandler2} interface.
      * <p>Note that {@code AbstractParseResultHandler} is a generic type. This, along with the abstract {@code self} method,
      * allows method chaining to work properly in subclasses, without the need for casts. An example subclass can look like this:</p>
@@ -998,7 +998,7 @@ public class CommandLine {
         protected abstract R handle(ParseResult parseResult) throws ExecutionException;
     }
     /**
-     * Command line parse result handler that prints help if requested, and otherwise executes the top-level
+     * CliCommand line parse result handler that prints help if requested, and otherwise executes the top-level
      * {@code Runnable} or {@code Callable} command.
      * For use in the {@link #parseWithHandlers(IParseResultHandler2, IExceptionHandler2, String...) parseWithHandler} methods.
      * @since 2.0 */
@@ -1038,7 +1038,7 @@ public class CommandLine {
         @Override protected RunFirst self() { return this; }
     }
     /**
-     * Command line parse result handler that prints help if requested, and otherwise executes the most specific
+     * CliCommand line parse result handler that prints help if requested, and otherwise executes the most specific
      * {@code Runnable} or {@code Callable} subcommand.
      * For use in the {@link #parseWithHandlers(IParseResultHandler2,  IExceptionHandler2, String...) parseWithHandler} methods.
      * <p>
@@ -1112,7 +1112,7 @@ public class CommandLine {
         @Override protected RunLast self() { return this; }
     }
     /**
-     * Command line parse result handler that prints help if requested, and otherwise executes the top-level command and
+     * CliCommand line parse result handler that prints help if requested, and otherwise executes the top-level command and
      * all subcommands as {@code Runnable} or {@code Callable}.
      * For use in the {@link #parseWithHandlers(IParseResultHandler2,  IExceptionHandler2, String...) parseWithHandler} methods.
      * @since 2.0 */
@@ -2073,7 +2073,7 @@ public class CommandLine {
          * If this option is specified on the command line, picocli will not validate the remaining arguments (so no "missing required
          * option" errors) and the {@link CommandLine#isUsageHelpRequested()} method will return {@code true}.
          * </p><p>
-         * Alternatively, consider annotating your command with {@linkplain Command#mixinStandardHelpOptions() @Command(mixinStandardHelpOptions = true)}.
+         * Alternatively, consider annotating your command with {@linkplain Command#mixinStandardHelpOptions() @CliCommand(mixinStandardHelpOptions = true)}.
          * </p>
          * @return whether this option allows the user to request usage help
          * @since 0.9.8
@@ -2097,7 +2097,7 @@ public class CommandLine {
          * If this option is specified on the command line, picocli will not validate the remaining arguments (so no "missing required
          * option" errors) and the {@link CommandLine#isUsageHelpRequested()} method will return {@code true}.
          * </p><p>
-         * Alternatively, consider annotating your command with {@linkplain Command#mixinStandardHelpOptions() @Command(mixinStandardHelpOptions = true)}.
+         * Alternatively, consider annotating your command with {@linkplain Command#mixinStandardHelpOptions() @CliCommand(mixinStandardHelpOptions = true)}.
          * </p>
          * @return whether this option allows the user to request version information
          * @since 0.9.8
@@ -2430,7 +2430,7 @@ public class CommandLine {
      * This annotation offers a convenient way to inject a reference to the parent command into a subcommand, so the
      * subcommand can access its parent options. For example:
      * </p><pre>
-     * &#064;Command(name = "top", subcommands = Sub.class)
+     * &#064;CliCommand(name = "top", subcommands = Sub.class)
      * class Top implements Runnable {
      *
      *     &#064;Option(names = {"-d", "--directory"}, description = "this option applies to all subcommands")
@@ -2439,7 +2439,7 @@ public class CommandLine {
      *     public void run() { System.out.println("Hello from top"); }
      * }
      *
-     * &#064;Command(name = "sub")
+     * &#064;CliCommand(name = "sub")
      * class Sub implements Runnable {
      *
      *     &#064;ParentCommand
@@ -2524,10 +2524,10 @@ public class CommandLine {
     @Target({ElementType.FIELD, ElementType.METHOD})
     public @interface Spec { }
     /**
-     * <p>Annotate your class with {@code @Command} when you want more control over the format of the generated help
+     * <p>Annotate your class with {@code @CliCommand} when you want more control over the format of the generated help
      * message.
      * </p><pre>
-     * &#064;Command(name      = "Encrypt", mixinStandardHelpOptions = true,
+     * &#064;CliCommand(name      = "Encrypt", mixinStandardHelpOptions = true,
      *        description = "Encrypt FILE(s), or standard input, to standard output or to the output file.",
      *        version     = "Encrypt version 1.0",
      *        footer      = "Copyright (c) 2017")
@@ -2570,7 +2570,7 @@ public class CommandLine {
         /** A list of classes to instantiate and register as subcommands. When registering subcommands declaratively
          * like this, you don't need to call the {@link CommandLine#addSubcommand(String, Object)} method. For example, this:
          * <pre>
-         * &#064;Command(subcommands = {
+         * &#064;CliCommand(subcommands = {
          *         GitStatus.class,
          *         GitCommit.class,
          *         GitBranch.class })
@@ -2580,8 +2580,8 @@ public class CommandLine {
          * </pre> is equivalent to this:
          * <pre>
          * // alternative: programmatically add subcommands.
-         * // NOTE: in this case there should be no `subcommands` attribute on the @Command annotation.
-         * &#064;Command public class Git { ... }
+         * // NOTE: in this case there should be no `subcommands` attribute on the @CliCommand annotation.
+         * &#064;CliCommand public class Git { ... }
          *
          * CommandLine commandLine = new CommandLine(new Git())
          *         .addSubcommand("status",   new GitStatus())
@@ -3012,7 +3012,7 @@ public class CommandLine {
         for (PositionalParamSpec positional : positionalParametersFields) {
             Range index = positional.index();
             if (index.min > min) {
-                throw new ParameterIndexGapException("Command definition should have a positional parameter with index=" + min +
+                throw new ParameterIndexGapException("CliCommand definition should have a positional parameter with index=" + min +
                         ". Nearest positional parameter '" + positional.paramLabel() + "' has index=" + index.min);
             }
             min = Math.max(min, index.max);
@@ -3072,7 +3072,7 @@ public class CommandLine {
          * The object model has a corresponding hierarchy of {@code CommandSpec} objects, each with a set of {@link OptionSpec},
          * {@link PositionalParamSpec} and {@linkplain CommandLine subcommands} associated with it.
          * This object model is used by the picocli command line interpreter and help message generator.
-         * </p><p>Picocli can construct a {@code CommandSpec} automatically from classes with {@link Command @Command}, {@link Option @Option} and
+         * </p><p>Picocli can construct a {@code CommandSpec} automatically from classes with {@link Command @CliCommand}, {@link Option @Option} and
          * {@link Parameters @Parameters} annotations. Alternatively a {@code CommandSpec} can be constructed programmatically.
          * </p>
          * @since 3.0 */
@@ -3164,8 +3164,8 @@ public class CommandLine {
                         if (!isBoolean(option.type())) { wrongVersionHelpAttr.add(option.longestName()); }
                     }
                 }
-                String wrongType = "Non-boolean options like %s should not be marked as '%s=true'. Usually a command has one %s boolean flag that triggers display of the %s. Alternatively, consider using @Command(mixinStandardHelpOptions = true) on your command instead.";
-                String multiple = "Multiple options %s are marked as '%s=true'. Usually a command has only one %s option that triggers display of the %s. Alternatively, consider using @Command(mixinStandardHelpOptions = true) on your command instead.%n";
+                String wrongType = "Non-boolean options like %s should not be marked as '%s=true'. Usually a command has one %s boolean flag that triggers display of the %s. Alternatively, consider using @CliCommand(mixinStandardHelpOptions = true) on your command instead.";
+                String multiple = "Multiple options %s are marked as '%s=true'. Usually a command has only one %s option that triggers display of the %s. Alternatively, consider using @CliCommand(mixinStandardHelpOptions = true) on your command instead.%n";
                 if (!wrongUsageHelpAttr.isEmpty()) {
                     throw new InitializationException(String.format(wrongType, wrongUsageHelpAttr, "usageHelp", "--help", "usage help message"));
                 }
@@ -3599,7 +3599,7 @@ public class CommandLine {
 
             /** Returns the optional header lines displayed at the top of the help message. For subcommands, the first header line is
              * displayed in the list of commands. Values are initialized from {@link Command#header()}
-             * if the {@code Command} annotation is present, otherwise this is an empty array and the help message has no
+             * if the {@code CliCommand} annotation is present, otherwise this is an empty array and the help message has no
              * header. Applications may programmatically set this field to create a custom help message. */
             public String[] header() { return header == null ? DEFAULT_MULTI_LINE : header.clone(); }
 
@@ -3610,7 +3610,7 @@ public class CommandLine {
             public boolean abbreviateSynopsis() { return (abbreviateSynopsis == null) ? DEFAULT_ABBREVIATE_SYNOPSIS : abbreviateSynopsis; }
 
             /** Returns the optional custom synopsis lines to use instead of the auto-generated synopsis.
-             * Initialized from {@link Command#customSynopsis()} if the {@code Command} annotation is present,
+             * Initialized from {@link Command#customSynopsis()} if the {@code CliCommand} annotation is present,
              * otherwise this is an empty array and the synopsis is generated.
              * Applications may programmatically set this field to create a custom help message. */
             public String[] customSynopsis() { return customSynopsis == null ? DEFAULT_MULTI_LINE : customSynopsis.clone(); }
@@ -3619,7 +3619,7 @@ public class CommandLine {
             public String descriptionHeading() { return descriptionHeading == null ? DEFAULT_SINGLE_VALUE : descriptionHeading; }
 
             /** Returns the optional text lines to use as the description of the help message, displayed between the synopsis and the
-             * options list. Initialized from {@link Command#description()} if the {@code Command} annotation is present,
+             * options list. Initialized from {@link Command#description()} if the {@code CliCommand} annotation is present,
              * otherwise this is an empty array and the help message has no description.
              * Applications may programmatically set this field to create a custom help message. */
             public String[] description() { return description == null ? DEFAULT_MULTI_LINE : description.clone(); }
@@ -3652,7 +3652,7 @@ public class CommandLine {
             public String footerHeading() { return footerHeading == null ? DEFAULT_SINGLE_VALUE : footerHeading; }
 
             /** Returns the optional footer text lines displayed at the bottom of the help message. Initialized from
-             * {@link Command#footer()} if the {@code Command} annotation is present, otherwise this is an empty array and
+             * {@link Command#footer()} if the {@code CliCommand} annotation is present, otherwise this is an empty array and
              * the help message has no footer.
              * Applications may programmatically set this field to create a custom help message. */
             public String[] footer() { return footer == null ? DEFAULT_MULTI_LINE : footer.clone(); }
@@ -4811,7 +4811,7 @@ public class CommandLine {
             }
 
             private static boolean updateCommandAttributes(Class<?> cls, CommandSpec commandSpec, IFactory factory) {
-                // superclass values should not overwrite values if both class and superclass have a @Command annotation
+                // superclass values should not overwrite values if both class and superclass have a @CliCommand annotation
                 if (!cls.isAnnotationPresent(Command.class)) { return false; }
 
                 Command cmd = cls.getAnnotation(Command.class);
@@ -4879,7 +4879,7 @@ public class CommandLine {
                 Command subCommand = sub.getAnnotation(Command.class);
                 if (subCommand == null || Help.DEFAULT_COMMAND_NAME.equals(subCommand.name())) {
                     throw new InitializationException("Subcommand " + sub.getName() +
-                            " is missing the mandatory @Command annotation with a 'name' attribute");
+                            " is missing the mandatory @CliCommand annotation with a 'name' attribute");
                 }
                 return subCommand.name();
             }
@@ -4945,7 +4945,7 @@ public class CommandLine {
             }
             private static void validateCommandSpec(CommandSpec result, boolean hasCommandAnnotation, String commandClassName) {
                 if (!hasCommandAnnotation && result.positionalParameters.isEmpty() && result.optionsByNameMap.isEmpty() && result.unmatchedArgs.isEmpty()) {
-                    throw new InitializationException(commandClassName + " is not a command: it has no @Command, @Option, @Parameters or @Unmatched annotations");
+                    throw new InitializationException(commandClassName + " is not a command: it has no @CliCommand, @Option, @Parameters or @Unmatched annotations");
                 }
             }
             private static void validateInjectSpec(TypedMember member) {
@@ -6850,7 +6850,7 @@ public class CommandLine {
 
         /** Registers the specified subcommand with this Help.
          * @param commandName the name of the subcommand to display in the usage message
-         * @param command the {@code CommandSpec} or {@code @Command} annotated object to get more information from
+         * @param command the {@code CommandSpec} or {@code @CliCommand} annotated object to get more information from
          * @return this Help instance (for method chaining)
          * @deprecated
          */

@@ -2,7 +2,7 @@ package org.simplejavamail.internal.clisupport.model;
 
 import java.util.Arrays;
 
-public class CliParamData {
+public class CliOptionValueData {
 	private final Class<?> paramType;
 	private final String name;
 	private final String helpLabel;
@@ -10,7 +10,7 @@ public class CliParamData {
 	private final boolean required;
 	private final String[] examples;
 	
-	public CliParamData(Class<?> paramType, String name, String helpLabel, String description, boolean required, String[] examples) {
+	public CliOptionValueData(Class<?> paramType, String name, String helpLabel, String description, boolean required, String[] examples) {
 		this.paramType = paramType;
 		this.name = name;
 		this.helpLabel = helpLabel;

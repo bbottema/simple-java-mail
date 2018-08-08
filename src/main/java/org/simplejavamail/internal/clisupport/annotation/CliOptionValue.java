@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)
-public @interface CliParam {
+public @interface CliOptionValue {
 	String name();
 	String description() default "";
 	String helpLabel();

@@ -2,9 +2,9 @@ package org.simplejavamail.email;
 
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
-import org.simplejavamail.internal.clisupport.annotation.CliCommand;
-import org.simplejavamail.internal.clisupport.annotation.CliCommandDelegate;
-import org.simplejavamail.internal.clisupport.annotation.CliParam;
+import org.simplejavamail.internal.clisupport.annotation.CliOption;
+import org.simplejavamail.internal.clisupport.annotation.CliOptionDelegate;
+import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
 import org.simplejavamail.internal.clisupport.annotation.CliSupported;
 
 import javax.annotation.Nonnull;
@@ -14,8 +14,8 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.util.regex.Pattern.compile;
-import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.send;
-import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.validate;
+import static org.simplejavamail.internal.clisupport.annotation.CliCommand.send;
+import static org.simplejavamail.internal.clisupport.annotation.CliCommand.validate;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 
 /**
@@ -182,7 +182,7 @@ public class EmailBuilder {
 		/**
 		 * Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.
 		 */
-		@CliCommand(description = "Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.")
+		@CliOption(description = "Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.")
 		EmailBuilderInstance ignoringDefaults() {
 			applyDefaults = false;
 			return this;
@@ -196,7 +196,7 @@ public class EmailBuilder {
 		 *
 		 * @return A new {@link EmailBuilderInstance} to further populate the email with.
 		 */
-		@CliCommand(description = "Most common use case for creating a new email. Starts with an empty email, populated with defaults when set " +
+		@CliOption(description = "Most common use case for creating a new email. Starts with an empty email, populated with defaults when set " +
 				"through config properties (if not disabled using @|italic ignoringDefaults|@). @|bold Note|@: Any option used after this will override the default " +
 				"value.")
 		public EmailPopulatingBuilder startingBlank() {
@@ -239,11 +239,11 @@ public class EmailBuilder {
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
 		 * template.
 		 */
-		@CliCommand(nameOverride = "replyingToSenderWithDefaultQuoteMarkup",
+		@CliOption(nameOverride = "replyingToSenderWithDefaultQuoteMarkup",
 				description = "Like @|cyan email:replyingTo|@ with @|italic,yellow --replyToAll|@ set to @|green false|@ and a default HTML quoting template.")
-		@CliCommandDelegate(delegateClass = EmailBuilderInstance.class, delegateMethod = "replyingTo",
+		@CliOptionDelegate(delegateClass = EmailBuilderInstance.class, delegateMethod = "replyingTo",
 				delegateParameters = { MimeMessage.class, boolean.class, String.class })
-		public EmailPopulatingBuilder replyingTo(@Nonnull @CliParam(name = "email", helpLabel = "FILE", description = "Path to .eml file") final MimeMessage email) {
+		public EmailPopulatingBuilder replyingTo(@Nonnull @CliOptionValue(name = "email", helpLabel = "FILE", description = "Path to .eml file") final MimeMessage email) {
 			return replyingTo(email, false, DEFAULT_QUOTING_MARKUP);
 		}
 		
@@ -298,16 +298,16 @@ public class EmailBuilder {
 		 * @see <a href="https://javaee.github.io/javamail/FAQ#reply">Official JavaMail FAQ on replying</a>
 		 * @see javax.mail.internet.MimeMessage#reply(boolean)
 		 */
-		@CliCommand(description = {"Primes the email with subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply. " +
+		@CliOption(description = {"Primes the email with subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply. " +
 				"\n@|bold Note 1|@: replaces subject with \"Re: <original subject>\" (but never nested). " +
 				"\n@|bold Note 2|@: always sets both plain text and HTML text, so if you update the content body, be sure to update HTML as well. " +
 				"\n@|bold Note 3|@: sets body content: text is replaced with \"> text\" and HTML is replaced with the provided (or default) quoting markup (add your own content with @|cyan email:prependText|@ and @|cyan email:prependTextHTML|@)."})
 		public EmailPopulatingBuilder replyingTo(
-				@CliParam(name = "emailMessage", helpLabel = "FILE", description = "The message from which we harvest recipients, original content to quote (including embedded images), message ID to include.")
+				@CliOptionValue(name = "emailMessage", helpLabel = "FILE", description = "The message from which we harvest recipients, original content to quote (including embedded images), message ID to include.")
 				@Nonnull final MimeMessage emailMessage,
-				@CliParam(name = "replyToAll", helpLabel = "BOOL", description = "Indicates whether all original receivers should be included in this new reply. Also see MimeMessage.reply(boolean).")
+				@CliOptionValue(name = "replyToAll", helpLabel = "BOOL", description = "Indicates whether all original receivers should be included in this new reply. Also see MimeMessage.reply(boolean).")
 				final boolean repyToAll,
-				@CliParam(name = "htmlTemplate", helpLabel = "STRING", description = "A valid HTML that contains the string \"%%s\". Be advised that HTML is very limited in emails.")
+				@CliOptionValue(name = "htmlTemplate", helpLabel = "STRING", description = "A valid HTML that contains the string \"%%s\". Be advised that HTML is very limited in emails.")
 				@Nonnull final String htmlTemplate) {
 			final MimeMessage replyMessage;
 			try {

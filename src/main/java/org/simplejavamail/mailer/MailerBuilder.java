@@ -1,7 +1,7 @@
 package org.simplejavamail.mailer;
 
-import org.simplejavamail.internal.clisupport.annotation.CliCommand;
-import org.simplejavamail.internal.clisupport.annotation.CliParam;
+import org.simplejavamail.internal.clisupport.annotation.CliOption;
+import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
 import org.simplejavamail.internal.clisupport.annotation.CliSupported;
 import org.simplejavamail.mailer.config.TransportStrategy;
 
@@ -9,9 +9,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Session;
 
-import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.connect;
-import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.send;
-import static org.simplejavamail.internal.clisupport.annotation.CliSupported.RootCommand.validate;
+import static org.simplejavamail.internal.clisupport.annotation.CliCommand.connect;
+import static org.simplejavamail.internal.clisupport.annotation.CliCommand.send;
+import static org.simplejavamail.internal.clisupport.annotation.CliCommand.validate;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_HOST;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PORT;
@@ -164,8 +164,8 @@ public class MailerBuilder {
 		/**
 		 * Sets the optional transport strategy of this mailer. Will default to {@link TransportStrategy#SMTP} if left empty.
 		 */
-		@CliCommand(description = "Sets the optional transport strategy of this mailer. Will default to SMTP if left empty.")
-		public MailerRegularBuilder withTransportStrategy(@Nonnull @CliParam(name = "transportStrategy", helpLabel = "STRATEGY") final TransportStrategy transportStrategy) {
+		@CliOption(description = "Sets the optional transport strategy of this mailer. Will default to SMTP if left empty.")
+		public MailerRegularBuilder withTransportStrategy(@Nonnull @CliOptionValue(name = "transportStrategy", helpLabel = "STRATEGY") final TransportStrategy transportStrategy) {
 			this.transportStrategy = transportStrategy;
 			return this;
 		}

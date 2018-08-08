@@ -7,8 +7,8 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface CliCommandDelegate {
-	Class<?> delegateClass();
-	String delegateMethod();
-	Class<?>[] delegateParameters();
+public @interface CliOption {
+	String nameOverride() default ""; // to work around duplicate CLI commands for overloaded methods
+	String[] description();
+	CliCommand[] applicableRootCommands() default {};
 }

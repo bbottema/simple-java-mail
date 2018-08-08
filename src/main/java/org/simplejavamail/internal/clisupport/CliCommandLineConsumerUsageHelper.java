@@ -5,6 +5,7 @@ import picocli.CommandLine.Help.Ansi;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Model.OptionSpec;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import static java.lang.String.format;
@@ -13,9 +14,9 @@ import static java.lang.System.out;
 import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.EMPTY_PARAM_LABEL;
 import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.OPTION_HELP_POSTFIX;
 
-public class CliCommandLineHelpInputProcessor {
+public class CliCommandLineConsumerUsageHelper {
     
-    static boolean helpProcessedAndApplied(CommandLine.ParseResult pr, int textWidth) {
+    static boolean processAndApplyHelp(CommandLine.ParseResult pr, int textWidth) {
         boolean helpApplied = CommandLine.printHelpIfRequested(pr.asCommandLineList(), out, err, Ansi.ON);
     
         if (!helpApplied) {
@@ -55,9 +56,15 @@ public class CliCommandLineHelpInputProcessor {
     private static String determineCustomSynopsis(OptionSpec matchedOption) {
         final String NT = "@|cyan %s|@";
         final String NTP = "@|cyan %s|@ @|yellow %s|@";
-        
+    
+        String paramName = determineParamName(matchedOption);
         return matchedOption.paramLabel().equals(EMPTY_PARAM_LABEL)
-                ? format(NT, matchedOption.longestName())
-                : format(NTP, matchedOption.longestName(), matchedOption.paramLabel());
+                ? format(NT, paramName)
+                : format(NTP, paramName, matchedOption.paramLabel());
+    }
+    
+    @Nonnull
+    private static String determineParamName(OptionSpec matchedOption) {
+        return matchedOption.longestName().substring(0, matchedOption.longestName().indexOf(CliCommandLineProducer.OPTION_HELP_POSTFIX));
     }
 }

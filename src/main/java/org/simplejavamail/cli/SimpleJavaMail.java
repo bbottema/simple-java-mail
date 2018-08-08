@@ -6,7 +6,8 @@ public class SimpleJavaMail {
 	public static void main(String[] args) {
 		CliSupport.runCLI(args.length > 0 ? args : new String[] {
 				"send",
-				"--email:replyingToSenderWithDefaultQuoteMarkup--help",
+				"--email:replyingToSenderWithDefaultQuoteMarkup",
+				"\"value\"",
 		});
 	}
 }
