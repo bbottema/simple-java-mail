@@ -44,17 +44,12 @@ class CliCommandLineConsumer {
             Class<?>[] expectedTypes = m.getParameterTypes();
             assumeTrue(providedStringValues.size() == expectedTypes.length,
                     format("provided %s arguments, but need %s", providedStringValues.size(), expectedTypes.length));
-            List<Object> providedValuesConverted = new ArrayList<>();
-    
-            for (int i = 0; i < providedStringValues.size(); i++) {
-                providedValuesConverted.add(parseStringInput(providedStringValues.get(i), expectedTypes[i]));
-            }
-            
-            LOGGER.debug("\tconverted option values: {}", providedValuesConverted);
+			List<Object> providedValuesConverted = convertProvidedOptionValues(providedStringValues, expectedTypes);
+			LOGGER.debug("\tconverted option values: {}", providedValuesConverted);
         }
     }
-    
-    private static TreeMap<CliOptionData, OptionSpec> matchProvidedOptions(Set<CliOptionData> declaredOptions, CliCommand providedCommand, List<OptionSpec> providedOptions) {
+
+	private static TreeMap<CliOptionData, OptionSpec> matchProvidedOptions(Set<CliOptionData> declaredOptions, CliCommand providedCommand, List<OptionSpec> providedOptions) {
         TreeMap<CliOptionData, OptionSpec> matchedProvidedOptions = new TreeMap<>();
         
         for (CliOptionData declaredOption : declaredOptions) {
@@ -68,6 +63,14 @@ class CliCommandLineConsumer {
         }
         return matchedProvidedOptions;
     }
+
+	private static List<Object> convertProvidedOptionValues(List<String> providedStringValues, Class<?>[] expectedTypes) {
+		List<Object> providedValuesConverted = new ArrayList<>();
+		for (int i = 0; i < providedStringValues.size(); i++) {
+			providedValuesConverted.add(parseStringInput(providedStringValues.get(i), expectedTypes[i]));
+		}
+		return providedValuesConverted;
+	}
     
     private static Object parseStringInput(@Nonnull String stringValue, @Nonnull Class<?> targetType) {
         if (ReflectiveValueConverter.isCommonType(targetType)) {
