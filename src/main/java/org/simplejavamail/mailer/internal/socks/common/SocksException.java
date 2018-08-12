@@ -2,6 +2,7 @@
 
 package org.simplejavamail.mailer.internal.socks.common;
 
+@SuppressWarnings("serial")
 public class SocksException extends RuntimeException {
 
 	private static final String serverReplyMessage[] = { "General SOCKS server failure", "Connection not allowed by ruleset",
