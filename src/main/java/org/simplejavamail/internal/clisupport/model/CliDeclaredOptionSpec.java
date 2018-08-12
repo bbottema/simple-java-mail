@@ -1,30 +1,28 @@
 package org.simplejavamail.internal.clisupport.model;
 
-import org.simplejavamail.internal.clisupport.annotation.CliCommand;
-
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class CliOptionData implements Comparable<CliOptionData> {
+public class CliDeclaredOptionSpec implements Comparable<CliDeclaredOptionSpec> {
 	@Nonnull
 	private final String name;
 	@Nonnull
 	private final List<String> description;
 	@Nonnull
-	private final Collection<CliCommand> applicableToCliCommands;
+	private final Collection<CliCommandType> applicableToCliCommandTypes;
 	@Nonnull
-	private final List<CliOptionValueData> possibleOptionValues;
+	private final List<CliDeclaredOptionValue> possibleOptionValues;
 	@Nonnull
 	private final Method sourceMethod;
 	
-	public CliOptionData(@Nonnull String name, @Nonnull List<String> description, @Nonnull List<CliOptionValueData> possibleArguments,
-						 @Nonnull Collection<CliCommand> applicableToCliCommands, @Nonnull Method sourceMethod) {
+	public CliDeclaredOptionSpec(@Nonnull String name, @Nonnull List<String> description, @Nonnull List<CliDeclaredOptionValue> possibleArguments,
+								 @Nonnull Collection<CliCommandType> applicableToCliCommandTypes, @Nonnull Method sourceMethod) {
 		this.name = name;
 		this.description = Collections.unmodifiableList(description);
-		this.applicableToCliCommands = Collections.unmodifiableCollection(applicableToCliCommands);
+		this.applicableToCliCommandTypes = Collections.unmodifiableCollection(applicableToCliCommandTypes);
 		this.possibleOptionValues = Collections.unmodifiableList(possibleArguments);
 		this.sourceMethod = sourceMethod;
 	}
@@ -34,13 +32,13 @@ public class CliOptionData implements Comparable<CliOptionData> {
 		return name;
 	}
 	
-	public boolean applicableToRootCommand(CliCommand name) {
-		return this.applicableToCliCommands.contains(CliCommand.all) ||
-				this.applicableToCliCommands.contains(name);
+	public boolean applicableToRootCommand(CliCommandType name) {
+		return this.applicableToCliCommandTypes.contains(CliCommandType.all) ||
+				this.applicableToCliCommandTypes.contains(name);
 	}
 	
 	@Override
-	public int compareTo(@Nonnull CliOptionData other) {
+	public int compareTo(@Nonnull CliDeclaredOptionSpec other) {
 		int prefixOrder = getNamePrefix().compareTo(other.getNamePrefix());
 		return prefixOrder != 0 ? prefixOrder : getNameAfterPrefix().compareTo(other.getNameAfterPrefix());
 	}
@@ -61,11 +59,11 @@ public class CliOptionData implements Comparable<CliOptionData> {
 		return description;
 	}
 	
-	public Collection<CliCommand> getApplicableToCliCommands() {
-		return applicableToCliCommands;
+	public Collection<CliCommandType> getApplicableToCliCommandTypes() {
+		return applicableToCliCommandTypes;
 	}
 	
-	public List<CliOptionValueData> getPossibleOptionValues() {
+	public List<CliDeclaredOptionValue> getPossibleOptionValues() {
 		return possibleOptionValues;
 	}
 	

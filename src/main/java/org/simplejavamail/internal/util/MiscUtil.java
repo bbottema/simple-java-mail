@@ -165,4 +165,8 @@ public final class MiscUtil {
 			return false;
 		}
 	}
+	
+	public static String nStrings(int n, String str) {
+		return new String(new char[n]).replace("\0", str);
+	}
 }

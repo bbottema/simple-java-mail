@@ -2,10 +2,11 @@ package org.simplejavamail.email;
 
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
+import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionDelegate;
+import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
-import org.simplejavamail.internal.clisupport.annotation.CliSupported;
+import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
@@ -14,8 +15,8 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.util.regex.Pattern.compile;
-import static org.simplejavamail.internal.clisupport.annotation.CliCommand.send;
-import static org.simplejavamail.internal.clisupport.annotation.CliCommand.validate;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.send;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.validate;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 
 /**
@@ -137,6 +138,14 @@ public class EmailBuilder {
 		return new EmailBuilderInstance().startingBlank();
 	}
 	
+	/**
+	 * @deprecated Use internally. Don't use this.
+	 */
+	@Deprecated
+	public static EmailBuilderInstance _createForCli() {
+		return new EmailBuilderInstance();
+	}
+	
 	private EmailBuilder() {
 	}
 	
@@ -146,7 +155,7 @@ public class EmailBuilder {
 	 * <p>
 	 * As with the EmailBuilder, every other method returns an {@link EmailPopulatingBuilder}.
 	 */
-	@CliSupported(paramPrefix = "email", applicableRootCommands = {send, validate})
+	@CliSupportedBuilderApi(builderApiType = CliBuilderApiType.EMAIL, applicableRootCommands = {send, validate})
 	public static final class EmailBuilderInstance {
 		
 		/**
@@ -241,7 +250,7 @@ public class EmailBuilder {
 		 */
 		@CliOption(nameOverride = "replyingToSenderWithDefaultQuoteMarkup",
 				description = "Like @|cyan email:replyingTo|@ with @|italic,yellow --replyToAll|@ set to @|green false|@ and a default HTML quoting template.")
-		@CliOptionDelegate(delegateClass = EmailBuilderInstance.class, delegateMethod = "replyingTo",
+		@CliOptionDescriptionDelegate(delegateClass = EmailBuilderInstance.class, delegateMethod = "replyingTo",
 				delegateParameters = { MimeMessage.class, boolean.class, String.class })
 		public EmailPopulatingBuilder replyingTo(@Nonnull @CliOptionValue(name = "email", helpLabel = "FILE", description = "Path to .eml file") final MimeMessage email) {
 			return replyingTo(email, false, DEFAULT_QUOTING_MARKUP);
@@ -298,10 +307,10 @@ public class EmailBuilder {
 		 * @see <a href="https://javaee.github.io/javamail/FAQ#reply">Official JavaMail FAQ on replying</a>
 		 * @see javax.mail.internet.MimeMessage#reply(boolean)
 		 */
-		@CliOption(description = {"Primes the email with subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply. " +
-				"\n@|bold Note 1|@: replaces subject with \"Re: <original subject>\" (but never nested). " +
-				"\n@|bold Note 2|@: always sets both plain text and HTML text, so if you update the content body, be sure to update HTML as well. " +
-				"\n@|bold Note 3|@: sets body content: text is replaced with \"> text\" and HTML is replaced with the provided (or default) quoting markup (add your own content with @|cyan email:prependText|@ and @|cyan email:prependTextHTML|@)."})
+		@CliOption(description = {"Primes the email with subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply. ",
+				"@|bold Note 1|@: replaces subject with \"Re: <original subject>\" (but never nested). ",
+				"@|bold Note 2|@: always sets both plain text and HTML text, so if you update the content body, be sure to update HTML as well. ",
+				"@|bold Note 3|@: sets body content: text is replaced with \"> text\" and HTML is replaced with the provided (or default) quoting markup (add your own content with @|cyan email:prependText|@ and @|cyan email:prependTextHTML|@)."})
 		public EmailPopulatingBuilder replyingTo(
 				@CliOptionValue(name = "emailMessage", helpLabel = "FILE", description = "The message from which we harvest recipients, original content to quote (including embedded images), message ID to include.")
 				@Nonnull final MimeMessage emailMessage,

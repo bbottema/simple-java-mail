@@ -1,8 +1,8 @@
 package org.simplejavamail.internal.clisupport;
 
-import org.simplejavamail.internal.clisupport.annotation.CliCommand;
-import org.simplejavamail.internal.clisupport.model.CliOptionData;
-import org.simplejavamail.internal.clisupport.model.CliOptionValueData;
+import org.simplejavamail.internal.clisupport.model.CliCommandType;
+import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
+import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
 import picocli.CommandLine;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Model.OptionSpec;
@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.TreeSet;
 
 import static java.lang.String.format;
+import static org.simplejavamail.internal.util.ListUtil.getFirst;
 
 class CliCommandLineProducer {
     
@@ -21,9 +22,9 @@ class CliCommandLineProducer {
     static final String EMPTY_PARAM_LABEL = "<empty>";
     
     @SuppressWarnings("SameParameterValue")
-    static CommandLine configurePicoCli(TreeSet<CliOptionData> parameterMap, int textWidth) {
+    static CommandLine configurePicoCli(TreeSet<CliDeclaredOptionSpec> parameterMap, int textWidth) {
         CommandSpec rootCommandsHolder = createDefaultCommandSpec("SimpleJavaMail",
-                "Simple Java Mail CliCommand Line Interface.%n" +
+                "Simple Java Mail CliCommandType Line Interface.%n" +
                         "%n" +
                         "All CLI support is a direct translation of the Simple Java Mail builder API and translates back into builder calls. " +
                         "As such, the @|bold order of directives matters as well as combinations|@! Furthermore, all documentation is taken from the " +
@@ -49,62 +50,62 @@ class CliCommandLineProducer {
     }
     
     private static void createRootCommand(CommandSpec rootCommandsHolder, String name, String description, String synopsis,
-                                          TreeSet<CliOptionData> parameterMap) {
+                                          TreeSet<CliDeclaredOptionSpec> parameterMap) {
         CommandSpec rootCommand = createDefaultCommandSpec(name, description);
         rootCommand.usageMessage().customSynopsis(synopsis);
         populateRootCommands(rootCommand, parameterMap);
         rootCommandsHolder.addSubcommand(rootCommand.name(), rootCommand);
     }
     
-    private static void populateRootCommands(CommandSpec rootCommand, TreeSet<CliOptionData> parameterMap) {
-        for (CliOptionData cliOptionData : parameterMap) {
-            if (cliOptionData.applicableToRootCommand(CliCommand.valueOf(rootCommand.name()))) {
-                rootCommand.addOption(OptionSpec.builder(cliOptionData.getName())
+    private static void populateRootCommands(CommandSpec rootCommand, TreeSet<CliDeclaredOptionSpec> parameterMap) {
+        for (CliDeclaredOptionSpec cliDeclaredOptionSpec : parameterMap) {
+            if (cliDeclaredOptionSpec.applicableToRootCommand(CliCommandType.valueOf(rootCommand.name()))) {
+                rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName())
                         .type(List.class)
                         .auxiliaryTypes(String.class)
-                        .arity(String.valueOf(cliOptionData.getPossibleOptionValues().size()))
-                        .paramLabel(determineParamLabel(cliOptionData.getPossibleOptionValues()))
-                        .description(determineDescription(cliOptionData, false))
-                        //.required(/*FIXME cliCommand.isRequired()*/)
+                        .arity(String.valueOf(cliDeclaredOptionSpec.getPossibleOptionValues().size()))
+                        .paramLabel(determineParamLabel(cliDeclaredOptionSpec.getPossibleOptionValues()))
+                        .description(determineDescription(cliDeclaredOptionSpec, false))
                         .build());
-                rootCommand.addOption(OptionSpec.builder(cliOptionData.getName() + OPTION_HELP_POSTFIX)
+                rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName() + OPTION_HELP_POSTFIX)
                         .type(List.class) // cannot use .usageHelp(true), because this cannot be boolean, because description
                         .auxiliaryTypes(String.class)
                         .arity("*")
                         .hidden(true)
                         .help(true)
-                        .paramLabel(determineParamLabel(cliOptionData.getPossibleOptionValues()))
-                        .description(determineDescription(cliOptionData, true))
+                        .paramLabel(determineParamLabel(cliDeclaredOptionSpec.getPossibleOptionValues()))
+                        .description(determineDescription(cliDeclaredOptionSpec, true))
                         .build());
             }
         }
     }
     
     // hide multi-line descriptions when usage is not focussed on the current option (ie. --current-option--help)
-    private static String[] determineDescription(CliOptionData cliCommand, boolean fullDescription) {
+    private static String[] determineDescription(CliDeclaredOptionSpec cliCommand, boolean fullDescription) {
         final List<String> descriptions = formatCommandDescriptions(cliCommand);
         if (!fullDescription && descriptions.size() > 1) {
-            return new String[] {descriptions.get(0) + " (...more)"};
+            return new String[] {getFirst(descriptions) + " (...more)"};
         } else {
             return descriptions.toArray(new String[]{});
         }
     }
     
     @Nonnull
-    private static List<String> formatCommandDescriptions(CliOptionData cliCommand) {
+    private static List<String> formatCommandDescriptions(CliDeclaredOptionSpec cliCommand) {
         final List<String> descriptions = new ArrayList<>(cliCommand.getDescription());
         if (!cliCommand.getPossibleOptionValues().isEmpty()) {
             descriptions.add("%n@|bold,underline Parameters|@:");
-            for (CliOptionValueData possibleParam : cliCommand.getPossibleOptionValues()) {
-                descriptions.add(format("@|yellow %s|@: %s", possibleParam.getName(), possibleParam.formatDescription()));
+            for (CliDeclaredOptionValue possibleParam : cliCommand.getPossibleOptionValues()) {
+				String optionalInfix = !possibleParam.isRequired() ? " (optional)" : "";
+				descriptions.add(format("@|yellow %s%s|@: %s", possibleParam.getName(), optionalInfix, possibleParam.formatDescription()));
             }
         }
         return descriptions;
     }
     
-    private static String determineParamLabel(List<CliOptionValueData> possibleParams) {
+    private static String determineParamLabel(List<CliDeclaredOptionValue> possibleParams) {
         final StringBuilder paramLabel = new StringBuilder();
-        for (CliOptionValueData possibleParam : possibleParams) {
+        for (CliDeclaredOptionValue possibleParam : possibleParams) {
             paramLabel.append(possibleParam.getName()).append("(=").append(possibleParam.getHelpLabel()).append(") ");
         }
         String declaredParamLabel = paramLabel.toString().trim();

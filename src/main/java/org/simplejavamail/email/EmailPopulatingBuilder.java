@@ -1,9 +1,12 @@
 package org.simplejavamail.email;
 
 import org.simplejavamail.email.EmailBuilder.EmailBuilderInstance;
+import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
+import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
+import org.simplejavamail.internal.clisupport.annotation.CliOptionDescription;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
-import org.simplejavamail.internal.clisupport.annotation.CliSupported;
+import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
@@ -30,8 +33,9 @@ import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
-import static org.simplejavamail.internal.clisupport.annotation.CliCommand.send;
-import static org.simplejavamail.internal.clisupport.annotation.CliCommand.validate;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.convert;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.send;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.validate;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -59,7 +63,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * NOTE: for some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
  */
-@CliSupported(paramPrefix = "email", applicableRootCommands = {send, validate})
+@CliSupportedBuilderApi(builderApiType = CliBuilderApiType.EMAIL, applicableRootCommands = {send, validate, convert})
 @SuppressWarnings({"UnusedReturnValue", "WeakerAccess", "unused"})
 public class EmailPopulatingBuilder {
 	
@@ -252,7 +256,11 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
 	 */
-	public EmailPopulatingBuilder from(@Nullable final String name, @Nonnull final String fromAddress) {
+	@CliOption(description = "Delegates to email:from(Recipient) with a new Recipient wrapped around the given name and email address.")
+	@CliOptionDescriptionDelegate(delegateClass = EmailPopulatingBuilder.class, delegateMethod = "from", delegateParameters = Recipient.class)
+	public EmailPopulatingBuilder from(
+			@CliOptionValue(name = "name", required = false, helpLabel = "STRING", description = "The name of the sender") @Nullable final String name,
+			@CliOptionValue(name = "fromAddress", helpLabel = "STRING", description = "The email address of the sender") @Nonnull final String fromAddress) {
 		return from(new Recipient(name, checkNonEmptyArgument(fromAddress, "fromAddress"), null));
 	}
 	
@@ -284,6 +292,8 @@ public class EmailPopulatingBuilder {
 	 * @see #from(String)
 	 * @see #withReplyTo(Recipient)
 	 */
+	@CliOptionDescription({"Sets the address of the sender of this email with given recipient.",
+			"Can be used in conjunction with --email:replyTo, which is then prioritized by email clients when replying to this email."})
 	public EmailPopulatingBuilder from(@Nonnull final Recipient recipient) {
 		checkNonEmptyArgument(recipient, "from recipient");
 		this.fromRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
@@ -509,7 +519,13 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO} and empty default name.
 	 */
-	public EmailPopulatingBuilder to(@Nonnull final String oneOrMoreAddresses) {
+	@CliOption(description = "Delegates to withRecipientsWithDefaultName(String, Collection, RecipientType) with RecipientType.TO and empty default name.")
+	@CliOptionDescriptionDelegate(delegateClass = EmailPopulatingBuilder.class, delegateMethod = "withRecipientsWithDefaultName",
+			delegateParameters = {String.class, Collection.class, RecipientType.class})
+	public EmailPopulatingBuilder to(
+			@CliOptionValue(name = "oneOrMoreAddresses", helpLabel = "STRING", description = "Single RFC2822 address or delimited list of RFC2822 addresses.",
+			example = { "lolly.pop@pretzelfun.com", "Lolly Pop<lolly.pop@pretzelfun.com>", "a1@b1.c1,a2@b2.c2,a3@b3.c3", "a1@b1.c1;a2@b2.c2;a3@b3.c3" })
+			@Nonnull final String oneOrMoreAddresses) {
 		return withRecipientsWithDefaultName(null, singletonList(oneOrMoreAddresses), TO);
 	}
 	
@@ -973,6 +989,9 @@ public class EmailPopulatingBuilder {
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}, leaving existing names in tact and defaulting when missing.
 	 */
 	@Nonnull
+	@CliOptionDescription("Delegates to withRecipients(String, boolean, Collection, RecipientType), leaving existing names in tact and defaulting when missing.")
+	@CliOptionDescriptionDelegate(delegateClass = EmailPopulatingBuilder.class, delegateMethod = "withRecipients",
+			delegateParameters = { String.class, boolean.class, Collection.class, RecipientType.class })
 	public EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable final String defaultName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
 		return withRecipients(defaultName, false, oneOrMoreAddressesEach, recipientType);
 	}
@@ -1018,6 +1037,8 @@ public class EmailPopulatingBuilder {
 	 * @param oneOrMoreAddressesEach Collection of addresses. Each entry itself can be a delimited list of RFC2822 addresses.
 	 */
 	@Nonnull
+	@CliOptionDescription("Delegates to withRecipient(Recipient) for each address found in not just the collection, but also in every individual address string.")
+	@CliOptionDescriptionDelegate(delegateClass = EmailPopulatingBuilder.class, delegateMethod = "withRecipient", delegateParameters = Recipient.class)
 	public EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
 		for (String oneOrMoreAddresses : oneOrMoreAddressesEach) {
 			for (String emailAddress : extractEmailAddresses(oneOrMoreAddresses)) {
@@ -1115,6 +1136,9 @@ public class EmailPopulatingBuilder {
 	 * Note that the email address must be a single address according to RFC2822 format. Name can be provided explicitly or as part of the RFC2822 email
 	 * address or omitted completely.
 	 */
+	@CliOptionDescription({"Adds a new Recipient instance as copy of the provided recipient (copying name, address and RecipientType).",
+			"Note that the email address must be a single address according to RFC2822 format. Name can be provided explicitly or as part of the " +
+					"RFC2822 email address or omitted completely."})
 	public EmailPopulatingBuilder withRecipient(@Nonnull final Recipient recipient) {
 		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType()));
 		return this;

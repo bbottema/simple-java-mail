@@ -9,8 +9,13 @@ import org.simplejavamail.MailException;
 class CliExecutionException extends MailException {
 	
 	static final String DID_NOT_RECOGNIZE_EMAIL_FILETYPE = "Did not recognize file type for: %s";
-
-	CliExecutionException(final String message) {
+	static final String ERROR_INVOKING_BUILDER_API = "Got error while invoking Builder API";
+	
+	CliExecutionException(String message) {
 		super(message);
+	}
+	
+	CliExecutionException(String message, Exception cause) {
+		super(message, cause);
 	}
 }

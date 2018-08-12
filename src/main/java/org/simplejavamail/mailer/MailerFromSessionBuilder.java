@@ -1,14 +1,15 @@
 package org.simplejavamail.mailer;
 
-import org.simplejavamail.internal.clisupport.annotation.CliSupported;
+import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
+import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 
 import javax.annotation.Nonnull;
 import javax.mail.Message;
 import javax.mail.Session;
 
-import static org.simplejavamail.internal.clisupport.annotation.CliCommand.connect;
-import static org.simplejavamail.internal.clisupport.annotation.CliCommand.send;
-import static org.simplejavamail.internal.clisupport.annotation.CliCommand.validate;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.connect;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.send;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.validate;
 
 /**
  * Builder that supports a fixed {@link Session} instance. Allows configuring all generic Mailer settings, but not SMTP and transport strategy
@@ -19,7 +20,7 @@ import static org.simplejavamail.internal.clisupport.annotation.CliCommand.valid
  *
  * @see org.simplejavamail.mailer.config.TransportStrategy
  */
-@CliSupported(paramPrefix = "mailer", applicableRootCommands = {send, connect, validate})
+@CliSupportedBuilderApi(builderApiType = CliBuilderApiType.MAILER, applicableRootCommands = {send, connect, validate})
 public class MailerFromSessionBuilder extends MailerGenericBuilder<MailerFromSessionBuilder> {
 	
 	/**
@@ -45,6 +46,7 @@ public class MailerFromSessionBuilder extends MailerGenericBuilder<MailerFromSes
 	 * <p>
 	 * For all configurable values: if omitted, a default value will be attempted by looking at property files or manually defined defauls.
 	 */
+	@Override
 	public Mailer buildMailer() {
 		return new Mailer(this);
 	}

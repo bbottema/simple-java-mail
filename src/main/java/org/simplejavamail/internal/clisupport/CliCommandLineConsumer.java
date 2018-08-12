@@ -1,8 +1,9 @@
 package org.simplejavamail.internal.clisupport;
 
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.internal.clisupport.annotation.CliCommand;
-import org.simplejavamail.internal.clisupport.model.CliOptionData;
+import org.simplejavamail.internal.clisupport.model.CliCommandType;
+import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
+import org.simplejavamail.internal.clisupport.model.CliReceivedOptionData;
 import org.simplejavamail.internal.util.ReflectiveValueConverter;
 import org.slf4j.Logger;
 import picocli.CommandLine.Model.OptionSpec;
@@ -11,7 +12,6 @@ import picocli.CommandLine.ParseResult;
 import javax.annotation.Nonnull;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import static java.lang.String.format;
+import static org.simplejavamail.internal.util.ListUtil.getLast;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -29,31 +30,32 @@ class CliCommandLineConsumer {
     private static final Logger LOGGER = getLogger(CliCommandLineConsumer.class);
     
     // we reach here when terminal input was value and no help was requested
-    static void consumeCommandLineInput(ParseResult providedCommand, @SuppressWarnings("SameParameterValue") Set<CliOptionData> declaredOptions) {
-        assumeTrue(providedCommand.hasSubcommand(), "Command was empty, expected one of: " + Arrays.toString(CliCommand.values()));
+    static List<CliReceivedOptionData> consumeCommandLineInput(ParseResult providedCommand, @SuppressWarnings("SameParameterValue") Set<CliDeclaredOptionSpec> declaredOptions) {
+        assumeTrue(providedCommand.hasSubcommand(), "Command was empty, expected one of: " + Arrays.toString(CliCommandType.values()));
         
         final ParseResult mailCommand = providedCommand.subcommand();
-        final CliCommand matchedCommand = CliCommand.valueOf(mailCommand.commandSpec().name());
-        final TreeMap<CliOptionData, OptionSpec> matchedOptionsInOrderProvision = matchProvidedOptions(declaredOptions, matchedCommand, mailCommand.matchedOptions());
+        final CliCommandType matchedCommand = CliCommandType.valueOf(mailCommand.commandSpec().name());
+        final TreeMap<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision = matchProvidedOptions(declaredOptions, matchedCommand, mailCommand.matchedOptions());
     
         logParsedInput(matchedCommand, matchedOptionsInOrderProvision);
-    
-        for (Entry<CliOptionData, OptionSpec> cliOption : matchedOptionsInOrderProvision.entrySet()) {
-            Method m = cliOption.getKey().getSourceMethod();
-            List<String> providedStringValues = cliOption.getValue().getValue();
-            Class<?>[] expectedTypes = m.getParameterTypes();
+		
+        List<CliReceivedOptionData> receivedOptions = new ArrayList<>();
+        for (Entry<CliDeclaredOptionSpec, OptionSpec> cliOption : matchedOptionsInOrderProvision.entrySet()) {
+            Class<?>[] expectedTypes = cliOption.getKey().getSourceMethod().getParameterTypes();
+			List<String> providedStringValues = cliOption.getValue().getValue();
             assumeTrue(providedStringValues.size() == expectedTypes.length,
                     format("provided %s arguments, but need %s", providedStringValues.size(), expectedTypes.length));
-			List<Object> providedValuesConverted = convertProvidedOptionValues(providedStringValues, expectedTypes);
-			LOGGER.debug("\tconverted option values: {}", providedValuesConverted);
+			receivedOptions.add(new CliReceivedOptionData(cliOption.getKey(), convertProvidedOptionValues(providedStringValues, expectedTypes)));
+			LOGGER.debug("\tconverted option values: {}", getLast(receivedOptions).getProvidedOptionValues());
         }
+        return receivedOptions;
     }
 
-	private static TreeMap<CliOptionData, OptionSpec> matchProvidedOptions(Set<CliOptionData> declaredOptions, CliCommand providedCommand, List<OptionSpec> providedOptions) {
-        TreeMap<CliOptionData, OptionSpec> matchedProvidedOptions = new TreeMap<>();
+	private static TreeMap<CliDeclaredOptionSpec, OptionSpec> matchProvidedOptions(Set<CliDeclaredOptionSpec> declaredOptions, CliCommandType providedCommand, List<OptionSpec> providedOptions) {
+        TreeMap<CliDeclaredOptionSpec, OptionSpec> matchedProvidedOptions = new TreeMap<>();
         
-        for (CliOptionData declaredOption : declaredOptions) {
-            if (declaredOption.getApplicableToCliCommands().contains(providedCommand)) {
+        for (CliDeclaredOptionSpec declaredOption : declaredOptions) {
+            if (declaredOption.getApplicableToCliCommandTypes().contains(providedCommand)) {
                 for (OptionSpec providedOption : providedOptions) {
                     if (providedOption.longestName().equals(declaredOption.getName())) {
                         matchedProvidedOptions.put(declaredOption, providedOption);
@@ -89,10 +91,10 @@ class CliCommandLineConsumer {
         }
     }
     
-    private static void logParsedInput(CliCommand matchedCommand, TreeMap<CliOptionData, OptionSpec> matchedOptionsInOrderProvision) {
+    private static void logParsedInput(CliCommandType matchedCommand, TreeMap<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision) {
         LOGGER.debug("processing mail command: {}", matchedCommand);
-        for (Entry<CliOptionData, OptionSpec> cliOption : matchedOptionsInOrderProvision.entrySet()) {
-            CliOptionData declaredOption = cliOption.getKey();
+        for (Entry<CliDeclaredOptionSpec, OptionSpec> cliOption : matchedOptionsInOrderProvision.entrySet()) {
+            CliDeclaredOptionSpec declaredOption = cliOption.getKey();
             OptionSpec providedOption = cliOption.getValue();
             Collection<String> values = providedOption.getValue();
             LOGGER.debug("\tgot option: {}, with {} value(s): {}", declaredOption.getName(), values.size(), values);

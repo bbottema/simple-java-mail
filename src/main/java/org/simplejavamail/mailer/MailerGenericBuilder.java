@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer;
 
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
+import org.simplejavamail.internal.clisupport.annotation.CliOption;
 import org.simplejavamail.mailer.internal.mailsender.OperationalConfig;
 import org.simplejavamail.mailer.internal.mailsender.ProxyConfig;
 import org.simplejavamail.util.ConfigLoader;
@@ -16,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.connect;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.send;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.util.ConfigLoader.Property.PROXY_HOST;
@@ -429,6 +432,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Empties all proxy configuration.
 	 */
+	@CliOption(description = "Empties all proxy configuration.", applicableRootCommands = { send, connect })
 	public T clearProxy() {
 		return (T) withProxy(null, null, null, null)
 				.withProxyBridgePort(null);
@@ -462,6 +466,8 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 		properties.clear();
 		return (T) this;
 	}
+	
+	public abstract Mailer buildMailer();
 	
 	/**
 	 * @see #withProxyHost(String)

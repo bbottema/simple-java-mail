@@ -1,17 +1,18 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
-import org.simplejavamail.internal.clisupport.annotation.CliSupported;
+import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 import org.simplejavamail.mailer.config.TransportStrategy;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Session;
 
-import static org.simplejavamail.internal.clisupport.annotation.CliCommand.connect;
-import static org.simplejavamail.internal.clisupport.annotation.CliCommand.send;
-import static org.simplejavamail.internal.clisupport.annotation.CliCommand.validate;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.connect;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.send;
+import static org.simplejavamail.internal.clisupport.model.CliCommandType.validate;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_HOST;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PORT;
@@ -108,6 +109,15 @@ public class MailerBuilder {
 		return new MailerRegularBuilder().withDebugLogging(debugLogging);
 	}
 	
+	
+	/**
+	 * @deprecated Use internally. Don't use this.
+	 */
+	@Deprecated
+	public static MailerRegularBuilder _createForCli() {
+		return new MailerRegularBuilder();
+	}
+	
 	/**
 	 * Shortcuts to {@link MailerRegularBuilder#buildMailer()}. This means that none of the builder methods are used and the configuration completely
 	 * depends on defaults being configured from property file ("simplejavamail.properties") on the classpath or through programmatic defaults.
@@ -128,7 +138,7 @@ public class MailerBuilder {
 	 * @see TransportStrategy
 	 */
 	@SuppressWarnings("WeakerAccess")
-	@CliSupported(paramPrefix = "mailer", applicableRootCommands = {send, connect, validate})
+	@CliSupportedBuilderApi(builderApiType = CliBuilderApiType.MAILER, applicableRootCommands = {send, connect, validate})
 	public static class MailerRegularBuilder extends MailerGenericBuilder<MailerRegularBuilder> {
 		
 		private String host;
@@ -235,6 +245,7 @@ public class MailerBuilder {
 		 * <p>
 		 * For all configurable values: if omitted, a default value will be attempted by looking at property files or manually defined defauls.
 		 */
+		@Override
 		public Mailer buildMailer() {
 			return new Mailer(this);
 		}

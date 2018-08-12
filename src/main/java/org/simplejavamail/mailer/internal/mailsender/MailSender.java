@@ -29,6 +29,7 @@ import java.util.concurrent.Phaser;
 
 import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
+import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
@@ -368,7 +369,7 @@ public class MailSender {
 			if (transportStrategy == null) {
 				throw new MailSenderException(MailSenderException.CANNOT_SET_TRUST_WITHOUT_TRANSPORTSTRATEGY);
 			}
-			final StringBuilder builder = new StringBuilder(hosts.get(0));
+			final StringBuilder builder = new StringBuilder(getFirst(hosts));
 			for (int i = 1; i < hosts.size(); i++) {
 				builder.append(" ").append(hosts.get(i));
 			}

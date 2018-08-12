@@ -1,8 +1,12 @@
 package org.simplejavamail.internal.clisupport.model;
 
-import java.util.Arrays;
+import java.util.List;
 
-public class CliOptionValueData {
+import static java.util.Arrays.asList;
+import static org.simplejavamail.internal.util.ListUtil.getFirst;
+import static org.simplejavamail.internal.util.MiscUtil.nStrings;
+
+public class CliDeclaredOptionValue {
 	private final Class<?> paramType;
 	private final String name;
 	private final String helpLabel;
@@ -10,7 +14,7 @@ public class CliOptionValueData {
 	private final boolean required;
 	private final String[] examples;
 	
-	public CliOptionValueData(Class<?> paramType, String name, String helpLabel, String description, boolean required, String[] examples) {
+	public CliDeclaredOptionValue(Class<?> paramType, String name, String helpLabel, String description, boolean required, String[] examples) {
 		this.paramType = paramType;
 		this.name = name;
 		this.helpLabel = helpLabel;
@@ -23,15 +27,18 @@ public class CliOptionValueData {
 		if (getExamples().length == 0) {
 			return getDescription();
 		} else if (getExamples().length == 1) {
-			return getDescription() + "\nexample: " + getExamples()[0];
+			return getDescription() + "\n    example: " + getExamples()[0];
 		} else {
-			return getDescription() + "\nexamples: " + formatExamplesText(getExamples());
+			return getDescription() + "\n    examples: " + formatExamplesText("    examples: ".length(), asList(getExamples()));
 		}
 	}
 	
-	private static String formatExamplesText(String[] examples) {
-		String examplesArray = Arrays.toString(examples);
-		return examplesArray.substring(1, examplesArray.length() - 1);
+	private static String formatExamplesText(int indent, List<String> examples) {
+		StringBuilder examplesFormatted = new StringBuilder().append(getFirst(examples)).append("\n");
+		for (String example : examples.subList(1, examples.size())) {
+			examplesFormatted.append(nStrings(indent, " ")).append(example).append("\n");
+		}
+		return examplesFormatted.toString();
 	}
 	
 	public Class<?> getParamType() {
