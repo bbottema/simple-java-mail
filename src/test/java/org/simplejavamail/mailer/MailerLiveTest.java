@@ -130,7 +130,7 @@ public class MailerLiveTest {
 	
 	@Test
 	public void createMailSession_ReplyToMessage()
-			throws IOException, MessagingException {
+			throws MessagingException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
@@ -162,7 +162,7 @@ public class MailerLiveTest {
 	
 	@Test
 	public void createMailSession_ReplyToMessage_NotAll_AndCustomReferences()
-			throws IOException, MessagingException {
+			throws MessagingException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();

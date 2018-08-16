@@ -1,6 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import com.sun.mail.handlers.text_plain;
+import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.Preconditions;
 
 import javax.activation.ActivationDataFlavor;
@@ -160,17 +161,23 @@ public final class MimeMessageParser {
 	
 	@SuppressWarnings("StatementWithEmptyBody")
 	private static void parseHeader(final Header header, @Nonnull final ParsedMimeMessageComponents parsedComponents) {
-		if (header.getName().equals("Disposition-Notification-To")) {
+		if (isEmailHeader(header, "Disposition-Notification-To")) {
 			parsedComponents.dispositionNotificationTo = createAddress(header, "Disposition-Notification-To");
-		} else if (header.getName().equals("Return-Receipt-To")) {
+		} else if (isEmailHeader(header, "Return-Receipt-To")) {
 			parsedComponents.returnReceiptTo = createAddress(header, "Return-Receipt-To");
-		} else if (header.getName().equals("Return-Path")) {
+		} else if (isEmailHeader(header, "Return-Path")) {
 			parsedComponents.bounceToAddress = createAddress(header, "Return-Path");
 		} else if (!HEADERS_TO_IGNORE.contains(header.getName())) {
 			parsedComponents.headers.put(header.getName(), header.getValue());
 		} else {
 			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}
+	}
+	
+	private static boolean isEmailHeader(Header header, String emailHeaderName) {
+		return header.getName().equals(emailHeaderName) &&
+				!MiscUtil.valueNullOrEmpty(header.getValue()) &&
+				!header.getValue().equals("<>");
 	}
 	
 	@SuppressWarnings("WeakerAccess")
