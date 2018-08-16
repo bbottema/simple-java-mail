@@ -19,7 +19,7 @@ import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.OPTI
 
 public class CliCommandLineConsumerUsageHelper {
 	
-	private static final ColorScheme COLOR_SCHEME = Help.defaultColorScheme(Ansi.ON).optionParams(Style.fg_white);
+	private static final ColorScheme COLOR_SCHEME = Help.defaultColorScheme(Ansi.ON).optionParams(Style.fg_yellow);
 	
 	@SuppressWarnings("SameParameterValue")
 	static boolean processAndApplyHelp(CommandLine.ParseResult pr, int textWidth) {
