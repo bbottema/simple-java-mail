@@ -27,6 +27,9 @@ import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuil
 import static testutil.EmailHelper.normalizeText;
 import static testutil.EmailHelper.readOutlookMessage;
 
+/*
+ * This class name is referrenced in pom, so it is excluded from testing in Travis.
+ */
 @SuppressWarnings("unused")
 public class MailerLiveTest {
 
