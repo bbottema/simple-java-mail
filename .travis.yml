@@ -1,3 +1,8 @@
+# needed for CodeClimate
+env:
+  global:
+  - CC_TEST_REPORTER_ID=3e11eb226208888bbf0124704142b0ba6412a651ea0a9ba40dcdc7148e684b68
+
 language: java
 sudo: false
 install: mvn install -DskipFindBugs=true -DskipTests=true -Dmaven.javadoc.skip=true -B -V
@@ -17,4 +22,8 @@ before_install:
 - wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r .assets[0].browser_download_url)
 
 after_success:
+# Codacy upload report
 - java -jar ~/codacy-coverage-reporter-assembly-latest.jar report -l Java -r target/site/jacoco/jacoco.xml
+# CodeClimate upload report
+- ./cc-test-reporter format-coverage target/site/jacoco/jacoco.xml --input-type jacoco
+- ./cc-test-reporter upload-coverage -r $CC_TEST_REPORTER_ID
