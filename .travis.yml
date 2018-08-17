@@ -8,10 +8,7 @@ before_script:
 - chmod +x ./cc-test-reporter
 - ./cc-test-reporter before-build
 
-script:
-- mvn clean verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true
-# CodeClimate:
-- bundle exec rspec
+script: mvn clean verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true
 
 cache:
   directories:
