@@ -1,8 +1,3 @@
-# needed for CodeClimate
-env:
-  global:
-  - CC_TEST_REPORTER_ID=3e11eb226208888bbf0124704142b0ba6412a651ea0a9ba40dcdc7148e684b68
-
 language: java
 sudo: false
 install: mvn install -DskipFindBugs=true -DskipTests=true -Dmaven.javadoc.skip=true -B -V
