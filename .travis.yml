@@ -1,11 +1,21 @@
 language: java
 sudo: false
 install: mvn install -DskipFindBugs=true -DskipTests=true -Dmaven.javadoc.skip=true -B -V
-script: mvn clean verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true
+
+# CodeClimate:
+before_script:
+- curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+- chmod +x ./cc-test-reporter
+- ./cc-test-reporter before-build
+
+script:
+- mvn clean verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true
+# CodeClimate:
+- bundle exec rspec
+
 cache:
   directories:
   - $HOME/.m2
-# whitelist
 branches:
   only:
     - master
