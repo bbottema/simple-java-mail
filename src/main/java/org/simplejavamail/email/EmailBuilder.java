@@ -310,7 +310,7 @@ public class EmailBuilder {
 		@CliOption(description = {"Primes the email with subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply. ",
 				"@|bold Note 1|@: replaces subject with \"Re: <original subject>\" (but never nested). ",
 				"@|bold Note 2|@: always sets both plain text and HTML text, so if you update the content body, be sure to update HTML as well. ",
-				"@|bold Note 3|@: sets body content: text is replaced with \"> text\" and HTML is replaced with the provided (or default) quoting markup (add your own content with @|cyan email:prependText|@ and @|cyan email:prependTextHTML|@)."})
+				"@|bold Note 3|@: sets body content: text is replaced with \"> text\" and HTML is replaced with the provided (or default) quoting markup (add your own content with @|cyan --email:prependText|@ and @|cyan --email:prependTextHTML|@)."})
 		public EmailPopulatingBuilder replyingTo(
 				@CliOptionValue(name = "emailMessage", helpLabel = "FILE", description = "The message from which we harvest recipients, original content to quote (including embedded images), message ID to include.")
 				@Nonnull final MimeMessage emailMessage,
