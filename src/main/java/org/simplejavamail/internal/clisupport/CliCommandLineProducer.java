@@ -65,7 +65,7 @@ class CliCommandLineProducer {
                         .auxiliaryTypes(String.class)
                         .arity(String.valueOf(cliDeclaredOptionSpec.getPossibleOptionValues().size()))
                         .paramLabel(determineParamLabel(cliDeclaredOptionSpec.getPossibleOptionValues()))
-                        .fixParamLabel(true)
+                        .hideParamSyntax(true)
                         .description(determineDescription(cliDeclaredOptionSpec, false))
                         .build());
                 rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName() + OPTION_HELP_POSTFIX)
@@ -75,7 +75,7 @@ class CliCommandLineProducer {
                         .hidden(true)
                         .help(true)
                         .paramLabel(determineParamLabel(cliDeclaredOptionSpec.getPossibleOptionValues()))
-                        .fixParamLabel(true)
+                        .hideParamSyntax(true)
                         .description(determineDescription(cliDeclaredOptionSpec, true))
                         .build());
             }

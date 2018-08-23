@@ -10,9 +10,9 @@ import picocli.CommandLine.Model.OptionSpec;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
 
 import static java.lang.String.format;
+import static java.lang.System.err;
 import static java.lang.System.out;
 import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.EMPTY_PARAM_LABEL;
 import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.OPTION_HELP_POSTFIX;
@@ -23,7 +23,7 @@ public class CliCommandLineConsumerUsageHelper {
 	
 	@SuppressWarnings("SameParameterValue")
 	static boolean processAndApplyHelp(CommandLine.ParseResult pr, int textWidth) {
-        boolean helpApplied = printHelpIfRequested(pr);
+        boolean helpApplied = CommandLine.printHelpIfRequested(pr.asCommandLineList(), out, err, COLOR_SCHEME);
     
         if (!helpApplied) {
             OptionSpec matchedOptionForHelp = checkHelpWantedForOptions(pr);
@@ -34,20 +34,6 @@ public class CliCommandLineConsumerUsageHelper {
             }
         }
         return helpApplied;
-    }
-    
-    private static boolean printHelpIfRequested(CommandLine.ParseResult pr) {
-        List<CommandLine> parsedCommands = pr.asCommandLineList();
-		for (CommandLine parsed : parsedCommands) {
-			if (parsed.isUsageHelpRequested()) {
-				parsed.usage(out, COLOR_SCHEME);
-				return true;
-			} else if (parsed.isVersionHelpRequested()) {
-				parsed.printVersionHelp(out, Ansi.ON);
-				return true;
-			}
-		}
-        return false;
     }
 	
 	@Nullable
