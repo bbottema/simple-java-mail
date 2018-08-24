@@ -221,6 +221,7 @@
                     <target>${java.version}</target>
                     <encoding>${compiler.encoding}</encoding>
                     <compilerArgument>-Xlint:all</compilerArgument>
+                    <useIncrementalCompilation>false</useIncrementalCompilation>
                 </configuration>
             </plugin>
 
