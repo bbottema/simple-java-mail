@@ -249,7 +249,7 @@ public class EmailBuilder {
 		 * template.
 		 */
 		@CliOption(nameOverride = "replyingToSenderWithDefaultQuoteMarkup",
-				description = "Like @|cyan email:replyingTo|@ with @|italic,yellow --replyToAll|@ set to @|green false|@ and a default HTML quoting template.")
+				description = "Like @|cyan --email:replyingTo|@ with @|italic,yellow replyToAll|@ set to @|green false|@ and a default HTML quoting template.")
 		@CliOptionDescriptionDelegate(delegateClass = EmailBuilderInstance.class, delegateMethod = "replyingTo",
 				delegateParameters = { MimeMessage.class, boolean.class, String.class })
 		public EmailPopulatingBuilder replyingTo(@Nonnull @CliOptionValue(name = "email", helpLabel = "FILE", description = "Path to .eml file") final MimeMessage email) {
