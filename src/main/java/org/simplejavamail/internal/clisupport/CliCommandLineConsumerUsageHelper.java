@@ -60,17 +60,18 @@ public class CliCommandLineConsumerUsageHelper {
     }
     
     private static String determineCustomSynopsis(OptionSpec matchedOption) {
-        final String NT = "@|cyan %s|@";
-        final String NTP = "@|cyan %s|@ @|yellow %s|@";
+        final String cyanOptionNoParameters = "@|cyan %s|@";
+        final String cyanOptionYellowParameters = "@|cyan %s|@ @|yellow %s|@";
     
-        String paramName = determineParamName(matchedOption);
+        String optionName = determineOptionName(matchedOption);
         return matchedOption.paramLabel().equals(EMPTY_PARAM_LABEL)
-                ? format(NT, paramName)
-                : format(NTP, paramName, matchedOption.paramLabel());
+                ? format(cyanOptionNoParameters, optionName)
+                : format(cyanOptionYellowParameters, optionName, matchedOption.paramLabel());
     }
     
     @Nonnull
-    private static String determineParamName(OptionSpec matchedOption) {
+    private static String determineOptionName(OptionSpec matchedOption) {
+        // returns "moo" from "moo--help"
         return matchedOption.longestName().substring(0, matchedOption.longestName().indexOf(CliCommandLineProducer.OPTION_HELP_POSTFIX));
     }
 }
