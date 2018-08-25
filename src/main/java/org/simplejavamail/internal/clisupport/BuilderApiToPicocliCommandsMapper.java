@@ -1,13 +1,14 @@
 package org.simplejavamail.internal.clisupport;
 
-import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescription;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
 import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
+import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
+import org.simplejavamail.internal.util.MiscUtil.StringFormatter;
 
 import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
@@ -22,9 +23,10 @@ import java.util.TreeSet;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static org.simplejavamail.internal.util.MiscUtil.nStrings;
+import static org.simplejavamail.internal.util.MiscUtil.replaceNestedTokens;
 
 final class BuilderApiToPicocliCommandsMapper {
-	
+
 	private BuilderApiToPicocliCommandsMapper() {
 	}
 	
@@ -102,7 +104,18 @@ final class BuilderApiToPicocliCommandsMapper {
 			throw new AssertionError("CliParam annotations missing description for method " + m);
 		}
 		
-		return declaredDescriptions;
+		return colorizeDescriptions(declaredDescriptions);
+	}
+	
+	static List<String> colorizeDescriptions(List<String> descriptions) {
+		final StringFormatter TOKEN_REPLACER = StringFormatter.formatterForPattern("@|cyan %s|@");
+		
+		List<String> colorizedDescriptions = new ArrayList<>();
+		for (String description : descriptions) {
+			String colorized = replaceNestedTokens(description, 0, "@|", "|@", "--[\\w:]*", TOKEN_REPLACER);
+			colorizedDescriptions.add(colorized);
+		}
+		return colorizedDescriptions;
 	}
 	
 	@Nonnull
