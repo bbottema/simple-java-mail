@@ -112,6 +112,7 @@
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <version>3.0.1</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- spring support (optional) -->
@@ -298,9 +299,9 @@
             </plugin>
 
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>3.0.3</version>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>3.1.6</version>
                 <!-- this will make findbugs run during mvn verify -->
                 <executions>
                     <execution>
@@ -310,6 +311,9 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <onlyAnalyze>org.simplejavamail.*</onlyAnalyze>
+                </configuration>
             </plugin>
 
             <plugin>
@@ -403,9 +407,9 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>findbugs-maven-plugin</artifactId>
-                        <version>3.0.3</version>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                        <version>3.1.6</version>
                         <executions>
                             <execution>
                                 <phase>none</phase>
