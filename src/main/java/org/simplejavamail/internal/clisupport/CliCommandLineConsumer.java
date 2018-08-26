@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
 
 import static java.lang.String.format;
@@ -30,7 +29,7 @@ class CliCommandLineConsumer {
     private static final Logger LOGGER = getLogger(CliCommandLineConsumer.class);
     
     // we reach here when terminal input was value and no help was requested
-    static List<CliReceivedOptionData> consumeCommandLineInput(ParseResult providedCommand, @SuppressWarnings("SameParameterValue") Set<CliDeclaredOptionSpec> declaredOptions) {
+    static List<CliReceivedOptionData> consumeCommandLineInput(ParseResult providedCommand, @SuppressWarnings("SameParameterValue") Iterable<CliDeclaredOptionSpec> declaredOptions) {
         assumeTrue(providedCommand.hasSubcommand(), "Command was empty, expected one of: " + Arrays.toString(CliCommandType.values()));
         
         final ParseResult mailCommand = providedCommand.subcommand();
@@ -51,7 +50,7 @@ class CliCommandLineConsumer {
         return receivedOptions;
     }
 
-	private static TreeMap<CliDeclaredOptionSpec, OptionSpec> matchProvidedOptions(Set<CliDeclaredOptionSpec> declaredOptions, CliCommandType providedCommand, List<OptionSpec> providedOptions) {
+	private static TreeMap<CliDeclaredOptionSpec, OptionSpec> matchProvidedOptions(Iterable<CliDeclaredOptionSpec> declaredOptions, CliCommandType providedCommand, List<OptionSpec> providedOptions) {
         TreeMap<CliDeclaredOptionSpec, OptionSpec> matchedProvidedOptions = new TreeMap<>();
         
         for (CliDeclaredOptionSpec declaredOption : declaredOptions) {

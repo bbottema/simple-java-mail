@@ -8,34 +8,35 @@ import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
-import org.simplejavamail.internal.util.MiscUtil.StringFormatter;
+import org.simplejavamail.internal.util.StringUtil.StringFormatter;
 
 import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static org.simplejavamail.internal.util.MiscUtil.nStrings;
-import static org.simplejavamail.internal.util.MiscUtil.replaceNestedTokens;
+import static org.simplejavamail.internal.util.StringUtil.nStrings;
+import static org.simplejavamail.internal.util.StringUtil.replaceNestedTokens;
 
 final class BuilderApiToPicocliCommandsMapper {
 
 	private BuilderApiToPicocliCommandsMapper() {
 	}
 	
-	 static TreeSet<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?>[] relevantBuilderRootApi) {
-		TreeSet<CliDeclaredOptionSpec> cliCommands = new TreeSet<>();
+	 static List<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?>[] relevantBuilderRootApi) {
+		 List<CliDeclaredOptionSpec> cliCommands = new ArrayList<>();
 		Set<Class<?>> processedApiNodes = new HashSet<>();
 		for (Class<?> apiRoot : relevantBuilderRootApi) {
 			cliCommands.addAll(generateOptionsFromBuilderApi(apiRoot, processedApiNodes));
 		}
+		 Collections.sort(cliCommands);
 		return cliCommands;
 	}
 	

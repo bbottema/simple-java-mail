@@ -4,7 +4,7 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
-import static org.simplejavamail.internal.util.MiscUtil.nStrings;
+import static org.simplejavamail.internal.util.StringUtil.nStrings;
 
 public class CliDeclaredOptionValue {
 	private final Class<?> paramType;

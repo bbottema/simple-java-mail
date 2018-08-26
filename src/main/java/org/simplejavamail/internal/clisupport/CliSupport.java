@@ -10,7 +10,6 @@ import picocli.CommandLine.ParseResult;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeSet;
 
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi;
 
@@ -19,7 +18,7 @@ public class CliSupport {
 	private static final int TEXT_WIDTH = 150;
 	
 	private static final Class<?>[] RELEVANT_BUILDER_ROOT_API = {EmailBuilder.EmailBuilderInstance.class, MailerBuilder.MailerRegularBuilder.class, MailerFromSessionBuilder.class};
-	private static final TreeSet<CliDeclaredOptionSpec> COMMANDS_AND_OPTIONS = generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
+	private static final List<CliDeclaredOptionSpec> COMMANDS_AND_OPTIONS = generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
 	private static final CommandLine COMMAND_LINE = CliCommandLineProducer.configurePicoCli(COMMANDS_AND_OPTIONS, TEXT_WIDTH);
 
 	public static void runCLI(String[] args) {

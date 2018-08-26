@@ -11,7 +11,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeSet;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
@@ -22,7 +21,7 @@ class CliCommandLineProducer {
     static final String EMPTY_PARAM_LABEL = "<empty>";
     
     @SuppressWarnings("SameParameterValue")
-    static CommandLine configurePicoCli(TreeSet<CliDeclaredOptionSpec> parameterMap, int textWidth) {
+    static CommandLine configurePicoCli(List<CliDeclaredOptionSpec> parameterMap, int textWidth) {
         CommandSpec rootCommandsHolder = createDefaultCommandSpec("SimpleJavaMail",
                 "Simple Java Mail CliCommandType Line Interface.%n" +
                         "%n" +
@@ -50,14 +49,14 @@ class CliCommandLineProducer {
     }
     
     private static void createRootCommand(CommandSpec rootCommandsHolder, String name, String description, String synopsis,
-                                          TreeSet<CliDeclaredOptionSpec> parameterMap) {
+                                          List<CliDeclaredOptionSpec> parameterMap) {
         CommandSpec rootCommand = createDefaultCommandSpec(name, description);
         rootCommand.usageMessage().customSynopsis(synopsis);
         populateRootCommands(rootCommand, parameterMap);
         rootCommandsHolder.addSubcommand(rootCommand.name(), rootCommand);
     }
     
-    private static void populateRootCommands(CommandSpec rootCommand, TreeSet<CliDeclaredOptionSpec> parameterMap) {
+    private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> parameterMap) {
         for (CliDeclaredOptionSpec cliDeclaredOptionSpec : parameterMap) {
             if (cliDeclaredOptionSpec.applicableToRootCommand(CliCommandType.valueOf(rootCommand.name()))) {
                 rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName())
