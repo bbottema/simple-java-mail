@@ -106,6 +106,8 @@
             <version>1.1.16</version>
             <optional>true</optional>
         </dependency>
+
+        <!-- needed for cli support -->
         <!--<dependency>-->
             <!--<groupId>info.picocli</groupId>-->
             <!--<artifactId>picocli</artifactId>-->
