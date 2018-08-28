@@ -19,14 +19,14 @@ public class CliSupport {
 	private static final int CONSOLE_TEXT_WIDTH = 150;
 	
 	private static final Class<?>[] RELEVANT_BUILDER_ROOT_API 				= {EmailBuilderInstance.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class};
-	private static final List<CliDeclaredOptionSpec> COMMANDS_AND_OPTIONS 	= generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
-	private static final CommandLine COMMAND_LINE 							= configurePicoCli(COMMANDS_AND_OPTIONS, CONSOLE_TEXT_WIDTH);
+	private static final List<CliDeclaredOptionSpec> DECLARED_OPTIONS 		= generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
+	private static final CommandLine PICOCLI_COMMAND_LINE 					= configurePicoCli(DECLARED_OPTIONS, CONSOLE_TEXT_WIDTH);
 
 	public static void runCLI(String[] args) {
-		ParseResult pr = COMMAND_LINE.parseArgs(cutOffAtHelp(args));
+		ParseResult pr = PICOCLI_COMMAND_LINE.parseArgs(cutOffAtHelp(args));
 		
 		if (!CliCommandLineConsumerUsageHelper.processAndApplyHelp(pr, CONSOLE_TEXT_WIDTH)) {
-			List<CliReceivedOptionData> cliReceivedOptionData = CliCommandLineConsumer.consumeCommandLineInput(pr, COMMANDS_AND_OPTIONS);
+			List<CliReceivedOptionData> cliReceivedOptionData = CliCommandLineConsumer.consumeCommandLineInput(pr, DECLARED_OPTIONS);
 			CliCommandLineConsumerResultHandler.processCliResult(cliReceivedOptionData);
 		}
 	}

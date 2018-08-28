@@ -21,7 +21,7 @@ class CliCommandLineProducer {
     static final String EMPTY_PARAM_LABEL = "<empty>";
     
     @SuppressWarnings("SameParameterValue")
-    static CommandLine configurePicoCli(List<CliDeclaredOptionSpec> parameterMap, int textWidth) {
+    static CommandLine configurePicoCli(List<CliDeclaredOptionSpec> declaredOptions, int textWidth) {
         CommandSpec rootCommandsHolder = createDefaultCommandSpec("SimpleJavaMail",
                 "Simple Java Mail CliCommandType Line Interface.%n" +
                         "%n" +
@@ -40,24 +40,24 @@ class CliCommandLineProducer {
                         "\tvalidate [options] email:options mailer:options",
                         "\tconvert  [options] email:options");
         
-        createRootCommand(rootCommandsHolder, "send", "Send an email, starting blank, replying to or forwarding another email", "\tsend [options] email:options mailer:options", parameterMap);
-        createRootCommand(rootCommandsHolder, "connect", "Test a server connection", "\tconnect [options] mailer:options", parameterMap);
-        createRootCommand(rootCommandsHolder, "validate", "Validate an email", "\tvalidate [options] email:options mailer:options", parameterMap);
-        createRootCommand(rootCommandsHolder, "convert", "Convert between email types", "\tvalidate [options] email:options", parameterMap);
+        createRootCommand(rootCommandsHolder, "send", "Send an email, starting blank, replying to or forwarding another email", "\tsend [options] email:options mailer:options", declaredOptions);
+        createRootCommand(rootCommandsHolder, "connect", "Test a server connection", "\tconnect [options] mailer:options", declaredOptions);
+        createRootCommand(rootCommandsHolder, "validate", "Validate an email", "\tvalidate [options] email:options mailer:options", declaredOptions);
+        createRootCommand(rootCommandsHolder, "convert", "Convert between email types", "\tvalidate [options] email:options", declaredOptions);
         
         return new CommandLine(rootCommandsHolder).setUsageHelpWidth(textWidth).setSeparator(" ");
     }
     
     private static void createRootCommand(CommandSpec rootCommandsHolder, String name, String description, String synopsis,
-                                          List<CliDeclaredOptionSpec> parameterMap) {
+                                          List<CliDeclaredOptionSpec> declaredOptions) {
         CommandSpec rootCommand = createDefaultCommandSpec(name, description);
         rootCommand.usageMessage().customSynopsis(synopsis);
-        populateRootCommands(rootCommand, parameterMap);
+        populateRootCommands(rootCommand, declaredOptions);
         rootCommandsHolder.addSubcommand(rootCommand.name(), rootCommand);
     }
     
-    private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> parameterMap) {
-        for (CliDeclaredOptionSpec cliDeclaredOptionSpec : parameterMap) {
+    private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> declaredOptions) {
+        for (CliDeclaredOptionSpec cliDeclaredOptionSpec : declaredOptions) {
             if (cliDeclaredOptionSpec.applicableToRootCommand(CliCommandType.valueOf(rootCommand.name()))) {
                 rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName())
                         .type(List.class)
