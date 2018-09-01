@@ -9,7 +9,7 @@
     <name>Simple Java Mail</name>
     <version>6.0.0.beta-SNAPSHOT</version>
     <description>Simple API, Complex Emails. A light weight wrapper for the JavaMail SMTP API</description>
-    <url>http://http://www.simplejavamail.org/</url>
+    <url>http://www.simplejavamail.org/</url>
 
     <licenses>
         <license>
