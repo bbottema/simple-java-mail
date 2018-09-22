@@ -5,6 +5,7 @@ import org.simplejavamail.internal.clisupport.annotation.CliOption;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
 import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 import org.simplejavamail.mailer.config.TransportStrategy;
+import org.simplejavamail.util.ConfigLoader;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -18,7 +19,6 @@ import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PORT;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_USERNAME;
 import static org.simplejavamail.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
-import static org.simplejavamail.util.ConfigLoader.getProperty;
 import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
 /**
@@ -154,20 +154,20 @@ public class MailerBuilder {
 		 */
 		MailerRegularBuilder() {
 			if (hasProperty(SMTP_HOST)) {
-				withSMTPServerHost((String) getProperty(SMTP_HOST));
+				withSMTPServerHost(ConfigLoader.getStringProperty(SMTP_HOST));
 			}
 			if (hasProperty(SMTP_PORT)) {
-				withSMTPServerPort((Integer) getProperty(SMTP_PORT));
+				withSMTPServerPort(ConfigLoader.getIntegerProperty(SMTP_PORT));
 			}
 			if (hasProperty(SMTP_USERNAME)) {
-				withSMTPServerUsername((String) getProperty(SMTP_USERNAME));
+				withSMTPServerUsername(ConfigLoader.getStringProperty(SMTP_USERNAME));
 			}
 			if (hasProperty(SMTP_PASSWORD)) {
-				withSMTPServerPassword((String) getProperty(SMTP_PASSWORD));
+				withSMTPServerPassword(ConfigLoader.getStringProperty(SMTP_PASSWORD));
 			}
 			withTransportStrategy(TransportStrategy.SMTP);
 			if (hasProperty(TRANSPORT_STRATEGY)) {
-				withTransportStrategy((TransportStrategy) getProperty(TRANSPORT_STRATEGY));
+				withTransportStrategy(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY));
 			}
 		}
 		

@@ -27,6 +27,9 @@ import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuil
 import static testutil.EmailHelper.normalizeText;
 import static testutil.EmailHelper.readOutlookMessage;
 
+/*
+ * This class name is referrenced in pom, so it is excluded from testing in Travis.
+ */
 @SuppressWarnings("unused")
 public class MailerLiveTest {
 
@@ -130,7 +133,7 @@ public class MailerLiveTest {
 	
 	@Test
 	public void createMailSession_ReplyToMessage()
-			throws IOException, MessagingException {
+			throws MessagingException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
@@ -162,7 +165,7 @@ public class MailerLiveTest {
 	
 	@Test
 	public void createMailSession_ReplyToMessage_NotAll_AndCustomReferences()
-			throws IOException, MessagingException {
+			throws MessagingException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();

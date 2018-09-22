@@ -6,6 +6,11 @@ http://www.simplejavamail.org
     <version>5.0.3</version>
 </dependency>
 
+v5.0.4 (22-September-2018)
+
+- #168: Properties aquired through ConfigLoader should be typed explicitly and converted if necessary
+
+
 v5.0.3 (11-April-2018)
 
 - #136: ServerConfig class should be public API

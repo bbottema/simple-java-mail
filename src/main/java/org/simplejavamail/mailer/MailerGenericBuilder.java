@@ -25,7 +25,6 @@ import static org.simplejavamail.util.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.util.ConfigLoader.Property.PROXY_PASSWORD;
 import static org.simplejavamail.util.ConfigLoader.Property.PROXY_PORT;
 import static org.simplejavamail.util.ConfigLoader.Property.PROXY_USERNAME;
-import static org.simplejavamail.util.ConfigLoader.getProperty;
 import static org.simplejavamail.util.ConfigLoader.hasProperty;
 
 /**
@@ -136,23 +135,23 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 */
 	MailerGenericBuilder() {
 		if (hasProperty(PROXY_HOST)) {
-			withProxyHost((String) getProperty(PROXY_HOST));
+			withProxyHost(ConfigLoader.getStringProperty(PROXY_HOST));
 		}
 		if (hasProperty(PROXY_PORT)) {
-			withProxyPort((Integer) getProperty(PROXY_PORT));
+			withProxyPort(ConfigLoader.getIntegerProperty(PROXY_PORT));
 		}
 		if (hasProperty(PROXY_USERNAME)) {
-			withProxyUsername((String) getProperty(PROXY_USERNAME));
+			withProxyUsername(ConfigLoader.getStringProperty(PROXY_USERNAME));
 		}
 		if (hasProperty(PROXY_PASSWORD)) {
-			withProxyPassword((String) getProperty(PROXY_PASSWORD));
+			withProxyPassword(ConfigLoader.getStringProperty(PROXY_PASSWORD));
 		}
 		
-		withProxyBridgePort(ConfigLoader.valueOrProperty(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
-		withDebugLogging(ConfigLoader.valueOrProperty(null, Property.JAVAXMAIL_DEBUG, false));
-		withSessionTimeout(ConfigLoader.valueOrProperty(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
-		withThreadPoolSize(ConfigLoader.valueOrProperty(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
-		withTransportModeLoggingOnly(ConfigLoader.valueOrProperty(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
+		withProxyBridgePort(ConfigLoader.valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
+		withDebugLogging(ConfigLoader.valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, false));
+		withSessionTimeout(ConfigLoader.valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
+		withThreadPoolSize(ConfigLoader.valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
+		withTransportModeLoggingOnly(ConfigLoader.valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
 		
 		withEmailAddressCriteria(EmailAddressCriteria.RFC_COMPLIANT);
 		trustingAllHosts(true);

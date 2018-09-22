@@ -67,7 +67,7 @@ public enum TransportStrategy {
 		public Properties generateProperties() {
 			final Properties props = super.generateProperties();
 			props.put("mail.transport.protocol", "smtp");
-			if (ConfigLoader.valueOrProperty(opportunisticTLS, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS)) {
+			if (ConfigLoader.valueOrPropertyAsBoolean(opportunisticTLS, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS)) {
 				LOGGER.debug("Opportunistic TLS mode enabled for SMTP plain protocol.");
 				props.put("mail.smtp.starttls.enable", "true");
 				props.put("mail.smtp.starttls.required", "false");
