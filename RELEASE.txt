@@ -3,7 +3,7 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.0.3</version>
+    <version>5.0.4</version>
 </dependency>
 
 v5.0.4 (22-September-2018)
