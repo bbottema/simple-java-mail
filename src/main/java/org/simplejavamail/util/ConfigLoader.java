@@ -1,9 +1,12 @@
 package org.simplejavamail.util;
 
+import org.simplejavamail.internal.util.SimpleConversions;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -127,10 +130,38 @@ public final class ConfigLoader {
 	/**
 	 * @return The value if not null or else the value from config file if provided or else <code>null</code>.
 	 */
+	@SuppressWarnings("WeakerAccess")
 	public static <T> T valueOrProperty(final T value, final Property property) {
 		return valueOrProperty(value, property, null);
 	}
-
+	
+	/**
+	 * See {@link #valueOrProperty(Object, Property, Object)}.
+	 */
+	@SuppressWarnings("unchecked")
+	@Nullable
+	public static String valueOrPropertyAsString(@Nullable final String value, @Nonnull final Property property, @Nullable final String defaultValue) {
+		return SimpleConversions.convertToString(valueOrProperty(value, property, defaultValue));
+	}
+	
+	/**
+	 * See {@link #valueOrProperty(Object, Property, Object)}.
+	 */
+	@SuppressWarnings("unchecked")
+	@Nullable
+	public static Boolean valueOrPropertyAsBoolean(@Nullable final Boolean value, @Nonnull final Property property, @Nullable final Boolean defaultValue) {
+		return SimpleConversions.convertToBoolean(valueOrProperty(value, property, defaultValue));
+	}
+	
+	/**
+	 * See {@link #valueOrProperty(Object, Property, Object)}.
+	 */
+	@SuppressWarnings("unchecked")
+	@Nullable
+	public static Integer valueOrPropertyAsInteger(@Nullable final Integer value, @Nonnull final Property property, @Nullable final Integer defaultValue) {
+		return SimpleConversions.convertToInteger(valueOrProperty(value, property, defaultValue));
+	}
+	
 	/**
 	 * Returns the given value if not null and not empty, otherwise tries to resolve the given property and if still not found resort to the default value if
 	 * provided.
@@ -139,7 +170,8 @@ public final class ConfigLoader {
 	 *
 	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
 	 */
-	public static <T> T valueOrProperty(final T value, final Property property, final T defaultValue) {
+	@Nullable
+	private static <T> T valueOrProperty(@Nullable final T value, @Nonnull final Property property, @Nullable final T defaultValue) {
 		if (!valueNullOrEmpty(value)) {
 			LOGGER.trace("using provided argument value {} for property {}", value, property);
 			return value;
@@ -156,10 +188,19 @@ public final class ConfigLoader {
 	public static synchronized boolean hasProperty(final Property property) {
 		return !valueNullOrEmpty(RESOLVED_PROPERTIES.get(property));
 	}
-
-	public static synchronized <T> T getProperty(final Property property) {
-		//noinspection unchecked
+	
+	
+	@SuppressWarnings("unchecked")
+	public static <T> T getProperty(Property property) {
 		return (T) RESOLVED_PROPERTIES.get(property);
+	}
+	
+	public static synchronized String getStringProperty(final Property property) {
+		return SimpleConversions.convertToString(RESOLVED_PROPERTIES.get(property));
+	}
+	
+	public static synchronized Integer getIntegerProperty(final Property property) {
+		return SimpleConversions.convertToInteger(RESOLVED_PROPERTIES.get(property));
 	}
 
 	/**

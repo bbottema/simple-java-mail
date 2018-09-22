@@ -64,10 +64,10 @@ public class ConfigLoaderTest {
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
-		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
-		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("preconfiguredValue");
-		assertThat(ConfigLoader.valueOrProperty(null, SMTP_HOST, "backup")).isEqualTo("backup");
-		assertThat(ConfigLoader.valueOrProperty(null, SMTP_HOST, null)).isNull();
+		assertThat(ConfigLoader.valueOrPropertyAsString("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
+		assertThat(ConfigLoader.valueOrPropertyAsString(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("preconfiguredValue");
+		assertThat(ConfigLoader.valueOrPropertyAsString(null, SMTP_HOST, "backup")).isEqualTo("backup");
+		assertThat(ConfigLoader.valueOrPropertyAsString(null, SMTP_HOST, null)).isNull();
 	}
 
 	@Test
@@ -77,10 +77,10 @@ public class ConfigLoaderTest {
 		properties.put(TRANSPORT_STRATEGY, "default");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
-		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
-		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("default");
-		assertThat(ConfigLoader.valueOrProperty("", TRANSPORT_STRATEGY, "backup")).isEqualTo("default");
-		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, null)).isEqualTo("default");
+		assertThat(ConfigLoader.valueOrPropertyAsString("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
+		assertThat(ConfigLoader.valueOrPropertyAsString(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("default");
+		assertThat(ConfigLoader.valueOrPropertyAsString("", TRANSPORT_STRATEGY, "backup")).isEqualTo("default");
+		assertThat(ConfigLoader.valueOrPropertyAsString(null, TRANSPORT_STRATEGY, null)).isEqualTo("default");
 	}
 
 	@Test
@@ -90,10 +90,10 @@ public class ConfigLoaderTest {
 		properties.put(TRANSPORT_STRATEGY, "");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
-		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
-		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("backup");
-		assertThat(ConfigLoader.valueOrProperty("", TRANSPORT_STRATEGY, "backup")).isEqualTo("backup");
-		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY, null)).isNull();
+		assertThat(ConfigLoader.valueOrPropertyAsString("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
+		assertThat(ConfigLoader.valueOrPropertyAsString(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("backup");
+		assertThat(ConfigLoader.valueOrPropertyAsString("", TRANSPORT_STRATEGY, "backup")).isEqualTo("backup");
+		assertThat(ConfigLoader.valueOrPropertyAsString(null, TRANSPORT_STRATEGY, null)).isNull();
 	}
 
 	@Test
@@ -102,8 +102,8 @@ public class ConfigLoaderTest {
 		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
 
-		assertThat(ConfigLoader.valueOrProperty("value", PROXY_USERNAME, "backup")).isEqualTo("value");
-		assertThat(ConfigLoader.valueOrProperty(null, PROXY_USERNAME, "backup")).isEqualTo("username proxy"); // from config file
+		assertThat(ConfigLoader.valueOrPropertyAsString("value", PROXY_USERNAME, "backup")).isEqualTo("value");
+		assertThat(ConfigLoader.valueOrPropertyAsString(null, PROXY_USERNAME, "backup")).isEqualTo("username proxy"); // from config file
 		// cannot be tested:
 		//		System.getenv().put("simplejavamail.proxy.username", "override1");
 		//		restoreOriginalStaticProperties();
@@ -112,7 +112,7 @@ public class ConfigLoaderTest {
 		System.setProperty("simplejavamail.proxy.username", "override2");
 		System.out.println("simplejavamail.proxy.username" + ": " + System.getProperty("simplejavamail.proxy.username"));
 		restoreOriginalStaticProperties();
-		assertThat(ConfigLoader.valueOrProperty(null, PROXY_USERNAME, "backup")).isEqualTo("override2");
+		assertThat(ConfigLoader.valueOrPropertyAsString(null, PROXY_USERNAME, "backup")).isEqualTo("override2");
 	}
 
 	@Test
