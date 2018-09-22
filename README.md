@@ -70,6 +70,11 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 
 ### Latest Progress ###
 
+v5.0.4 (22-September-2018)
+
+- [#168](https://github.com/bbottema/simple-java-mail/issues/168) Properties aquired through ConfigLoader should be typed explicitly and converted if necessary
+
+
 v5.0.3 (11-April-2018)
 
 - [#136](https://github.com/bbottema/simple-java-mail/issues/136) ServerConfig class should be public API
