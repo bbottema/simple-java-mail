@@ -24,4 +24,10 @@ public final class Preconditions {
 		}
 		return true;
 	}
+	
+	public static void assumeTrue(boolean expression, String msg) {
+		if (!expression) {
+			throw new AssertionError("Wrong assumption:\n\t" + msg);
+		}
+	}
 }
