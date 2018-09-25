@@ -1,5 +1,9 @@
 package org.simplejavamail.internal.clisupport;
 
+import com.github.therapi.runtimejavadoc.MethodJavadoc;
+import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
+import org.bbottema.javareflection.MethodUtils;
+import org.bbottema.javareflection.model.LookupMode;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescription;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
@@ -8,14 +12,17 @@ import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
+import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
 
 import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -44,6 +51,10 @@ final class BuilderApiToPicocliCommandsMapper {
 		List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
 		
 		for (Method m : apiNode.getMethods()) {
+			if (methodIsCliCompatible(m)) {
+				// inspect method and use therapi-javadoc instead of our own annotations
+				determineCliCommandName2(m);
+			}
 			if (m.isAnnotationPresent(CliOption.class)) {
 				cliOptions.add(new CliDeclaredOptionSpec(
 						determineCliCommandName(apiNode, m),
@@ -60,6 +71,13 @@ final class BuilderApiToPicocliCommandsMapper {
 		}
 		
 		return cliOptions;
+	}
+	
+	private static boolean methodIsCliCompatible(Method m) {
+		@SuppressWarnings("unchecked")
+		Class<String>[] stringParameters = new Class[m.getParameterTypes().length];
+		Arrays.fill(stringParameters, String.class);
+		return MethodUtils.isMethodCompatible(m, EnumSet.allOf(LookupMode.class), stringParameters);
 	}
 	
 	private static Collection<CliCommandType> determineApplicableRootCommands(Class<?> apiNode, Method m) {
@@ -108,6 +126,14 @@ final class BuilderApiToPicocliCommandsMapper {
 		return colorizeDescriptions(declaredDescriptions);
 	}
 	
+	private static List<String> indentDescriptions(List<String> descriptions, int indents, @SuppressWarnings("SameParameterValue") String indentStr) {
+		List<String> indentedDescriptions = new ArrayList<>();
+		for (String description : descriptions) {
+			indentedDescriptions.add(nStrings(indents, indentStr) + description);
+		}
+		return indentedDescriptions;
+	}
+	
 	static List<String> colorizeDescriptions(List<String> descriptions) {
 		final StringFormatter TOKEN_REPLACER = StringFormatter.formatterForPattern("@|cyan %s|@");
 		
@@ -119,16 +145,6 @@ final class BuilderApiToPicocliCommandsMapper {
 		return colorizedDescriptions;
 	}
 	
-	@Nonnull
-	private static List<String> indentDescriptions(List<String> descriptions, int indents, @SuppressWarnings("SameParameterValue") String indentStr) {
-		List<String> indentedDescriptions = new ArrayList<>();
-		for (String description : descriptions) {
-			indentedDescriptions.add(nStrings(indents, indentStr) + description);
-		}
-		return indentedDescriptions;
-	}
-	
-	@Nonnull
 	private static String describeMethodParameterTypes(Method deferredMethod) {
 		final StringBuilder result = new StringBuilder();
 		for (Class<?> parameterType : deferredMethod.getParameterTypes()) {
@@ -145,7 +161,12 @@ final class BuilderApiToPicocliCommandsMapper {
 		}
 	}
 	
-	@Nonnull
+	private static String determineCliCommandName2(Method m) {
+		MethodJavadoc methodDoc = RuntimeJavadoc.getJavadoc(m);
+		Method methodDelegate = TherapiJavadocHelper.getMethodDelegate(methodDoc.getComment());
+		return null;
+	}
+	
 	private static String determineCliCommandName(Class<?> apiNode, Method m) {
 		String cliCommandPrefix = apiNode.getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
 		String cliCommandNameOverride = m.getAnnotation(CliOption.class).nameOverride();
@@ -153,7 +174,6 @@ final class BuilderApiToPicocliCommandsMapper {
 		return "--" + (!cliCommandPrefix.isEmpty() ? cliCommandPrefix + ":" : "") + effectiveCommandName;
 	}
 	
-	@Nonnull
 	private static List<CliDeclaredOptionValue> getArgumentsForCliOption(Method m) {
 		final List<CliDeclaredOptionValue> cliParams = new ArrayList<>();
 		final Annotation[][] annotations = m.getParameterAnnotations();
@@ -176,7 +196,6 @@ final class BuilderApiToPicocliCommandsMapper {
 		throw new AssertionError(format("CliOption for method \"%s\" missing @CliOptionValue annotation for method param: \n\t %s", m.getName(), m));
 	}
 	
-	@Nonnull
 	private static String determineCliParamName(CliOptionValue cliOptionValueAnnotation, Class<?> cliParamType) {
 		return !cliOptionValueAnnotation.name().isEmpty() ? cliOptionValueAnnotation.name() : cliParamType.getSimpleName();
 	}

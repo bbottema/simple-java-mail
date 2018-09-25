@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--suppress XmlUnboundNsPrefix -->
+<configuration status="INFO">
+    <appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss} [%t] %-5level %c{1} - %msg%n" />
+        </Console>
+    </appenders>
+    <Loggers>
+        <Logger name="org.bbottema.javareflection" level="trace"/>
+
+        <Root level="debug"><AppenderRef ref="console" /></Root>
+        <Root level="trace"><AppenderRef ref="console" /></Root>
+    </Loggers>
+</configuration>
