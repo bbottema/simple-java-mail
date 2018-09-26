@@ -1,7 +1,8 @@
 package org.simplejavamail.mailer;
 
-import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
+import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
 import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
+import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 
 import javax.annotation.Nonnull;
 import javax.mail.Message;
@@ -47,6 +48,7 @@ public class MailerFromSessionBuilder extends MailerGenericBuilder<MailerFromSes
 	 * For all configurable values: if omitted, a default value will be attempted by looking at property files or manually defined defauls.
 	 */
 	@Override
+	@CliExcludeApi
 	public Mailer buildMailer() {
 		return new Mailer(this);
 	}

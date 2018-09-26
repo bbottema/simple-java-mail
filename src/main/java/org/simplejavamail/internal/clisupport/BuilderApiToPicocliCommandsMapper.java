@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,9 +32,6 @@ import java.util.Set;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.EnumSet.allOf;
-import static java.util.EnumSet.of;
-import static org.bbottema.javareflection.BeanUtils.BeanRestriction.YES_GETTER;
-import static org.bbottema.javareflection.BeanUtils.BeanRestriction.YES_SETTER;
 import static org.simplejavamail.internal.util.StringUtil.nStrings;
 import static org.simplejavamail.internal.util.StringUtil.replaceNestedTokens;
 
@@ -57,10 +53,10 @@ final class BuilderApiToPicocliCommandsMapper {
 	private static Collection<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes) {
 		List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
 		
-		for (Method m : apiNode.getMethods()) {
+		for (Method m : apiNode.getMethods()) { // note: only public methods are returned
 			if (methodIsCliCompatible(m)) {
 				// inspect method and use therapi-javadoc instead of our own annotations
-				determineCliCommandName2(m);
+				System.out.println(determineCliCommandName2(m));
 			}
 			if (m.isAnnotationPresent(CliOption.class)) {
 				cliOptions.add(new CliDeclaredOptionSpec(
@@ -81,8 +77,9 @@ final class BuilderApiToPicocliCommandsMapper {
 	}
 	
 	private static boolean methodIsCliCompatible(Method m) {
-		if (m.isAnnotationPresent(CliExcludeApi.class) ||
-				BeanUtils.isBeanMethod(m.getDeclaringClass(), m.getDeclaringClass(), allOf(Visibility.class), of(YES_GETTER, YES_SETTER))) {
+		if (!m.getDeclaringClass().isAnnotationPresent(CliSupportedBuilderApi.class) ||
+				m.isAnnotationPresent(CliExcludeApi.class) ||
+				BeanUtils.isBeanMethod(m, m.getDeclaringClass(), allOf(Visibility.class))) {
 			return false;
 		}
 		@SuppressWarnings("unchecked")
@@ -173,12 +170,17 @@ final class BuilderApiToPicocliCommandsMapper {
 	}
 	
 	private static String determineCliCommandName2(Method m) {
-		MethodJavadoc methodDoc = RuntimeJavadoc.getJavadoc(m);
-		Method methodDelegate = TherapiJavadocHelper.getMethodDelegate(methodDoc.getComment());
-		System.out.println(methodDelegate);
-		return null;
+		final MethodJavadoc methodDoc = RuntimeJavadoc.getJavadoc(m);
+		final Method methodDelegate = TherapiJavadocHelper.getTryFindMethodDelegate(methodDoc.getComment());
+		String cliCommandName = m.getName();
+		if (methodDelegate != null && m.getName().equals(methodDelegate.getName())) {
+			cliCommandName += Math.random(); // FIXME name resolution
+		}
+		final String cliCommandPrefix = m.getDeclaringClass().getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
+		return "--" + (!cliCommandPrefix.isEmpty() ? cliCommandPrefix + ":" : "") + cliCommandName;
 	}
 	
+	@Deprecated
 	private static String determineCliCommandName(Class<?> apiNode, Method m) {
 		String cliCommandPrefix = apiNode.getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
 		String cliCommandNameOverride = m.getAnnotation(CliOption.class).nameOverride();

@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
 import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
@@ -122,6 +123,7 @@ public class MailerBuilder {
 	 * Shortcuts to {@link MailerRegularBuilder#buildMailer()}. This means that none of the builder methods are used and the configuration completely
 	 * depends on defaults being configured from property file ("simplejavamail.properties") on the classpath or through programmatic defaults.
 	 */
+	@CliExcludeApi
 	public static Mailer buildMailer() {
 		return new MailerRegularBuilder().buildMailer();
 	}
@@ -246,6 +248,7 @@ public class MailerBuilder {
 		 * For all configurable values: if omitted, a default value will be attempted by looking at property files or manually defined defauls.
 		 */
 		@Override
+		@CliExcludeApi
 		public Mailer buildMailer() {
 			return new Mailer(this);
 		}
