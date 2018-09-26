@@ -10,6 +10,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)
+@Deprecated
 public @interface CliOptionValue {
 	String name();
 	String description() default "";

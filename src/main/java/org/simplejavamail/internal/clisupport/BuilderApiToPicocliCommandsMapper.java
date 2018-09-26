@@ -10,6 +10,7 @@ import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescription;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
+import org.simplejavamail.internal.clisupport.annotation.CliOptionNameOverride;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
 import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
@@ -174,7 +175,12 @@ final class BuilderApiToPicocliCommandsMapper {
 		final Method methodDelegate = TherapiJavadocHelper.getTryFindMethodDelegate(methodDoc.getComment());
 		String cliCommandName = m.getName();
 		if (methodDelegate != null && m.getName().equals(methodDelegate.getName())) {
-			cliCommandName += Math.random(); // FIXME name resolution
+			if (!m.isAnnotationPresent(CliOptionNameOverride.class)) {
+				throw new AssertionError("@CliOptionNameOverride needed, please add it to method " + m);
+			}
+			cliCommandName = m.getAnnotation(CliOptionNameOverride.class).value();
+		} else if (m.isAnnotationPresent(CliOptionNameOverride.class)) {
+			throw new AssertionError("@CliOptionNameOverride not needed, please remove it from method" + m);
 		}
 		final String cliCommandPrefix = m.getDeclaringClass().getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
 		return "--" + (!cliCommandPrefix.isEmpty() ? cliCommandPrefix + ":" : "") + cliCommandName;
