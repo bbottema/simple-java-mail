@@ -2,8 +2,11 @@ package org.simplejavamail.internal.clisupport;
 
 import com.github.therapi.runtimejavadoc.MethodJavadoc;
 import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
+import org.bbottema.javareflection.BeanUtils;
+import org.bbottema.javareflection.BeanUtils.Visibility;
 import org.bbottema.javareflection.MethodUtils;
 import org.bbottema.javareflection.model.LookupMode;
+import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescription;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
@@ -29,6 +32,10 @@ import java.util.Set;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static java.util.EnumSet.allOf;
+import static java.util.EnumSet.of;
+import static org.bbottema.javareflection.BeanUtils.BeanRestriction.YES_GETTER;
+import static org.bbottema.javareflection.BeanUtils.BeanRestriction.YES_SETTER;
 import static org.simplejavamail.internal.util.StringUtil.nStrings;
 import static org.simplejavamail.internal.util.StringUtil.replaceNestedTokens;
 
@@ -74,10 +81,14 @@ final class BuilderApiToPicocliCommandsMapper {
 	}
 	
 	private static boolean methodIsCliCompatible(Method m) {
+		if (m.isAnnotationPresent(CliExcludeApi.class) ||
+				BeanUtils.isBeanMethod(m.getDeclaringClass(), m.getDeclaringClass(), allOf(Visibility.class), of(YES_GETTER, YES_SETTER))) {
+			return false;
+		}
 		@SuppressWarnings("unchecked")
 		Class<String>[] stringParameters = new Class[m.getParameterTypes().length];
 		Arrays.fill(stringParameters, String.class);
-		return MethodUtils.isMethodCompatible(m, EnumSet.allOf(LookupMode.class), stringParameters);
+		return MethodUtils.isMethodCompatible(m, allOf(LookupMode.class), stringParameters);
 	}
 	
 	private static Collection<CliCommandType> determineApplicableRootCommands(Class<?> apiNode, Method m) {
@@ -164,6 +175,7 @@ final class BuilderApiToPicocliCommandsMapper {
 	private static String determineCliCommandName2(Method m) {
 		MethodJavadoc methodDoc = RuntimeJavadoc.getJavadoc(m);
 		Method methodDelegate = TherapiJavadocHelper.getMethodDelegate(methodDoc.getComment());
+		System.out.println(methodDelegate);
 		return null;
 	}
 	

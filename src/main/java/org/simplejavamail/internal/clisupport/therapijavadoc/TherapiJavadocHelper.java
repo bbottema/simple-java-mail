@@ -6,14 +6,17 @@ import com.github.therapi.runtimejavadoc.CommentText;
 import com.github.therapi.runtimejavadoc.InlineLink;
 import com.github.therapi.runtimejavadoc.Link;
 import org.bbottema.javareflection.ClassUtils;
+import org.bbottema.javareflection.MethodUtils;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
-import java.util.Arrays;
+import java.util.Set;
 import java.util.regex.Pattern;
 
+import static java.lang.String.format;
 import static java.util.regex.Pattern.compile;
 import static java.util.regex.Pattern.quote;
+import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 public final class TherapiJavadocHelper {
 	
@@ -48,7 +51,10 @@ public final class TherapiJavadocHelper {
 	
 	private static Method findMethodForLink(Link link) {
 		Class<?> aClass = ClassUtils.locateClass(link.getReferencedClassName(), "org.simplejavamail", null);
-		System.out.println(aClass + "." + link.getReferencedMemberName() + "(" + Arrays.toString(link.getParams()) + ")");
-		return null;
+		assumeTrue(aClass != null, "Class not found for @link: " + link);
+		Set<Method> matchingMethods = MethodUtils.findMatchingMethods(aClass, link.getReferencedMemberName(), link.getParams());
+		assumeTrue(!matchingMethods.isEmpty(), format("Method not found on %s for @link: %s", aClass, link));
+		assumeTrue(matchingMethods.size() == 1, format("Multiple methods on %s match given @link's signature: %s", aClass, link));
+		return matchingMethods.iterator().next();
 	}
 }

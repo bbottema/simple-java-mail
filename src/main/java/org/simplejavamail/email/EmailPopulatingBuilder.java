@@ -1,6 +1,7 @@
 package org.simplejavamail.email;
 
 import org.simplejavamail.email.EmailBuilder.EmailBuilderInstance;
+import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
 import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
@@ -229,6 +230,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument.
 	 */
+	@CliExcludeApi
 	public Email buildEmail() {
 		return new Email(this);
 	}
