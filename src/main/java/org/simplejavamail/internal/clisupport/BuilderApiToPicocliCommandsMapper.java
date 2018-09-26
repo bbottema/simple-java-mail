@@ -33,6 +33,7 @@ import java.util.Set;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.EnumSet.allOf;
+import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.StringUtil.nStrings;
 import static org.simplejavamail.internal.util.StringUtil.replaceNestedTokens;
 
@@ -183,7 +184,8 @@ final class BuilderApiToPicocliCommandsMapper {
 			throw new AssertionError("@CliOptionNameOverride not needed, please remove it from method" + m);
 		}
 		final String cliCommandPrefix = m.getDeclaringClass().getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
-		return "--" + (!cliCommandPrefix.isEmpty() ? cliCommandPrefix + ":" : "") + cliCommandName;
+		assumeTrue(!cliCommandPrefix.isEmpty(), "Option prefix missing from API class");
+		return format("--%s:%s", cliCommandPrefix, cliCommandName);
 	}
 	
 	@Deprecated
