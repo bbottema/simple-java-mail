@@ -58,7 +58,7 @@ final class BuilderApiToPicocliCommandsMapper {
 		for (Method m : apiNode.getMethods()) { // note: only public methods are returned
 			if (methodIsCliCompatible(m)) {
 				// inspect method and use therapi-javadoc instead of our own annotations
-				System.out.println(determineCliCommandName2(m));
+				System.out.println(determineCliCommandName(apiNode, m));
 			}
 			if (m.isAnnotationPresent(CliOption.class)) {
 				cliOptions.add(new CliDeclaredOptionSpec(
@@ -81,7 +81,8 @@ final class BuilderApiToPicocliCommandsMapper {
 	private static boolean methodIsCliCompatible(Method m) {
 		if (!m.getDeclaringClass().isAnnotationPresent(CliSupportedBuilderApi.class) ||
 				m.isAnnotationPresent(CliExcludeApi.class) ||
-				BeanUtils.isBeanMethod(m, m.getDeclaringClass(), allOf(Visibility.class))) {
+				BeanUtils.isBeanMethod(m, m.getDeclaringClass(), allOf(Visibility.class)) ||
+				containsCollectionParameter(m)) {
 			return false;
 		}
 		@SuppressWarnings("unchecked")
@@ -89,7 +90,17 @@ final class BuilderApiToPicocliCommandsMapper {
 		Arrays.fill(stringParameters, String.class);
 		return MethodUtils.isMethodCompatible(m, allOf(LookupMode.class), stringParameters);
 	}
-	
+
+	// FIXME move to Java Reflection library
+	private static boolean containsCollectionParameter(Method m) {
+		for (Class<?> parameterType : m.getParameterTypes()) {
+			if (parameterType.isArray() || Iterable.class.isAssignableFrom(parameterType)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private static Collection<CliCommandType> determineApplicableRootCommands(Class<?> apiNode, Method m) {
 		CliSupportedBuilderApi cliSupportedBuilderApi = apiNode.getAnnotation(CliSupportedBuilderApi.class);
 		CliOption cliOption = m.getAnnotation(CliOption.class);
@@ -170,30 +181,31 @@ final class BuilderApiToPicocliCommandsMapper {
 			throw new AssertionError("@CliOptionDescriptionDelegate configured incorrectly, method not found for: " + cliOptionDescriptionDelegate);
 		}
 	}
-	
-	private static String determineCliCommandName2(Method m) {
+
+	@Nonnull
+	private static String determineCliCommandName(Class<?> apiNode, Method m) {
 		final MethodJavadoc methodDoc = RuntimeJavadoc.getJavadoc(m);
 		final Method methodDelegate = TherapiJavadocHelper.getTryFindMethodDelegate(methodDoc.getComment());
 		String cliCommandName = m.getName();
-		if (methodDelegate != null && m.getName().equals(methodDelegate.getName())) {
-			if (!m.isAnnotationPresent(CliOptionNameOverride.class)) {
-				throw new AssertionError("@CliOptionNameOverride needed, please add it to method " + m);
+
+		if (methodDelegate != null && methodIsCliCompatible(methodDelegate)) {
+			final String methodDelegateName = methodDelegate.isAnnotationPresent(CliOptionNameOverride.class)
+					? methodDelegate.getAnnotation(CliOptionNameOverride.class).value()
+					: methodDelegate.getName();
+
+			if (m.getName().equals(methodDelegateName)) {
+				if (!m.isAnnotationPresent(CliOptionNameOverride.class)) {
+					throw new AssertionError("@CliOptionNameOverride needed, please rename method or add name override to it (or its delegate): " + m);
+				}
+				cliCommandName = m.getAnnotation(CliOptionNameOverride.class).value();
+			} else if (m.isAnnotationPresent(CliOptionNameOverride.class)) {
+				throw new AssertionError("@CliOptionNameOverride not needed, please remove it from method" + m);
 			}
-			cliCommandName = m.getAnnotation(CliOptionNameOverride.class).value();
-		} else if (m.isAnnotationPresent(CliOptionNameOverride.class)) {
-			throw new AssertionError("@CliOptionNameOverride not needed, please remove it from method" + m);
 		}
-		final String cliCommandPrefix = m.getDeclaringClass().getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
+
+		final String cliCommandPrefix = apiNode.getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
 		assumeTrue(!cliCommandPrefix.isEmpty(), "Option prefix missing from API class");
 		return format("--%s:%s", cliCommandPrefix, cliCommandName);
-	}
-	
-	@Deprecated
-	private static String determineCliCommandName(Class<?> apiNode, Method m) {
-		String cliCommandPrefix = apiNode.getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
-		String cliCommandNameOverride = m.getAnnotation(CliOption.class).nameOverride();
-		String effectiveCommandName = cliCommandNameOverride.isEmpty() ? m.getName() : cliCommandNameOverride;
-		return "--" + (!cliCommandPrefix.isEmpty() ? cliCommandPrefix + ":" : "") + effectiveCommandName;
 	}
 	
 	private static List<CliDeclaredOptionValue> getArgumentsForCliOption(Method m) {

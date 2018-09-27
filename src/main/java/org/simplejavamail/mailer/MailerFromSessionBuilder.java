@@ -48,7 +48,7 @@ public class MailerFromSessionBuilder extends MailerGenericBuilder<MailerFromSes
 	 * For all configurable values: if omitted, a default value will be attempted by looking at property files or manually defined defauls.
 	 */
 	@Override
-	@CliExcludeApi
+	@CliExcludeApi(reason = "This API is specifically for Java use")
 	public Mailer buildMailer() {
 		return new Mailer(this);
 	}

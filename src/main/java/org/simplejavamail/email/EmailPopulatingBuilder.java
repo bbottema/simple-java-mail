@@ -2,12 +2,13 @@ package org.simplejavamail.email;
 
 import org.simplejavamail.email.EmailBuilder.EmailBuilderInstance;
 import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
-import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescription;
+import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
+import org.simplejavamail.internal.clisupport.annotation.CliOptionNameOverride;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
 import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
+import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
@@ -230,7 +231,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument.
 	 */
-	@CliExcludeApi
+	@CliExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmail() {
 		return new Email(this);
 	}
@@ -247,10 +248,11 @@ public class EmailPopulatingBuilder {
 		this.id = id;
 		return this;
 	}
-	
+
 	/**
 	 * Delegates to {@link #from(String, String)} with empty name.
 	 */
+	@CliOptionNameOverride("fromAddress")
 	public EmailPopulatingBuilder from(@Nonnull final String fromAddress) {
 		return from(null, fromAddress);
 	}
@@ -305,6 +307,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given email address (or null if missing).
 	 */
+	@CliOptionNameOverride("withReplyToAddress")
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String replyToAddress) {
 		return withReplyTo(replyToAddress != null ? new Recipient(null, replyToAddress, null) : null);
 	}
@@ -372,6 +375,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and address.
 	 */
+	@CliExcludeApi(reason = "Method is not detailed enough for CLI")
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String name, @Nonnull final InternetAddress bounceToAddress) {
 		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
 		return withBounceTo(new Recipient(name, bounceToAddress.getAddress(), null));
@@ -500,7 +504,7 @@ public class EmailPopulatingBuilder {
 	public EmailPopulatingBuilder to(@Nonnull final Recipient... recipients) {
 		return withRecipients(asList(recipients), TO);
 	}
-	
+
 	/**
 	 * Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#TO}.
 	 */
@@ -514,6 +518,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Alias for {@link #toWithFixedName(String, String...)}.
 	 */
+	@CliOptionNameOverride("toFixedName")
 	public EmailPopulatingBuilder to(@Nullable final String name, String address) {
 		return toWithFixedName(name, address);
 	}
@@ -551,14 +556,14 @@ public class EmailPopulatingBuilder {
 	public EmailPopulatingBuilder toMultiple(@Nonnull final String... oneOrMoreAddressesEach) {
 		return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), TO);
 	}
-	
+
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO} and empty default name.
 	 */
 	public EmailPopulatingBuilder toMultiple(@Nonnull final Collection<String> oneOrMoreAddressesEach) {
 		return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, TO);
 	}
-	
+
 	/**
 	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#TO}.
 	 */
@@ -1285,6 +1290,7 @@ public class EmailPopulatingBuilder {
 	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
 	 * dkimPrivateKey} string converted to UTF_8 byte array.
 	 */
+	@CliExcludeApi(reason = "delegated method is a superset of this method")
 	public EmailPopulatingBuilder signWithDomainKey(@Nonnull final String dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
 		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
 		return signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey.getBytes(UTF_8)), signingDomain, dkimSelector);
@@ -1342,6 +1348,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
 	 */
+	@CliOptionNameOverride("withDispositionNotificationToAddress")
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nonnull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
 		return withDispositionNotificationTo(new Recipient(null, address, null));
@@ -1395,6 +1402,7 @@ public class EmailPopulatingBuilder {
 	 * <p>
 	 * For more detailed information, refer to {@link #withReturnReceiptTo(Recipient)}.
 	 */
+	@CliOptionNameOverride("withReturnReceiptToEnabled")
 	public EmailPopulatingBuilder withReturnReceiptTo() {
 		this.useReturnReceiptTo = true;
 		this.returnReceiptTo = null;
@@ -1404,6 +1412,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
 	 */
+	@CliOptionNameOverride("withReturnReceiptToAddress")
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nonnull final String address) {
 		checkNonEmptyArgument(address, "address");
 		return withReturnReceiptTo(new Recipient(null, address, null));
