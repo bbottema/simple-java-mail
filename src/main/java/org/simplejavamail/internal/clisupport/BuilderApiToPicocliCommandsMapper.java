@@ -17,7 +17,9 @@ import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
+import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.MethodParam;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
+import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
@@ -36,9 +38,12 @@ import static java.util.EnumSet.allOf;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.StringUtil.nStrings;
 import static org.simplejavamail.internal.util.StringUtil.replaceNestedTokens;
+import static org.slf4j.LoggerFactory.getLogger;
 
 final class BuilderApiToPicocliCommandsMapper {
 
+	private static final Logger LOGGER = getLogger(BuilderApiToPicocliCommandsMapper.class);
+	
 	private BuilderApiToPicocliCommandsMapper() {
 	}
 	
@@ -55,21 +60,20 @@ final class BuilderApiToPicocliCommandsMapper {
 	private static Collection<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes) {
 		List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
 		
+		processedApiNodes.add(apiNode);
+		
 		for (Method m : apiNode.getMethods()) { // note: only public methods are returned
 			if (methodIsCliCompatible(m)) {
-				// inspect method and use therapi-javadoc instead of our own annotations
-				System.out.println(determineCliCommandName(apiNode, m));
-			}
-			if (m.isAnnotationPresent(CliOption.class)) {
+				final String optionName = determineCliOptionName(apiNode, m);
+				LOGGER.debug("option {} found for {}.{}({})", optionName, apiNode.getSimpleName(), m.getName(), m.getParameterTypes());
 				cliOptions.add(new CliDeclaredOptionSpec(
-						determineCliCommandName(apiNode, m),
-						determineCliCommandDescriptions(m, 0),
+						optionName,
+						determineCliOptionDescriptions(m, 0),
 						getArgumentsForCliOption(m),
 						determineApplicableRootCommands(apiNode, m),
 						m));
 				Class<?> potentialNestedApiNode = m.getReturnType();
 				if (potentialNestedApiNode.isAnnotationPresent(CliSupportedBuilderApi.class) && !processedApiNodes.contains(potentialNestedApiNode)) {
-					processedApiNodes.add(potentialNestedApiNode);
 					cliOptions.addAll(generateOptionsFromBuilderApi(potentialNestedApiNode, processedApiNodes));
 				}
 			}
@@ -103,23 +107,22 @@ final class BuilderApiToPicocliCommandsMapper {
 
 	private static Collection<CliCommandType> determineApplicableRootCommands(Class<?> apiNode, Method m) {
 		CliSupportedBuilderApi cliSupportedBuilderApi = apiNode.getAnnotation(CliSupportedBuilderApi.class);
-		CliOption cliOption = m.getAnnotation(CliOption.class);
-		return cliOption.applicableRootCommands().length > 0
-				? asList(cliOption.applicableRootCommands())
-				: asList(cliSupportedBuilderApi.applicableRootCommands());
+		return asList(cliSupportedBuilderApi.applicableRootCommands());
 	}
 	
 	@Nonnull
-	private static List<String> determineCliCommandDescriptions(Method m, int nestingDepth) {
+	private static List<String> determineCliOptionDescriptions(Method m, int nestingDepth) {
 		final String NESTED_DESCRIPTION_INDENT_STR = "  ";
 		
-		final List<String> declaredDescriptions = m.isAnnotationPresent(CliOption.class)
-				? indentDescriptions(asList(m.getAnnotation(CliOption.class).description()), nestingDepth, NESTED_DESCRIPTION_INDENT_STR)
-				: new ArrayList<String>();
+		final List<String> declaredDescriptions = asList(TherapiJavadocHelper.getJavadoc(m));
 		
-		if (declaredDescriptions.isEmpty() && m.isAnnotationPresent(CliOptionDescription.class)) {
-			declaredDescriptions.addAll(indentDescriptions(asList(m.getAnnotation(CliOptionDescription.class).value()), nestingDepth, NESTED_DESCRIPTION_INDENT_STR));
-		}
+//		final List<String> declaredDescriptions = m.isAnnotationPresent(CliOption.class)
+//				? indentDescriptions(asList(m.getAnnotation(CliOption.class).description()), nestingDepth, NESTED_DESCRIPTION_INDENT_STR)
+//				: new ArrayList<String>();
+//
+//		if (declaredDescriptions.isEmpty() && m.isAnnotationPresent(CliOptionDescription.class)) {
+//			declaredDescriptions.addAll(indentDescriptions(asList(m.getAnnotation(CliOptionDescription.class).value()), nestingDepth, NESTED_DESCRIPTION_INDENT_STR));
+//		}
 		
 		// check nested descriptions
 		if (m.isAnnotationPresent(CliOptionDescriptionDelegate.class)) {
@@ -137,7 +140,7 @@ final class BuilderApiToPicocliCommandsMapper {
 					delegate.delegateMethod(),
 					describeMethodParameterTypes(deferredMethod)));
 			
-			declaredDescriptions.addAll(determineCliCommandDescriptions(deferredMethod, nestingDepth + 1));
+			declaredDescriptions.addAll(determineCliOptionDescriptions(deferredMethod, nestingDepth + 1));
 		}
 		
 		if (declaredDescriptions.isEmpty()) {
@@ -183,7 +186,7 @@ final class BuilderApiToPicocliCommandsMapper {
 	}
 
 	@Nonnull
-	private static String determineCliCommandName(Class<?> apiNode, Method m) {
+	private static String determineCliOptionName(Class<?> apiNode, Method m) {
 		final MethodJavadoc methodDoc = RuntimeJavadoc.getJavadoc(m);
 		final Method methodDelegate = TherapiJavadocHelper.getTryFindMethodDelegate(methodDoc.getComment());
 		String cliCommandName = m.getName();
@@ -210,14 +213,18 @@ final class BuilderApiToPicocliCommandsMapper {
 	
 	private static List<CliDeclaredOptionValue> getArgumentsForCliOption(Method m) {
 		final List<CliDeclaredOptionValue> cliParams = new ArrayList<>();
-		final Annotation[][] annotations = m.getParameterAnnotations();
-		final Class<?>[] parameterTypes = m.getParameterTypes();
-		for (int i = 0; i < parameterTypes.length; i++) {
-			Class<?> p = parameterTypes[i];
-			CliOptionValue pa = findCliParamAnnotation(annotations[i], CliOptionValue.class, m);
-			cliParams.add(new CliDeclaredOptionValue(p, determineCliParamName(pa, p), pa.helpLabel(), pa.description(), pa.required(), pa.example()));
+		for (MethodParam p : TherapiJavadocHelper.getParamDescriptions(m)) {
+			// FIXME extract examples from javadoc
+			cliParams.add(new CliDeclaredOptionValue(p.getType(), p.getName(), p.getType().getSimpleName().toUpperCase(), p.getJavadoc(), true, null));
 		}
 		return cliParams;
+		
+//		final Annotation[][] annotations = m.getParameterAnnotations();
+//		final Class<?>[] parameterTypes = m.getParameterTypes();
+//		for (int i = 0; i < parameterTypes.length; i++) {
+//			Class<?> p = parameterTypes[i];
+//			CliOptionValue pa = findCliParamAnnotation(annotations[i], CliOptionValue.class, m);
+//		}
 	}
 	
 	@SuppressWarnings({"unchecked", "SameParameterValue"})

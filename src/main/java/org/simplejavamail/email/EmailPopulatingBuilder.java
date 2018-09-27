@@ -242,6 +242,8 @@ public class EmailPopulatingBuilder {
 	 * Note that id can only ever be filled by end-users for sending an email. This library will never fill this field when converting a MimeMessage.
 	 * <p>
 	 * The id-format should be conform <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
+	 *
+	 * @param id The mime message id, something like "<123@456>"
 	 */
 	@CliOption(description = "FIXME")
 	public EmailPopulatingBuilder fixingMessageId(@Nullable @CliOptionValue(name="id", helpLabel = "MIMEMESSAGE_ID", example = "\"<123@456>\"") final String id) {
@@ -1356,6 +1358,9 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided name and address.
+	 *
+	 * @param name Name of the receiver of the notification
+	 * @param address The address of the receiver of the notification
 	 */
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nullable final String name, @Nonnull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
