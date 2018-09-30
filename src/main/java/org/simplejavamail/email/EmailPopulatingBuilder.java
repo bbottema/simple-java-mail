@@ -253,14 +253,19 @@ public class EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #from(String, String)} with empty name.
+	 *
+	 * @param fromAddress The sender address visible to receivers of the email.
 	 */
-	@CliOptionNameOverride("fromAddress")
+	@CliExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder from(@Nonnull final String fromAddress) {
 		return from(null, fromAddress);
 	}
 	
 	/**
 	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
+	 *
+	 * @param name The name that will be visible to the receivers of this email.
+	 * @param fromAddress The address that will be visible to the receivers of this email.
 	 */
 	@CliOption(description = "Delegates to email:from(Recipient) with a new Recipient wrapped around the given name and email address.")
 	@CliOptionDescriptionDelegate(delegateClass = EmailPopulatingBuilder.class, delegateMethod = "from", delegateParameters = Recipient.class)
@@ -308,14 +313,19 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given email address (or null if missing).
+	 *
+	 * @param replyToAddress The address that receivers will get when they reply to the email.
 	 */
-	@CliOptionNameOverride("withReplyToAddress")
+	@CliExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String replyToAddress) {
 		return withReplyTo(replyToAddress != null ? new Recipient(null, replyToAddress, null) : null);
 	}
 	
 	/**
 	 * Delegates to {@link #withReplyTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and email address.
+	 *
+	 * @param fixedName Optional name that receivers will get when they reply to the email.
+	 * @param replyToAddress The address that receivers will get when they reply to the email. Any name included in the address will be ignored.
 	 */
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String fixedName, @Nonnull final String replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
@@ -354,13 +364,19 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the email address (or null if missing).
+	 *
+	 * @param bounceToAddress The address of the receiver of the bounced email
 	 */
+	@CliExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String bounceToAddress) {
 		return withBounceTo(bounceToAddress != null ? new Recipient(null, bounceToAddress, null) : null);
 	}
 	
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
+	 *
+	 * @param name Name of the receiver of the bounced email
+	 * @param bounceToAddress The address of the receiver of the bounced email
 	 */
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String name, @Nonnull final String bounceToAddress) {
 		return withBounceTo(new Recipient(name, checkNonEmptyArgument(bounceToAddress, "bounceToAddress"), null));
@@ -400,6 +416,8 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Sets the optional subject of this email.
+	 *
+	 * @param subject Optional text to be used in the subject field of the email.
 	 */
 	public EmailPopulatingBuilder withSubject(@Nullable final String subject) {
 		this.subject = subject;
@@ -420,6 +438,9 @@ public class EmailPopulatingBuilder {
 	 * Both text and HTML can be provided, which will  be offered to the email client as alternative content. Email clients that support it, will
 	 * favor HTML over plain text and ignore the text body completely.
 	 *
+	 * @param text Plain text to set as email body (overwrites any previous plain text body). If no HTML body is included as well, plain text
+	 *                would be used instead by the email client.
+	 *
 	 * @see #prependText(String)
 	 * @see #appendText(String)
 	 */
@@ -431,6 +452,8 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Prepends text to the current plain text body (or starts it if plain text body is missing).
 	 *
+	 * @param text The plain text to prepend to whatever plain text is already there.
+	 *
 	 * @see #withPlainText(String)
 	 */
 	public EmailPopulatingBuilder prependText(@Nonnull final String text) {
@@ -440,6 +463,8 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Appends text to the current plain text body (or starts it if plain text body is missing).
+	 *
+	 * @param text The plain text to append to whatever plain text is already there.
 	 *
 	 * @see #withPlainText(String)
 	 */
@@ -454,6 +479,9 @@ public class EmailPopulatingBuilder {
 	 * Both text and HTML can be provided, which will  be offered to the email client as alternative content. Email clients that support it, will
 	 * favor HTML over plain text and ignore the text body completely.
 	 *
+	 * @param textHTML HTML text to set as email body (overwrites any previous HTML text body). If no HTML body is included, plain text
+	 *                would be used instead by the email client if provided.
+	 *
 	 * @see #prependTextHTML(String)
 	 * @see #appendTextHTML(String)
 	 */
@@ -465,6 +493,8 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Prepends HTML text to the current HTML text body (or starts it if HTML text body is missing).
 	 *
+	 * @param textHTML The HTML text to prepend to whatever is already there in the body.
+	 *
 	 * @see #withHTMLText(String)
 	 */
 	public EmailPopulatingBuilder prependTextHTML(@Nonnull final String textHTML) {
@@ -474,6 +504,8 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Appends HTML text to the current HTML text body (or starts it if HTML text body is missing).
+	 *
+	 * @param textHTML The HTML text to append to whatever is already there in the body.
 	 *
 	 * @see #withHTMLText(String)
 	 */
@@ -519,18 +551,23 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Alias for {@link #toWithFixedName(String, String...)}.
+	 *
+	 * @param name The optional name of the TO receiver(s) of the email. If multiples addresses are provided, all addresses will be in this same name.
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses of TO receiver(s). Any names included are ignored if a name was provided.
 	 */
-	@CliOptionNameOverride("toFixedName")
-	public EmailPopulatingBuilder to(@Nullable final String name, String address) {
-		return toWithFixedName(name, address);
+	public EmailPopulatingBuilder to(@Nullable final String name, String oneOrMoreAddresses) {
+		return toWithFixedName(name, oneOrMoreAddresses);
 	}
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO} and empty default name.
+	 *
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses.
 	 */
 	@CliOption(description = "Delegates to withRecipientsWithDefaultName(String, Collection, RecipientType) with RecipientType.TO and empty default name.")
 	@CliOptionDescriptionDelegate(delegateClass = EmailPopulatingBuilder.class, delegateMethod = "withRecipientsWithDefaultName",
 			delegateParameters = {String.class, Collection.class, RecipientType.class})
+	@CliExcludeApi(reason = "API is subset of another API method")
 	public EmailPopulatingBuilder to(
 			@CliOptionValue(name = "oneOrMoreAddresses", helpLabel = "STRING", description = "Single RFC2822 address or delimited list of RFC2822 addresses.",
 			example = { "lolly.pop@pretzelfun.com", "Lolly Pop<lolly.pop@pretzelfun.com>", "a1@b1.c1,a2@b2.c2,a3@b3.c3", "a1@b1.c1;a2@b2.c2;a3@b3.c3" })
@@ -689,14 +726,20 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Alias for {@link #ccWithFixedName(String, String...)}.
+	 *
+	 * @param name The optional name of the CC receiver(s) of the email. If multiples addresses are provided, all addresses will be in this same name.
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses of CC receiver(s). Any names included are ignored if a name was provided.
 	 */
-	public EmailPopulatingBuilder cc(@Nullable final String name, String address) {
-		return ccWithFixedName(name, address);
+	public EmailPopulatingBuilder cc(@Nullable final String name, String oneOrMoreAddresses) {
+		return ccWithFixedName(name, oneOrMoreAddresses);
 	}
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC} and empty default name.
+	 *
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses.
 	 */
+	@CliExcludeApi(reason = "API is subset of another API method")
 	public EmailPopulatingBuilder cc(@Nonnull final String oneOrMoreAddresses) {
 		return withRecipientsWithDefaultName(null, singletonList(oneOrMoreAddresses), CC);
 	}
@@ -853,14 +896,20 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Alias for {@link #bccWithFixedName(String, String...)}.
+	 *
+	 * @param name The optional name of the BCC receiver(s) of the email. If multiples addresses are provided, all addresses will be in this same name.
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses of BCC receiver(s). Any names included are ignored if a name was provided.
 	 */
-	public EmailPopulatingBuilder bcc(@Nullable final String name, String address) {
-		return bccWithFixedName(name, address);
+	public EmailPopulatingBuilder bcc(@Nullable final String name, String oneOrMoreAddresses) {
+		return bccWithFixedName(name, oneOrMoreAddresses);
 	}
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name.
+	 *
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses.
 	 */
+	@CliExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder bcc(@Nonnull final String oneOrMoreAddresses) {
 		return withRecipientsWithDefaultName(null, singletonList(oneOrMoreAddresses), BCC);
 	}
@@ -1341,6 +1390,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
+	@CliOptionNameOverride("withDispositionNotificationToEnabled")
 	public EmailPopulatingBuilder withDispositionNotificationTo() {
 		this.useDispositionNotificationTo = true;
 		this.dispositionNotificationTo = null;
@@ -1349,8 +1399,10 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
+	 *
+	 * @param address The address of the receiver of the notification
 	 */
-	@CliOptionNameOverride("withDispositionNotificationToAddress")
+	@CliExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nonnull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
 		return withDispositionNotificationTo(new Recipient(null, address, null));
@@ -1359,7 +1411,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided name and address.
 	 *
-	 * @param name Name of the receiver of the notification
+	 * @param name Optional name of the receiver of the notification
 	 * @param address The address of the receiver of the notification
 	 */
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nullable final String name, @Nonnull final String address) {
@@ -1416,8 +1468,10 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
+	 *
+	 * @param address The address of the receiver of the bounced email
 	 */
-	@CliOptionNameOverride("withReturnReceiptToAddress")
+	@CliExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nonnull final String address) {
 		checkNonEmptyArgument(address, "address");
 		return withReturnReceiptTo(new Recipient(null, address, null));
@@ -1425,6 +1479,9 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided name and address.
+	 *
+	 * @param name Name of the receiver of the receipt notification
+	 * @param address The address of the receiver of the receipt notification
 	 */
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nullable final String name, @Nonnull final String address) {
 		checkNonEmptyArgument(address, "address");

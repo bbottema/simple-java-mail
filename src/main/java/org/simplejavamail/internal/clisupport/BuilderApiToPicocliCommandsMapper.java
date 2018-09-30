@@ -6,9 +6,9 @@ import org.bbottema.javareflection.BeanUtils;
 import org.bbottema.javareflection.BeanUtils.Visibility;
 import org.bbottema.javareflection.MethodUtils;
 import org.bbottema.javareflection.model.LookupMode;
+import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionDescription;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionNameOverride;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
@@ -17,32 +17,53 @@ import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
-import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.MethodParam;
+import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToMimeMessageFunction;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
 import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.mail.internet.MimeMessage;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static java.util.EnumSet.allOf;
+import static org.bbottema.javareflection.TypeUtils.containsAnnotation;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.StringUtil.nStrings;
 import static org.simplejavamail.internal.util.StringUtil.replaceNestedTokens;
 import static org.slf4j.LoggerFactory.getLogger;
 
-final class BuilderApiToPicocliCommandsMapper {
+public final class BuilderApiToPicocliCommandsMapper {
 
 	private static final Logger LOGGER = getLogger(BuilderApiToPicocliCommandsMapper.class);
+	private static final Map<Class<?>, String> TYPE_LABELS = new HashMap<>();
+	
+	static {
+		TYPE_LABELS.put(boolean.class, "BOOL");
+		TYPE_LABELS.put(Boolean.class, "BOOL");
+		TYPE_LABELS.put(String.class, "TEXT");
+		TYPE_LABELS.put(Object.class, "TEXT");
+		TYPE_LABELS.put(int.class, "NUM");
+		TYPE_LABELS.put(Integer.class, "NUM");
+		TYPE_LABELS.put(MimeMessage.class, "FILE PATH");
+		
+		ValueConversionHelper.registerValueConverter(new StringToMimeMessageFunction());
+	}
 	
 	private BuilderApiToPicocliCommandsMapper() {
 	}
@@ -66,6 +87,15 @@ final class BuilderApiToPicocliCommandsMapper {
 			if (methodIsCliCompatible(m)) {
 				final String optionName = determineCliOptionName(apiNode, m);
 				LOGGER.debug("option {} found for {}.{}({})", optionName, apiNode.getSimpleName(), m.getName(), m.getParameterTypes());
+				
+				// assertion check
+				for (CliDeclaredOptionSpec knownOption : cliOptions) {
+					if (knownOption.getName().equals(optionName)) {
+						String msg = "@CliOptionNameOverride needed one of the following two methods:\n\t%s\n\t%s\n\t----------";
+						throw new AssertionError(format(msg, knownOption.getSourceMethod(), m));
+					}
+				}
+				
 				cliOptions.add(new CliDeclaredOptionSpec(
 						optionName,
 						determineCliOptionDescriptions(m, 0),
@@ -76,33 +106,25 @@ final class BuilderApiToPicocliCommandsMapper {
 				if (potentialNestedApiNode.isAnnotationPresent(CliSupportedBuilderApi.class) && !processedApiNodes.contains(potentialNestedApiNode)) {
 					cliOptions.addAll(generateOptionsFromBuilderApi(potentialNestedApiNode, processedApiNodes));
 				}
+			} else {
+				LOGGER.debug("Method not CLI compatible: {}.{}({})", apiNode.getSimpleName(), m.getName(), m.getParameterTypes());
 			}
 		}
 		
 		return cliOptions;
 	}
 	
-	private static boolean methodIsCliCompatible(Method m) {
+	public static boolean methodIsCliCompatible(Method m) {
 		if (!m.getDeclaringClass().isAnnotationPresent(CliSupportedBuilderApi.class) ||
 				m.isAnnotationPresent(CliExcludeApi.class) ||
 				BeanUtils.isBeanMethod(m, m.getDeclaringClass(), allOf(Visibility.class)) ||
-				containsCollectionParameter(m)) {
+				MethodUtils.methodHasCollectionParameter(m)) {
 			return false;
 		}
 		@SuppressWarnings("unchecked")
 		Class<String>[] stringParameters = new Class[m.getParameterTypes().length];
 		Arrays.fill(stringParameters, String.class);
 		return MethodUtils.isMethodCompatible(m, allOf(LookupMode.class), stringParameters);
-	}
-
-	// FIXME move to Java Reflection library
-	private static boolean containsCollectionParameter(Method m) {
-		for (Class<?> parameterType : m.getParameterTypes()) {
-			if (parameterType.isArray() || Iterable.class.isAssignableFrom(parameterType)) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private static Collection<CliCommandType> determineApplicableRootCommands(Class<?> apiNode, Method m) {
@@ -114,7 +136,7 @@ final class BuilderApiToPicocliCommandsMapper {
 	private static List<String> determineCliOptionDescriptions(Method m, int nestingDepth) {
 		final String NESTED_DESCRIPTION_INDENT_STR = "  ";
 		
-		final List<String> declaredDescriptions = asList(TherapiJavadocHelper.getJavadoc(m));
+		final List<String> declaredDescriptions = new ArrayList<>(singletonList(TherapiJavadocHelper.getJavadoc(m)));
 		
 //		final List<String> declaredDescriptions = m.isAnnotationPresent(CliOption.class)
 //				? indentDescriptions(asList(m.getAnnotation(CliOption.class).description()), nestingDepth, NESTED_DESCRIPTION_INDENT_STR)
@@ -186,45 +208,53 @@ final class BuilderApiToPicocliCommandsMapper {
 	}
 
 	@Nonnull
-	private static String determineCliOptionName(Class<?> apiNode, Method m) {
+	public static String determineCliOptionName(Class<?> apiNode, Method m) {
 		final MethodJavadoc methodDoc = RuntimeJavadoc.getJavadoc(m);
 		final Method methodDelegate = TherapiJavadocHelper.getTryFindMethodDelegate(methodDoc.getComment());
-		String cliCommandName = m.getName();
+		
+		String methodName = m.isAnnotationPresent(CliOptionNameOverride.class)
+				? m.getAnnotation(CliOptionNameOverride.class).value()
+				: m.getName();
 
 		if (methodDelegate != null && methodIsCliCompatible(methodDelegate)) {
 			final String methodDelegateName = methodDelegate.isAnnotationPresent(CliOptionNameOverride.class)
 					? methodDelegate.getAnnotation(CliOptionNameOverride.class).value()
 					: methodDelegate.getName();
 
-			if (m.getName().equals(methodDelegateName)) {
+			if (methodName.equals(methodDelegateName)) {
 				if (!m.isAnnotationPresent(CliOptionNameOverride.class)) {
 					throw new AssertionError("@CliOptionNameOverride needed, please rename method or add name override to it (or its delegate): " + m);
+				} else {
+					throw new AssertionError("@CliOptionNameOverride present, but name still matches the method delegate: " + m);
 				}
-				cliCommandName = m.getAnnotation(CliOptionNameOverride.class).value();
-			} else if (m.isAnnotationPresent(CliOptionNameOverride.class)) {
-				throw new AssertionError("@CliOptionNameOverride not needed, please remove it from method" + m);
 			}
 		}
 
 		final String cliCommandPrefix = apiNode.getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
 		assumeTrue(!cliCommandPrefix.isEmpty(), "Option prefix missing from API class");
-		return format("--%s:%s", cliCommandPrefix, cliCommandName);
+		return format("--%s:%s", cliCommandPrefix, methodName);
 	}
 	
 	private static List<CliDeclaredOptionValue> getArgumentsForCliOption(Method m) {
+		final Annotation[][] annotations = m.getParameterAnnotations();
+		final Class<?>[] declaredParameters = m.getParameterTypes();
+		final List<DocumentedMethodParam> documentedParameters = TherapiJavadocHelper.getParamDescriptions(m);
+
 		final List<CliDeclaredOptionValue> cliParams = new ArrayList<>();
-		for (MethodParam p : TherapiJavadocHelper.getParamDescriptions(m)) {
-			// FIXME extract examples from javadoc
-			cliParams.add(new CliDeclaredOptionValue(p.getType(), p.getName(), p.getType().getSimpleName().toUpperCase(), p.getJavadoc(), true, null));
-		}
-		return cliParams;
 		
-//		final Annotation[][] annotations = m.getParameterAnnotations();
-//		final Class<?>[] parameterTypes = m.getParameterTypes();
-//		for (int i = 0; i < parameterTypes.length; i++) {
-//			Class<?> p = parameterTypes[i];
-//			CliOptionValue pa = findCliParamAnnotation(annotations[i], CliOptionValue.class, m);
-//		}
+		for (int i = 0; i < declaredParameters.length; i++) {
+			final Class<?> p = declaredParameters[i];
+			final DocumentedMethodParam dP = documentedParameters.get(i);
+			final boolean required = containsAnnotation(asList(annotations[i]), Nullable.class);
+			// FIXME extract examples from javadoc
+			cliParams.add(new CliDeclaredOptionValue(p, p.getSimpleName(), determineTypeLabel(p), dP.getJavadoc(), required, new String[0]));
+		}
+		
+		return cliParams;
+	}
+	
+	private static String determineTypeLabel(Class<?> type) {
+		return checkNonEmptyArgument(TYPE_LABELS.get(type), "Missing type label for type " + type);
 	}
 	
 	@SuppressWarnings({"unchecked", "SameParameterValue"})

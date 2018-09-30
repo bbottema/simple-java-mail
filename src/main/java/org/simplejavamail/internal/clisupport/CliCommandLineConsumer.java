@@ -1,10 +1,10 @@
 package org.simplejavamail.internal.clisupport;
 
+import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliReceivedOptionData;
-import org.simplejavamail.internal.util.ReflectiveValueConverter;
 import org.slf4j.Logger;
 import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.ParseResult;
@@ -74,8 +74,8 @@ class CliCommandLineConsumer {
 	}
     
     private static Object parseStringInput(@Nonnull String stringValue, @Nonnull Class<?> targetType) {
-        if (ReflectiveValueConverter.isCommonType(targetType)) {
-            return ReflectiveValueConverter.convert(stringValue, targetType);
+        if (ValueConversionHelper.isCommonType(targetType)) {
+            return ValueConversionHelper.convert(stringValue, targetType);
         } else if (targetType == MimeMessage.class) {
             // assume stringValue is a filepath
             if (stringValue.endsWith(".msg")) {

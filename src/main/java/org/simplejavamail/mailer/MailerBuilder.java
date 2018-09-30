@@ -123,7 +123,6 @@ public class MailerBuilder {
 	 * Shortcuts to {@link MailerRegularBuilder#buildMailer()}. This means that none of the builder methods are used and the configuration completely
 	 * depends on defaults being configured from property file ("simplejavamail.properties") on the classpath or through programmatic defaults.
 	 */
-	@CliExcludeApi(reason = "This API is specifically for Java use")
 	public static Mailer buildMailer() {
 		return new MailerRegularBuilder().buildMailer();
 	}
@@ -185,6 +184,11 @@ public class MailerBuilder {
 		/**
 		 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)}, {@link #withSMTPServerUsername(String)} and {@link
 		 * #withSMTPServerPassword(String)}.
+		 *
+		 * @param host Optional host that defaults to pre-configured property if left empty.
+		 * @param port Optional port number that defaults to pre-configured property if left empty.
+		 * @param username Optional username that defaults to pre-configured property if left empty.
+		 * @param password Optional password that defaults to pre-configured property if left empty.
 		 */
 		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username, @Nullable final String password) {
 			return withSMTPServerHost(host)
@@ -195,7 +199,12 @@ public class MailerBuilder {
 		
 		/**
 		 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)} and {@link #withSMTPServerUsername(String)}.
+		 *
+		 * @param host Optional host that defaults to pre-configured property if left empty.
+		 * @param port Optional port number that defaults to pre-configured property if left empty.
+		 * @param username Optional username that defaults to pre-configured property if left empty.
 		 */
+		@CliExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username) {
 			return withSMTPServerHost(host)
 					.withSMTPServerPort(port)
@@ -204,7 +213,11 @@ public class MailerBuilder {
 		
 		/**
 		 * Delegates to {@link #withSMTPServerHost(String)} and {@link #withSMTPServerPort(Integer)}.
+		 *
+		 * @param host Optional host that defaults to pre-configured property if left empty.
+		 * @param port Optional port number that defaults to pre-configured property if left empty.
 		 */
+		@CliExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port) {
 			return withSMTPServerHost(host)
 					.withSMTPServerPort(port);
@@ -212,7 +225,10 @@ public class MailerBuilder {
 		
 		/**
 		 * Sets the optional SMTP host. Will default to pre-configured property if left empty.
+		 *
+		 * @param host Optional host that defaults to pre-configured property if left empty.
 		 */
+		@CliExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServerHost(@Nullable final String host) {
 			this.host = host;
 			return this;
@@ -220,7 +236,10 @@ public class MailerBuilder {
 		
 		/**
 		 * Sets the optional SMTP port. Will default to pre-configured property if left empty.
+		 *
+		 * @param port Optional port number that defaults to pre-configured property if left empty.
 		 */
+		@CliExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServerPort(@Nullable final Integer port) {
 			this.port = port;
 			return this;
@@ -228,7 +247,10 @@ public class MailerBuilder {
 		
 		/**
 		 * Sets the optional SMTP username. Will default to pre-configured property if left empty.
+		 *
+		 * @param username Optional username that defaults to pre-configured property if left empty.
 		 */
+		@CliExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServerUsername(@Nullable final String username) {
 			this.username = username;
 			return this;
@@ -236,7 +258,10 @@ public class MailerBuilder {
 		
 		/**
 		 * Sets the optional SMTP password. Will default to pre-configured property if left empty.
+		 *
+		 * @param password Optional password that defaults to pre-configured property if left empty.
 		 */
+		@CliExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServerPassword(@Nullable final String password) {
 			this.password = password;
 			return this;

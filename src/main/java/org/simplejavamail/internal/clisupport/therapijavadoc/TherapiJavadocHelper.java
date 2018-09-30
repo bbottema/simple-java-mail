@@ -6,18 +6,17 @@ import com.github.therapi.runtimejavadoc.CommentFormatter;
 import com.github.therapi.runtimejavadoc.CommentText;
 import com.github.therapi.runtimejavadoc.InlineLink;
 import com.github.therapi.runtimejavadoc.Link;
-import com.github.therapi.runtimejavadoc.MethodJavadoc;
 import com.github.therapi.runtimejavadoc.ParamJavadoc;
 import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
 import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.MethodUtils;
+import org.simplejavamail.email.EmailBuilder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +30,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 public final class TherapiJavadocHelper {
 	
-	private static final CommentFormatter COMMENT_FORMATTER = new CommentFormatter();
+	private static final CommentFormatter COMMENT_FOR_CLI_FORMATTER = new CommentForCliFormatter();
 	private static final String KEY_DELEGATES_TO = "Delegates to";
 	private static final Pattern PATTERN_DELEGATES_TO = compile("(?i)" + quote(KEY_DELEGATES_TO));
 	
@@ -74,43 +73,45 @@ public final class TherapiJavadocHelper {
 		return methodForLink;
 	}
 	
-	@Nonnull
-	private static Method findMethodForLink(Link link) {
-		Class<?> aClass = ClassUtils.locateClass(link.getReferencedClassName(), "org.simplejavamail", null);
-		assumeTrue(aClass != null, "Class not found for @link: " + link);
-		Set<Method> matchingMethods = MethodUtils.findMatchingMethods(aClass, link.getReferencedMemberName(), link.getParams());
-		assumeTrue(!matchingMethods.isEmpty(), format("Method not found on %s for @link: %s", aClass, link));
-		assumeTrue(matchingMethods.size() == 1, format("Multiple methods on %s match given @link's signature: %s", aClass, link));
-		return matchingMethods.iterator().next();
+	@Nullable
+	static Method findMethodForLink(Link link) {
+		if (link.getReferencedMemberName() != null) {
+			Class<?> aClass = link.getReferencedClassName().endsWith(EmailBuilder.EmailBuilderInstance.class.getSimpleName())
+					? EmailBuilder.EmailBuilderInstance.class
+					: ClassUtils.locateClass(link.getReferencedClassName(), "org.simplejavamail", null);
+			assumeTrue(aClass != null, "Class not found for @link: " + link);
+			Set<Method> matchingMethods = MethodUtils.findMatchingMethods(aClass, aClass, link.getReferencedMemberName(), link.getParams());
+			assumeTrue(!matchingMethods.isEmpty(), format("Method not found on %s for @link: %s", aClass, link));
+			assumeTrue(matchingMethods.size() == 1, format("Multiple methods on %s match given @link's signature: %s", aClass, link));
+			return matchingMethods.iterator().next();
+		}
+		return null;
 	}
 	
 	public static String getJavadoc(Method m) {
-		return COMMENT_FORMATTER.format(RuntimeJavadoc.getJavadoc(m).getComment());
+		return COMMENT_FOR_CLI_FORMATTER.format(RuntimeJavadoc.getJavadoc(m).getComment());
 	}
 	
-	public static List<MethodParam> getParamDescriptions(Method m) {
+	public static List<DocumentedMethodParam> getParamDescriptions(Method m) {
 		List<ParamJavadoc> params = RuntimeJavadoc.getJavadoc(m).getParams();
 		if (m.getParameterTypes().length != params.size()) {
 			throw new AssertionError("Number of documented parameters doesn't match with Method's actual parameters: " + m);
 		}
-		List<MethodParam> paramDescriptions = new ArrayList<>();
+		List<DocumentedMethodParam> paramDescriptions = new ArrayList<>();
 		for (ParamJavadoc param : params) {
-			paramDescriptions.add(new MethodParam(null, param.getName(), COMMENT_FORMATTER.format(param.getComment())));
+			paramDescriptions.add(new DocumentedMethodParam(param.getName(), COMMENT_FOR_CLI_FORMATTER.format(param.getComment())));
 		}
 		return paramDescriptions;
 	}
 	
-	public static class MethodParam {
-		@Nonnull private final Class<?> type;
+	public static class DocumentedMethodParam {
 		@Nonnull private final String name;
 		@Nonnull private final String javadoc;
 		
-		public MethodParam(@Nonnull Class<?> type, @Nonnull String name, @Nonnull String javadoc) {
-			this.type = type;
+		DocumentedMethodParam(@Nonnull String name, @Nonnull String javadoc) {
 			this.name = name;
 			this.javadoc = javadoc;
 		}
-		@Nonnull public Class<?> getType() { return type; }
 		@Nonnull public String getName() { return name; }
 		@Nonnull public String getJavadoc() { return javadoc; }
 	}
