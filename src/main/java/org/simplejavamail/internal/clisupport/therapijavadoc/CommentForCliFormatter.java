@@ -22,7 +22,7 @@ public class CommentForCliFormatter extends CommentFormatter {
 	
 	@Override
 	protected String renderLink(InlineLink e) {
-		Method m = TherapiJavadocHelper.findMethodForLink(e.getLink());
+		Method m = TherapiJavadocHelper.findMethodForLink(e.getLink(), false);
 		if (m != null && BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(m)) {
 			String optionName = BuilderApiToPicocliCommandsMapper.determineCliOptionName(m.getDeclaringClass(), m);
 			return "@|cyan " + optionName + "|@";
