@@ -76,20 +76,30 @@ public final class TherapiJavadocHelper {
 	@Nullable
 	static Method findMethodForLink(Link link, boolean failOnMissing) {
 		if (link.getReferencedMemberName() != null) {
-			Class<?> aClass = link.getReferencedClassName().endsWith(EmailBuilder.EmailBuilderInstance.class.getSimpleName())
-					? EmailBuilder.EmailBuilderInstance.class
-					: ClassUtils.locateClass(link.getReferencedClassName(), "org.simplejavamail", null);
-			assumeTrue(!failOnMissing || aClass != null, "Class not found for @link: " + link);
-			if (aClass != null) {
-				Set<Method> matchingMethods = MethodUtils.findMatchingMethods(aClass, aClass, link.getReferencedMemberName(), link.getParams());
-				assumeTrue(!failOnMissing || !matchingMethods.isEmpty(), format("Method %s not found on %s for @link: %s", link.getReferencedMemberName(), aClass, link));
-				assumeTrue(!failOnMissing || matchingMethods.size() == 1, format("Multiple methods on %s match given @link's signature: %s", aClass, link));
-				return matchingMethods.isEmpty() ? null : matchingMethods.iterator().next();
-			}
+			final Class<?> aClass = findClass(link);
+			assumeTrue(aClass != null, "Class not found for @link: " + link);
+			final Set<Method> matchingMethods = MethodUtils.findMatchingMethods(aClass, aClass, link.getReferencedMemberName(), link.getParams());
+			assumeTrue(!failOnMissing || !matchingMethods.isEmpty(), format("Method %s not found on %s for @link: %s", link.getReferencedMemberName(), aClass, link));
+			assumeTrue(!failOnMissing || matchingMethods.size() == 1, format("Multiple methods on %s match given @link's signature: %s", aClass, link));
+			return matchingMethods.isEmpty() ? null : matchingMethods.iterator().next();
 		}
 		return null;
 	}
-	
+
+	private static Class<?> findClass(Link link) {
+		Class<?> aClass = null;
+		if (link.getReferencedClassName().endsWith(EmailBuilder.EmailBuilderInstance.class.getSimpleName())) {
+			aClass = EmailBuilder.EmailBuilderInstance.class;
+		}
+		if (aClass == null) {
+			aClass = ClassUtils.locateClass(link.getReferencedClassName(), "org.simplejavamail", null);
+		}
+		if (aClass == null) {
+			aClass = ClassUtils.locateClass(link.getReferencedClassName(), null, null);
+		}
+		return aClass;
+	}
+
 	public static String getJavadoc(Method m) {
 		return COMMENT_FOR_CLI_FORMATTER.format(RuntimeJavadoc.getJavadoc(m).getComment());
 	}
