@@ -17,7 +17,8 @@ public class CommentForCliFormatter extends CommentFormatter {
 				.replaceAll("<strong>(.*?)</strong>", "@|bold $1|@")
 				.replaceAll("&gt;", ">")
 				.replaceAll("&lt;", "<")
-				.replaceAll("\\{@code (.*?)}", "@|green $1|@");
+				.replaceAll("\\{@code (.*?)}", "@|green $1|@")
+				.replaceAll("%s", "%%s");
 	}
 	
 	@Override
