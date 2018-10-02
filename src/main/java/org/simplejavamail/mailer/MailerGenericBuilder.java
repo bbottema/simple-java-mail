@@ -38,7 +38,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * To start a new Mailer builder, refer to {@link MailerBuilder}.
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked", "WeakerAccess"})
-@CliSupportedBuilderApi(builderApiType = CliBuilderApiType.EMAIL, applicableRootCommands = {send, validate})
+@CliSupportedBuilderApi(builderApiType = CliBuilderApiType.MAILER, applicableRootCommands = {send, connect, validate})
 public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	
 	/**

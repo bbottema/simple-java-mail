@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,16 +26,14 @@ import java.util.regex.Pattern;
 import static com.github.therapi.runtimejavadoc.Comment.nullToEmpty;
 import static java.lang.String.format;
 import static java.util.regex.Pattern.compile;
-import static java.util.regex.Pattern.quote;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 public final class TherapiJavadocHelper {
 	
 	private static final CommentFormatter COMMENT_FOR_CLI_FORMATTER = new CommentForCliFormatter();
-	private static final String KEY_DELEGATES_TO = "Delegates to";
-	private static final Pattern PATTERN_DELEGATES_TO = compile("(?i)" + quote(KEY_DELEGATES_TO));
+	private static final Pattern PATTERN_DELEGATES_TO = compile("(?i)Delegates to:?");
 	
-	private static final Map<List<CommentElement>, Method> CACHED_METHOD_DELEGATES = new HashMap<>();
+	private static final Map<List<CommentElement>, Set<Method>> CACHED_METHOD_DELEGATES = new HashMap<>();
 	
 	private TherapiJavadocHelper() {
 	}
@@ -42,35 +41,35 @@ public final class TherapiJavadocHelper {
 	/**
 	 * @return The Method referred to by the first {@code @link} if it occurs in the original javadoc.
 	 */
-	@Nullable
-	public static Method getTryFindMethodDelegate(@Nullable final Comment comment) {
+	@Nonnull
+	public static Set<Method> getTryFindMethodDelegate(@Nullable final Comment comment) {
 		final List<CommentElement> commentElements = nullToEmpty(comment).getElements();
 		
 		if (CACHED_METHOD_DELEGATES.containsKey(commentElements)) {
 			return CACHED_METHOD_DELEGATES.get(commentElements);
 		}
 		
-		CommentElement lastEleTextSaysDelegatedTo = null;
+		final Set<Method> methodDelegates = new HashSet<>();
+		
+		boolean shouldProcessNextInlineLink = false;
 		for (CommentElement ele : commentElements) {
 			if (ele instanceof CommentText) {
 				if (PATTERN_DELEGATES_TO.matcher(((CommentText) ele).getValue()).find()) {
-					lastEleTextSaysDelegatedTo = ele;
+					shouldProcessNextInlineLink = true;
 				}
+			} else if (shouldProcessNextInlineLink && ele instanceof InlineLink) {
+				methodDelegates.add(findMethodForLink(((InlineLink) ele).getLink(), true));
 			} else {
-				if (ele instanceof InlineLink && lastEleTextSaysDelegatedTo != null) {
-					return addDelegateToCache(commentElements, findMethodForLink(((InlineLink) ele).getLink(), true));
-				}
-				
-				lastEleTextSaysDelegatedTo = null;
+				shouldProcessNextInlineLink = false;
 			}
 		}
 		
-		return null;
+		return addDelegatesToCache(commentElements, methodDelegates);
 	}
 	
-	private static Method addDelegateToCache(List<CommentElement> commentElements, Method methodForLink) {
-		CACHED_METHOD_DELEGATES.put(commentElements, methodForLink);
-		return methodForLink;
+	private static Set<Method> addDelegatesToCache(List<CommentElement> commentElements, Set<Method> methodDelegates) {
+		CACHED_METHOD_DELEGATES.put(commentElements, methodDelegates);
+		return methodDelegates;
 	}
 	
 	@Nullable

@@ -1,7 +1,5 @@
 package org.simplejavamail.internal.clisupport;
 
-import com.github.therapi.runtimejavadoc.MethodJavadoc;
-import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
 import org.bbottema.javareflection.BeanUtils;
 import org.bbottema.javareflection.BeanUtils.Visibility;
 import org.bbottema.javareflection.ClassUtils;
@@ -233,26 +231,26 @@ public final class BuilderApiToPicocliCommandsMapper {
 
 	@Nonnull
 	public static String determineCliOptionName(Class<?> apiNode, Method m) {
-		final MethodJavadoc methodDoc = RuntimeJavadoc.getJavadoc(m);
-		final Method methodDelegate = TherapiJavadocHelper.getTryFindMethodDelegate(methodDoc.getComment());
+//		final MethodJavadoc methodDoc = RuntimeJavadoc.getJavadoc(m);
+//		final Set<Method> methodDelegates = TherapiJavadocHelper.getTryFindMethodDelegate(methodDoc.getComment());
 		
 		String methodName = m.isAnnotationPresent(CliOptionNameOverride.class)
 				? m.getAnnotation(CliOptionNameOverride.class).value()
 				: m.getName();
 
-		if (methodDelegate != null && methodIsCliCompatible(methodDelegate)) {
-			final String methodDelegateName = methodDelegate.isAnnotationPresent(CliOptionNameOverride.class)
-					? methodDelegate.getAnnotation(CliOptionNameOverride.class).value()
-					: methodDelegate.getName();
-
-			if (methodName.equals(methodDelegateName)) {
-				if (!m.isAnnotationPresent(CliOptionNameOverride.class)) {
-					throw new AssertionError("@CliOptionNameOverride needed, please rename method or add name override to it (or its delegate): " + m);
-				} else {
-					throw new AssertionError("@CliOptionNameOverride present, but name still matches the method delegate: " + m);
-				}
-			}
-		}
+//		if (methodDelegates != null && methodIsCliCompatible(methodDelegates)) {
+//			final String methodDelegateName = methodDelegates.isAnnotationPresent(CliOptionNameOverride.class)
+//					? methodDelegates.getAnnotation(CliOptionNameOverride.class).value()
+//					: methodDelegates.getName();
+//
+//			if (methodName.equals(methodDelegateName)) {
+//				if (!m.isAnnotationPresent(CliOptionNameOverride.class)) {
+//					throw new AssertionError("@CliOptionNameOverride needed, please rename method or add name override to it (or its delegate): " + m);
+//				} else {
+//					throw new AssertionError("@CliOptionNameOverride present, but name still matches the method delegate: " + m);
+//				}
+//			}
+//		}
 
 		final String cliCommandPrefix = apiNode.getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
 		assumeTrue(!cliCommandPrefix.isEmpty(), "Option prefix missing from API class");
@@ -271,7 +269,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 			final DocumentedMethodParam dP = documentedParameters.get(i);
 			final boolean required = containsAnnotation(asList(annotations[i]), Nullable.class);
 			// FIXME extract examples from javadoc
-			cliParams.add(new CliDeclaredOptionValue(p, p.getSimpleName(), determineTypeLabel(p), dP.getJavadoc(), required, new String[0]));
+			cliParams.add(new CliDeclaredOptionValue(p, dP.getName(), determineTypeLabel(p), dP.getJavadoc(), required, new String[0]));
 		}
 		
 		return cliParams;
