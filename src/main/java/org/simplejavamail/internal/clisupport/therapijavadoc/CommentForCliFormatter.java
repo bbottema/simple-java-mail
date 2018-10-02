@@ -12,9 +12,9 @@ public class CommentForCliFormatter extends CommentFormatter {
 	protected String renderText(CommentText text) {
 		return text.getValue()
 				.replaceAll("\\s*\\n\\s*", " ") // removes newlines
-				.replaceAll("<br\\s*?\\/?>", "\n") // replace <br/> with newlines
-				.replaceAll("<p\\s*?\\/?>", "\n\n") // replace <p> with sets of newlines
-				.replaceAll("<strong>(.*?)<\\/strong>", "@|bold $1|@")
+				.replaceAll("<br\\s*?/?>", "\n") // replace <br/> with newlines
+				.replaceAll("<p\\s*?/?>", "\n\n") // replace <p> with sets of newlines
+				.replaceAll("<strong>(.*?)</strong>", "@|bold $1|@")
 				.replaceAll("&gt;", ">")
 				.replaceAll("&lt;", "<")
 				.replaceAll("\\{@code (.*?)}", "@|green $1|@");
