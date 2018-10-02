@@ -264,7 +264,7 @@ public class EmailBuilder {
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
 		 *
 		 * @param message MimeMessage to reply to with new email.
-		 * @param customQuotingTemplate HTML quoting template that should be used in the reply. Should include the substring "%s",
+		 * @param customQuotingTemplate HTML quoting template that should be used in the reply. Should include the substring {@code "%s"},
 		 *                                    or else the original email is not embedded in the reply.
 		 */
 		@CliOptionNameOverride("replyingToSender")
@@ -276,7 +276,7 @@ public class EmailBuilder {
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code>.
 		 *
 		 * @param message The email to include as replied-to-email and who's receivers all will receive the new reply email.
-		 * @param customQuotingTemplate HTML quoting template that should be used in the reply. Should include the substring "%s",
+		 * @param customQuotingTemplate HTML quoting template that should be used in the reply. Should include the substring {@code "%s"},
 		 *                                    or else the original email is not embedded in the reply.
 		 *
 		 * @see #DEFAULT_QUOTING_MARKUP
@@ -310,7 +310,7 @@ public class EmailBuilder {
 		 *                     include.
 		 * @param repyToAll    Indicates whether all original receivers should be included in this new reply. Also see {@link
 		 *                     MimeMessage#reply(boolean)}.
-		 * @param htmlTemplate HTML quoting template that should be used in the reply. Should contains the substring {@code "%%s"}. Be advised that HTML is very limited in emails.
+		 * @param htmlTemplate HTML quoting template that should be used in the reply. Should contains the substring {@code "%s"}. Be advised that HTML is very limited in emails.
 		 *
 		 * @see #replyingTo(Email)
 		 * @see #replyingTo(Email, String)
