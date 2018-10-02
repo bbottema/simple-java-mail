@@ -77,11 +77,12 @@ public final class TherapiJavadocHelper {
 	static Method findMethodForLink(Link link, boolean failOnMissing) {
 		if (link.getReferencedMemberName() != null) {
 			final Class<?> aClass = findClass(link);
-			assumeTrue(aClass != null, "Class not found for @link: " + link);
-			final Set<Method> matchingMethods = MethodUtils.findMatchingMethods(aClass, aClass, link.getReferencedMemberName(), link.getParams());
-			assumeTrue(!failOnMissing || !matchingMethods.isEmpty(), format("Method %s not found on %s for @link: %s", link.getReferencedMemberName(), aClass, link));
-			assumeTrue(!failOnMissing || matchingMethods.size() == 1, format("Multiple methods on %s match given @link's signature: %s", aClass, link));
-			return matchingMethods.isEmpty() ? null : matchingMethods.iterator().next();
+			if (aClass != null) { // else assume the class is irrelevant to CLI
+				final Set<Method> matchingMethods = MethodUtils.findMatchingMethods(aClass, aClass, link.getReferencedMemberName(), link.getParams());
+				assumeTrue(!failOnMissing || !matchingMethods.isEmpty(), format("Method %s not found on %s for @link: %s", link.getReferencedMemberName(), aClass, link));
+				assumeTrue(!failOnMissing || matchingMethods.size() == 1, format("Multiple methods on %s match given @link's signature: %s", aClass, link));
+				return matchingMethods.isEmpty() ? null : matchingMethods.iterator().next();
+			}
 		}
 		return null;
 	}

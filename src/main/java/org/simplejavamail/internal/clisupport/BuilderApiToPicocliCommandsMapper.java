@@ -4,8 +4,10 @@ import com.github.therapi.runtimejavadoc.MethodJavadoc;
 import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
 import org.bbottema.javareflection.BeanUtils;
 import org.bbottema.javareflection.BeanUtils.Visibility;
+import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.MethodUtils;
 import org.bbottema.javareflection.model.LookupMode;
+import org.bbottema.javareflection.model.MethodModifier;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
 import org.simplejavamail.internal.clisupport.annotation.CliOption;
@@ -41,6 +43,7 @@ import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.EnumSet.allOf;
+import static java.util.EnumSet.of;
 import static org.bbottema.javareflection.TypeUtils.containsAnnotation;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -48,6 +51,15 @@ import static org.simplejavamail.internal.util.StringUtil.nStrings;
 import static org.simplejavamail.internal.util.StringUtil.replaceNestedTokens;
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * FIXME:
+ * <pre>
+ *  Method not CLI compatible: EmailPopulatingBuilder.withAttachment([class java.lang.String, class [B, class java.lang.String])
+ *  Method not CLI compatible: EmailPopulatingBuilder.withEmbeddedImage([class java.lang.String, interface javax.activation.DataSource])
+ *  Method not CLI compatible: EmailPopulatingBuilder.signWithDomainKey([class java.io.InputStream, class java.lang.String, class java.lang.String])
+ *  Method not CLI compatible: MailerRegularBuilder.withTransportStrategy([class org.simplejavamail.mailer.config.TransportStrategy])
+ * </pre>
+ */
 public final class BuilderApiToPicocliCommandsMapper {
 
 	private static final Logger LOGGER = getLogger(BuilderApiToPicocliCommandsMapper.class);
@@ -72,18 +84,30 @@ public final class BuilderApiToPicocliCommandsMapper {
 		 List<CliDeclaredOptionSpec> cliCommands = new ArrayList<>();
 		Set<Class<?>> processedApiNodes = new HashSet<>();
 		for (Class<?> apiRoot : relevantBuilderRootApi) {
-			cliCommands.addAll(generateOptionsFromBuilderApi(apiRoot, processedApiNodes));
+			cliCommands.addAll(generateOptionsFromBuilderApiChain(apiRoot, processedApiNodes));
 		}
 		 Collections.sort(cliCommands);
 		return cliCommands;
 	}
-	
+
+	private static Collection<CliDeclaredOptionSpec> generateOptionsFromBuilderApiChain(Class<?> apiNode, Set<Class<?>> processedApiNodes) {
+		List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
+
+		Class<?> apiNodeChainClass = apiNode;
+		while (apiNodeChainClass.getPackage().getName().contains("org.simplejavamail")) {
+			cliOptions.addAll(generateOptionsFromBuilderApi(apiNodeChainClass, processedApiNodes));
+			apiNodeChainClass = apiNodeChainClass.getSuperclass();
+		}
+
+		return cliOptions;
+	}
+
 	private static Collection<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes) {
 		List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
-		
+
 		processedApiNodes.add(apiNode);
-		
-		for (Method m : apiNode.getMethods()) { // note: only public methods are returned
+
+		for (Method m : ClassUtils.collectMethods(apiNode, apiNode, of(MethodModifier.PUBLIC))) {
 			if (methodIsCliCompatible(m)) {
 				final String optionName = determineCliOptionName(apiNode, m);
 				LOGGER.debug("option {} found for {}.{}({})", optionName, apiNode.getSimpleName(), m.getName(), m.getParameterTypes());
@@ -104,16 +128,16 @@ public final class BuilderApiToPicocliCommandsMapper {
 						m));
 				Class<?> potentialNestedApiNode = m.getReturnType();
 				if (potentialNestedApiNode.isAnnotationPresent(CliSupportedBuilderApi.class) && !processedApiNodes.contains(potentialNestedApiNode)) {
-					cliOptions.addAll(generateOptionsFromBuilderApi(potentialNestedApiNode, processedApiNodes));
+					cliOptions.addAll(generateOptionsFromBuilderApiChain(potentialNestedApiNode, processedApiNodes));
 				}
 			} else {
-				LOGGER.debug("Method not CLI compatible: {}.{}({})", apiNode.getSimpleName(), m.getName(), m.getParameterTypes());
+				LOGGER.debug("Method not CLI compatible: {}.{}({})", apiNode.getSimpleName(), m.getName(), Arrays.toString(m.getParameterTypes()));
 			}
 		}
 		
 		return cliOptions;
 	}
-	
+
 	public static boolean methodIsCliCompatible(Method m) {
 		if (!m.getDeclaringClass().isAnnotationPresent(CliSupportedBuilderApi.class) ||
 				m.isAnnotationPresent(CliExcludeApi.class) ||
