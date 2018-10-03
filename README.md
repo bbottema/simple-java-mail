@@ -72,7 +72,8 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 
 v5.0.1 - [v5.0.5](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.0.5%7Cjar)
 
-- v5.0.5 (?-Oktober-2018): [#137](https://github.com/bbottema/simple-java-mail/issues/137) When replying to an email with HTML, the result body is empty
+- v5.0.5 (3-Oktober-2018): [#137](https://github.com/bbottema/simple-java-mail/issues/137) When replying to an email with HTML, the result body is 
+empty
 - v5.0.4 (22-September-2018): [#168](https://github.com/bbottema/simple-java-mail/issues/168) Properties aquired through ConfigLoader should be typed explicitly and converted if necessary
 - v5.0.3 (11-April-2018): [#136](https://github.com/bbottema/simple-java-mail/issues/136) ServerConfig class should be public API
 - v5.0.2 (7-April-2018): [#135](https://github.com/bbottema/simple-java-mail/issues/135) trustingAllHosts should be public on the Builder API
