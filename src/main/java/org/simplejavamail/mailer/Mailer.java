@@ -271,7 +271,7 @@ public class Mailer {
 			throw new MailerException(MailerException.MISSING_DISPOSITIONNOTIFICATIONTO);
 		} else if (email.isUseReturnReceiptTo() && email.getReturnReceiptTo() == null) {
 			throw new MailerException(MailerException.MISSING_RETURNRECEIPTTO);
-		} else if (emailAddressCriteria != null) {
+		} else if (!emailAddressCriteria.isEmpty()) {
 			if (!EmailAddressValidator.isValid(email.getFromRecipient().getAddress(), emailAddressCriteria)) {
 				throw new MailerException(format(MailerException.INVALID_SENDER, email));
 			}
