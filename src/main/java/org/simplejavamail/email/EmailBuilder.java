@@ -350,7 +350,7 @@ public class EmailBuilder {
 					.withSubject(generatedReply.getSubject())
 					.to(generatedReply.getRecipients())
 					.withPlainText(LINE_START_PATTERN.matcher(defaultTo(repliedTo.getPlainText(), "")).replaceAll("> "))
-					.withHTMLText(format(htmlTemplate, defaultTo(repliedTo.getPlainText(), "")))
+					.withHTMLText(format(htmlTemplate, defaultTo(repliedTo.getHTMLText(), "")))
 					.withHeaders(generatedReply.getHeaders())
 					.withEmbeddedImages(repliedTo.getEmbeddedImages());
 		}
