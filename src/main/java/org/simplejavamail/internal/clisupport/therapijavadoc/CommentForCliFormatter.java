@@ -66,7 +66,6 @@ public class CommentForCliFormatter extends CommentFormatter {
 	
 	@Override
 	protected String renderUnrecognizedTag(InlineTag e) {
-		System.out.printf("UHH: name=%s, value=%s%n", e.getName(), e.getValue());
-		return super.renderTag(e);
+		throw new RuntimeException(String.format("Found unsupported tag: %s=%s", e.getName(), e.getValue()));
 	}
 }
