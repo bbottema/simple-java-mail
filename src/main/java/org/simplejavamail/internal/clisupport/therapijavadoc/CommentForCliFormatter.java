@@ -21,7 +21,10 @@ public class CommentForCliFormatter extends CommentFormatter {
 	
 	@Override
 	public String format(Comment comment) {
-		final String result = super.format(comment);
+		final String result = super.format(comment)
+				.replaceAll("(?s)<li>(.*?)</li>", "$1\n")
+				.replaceAll("(?s)<ul>(.*?)</ul>", "$1")
+				.replaceAll("(?s)<ol>(.*?)</ol>", "$1");
 		assumeTrue(!PATTERN_JAVADOC_TAG.matcher(result).find() && !PATTERN_HTML_TAG.matcher(result).find(),
 				"Output not properly formatted for CLI usage: \n\t" + result + "\n\t-----------");
 		return result;
