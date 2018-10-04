@@ -1,13 +1,10 @@
 package org.simplejavamail.internal.clisupport.therapijavadoc;
 
-import com.github.therapi.runtimejavadoc.Comment;
-import com.github.therapi.runtimejavadoc.CommentElement;
 import com.github.therapi.runtimejavadoc.CommentFormatter;
-import com.github.therapi.runtimejavadoc.CommentText;
-import com.github.therapi.runtimejavadoc.InlineLink;
 import com.github.therapi.runtimejavadoc.Link;
 import com.github.therapi.runtimejavadoc.ParamJavadoc;
 import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
+import com.github.therapi.runtimejavadoc.Value;
 import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.MethodUtils;
 import org.simplejavamail.email.EmailBuilder;
@@ -16,66 +13,60 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
-import static com.github.therapi.runtimejavadoc.Comment.nullToEmpty;
 import static java.lang.String.format;
-import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 public final class TherapiJavadocHelper {
 	
 	private static final CommentFormatter COMMENT_FOR_CLI_FORMATTER = new CommentForCliFormatter();
-	private static final Pattern PATTERN_DELEGATES_TO = compile("(?i)Delegates to:?");
-	
-	private static final Map<List<CommentElement>, Set<Method>> CACHED_METHOD_DELEGATES = new HashMap<>();
+//	private static final Pattern PATTERN_DELEGATES_TO = compile("(?i)Delegates to:?");
+//
+//	private static final Map<List<CommentElement>, Set<Method>> CACHED_METHOD_DELEGATES = new HashMap<>();
 	
 	private TherapiJavadocHelper() {
 	}
 	
-	/**
-	 * @return The Method referred to by the first {@code @link} if it occurs in the original javadoc.
-	 */
-	@Nonnull
-	public static Set<Method> getTryFindMethodDelegate(@Nullable final Comment comment) {
-		final List<CommentElement> commentElements = nullToEmpty(comment).getElements();
-		
-		if (CACHED_METHOD_DELEGATES.containsKey(commentElements)) {
-			return CACHED_METHOD_DELEGATES.get(commentElements);
-		}
-		
-		final Set<Method> methodDelegates = new HashSet<>();
-		
-		boolean shouldProcessNextInlineLink = false;
-		for (CommentElement ele : commentElements) {
-			if (ele instanceof CommentText) {
-				if (PATTERN_DELEGATES_TO.matcher(((CommentText) ele).getValue()).find()) {
-					shouldProcessNextInlineLink = true;
-				}
-			} else if (shouldProcessNextInlineLink && ele instanceof InlineLink) {
-				methodDelegates.add(findMethodForLink(((InlineLink) ele).getLink(), true));
-			} else {
-				shouldProcessNextInlineLink = false;
-			}
-		}
-		
-		return addDelegatesToCache(commentElements, methodDelegates);
-	}
+//	/**
+//	 * @return The Method referred to by the first {@code @link} if it occurs in the original javadoc.
+//	 */
+//	@Nonnull
+//	public static Set<Method> getTryFindMethodDelegate(@Nullable final Comment comment) {
+//		final List<CommentElement> commentElements = nullToEmpty(comment).getElements();
+//
+//		if (CACHED_METHOD_DELEGATES.containsKey(commentElements)) {
+//			return CACHED_METHOD_DELEGATES.get(commentElements);
+//		}
+//
+//		final Set<Method> methodDelegates = new HashSet<>();
+//
+//		boolean shouldProcessNextInlineLink = false;
+//		for (CommentElement ele : commentElements) {
+//			if (ele instanceof CommentText) {
+//				if (PATTERN_DELEGATES_TO.matcher(((CommentText) ele).getValue()).find()) {
+//					shouldProcessNextInlineLink = true;
+//				}
+//			} else if (shouldProcessNextInlineLink && ele instanceof InlineLink) {
+//				methodDelegates.add(findMethodForLink(((InlineLink) ele).getLink(), true));
+//			} else {
+//				shouldProcessNextInlineLink = false;
+//			}
+//		}
+//
+//		return addDelegatesToCache(commentElements, methodDelegates);
+//	}
 	
-	private static Set<Method> addDelegatesToCache(List<CommentElement> commentElements, Set<Method> methodDelegates) {
-		CACHED_METHOD_DELEGATES.put(commentElements, methodDelegates);
-		return methodDelegates;
-	}
+//	private static Set<Method> addDelegatesToCache(List<CommentElement> commentElements, Set<Method> methodDelegates) {
+//		CACHED_METHOD_DELEGATES.put(commentElements, methodDelegates);
+//		return methodDelegates;
+//	}
 	
 	@Nullable
 	static Method findMethodForLink(Link link, boolean failOnMissing) {
 		if (link.getReferencedMemberName() != null) {
-			final Class<?> aClass = findClass(link);
+			final Class<?> aClass = findClass(link.getReferencedClassName());
 			if (aClass != null) { // else assume the class is irrelevant to CLI
 				final Set<Method> matchingMethods = MethodUtils.findMatchingMethods(aClass, aClass, link.getReferencedMemberName(), link.getParams());
 				assumeTrue(!failOnMissing || !matchingMethods.isEmpty(), format("Method %s not found on %s for @link: %s", link.getReferencedMemberName(), aClass, link));
@@ -85,17 +76,26 @@ public final class TherapiJavadocHelper {
 		}
 		return null;
 	}
+	
+	@Nullable
+	static Object resolveFieldForValue(Value value) {
+		final Class<?> aClass = findClass(value.getReferencedClassName());
+		if (aClass != null) { // else assume the class is irrelevant to CLI
+			return ClassUtils.solveFieldValue(aClass, value.getReferencedMemberName());
+		}
+		return null;
+	}
 
-	private static Class<?> findClass(Link link) {
+	private static Class<?> findClass(String referencedClassName) {
 		Class<?> aClass = null;
-		if (link.getReferencedClassName().endsWith(EmailBuilder.EmailBuilderInstance.class.getSimpleName())) {
+		if (referencedClassName.endsWith(EmailBuilder.EmailBuilderInstance.class.getSimpleName())) {
 			aClass = EmailBuilder.EmailBuilderInstance.class;
 		}
 		if (aClass == null) {
-			aClass = ClassUtils.locateClass(link.getReferencedClassName(), "org.simplejavamail", null);
+			aClass = ClassUtils.locateClass(referencedClassName, "org.simplejavamail", null);
 		}
 		if (aClass == null) {
-			aClass = ClassUtils.locateClass(link.getReferencedClassName(), null, null);
+			aClass = ClassUtils.locateClass(referencedClassName, null, null);
 		}
 		return aClass;
 	}

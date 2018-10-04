@@ -108,7 +108,7 @@
         <dependency>
             <groupId>com.github.bbottema</groupId>
             <artifactId>java-reflection</artifactId>
-            <version>3.5.1</version>
+            <version>3.6.0</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -120,13 +120,13 @@
         <dependency><!-- Annotation processor -->
             <groupId>com.github.therapi</groupId>
             <artifactId>therapi-runtime-javadoc-scribe</artifactId>
-            <version>0.8.0</version>
+            <version>0.9.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency><!-- Runtime library -->
             <groupId>com.github.therapi</groupId>
             <artifactId>therapi-runtime-javadoc</artifactId>
-            <version>0.8.0</version>
+            <version>0.9.0-SNAPSHOT</version>
         </dependency>
 
         <!-- utility -->
