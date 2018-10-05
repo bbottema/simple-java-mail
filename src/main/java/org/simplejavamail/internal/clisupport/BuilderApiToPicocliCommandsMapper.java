@@ -158,7 +158,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	private static List<String> determineCliOptionDescriptions(Method m, int nestingDepth) {
 		final String NESTED_DESCRIPTION_INDENT_STR = "  ";
 		
-		final List<String> declaredDescriptions = new ArrayList<>(singletonList(TherapiJavadocHelper.getJavadoc(m)));
+		final List<String> declaredDescriptions = new ArrayList<>(singletonList(TherapiJavadocHelper.getJavadoc(m, nestingDepth)));
 		
 //		final List<String> declaredDescriptions = m.isAnnotationPresent(CliOption.class)
 //				? indentDescriptions(asList(m.getAnnotation(CliOption.class).description()), nestingDepth, NESTED_DESCRIPTION_INDENT_STR)

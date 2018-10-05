@@ -201,8 +201,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * // FIXME this documentation is not translated properly to CLI documentation
-	 * Delegates to:
+	 * Sets proxy server settings, by delegating to:
 	 * <ol>
 	 * <li>{@link #withProxyHost(String)}</li>
 	 * <li>{@link #withProxyPort(Integer)}</li>
@@ -210,10 +209,10 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * <li>{@link #withProxyPassword(String)}</li>
 	 * </ol>
 	 *
-	 * @param proxyHost See included documentation for the delegate method.
-	 * @param proxyPort See included documentation for the delegate method.
-	 * @param proxyUsername See included documentation for the delegate method.
-	 * @param proxyPassword See included documentation for the delegate method.
+	 * @param proxyHost For details, refer to the linked documentation.
+	 * @param proxyPort For details, refer to the linked documentation.
+	 * @param proxyUsername For details, refer to the linked documentation.
+	 * @param proxyPassword For details, refer to the linked documentation.
 	 */
 	public T withProxy(@Nullable final String proxyHost, @Nullable final Integer proxyPort, @Nullable final String proxyUsername, @Nullable final String proxyPassword) {
 		return (T) withProxyHost(proxyHost)
@@ -244,12 +243,10 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * Sets the optional username to authenticate with the proxy.
+	 * Sets the optional username to authenticate with the proxy. If set, Simple Java Mail will use its built in proxy bridge to
+	 * perform the SOCKS authentication, as the underlying JavaMail framework doesn't support this directly. The execution path
+	 * then will be:
 	 * <p>
-	 * If set, Simple Java Mail will use its built in proxy bridge to perform the SOCKS authentication, as the underlying JavaMail framework doesn't
-	 * support this directly.
-	 * <p>
-	 * The path will be: <br>
 	 * {@code Simple Java Mail -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS
 	 * proxy}.
 	 */

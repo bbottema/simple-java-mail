@@ -99,8 +99,9 @@ public final class TherapiJavadocHelper {
 		return aClass;
 	}
 
-	public static String getJavadoc(Method m) {
-		return new CommentForCliFormatter().format(RuntimeJavadoc.getJavadoc(m).getComment());
+	public static String getJavadoc(Method m, int nestingDepth) {
+		return new CommentForCliFormatter(nestingDepth)
+				.format(RuntimeJavadoc.getJavadoc(m).getComment());
 	}
 	
 	public static List<DocumentedMethodParam> getParamDescriptions(Method m) {
