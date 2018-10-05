@@ -1,6 +1,5 @@
 package org.simplejavamail.internal.clisupport.therapijavadoc;
 
-import com.github.therapi.runtimejavadoc.CommentFormatter;
 import com.github.therapi.runtimejavadoc.Link;
 import com.github.therapi.runtimejavadoc.ParamJavadoc;
 import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
@@ -21,7 +20,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 public final class TherapiJavadocHelper {
 	
-	private static final CommentFormatter COMMENT_FOR_CLI_FORMATTER = new CommentForCliFormatter();
+//	private static final CommentFormatter COMMENT_FOR_CLI_FORMATTER = new CommentForCliFormatter();
 //	private static final Pattern PATTERN_DELEGATES_TO = compile("(?i)Delegates to:?");
 //
 //	private static final Map<List<CommentElement>, Set<Method>> CACHED_METHOD_DELEGATES = new HashMap<>();
@@ -76,7 +75,7 @@ public final class TherapiJavadocHelper {
 		}
 		return null;
 	}
-	
+
 	@Nullable
 	static Object resolveFieldForValue(Value value) {
 		final Class<?> aClass = findClass(value.getReferencedClassName());
@@ -101,7 +100,7 @@ public final class TherapiJavadocHelper {
 	}
 
 	public static String getJavadoc(Method m) {
-		return COMMENT_FOR_CLI_FORMATTER.format(RuntimeJavadoc.getJavadoc(m).getComment());
+		return new CommentForCliFormatter().format(RuntimeJavadoc.getJavadoc(m).getComment());
 	}
 	
 	public static List<DocumentedMethodParam> getParamDescriptions(Method m) {
@@ -111,7 +110,7 @@ public final class TherapiJavadocHelper {
 		}
 		List<DocumentedMethodParam> paramDescriptions = new ArrayList<>();
 		for (ParamJavadoc param : params) {
-			paramDescriptions.add(new DocumentedMethodParam(param.getName(), COMMENT_FOR_CLI_FORMATTER.format(param.getComment())));
+			paramDescriptions.add(new DocumentedMethodParam(param.getName(), new CommentForCliFormatter().format(param.getComment())));
 		}
 		return paramDescriptions;
 	}
