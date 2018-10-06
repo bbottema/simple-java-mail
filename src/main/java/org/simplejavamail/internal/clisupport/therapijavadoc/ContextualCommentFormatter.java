@@ -10,15 +10,14 @@ import java.util.List;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.StringUtil.nStrings;
 
-public class ContextualCommentFormatter extends CommentFormatter {
-	final String NESTED_DESCRIPTION_INDENT_STR = "  ";
+abstract class ContextualCommentFormatter extends CommentFormatter {
 	
-	final int nestingDepth;
+	final int currentNestingDepth;
 	
 	private Comment currentComment;
 	
-	ContextualCommentFormatter(int nestingDepth) {
-		this.nestingDepth = nestingDepth;
+	ContextualCommentFormatter(int currentNestingDepth) {
+		this.currentNestingDepth = currentNestingDepth;
 	}
 	
 	@Override
@@ -34,7 +33,7 @@ public class ContextualCommentFormatter extends CommentFormatter {
 	
 	@Nonnull
 	String indent(int depthModifier) {
-		return nStrings(nestingDepth + depthModifier, NESTED_DESCRIPTION_INDENT_STR);
+		return nStrings(currentNestingDepth + depthModifier, "  ");
 	}
 	
 	CommentElement getPreviousElement(CommentElement e) {
