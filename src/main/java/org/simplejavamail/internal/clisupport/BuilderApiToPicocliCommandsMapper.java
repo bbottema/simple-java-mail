@@ -75,32 +75,28 @@ public final class BuilderApiToPicocliCommandsMapper {
 	
 	@Nonnull
 	static List<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?>[] relevantBuilderRootApi) {
-		List<CliDeclaredOptionSpec> cliCommands = new ArrayList<>();
-		Set<Class<?>> processedApiNodes = new HashSet<>();
+		final List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
+		final Set<Class<?>> processedApiNodes = new HashSet<>();
 		for (Class<?> apiRoot : relevantBuilderRootApi) {
-			cliCommands.addAll(generateOptionsFromBuilderApiChain(apiRoot, processedApiNodes));
+			generateOptionsFromBuilderApiChain(apiRoot, processedApiNodes, cliOptions);
 		}
-		Collections.sort(cliCommands);
-		return cliCommands;
-	}
-	
-	@Nonnull
-	private static Collection<CliDeclaredOptionSpec> generateOptionsFromBuilderApiChain(Class<?> apiNode, Set<Class<?>> processedApiNodes) {
-		List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
-
-		Class<?> apiNodeChainClass = apiNode;
-		while (apiNodeChainClass.getPackage().getName().contains("org.simplejavamail")) {
-			cliOptions.addAll(generateOptionsFromBuilderApi(apiNodeChainClass, processedApiNodes));
-			apiNodeChainClass = apiNodeChainClass.getSuperclass();
-		}
-
+		Collections.sort(cliOptions);
 		return cliOptions;
 	}
 	
-	@Nonnull
-	private static Collection<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes) {
-		List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
-
+	private static void generateOptionsFromBuilderApiChain(Class<?> apiNode, Set<Class<?>> processedApiNodes, List<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
+		Class<?> apiNodeChainClass = apiNode;
+		while (apiNodeChainClass.getPackage().getName().contains("org.simplejavamail")) {
+			generateOptionsFromBuilderApi(apiNodeChainClass, processedApiNodes, cliOptionsFoundSoFar);
+			apiNodeChainClass = apiNodeChainClass.getSuperclass();
+		}
+	}
+	
+	/**
+	 * Produces all the --option Picocli-based params for specific API class. <br/>
+	 * Recursive for returned API class (since builders can return different builders.
+	 */
+	private static void generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes, List<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
 		processedApiNodes.add(apiNode);
 
 		for (Method m : ClassUtils.collectMethods(apiNode, apiNode, of(MethodModifier.PUBLIC))) {
@@ -109,14 +105,14 @@ public final class BuilderApiToPicocliCommandsMapper {
 				LOGGER.debug("option {} found for {}.{}({})", optionName, apiNode.getSimpleName(), m.getName(), m.getParameterTypes());
 				
 				// assertion check
-				for (CliDeclaredOptionSpec knownOption : cliOptions) {
+				for (CliDeclaredOptionSpec knownOption : cliOptionsFoundSoFar) {
 					if (knownOption.getName().equals(optionName)) {
 						String msg = "@CliOptionNameOverride needed one of the following two methods:\n\t%s\n\t%s\n\t----------";
 						throw new AssertionError(format(msg, knownOption.getSourceMethod(), m));
 					}
 				}
 				
-				cliOptions.add(new CliDeclaredOptionSpec(
+				cliOptionsFoundSoFar.add(new CliDeclaredOptionSpec(
 						optionName,
 						determineCliOptionDescriptions(m),
 						getArgumentsForCliOption(m),
@@ -124,14 +120,12 @@ public final class BuilderApiToPicocliCommandsMapper {
 						m));
 				Class<?> potentialNestedApiNode = m.getReturnType();
 				if (potentialNestedApiNode.isAnnotationPresent(CliSupportedBuilderApi.class) && !processedApiNodes.contains(potentialNestedApiNode)) {
-					cliOptions.addAll(generateOptionsFromBuilderApiChain(potentialNestedApiNode, processedApiNodes));
+					generateOptionsFromBuilderApiChain(potentialNestedApiNode, processedApiNodes, cliOptionsFoundSoFar);
 				}
 			} else {
 				LOGGER.debug("Method not CLI compatible: {}.{}({})", apiNode.getSimpleName(), m.getName(), Arrays.toString(m.getParameterTypes()));
 			}
 		}
-		
-		return cliOptions;
 	}
 
 	public static boolean methodIsCliCompatible(Method m) {
