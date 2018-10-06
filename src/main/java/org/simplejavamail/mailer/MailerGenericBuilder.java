@@ -491,6 +491,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 		return (T) this;
 	}
 	
+	@CliExcludeApi(reason = "This API is specifically for Java use")
 	public abstract Mailer buildMailer();
 	
 	/**
