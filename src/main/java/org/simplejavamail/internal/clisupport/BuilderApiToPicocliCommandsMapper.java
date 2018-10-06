@@ -8,10 +8,7 @@ import org.bbottema.javareflection.model.LookupMode;
 import org.bbottema.javareflection.model.MethodModifier;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
-import org.simplejavamail.internal.clisupport.annotation.CliOption;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionDescriptionDelegate;
 import org.simplejavamail.internal.clisupport.annotation.CliOptionNameOverride;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
 import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
@@ -19,6 +16,7 @@ import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToMimeMessageFunction;
+import org.simplejavamail.internal.util.StringUtil;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
 import org.slf4j.Logger;
 
@@ -78,13 +76,13 @@ public final class BuilderApiToPicocliCommandsMapper {
 	private BuilderApiToPicocliCommandsMapper() {
 	}
 	
-	 static List<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?>[] relevantBuilderRootApi) {
-		 List<CliDeclaredOptionSpec> cliCommands = new ArrayList<>();
+	static List<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?>[] relevantBuilderRootApi) {
+		List<CliDeclaredOptionSpec> cliCommands = new ArrayList<>();
 		Set<Class<?>> processedApiNodes = new HashSet<>();
 		for (Class<?> apiRoot : relevantBuilderRootApi) {
 			cliCommands.addAll(generateOptionsFromBuilderApiChain(apiRoot, processedApiNodes));
 		}
-		 Collections.sort(cliCommands);
+		Collections.sort(cliCommands);
 		return cliCommands;
 	}
 
@@ -213,44 +211,11 @@ public final class BuilderApiToPicocliCommandsMapper {
 		return colorizedDescriptions;
 	}
 	
-	private static String describeMethodParameterTypes(Method deferredMethod) {
-		final StringBuilder result = new StringBuilder();
-		for (Class<?> parameterType : deferredMethod.getParameterTypes()) {
-			result.append((result.length() == 0) ? "" : ", ").append(parameterType.getSimpleName());
-		}
-		return result.toString();
-	}
-	
-	private static Method findDeferredMethod(CliOptionDescriptionDelegate cliOptionDescriptionDelegate) {
-		try {
-			return cliOptionDescriptionDelegate.delegateClass().getMethod(cliOptionDescriptionDelegate.delegateMethod(), cliOptionDescriptionDelegate.delegateParameters());
-		} catch (NoSuchMethodException e) {
-			throw new AssertionError("@CliOptionDescriptionDelegate configured incorrectly, method not found for: " + cliOptionDescriptionDelegate);
-		}
-	}
-
 	@Nonnull
 	public static String determineCliOptionName(Class<?> apiNode, Method m) {
-//		final MethodJavadoc methodDoc = RuntimeJavadoc.getJavadoc(m);
-//		final Set<Method> methodDelegates = TherapiJavadocHelper.getTryFindMethodDelegate(methodDoc.getComment());
-		
 		String methodName = m.isAnnotationPresent(CliOptionNameOverride.class)
 				? m.getAnnotation(CliOptionNameOverride.class).value()
 				: m.getName();
-
-//		if (methodDelegates != null && methodIsCliCompatible(methodDelegates)) {
-//			final String methodDelegateName = methodDelegates.isAnnotationPresent(CliOptionNameOverride.class)
-//					? methodDelegates.getAnnotation(CliOptionNameOverride.class).value()
-//					: methodDelegates.getName();
-//
-//			if (methodName.equals(methodDelegateName)) {
-//				if (!m.isAnnotationPresent(CliOptionNameOverride.class)) {
-//					throw new AssertionError("@CliOptionNameOverride needed, please rename method or add name override to it (or its delegate): " + m);
-//				} else {
-//					throw new AssertionError("@CliOptionNameOverride present, but name still matches the method delegate: " + m);
-//				}
-//			}
-//		}
 
 		final String cliCommandPrefix = apiNode.getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
 		assumeTrue(!cliCommandPrefix.isEmpty(), "Option prefix missing from API class");
@@ -277,19 +242,5 @@ public final class BuilderApiToPicocliCommandsMapper {
 	
 	private static String determineTypeLabel(Class<?> type) {
 		return checkNonEmptyArgument(TYPE_LABELS.get(type), "Missing type label for type " + type);
-	}
-	
-	@SuppressWarnings({"unchecked", "SameParameterValue"})
-	private static <T extends Annotation> T findCliParamAnnotation(@Nonnull Annotation[] a, @Nonnull Class<T> annotationToFind, @Nonnull Method m) {
-		for (Annotation annotation : a) {
-			if (annotationToFind.isAssignableFrom(annotation.getClass())) {
-				return (T) annotation;
-			}
-		}
-		throw new AssertionError(format("CliOption for method \"%s\" missing @CliOptionValue annotation for method param: \n\t %s", m.getName(), m));
-	}
-	
-	private static String determineCliParamName(CliOptionValue cliOptionValueAnnotation, Class<?> cliParamType) {
-		return !cliOptionValueAnnotation.name().isEmpty() ? cliOptionValueAnnotation.name() : cliParamType.getSimpleName();
 	}
 }
