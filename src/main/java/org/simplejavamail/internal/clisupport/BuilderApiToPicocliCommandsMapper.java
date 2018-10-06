@@ -37,14 +37,11 @@ import java.util.Set;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 import static java.util.EnumSet.allOf;
 import static java.util.EnumSet.of;
 import static org.bbottema.javareflection.TypeUtils.containsAnnotation;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.internal.util.StringUtil.nStrings;
-import static org.simplejavamail.internal.util.StringUtil.replaceNestedTokens;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -121,7 +118,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 				
 				cliOptions.add(new CliDeclaredOptionSpec(
 						optionName,
-						determineCliOptionDescriptions(m, 0),
+						determineCliOptionDescriptions(m),
 						getArgumentsForCliOption(m),
 						determineApplicableRootCommands(apiNode, m),
 						m));
@@ -157,51 +154,11 @@ public final class BuilderApiToPicocliCommandsMapper {
 	}
 	
 	@Nonnull
-	private static List<String> determineCliOptionDescriptions(Method m, int nestingDepth) {
-		final String NESTED_DESCRIPTION_INDENT_STR = "  ";
-		
-		final List<String> declaredDescriptions = new ArrayList<>(singletonList(TherapiJavadocHelper.getJavadoc(m, nestingDepth)));
-		
-//		final List<String> declaredDescriptions = m.isAnnotationPresent(CliOption.class)
-//				? indentDescriptions(asList(m.getAnnotation(CliOption.class).description()), nestingDepth, NESTED_DESCRIPTION_INDENT_STR)
-//				: new ArrayList<String>();
-//
-//		if (declaredDescriptions.isEmpty() && m.isAnnotationPresent(CliOptionDescription.class)) {
-//			declaredDescriptions.addAll(indentDescriptions(asList(m.getAnnotation(CliOptionDescription.class).value()), nestingDepth, NESTED_DESCRIPTION_INDENT_STR));
-//		}
-		
-		// check nested descriptions
-		if (m.isAnnotationPresent(CliOptionDescriptionDelegate.class)) {
-			CliOptionDescriptionDelegate delegate = m.getAnnotation(CliOptionDescriptionDelegate.class);
-			CliSupportedBuilderApi apiNode = delegate.delegateClass().getAnnotation(CliSupportedBuilderApi.class);
-			final Method deferredMethod = findDeferredMethod(delegate);
-			
-			final String INCLUSION_HEADER_PATTERN = deferredMethod.isAnnotationPresent(CliOption.class)
-					? "\n%s@|underline INCLUDED FROM |@@|underline,cyan --%s:%s|@:"
-					: "\n%s@|underline INCLUDED FROM JAVA BUILDER API [%s:%s(%s)]|@:";
-			
-			declaredDescriptions.add(format(INCLUSION_HEADER_PATTERN,
-					nStrings(nestingDepth + 1, NESTED_DESCRIPTION_INDENT_STR),
-					apiNode.builderApiType().getParamPrefix(),
-					delegate.delegateMethod(),
-					describeMethodParameterTypes(deferredMethod)));
-			
-			declaredDescriptions.addAll(determineCliOptionDescriptions(deferredMethod, nestingDepth + 1));
-		}
-		
-		if (declaredDescriptions.isEmpty()) {
-			throw new AssertionError("CliParam annotations missing description for method " + m);
-		}
-		
-		return colorizeDescriptions(declaredDescriptions);
-	}
-	
-	private static List<String> indentDescriptions(List<String> descriptions, int indents, @SuppressWarnings("SameParameterValue") String indentStr) {
-		List<String> indentedDescriptions = new ArrayList<>();
-		for (String description : descriptions) {
-			indentedDescriptions.add(nStrings(indents, indentStr) + description);
-		}
-		return indentedDescriptions;
+	private static List<String> determineCliOptionDescriptions(Method m) {
+		String javadoc = TherapiJavadocHelper.getJavadoc(m, 0);
+		// Picocli takes the first item for --help, but all items for full usage display
+		List<String> basicExplanationPlusFurtherDetails = asList(javadoc.split("\n", 2));
+		return colorizeDescriptions(basicExplanationPlusFurtherDetails);
 	}
 	
 	@Nonnull
