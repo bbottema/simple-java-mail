@@ -78,22 +78,18 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 		final Method m = TherapiJavadocHelper.findMethodForLink(link.getLink(), false);
 		
 		if (m != null) {
-			final String result;
 			final Class<?> apiNode = m.getDeclaringClass();
 			final boolean isCliCompatible = BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(m);
-			if (isCliCompatible) {
-				result = String.format("@|cyan %s|@", BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, m));
-			} else {
-				result = "- " + formatMethodReference(apiNode, m);
-			}
-			checkIncludeReferredDocumentation(link, m, isCliCompatible);
-			return result;
+			final String result = (isCliCompatible)
+					? String.format("@|cyan %s|@", BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, m))
+					: "- " + formatMethodReference(apiNode, m);
+			return result + (checkIncludeReferredDocumentation(link, m, isCliCompatible) ? " (see below)" : "");
 		} else {
 			return '"' + link.getLink().getReferencedMemberName() + '"';
 		}
 	}
 	
-	private void checkIncludeReferredDocumentation(InlineLink e, Method methodDelegate, boolean methodDelegateIsCliCompatible) {
+	private boolean checkIncludeReferredDocumentation(InlineLink e, Method methodDelegate, boolean methodDelegateIsCliCompatible) {
 		if (previousElementImpliesLinkedJavadocShouldBeIncluded(e)) {
 			final Class<?> apiNode = methodDelegate.getDeclaringClass();
 			final String inclusionHeader;
@@ -101,10 +97,12 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 				inclusionHeader = String.format("@|underline FROM |@@|underline,cyan %s|@:%n",
 						BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, methodDelegate));
 			} else {
-				inclusionHeader = String.format("@|underline FROM [%s]|@:%n", formatMethodReference(apiNode, methodDelegate));
+				inclusionHeader = String.format("@|underline FROM %s|@:%n", formatMethodReference(apiNode, methodDelegate));
 			}
 			includedReferredDocumentation.add(inclusionHeader + TherapiJavadocHelper.getJavadoc(methodDelegate, currentNestingDepth + 1));
+			return true;
 		}
+		return false;
 	}
 	
 	private String formatMethodReference(Class<?> apiNode, Method m) {
