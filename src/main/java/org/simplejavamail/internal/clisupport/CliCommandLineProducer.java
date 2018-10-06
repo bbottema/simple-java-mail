@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.lang.String.format;
+import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeOptionsInText;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 
 class CliCommandLineProducer {
@@ -23,27 +24,30 @@ class CliCommandLineProducer {
     @SuppressWarnings("SameParameterValue")
     static CommandLine configurePicoCli(List<CliDeclaredOptionSpec> declaredOptions, int textWidth) {
         CommandSpec rootCommandsHolder = createDefaultCommandSpec("SimpleJavaMail",
-                "Simple Java Mail CliCommandType Line Interface.%n" +
+                "Simple Java Mail Command Line Interface.%n" +
                         "%n" +
-                        "All CLI support is a direct translation of the Simple Java Mail builder API and translates back into builder calls. " +
-                        "As such, the @|bold order of directives matters as well as combinations|@! Furthermore, all documentation is taken from the " +
-                        "builder API Javadoc.%n" +
+                        "All commands and their options are a direct translation of the Simple Java Mail builder API and translate back into builder calls " +
+                        "(as such, the order of --options matter as well as combinations). Furthermore, all documentation is taken from the " +
+                        "builder API Javadoc. Basically you configure builders just like you would in Java, but with CLI commands.%n" +
                         "%n" +
-                        "Note: All the regular functionality regarding properties and config files work with the CLI so you can provides defaults " +
-                        "as long as they are visible (on class path).")
+                        "Note that each and every @|yellow --option|@ has an @|yellow --option--help|@ variation for full documentation." +
+                        "%n" +
+                        "Note: All the regular functionality regarding properties and config files work with the CLI so you can provide defaults in a " +
+                        "property file as long as it is visible (on class path) or as system environment variables.")
                 .version("Simple Java Mail 6.0.0");
         
         rootCommandsHolder.usageMessage()
-                .customSynopsis(
-                        "\tsend     [options] email:options mailer:options",
-                        "\tconnect  [options] mailer:options",
-                        "\tvalidate [options] email:options mailer:options",
-                        "\tconvert  [options] email:options");
+                .customSynopsis("",
+                        colorizeOptionsInText("\tsend     [--help -h, --version -v] --email:options --mailer:options", "yellow"),
+                        colorizeOptionsInText("\tconnect  [--help -h, --version -v] --mailer:options", "yellow"),
+                        colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", "yellow"),
+                        colorizeOptionsInText("\tconvert  [--help -h, --version -v] --email:options", "yellow"));
         
-        createRootCommand(rootCommandsHolder, "send", "Send an email, starting blank, replying to or forwarding another email", "\tsend [options] email:options mailer:options", declaredOptions);
-        createRootCommand(rootCommandsHolder, "connect", "Test a server connection", "\tconnect [options] mailer:options", declaredOptions);
-        createRootCommand(rootCommandsHolder, "validate", "Validate an email", "\tvalidate [options] email:options mailer:options", declaredOptions);
-        createRootCommand(rootCommandsHolder, "convert", "Convert between email types", "\tvalidate [options] email:options", declaredOptions);
+        createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email",
+                                                                                        colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options mailer:options", "yellow"), declaredOptions);
+        createRootCommand(rootCommandsHolder, "connect", "Test a server connection",    colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", "yellow"), declaredOptions);
+        createRootCommand(rootCommandsHolder, "validate", "Validate an email",          colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", "yellow"), declaredOptions);
+        createRootCommand(rootCommandsHolder, "convert", "Convert between email types", colorizeOptionsInText("\tconvert [--help -h, --version -v] --email:options", "yellow"), declaredOptions);
         
         return new CommandLine(rootCommandsHolder).setUsageHelpWidth(textWidth).setSeparator(" ");
     }

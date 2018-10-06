@@ -163,14 +163,19 @@ public final class BuilderApiToPicocliCommandsMapper {
 	
 	@Nonnull
 	static List<String> colorizeDescriptions(List<String> descriptions) {
-		final StringFormatter TOKEN_REPLACER = StringFormatter.formatterForPattern("@|cyan %s|@");
 		
 		List<String> colorizedDescriptions = new ArrayList<>();
 		for (String description : descriptions) {
-			String colorized = StringUtil.replaceNestedTokens(description, 0, "@|", "|@", "--[\\w:]*", TOKEN_REPLACER);
-			colorizedDescriptions.add(colorized);
+			colorizedDescriptions.add(colorizeOptionsInText(description, "cyan"));
 		}
 		return colorizedDescriptions;
+	}
+	
+	@Nonnull
+	static String colorizeOptionsInText(String text, String ansiStyles) {
+		final StringFormatter TOKEN_REPLACER = StringFormatter.formatterForPattern("@|" + ansiStyles + " %s|@");
+		final String optionRegex = "(?:--(?:help|version)|-(?:h|v)|(?:--?\\w+:\\w+))(?!\\w)"; // https://regex101.com/r/SOs17K/4
+		return StringUtil.replaceNestedTokens(text, 0, "@|", "|@", optionRegex, TOKEN_REPLACER);
 	}
 	
 	@Nonnull
