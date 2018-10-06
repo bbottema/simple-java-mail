@@ -113,6 +113,7 @@ public class MailerBuilder {
 	/**
 	 * @deprecated Use internally. Don't use this.
 	 */
+	@SuppressWarnings("DeprecatedIsStillUsed")
 	@Deprecated
 	public static MailerRegularBuilder _createForCli() {
 		return new MailerRegularBuilder();

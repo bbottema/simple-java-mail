@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
-public class CommentForCliFormatter extends ContextualCommentFormatter {
+public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	
 	private static final Pattern PATTERN_JAVADOC_TAG = compile("\\{@\\w+");
 	private static final Pattern PATTERN_HTML_TAG = compile("</?[A-Za-z]+>");
@@ -29,16 +29,17 @@ public class CommentForCliFormatter extends ContextualCommentFormatter {
 	
 	private final List<String> includedReferredDocumentation = new ArrayList<>();
 	
-	CommentForCliFormatter() {
+	JavadocForCliFormatter() {
 		super(0);
 	}
 	
-	CommentForCliFormatter(int nestingDepth) {
+	JavadocForCliFormatter(int nestingDepth) {
 		super(nestingDepth);
 	}
 	
 	@SuppressWarnings("StringConcatenationInLoop")
 	@Override
+	@Nonnull
 	public String format(Comment comment) {
 		String result = indent() + removeStructuralHTML(super.format(comment));
 		assumeTrue(!PATTERN_JAVADOC_TAG.matcher(result).find() &&
@@ -102,7 +103,7 @@ public class CommentForCliFormatter extends ContextualCommentFormatter {
 			} else {
 				inclusionHeader = String.format("@|underline FROM [%s]|@:%n", formatMethodReference(apiNode, methodDelegate));
 			}
-			includedReferredDocumentation.add(inclusionHeader + TherapiJavadocHelper.getJavadoc(methodDelegate, nestingDepth + 1));
+			includedReferredDocumentation.add(inclusionHeader + TherapiJavadocHelper.getJavadoc(methodDelegate, currentNestingDepth + 1));
 		}
 	}
 	

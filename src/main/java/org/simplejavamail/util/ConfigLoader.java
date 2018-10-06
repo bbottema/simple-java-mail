@@ -149,6 +149,7 @@ public final class ConfigLoader {
 	 */
 	@SuppressWarnings("unchecked")
 	@Nullable
+	// FIXME contract annotations
 	public static Boolean valueOrPropertyAsBoolean(@Nullable final Boolean value, @Nonnull final Property property, @Nullable final Boolean defaultValue) {
 		return SimpleConversions.convertToBoolean(valueOrProperty(value, property, defaultValue));
 	}
