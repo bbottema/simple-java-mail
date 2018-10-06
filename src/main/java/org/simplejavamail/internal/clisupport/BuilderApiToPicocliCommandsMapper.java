@@ -68,7 +68,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		TYPE_LABELS.put(Object.class, "TEXT");
 		TYPE_LABELS.put(int.class, "NUM");
 		TYPE_LABELS.put(Integer.class, "NUM");
-		TYPE_LABELS.put(MimeMessage.class, "FILE PATH");
+		TYPE_LABELS.put(MimeMessage.class, "FILE");
 		
 		ValueConversionHelper.registerValueConverter(new StringToMimeMessageFunction());
 	}
