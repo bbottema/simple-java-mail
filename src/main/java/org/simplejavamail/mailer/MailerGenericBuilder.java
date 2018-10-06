@@ -93,7 +93,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	private Integer proxyBridgePort;
 	
 	/**
-	 * @see #withDebugLogging(Boolean)
+	 * @see #withDebugLogging(boolean)
 	 */
 	private Boolean debugLogging;
 	
@@ -118,7 +118,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	private List<String> sslHostsToTrust = new ArrayList<>();
 	
 	/**
-	 * @see #trustingAllHosts(Boolean)
+	 * @see #trustingAllHosts(boolean)
 	 */
 	private Boolean trustAllSSLHost;
 	
@@ -354,7 +354,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * empty, {@code mail.smtp.ssl.trust} is unset.
 	 *
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
-	 * @see #trustingAllHosts(Boolean)
+	 * @see #trustingAllHosts(boolean)
 	 */
 	public T trustingSSLHosts(String... sslHostsToTrust) {
 		this.sslHostsToTrust = Arrays.asList(sslHostsToTrust);
@@ -449,7 +449,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Resets transportModeLoggingOnly to {@value #DEFAULT_TRANSPORT_MODE_LOGGING_ONLY}.
 	 *
-	 * @see #withTransportModeLoggingOnly(Boolean)
+	 * @see #withTransportModeLoggingOnly(boolean)
 	 */
 	public T resetTransportModeLoggingOnly() {
 		return withTransportModeLoggingOnly(DEFAULT_TRANSPORT_MODE_LOGGING_ONLY);
@@ -530,7 +530,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * @see #withDebugLogging(Boolean)
+	 * @see #withDebugLogging(boolean)
 	 */
 	public Boolean getDebugLogging() {
 		return debugLogging;
@@ -565,14 +565,14 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * @see #trustingAllHosts(Boolean)
+	 * @see #trustingAllHosts(boolean)
 	 */
 	public Boolean getTrustAllSSLHost() {
 		return trustAllSSLHost;
 	}
 	
 	/**
-	 * @see #withTransportModeLoggingOnly(Boolean)
+	 * @see #withTransportModeLoggingOnly(boolean)
 	 */
 	public boolean getTransportModeLoggingOnly() {
 		return transportModeLoggingOnly;
