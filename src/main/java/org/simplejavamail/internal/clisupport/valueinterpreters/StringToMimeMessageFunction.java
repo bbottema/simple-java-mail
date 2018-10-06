@@ -1,13 +1,13 @@
 package org.simplejavamail.internal.clisupport.valueinterpreters;
 
-import org.bbottema.javareflection.valueconverter.IncompatibleTypeException;
-import org.bbottema.javareflection.valueconverter.ValueFunction;
-import org.simplejavamail.MailException;
 import org.simplejavamail.converter.EmailConverter;
 
+import javax.annotation.Nonnull;
 import javax.mail.internet.MimeMessage;
+import java.io.File;
 
-public class StringToMimeMessageFunction implements ValueFunction<String, MimeMessage> {
+public class StringToMimeMessageFunction extends FileBasedFunction<MimeMessage> {
+	
 	@Override
 	public Class<String> getFromType() {
 		return String.class;
@@ -18,12 +18,9 @@ public class StringToMimeMessageFunction implements ValueFunction<String, MimeMe
 		return MimeMessage.class;
 	}
 	
+	@Nonnull
 	@Override
-	public MimeMessage convertValue(String value) {
-		try {
-			return EmailConverter.emlToMimeMessage(value);
-		} catch (MailException e) {
-			throw new IncompatibleTypeException(value, String.class, MimeMessage.class, e);
-		}
+	protected MimeMessage convertFile(File emlFile) {
+		return EmailConverter.emlToMimeMessage(emlFile);
 	}
 }
