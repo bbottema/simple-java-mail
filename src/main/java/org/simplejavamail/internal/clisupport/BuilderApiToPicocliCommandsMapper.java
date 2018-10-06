@@ -99,6 +99,10 @@ public final class BuilderApiToPicocliCommandsMapper {
 	 * Recursive for returned API class (since builders can return different builders.
 	 */
 	private static void generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes, List<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
+		if (processedApiNodes.contains(apiNode)) {
+			return;
+		}
+		
 		processedApiNodes.add(apiNode);
 		
 		for (Method m : ClassUtils.collectMethods(apiNode, apiNode, of(MethodModifier.PUBLIC))) {
@@ -121,7 +125,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 						determineApplicableRootCommands(apiNode, m),
 						m));
 				Class<?> potentialNestedApiNode = m.getReturnType();
-				if (potentialNestedApiNode.isAnnotationPresent(CliSupportedBuilderApi.class) && !processedApiNodes.contains(potentialNestedApiNode)) {
+				if (potentialNestedApiNode.isAnnotationPresent(CliSupportedBuilderApi.class)) {
 					generateOptionsFromBuilderApiChain(potentialNestedApiNode, processedApiNodes, cliOptionsFoundSoFar);
 				}
 			} else {
