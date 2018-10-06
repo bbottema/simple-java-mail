@@ -208,10 +208,10 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * <li>{@link #withProxyPassword(String)}</li>
 	 * </ol>
 	 *
-	 * @param proxyHost For details, refer to the linked documentation.
-	 * @param proxyPort For details, refer to the linked documentation.
-	 * @param proxyUsername For details, refer to the linked documentation.
-	 * @param proxyPassword For details, refer to the linked documentation.
+	 * @param proxyHost See linked documentation above.
+	 * @param proxyPort See linked documentation above.
+	 * @param proxyUsername See linked documentation above.
+	 * @param proxyPassword See linked documentation above.
 	 */
 	public T withProxy(@Nullable final String proxyHost, @Nullable final Integer proxyPort, @Nullable final String proxyUsername, @Nullable final String proxyPassword) {
 		return (T) withProxyHost(proxyHost)
@@ -246,8 +246,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * perform the SOCKS authentication, as the underlying JavaMail framework doesn't support this directly. The execution path
 	 * then will be:
 	 * <p>
-	 * {@code Simple Java Mail -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS
-	 * proxy}.
+	 * {@code Simple Java Mail client -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy -> SMTP server}.
 	 */
 	@CliExcludeApi(reason = "API is a subset of a more details API")
 	public T withProxyUsername(@Nullable final String proxyUsername) {
