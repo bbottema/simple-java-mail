@@ -76,6 +76,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	private BuilderApiToPicocliCommandsMapper() {
 	}
 	
+	@Nonnull
 	static List<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?>[] relevantBuilderRootApi) {
 		List<CliDeclaredOptionSpec> cliCommands = new ArrayList<>();
 		Set<Class<?>> processedApiNodes = new HashSet<>();
@@ -85,7 +86,8 @@ public final class BuilderApiToPicocliCommandsMapper {
 		Collections.sort(cliCommands);
 		return cliCommands;
 	}
-
+	
+	@Nonnull
 	private static Collection<CliDeclaredOptionSpec> generateOptionsFromBuilderApiChain(Class<?> apiNode, Set<Class<?>> processedApiNodes) {
 		List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
 
@@ -97,7 +99,8 @@ public final class BuilderApiToPicocliCommandsMapper {
 
 		return cliOptions;
 	}
-
+	
+	@Nonnull
 	private static Collection<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes) {
 		List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
 
@@ -146,7 +149,8 @@ public final class BuilderApiToPicocliCommandsMapper {
 		Arrays.fill(stringParameters, String.class);
 		return MethodUtils.isMethodCompatible(m, allOf(LookupMode.class), stringParameters);
 	}
-
+	
+	@Nonnull
 	private static Collection<CliCommandType> determineApplicableRootCommands(Class<?> apiNode, Method m) {
 		CliSupportedBuilderApi cliSupportedBuilderApi = apiNode.getAnnotation(CliSupportedBuilderApi.class);
 		return asList(cliSupportedBuilderApi.applicableRootCommands());
@@ -200,12 +204,13 @@ public final class BuilderApiToPicocliCommandsMapper {
 		return indentedDescriptions;
 	}
 	
+	@Nonnull
 	static List<String> colorizeDescriptions(List<String> descriptions) {
 		final StringFormatter TOKEN_REPLACER = StringFormatter.formatterForPattern("@|cyan %s|@");
 		
 		List<String> colorizedDescriptions = new ArrayList<>();
 		for (String description : descriptions) {
-			String colorized = replaceNestedTokens(description, 0, "@|", "|@", "--[\\w:]*", TOKEN_REPLACER);
+			String colorized = StringUtil.replaceNestedTokens(description, 0, "@|", "|@", "--[\\w:]*", TOKEN_REPLACER);
 			colorizedDescriptions.add(colorized);
 		}
 		return colorizedDescriptions;
@@ -222,6 +227,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		return format("--%s:%s", cliCommandPrefix, methodName);
 	}
 	
+	@Nonnull
 	private static List<CliDeclaredOptionValue> getArgumentsForCliOption(Method m) {
 		final Annotation[][] annotations = m.getParameterAnnotations();
 		final Class<?>[] declaredParameters = m.getParameterTypes();
@@ -240,6 +246,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		return cliParams;
 	}
 	
+	@Nonnull
 	private static String determineTypeLabel(Class<?> type) {
 		return checkNonEmptyArgument(TYPE_LABELS.get(type), "Missing type label for type " + type);
 	}
