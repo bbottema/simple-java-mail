@@ -22,7 +22,7 @@ public class CommentForCliFormatter extends ContextualCommentFormatter {
 	
 	private static final Pattern PATTERN_JAVADOC_TAG = compile("\\{@\\w+");
 	private static final Pattern PATTERN_HTML_TAG = compile("</?[A-Za-z]+>");
-	private static final Pattern PATTERN_TODO_FIXME = compile("//\\s*?(?:TODO|FIXME)");
+	private static final Pattern PATTERN_TODO_FIXME = compile("//\\s*?(?:TODO|FIXME)"); // https://regex101.com/r/D79BMs/1
 	private static final Pattern PATTERN_DELEGATES_TO = compile("(?i)(?:delegates|delegating) to:?");
 	private static final Pattern PATTERN_ALIAS_FOR = compile("(?i)Alias for:?");
 	private static final Pattern WORD_PATTERN = compile("\\w");
