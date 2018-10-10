@@ -22,6 +22,7 @@ import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.internet.MimeMessage;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -67,6 +68,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		TYPE_LABELS.put(MimeMessage.class, "FILE");
 		TYPE_LABELS.put(DataSource.class, "FILE");
 		TYPE_LABELS.put(byte[].class, "FILE");
+		TYPE_LABELS.put(InputStream.class, "FILE");
 		
 		ValueConversionHelper.registerValueConverter(new StringToMimeMessageFunction());
 	}
