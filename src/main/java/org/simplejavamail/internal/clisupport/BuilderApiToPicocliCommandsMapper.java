@@ -48,6 +48,11 @@ import static org.slf4j.LoggerFactory.getLogger;
 public final class BuilderApiToPicocliCommandsMapper {
 
 	private static final Logger LOGGER = getLogger(BuilderApiToPicocliCommandsMapper.class);
+	
+	/**
+	 * These help generate the picocli labels for the support types. Results in something like:<br/>
+	 * <code>--someOption(=NUM)</code>
+	 */
 	private static final Map<Class<?>, String> TYPE_LABELS = new HashMap<Class<?>, String>() {{
 		put(boolean.class, "BOOL");
 		put(Boolean.class, "BOOL");
