@@ -13,7 +13,6 @@ import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
-import org.simplejavamail.internal.clisupport.valueinterpreters.StringToByteArrayFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToMimeMessageFunction;
 import org.simplejavamail.internal.util.StringUtil;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
@@ -67,7 +66,6 @@ public final class BuilderApiToPicocliCommandsMapper {
 		TYPE_LABELS.put(MimeMessage.class, "FILE");
 		
 		ValueConversionHelper.registerValueConverter(new StringToMimeMessageFunction());
-		ValueConversionHelper.registerValueConverter(new StringToByteArrayFunction());
 	}
 	
 	private BuilderApiToPicocliCommandsMapper() {
