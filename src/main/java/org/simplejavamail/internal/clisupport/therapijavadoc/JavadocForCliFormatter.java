@@ -64,7 +64,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 				.replaceAll("&lt;", "<")
 				.replaceAll("\\{@code (.*?)}", "@|green $1|@")
 				.replaceAll("<code>(.*?)</code>", "@|green $1|@")
-				.replaceAll("<a href=\"(.+?)\">(.+?)</a>", "$1 (see $2)")
+				.replaceAll("<a href=\"(.+?)\">(.+?)</a>", "$2 (see $1)")
 				.replaceAll("%s", "%%s");
 	}
 	
