@@ -18,6 +18,7 @@ import org.simplejavamail.internal.util.StringUtil;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
 import org.slf4j.Logger;
 
+import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.internet.MimeMessage;
@@ -64,6 +65,8 @@ public final class BuilderApiToPicocliCommandsMapper {
 		TYPE_LABELS.put(int.class, "NUM");
 		TYPE_LABELS.put(Integer.class, "NUM");
 		TYPE_LABELS.put(MimeMessage.class, "FILE");
+		TYPE_LABELS.put(DataSource.class, "FILE");
+		TYPE_LABELS.put(byte[].class, "FILE");
 		
 		ValueConversionHelper.registerValueConverter(new StringToMimeMessageFunction());
 	}
