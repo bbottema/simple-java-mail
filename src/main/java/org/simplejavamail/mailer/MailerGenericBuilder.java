@@ -1,8 +1,7 @@
 package org.simplejavamail.mailer;
 
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
-import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
-import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
+import org.simplejavamail.internal.clisupport.annotation.Cli;
 import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.mailer.internal.mailsender.OperationalConfig;
 import org.simplejavamail.mailer.internal.mailsender.ProxyConfig;
@@ -19,9 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.connect;
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.send;
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.validate;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.util.ConfigLoader.Property.PROXY_HOST;
@@ -37,7 +33,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * To start a new Mailer builder, refer to {@link MailerBuilder}.
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked", "WeakerAccess"})
-@CliSupportedBuilderApi(builderApiType = CliBuilderApiType.MAILER, applicableRootCommands = {send, connect, validate})
+@Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	
 	/**
@@ -193,7 +189,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Delegates to {@link #withProxyHost(String)} and {@link #withProxyPort(Integer)}.
 	 */
-	@CliExcludeApi(reason = "API is a subset of a more detailed API")
+	@Cli.ExcludeApi(reason = "API is a subset of a more detailed API")
 	public T withProxy(@Nullable final String proxyHost, @Nullable final Integer proxyPort) {
 		return (T) withProxyHost(proxyHost)
 				.withProxyPort(proxyPort);
@@ -223,7 +219,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Sets the optional proxy host, which will override any default that might have been set (through properties file or programmatically).
 	 */
-	@CliExcludeApi(reason = "API is a subset of a more details API")
+	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	public T withProxyHost(@Nullable final String proxyHost) {
 		this.proxyHost = proxyHost;
 		return (T) this;
@@ -234,7 +230,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * <p>
 	 * Proxy port is required if a proxyHost has been configured.
 	 */
-	@CliExcludeApi(reason = "API is a subset of a more details API")
+	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	// TODO take default port from transport strategy
 	public T withProxyPort(@Nullable final Integer proxyPort) {
 		this.proxyPort = proxyPort;
@@ -248,7 +244,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * <p>
 	 * {@code Simple Java Mail client -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy -> SMTP server}.
 	 */
-	@CliExcludeApi(reason = "API is a subset of a more details API")
+	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	public T withProxyUsername(@Nullable final String proxyUsername) {
 		this.proxyUsername = proxyUsername;
 		return (T) this;
@@ -259,7 +255,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 *
 	 * @see #withProxyUsername(String)
 	 */
-	@CliExcludeApi(reason = "API is a subset of a more details API")
+	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	public T withProxyPassword(@Nullable final String proxyPassword) {
 		this.proxyPassword = proxyPassword;
 		return (T) this;
@@ -491,7 +487,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 		return (T) this;
 	}
 	
-	@CliExcludeApi(reason = "This API is specifically for Java use")
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public abstract Mailer buildMailer();
 	
 	/**

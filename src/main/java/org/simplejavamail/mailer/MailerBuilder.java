@@ -1,9 +1,7 @@
 package org.simplejavamail.mailer;
 
-import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
+import org.simplejavamail.internal.clisupport.annotation.Cli;
 import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
-import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.util.ConfigLoader;
 
@@ -11,9 +9,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Session;
 
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.connect;
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.send;
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.validate;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_HOST;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PORT;
@@ -139,7 +134,7 @@ public class MailerBuilder {
 	 * @see TransportStrategy
 	 */
 	@SuppressWarnings("WeakerAccess")
-	@CliSupportedBuilderApi(builderApiType = CliBuilderApiType.MAILER, applicableRootCommands = {send, connect, validate})
+	@Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 	public static class MailerRegularBuilder extends MailerGenericBuilder<MailerRegularBuilder> {
 		
 		private String host;
@@ -175,7 +170,7 @@ public class MailerBuilder {
 		/**
 		 * Sets the optional transport strategy of this mailer. Will default to {@link TransportStrategy#SMTP} if left empty.
 		 */
-		public MailerRegularBuilder withTransportStrategy(@Nonnull @CliOptionValue(name = "transportStrategy", helpLabel = "STRATEGY") final TransportStrategy transportStrategy) {
+		public MailerRegularBuilder withTransportStrategy(@Nonnull @Cli.OptionValue(name = "transportStrategy", helpLabel = "STRATEGY") final TransportStrategy transportStrategy) {
 			this.transportStrategy = transportStrategy;
 			return this;
 		}
@@ -203,7 +198,7 @@ public class MailerBuilder {
 		 * @param port Optional port number that defaults to pre-configured property if left empty.
 		 * @param username Optional username that defaults to pre-configured property if left empty.
 		 */
-		@CliExcludeApi(reason = "API is a subset of another API method")
+		@Cli.ExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username) {
 			return withSMTPServerHost(host)
 					.withSMTPServerPort(port)
@@ -216,7 +211,7 @@ public class MailerBuilder {
 		 * @param host Optional host that defaults to pre-configured property if left empty.
 		 * @param port Optional port number that defaults to pre-configured property if left empty.
 		 */
-		@CliExcludeApi(reason = "API is a subset of another API method")
+		@Cli.ExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port) {
 			return withSMTPServerHost(host)
 					.withSMTPServerPort(port);
@@ -227,7 +222,7 @@ public class MailerBuilder {
 		 *
 		 * @param host Optional host that defaults to pre-configured property if left empty.
 		 */
-		@CliExcludeApi(reason = "API is a subset of another API method")
+		@Cli.ExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServerHost(@Nullable final String host) {
 			this.host = host;
 			return this;
@@ -238,7 +233,7 @@ public class MailerBuilder {
 		 *
 		 * @param port Optional port number that defaults to pre-configured property if left empty.
 		 */
-		@CliExcludeApi(reason = "API is a subset of another API method")
+		@Cli.ExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServerPort(@Nullable final Integer port) {
 			this.port = port;
 			return this;
@@ -249,7 +244,7 @@ public class MailerBuilder {
 		 *
 		 * @param username Optional username that defaults to pre-configured property if left empty.
 		 */
-		@CliExcludeApi(reason = "API is a subset of another API method")
+		@Cli.ExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServerUsername(@Nullable final String username) {
 			this.username = username;
 			return this;
@@ -260,7 +255,7 @@ public class MailerBuilder {
 		 *
 		 * @param password Optional password that defaults to pre-configured property if left empty.
 		 */
-		@CliExcludeApi(reason = "API is a subset of another API method")
+		@Cli.ExcludeApi(reason = "API is a subset of another API method")
 		public MailerRegularBuilder withSMTPServerPassword(@Nullable final String password) {
 			this.password = password;
 			return this;
@@ -272,7 +267,7 @@ public class MailerBuilder {
 		 * For all configurable values: if omitted, a default value will be attempted by looking at property files or manually defined defauls.
 		 */
 		@Override
-		@CliExcludeApi(reason = "This API is specifically for Java use")
+		@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 		public Mailer buildMailer() {
 			return new Mailer(this);
 		}

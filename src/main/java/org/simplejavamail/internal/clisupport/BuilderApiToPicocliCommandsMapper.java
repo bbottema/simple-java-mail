@@ -7,9 +7,7 @@ import org.bbottema.javareflection.MethodUtils;
 import org.bbottema.javareflection.model.LookupMode;
 import org.bbottema.javareflection.model.MethodModifier;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
-import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionNameOverride;
-import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
+import org.simplejavamail.internal.clisupport.annotation.Cli;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
@@ -125,7 +123,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 						determineApplicableRootCommands(apiNode, m),
 						m));
 				Class<?> potentialNestedApiNode = m.getReturnType();
-				if (potentialNestedApiNode.isAnnotationPresent(CliSupportedBuilderApi.class)) {
+				if (potentialNestedApiNode.isAnnotationPresent(Cli.BuilderApiNode.class)) {
 					generateOptionsFromBuilderApiChain(potentialNestedApiNode, processedApiNodes, cliOptionsFoundSoFar);
 				}
 			} else {
@@ -135,8 +133,8 @@ public final class BuilderApiToPicocliCommandsMapper {
 	}
 
 	public static boolean methodIsCliCompatible(Method m) {
-		if (!m.getDeclaringClass().isAnnotationPresent(CliSupportedBuilderApi.class) ||
-				m.isAnnotationPresent(CliExcludeApi.class) ||
+		if (!m.getDeclaringClass().isAnnotationPresent(Cli.BuilderApiNode.class) ||
+				m.isAnnotationPresent(Cli.ExcludeApi.class) ||
 				BeanUtils.isBeanMethod(m, m.getDeclaringClass(), allOf(Visibility.class)) ||
 				MethodUtils.methodHasCollectionParameter(m)) {
 			return false;
@@ -149,8 +147,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	
 	@Nonnull
 	private static Collection<CliCommandType> determineApplicableRootCommands(Class<?> apiNode, Method m) {
-		CliSupportedBuilderApi cliSupportedBuilderApi = apiNode.getAnnotation(CliSupportedBuilderApi.class);
-		return asList(cliSupportedBuilderApi.applicableRootCommands());
+		return allOf(CliCommandType.class);
 	}
 	
 	@Nonnull
@@ -163,7 +160,6 @@ public final class BuilderApiToPicocliCommandsMapper {
 	
 	@Nonnull
 	static List<String> colorizeDescriptions(List<String> descriptions) {
-		
 		List<String> colorizedDescriptions = new ArrayList<>();
 		for (String description : descriptions) {
 			colorizedDescriptions.add(colorizeOptionsInText(description, "cyan"));
@@ -180,11 +176,11 @@ public final class BuilderApiToPicocliCommandsMapper {
 	
 	@Nonnull
 	public static String determineCliOptionName(Class<?> apiNode, Method m) {
-		String methodName = m.isAnnotationPresent(CliOptionNameOverride.class)
-				? m.getAnnotation(CliOptionNameOverride.class).value()
+		String methodName = m.isAnnotationPresent(Cli.OptionNameOverride.class)
+				? m.getAnnotation(Cli.OptionNameOverride.class).value()
 				: m.getName();
 
-		final String cliCommandPrefix = apiNode.getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix();
+		final String cliCommandPrefix = apiNode.getAnnotation(Cli.BuilderApiNode.class).builderApiType().getParamPrefix();
 		assumeTrue(!cliCommandPrefix.isEmpty(), "Option prefix missing from API class");
 		return format("--%s:%s", cliCommandPrefix, methodName);
 	}

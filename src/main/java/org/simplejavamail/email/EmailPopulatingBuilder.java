@@ -1,10 +1,7 @@
 package org.simplejavamail.email;
 
 import org.simplejavamail.email.EmailBuilder.EmailBuilderInstance;
-import org.simplejavamail.internal.clisupport.annotation.CliExcludeApi;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionNameOverride;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
-import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
+import org.simplejavamail.internal.clisupport.annotation.Cli;
 import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.internal.util.MiscUtil;
 
@@ -32,9 +29,6 @@ import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.convert;
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.send;
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.validate;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -62,7 +56,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * NOTE: for some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
  */
-@CliSupportedBuilderApi(builderApiType = CliBuilderApiType.EMAIL, applicableRootCommands = {send, validate, convert})
+@Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 @SuppressWarnings({"UnusedReturnValue", "WeakerAccess", "unused"})
 public class EmailPopulatingBuilder {
 	
@@ -228,7 +222,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument.
 	 */
-	@CliExcludeApi(reason = "This API is specifically for Java use")
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmail() {
 		return new Email(this);
 	}
@@ -242,7 +236,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param id The mime message id, something like {@code "<123@456>"}
 	 */
-	public EmailPopulatingBuilder fixingMessageId(@Nullable @CliOptionValue(name="id", helpLabel = "MIMEMESSAGE_ID", example = "\"<123@456>\"") final String id) {
+	public EmailPopulatingBuilder fixingMessageId(@Nullable @Cli.OptionValue(name="id", helpLabel = "MIMEMESSAGE_ID", example = "\"<123@456>\"") final String id) {
 		this.id = id;
 		return this;
 	}
@@ -252,7 +246,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param fromAddress The sender address visible to receivers of the email.
 	 */
-	@CliExcludeApi(reason = "API is subset of another API")
+	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder from(@Nonnull final String fromAddress) {
 		return from(null, fromAddress);
 	}
@@ -264,8 +258,8 @@ public class EmailPopulatingBuilder {
 	 * @param fromAddress The address that will be visible to the receivers of this email.
 	 */
 	public EmailPopulatingBuilder from(
-			@CliOptionValue(name = "name", required = false, helpLabel = "STRING", description = "The name of the sender") @Nullable final String name,
-			@CliOptionValue(name = "fromAddress", helpLabel = "STRING", description = "The email address of the sender") @Nonnull final String fromAddress) {
+			@Cli.OptionValue(name = "name", required = false, helpLabel = "STRING", description = "The name of the sender") @Nullable final String name,
+			@Cli.OptionValue(name = "fromAddress", helpLabel = "STRING", description = "The email address of the sender") @Nonnull final String fromAddress) {
 		return from(new Recipient(name, checkNonEmptyArgument(fromAddress, "fromAddress"), null));
 	}
 	
@@ -308,7 +302,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param replyToAddress The address that receivers will get when they reply to the email.
 	 */
-	@CliExcludeApi(reason = "API is subset of another API")
+	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String replyToAddress) {
 		return withReplyTo(replyToAddress != null ? new Recipient(null, replyToAddress, null) : null);
 	}
@@ -359,7 +353,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param bounceToAddress The address of the receiver of the bounced email
 	 */
-	@CliExcludeApi(reason = "API is subset of another API")
+	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String bounceToAddress) {
 		return withBounceTo(bounceToAddress != null ? new Recipient(null, bounceToAddress, null) : null);
 	}
@@ -385,7 +379,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and address.
 	 */
-	@CliExcludeApi(reason = "Method is not detailed enough for CLI")
+	@Cli.ExcludeApi(reason = "Method is not detailed enough for CLI")
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String name, @Nonnull final InternetAddress bounceToAddress) {
 		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
 		return withBounceTo(new Recipient(name, bounceToAddress.getAddress(), null));
@@ -556,9 +550,9 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses.
 	 */
-	@CliExcludeApi(reason = "API is subset of another API method")
+	@Cli.ExcludeApi(reason = "API is subset of another API method")
 	public EmailPopulatingBuilder to(
-			@CliOptionValue(name = "oneOrMoreAddresses", helpLabel = "STRING", description = "Single RFC2822 address or delimited list of RFC2822 addresses.",
+			@Cli.OptionValue(name = "oneOrMoreAddresses", helpLabel = "STRING", description = "Single RFC2822 address or delimited list of RFC2822 addresses.",
 			example = { "lolly.pop@pretzelfun.com", "Lolly Pop<lolly.pop@pretzelfun.com>", "a1@b1.c1,a2@b2.c2,a3@b3.c3", "a1@b1.c1;a2@b2.c2;a3@b3.c3" })
 			@Nonnull final String oneOrMoreAddresses) {
 		return withRecipientsWithDefaultName(null, singletonList(oneOrMoreAddresses), TO);
@@ -728,7 +722,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses.
 	 */
-	@CliExcludeApi(reason = "API is subset of another API method")
+	@Cli.ExcludeApi(reason = "API is subset of another API method")
 	public EmailPopulatingBuilder cc(@Nonnull final String oneOrMoreAddresses) {
 		return withRecipientsWithDefaultName(null, singletonList(oneOrMoreAddresses), CC);
 	}
@@ -898,7 +892,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses.
 	 */
-	@CliExcludeApi(reason = "API is subset of another API")
+	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder bcc(@Nonnull final String oneOrMoreAddresses) {
 		return withRecipientsWithDefaultName(null, singletonList(oneOrMoreAddresses), BCC);
 	}
@@ -1322,7 +1316,7 @@ public class EmailPopulatingBuilder {
 	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
 	 * dkimPrivateKey} string converted to UTF_8 byte array.
 	 */
-	@CliExcludeApi(reason = "delegated method is a superset of this method")
+	@Cli.ExcludeApi(reason = "delegated method is a superset of this method")
 	public EmailPopulatingBuilder signWithDomainKey(@Nonnull final String dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
 		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
 		return signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey.getBytes(UTF_8)), signingDomain, dkimSelector);
@@ -1371,7 +1365,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
-	@CliOptionNameOverride("withDispositionNotificationToEnabled")
+	@Cli.OptionNameOverride("withDispositionNotificationToEnabled")
 	public EmailPopulatingBuilder withDispositionNotificationTo() {
 		this.useDispositionNotificationTo = true;
 		this.dispositionNotificationTo = null;
@@ -1383,7 +1377,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param address The address of the receiver of the notification
 	 */
-	@CliExcludeApi(reason = "API is subset of another API")
+	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nonnull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
 		return withDispositionNotificationTo(new Recipient(null, address, null));
@@ -1440,7 +1434,7 @@ public class EmailPopulatingBuilder {
 	 * <p>
 	 * For more detailed information, refer to {@link #withReturnReceiptTo(Recipient)}.
 	 */
-	@CliOptionNameOverride("withReturnReceiptToEnabled")
+	@Cli.OptionNameOverride("withReturnReceiptToEnabled")
 	public EmailPopulatingBuilder withReturnReceiptTo() {
 		this.useReturnReceiptTo = true;
 		this.returnReceiptTo = null;
@@ -1452,7 +1446,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param address The address of the receiver of the bounced email
 	 */
-	@CliExcludeApi(reason = "API is subset of another API")
+	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nonnull final String address) {
 		checkNonEmptyArgument(address, "address");
 		return withReturnReceiptTo(new Recipient(null, address, null));

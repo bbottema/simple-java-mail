@@ -2,10 +2,8 @@ package org.simplejavamail.email;
 
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionNameOverride;
+import org.simplejavamail.internal.clisupport.annotation.Cli;
 import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
-import org.simplejavamail.internal.clisupport.annotation.CliOptionValue;
-import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
@@ -14,8 +12,6 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.util.regex.Pattern.compile;
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.send;
-import static org.simplejavamail.internal.clisupport.model.CliCommandType.validate;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 
 /**
@@ -154,7 +150,7 @@ public class EmailBuilder {
 	 * <p>
 	 * As with the EmailBuilder, every other method returns an {@link EmailPopulatingBuilder}.
 	 */
-	@CliSupportedBuilderApi(builderApiType = CliBuilderApiType.EMAIL, applicableRootCommands = {send, validate})
+	@Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 	public static final class EmailBuilderInstance {
 		
 		/**
@@ -245,8 +241,8 @@ public class EmailBuilder {
 		 *
 		 * @param message MimeMessage to reply to with new email.
 		 */
-		@CliOptionNameOverride("replyingToSenderWithDefaultQuoteMarkup")
-		public EmailPopulatingBuilder replyingTo(@Nonnull @CliOptionValue(name = "email", helpLabel = "FILE", description = "Path to .eml file") final MimeMessage message) {
+		@Cli.OptionNameOverride("replyingToSenderWithDefaultQuoteMarkup")
+		public EmailPopulatingBuilder replyingTo(@Nonnull @Cli.OptionValue(name = "email", helpLabel = "FILE", description = "Path to .eml file") final MimeMessage message) {
 			return replyingTo(message, false, DEFAULT_QUOTING_MARKUP);
 		}
 		
@@ -257,7 +253,7 @@ public class EmailBuilder {
 		 * @param customQuotingTemplate HTML quoting template that should be used in the reply. Should include the substring {@code "%s"},
 		 *                                    or else the original email is not embedded in the reply.
 		 */
-		@CliOptionNameOverride("replyingToSender")
+		@Cli.OptionNameOverride("replyingToSender")
 		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage message, @Nonnull final String customQuotingTemplate) {
 			return replyingTo(message, false, customQuotingTemplate);
 		}
@@ -283,7 +279,7 @@ public class EmailBuilder {
 		 *
 		 * @see #DEFAULT_QUOTING_MARKUP
 		 */
-		@CliOptionNameOverride("replyingToAllWithDefaultQuoteMarkup")
+		@Cli.OptionNameOverride("replyingToAllWithDefaultQuoteMarkup")
 		public EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage message) {
 			return replyingTo(message, true, DEFAULT_QUOTING_MARKUP);
 		}
@@ -314,11 +310,11 @@ public class EmailBuilder {
 		 * @see javax.mail.internet.MimeMessage#reply(boolean)
 		 */
 		public EmailPopulatingBuilder replyingTo(
-				@CliOptionValue(name = "emailMessage", helpLabel = "FILE", description = "The message from which we harvest recipients, original content to quote (including embedded images), message ID to include.")
+				@Cli.OptionValue(name = "emailMessage", helpLabel = "FILE", description = "The message from which we harvest recipients, original content to quote (including embedded images), message ID to include.")
 				@Nonnull final MimeMessage emailMessage,
-				@CliOptionValue(name = "replyToAll", helpLabel = "BOOL", description = "Indicates whether all original receivers should be included in this new reply. Also see MimeMessage.reply(boolean).")
+				@Cli.OptionValue(name = "replyToAll", helpLabel = "BOOL", description = "Indicates whether all original receivers should be included in this new reply. Also see MimeMessage.reply(boolean).")
 				final boolean repyToAll,
-				@CliOptionValue(name = "htmlTemplate", helpLabel = "STRING", description = "A valid HTML that contains the string \"%%s\". Be advised that HTML is very limited in emails.")
+				@Cli.OptionValue(name = "htmlTemplate", helpLabel = "STRING", description = "A valid HTML that contains the string \"%%s\". Be advised that HTML is very limited in emails.")
 				@Nonnull final String htmlTemplate) {
 			final MimeMessage replyMessage;
 			try {

@@ -7,7 +7,7 @@ import com.github.therapi.runtimejavadoc.InlineLink;
 import com.github.therapi.runtimejavadoc.InlineTag;
 import com.github.therapi.runtimejavadoc.InlineValue;
 import org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper;
-import org.simplejavamail.internal.clisupport.annotation.CliSupportedBuilderApi;
+import org.simplejavamail.internal.clisupport.annotation.Cli;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
@@ -106,8 +106,8 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	}
 	
 	private String formatMethodReference(Class<?> apiNode, Method m) {
-		String apiPrefix = (apiNode.isAnnotationPresent(CliSupportedBuilderApi.class))
-				? apiNode.getAnnotation(CliSupportedBuilderApi.class).builderApiType().getParamPrefix() + ":"
+		String apiPrefix = (apiNode.isAnnotationPresent(Cli.BuilderApiNode.class))
+				? apiNode.getAnnotation(Cli.BuilderApiNode.class).builderApiType().getParamPrefix() + ":"
 				: "";
 		return String.format("%s%s(%s)", apiPrefix, m.getName(), describeMethodParameterTypes(m));
 	}

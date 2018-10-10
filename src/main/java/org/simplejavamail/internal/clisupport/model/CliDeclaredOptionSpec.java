@@ -33,8 +33,7 @@ public class CliDeclaredOptionSpec implements Comparable<CliDeclaredOptionSpec> 
 	}
 	
 	public boolean applicableToRootCommand(CliCommandType name) {
-		return this.applicableToCliCommandTypes.contains(CliCommandType.all) ||
-				this.applicableToCliCommandTypes.contains(name);
+		return this.applicableToCliCommandTypes.contains(name);
 	}
 	
 	@Override
