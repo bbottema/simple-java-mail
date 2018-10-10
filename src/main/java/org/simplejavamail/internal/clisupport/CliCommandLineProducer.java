@@ -44,7 +44,7 @@ class CliCommandLineProducer {
                         colorizeOptionsInText("\tconvert  [--help -h, --version -v] --email:options", "yellow"));
         
         createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email",
-                                                                                        colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options mailer:options", "yellow"), declaredOptions);
+                                                                                        colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options --mailer:options", "yellow"), declaredOptions);
         createRootCommand(rootCommandsHolder, "connect", "Test a server connection",    colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", "yellow"), declaredOptions);
         createRootCommand(rootCommandsHolder, "validate", "Validate an email",          colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", "yellow"), declaredOptions);
         createRootCommand(rootCommandsHolder, "convert", "Convert between email types", colorizeOptionsInText("\tconvert [--help -h, --version -v] --email:options", "yellow"), declaredOptions);
