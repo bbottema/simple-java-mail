@@ -75,7 +75,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	
 	@Override
 	protected String renderLink(InlineLink link) {
-		final Method m = TherapiJavadocHelper.findMethodForLink(link.getLink(), false);
+		final Method m = TherapiJavadocHelper.findMethodForLink(link.getLink());
 		
 		if (m != null) {
 			final Class<?> apiNode = m.getDeclaringClass();
