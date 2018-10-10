@@ -82,7 +82,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 			final boolean isCliCompatible = BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(m);
 			final String result = (isCliCompatible)
 					? String.format("@|cyan %s|@", BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, m))
-					: "- " + formatMethodReference(apiNode, m);
+					: formatMethodReference(apiNode, m);
 			return result + (checkIncludeReferredDocumentation(link, m, isCliCompatible) ? " (see below)" : "");
 		} else {
 			return '"' + link.getLink().getReferencedMemberName() + '"';
@@ -149,7 +149,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 
 	private String removeStructuralHTML(@Nonnull String textWithHtml) {
 		return textWithHtml
-				.replaceAll("<li>", "\n" + indent())
+				.replaceAll("<li>", "\n  - " + indent())
 				.replaceAll("</li>", "")
 				.replaceAll("</?[ou]l>", "");
 	}
