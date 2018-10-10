@@ -14,8 +14,10 @@ import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToMimeMessageFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToTransportStrategyFunction;
 import org.simplejavamail.internal.util.StringUtil;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
+import org.simplejavamail.mailer.config.TransportStrategy;
 import org.slf4j.Logger;
 
 import javax.activation.DataSource;
@@ -62,6 +64,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		TYPE_LABELS.put(Boolean.class, "BOOL");
 		TYPE_LABELS.put(String.class, "TEXT");
 		TYPE_LABELS.put(Object.class, "TEXT");
+		TYPE_LABELS.put(TransportStrategy.class, "NAME");
 		TYPE_LABELS.put(int.class, "NUM");
 		TYPE_LABELS.put(Integer.class, "NUM");
 		TYPE_LABELS.put(MimeMessage.class, "FILE");
@@ -70,6 +73,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		TYPE_LABELS.put(InputStream.class, "FILE");
 		
 		ValueConversionHelper.registerValueConverter(new StringToMimeMessageFunction());
+		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
 	}
 	
 	private BuilderApiToPicocliCommandsMapper() {
