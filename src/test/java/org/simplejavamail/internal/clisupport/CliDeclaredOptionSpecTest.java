@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.TreeSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.simplejavamail.internal.clisupport.model.CliBuilderApiType.EMAIL;
 
 public class CliDeclaredOptionSpecTest {
 	@Test
@@ -37,7 +38,7 @@ public class CliDeclaredOptionSpecTest {
 	@Nonnull
 	private CliDeclaredOptionSpec createDummyCommand(List<CliDeclaredOptionSpec> unsortedSet, String prefix, String name) {
 		@SuppressWarnings("ConstantConditions")
-		CliDeclaredOptionSpec instance = new CliDeclaredOptionSpec(prefix + ":" + name, new ArrayList<String>(), new ArrayList<CliDeclaredOptionValue>(), new ArrayList<CliCommandType>(), null);
+		CliDeclaredOptionSpec instance = new CliDeclaredOptionSpec(prefix + ":" + name, new ArrayList<String>(), new ArrayList<CliDeclaredOptionValue>(), EMAIL, new ArrayList<CliCommandType>(), null);
 		unsortedSet.add(instance);
 		return instance;
 	}

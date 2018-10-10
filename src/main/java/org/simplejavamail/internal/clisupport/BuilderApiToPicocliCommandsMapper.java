@@ -123,6 +123,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 						optionName,
 						determineCliOptionDescriptions(m),
 						getArgumentsForCliOption(m),
+						apiNode.getAnnotation(Cli.BuilderApiNode.class).builderApiType(),
 						determineApplicableRootCommands(apiNode, m),
 						m));
 				Class<?> potentialNestedApiNode = m.getReturnType();
@@ -171,7 +172,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	}
 	
 	@Nonnull
-	static String colorizeOptionsInText(String text, String ansiStyles) {
+	public static String colorizeOptionsInText(String text, String ansiStyles) {
 		final StringFormatter TOKEN_REPLACER = StringFormatter.formatterForPattern("@|" + ansiStyles + " %s|@");
 		final String optionRegex = "(?:--(?:help|version)|-(?:h|v)|(?:--?\\w+:\\w+))(?!\\w)"; // https://regex101.com/r/SOs17K/4
 		return StringUtil.replaceNestedTokens(text, 0, "@|", "|@", optionRegex, TOKEN_REPLACER);

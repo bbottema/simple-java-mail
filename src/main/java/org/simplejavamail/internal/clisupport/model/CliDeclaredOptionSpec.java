@@ -12,16 +12,20 @@ public class CliDeclaredOptionSpec implements Comparable<CliDeclaredOptionSpec> 
 	@Nonnull
 	private final List<String> description;
 	@Nonnull
+	private final CliBuilderApiType fromBuilderApiType;
+	@Nonnull
 	private final Collection<CliCommandType> applicableToCliCommandTypes;
 	@Nonnull
 	private final List<CliDeclaredOptionValue> possibleOptionValues;
 	@Nonnull
 	private final Method sourceMethod;
 	
-	public CliDeclaredOptionSpec(@Nonnull String name, @Nonnull List<String> description, @Nonnull List<CliDeclaredOptionValue> possibleArguments,
+	public CliDeclaredOptionSpec(@Nonnull String name, @Nonnull List<String> description,
+								 @Nonnull List<CliDeclaredOptionValue> possibleArguments, @Nonnull CliBuilderApiType fromBuilderApiType,
 								 @Nonnull Collection<CliCommandType> applicableToCliCommandTypes, @Nonnull Method sourceMethod) {
 		this.name = name;
 		this.description = Collections.unmodifiableList(description);
+		this.fromBuilderApiType = fromBuilderApiType;
 		this.applicableToCliCommandTypes = Collections.unmodifiableCollection(applicableToCliCommandTypes);
 		this.possibleOptionValues = Collections.unmodifiableList(possibleArguments);
 		this.sourceMethod = sourceMethod;
@@ -32,8 +36,8 @@ public class CliDeclaredOptionSpec implements Comparable<CliDeclaredOptionSpec> 
 		return name;
 	}
 	
-	public boolean applicableToRootCommand(CliCommandType name) {
-		return this.applicableToCliCommandTypes.contains(name);
+	public boolean applicableToRootCommand(CliCommandType name, Collection<CliBuilderApiType> compatibleBuilderApiTypes) {
+		return this.applicableToCliCommandTypes.contains(name) && compatibleBuilderApiTypes.contains(fromBuilderApiType);
 	}
 	
 	@Override

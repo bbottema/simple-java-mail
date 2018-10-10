@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.clisupport;
 
+import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
@@ -10,6 +11,7 @@ import picocli.CommandLine.Model.OptionSpec;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static java.lang.String.format;
@@ -40,7 +42,7 @@ class CliCommandLineProducer {
                 .customSynopsis("",
                         colorizeOptionsInText("\tsend     [--help -h, --version -v] --email:options --mailer:options", "yellow"),
                         colorizeOptionsInText("\tconnect  [--help -h, --version -v] --mailer:options", "yellow"),
-                        colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", "yellow"),
+                        colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options", "yellow"),
                         colorizeOptionsInText("\tconvert  [--help -h, --version -v] --email:options", "yellow"));
         
         createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email",
@@ -54,15 +56,17 @@ class CliCommandLineProducer {
     
     private static void createRootCommand(CommandSpec rootCommandsHolder, String name, String description, String synopsis,
                                           List<CliDeclaredOptionSpec> declaredOptions) {
-        CommandSpec rootCommand = createDefaultCommandSpec(name, description);
+        final CommandSpec rootCommand = createDefaultCommandSpec(name, description);
+		final CliCommandType cliCommandType = CliCommandType.valueOf(rootCommand.name());
+		final Collection<CliBuilderApiType> compatibleBuilderApiTypes = CliBuilderApiType.findForCliSynopsis(synopsis);
         rootCommand.usageMessage().customSynopsis(synopsis);
-        populateRootCommands(rootCommand, declaredOptions);
+		populateRootCommands(rootCommand, declaredOptions, cliCommandType, compatibleBuilderApiTypes);
         rootCommandsHolder.addSubcommand(rootCommand.name(), rootCommand);
     }
     
-    private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> declaredOptions) {
-        for (CliDeclaredOptionSpec cliDeclaredOptionSpec : declaredOptions) {
-            if (cliDeclaredOptionSpec.applicableToRootCommand(CliCommandType.valueOf(rootCommand.name()))) {
+    private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> declaredOptions, CliCommandType cliCommandType, Collection<CliBuilderApiType> compatibleBuilderApiTypes) {
+		for (CliDeclaredOptionSpec cliDeclaredOptionSpec : declaredOptions) {
+            if (cliDeclaredOptionSpec.applicableToRootCommand(cliCommandType, compatibleBuilderApiTypes)) {
                 rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName())
                         .type(List.class)
                         .auxiliaryTypes(String.class)
