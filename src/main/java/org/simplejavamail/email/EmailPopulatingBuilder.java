@@ -1307,6 +1307,7 @@ public class EmailPopulatingBuilder {
 	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
 	 * dkimPrivateKey} data.
 	 */
+	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	public EmailPopulatingBuilder signWithDomainKey(@Nonnull final byte[] dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
 		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
 		return signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey), signingDomain, dkimSelector);
@@ -1316,7 +1317,7 @@ public class EmailPopulatingBuilder {
 	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
 	 * dkimPrivateKey} string converted to UTF_8 byte array.
 	 */
-	@Cli.ExcludeApi(reason = "delegated method is a superset of this method")
+	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	public EmailPopulatingBuilder signWithDomainKey(@Nonnull final String dkimPrivateKey, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
 		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
 		return signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey.getBytes(UTF_8)), signingDomain, dkimSelector);
@@ -1352,6 +1353,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * As {@link #signWithDomainKey(InputStream, String, String)}, but with a File reference that is later read as {@code InputStream}.
 	 */
+	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	public EmailPopulatingBuilder signWithDomainKey(@Nonnull final File dkimPrivateKeyFile, @Nonnull final String signingDomain, @Nonnull final String dkimSelector) {
 		this.dkimPrivateKeyFile = checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile");
 		this.dkimSigningDomain = checkNonEmptyArgument(signingDomain, "dkimSigningDomain");
