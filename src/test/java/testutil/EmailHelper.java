@@ -62,8 +62,4 @@ public class EmailHelper {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream(filePath);
 		return outlookMsgToEmailBuilder(resourceAsStream);
 	}
-	
-	public static String normalizeText(String text) {
-		return text.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
-	}
 }

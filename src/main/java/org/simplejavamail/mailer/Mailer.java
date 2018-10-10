@@ -284,7 +284,7 @@ public class Mailer {
 		} else if (email.isUseReturnReceiptTo() && email.getReturnReceiptTo() == null) {
 			throw new MailerException(MailerException.MISSING_RETURNRECEIPTTO);
 		} else //noinspection ConstantConditions - depends on how the API is used (current demo classes cause this warning)
-			if (emailAddressCriteria != null) {
+			if (!emailAddressCriteria.isEmpty()) {
 				if (!EmailAddressValidator.isValid(email.getFromRecipient().getAddress(), emailAddressCriteria)) {
 					throw new MailerException(format(MailerException.INVALID_SENDER, email));
 				}
