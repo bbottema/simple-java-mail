@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.mail.internet.MimeMessage;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
@@ -200,7 +199,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		for (int i = 0; i < declaredParameters.length; i++) {
 			final Class<?> p = declaredParameters[i];
 			final DocumentedMethodParam dP = documentedParameters.get(i);
-			final boolean required = containsAnnotation(asList(annotations[i]), Nullable.class);
+			final boolean required = containsAnnotation(asList(annotations[i]), Nonnull.class);
 			// FIXME extract examples from javadoc
 			cliParams.add(new CliDeclaredOptionValue(p, dP.getName(), determineTypeLabel(p), dP.getJavadoc(), required, new String[0]));
 		}
