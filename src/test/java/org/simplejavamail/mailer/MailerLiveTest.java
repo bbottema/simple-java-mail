@@ -99,12 +99,21 @@ public class MailerLiveTest {
 		AttachmentResource attachment2 = email.getAttachments().get(1);
 		AttachmentResource embeddedImg = email.getEmbeddedImages().get(0);
 		// Outlook overrode dresscode.txt, presumably because it was more than 8 character long??
-		assertAttachmentMetadata(attachment1, "text/plain", "dresscode.txt");
-		assertAttachmentMetadata(attachment2, "text/plain", "location.txt");
+		
+		try {
+			assertAttachmentMetadata(attachment1, "text/plain", "dresscode.txt");
+			assertAttachmentMetadata(attachment2, "text/plain", "location.txt");
+			assertThat(normalizeText(attachment1.readAllData())).isEqualTo("Black Tie Optional");
+			assertThat(normalizeText(attachment2.readAllData())).isEqualTo("On the moon!");
+		} catch (AssertionError e) {
+			// might be sorting problem, try the only other possible order of attachments...
+			assertAttachmentMetadata(attachment2, "text/plain", "dresscode.txt");
+			assertAttachmentMetadata(attachment1, "text/plain", "location.txt");
+			assertThat(normalizeText(attachment2.readAllData())).isEqualTo("Black Tie Optional");
+			assertThat(normalizeText(attachment1.readAllData())).isEqualTo("On the moon!");
+		}
+		
 		assertAttachmentMetadata(embeddedImg, "image/png", "thumbsup");
-
-		assertThat(normalizeText(attachment1.readAllData())).isEqualTo("Black Tie Optional");
-		assertThat(normalizeText(attachment2.readAllData())).isEqualTo("On the moon!");
 	}
 
 	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder)
