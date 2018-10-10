@@ -48,21 +48,21 @@ import static org.slf4j.LoggerFactory.getLogger;
 public final class BuilderApiToPicocliCommandsMapper {
 
 	private static final Logger LOGGER = getLogger(BuilderApiToPicocliCommandsMapper.class);
-	private static final Map<Class<?>, String> TYPE_LABELS = new HashMap<>();
+	private static final Map<Class<?>, String> TYPE_LABELS = new HashMap<Class<?>, String>() {{
+		put(boolean.class, "BOOL");
+		put(Boolean.class, "BOOL");
+		put(String.class, "TEXT");
+		put(Object.class, "TEXT");
+		put(TransportStrategy.class, "NAME");
+		put(int.class, "NUM");
+		put(Integer.class, "NUM");
+		put(MimeMessage.class, "FILE");
+		put(DataSource.class, "FILE");
+		put(byte[].class, "FILE");
+		put(InputStream.class, "FILE");
+	}};
 	
 	static {
-		TYPE_LABELS.put(boolean.class, "BOOL");
-		TYPE_LABELS.put(Boolean.class, "BOOL");
-		TYPE_LABELS.put(String.class, "TEXT");
-		TYPE_LABELS.put(Object.class, "TEXT");
-		TYPE_LABELS.put(TransportStrategy.class, "NAME");
-		TYPE_LABELS.put(int.class, "NUM");
-		TYPE_LABELS.put(Integer.class, "NUM");
-		TYPE_LABELS.put(MimeMessage.class, "FILE");
-		TYPE_LABELS.put(DataSource.class, "FILE");
-		TYPE_LABELS.put(byte[].class, "FILE");
-		TYPE_LABELS.put(InputStream.class, "FILE");
-		
 		ValueConversionHelper.registerValueConverter(new StringToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
 	}
