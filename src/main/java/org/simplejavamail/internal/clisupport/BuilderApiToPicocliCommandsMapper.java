@@ -45,15 +45,6 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.slf4j.LoggerFactory.getLogger;
 
-/**
- * FIXME:
- * <pre>
- *  Method not CLI compatible: EmailPopulatingBuilder.withAttachment([class java.lang.String, class [B, class java.lang.String])
- *  Method not CLI compatible: EmailPopulatingBuilder.withEmbeddedImage([class java.lang.String, interface javax.activation.DataSource])
- *  Method not CLI compatible: EmailPopulatingBuilder.signWithDomainKey([class java.io.InputStream, class java.lang.String, class java.lang.String])
- *  Method not CLI compatible: MailerRegularBuilder.withTransportStrategy([class org.simplejavamail.mailer.config.TransportStrategy])
- * </pre>
- */
 public final class BuilderApiToPicocliCommandsMapper {
 
 	private static final Logger LOGGER = getLogger(BuilderApiToPicocliCommandsMapper.class);
