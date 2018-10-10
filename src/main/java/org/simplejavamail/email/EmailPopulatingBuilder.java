@@ -1327,12 +1327,12 @@ public class EmailPopulatingBuilder {
 	 * Primes this email for signing with a DKIM domain key. Actual signing is done when sending using a <code>Mailer</code>.
 	 * <p>
 	 * Also see:
-	 * <pre><ul>
+	 * <ul>
 	 *     <li>https://postmarkapp.com/guides/dkim</li>
 	 *     <li>https://github.com/markenwerk/java-utils-mail-dkim</li>
 	 *     <li>http://www.gettingemaildelivered.com/dkim-explained-how-to-set-up-and-use-domainkeys-identified-mail-effectively</li>
 	 *     <li>https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail</li>
-	 * </ul></pre>
+	 * </ul>
 	 *
 	 * @param dkimPrivateKeyInputStream De key content used to sign for the sending party.
 	 * @param signingDomain             The domain being authorized to send.
