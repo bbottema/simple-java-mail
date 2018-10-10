@@ -165,4 +165,8 @@ public final class MiscUtil {
 			return false;
 		}
 	}
+	
+	public static String normalizeNewlines(String text) {
+		return text.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
+	}
 }
