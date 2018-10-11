@@ -170,10 +170,10 @@ public class MailerBuilder {
 		/**
 		 * To learn more about the various transport modes, the properties they set and the security
 		 * implications, please refer to the full TransportStrategy<br/>
-		 * <a href="https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail/">javadoc</a>.
+		 * <a href="www.javadoc.io/page/org.simplejavamail/simple-java-mail/latest/org/simplejavamail/mailer/config/TransportStrategy.html">javadoc</a>.
 		 *
-		 * @param transportStrategy The name of the transport strategy to use: <strong>SMTP</strong>, <strong>SMTPS</strong> or
-		 *                                <strong>SMTP_TLS</strong>. Will default to {@link TransportStrategy#SMTP} if left empty.
+		 * @param transportStrategy The name of the transport strategy to use: {@link TransportStrategy#SMTP}, {@link TransportStrategy#SMTPS} or
+		 *                                {@link TransportStrategy#SMTP_TLS}. Defaults to {@link TransportStrategy#SMTP}.
 		 */
 		public MailerRegularBuilder withTransportStrategy(@Nonnull final TransportStrategy transportStrategy) {
 			this.transportStrategy = transportStrategy;
