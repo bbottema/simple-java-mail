@@ -7,7 +7,6 @@ import com.github.therapi.runtimejavadoc.InlineLink;
 import com.github.therapi.runtimejavadoc.InlineTag;
 import com.github.therapi.runtimejavadoc.InlineValue;
 import org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper;
-import org.simplejavamail.internal.clisupport.annotation.Cli;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
@@ -19,13 +18,6 @@ import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 public class JavadocForCliFormatter extends ContextualCommentFormatter {
-	
-	private static final Pattern PATTERN_JAVADOC_TAG = compile("\\{@\\w+");
-	private static final Pattern PATTERN_HTML_TAG = compile("</?[A-Za-z]+>");
-	private static final Pattern PATTERN_TODO_FIXME = compile("//\\s*?(?:TODO|FIXME)"); // https://regex101.com/r/D79BMs/1
-	private static final Pattern PATTERN_DELEGATES_TO = compile("(?i)(?:delegates|delegating) to:?");
-	private static final Pattern PATTERN_ALIAS_FOR = compile("(?i)Alias for:?");
-	private static final Pattern WORD_PATTERN = compile("\\w");
 	
 	private final List<String> includedReferredDocumentation = new ArrayList<>();
 	
@@ -42,6 +34,10 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	@Nonnull
 	public String format(Comment comment) {
 		String result = indent() + removeStructuralHTML(super.format(comment));
+		final Pattern PATTERN_JAVADOC_TAG = compile("\\{@\\w+");
+		final Pattern PATTERN_HTML_TAG = compile("</?[A-Za-z]+>");
+		final Pattern PATTERN_TODO_FIXME = compile("//\\s*?(?:TODO|FIXME)"); // https://regex101.com/r/D79BMs/1
+		
 		assumeTrue(!PATTERN_JAVADOC_TAG.matcher(result).find() &&
 						!PATTERN_HTML_TAG.matcher(result).find() &&
 						!PATTERN_TODO_FIXME.matcher(result).find(),
@@ -112,6 +108,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 		return String.format("%s%s(%s)%s", prefix, m.getName(), describeMethodParameterTypes(m), postfix);
 	}
 	
+	@Nonnull
 	private static String describeMethodParameterTypes(Method deferredMethod) {
 		final StringBuilder result = new StringBuilder();
 		for (Class<?> parameterType : deferredMethod.getParameterTypes()) {
@@ -125,6 +122,10 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 		if (previousElement instanceof InlineLink) {
 			return previousElementImpliesLinkedJavadocShouldBeIncluded(previousElement);
 		} else if (previousElement instanceof CommentText) {
+			final Pattern WORD_PATTERN = compile("\\w");
+			final Pattern PATTERN_ALIAS_FOR = compile("(?i)Alias for:?");
+			final Pattern PATTERN_DELEGATES_TO = compile("(?i)(?:delegates|delegating) to:?");
+			
 			final String trimmedToPlainText = removeStructuralHTML(((CommentText) previousElement).getValue()).trim();
 			return PATTERN_DELEGATES_TO.matcher(trimmedToPlainText).find() ||
 					PATTERN_ALIAS_FOR.matcher(trimmedToPlainText).find() ||
@@ -134,6 +135,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	}
 	
 	@Override
+	@Nonnull
 	protected String renderValue(InlineValue e) {
 		Object obj = TherapiJavadocHelper.resolveFieldForValue(e.getValue());
 		if (obj != null) {
@@ -146,7 +148,8 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	protected String renderUnrecognizedTag(InlineTag e) {
 		throw new RuntimeException(String.format("Found unsupported tag: %s=%s", e.getName(), e.getValue()));
 	}
-
+	
+	@Nonnull
 	private String removeStructuralHTML(@Nonnull String textWithHtml) {
 		return textWithHtml
 				.replaceAll("<li>", "\n  - " + indent())
