@@ -556,7 +556,13 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#TO} and empty default name.
 	 *
-	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses.
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses. Examples:
+	 *                           <ul>
+	 *                           <li>lolly.pop@pretzelfun.com</li>
+	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
+	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
+	 *                           </ul>
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API method")
 	public EmailPopulatingBuilder to(
@@ -718,8 +724,16 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Alias for {@link #ccWithFixedName(String, String...)}.
 	 *
-	 * @param name The optional name of the CC receiver(s) of the email. If multiples addresses are provided, all addresses will be in this same name.
-	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses of CC receiver(s). Any names included are ignored if a name was provided.
+	 * @param name               The optional name of the CC receiver(s) of the email. If multiples addresses are provided, all addresses will be in
+	 *                           this same name.
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses of CC receiver(s). Any names included are ignored if a
+	 *                           name was provided. Examples:
+	 *                           <ul>
+	 *                           <li>lolly.pop@pretzelfun.com</li>
+	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
+	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
+	 *                           </ul>
 	 */
 	public EmailPopulatingBuilder cc(@Nullable final String name, String oneOrMoreAddresses) {
 		return ccWithFixedName(name, oneOrMoreAddresses);
@@ -728,7 +742,13 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC} and empty default name.
 	 *
-	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses.
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses. Examples:
+	 *                           <ul>
+	 *                           <li>lolly.pop@pretzelfun.com</li>
+	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
+	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
+	 *                           </ul>
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API method")
 	public EmailPopulatingBuilder cc(@Nonnull final String oneOrMoreAddresses) {
@@ -888,8 +908,16 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Alias for {@link #bccWithFixedName(String, String...)}.
 	 *
-	 * @param name The optional name of the BCC receiver(s) of the email. If multiples addresses are provided, all addresses will be in this same name.
-	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses of BCC receiver(s). Any names included are ignored if a name was provided.
+	 * @param name               The optional name of the BCC receiver(s) of the email. If multiples addresses are provided, all addresses will be in
+	 *                           this same name.
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses of BCC receiver(s). Any names included are ignored if a
+	 *                           name was provided. Examples:
+	 *                           <ul>
+	 *                           <li>lolly.pop@pretzelfun.com</li>
+	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
+	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
+	 *                           </ul>
 	 */
 	public EmailPopulatingBuilder bcc(@Nullable final String name, String oneOrMoreAddresses) {
 		return bccWithFixedName(name, oneOrMoreAddresses);
@@ -898,7 +926,13 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC} and empty default name.
 	 *
-	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses.
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses. Examples:
+	 *                           <ul>
+	 *                           <li>lolly.pop@pretzelfun.com</li>
+	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
+	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
+	 *                           </ul>
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder bcc(@Nonnull final String oneOrMoreAddresses) {
@@ -1076,11 +1110,18 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipient(Recipient)} for each address found in not just the collection, but also in every individual address string that is in the collection.
+	 * Delegates to {@link #withRecipient(Recipient)} for each address found in not just the collection, but also in every individual address string
+	 * that is in the collection.
 	 *
 	 * @param fixedName              Indicates whether the provided name should be applied to all addresses, or only to those where a name is
 	 *                               missing.
-	 * @param oneOrMoreAddressesEach Collection of addresses. Each entry itself can be a delimited list of RFC2822 addresses.
+	 * @param oneOrMoreAddressesEach Collection of addresses. Each entry itself can be a delimited list of RFC2822 addresses. Examples:
+	 *                               <ul>
+	 *                               <li>lolly.pop@pretzelfun.com</li>
+	 *                               <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                               <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
+	 *                               <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
+	 *                               </ul>
 	 */
 	@Nonnull
 	public EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
