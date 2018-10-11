@@ -538,8 +538,16 @@ public class EmailPopulatingBuilder {
 	/**
 	 * Alias for {@link #toWithFixedName(String, String...)}.
 	 *
-	 * @param name The optional name of the TO receiver(s) of the email. If multiples addresses are provided, all addresses will be in this same name.
-	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses of TO receiver(s). Any names included are ignored if a name was provided.
+	 * @param name               The optional name of the TO receiver(s) of the email. If multiples addresses are provided, all addresses will be in
+	 *                           this same name.
+	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses of TO receiver(s). Any names included are ignored if a
+	 *                           name was provided. Examples:
+	 *                           <ul>
+	 *                           <li>lolly.pop@pretzelfun.com</li>
+	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
+	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
+	 *                           </ul>
 	 */
 	public EmailPopulatingBuilder to(@Nullable final String name, String oneOrMoreAddresses) {
 		return toWithFixedName(name, oneOrMoreAddresses);
@@ -850,7 +858,7 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#CC}.
+	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#CC}.
 	 */
 	public EmailPopulatingBuilder ccAddressesWithDefaultName(@Nonnull final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) {
 		return withAddressesWithDefaultName(name, oneOrMoreAddressesEach, CC);
@@ -860,14 +868,14 @@ public class EmailPopulatingBuilder {
 	 */
 	
 	/**
-	 * Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#BCC}.
+	 * Delegates to {@link #withRecipients(Collection, RecipientType)} with <code>fixedRecipientType=</code>{@link RecipientType#BCC}.
 	 **/
 	public EmailPopulatingBuilder bcc(@Nonnull final Recipient... recipients) {
 		return withRecipients(asList(recipients), BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipients(Collection, RecipientType)} with {@link RecipientType#BCC}.
+	 * Delegates to {@link #withRecipients(Collection, RecipientType)} with <code>fixedRecipientType=</code>{@link RecipientType#BCC}.
 	 **/
 	public EmailPopulatingBuilder bcc(@Nonnull final Collection<Recipient> recipients) {
 		return withRecipients(recipients, BCC);
@@ -888,7 +896,7 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name.
+	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC} and empty default name.
 	 *
 	 * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses.
 	 */
@@ -912,42 +920,42 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name.
+	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC} and empty default name.
 	 */
 	public EmailPopulatingBuilder bccMultiple(@Nonnull final String... oneOrMoreAddressesEach) {
 		return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name.
+	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC} and empty default name.
 	 */
 	public EmailPopulatingBuilder bccAddresses(@Nonnull final Collection<String> oneOrMoreAddressesEach) {
 		return withRecipientsWithDefaultName(null, oneOrMoreAddressesEach, BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC}.
 	 */
 	public EmailPopulatingBuilder bccWithFixedName(@Nullable final String name, @Nonnull final String... oneOrMoreAddressesEach) {
 		return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC}.
 	 */
 	public EmailPopulatingBuilder bccWithDefaultName(@Nonnull final String name, @Nonnull final String... oneOrMoreAddressesEach) {
 		return withRecipientsWithDefaultName(name, asList(oneOrMoreAddressesEach), BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC}.
 	 */
 	public EmailPopulatingBuilder bccWithFixedName(@Nullable final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) {
 		return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC}.
 	 */
 	public EmailPopulatingBuilder bccWithDefaultName(@Nonnull final String name, @Nonnull final Collection<String> oneOrMoreAddressesEach) {
 		return withRecipientsWithDefaultName(name, oneOrMoreAddressesEach, BCC);
@@ -964,7 +972,7 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name.
+	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC} and empty default name.
 	 */
 	public EmailPopulatingBuilder bcc(@Nonnull final InternetAddress address) {
 		return withAddressesWithDefaultName(null, singletonList(address), BCC);
@@ -985,42 +993,42 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name.
+	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC} and empty default name.
 	 */
 	public EmailPopulatingBuilder bccMultiple(@Nonnull final InternetAddress... oneOrMoreAddressesEach) {
 		return withAddressesWithDefaultName(null, asList(oneOrMoreAddressesEach), BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC} and empty default name.
+	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC} and empty default name.
 	 */
 	public EmailPopulatingBuilder bccMultipleAddresses(@Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) {
 		return withAddressesWithDefaultName(null, oneOrMoreAddressesEach, BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC}.
 	 */
 	public EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) {
 		return withAddressesWithFixedName(name, asList(oneOrMoreAddressesEach), BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC}.
 	 */
 	public EmailPopulatingBuilder bccAddressesWithDefaultName(@Nonnull final String name, @Nonnull final InternetAddress... oneOrMoreAddressesEach) {
 		return withAddressesWithDefaultName(name, asList(oneOrMoreAddressesEach), BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC}.
 	 */
 	public EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) {
 		return withAddressesWithFixedName(name, oneOrMoreAddressesEach, BCC);
 	}
 	
 	/**
-	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with {@link RecipientType#BCC}.
+	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, RecipientType)} with <code>recipientType=</code>{@link RecipientType#BCC}.
 	 */
 	public EmailPopulatingBuilder bccAddressesWithDefaultName(@Nonnull final String name, @Nonnull final Collection<InternetAddress> oneOrMoreAddressesEach) {
 		return withAddressesWithDefaultName(name, oneOrMoreAddressesEach, BCC);
@@ -1035,8 +1043,8 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}, assigning or overwriting existing names with the provided.
-	 * name.
+	 * Delegates to {@link #withRecipients(String, boolean, Collection, RecipientType)}, with <code>fixedName=true</code>
+	 * assigning or overwriting existing names with the provided name.
 	 */
 	@Nonnull
 	public EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable final String fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
@@ -1068,7 +1076,7 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #withRecipient(Recipient)} for each address found in not just the collection, but also in every individual address string.
+	 * Delegates to {@link #withRecipient(Recipient)} for each address found in not just the collection, but also in every individual address string that is in the collection.
 	 *
 	 * @param fixedName              Indicates whether the provided name should be applied to all addresses, or only to those where a name is
 	 *                               missing.
@@ -1093,7 +1101,8 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Delegates to {@link #withAddresses(String, boolean, Collection, RecipientType)}, assigning or overwriting existing names with the provided.
+	 * Delegates to {@link #withAddresses(String, boolean, Collection, RecipientType)}, with <code>fixedName=true</code>
+	 * assigning or overwriting existing names with the provided name.
 	 */
 	@Nonnull
 	public EmailPopulatingBuilder withAddressesWithFixedName(@Nullable final String fixedName, @Nonnull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
