@@ -82,10 +82,12 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 			final boolean isCliCompatible = BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(m);
 			final String result = (isCliCompatible)
 					? String.format("@|cyan %s|@", BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, m))
-					: formatMethodReference(apiNode, m);
+					: formatMethodReference("java-only method @|italic,faint ", m, "|@");
 			return result + (checkIncludeReferredDocumentation(link, m, isCliCompatible) ? " (see below)" : "");
 		} else {
-			return '"' + link.getLink().getReferencedMemberName() + '"';
+			return String.format("@|green %s|@", link.getLink().getReferencedMemberName() != null
+					? link.getLink().getReferencedMemberName()
+					: link.getLink().getReferencedClassName());
 		}
 	}
 	
@@ -94,10 +96,10 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 			final Class<?> apiNode = methodDelegate.getDeclaringClass();
 			final String inclusionHeader;
 			if (methodDelegateIsCliCompatible) {
-				inclusionHeader = String.format("@|underline FROM |@@|underline,cyan %s|@:%n",
+				inclusionHeader = String.format("@|underline -> |@@|underline,cyan %s|@:%n",
 						BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, methodDelegate));
 			} else {
-				inclusionHeader = String.format("@|underline FROM %s|@:%n", formatMethodReference(apiNode, methodDelegate));
+				inclusionHeader = formatMethodReference("@|underline -> ", methodDelegate, "|@:%n");
 			}
 			includedReferredDocumentation.add(inclusionHeader + TherapiJavadocHelper.getJavadoc(methodDelegate, currentNestingDepth + 1));
 			return true;
@@ -105,11 +107,9 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 		return false;
 	}
 	
-	private String formatMethodReference(Class<?> apiNode, Method m) {
-		String apiPrefix = (apiNode.isAnnotationPresent(Cli.BuilderApiNode.class))
-				? apiNode.getAnnotation(Cli.BuilderApiNode.class).builderApiType().getParamPrefix() + ":"
-				: "";
-		return String.format("%s%s(%s)", apiPrefix, m.getName(), describeMethodParameterTypes(m));
+	@Nonnull
+	private String formatMethodReference(@Nonnull String prefix, @Nonnull Method m, @Nonnull String postfix) {
+		return String.format("%s%s(%s)%s", prefix, m.getName(), describeMethodParameterTypes(m), postfix);
 	}
 	
 	private static String describeMethodParameterTypes(Method deferredMethod) {
@@ -137,7 +137,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	protected String renderValue(InlineValue e) {
 		Object obj = TherapiJavadocHelper.resolveFieldForValue(e.getValue());
 		if (obj != null) {
-			return obj.toString();
+			return String.format("@|green %s|@", obj.toString());
 		}
 		throw new RuntimeException("{@value} cannot be resolved");
 	}
