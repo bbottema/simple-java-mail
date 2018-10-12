@@ -204,7 +204,6 @@ public final class BuilderApiToPicocliCommandsMapper {
 			final Class<?> p = declaredParameters[i];
 			final DocumentedMethodParam dP = documentedParameters.get(i);
 			final boolean required = !containsAnnotation(asList(annotations[i]), Nullable.class);
-			// FIXME extract examples from javadoc
 			final String javadocDescription = extractJavadocDescription(dP.getJavadoc());
 			final String[] javadocExamples = extractJavadocExamples(dP.getJavadoc());
 			cliParams.add(new CliDeclaredOptionValue(p, dP.getName(), determineTypeLabel(p), javadocDescription, required, javadocExamples));
