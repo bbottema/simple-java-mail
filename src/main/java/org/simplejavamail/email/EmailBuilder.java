@@ -344,8 +344,7 @@ public class EmailBuilder {
 		 * Primes the email to build with proper subject and inline forwarded email needed for a valid RFC forward. Also includes the original email
 		 * intact, to be rendered by the email client as 'forwarded email'.
 		 * <p>
-		 * <strong>Note 1</strong>: replaces subject with "Fwd: &lt;original subject&gt;" (nesting enabled).
-		 * <p>
+		 * <strong>Note 1</strong>: replaces subject with "Fwd: &lt;original subject&gt;" (nesting enabled).<br/>
 		 * <strong>Note 2</strong>: {@code Content-Disposition} will be left empty so the receiving email client can decide how to handle display
 		 * (most will show inline, some will show as attachment instead).
 		 *
