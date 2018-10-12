@@ -92,10 +92,10 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 			final Class<?> apiNode = methodDelegate.getDeclaringClass();
 			final String inclusionHeader;
 			if (methodDelegateIsCliCompatible) {
-				inclusionHeader = String.format("@|underline -> |@@|underline,cyan %s|@:%n",
+				inclusionHeader = String.format("@|bold -> %s|@:%n",
 						BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, methodDelegate));
 			} else {
-				inclusionHeader = formatMethodReference("@|underline -> ", methodDelegate, "|@:%n");
+				inclusionHeader = formatMethodReference("@|bold -> ", methodDelegate, "|@:%n");
 			}
 			includedReferredDocumentation.add(inclusionHeader + TherapiJavadocHelper.getJavadoc(methodDelegate, currentNestingDepth + 1));
 			return true;
