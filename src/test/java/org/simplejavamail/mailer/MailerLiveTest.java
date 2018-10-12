@@ -9,7 +9,6 @@ import org.simplejavamail.email.EmailAssert;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
 import org.simplejavamail.email.Recipient;
-import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.util.ConfigLoader;
 import testutil.EmailHelper;
 import testutil.testrules.SmtpServerRule;

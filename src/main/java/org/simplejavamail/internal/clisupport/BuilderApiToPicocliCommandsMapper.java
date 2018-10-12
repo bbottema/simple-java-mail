@@ -36,11 +36,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.EnumSet.allOf;
 import static java.util.EnumSet.of;
+import static java.util.regex.Pattern.compile;
 import static org.bbottema.javareflection.TypeUtils.containsAnnotation;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -202,12 +205,25 @@ public final class BuilderApiToPicocliCommandsMapper {
 			final DocumentedMethodParam dP = documentedParameters.get(i);
 			final boolean required = !containsAnnotation(asList(annotations[i]), Nullable.class);
 			// FIXME extract examples from javadoc
-			cliParams.add(new CliDeclaredOptionValue(p, dP.getName(), determineTypeLabel(p), dP.getJavadoc(), required, new String[0]));
+			final String javadocDescription = extractJavadocDescription(dP.getJavadoc());
+			final String[] javadocExamples = extractJavadocExamples(dP.getJavadoc());
+			cliParams.add(new CliDeclaredOptionValue(p, dP.getName(), determineTypeLabel(p), javadocDescription, required, javadocExamples));
 		}
 		
 		return cliParams;
 	}
-	
+
+	static String extractJavadocDescription(String javadoc) {
+		final Pattern PATTERN_EXAMPLES_MARKER = compile("(?i)(?s).*(?<examples> examples?:)"); // https://regex101.com/r/UMMmlV/1
+		final Matcher matcher = PATTERN_EXAMPLES_MARKER.matcher(javadoc);
+		// compile("(?i)(?s).*examples?:").matcher(javadoc).find()
+		return javadoc.substring(0, matcher.find() ? (matcher.end() - matcher.group("examples").length()) : javadoc.length());
+	}
+
+	static String[] extractJavadocExamples(String javadoc) {
+		return new String[0];
+	}
+
 	@Nonnull
 	private static String determineTypeLabel(Class<?> type) {
 		return checkNonEmptyArgument(TYPE_LABELS.get(type), "Missing type label for type " + type);

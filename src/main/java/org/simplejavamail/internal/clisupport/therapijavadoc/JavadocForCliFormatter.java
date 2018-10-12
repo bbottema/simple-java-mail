@@ -33,15 +33,17 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	@Override
 	@Nonnull
 	public String format(Comment comment) {
-		String result = indent() + removeStructuralHTML(super.format(comment));
 		final Pattern PATTERN_JAVADOC_TAG = compile("\\{@\\w+");
 		final Pattern PATTERN_HTML_TAG = compile("</?[A-Za-z]+>");
 		final Pattern PATTERN_TODO_FIXME = compile("//\\s*?(?:TODO|FIXME)"); // https://regex101.com/r/D79BMs/1
-		
+
+		String result = indent() + removeStructuralHTML(super.format(comment));
+
 		assumeTrue(!PATTERN_JAVADOC_TAG.matcher(result).find() &&
 						!PATTERN_HTML_TAG.matcher(result).find() &&
 						!PATTERN_TODO_FIXME.matcher(result).find(),
 				"Output not properly formatted for CLI usage: \n\t" + result + "\n\t-----------");
+
 		for (String includedDocumentation : includedReferredDocumentation) {
 			result += "\n\n" + indent(1) + includedDocumentation;
 		}

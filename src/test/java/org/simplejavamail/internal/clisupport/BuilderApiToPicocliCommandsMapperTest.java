@@ -14,7 +14,7 @@ import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommands
 public class BuilderApiToPicocliCommandsMapperTest {
 	
 	@Test
-	public void textColorizeDescriptions() {
+	public void testColorizeDescriptions() {
 		assertThat(colorizeDescriptions(singletonList("nothing to colorize"))).containsExactly("nothing to colorize");
 		assertThat(colorizeDescriptions(singletonList("one --x:item to colorize"))).containsExactly("one @|cyan --x:item|@ to colorize");
 		assertThat(colorizeDescriptions(singletonList("item @|--x:already|@ colorized"))).containsExactly("item @|--x:already|@ colorized");
@@ -48,5 +48,32 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		})
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("open token without closed token");
+	}
+
+	@Test
+	public void testExtractJavadocDescription_extractJavadocExamples() {
+		final String description = "\t/**\n"
+				+ "\t * Alias for {@link #toWithFixedName(String, String...)}.\n"
+				+ "\t *\n"
+				+ "\t * @param name               The optional name of the TO receiver(s) of the email. If multiples addresses are provided, all addresses will be in\n"
+				+ "\t *                           this same name. Examples:\n"
+				+ "\t * @param oneOrMoreAddresses Single RFC2822 address or delimited list of RFC2822 addresses of TO receiver(s). Any names included are ignored if a\n"
+				+ "\t *                           name was provided.";
+		final String examples = " Examples:\n"
+				+ "\t *                           <ul>\n"
+				+ "\t *                           <li>lolly.pop@pretzelfun.com</li>\n"
+				+ "\t *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>\n"
+				+ "\t *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>\n"
+				+ "\t *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>\n"
+				+ "\t *                           </ul>\n"
+				+ "\t */";
+		assertThat(BuilderApiToPicocliCommandsMapper.extractJavadocDescription(description)).isEqualTo(description);
+		assertThat(BuilderApiToPicocliCommandsMapper.extractJavadocDescription(description + examples)).isEqualTo(description);
+		assertThat(BuilderApiToPicocliCommandsMapper.extractJavadocExamples(description)).isEqualTo(new String[0]);
+		assertThat(BuilderApiToPicocliCommandsMapper.extractJavadocExamples(description + examples)).containsExactly(
+				"lolly.pop@pretzelfun.com",
+				"Lolly Pop<lolly.pop@pretzelfun.com>",
+				"a1@b1.c1,a2@b2.c2,a3@b3.c3",
+				"a1@b1.c1;a2@b2.c2;a3@b3.c3");
 	}
 }
