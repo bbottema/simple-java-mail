@@ -193,7 +193,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	}
 	
 	@Nonnull
-	private static List<CliDeclaredOptionValue> getArgumentsForCliOption(Method m) {
+	public static List<CliDeclaredOptionValue> getArgumentsForCliOption(Method m) {
 		final Annotation[][] annotations = m.getParameterAnnotations();
 		final Class<?>[] declaredParameters = m.getParameterTypes();
 		final List<DocumentedMethodParam> documentedParameters = TherapiJavadocHelper.getParamDescriptions(m);
