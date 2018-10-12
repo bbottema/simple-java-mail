@@ -1289,11 +1289,11 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>. example: <code>email.addHeader("X-Priority",
+	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>. example: <code>withHeader("X-Priority",
 	 * 2)</code>
 	 *
-	 * @param name  The name of the header.
-	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
+	 * @param name  The name of the header. Example: X-Priority
+	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}. Example: 2
 	 *
 	 * @see #withHeaders(Map)
 	 */

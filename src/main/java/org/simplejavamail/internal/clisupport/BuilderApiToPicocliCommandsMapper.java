@@ -212,16 +212,28 @@ public final class BuilderApiToPicocliCommandsMapper {
 		
 		return cliParams;
 	}
-
+	
 	static String extractJavadocDescription(String javadoc) {
-		final Pattern PATTERN_EXAMPLES_MARKER = compile("(?i)(?s).*(?<examples> examples?:)"); // https://regex101.com/r/UMMmlV/1
-		final Matcher matcher = PATTERN_EXAMPLES_MARKER.matcher(javadoc);
-		// compile("(?i)(?s).*examples?:").matcher(javadoc).find()
-		return javadoc.substring(0, matcher.find() ? (matcher.end() - matcher.group("examples").length()) : javadoc.length());
+		return javadoc.substring(0, determineJavadocLengthUntilExamples(javadoc, false));
 	}
-
+	
 	static String[] extractJavadocExamples(String javadoc) {
+		final int javadocLengthIncludingExamples = determineJavadocLengthUntilExamples(javadoc, true);
+		if (javadocLengthIncludingExamples != javadoc.length()) {
+			return javadoc.substring(javadocLengthIncludingExamples)
+					.replaceAll("(?m)^\\s*-\\s*", "") // trim leading whitespace
+					.replaceAll("(?m)\\s*$", "") // trim trailing whitespace
+					.split("\\r?\\n"); // split on trimmed newlines
+		}
 		return new String[0];
+	}
+	
+	private static int determineJavadocLengthUntilExamples(String javadoc, boolean includeExamplesTextLength) {
+		final Pattern PATTERN_EXAMPLES_MARKER = compile("(?i)(?s).*(?<examples> examples?:\\s*)"); // https://regex101.com/r/UMMmlV/3
+		final Matcher matcher = PATTERN_EXAMPLES_MARKER.matcher(javadoc);
+		return (matcher.find())
+				? matcher.end() - (!includeExamplesTextLength ? matcher.group("examples").length() : 0)
+				: javadoc.length();
 	}
 
 	@Nonnull
