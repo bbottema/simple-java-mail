@@ -242,7 +242,7 @@ public class EmailBuilder {
 		 * @param message MimeMessage to reply to with new email.
 		 */
 		@Cli.OptionNameOverride("replyingToSenderWithDefaultQuoteMarkup")
-		public EmailPopulatingBuilder replyingTo(@Nonnull @Cli.OptionValue(name = "email", helpLabel = "FILE", description = "Path to .eml file") final MimeMessage message) {
+		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage message) {
 			return replyingTo(message, false, DEFAULT_QUOTING_MARKUP);
 		}
 		
@@ -309,13 +309,7 @@ public class EmailBuilder {
 		 * @see <a href="https://javaee.github.io/javamail/FAQ#reply">Official JavaMail FAQ on replying</a>
 		 * @see javax.mail.internet.MimeMessage#reply(boolean)
 		 */
-		public EmailPopulatingBuilder replyingTo(
-				@Cli.OptionValue(name = "emailMessage", helpLabel = "FILE", description = "The message from which we harvest recipients, original content to quote (including embedded images), message ID to include.")
-				@Nonnull final MimeMessage emailMessage,
-				@Cli.OptionValue(name = "replyToAll", helpLabel = "BOOL", description = "Indicates whether all original receivers should be included in this new reply. Also see MimeMessage.reply(boolean).")
-				final boolean repyToAll,
-				@Cli.OptionValue(name = "htmlTemplate", helpLabel = "STRING", description = "A valid HTML that contains the string \"%%s\". Be advised that HTML is very limited in emails.")
-				@Nonnull final String htmlTemplate) {
+		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage emailMessage, final boolean repyToAll, @Nonnull final String htmlTemplate) {
 			final MimeMessage replyMessage;
 			try {
 				replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
@@ -369,9 +363,9 @@ public class EmailBuilder {
 		}
 		
 		/**
-		 * Delegates to {@link #copying(Email)}, by converting the email first.
+		 * Delegates to {@link #copying(Email)}, by converting the provided message first.
 		 *
-		 * @param message MimeMessage to copy to new email.
+		 * @param message The MimeMessage email to convert and copy to new {@link Email}.
 		 *
 		 * @see EmailConverter#mimeMessageToEmail(MimeMessage)
 		 */

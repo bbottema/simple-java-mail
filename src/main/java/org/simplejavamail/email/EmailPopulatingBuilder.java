@@ -236,7 +236,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param id The mime message id, something like {@code "<123@456>"}
 	 */
-	public EmailPopulatingBuilder fixingMessageId(@Nullable @Cli.OptionValue(name="id", helpLabel = "MIMEMESSAGE_ID", example = "\"<123@456>\"") final String id) {
+	public EmailPopulatingBuilder fixingMessageId(final String id) {
 		this.id = id;
 		return this;
 	}
@@ -257,9 +257,7 @@ public class EmailPopulatingBuilder {
 	 * @param name The name that will be visible to the receivers of this email.
 	 * @param fromAddress The address that will be visible to the receivers of this email.
 	 */
-	public EmailPopulatingBuilder from(
-			@Cli.OptionValue(name = "name", required = false, helpLabel = "STRING", description = "The name of the sender") @Nullable final String name,
-			@Cli.OptionValue(name = "fromAddress", helpLabel = "STRING", description = "The email address of the sender") @Nonnull final String fromAddress) {
+	public EmailPopulatingBuilder from(@Nullable final String name, @Nonnull final String fromAddress) {
 		return from(new Recipient(name, checkNonEmptyArgument(fromAddress, "fromAddress"), null));
 	}
 	
@@ -565,10 +563,7 @@ public class EmailPopulatingBuilder {
 	 *                           </ul>
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API method")
-	public EmailPopulatingBuilder to(
-			@Cli.OptionValue(name = "oneOrMoreAddresses", helpLabel = "STRING", description = "Single RFC2822 address or delimited list of RFC2822 addresses.",
-			example = { "lolly.pop@pretzelfun.com", "Lolly Pop<lolly.pop@pretzelfun.com>", "a1@b1.c1,a2@b2.c2,a3@b3.c3", "a1@b1.c1;a2@b2.c2;a3@b3.c3" })
-			@Nonnull final String oneOrMoreAddresses) {
+	public EmailPopulatingBuilder to(@Nonnull final String oneOrMoreAddresses) {
 		return withRecipientsWithDefaultName(null, singletonList(oneOrMoreAddresses), TO);
 	}
 	

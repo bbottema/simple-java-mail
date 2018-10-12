@@ -29,18 +29,4 @@ public class Cli {
 	public @interface BuilderApiNode {
 		CliBuilderApiType builderApiType();
 	}
-	
-	/**
-	 * Describes a method's param as a CLI option's value
-	 */
-	@Retention(RetentionPolicy.RUNTIME)
-	@Target(ElementType.PARAMETER)
-	@Deprecated
-	public @interface OptionValue {
-		String name();
-		String description() default "";
-		String helpLabel();
-		boolean required() default true;
-		String[] example() default {};
-	}
 }
