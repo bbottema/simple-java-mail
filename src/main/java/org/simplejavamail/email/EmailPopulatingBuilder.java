@@ -236,7 +236,7 @@ public class EmailPopulatingBuilder {
 	 *
 	 * @param id The mime message id, something like {@code "<123@456>"}
 	 */
-	public EmailPopulatingBuilder fixingMessageId(final String id) {
+	public EmailPopulatingBuilder fixingMessageId(@Nullable final String id) {
 		this.id = id;
 		return this;
 	}
