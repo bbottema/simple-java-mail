@@ -7,6 +7,7 @@ import com.github.therapi.runtimejavadoc.InlineLink;
 import com.github.therapi.runtimejavadoc.InlineTag;
 import com.github.therapi.runtimejavadoc.InlineValue;
 import org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper;
+import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
@@ -94,8 +95,9 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 			final Class<?> apiNode = methodDelegate.getDeclaringClass();
 			final String inclusionHeader;
 			if (methodDelegateIsCliCompatible) {
-				inclusionHeader = String.format("@|bold -> %s|@:%n",
-						BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, methodDelegate));
+				inclusionHeader = String.format("@|bold -> %s %s|@:%n",
+						BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, methodDelegate),
+						formatCliOptionValues(BuilderApiToPicocliCommandsMapper.getArgumentsForCliOption(methodDelegate)));
 			} else {
 				inclusionHeader = formatMethodReference("@|bold -> ", methodDelegate, "|@:%n");
 			}
@@ -103,6 +105,19 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 			return true;
 		}
 		return false;
+	}
+	
+	private String formatCliOptionValues(List<CliDeclaredOptionValue> argumentsForCliOption) {
+		StringBuilder result = new StringBuilder();
+		for (CliDeclaredOptionValue v : argumentsForCliOption) {
+			result
+					.append(v.getName())
+					.append("(=")
+					.append(v.getHelpLabel())
+					.append(") ");
+		}
+		return result.toString().trim();
+		
 	}
 	
 	@Nonnull
