@@ -108,7 +108,7 @@
         <dependency>
             <groupId>com.github.bbottema</groupId>
             <artifactId>java-reflection</artifactId>
-            <version>3.8.0</version>
+            <version>3.8.1</version>
             <optional>true</optional>
         </dependency>
         <dependency>
