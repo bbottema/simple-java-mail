@@ -4,6 +4,7 @@ import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
+import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import picocli.CommandLine;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Model.OptionSpec;
@@ -91,7 +92,7 @@ class CliCommandLineProducer {
     
     // hide multi-line descriptions when usage is not focussed on the current option (ie. --current-option--help)
     private static String[] determineDescription(CliDeclaredOptionSpec cliCommand, boolean fullDescription) {
-        final List<String> descriptions = formatCommandDescriptions(cliCommand);
+        final List<String> descriptions = formatOptionDescription(cliCommand);
         if (!fullDescription && descriptions.size() > 1) {
             return new String[] {getFirst(descriptions) + " (...more)"};
         } else {
@@ -100,16 +101,22 @@ class CliCommandLineProducer {
     }
     
     @Nonnull
-    private static List<String> formatCommandDescriptions(CliDeclaredOptionSpec cliCommand) {
-        final List<String> descriptions = new ArrayList<>(cliCommand.getDescription());
-        if (!cliCommand.getPossibleOptionValues().isEmpty()) {
-            descriptions.add("%n@|bold,underline Parameters|@:");
-            for (CliDeclaredOptionValue possibleParam : cliCommand.getPossibleOptionValues()) {
+    private static List<String> formatOptionDescription(CliDeclaredOptionSpec cliOption) {
+        final List<String> fullDescription = new ArrayList<>(cliOption.getDescription());
+        if (!cliOption.getPossibleOptionValues().isEmpty()) {
+            fullDescription.add("%n@|bold,underline Parameters|@:");
+            for (CliDeclaredOptionValue possibleParam : cliOption.getPossibleOptionValues()) {
 				String optionalInfix = !possibleParam.isRequired() ? " (optional)" : "";
-				descriptions.add(format("@|yellow %s%s|@: %s", possibleParam.getName(), optionalInfix, possibleParam.formatDescription()));
+				fullDescription.add(format("@|yellow %s%s|@: %s", possibleParam.getName(), optionalInfix, possibleParam.formatDescription()));
             }
         }
-        return descriptions;
+	
+		List<String> seeAlsoReferences = TherapiJavadocHelper.getJavadocSeeAlsoReferences(cliOption.getSourceMethod());
+        if (!seeAlsoReferences.isEmpty()) {
+            fullDescription.add("%n@|bold,underline See also|@:");
+			fullDescription.addAll(seeAlsoReferences);
+        }
+        return fullDescription;
     }
     
     private static String determineParamLabel(List<CliDeclaredOptionValue> possibleParams) {

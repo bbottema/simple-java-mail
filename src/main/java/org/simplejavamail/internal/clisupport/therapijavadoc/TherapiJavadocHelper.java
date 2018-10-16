@@ -1,8 +1,10 @@
 package org.simplejavamail.internal.clisupport.therapijavadoc;
 
+import com.github.therapi.runtimejavadoc.InlineLink;
 import com.github.therapi.runtimejavadoc.Link;
 import com.github.therapi.runtimejavadoc.ParamJavadoc;
 import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
+import com.github.therapi.runtimejavadoc.SeeAlsoJavadoc;
 import com.github.therapi.runtimejavadoc.Value;
 import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.MethodUtils;
@@ -14,6 +16,11 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import static java.lang.String.format;
+import static java.util.Arrays.asList;
+import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeOptionsInText;
+import static org.simplejavamail.internal.util.ListUtil.getFirst;
 
 public final class TherapiJavadocHelper {
 	
@@ -56,7 +63,7 @@ public final class TherapiJavadocHelper {
 	}
 
 	@Nonnull
-	public static String getJavadoc(Method m, int nestingDepth) {
+	public static String getJavadocMainDescription(Method m, int nestingDepth) {
 		return new JavadocForCliFormatter(nestingDepth)
 				.format(RuntimeJavadoc.getJavadoc(m).getComment());
 	}
@@ -71,6 +78,50 @@ public final class TherapiJavadocHelper {
 			paramDescriptions.add(new DocumentedMethodParam(param.getName(), new JavadocForCliFormatter().format(param.getComment())));
 		}
 		return paramDescriptions;
+	}
+	
+	public static List<String> getJavadocSeeAlsoReferences(Method m) {
+		List<String> seeAlsoReferences = new ArrayList<>();
+		final JavadocForCliFormatter cliFormatter = new JavadocForCliFormatter();
+		for (SeeAlsoJavadoc seeAlsoJavadoc : RuntimeJavadoc.getJavadoc(m).getSeeAlso()) {
+			switch (seeAlsoJavadoc.getSeeAlsoType()) {
+				case STRING_LITERAL:
+					seeAlsoReferences.add(seeAlsoJavadoc.getStringLiteral());
+					break;
+				case HTML_LINK:
+					SeeAlsoJavadoc.HtmlLink htmlLink = seeAlsoJavadoc.getHtmlLink();
+					seeAlsoReferences.add(format("%s (%s)", htmlLink.getText(), htmlLink.getLink()));
+					break;
+				case JAVADOC_LINK:
+					final String renderedLink = cliFormatter.renderLink(new InlineLink(seeAlsoJavadoc.getLink()), false);
+					final Method linkedMethod = findMethodForLink(seeAlsoJavadoc.getLink());
+					if (linkedMethod != null) {
+						final List<String> fullDescription = determineCliOptionDescriptions(linkedMethod);
+						final String moreInfix = fullDescription.size() > 1 ? " (...more)" : "";
+						seeAlsoReferences.add(format("%s - %s %s", renderedLink, getFirst(fullDescription), moreInfix));
+					}
+					seeAlsoReferences.add(renderedLink);
+					break;
+			}
+		}
+		return seeAlsoReferences;
+	}
+	
+	@Nonnull
+	public static List<String> determineCliOptionDescriptions(Method m) {
+		String javadoc = TherapiJavadocHelper.getJavadocMainDescription(m, 0);
+		// Picocli takes the first item for --help, but all items for full usage display
+		List<String> basicExplanationPlusFurtherDetails = asList(javadoc.split("\n", 2));
+		return colorizeDescriptions(basicExplanationPlusFurtherDetails);
+	}
+	
+	@Nonnull
+	public static List<String> colorizeDescriptions(List<String> descriptions) {
+		List<String> colorizedDescriptions = new ArrayList<>();
+		for (String description : descriptions) {
+			colorizedDescriptions.add(colorizeOptionsInText(description, "cyan"));
+		}
+		return colorizedDescriptions;
 	}
 	
 	public static class DocumentedMethodParam {

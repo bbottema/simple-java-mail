@@ -5,6 +5,7 @@ import com.github.therapi.runtimejavadoc.CommentElement;
 import com.github.therapi.runtimejavadoc.CommentFormatter;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
@@ -36,6 +37,7 @@ abstract class ContextualCommentFormatter extends CommentFormatter {
 		return nStrings(currentNestingDepth + depthModifier, "  ");
 	}
 	
+	@Nullable
 	CommentElement getPreviousElement(CommentElement e) {
 		final List<CommentElement> elements = currentComment.getElements();
 		int currentElementIndex = elements.indexOf(e);

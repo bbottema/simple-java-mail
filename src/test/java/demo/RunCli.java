@@ -5,9 +5,14 @@ import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 
 public class RunCli {
 	public static void main(String[] args) {
+		long startMs = System.currentTimeMillis();
+		
 		for (CliDeclaredOptionSpec declaredOption : CliSupport.DECLARED_OPTIONS) {
 			CliSupport.runCLI(args.length > 0 ? args : new String[]{ "send", declaredOption.getName() + "--help" });
+			System.out.printf("\n\n\n\n");
 		}
+		
+		System.out.println(((System.currentTimeMillis() - startMs) / 1000d) + "ms");
 		/*
 		CliSupport.runCLI(args.length > 0 ? args : new String[]{
 				"send",

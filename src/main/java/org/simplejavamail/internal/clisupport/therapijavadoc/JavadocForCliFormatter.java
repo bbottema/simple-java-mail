@@ -74,15 +74,22 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	
 	@Override
 	protected String renderLink(InlineLink link) {
+		return renderLink(link, true);
+	}
+	
+	String renderLink(InlineLink link, boolean includeReferredDocumentation) {
 		final Method m = TherapiJavadocHelper.findMethodForLink(link.getLink());
 		
 		if (m != null) {
 			final Class<?> apiNode = m.getDeclaringClass();
 			final boolean isCliCompatible = BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(m);
-			final String result = (isCliCompatible)
+			String result = (isCliCompatible)
 					? String.format("@|cyan %s|@", BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, m))
 					: formatMethodReference("java-only method @|italic,faint ", m, "|@");
-			return result + (checkIncludeReferredDocumentation(link, m, isCliCompatible) ? " (see below)" : "");
+			if (includeReferredDocumentation) {
+				result += (checkIncludeReferredDocumentation(link, m, isCliCompatible) ? " (see below)" : "");
+			}
+			return result;
 		} else {
 			return String.format("@|green %s|@", link.getLink().getReferencedMemberName() != null
 					? link.getLink().getReferencedMemberName()
@@ -101,7 +108,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 			} else {
 				inclusionHeader = formatMethodReference("@|bold -> ", methodDelegate, "|@:%n");
 			}
-			includedReferredDocumentation.add(inclusionHeader + TherapiJavadocHelper.getJavadoc(methodDelegate, currentNestingDepth + 1));
+			includedReferredDocumentation.add(inclusionHeader + TherapiJavadocHelper.getJavadocMainDescription(methodDelegate, currentNestingDepth + 1));
 			return true;
 		}
 		return false;

@@ -124,7 +124,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 				
 				cliOptionsFoundSoFar.add(new CliDeclaredOptionSpec(
 						optionName,
-						determineCliOptionDescriptions(m),
+						TherapiJavadocHelper.determineCliOptionDescriptions(m),
 						getArgumentsForCliOption(m),
 						apiNode.getAnnotation(Cli.BuilderApiNode.class).builderApiType(),
 						determineApplicableRootCommands(apiNode, m),
@@ -155,23 +155,6 @@ public final class BuilderApiToPicocliCommandsMapper {
 	@Nonnull
 	private static Collection<CliCommandType> determineApplicableRootCommands(Class<?> apiNode, Method m) {
 		return allOf(CliCommandType.class);
-	}
-	
-	@Nonnull
-	private static List<String> determineCliOptionDescriptions(Method m) {
-		String javadoc = TherapiJavadocHelper.getJavadoc(m, 0);
-		// Picocli takes the first item for --help, but all items for full usage display
-		List<String> basicExplanationPlusFurtherDetails = asList(javadoc.split("\n", 2));
-		return colorizeDescriptions(basicExplanationPlusFurtherDetails);
-	}
-	
-	@Nonnull
-	static List<String> colorizeDescriptions(List<String> descriptions) {
-		List<String> colorizedDescriptions = new ArrayList<>();
-		for (String description : descriptions) {
-			colorizedDescriptions.add(colorizeOptionsInText(description, "cyan"));
-		}
-		return colorizedDescriptions;
 	}
 	
 	@Nonnull
