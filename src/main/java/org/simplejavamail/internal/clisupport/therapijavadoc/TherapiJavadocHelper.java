@@ -19,7 +19,7 @@ import java.util.Set;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeOptionsInText;
+import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 
 public final class TherapiJavadocHelper {
@@ -48,6 +48,7 @@ public final class TherapiJavadocHelper {
 		return null;
 	}
 
+	@Nullable
 	private static Class<?> findClass(String referencedClassName) {
 		Class<?> aClass = null;
 		if (referencedClassName.endsWith(EmailBuilder.EmailBuilderInstance.class.getSimpleName())) {
@@ -63,11 +64,12 @@ public final class TherapiJavadocHelper {
 	}
 
 	@Nonnull
-	public static String getJavadocMainDescription(Method m, int nestingDepth) {
+	static String getJavadocMainDescription(Method m, int nestingDepth) {
 		return new JavadocForCliFormatter(nestingDepth)
 				.format(RuntimeJavadoc.getJavadoc(m).getComment());
 	}
 	
+	@Nonnull
 	public static List<DocumentedMethodParam> getParamDescriptions(Method m) {
 		List<ParamJavadoc> params = RuntimeJavadoc.getJavadoc(m).getParams();
 		if (m.getParameterTypes().length != params.size()) {
@@ -80,6 +82,7 @@ public final class TherapiJavadocHelper {
 		return paramDescriptions;
 	}
 	
+	@Nonnull
 	public static List<String> getJavadocSeeAlsoReferences(Method m) {
 		List<String> seeAlsoReferences = new ArrayList<>();
 		final JavadocForCliFormatter cliFormatter = new JavadocForCliFormatter();
@@ -113,15 +116,6 @@ public final class TherapiJavadocHelper {
 		// Picocli takes the first item for --help, but all items for full usage display
 		List<String> basicExplanationPlusFurtherDetails = asList(javadoc.split("\n", 2));
 		return colorizeDescriptions(basicExplanationPlusFurtherDetails);
-	}
-	
-	@Nonnull
-	public static List<String> colorizeDescriptions(List<String> descriptions) {
-		List<String> colorizedDescriptions = new ArrayList<>();
-		for (String description : descriptions) {
-			colorizedDescriptions.add(colorizeOptionsInText(description, "cyan"));
-		}
-		return colorizedDescriptions;
 	}
 	
 	public static class DocumentedMethodParam {

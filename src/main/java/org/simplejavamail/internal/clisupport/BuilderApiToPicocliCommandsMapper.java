@@ -158,6 +158,15 @@ public final class BuilderApiToPicocliCommandsMapper {
 	}
 	
 	@Nonnull
+	public static List<String> colorizeDescriptions(List<String> descriptions) {
+		List<String> colorizedDescriptions = new ArrayList<>();
+		for (String description : descriptions) {
+			colorizedDescriptions.add(colorizeOptionsInText(description, "cyan"));
+		}
+		return colorizedDescriptions;
+	}
+	
+	@Nonnull
 	public static String colorizeOptionsInText(String text, String ansiStyles) {
 		final StringFormatter TOKEN_REPLACER = StringFormatter.formatterForPattern("@|" + ansiStyles + " %s|@");
 		final String optionRegex = "(?:--(?:help|version)|-(?:h|v)|(?:--?\\w+:\\w+))(?!\\w)"; // https://regex101.com/r/SOs17K/4
@@ -195,10 +204,12 @@ public final class BuilderApiToPicocliCommandsMapper {
 		return cliParams;
 	}
 	
+	@Nonnull
 	static String extractJavadocDescription(String javadoc) {
 		return javadoc.substring(0, determineJavadocLengthUntilExamples(javadoc, false));
 	}
 	
+	@Nonnull
 	static String[] extractJavadocExamples(String javadoc) {
 		final int javadocLengthIncludingExamples = determineJavadocLengthUntilExamples(javadoc, true);
 		if (javadocLengthIncludingExamples != javadoc.length()) {
