@@ -161,7 +161,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	public static List<String> colorizeDescriptions(List<String> descriptions) {
 		List<String> colorizedDescriptions = new ArrayList<>();
 		for (String description : descriptions) {
-			colorizedDescriptions.add(colorizeOptionsInText(description, "cyan"));
+			colorizedDescriptions.add(colorizeOptionsInText(description, CliColorScheme.OPTION_STYLE));
 		}
 		return colorizedDescriptions;
 	}

@@ -16,9 +16,11 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 
@@ -83,9 +85,10 @@ public final class TherapiJavadocHelper {
 	}
 	
 	@Nonnull
-	public static List<String> getJavadocSeeAlsoReferences(Method m) {
+	public static List<String> getJavadocSeeAlsoReferences(Method m, boolean forJavadocLinksOnlyIncludeCliOptions) {
 		List<String> seeAlsoReferences = new ArrayList<>();
 		final JavadocForCliFormatter cliFormatter = new JavadocForCliFormatter();
+		int longestLink = 0;
 		for (SeeAlsoJavadoc seeAlsoJavadoc : RuntimeJavadoc.getJavadoc(m).getSeeAlso()) {
 			switch (seeAlsoJavadoc.getSeeAlsoType()) {
 				case STRING_LITERAL:
@@ -97,17 +100,35 @@ public final class TherapiJavadocHelper {
 					break;
 				case JAVADOC_LINK:
 					final String renderedLink = cliFormatter.renderLink(new InlineLink(seeAlsoJavadoc.getLink()), false);
-					final Method linkedMethod = findMethodForLink(seeAlsoJavadoc.getLink());
-					if (linkedMethod != null) {
-						final List<String> fullDescription = determineCliOptionDescriptions(linkedMethod);
-						final String moreInfix = fullDescription.size() > 1 ? " (...more)" : "";
-						seeAlsoReferences.add(format("%s - %s %s", renderedLink, getFirst(fullDescription), moreInfix));
+					if (!forJavadocLinksOnlyIncludeCliOptions || renderedLink.contains("--")) {
+						final Method linkedMethod = findMethodForLink(seeAlsoJavadoc.getLink());
+						if (linkedMethod != null) {
+							final List<String> fullDescription = determineCliOptionDescriptions(linkedMethod);
+							final String moreInfix = fullDescription.size() > 1 ? " (...more)" : "";
+							seeAlsoReferences.add(format("[[%s]] - %s %s", renderedLink, getFirst(fullDescription), moreInfix));
+							longestLink = Math.max(longestLink, renderedLink.length());
+						} else {
+							seeAlsoReferences.add(renderedLink);
+						}
 					}
-					seeAlsoReferences.add(renderedLink);
 					break;
 			}
 		}
+		
+		if (longestLink > 0) {
+			for (int i = 0; i < seeAlsoReferences.size(); i++) {
+				Matcher matcher = compile("\\[\\[(?<link>.+?)]]").matcher(seeAlsoReferences.get(i));
+				if (matcher.find()) {
+					seeAlsoReferences.set(i, matcher.replaceFirst(padRight(matcher.group("link"), longestLink)));
+				}
+			}
+		}
+		
 		return seeAlsoReferences;
+	}
+	
+	public static String padRight(String s, int n) {
+		return String.format("%1$-" + n + "s", s);
 	}
 	
 	@Nonnull

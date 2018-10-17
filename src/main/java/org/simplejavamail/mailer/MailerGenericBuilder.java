@@ -312,7 +312,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * Controls the maximum number of threads when sending emails in async fashion. Defaults to {@link #DEFAULT_POOL_SIZE}.
+	 * Controls the maximum number of threads when sending emails in async fashion. Defaults to {@value #DEFAULT_POOL_SIZE}.
 	 *
 	 * @param defaultPoolSize Size of the thread pool.
 	 *
@@ -358,11 +358,10 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	
 	/**
 	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property "mail.smtp(s).ssl.trust" is set to "*".
-	 * <p>
-	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
 	 *
 	 * @param trustAllHosts Flag {@code true} or {@code false} that enables or disables trusting of <strong>all</strong> hosts.
 	 *
+	 * @see <a href="https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
 	 * @see #trustingSSLHosts(String...)
 	 */
 	public T trustingAllHosts(final boolean trustAllHosts) {

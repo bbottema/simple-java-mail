@@ -9,7 +9,7 @@ import java.util.List;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.colorizeDescriptions;
+import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
 
 public class BuilderApiToPicocliCommandsMapperTest {
 	

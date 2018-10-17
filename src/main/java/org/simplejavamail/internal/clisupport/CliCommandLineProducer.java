@@ -17,6 +17,8 @@ import java.util.List;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeOptionsInText;
+import static org.simplejavamail.internal.clisupport.CliColorScheme.COMMAND_OPTION_STYLE;
+import static org.simplejavamail.internal.clisupport.CliColorScheme.OPTION_VALUE_STYLE;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 
 class CliCommandLineProducer {
@@ -33,7 +35,7 @@ class CliCommandLineProducer {
                         "(as such, the order of --options matter as well as combinations). Furthermore, all documentation is taken from the " +
                         "builder API Javadoc. Basically you configure builders just like you would in Java, but with CLI commands.%n" +
                         "%n" +
-                        "Note that each and every @|yellow --option|@ has an @|yellow --option--help|@ variation for full documentation." +
+                        "Note that each and every @|"+COMMAND_OPTION_STYLE+" --option|@ has an @|"+COMMAND_OPTION_STYLE+" --option--help|@ variation for full documentation." +
                         "%n" +
                         "Note: All the regular functionality regarding properties and config files work with the CLI so you can provide defaults in a " +
                         "property file as long as it is visible (on class path) or as system environment variables.")
@@ -41,16 +43,16 @@ class CliCommandLineProducer {
         
         rootCommandsHolder.usageMessage()
                 .customSynopsis("",
-                        colorizeOptionsInText("\tsend     [--help -h, --version -v] --email:options --mailer:options", "yellow"),
-                        colorizeOptionsInText("\tconnect  [--help -h, --version -v] --mailer:options", "yellow"),
-                        colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options", "yellow"),
-                        colorizeOptionsInText("\tconvert  [--help -h, --version -v] --email:options", "yellow"));
+                        colorizeOptionsInText("\tsend     [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE),
+                        colorizeOptionsInText("\tconnect  [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE),
+                        colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE),
+                        colorizeOptionsInText("\tconvert  [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE));
         
         createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email",
-                                                                                        colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options --mailer:options", "yellow"), declaredOptions);
-        createRootCommand(rootCommandsHolder, "connect", "Test a server connection",    colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", "yellow"), declaredOptions);
-        createRootCommand(rootCommandsHolder, "validate", "Validate an email",          colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", "yellow"), declaredOptions);
-        createRootCommand(rootCommandsHolder, "convert", "Convert between email types", colorizeOptionsInText("\tconvert [--help -h, --version -v] --email:options", "yellow"), declaredOptions);
+                                                                                        colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions);
+        createRootCommand(rootCommandsHolder, "connect", "Test a server connection",    colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions);
+        createRootCommand(rootCommandsHolder, "validate", "Validate an email",          colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions);
+        createRootCommand(rootCommandsHolder, "convert", "Convert between email types", colorizeOptionsInText("\tconvert [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE), declaredOptions);
         
         return new CommandLine(rootCommandsHolder).setUsageHelpWidth(textWidth).setSeparator(" ");
     }
@@ -105,13 +107,13 @@ class CliCommandLineProducer {
         final List<String> fullDescription = new ArrayList<>(cliOption.getDescription());
         if (!cliOption.getPossibleOptionValues().isEmpty()) {
             fullDescription.add("%n@|bold,underline Parameters|@:");
-            for (CliDeclaredOptionValue possibleParam : cliOption.getPossibleOptionValues()) {
-				String optionalInfix = !possibleParam.isRequired() ? " (optional)" : "";
-				fullDescription.add(format("@|yellow %s%s|@: %s", possibleParam.getName(), optionalInfix, possibleParam.formatDescription()));
+            for (CliDeclaredOptionValue possibleValue : cliOption.getPossibleOptionValues()) {
+				String optionalInfix = !possibleValue.isRequired() ? " (optional)" : "";
+				fullDescription.add(format("@|%s %s%s|@: %s", OPTION_VALUE_STYLE, possibleValue.getName(), optionalInfix, possibleValue.formatDescription()));
             }
         }
 	
-		List<String> seeAlsoReferences = TherapiJavadocHelper.getJavadocSeeAlsoReferences(cliOption.getSourceMethod());
+		List<String> seeAlsoReferences = TherapiJavadocHelper.getJavadocSeeAlsoReferences(cliOption.getSourceMethod(), true);
         if (!seeAlsoReferences.isEmpty()) {
             fullDescription.add("%n@|bold,underline See also|@:");
 			fullDescription.addAll(seeAlsoReferences);

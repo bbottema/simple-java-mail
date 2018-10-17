@@ -16,6 +16,10 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import static java.util.regex.Pattern.compile;
+import static org.simplejavamail.internal.clisupport.CliColorScheme.CODE_STYLE;
+import static org.simplejavamail.internal.clisupport.CliColorScheme.EMPHASIZE_STYLE;
+import static org.simplejavamail.internal.clisupport.CliColorScheme.OPTION_STYLE;
+import static org.simplejavamail.internal.clisupport.CliColorScheme.STRONG_STYLE;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 public class JavadocForCliFormatter extends ContextualCommentFormatter {
@@ -57,19 +61,19 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 				.replaceAll("\\s*\\n\\s*", " ") // removes newlines
 				.replaceAll("\\s*<br\\s*/?>\\s*", "\n" + indent()) // replace <br/> with newlines
 				.replaceAll("\\s*</?p\\s*>\\s*", "\n\n" + indent()) // replace <p> with sets of newlines
-				.replaceAll("<strong>(.*?)</strong>", "@|bold $1|@")
-				.replaceAll("<em>(.*?)</em>", "@|italic $1|@")
+				.replaceAll("<strong>(.*?)</strong>", "@|" + STRONG_STYLE + " $1|@")
+				.replaceAll("<em>(.*?)</em>", "@|" + EMPHASIZE_STYLE + " $1|@")
 				.replaceAll("&gt;", ">")
 				.replaceAll("&lt;", "<")
-				.replaceAll("\\{@code (.*?)}", "@|green $1|@")
-				.replaceAll("<code>(.*?)</code>", "@|green $1|@")
+				.replaceAll("\\{@code (.*?)}", "@|" + CODE_STYLE + " $1|@")
+				.replaceAll("<code>(.*?)</code>", "@|" + CODE_STYLE + " $1|@")
 				.replaceAll("<a href=\"(.+?)\">(.+?)</a>", "$2 ($1)")
 				.replaceAll("%s", "%%s");
 	}
 	
 	@Override
 	protected String renderCode(InlineTag e) {
-		return String.format("@|green %s|@", e.getValue());
+		return String.format("@|%s %s|@", CODE_STYLE, e.getValue());
 	}
 	
 	@Override
@@ -84,16 +88,14 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 			final Class<?> apiNode = m.getDeclaringClass();
 			final boolean isCliCompatible = BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(m);
 			String result = (isCliCompatible)
-					? String.format("@|cyan %s|@", BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, m))
+					? String.format("@|%s %s|@", OPTION_STYLE, BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, m))
 					: formatMethodReference("java-only method @|italic,faint ", m, "|@");
 			if (includeReferredDocumentation) {
 				result += (checkIncludeReferredDocumentation(link, m, isCliCompatible) ? " (see below)" : "");
 			}
 			return result;
 		} else {
-			return String.format("@|green %s|@", link.getLink().getReferencedMemberName() != null
-					? link.getLink().getReferencedMemberName()
-					: link.getLink().getReferencedClassName());
+			return String.format("@|%s %s|@", CODE_STYLE, link.getLink().toString().replace('#', '.'));
 		}
 	}
 	
@@ -102,11 +104,11 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 			final Class<?> apiNode = methodDelegate.getDeclaringClass();
 			final String inclusionHeader;
 			if (methodDelegateIsCliCompatible) {
-				inclusionHeader = String.format("@|bold -> %s %s|@:%n",
+				inclusionHeader = String.format("@|" + STRONG_STYLE + " -> %s %s|@:%n",
 						BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, methodDelegate),
 						formatCliOptionValues(BuilderApiToPicocliCommandsMapper.getArgumentsForCliOption(methodDelegate)));
 			} else {
-				inclusionHeader = formatMethodReference("@|bold -> ", methodDelegate, "|@:%n");
+				inclusionHeader = formatMethodReference("@|" + STRONG_STYLE + " -> ", methodDelegate, "|@:%n");
 			}
 			includedReferredDocumentation.add(inclusionHeader + TherapiJavadocHelper.getJavadocMainDescription(methodDelegate, currentNestingDepth + 1));
 			return true;
@@ -163,7 +165,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	protected String renderValue(InlineValue e) {
 		Object obj = TherapiJavadocHelper.resolveFieldForValue(e.getValue());
 		if (obj != null) {
-			return String.format("@|green %s|@", obj.toString());
+			return String.format("@|%s %s|@", CODE_STYLE, obj.toString());
 		}
 		throw new RuntimeException("{@value} cannot be resolved");
 	}

@@ -14,6 +14,8 @@ import javax.annotation.Nullable;
 import static java.lang.String.format;
 import static java.lang.System.err;
 import static java.lang.System.out;
+import static org.simplejavamail.internal.clisupport.CliColorScheme.OPTION_STYLE;
+import static org.simplejavamail.internal.clisupport.CliColorScheme.OPTION_VALUE_STYLE;
 import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.EMPTY_PARAM_LABEL;
 import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.OPTION_HELP_POSTFIX;
 
@@ -60,13 +62,13 @@ public class CliCommandLineConsumerUsageHelper {
     }
     
     private static String determineCustomSynopsis(OptionSpec matchedOption) {
-        final String cyanOptionNoParameters = "@|cyan %s|@";
-        final String cyanOptionYellowParameters = "@|cyan %s|@ @|yellow %s|@";
+        final String styledOptionNoParameters = "@|%s %s|@";
+        final String stylesOptionWithParameters = "@|%s %s|@ @|%s %s|@";
     
         String optionName = determineOptionName(matchedOption);
         return matchedOption.paramLabel().equals(EMPTY_PARAM_LABEL)
-                ? format(cyanOptionNoParameters, optionName)
-                : format(cyanOptionYellowParameters, optionName, matchedOption.paramLabel());
+                ? format(styledOptionNoParameters, OPTION_STYLE, optionName)
+                : format(stylesOptionWithParameters, OPTION_STYLE, optionName, OPTION_VALUE_STYLE, matchedOption.paramLabel());
     }
     
     @Nonnull

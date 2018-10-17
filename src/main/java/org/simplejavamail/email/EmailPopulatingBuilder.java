@@ -1283,11 +1283,10 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Adds a header to the {@link #headers} list. The value is stored as a <code>String</code>. example: <code>withHeader("X-Priority",
-	 * 2)</code>
+	 * Adds a header which will be included in the email. The value is stored as a <code>String</code>.
 	 *
-	 * @param name  The name of the header. Example: X-Priority
-	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}. Example: 2
+	 * @param name  The name of the header. Example: <code>withHeader("X-Priority", 2)</code>
+	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
 	 *
 	 * @see #withHeaders(Map)
 	 */
@@ -1369,19 +1368,15 @@ public class EmailPopulatingBuilder {
 	
 	/**
 	 * Primes this email for signing with a DKIM domain key. Actual signing is done when sending using a <code>Mailer</code>.
-	 * <p>
-	 * Also see:
-	 * <ul>
-	 *     <li>https://postmarkapp.com/guides/dkim</li>
-	 *     <li>https://github.com/markenwerk/java-utils-mail-dkim</li>
-	 *     <li>http://www.gettingemaildelivered.com/dkim-explained-how-to-set-up-and-use-domainkeys-identified-mail-effectively</li>
-	 *     <li>https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail</li>
-	 * </ul>
 	 *
 	 * @param dkimPrivateKeyInputStream De key content used to sign for the sending party.
 	 * @param signingDomain             The domain being authorized to send.
 	 * @param dkimSelector              Additional domain specifier.
 	 *
+	 * @see <a href="https://postmarkapp.com/guides/dkim">more on DKIM 1</a>
+	 * @see <a href="https://github.com/markenwerk/java-utils-mail-dkim">more on DKIM 2</a>
+	 * @see <a href="http://www.gettingemaildelivered.com/dkim-explained-how-to-set-up-and-use-domainkeys-identified-mail-effectively">more on DKIM 3</a>
+	 * @see <a href="https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail">more on DKIM 4</a>
 	 * @see #signWithDomainKey(byte[], String, String)
 	 * @see #signWithDomainKey(String, String, String)
 	 * @see #signWithDomainKey(File, String, String)
@@ -1406,8 +1401,8 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Indicates that we want to use the NPM flag {@link #dispositionNotificationTo}. The actual address will default to the {@link #replyToRecipient}
-	 * first if set or else {@link #fromRecipient} (the final address is determined when sending this email).
+	 * Indicates that we want to use the NPM flag {@code dispositionNotificationTo}. The actual address will default to the {@code replyToRecipient}
+	 * first if set or else {@code fromRecipient} (the final address is determined when sending this email).
 	 *
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
@@ -1475,8 +1470,8 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
-	 * Indicates that we want to use the flag {@link #returnReceiptTo}. The actual address will default to the {@link #replyToRecipient} first if set
-	 * or else {@link #fromRecipient} (the final address is determined when sending the email).
+	 * Indicates that we want to use the flag {@code returnReceiptTo}. The actual address will default to the {@code replyToRecipient} first if set
+	 * or else {@code fromRecipient} (the final address is determined when sending the email).
 	 * <p>
 	 * For more detailed information, refer to {@link #withReturnReceiptTo(Recipient)}.
 	 */
