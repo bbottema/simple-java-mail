@@ -33,7 +33,7 @@ class CliCommandLineProducer {
                         "%n" +
                         "All commands and their options are a direct translation of the Simple Java Mail builder API and translate back into builder calls " +
                         "(as such, the order of --options matter as well as combinations). Furthermore, all documentation is taken from the " +
-                        "builder API Javadoc. Basically you configure builders just like you would in Java, but with CLI commands.%n" +
+                        "builder API Javadoc. Essentially you configure builders just like you would in Java, but with CLI commands.%n" +
                         "%n" +
                         "Note that each and every @|"+COMMAND_OPTION_STYLE+" --option|@ has an @|"+COMMAND_OPTION_STYLE+" --option--help|@ variation for full documentation." +
                         "%n" +
