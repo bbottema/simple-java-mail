@@ -27,7 +27,7 @@ class CliCommandLineProducer {
     static final String EMPTY_PARAM_LABEL = "<empty>";
     
     @SuppressWarnings("SameParameterValue")
-    static CommandLine configurePicoCli(List<CliDeclaredOptionSpec> declaredOptions, int textWidth) {
+    static CommandLine configurePicoCli(List<CliDeclaredOptionSpec> declaredOptions, int maxTextWidth) {
         CommandSpec rootCommandsHolder = createDefaultCommandSpec("SimpleJavaMail",
                 "Simple Java Mail Command Line Interface.%n" +
                         "%n" +
@@ -49,25 +49,25 @@ class CliCommandLineProducer {
                         colorizeOptionsInText("\tconvert  [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE));
         
         createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email",
-                                                                                        colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions);
-        createRootCommand(rootCommandsHolder, "connect", "Test a server connection",    colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions);
-        createRootCommand(rootCommandsHolder, "validate", "Validate an email",          colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions);
-        createRootCommand(rootCommandsHolder, "convert", "Convert between email types", colorizeOptionsInText("\tconvert [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE), declaredOptions);
+                                                                                        colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+        createRootCommand(rootCommandsHolder, "connect", "Test a server connection",    colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+        createRootCommand(rootCommandsHolder, "validate", "Validate an email",          colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+        createRootCommand(rootCommandsHolder, "convert", "Convert between email types", colorizeOptionsInText("\tconvert [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         
-        return new CommandLine(rootCommandsHolder).setUsageHelpWidth(textWidth).setSeparator(" ");
+        return new CommandLine(rootCommandsHolder).setUsageHelpWidth(maxTextWidth).setSeparator(" ");
     }
     
     private static void createRootCommand(CommandSpec rootCommandsHolder, String name, String description, String synopsis,
-                                          List<CliDeclaredOptionSpec> declaredOptions) {
+                                          List<CliDeclaredOptionSpec> declaredOptions, int maxTextWidth) {
         final CommandSpec rootCommand = createDefaultCommandSpec(name, description);
 		final CliCommandType cliCommandType = CliCommandType.valueOf(rootCommand.name());
 		final Collection<CliBuilderApiType> compatibleBuilderApiTypes = CliBuilderApiType.findForCliSynopsis(synopsis);
         rootCommand.usageMessage().customSynopsis(synopsis);
-		populateRootCommands(rootCommand, declaredOptions, cliCommandType, compatibleBuilderApiTypes);
+		populateRootCommands(rootCommand, declaredOptions, cliCommandType, compatibleBuilderApiTypes, maxTextWidth);
         rootCommandsHolder.addSubcommand(rootCommand.name(), rootCommand);
     }
     
-    private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> declaredOptions, CliCommandType cliCommandType, Collection<CliBuilderApiType> compatibleBuilderApiTypes) {
+    private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> declaredOptions, CliCommandType cliCommandType, Collection<CliBuilderApiType> compatibleBuilderApiTypes, int maxTextWidth) {
 		for (CliDeclaredOptionSpec cliDeclaredOptionSpec : declaredOptions) {
             if (cliDeclaredOptionSpec.applicableToRootCommand(cliCommandType, compatibleBuilderApiTypes)) {
                 rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName())
@@ -76,7 +76,7 @@ class CliCommandLineProducer {
                         .arity(String.valueOf(cliDeclaredOptionSpec.getPossibleOptionValues().size()))
                         .paramLabel(determineParamLabel(cliDeclaredOptionSpec.getPossibleOptionValues()))
                         .hideParamSyntax(true)
-                        .description(determineDescription(cliDeclaredOptionSpec, false))
+                        .description(determineDescription(cliDeclaredOptionSpec, false, maxTextWidth))
                         .build());
                 rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName() + OPTION_HELP_POSTFIX)
                         .type(List.class) // cannot use .usageHelp(true), because this cannot be boolean, because description
@@ -86,15 +86,15 @@ class CliCommandLineProducer {
                         .help(true)
                         .paramLabel(determineParamLabel(cliDeclaredOptionSpec.getPossibleOptionValues()))
                         .hideParamSyntax(true)
-                        .description(determineDescription(cliDeclaredOptionSpec, true))
+                        .description(determineDescription(cliDeclaredOptionSpec, true, maxTextWidth))
                         .build());
             }
         }
     }
     
     // hide multi-line descriptions when usage is not focussed on the current option (ie. --current-option--help)
-    private static String[] determineDescription(CliDeclaredOptionSpec cliCommand, boolean fullDescription) {
-        final List<String> descriptions = formatOptionDescription(cliCommand);
+    private static String[] determineDescription(CliDeclaredOptionSpec cliCommand, boolean fullDescription, int maxTextWidth) {
+        final List<String> descriptions = formatOptionDescription(cliCommand, maxTextWidth);
         if (!fullDescription && descriptions.size() > 1) {
             return new String[] {getFirst(descriptions) + " (...more)"};
         } else {
@@ -103,7 +103,7 @@ class CliCommandLineProducer {
     }
     
     @Nonnull
-    private static List<String> formatOptionDescription(CliDeclaredOptionSpec cliOption) {
+    private static List<String> formatOptionDescription(CliDeclaredOptionSpec cliOption, int maxTextWidth) {
         final List<String> fullDescription = new ArrayList<>(cliOption.getDescription());
         if (!cliOption.getPossibleOptionValues().isEmpty()) {
             fullDescription.add("%n@|bold,underline Parameters|@:");
@@ -113,7 +113,7 @@ class CliCommandLineProducer {
             }
         }
 	
-		List<String> seeAlsoReferences = TherapiJavadocHelper.getJavadocSeeAlsoReferences(cliOption.getSourceMethod(), true);
+		List<String> seeAlsoReferences = TherapiJavadocHelper.getJavadocSeeAlsoReferences(cliOption.getSourceMethod(), true, maxTextWidth);
         if (!seeAlsoReferences.isEmpty()) {
             fullDescription.add("%n@|bold,underline See also|@:");
 			fullDescription.addAll(seeAlsoReferences);

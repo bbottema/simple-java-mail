@@ -85,10 +85,14 @@ public final class TherapiJavadocHelper {
 	}
 	
 	@Nonnull
-	public static List<String> getJavadocSeeAlsoReferences(Method m, boolean onlyIncludeClicompatibleJavadocLinks) {
+	public static List<String> getJavadocSeeAlsoReferences(Method m, boolean onlyIncludeClicompatibleJavadocLinks, int maxTextWidth) {
 		List<String> seeAlsoReferences = new ArrayList<>();
 		final JavadocForCliFormatter cliFormatter = new JavadocForCliFormatter();
+		
+		// javadoc links are aligned: descriptions are leftpadded to the longest javadoc link or all moved to new lines
 		int longestLink = 0;
+		boolean allDescriptionsOnNextLine = false;
+		
 		for (SeeAlsoJavadoc seeAlsoJavadoc : RuntimeJavadoc.getJavadoc(m).getSeeAlso()) {
 			switch (seeAlsoJavadoc.getSeeAlsoType()) {
 				case STRING_LITERAL:
@@ -105,7 +109,9 @@ public final class TherapiJavadocHelper {
 						if (linkedMethod != null) {
 							final List<String> fullDescription = determineCliOptionDescriptions(linkedMethod);
 							final String moreInfix = fullDescription.size() > 1 ? " (...more)" : "";
-							seeAlsoReferences.add(format("[[%s]] - %s %s", renderedLink, getFirst(fullDescription), moreInfix));
+							String fullSeeAlsoLine = format("[[%s]] - %s %s", renderedLink, getFirst(fullDescription), moreInfix);
+							seeAlsoReferences.add(fullSeeAlsoLine);
+							allDescriptionsOnNextLine |= fullSeeAlsoLine.length() > maxTextWidth;
 							longestLink = Math.max(longestLink, renderedLink.length()); // keep track of padding needed lateron
 						} else {
 							seeAlsoReferences.add(renderedLink);
@@ -118,9 +124,11 @@ public final class TherapiJavadocHelper {
 		// add padding for readability
 		if (longestLink > 0) {
 			for (int i = 0; i < seeAlsoReferences.size(); i++) {
-				Matcher matcher = compile("\\[\\[(?<link>.+?)]]").matcher(seeAlsoReferences.get(i));
+				Matcher matcher = compile("\\[\\[(?<link>.+?)]](?<description>.*)").matcher(seeAlsoReferences.get(i));
 				if (matcher.find()) {
-					seeAlsoReferences.set(i, matcher.replaceFirst(padRight(matcher.group("link"), longestLink)));
+					String newlineFixer = seeAlsoReferences.size() > 1 && allDescriptionsOnNextLine ? "\n\t" : "";
+					String paddedReplacement = padRight(matcher.group("link"), longestLink) + newlineFixer + matcher.group("description");
+					seeAlsoReferences.set(i, matcher.replaceFirst(paddedReplacement));
 				}
 			}
 		}
