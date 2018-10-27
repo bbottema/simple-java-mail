@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.TreeMap;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -253,13 +254,14 @@ public final class MimeMessageParser {
 	}
 	
 	@Nonnull
-	private static String parseResourceName(@Nullable final String contentID, @Nonnull final String fileName) {
-		String extension = "";
-		if (!valueNullOrEmpty(fileName) && fileName.contains(".")) {
-			extension = fileName.substring(fileName.lastIndexOf("."), fileName.length());
-		}
-		if (!valueNullOrEmpty(contentID)) {
-			return (contentID.endsWith(extension)) ? contentID : contentID + extension;
+	private static String parseResourceName(@Nullable final String possibleWrappedContentID, @Nonnull final String fileName) {
+		if (!valueNullOrEmpty(possibleWrappedContentID)) {
+			// https://regex101.com/r/46ulb2/1
+			String unwrappedContentID = possibleWrappedContentID.replaceAll("^<?(.*?)>?$", "$1");
+			String extension = (!valueNullOrEmpty(fileName) && fileName.contains("."))
+					? fileName.substring(fileName.lastIndexOf("."))
+					: "";
+			return (unwrappedContentID.endsWith(extension)) ? unwrappedContentID : unwrappedContentID + extension;
 		} else {
 			return fileName;
 		}
@@ -482,8 +484,8 @@ public final class MimeMessageParser {
 	}
 	
 	public static class ParsedMimeMessageComponents {
-		private final Map<String, DataSource> attachmentList = new HashMap<>();
-		private final Map<String, DataSource> cidMap = new HashMap<>();
+		private final Map<String, DataSource> attachmentList = new TreeMap<>();
+		private final Map<String, DataSource> cidMap = new TreeMap<>();
 		private final Map<String, Object> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
 		private final List<InternetAddress> ccAddresses = new ArrayList<>();
