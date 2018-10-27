@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE-2.0.txt) 
 [![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-5.0.7-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) 
+[![Javadocs](https://img.shields.io/badge/javadoc-5.0.8-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) 
 [![Build Status](https://img.shields.io/travis/bbottema/simple-java-mail.svg?style=flat)](https://travis-ci.org/bbottema/simple-java-mail) 
 [![Codacy](https://img.shields.io/codacy/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail) 
 ![Java 1.7+](https://img.shields.io/badge/java-1.7+-lightgray.svg)
@@ -70,14 +70,15 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.0.7</version>
+    <version>5.0.8</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v5.0.1 - [v5.0.7](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.0.7%7Cjar)
+v5.0.1 - [v5.0.8](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.0.8%7Cjar)
 
+- v5.0.8 (27-Oktober-2018): [#178](https://github.com/bbottema/simple-java-mail/issues/178) Fix the annoying vulnerability Github report about spring-core
 - v5.0.7 (27-Oktober-2018): [#175](https://github.com/bbottema/simple-java-mail/issues/175) Attachment names are not always parsed properly from MimeMessage
 - v5.0.6 (3-Oktober-2018): [#167](https://github.com/bbottema/simple-java-mail/issues/167) Email addresses validated despite cleared validation validation criteria
 - v5.0.5 (3-Oktober-2018): [#137](https://github.com/bbottema/simple-java-mail/issues/137) When replying to an email with HTML, the result body is empty

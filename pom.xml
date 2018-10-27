@@ -47,7 +47,7 @@
         <java.version>1.7</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <compiler.encoding>UTF-8</compiler.encoding>
-        <spring.version>4.3.11.RELEASE</spring.version>
+        <spring.version>4.3.18.RELEASE</spring.version>
         <powermock.version>1.7.1</powermock.version>
     </properties>
 
