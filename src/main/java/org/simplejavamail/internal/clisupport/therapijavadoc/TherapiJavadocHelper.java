@@ -32,7 +32,7 @@ public final class TherapiJavadocHelper {
 	@Nullable
 	static Method findMethodForLink(Link link) {
 		if (link.getReferencedMemberName() != null) {
-			final Class<?> aClass = findClass(link.getReferencedClassName());
+			final Class<?> aClass = findReferencedClass(link.getReferencedClassName());
 			if (aClass != null) { // else assume the class is irrelevant to CLI
 				final Set<Method> matchingMethods = MethodUtils.findMatchingMethods(aClass, aClass, link.getReferencedMemberName(), link.getParams());
 				return matchingMethods.isEmpty() ? null : matchingMethods.iterator().next();
@@ -43,7 +43,7 @@ public final class TherapiJavadocHelper {
 
 	@Nullable
 	static Object resolveFieldForValue(Value value) {
-		final Class<?> aClass = findClass(value.getReferencedClassName());
+		final Class<?> aClass = findReferencedClass(value.getReferencedClassName());
 		if (aClass != null) { // else assume the class is irrelevant to CLI
 			return ClassUtils.solveFieldValue(aClass, value.getReferencedMemberName());
 		}
@@ -51,7 +51,7 @@ public final class TherapiJavadocHelper {
 	}
 
 	@Nullable
-	private static Class<?> findClass(String referencedClassName) {
+	static Class<?> findReferencedClass(String referencedClassName) {
 		Class<?> aClass = null;
 		if (referencedClassName.endsWith(EmailBuilder.EmailBuilderInstance.class.getSimpleName())) {
 			aClass = EmailBuilder.EmailBuilderInstance.class;
@@ -85,7 +85,7 @@ public final class TherapiJavadocHelper {
 	}
 	
 	@Nonnull
-	public static List<String> getJavadocSeeAlsoReferences(Method m, boolean forJavadocLinksOnlyIncludeCliOptions) {
+	public static List<String> getJavadocSeeAlsoReferences(Method m, boolean onlyIncludeClicompatibleJavadocLinks) {
 		List<String> seeAlsoReferences = new ArrayList<>();
 		final JavadocForCliFormatter cliFormatter = new JavadocForCliFormatter();
 		int longestLink = 0;
@@ -100,13 +100,13 @@ public final class TherapiJavadocHelper {
 					break;
 				case JAVADOC_LINK:
 					final String renderedLink = cliFormatter.renderLink(new InlineLink(seeAlsoJavadoc.getLink()), false);
-					if (!forJavadocLinksOnlyIncludeCliOptions || renderedLink.contains("--")) {
+					if (!onlyIncludeClicompatibleJavadocLinks || renderedLink.contains("--")) { // -- -> cli compatible
 						final Method linkedMethod = findMethodForLink(seeAlsoJavadoc.getLink());
 						if (linkedMethod != null) {
 							final List<String> fullDescription = determineCliOptionDescriptions(linkedMethod);
 							final String moreInfix = fullDescription.size() > 1 ? " (...more)" : "";
 							seeAlsoReferences.add(format("[[%s]] - %s %s", renderedLink, getFirst(fullDescription), moreInfix));
-							longestLink = Math.max(longestLink, renderedLink.length());
+							longestLink = Math.max(longestLink, renderedLink.length()); // keep track of padding needed lateron
 						} else {
 							seeAlsoReferences.add(renderedLink);
 						}
@@ -115,6 +115,7 @@ public final class TherapiJavadocHelper {
 			}
 		}
 		
+		// add padding for readability
 		if (longestLink > 0) {
 			for (int i = 0; i < seeAlsoReferences.size(); i++) {
 				Matcher matcher = compile("\\[\\[(?<link>.+?)]]").matcher(seeAlsoReferences.get(i));

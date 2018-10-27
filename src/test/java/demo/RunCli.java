@@ -9,7 +9,7 @@ public class RunCli {
 		
 		for (CliDeclaredOptionSpec declaredOption : CliSupport.DECLARED_OPTIONS) {
 			CliSupport.runCLI(args.length > 0 ? args : new String[]{ "send", declaredOption.getName() + "--help" });
-			System.out.printf("\n\n\n\n");
+			System.out.print("\n\n\n\n");
 		}
 		
 		System.out.println(((System.currentTimeMillis() - startMs) / 1000d) + "ms");
