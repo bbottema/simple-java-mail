@@ -10,6 +10,7 @@ import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
 import org.simplejavamail.email.Recipient;
 import org.simplejavamail.util.ConfigLoader;
+import org.simplejavamail.util.TestDataHelper;
 import testutil.EmailHelper;
 import testutil.testrules.SmtpServerRule;
 import testutil.testrules.TestSmtpServer;
@@ -50,37 +51,37 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_EmptySubjectAndBody()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false));
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false), true);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMailBasicFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false));
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false), true);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_AllFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false));
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false), true);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_IncludingCustomHeaders()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true));
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true), true);
 	}
 
 	@Test
 	public void createMailSession_StandardDummyMailWithId()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false));
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false), true);
 	}
 	
 	@Test
 	public void createMailSession_OutlookMessageTest()
 			throws IOException, MessagingException {
-		Email email = assertSendingEmail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"));
+		Email email = assertSendingEmail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"), false);
 
 		// Google SMTP overrode this, Outlook recognized it as: Benny Bottema <b.bottema@gmail.com>; on behalf of; lollypop <b.bottema@projectnibble.org>
 		EmailAssert.assertThat(email).hasFromRecipient(new Recipient("lollypop", "b.bottema@projectnibble.org", null));
@@ -118,7 +119,7 @@ public class MailerLiveTest {
 		assertAttachmentMetadata(embeddedImg, "image/png", "thumbsup");
 	}
 
-	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder)
+	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean compensateForDresscodeAttachmentNameOverrideErasure)
 			throws MessagingException {
 		Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
 		mailer.sendMail(originalEmail);
@@ -138,6 +139,11 @@ public class MailerLiveTest {
 		if (originalEmailPopulatingBuilder.getBounceToRecipient() != null) {
 			originalEmailPopulatingBuilder.clearBounceTo();
 		}
+		
+		if (compensateForDresscodeAttachmentNameOverrideErasure) {
+			TestDataHelper.fixDresscodeAttachment(receivedEmail);
+		}
+		
 		assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());
 		return receivedEmail;
 	}
@@ -152,7 +158,7 @@ public class MailerLiveTest {
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder
-				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder))
+				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false))
 				.from("dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
@@ -184,7 +190,7 @@ public class MailerLiveTest {
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder
-				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder))
+				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false))
 				.withHeader("References", "dummy-references")
 				.from("dummy@domain.com")
 				.withPlainText("This is the reply")
