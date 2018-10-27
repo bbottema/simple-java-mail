@@ -95,7 +95,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 			}
 			return result;
 		} else {
-			return String.format("@|%s %s|@", CODE_STYLE, link.getLink().toString().replace('#', '.'));
+			return String.format("@|%s %s|@", CODE_STYLE, link.getLink().getLabel().replace('#', '.').replaceAll("^\\.(.*)", "$1"));
 		}
 	}
 	
