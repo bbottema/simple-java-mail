@@ -23,6 +23,7 @@ import static java.util.Arrays.asList;
 import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
+import static org.simplejavamail.internal.util.StringUtil.padRight;
 
 public final class TherapiJavadocHelper {
 	
@@ -134,10 +135,6 @@ public final class TherapiJavadocHelper {
 		}
 		
 		return seeAlsoReferences;
-	}
-	
-	public static String padRight(String s, int n) {
-		return String.format("%1$-" + n + "s", s);
 	}
 	
 	@Nonnull
