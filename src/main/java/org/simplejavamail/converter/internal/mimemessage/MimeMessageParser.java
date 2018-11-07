@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static java.lang.String.format;
+import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
@@ -42,7 +43,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * @version current: MimeMessageParser.java 2016-02-25 Benny Bottema
  */
 public final class MimeMessageParser {
-	
+
 	/**
 	 * Contains the headers we will ignore, because either we set the information differently (such as Subject) or we recognize the header as
 	 * interfering or obsolete for new emails).
@@ -107,16 +108,17 @@ public final class MimeMessageParser {
 		parsedComponents.fromAddress = parseFromAddress(mimeMessage);
 		parsedComponents.replyToAddresses = parseReplyToAddresses(mimeMessage);
 		parseMimePartTree(mimeMessage, parsedComponents);
+		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		return parsedComponents;
 	}
-	
+
 	private static void parseMimePartTree(@Nonnull final MimePart currentPart, @Nonnull final ParsedMimeMessageComponents parsedComponents) {
 		for (final Header header : retrieveAllHeaders(currentPart)) {
 			parseHeader(header, parsedComponents);
 		}
-		
+
 		final String disposition = parseDisposition(currentPart);
-		
+
 		if (isMimeType(currentPart, "text/plain") && parsedComponents.plainContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.plainContent = parseContent(currentPart);
 		} else if (isMimeType(currentPart, "text/html") && parsedComponents.htmlContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
@@ -128,10 +130,10 @@ public final class MimeMessageParser {
 			}
 		} else {
 			final DataSource ds = createDataSource(currentPart);
-			// If the diposition is not provided, the part should be treated as attachment
-			if (disposition == null || Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+			// if the diposition is not provided, for now the part should be treated as inline (later non-embedded inline attachments are moved)
+			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 				parsedComponents.attachmentList.put(parseResourceName(parseContentID(currentPart), parseFileName(currentPart)), ds);
-			} else if (Part.INLINE.equalsIgnoreCase(disposition)) {
+			} else if (disposition == null || Part.INLINE.equalsIgnoreCase(disposition)) {
 				if (parseContentID(currentPart) != null) {
 					parsedComponents.cidMap.put(parseContentID(currentPart), ds);
 				} else {
@@ -143,7 +145,7 @@ public final class MimeMessageParser {
 			}
 		}
 	}
-	
+
 	@SuppressWarnings("StatementWithEmptyBody")
 	private static void parseHeader(final Header header, @Nonnull final ParsedMimeMessageComponents parsedComponents) {
 		if (header.getName().equals("Disposition-Notification-To")) {
@@ -158,7 +160,7 @@ public final class MimeMessageParser {
 			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	public static String parseFileName(@Nonnull final Part currentPart) {
 		try {
@@ -167,7 +169,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_FILENAME, e);
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
 	public static String parseContentID(@Nonnull final MimePart currentPart) {
@@ -177,7 +179,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_ID, e);
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	public static MimeBodyPart getBodyPartAtIndex(final Multipart parentMultiPart, final int index) {
 		try {
@@ -186,7 +188,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_GETTING_BODYPART_AT_INDEX, index), e);
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	public static int countBodyParts(final Multipart mp) {
 		try {
@@ -195,7 +197,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_MULTIPART_COUNT, e);
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	public static <T> T parseContent(@Nonnull final MimePart currentPart) {
 		try {
@@ -205,7 +207,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CONTENT, e);
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	public static String parseDisposition(@Nonnull final MimePart currentPart) {
 		try {
@@ -214,7 +216,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_DISPOSITION, e);
 		}
 	}
-	
+
 	@Nonnull
 	private static String parseResourceName(@Nullable final String possibleWrappedContentID, @Nonnull final String fileName) {
 		if (!valueNullOrEmpty(possibleWrappedContentID)) {
@@ -228,7 +230,7 @@ public final class MimeMessageParser {
 			return fileName;
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<Header> retrieveAllHeaders(@Nonnull final MimePart part) {
@@ -238,7 +240,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_ALL_HEADERS, e);
 		}
 	}
-	
+
 	@Nonnull
 	private static InternetAddress createAddress(final Header header, final String typeOfAddress) {
 		try {
@@ -247,7 +249,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_PARSING_ADDRESS, typeOfAddress), e);
 		}
 	}
-	
+
 	/**
 	 * Checks whether the MimePart contains an object of the given mime type.
 	 *
@@ -267,7 +269,7 @@ public final class MimeMessageParser {
 			return retrieveContentType(part).equalsIgnoreCase(mimeType);
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	public static String retrieveContentType(@Nonnull final MimePart part) {
 		try {
@@ -276,7 +278,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_TYPE, e);
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	public static DataHandler retrieveDataHandler(@Nonnull final MimePart part) {
 		try {
@@ -285,7 +287,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_DATAHANDLER, e);
 		}
 	}
-	
+
 	/**
 	 * Parses the MimePart to create a DataSource.
 	 *
@@ -304,7 +306,7 @@ public final class MimeMessageParser {
 		result.setName(dataSourceName);
 		return result;
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	public static InputStream retrieveInputStream(final DataSource dataSource) {
 		try {
@@ -313,13 +315,13 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_INPUTSTREAM, e);
 		}
 	}
-	
+
 	@Nullable
 	private static String parseDataSourceName(@Nonnull final Part part, @Nonnull final DataSource dataSource) {
 		final String result = !valueNullOrEmpty(dataSource.getName()) ? dataSource.getName() : parseFileName(part);
 		return !valueNullOrEmpty(result) ? decodeText(result) : null;
 	}
-	
+
 	@Nonnull
 	private static String decodeText(@Nonnull final String result) {
 		try {
@@ -328,13 +330,13 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_DECODING_TEXT, e);
 		}
 	}
-	
+
 	@Nonnull
 	private static byte[] readContent(@Nonnull final InputStream is) {
 		final BufferedInputStream isReader = new BufferedInputStream(is);
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		final BufferedOutputStream osWriter = new BufferedOutputStream(os);
-		
+
 		int ch;
 		try {
 			while ((ch = isReader.read()) != -1) {
@@ -361,26 +363,26 @@ public final class MimeMessageParser {
 		}
 		return fullMimeType;
 	}
-	
-	
+
+
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<InternetAddress> parseToAddresses(@Nonnull final MimeMessage mimeMessage) {
 		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.TO));
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<InternetAddress> parseCcAddresses(@Nonnull final MimeMessage mimeMessage) {
 		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.CC));
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<InternetAddress> parseBccAddresses(@Nonnull final MimeMessage mimeMessage) {
 		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.BCC));
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
 	public static Address[] retrieveRecipients(@Nonnull final MimeMessage mimeMessage, final RecipientType recipientType) {
@@ -390,7 +392,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_GETTING_RECIPIENTS, recipientType), e);
 		}
 	}
-	
+
 	@Nonnull
 	private static List<InternetAddress> parseInternetAddresses(@Nullable final Address[] recipients) {
 		final List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<Address>();
@@ -402,7 +404,7 @@ public final class MimeMessageParser {
 		}
 		return mailAddresses;
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
 	public static InternetAddress parseFromAddress(@Nonnull final MimeMessage mimeMessage) {
@@ -413,7 +415,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_FROMADDRESS, e);
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
 	public static InternetAddress parseReplyToAddresses(@Nonnull final MimeMessage mimeMessage) {
@@ -424,7 +426,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_REPLY_TO_ADDRESSES, e);
 		}
 	}
-	
+
 	@Nullable
 	public static String parseSubject(@Nonnull final MimeMessage mimeMessage) {
 		try {
@@ -433,8 +435,8 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_SUBJECT, e);
 		}
 	}
-	
-	
+
+
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
 	public static String parseMessageId(@Nonnull final MimeMessage mimeMessage) {
@@ -444,7 +446,17 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_MESSAGE_ID, e);
 		}
 	}
-	
+
+	private static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
+		final String htmlContent = parsedComponents.htmlContent.toString();
+		for (Map.Entry<String, DataSource> cidEntry : parsedComponents.cidMap.entrySet()) {
+			if (!htmlContent.contains("cid:" + extractCID(cidEntry.getKey()))) {
+				parsedComponents.attachmentList.put(cidEntry.getKey(), cidEntry.getValue());
+				parsedComponents.cidMap.remove(cidEntry.getKey());
+			}
+		}
+	}
+
 	public static class ParsedMimeMessageComponents {
 		private final Map<String, DataSource> attachmentList = new TreeMap<>();
 		private final Map<String, DataSource> cidMap = new TreeMap<>();
@@ -461,63 +473,63 @@ public final class MimeMessageParser {
 		private InternetAddress bounceToAddress;
 		private String plainContent;
 		private String htmlContent;
-		
+
 		public String getMessageId() {
 			return messageId;
 		}
-		
+
 		public Map<String, DataSource> getAttachmentList() {
 			return attachmentList;
 		}
-		
+
 		public Map<String, DataSource> getCidMap() {
 			return cidMap;
 		}
-		
+
 		public Map<String, Object> getHeaders() {
 			return headers;
 		}
-		
+
 		public List<InternetAddress> getToAddresses() {
 			return toAddresses;
 		}
-		
+
 		public List<InternetAddress> getCcAddresses() {
 			return ccAddresses;
 		}
-		
+
 		public List<InternetAddress> getBccAddresses() {
 			return bccAddresses;
 		}
-		
+
 		public String getSubject() {
 			return subject;
 		}
-		
+
 		public InternetAddress getFromAddress() {
 			return fromAddress;
 		}
-		
+
 		public InternetAddress getReplyToAddresses() {
 			return replyToAddresses;
 		}
-		
+
 		public InternetAddress getDispositionNotificationTo() {
 			return dispositionNotificationTo;
 		}
-		
+
 		public InternetAddress getReturnReceiptTo() {
 			return returnReceiptTo;
 		}
-		
+
 		public InternetAddress getBounceToAddress() {
 			return bounceToAddress;
 		}
-		
+
 		public String getPlainContent() {
 			return plainContent;
 		}
-		
+
 		public String getHtmlContent() {
 			return htmlContent;
 		}
