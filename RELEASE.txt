@@ -3,8 +3,13 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.0.8</version>
+    <version>5.1.0</version>
 </dependency>
+
+v5.1.0 (7-November-2018)
+
+- #179 You can now test the connection to the SMTP server
+
 
 v5.0.1 - v5.0.8
 
