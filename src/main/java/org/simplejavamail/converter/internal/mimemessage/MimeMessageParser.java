@@ -448,10 +448,11 @@ public final class MimeMessageParser {
 	}
 
 	private static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
-		final String htmlContent = parsedComponents.htmlContent.toString();
+		final String htmlContent = parsedComponents.htmlContent;
 		for (Map.Entry<String, DataSource> cidEntry : parsedComponents.cidMap.entrySet()) {
-			if (!htmlContent.contains("cid:" + extractCID(cidEntry.getKey()))) {
-				parsedComponents.attachmentList.put(cidEntry.getKey(), cidEntry.getValue());
+			String cid = extractCID(cidEntry.getKey());
+			if (htmlContent == null || !htmlContent.contains("cid:" + cid)) {
+				parsedComponents.attachmentList.put(cid, cidEntry.getValue());
 				parsedComponents.cidMap.remove(cidEntry.getKey());
 			}
 		}
