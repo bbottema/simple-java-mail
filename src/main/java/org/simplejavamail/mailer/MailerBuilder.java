@@ -106,7 +106,7 @@ public class MailerBuilder {
 	
 	
 	/**
-	 * @deprecated Use internally. Don't use this.
+	 * @deprecated Used internally. Don't use this.
 	 */
 	@SuppressWarnings("DeprecatedIsStillUsed")
 	@Deprecated

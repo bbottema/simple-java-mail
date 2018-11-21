@@ -134,7 +134,7 @@ public class EmailBuilder {
 	}
 	
 	/**
-	 * @deprecated Use internally. Don't use this.
+	 * @deprecated Used internally. Don't use this.
 	 */
 	@Deprecated
 	public static EmailBuilderInstance _createForCli() {
