@@ -486,10 +486,10 @@ public final class MimeMessageParser {
 	}
 
 	private static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
-		final String htmlContent = parsedComponents.htmlContent;
+		final String htmlContent = parsedComponents.htmlContent.toString();
 		for (Map.Entry<String, DataSource> cidEntry : parsedComponents.cidMap.entrySet()) {
 			String cid = extractCID(cidEntry.getKey());
-			if (htmlContent == null || !htmlContent.contains("cid:" + cid)) {
+			if (!htmlContent.contains("cid:" + cid)) {
 				parsedComponents.attachmentList.put(cid, cidEntry.getValue());
 				parsedComponents.cidMap.remove(cidEntry.getKey());
 			}
@@ -510,10 +510,11 @@ public final class MimeMessageParser {
 		private InternetAddress dispositionNotificationTo;
 		private InternetAddress returnReceiptTo;
 		private InternetAddress bounceToAddress;
-		private final StringBuilder plainContent= new StringBuilder();
-		private final StringBuilder htmlContent= new StringBuilder();
+		private final StringBuilder plainContent = new StringBuilder();
+		private final StringBuilder htmlContent = new StringBuilder();
 		private String calendarMethod;
-private String calendarContent;
+		private String calendarContent;
+		
 		public String getMessageId() {
 			return messageId;
 		}
