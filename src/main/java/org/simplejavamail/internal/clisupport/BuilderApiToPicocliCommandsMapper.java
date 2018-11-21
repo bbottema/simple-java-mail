@@ -13,7 +13,8 @@ import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
-import org.simplejavamail.internal.clisupport.valueinterpreters.StringToMimeMessageFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.EmlFilePathToMimeMessageFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.MsgFilePathToMimeMessageFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToTransportStrategyFunction;
 import org.simplejavamail.internal.util.StringUtil;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
@@ -72,7 +73,8 @@ public final class BuilderApiToPicocliCommandsMapper {
 	}};
 	
 	static {
-		ValueConversionHelper.registerValueConverter(new StringToMimeMessageFunction());
+		ValueConversionHelper.registerValueConverter(new EmlFilePathToMimeMessageFunction());
+		ValueConversionHelper.registerValueConverter(new MsgFilePathToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
 	}
 	

@@ -6,7 +6,7 @@ import javax.annotation.Nonnull;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
 
-public class StringToMimeMessageFunction extends FileBasedFunction<MimeMessage> {
+public class EmlFilePathToMimeMessageFunction extends FileBasedFunction<MimeMessage> {
 	
 	@Override
 	public Class<String> getFromType() {

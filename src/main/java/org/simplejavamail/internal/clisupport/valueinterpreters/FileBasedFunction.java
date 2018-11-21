@@ -13,7 +13,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 abstract class FileBasedFunction<T> implements ValueFunction<String, T> {
 	
-	static final Logger LOGGER = getLogger(FileBasedFunction.class);
+	private static final Logger LOGGER = getLogger(FileBasedFunction.class);
 	
 	@Override
 	public final T convertValue(String value) {

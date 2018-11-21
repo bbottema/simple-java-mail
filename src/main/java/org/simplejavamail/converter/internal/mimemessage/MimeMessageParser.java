@@ -38,13 +38,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.TreeMap;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 /**
  * Parses a MimeMessage and stores the individual parts such a plain text, HTML text and attachments.
@@ -468,7 +469,7 @@ public final class MimeMessageParser {
 	@Nullable
 	public static String parseSubject(@Nonnull final MimeMessage mimeMessage) {
 		try {
-			return mimeMessage.getSubject();
+			return ofNullable(mimeMessage.getSubject()).orElse("");
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_SUBJECT, e);
 		}

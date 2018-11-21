@@ -1,7 +1,6 @@
 package org.simplejavamail.internal.clisupport;
 
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
-import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliReceivedOptionData;
@@ -10,8 +9,6 @@ import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.ParseResult;
 
 import javax.annotation.Nonnull;
-import javax.mail.internet.MimeMessage;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -74,20 +71,7 @@ class CliCommandLineConsumer {
 	}
     
     private static Object parseStringInput(@Nonnull String stringValue, @Nonnull Class<?> targetType) {
-        if (ValueConversionHelper.isCommonType(targetType)) {
-            return ValueConversionHelper.convert(stringValue, targetType);
-        } else if (targetType == MimeMessage.class) {
-            // assume stringValue is a filepath
-            if (stringValue.endsWith(".msg")) {
-                return EmailConverter.outlookMsgToMimeMessage(new File(stringValue));
-            } else if (stringValue.endsWith(".eml")) {
-                return EmailConverter.emlToMimeMessage(new File(stringValue));
-            } else {
-                throw new CliExecutionException(format(CliExecutionException.DID_NOT_RECOGNIZE_EMAIL_FILETYPE, stringValue));
-            }
-        } else {
-            throw new AssertionError(format("unexpected target type %s for input value %s", targetType, stringValue));
-        }
+        return ValueConversionHelper.convert(stringValue, targetType);
     }
     
     private static void logParsedInput(CliCommandType matchedCommand, TreeMap<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision) {
