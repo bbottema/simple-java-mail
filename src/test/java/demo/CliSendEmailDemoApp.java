@@ -9,7 +9,7 @@ public class CliSendEmailDemoApp extends DemoAppBase {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
 		ServerConfig serverConfig = mailerTLS.getServerConfig();
-		CliSupport.runCLI(args.length > 0 ? args : new String[]{
+		CliSupport.runCLI(new String[]{
 				"send",
 				"--email:forwarding", "src/test/resources/test-messages/HTML mail with replyto and attachment and embedded image.msg",
 				"--email:from", "Test sender", YOUR_GMAIL_ADDRESS,

@@ -12,7 +12,7 @@ public class CliListAllSupportedOptionsDemoApp {
 	
 	private static void displayAllOptions(String[] args) {
 		for (CliDeclaredOptionSpec declaredOption : CliSupport.DECLARED_OPTIONS) {
-			CliSupport.runCLI(args.length > 0 ? args : new String[]{ "send", declaredOption.getName() + "--help" });
+			CliSupport.runCLI(new String[]{ "send", declaredOption.getName() + "--help" });
 			System.out.print("\n\n\n\n");
 		}
 	}
