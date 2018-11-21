@@ -5,6 +5,8 @@
 [![Codacy](https://img.shields.io/codacy/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail) 
 ![Java 1.7+](https://img.shields.io/badge/java-1.7+-lightgray.svg)
 [![Paypal Donate](https://img.shields.io/badge/donate%20with-paypal-blue.svg?style=flat)](https://paypal.me/bennybottema)
+[![Code Quality: Java](https://img.shields.io/lgtm/grade/java/g/bbottema/simple-java-mail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/bbottema/simple-java-mail/context:java)
+[![Total Alerts](https://img.shields.io/lgtm/alerts/g/bbottema/simple-java-mail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/bbottema/simple-java-mail/alerts)
 
 # Simple Java Mail #
 
