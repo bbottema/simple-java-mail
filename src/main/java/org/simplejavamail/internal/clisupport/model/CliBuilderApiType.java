@@ -9,8 +9,8 @@ import static java.lang.String.format;
 
 public enum CliBuilderApiType {
     EMAIL("email"), MAILER("mailer");
-    
-    @Nonnull
+	
+	@Nonnull
     private final String paramPrefix;
     
     CliBuilderApiType(@Nonnull String paramPrefix) {

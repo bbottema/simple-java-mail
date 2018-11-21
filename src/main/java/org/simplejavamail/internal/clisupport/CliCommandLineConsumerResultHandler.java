@@ -3,6 +3,7 @@ package org.simplejavamail.internal.clisupport;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
 import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
+import org.simplejavamail.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.internal.clisupport.model.CliReceivedOptionData;
 import org.simplejavamail.mailer.MailerBuilder;
 import org.simplejavamail.mailer.MailerGenericBuilder;
@@ -18,14 +19,33 @@ class CliCommandLineConsumerResultHandler {
 	private static final Logger LOGGER = getLogger(CliCommandLineConsumerResultHandler.class);
 	
 	@SuppressWarnings("deprecation")
-	static void processCliResult(List<CliReceivedOptionData> cliReceivedOptionData) {
+	static void processCliResult(CliReceivedCommand cliReceivedCommand) {
 		LOGGER.debug("invoking Builder API in order of provided options...");
 		
-		EmailPopulatingBuilder emailBuilder = invokeBuilderApi(cliReceivedOptionData, CliBuilderApiType.EMAIL, EmailBuilder._createForCli());
-		MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(cliReceivedOptionData, CliBuilderApiType.MAILER, MailerBuilder._createForCli());
+		final List<CliReceivedOptionData> receivedOptions = cliReceivedCommand.getReceivedOptions();
 		
-		mailerBuilder.buildMailer()
-			.sendMail(emailBuilder.buildEmail());
+		switch (cliReceivedCommand.getMatchedCommand()) {
+			case send: processCliSend(receivedOptions); break;
+			case validate: processCliValidate(receivedOptions); break;
+			case connect: processCliTestConnection(receivedOptions); break;
+		}
+	}
+	
+	private static void processCliSend(List<CliReceivedOptionData> receivedOptions) {
+		final EmailPopulatingBuilder emailBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.EMAIL, EmailBuilder._createForCli());
+		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, MailerBuilder._createForCli());
+		mailerBuilder.buildMailer().sendMail(emailBuilder.buildEmail());
+	}
+	
+	private static void processCliTestConnection(List<CliReceivedOptionData> receivedOptions) {
+		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, MailerBuilder._createForCli());
+		mailerBuilder.buildMailer().testConnection();
+	}
+	
+	private static void processCliValidate(List<CliReceivedOptionData> receivedOptions) {
+		final EmailPopulatingBuilder emailBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.EMAIL, EmailBuilder._createForCli());
+		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, MailerBuilder._createForCli());
+		mailerBuilder.buildMailer().validate(emailBuilder.buildEmail());
 	}
 	
 	@SuppressWarnings("unchecked")

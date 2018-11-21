@@ -45,14 +45,12 @@ class CliCommandLineProducer {
                 .customSynopsis("",
                         colorizeOptionsInText("\tsend     [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE),
                         colorizeOptionsInText("\tconnect  [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE),
-                        colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE),
-                        colorizeOptionsInText("\tconvert  [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE));
+                        colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE));
         
         createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email",
                                                                                         colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         createRootCommand(rootCommandsHolder, "connect", "Test a server connection",    colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         createRootCommand(rootCommandsHolder, "validate", "Validate an email",          colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
-        createRootCommand(rootCommandsHolder, "convert", "Convert between email types", colorizeOptionsInText("\tconvert [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         
         return new CommandLine(rootCommandsHolder).setUsageHelpWidth(maxTextWidth).setSeparator(" ");
     }

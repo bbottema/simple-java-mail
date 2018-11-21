@@ -3,6 +3,7 @@ package org.simplejavamail.internal.clisupport;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
+import org.simplejavamail.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.internal.clisupport.model.CliReceivedOptionData;
 import org.slf4j.Logger;
 import picocli.CommandLine.Model.OptionSpec;
@@ -26,7 +27,7 @@ class CliCommandLineConsumer {
     private static final Logger LOGGER = getLogger(CliCommandLineConsumer.class);
     
     // we reach here when terminal input was value and no help was requested
-    static List<CliReceivedOptionData> consumeCommandLineInput(ParseResult providedCommand, @SuppressWarnings("SameParameterValue") Iterable<CliDeclaredOptionSpec> declaredOptions) {
+    static CliReceivedCommand consumeCommandLineInput(ParseResult providedCommand, @SuppressWarnings("SameParameterValue") Iterable<CliDeclaredOptionSpec> declaredOptions) {
         assumeTrue(providedCommand.hasSubcommand(), "Command was empty, expected one of: " + Arrays.toString(CliCommandType.values()));
         
         final ParseResult mailCommand = providedCommand.subcommand();
@@ -44,7 +45,8 @@ class CliCommandLineConsumer {
 			receivedOptions.add(new CliReceivedOptionData(cliOption.getKey(), convertProvidedOptionValues(providedStringValues, expectedTypes)));
 			LOGGER.debug("\tconverted option values: {}", getLast(receivedOptions).getProvidedOptionValues());
         }
-        return receivedOptions;
+        
+        return new CliReceivedCommand(matchedCommand, receivedOptions);
     }
 
 	private static TreeMap<CliDeclaredOptionSpec, OptionSpec> matchProvidedOptions(Iterable<CliDeclaredOptionSpec> declaredOptions, CliCommandType providedCommand, List<OptionSpec> providedOptions) {

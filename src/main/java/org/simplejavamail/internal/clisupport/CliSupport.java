@@ -1,7 +1,7 @@
 package org.simplejavamail.internal.clisupport;
 
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
-import org.simplejavamail.internal.clisupport.model.CliReceivedOptionData;
+import org.simplejavamail.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.mailer.MailerFromSessionBuilder;
 import picocli.CommandLine;
 import picocli.CommandLine.ParseResult;
@@ -9,10 +9,10 @@ import picocli.CommandLine.ParseResult;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.simplejavamail.email.EmailBuilder.*;
+import static org.simplejavamail.email.EmailBuilder.EmailBuilderInstance;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi;
 import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.configurePicoCli;
-import static org.simplejavamail.mailer.MailerBuilder.*;
+import static org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder;
 
 public class CliSupport {
 	
@@ -26,7 +26,7 @@ public class CliSupport {
 		ParseResult pr = PICOCLI_COMMAND_LINE.parseArgs(cutOffAtHelp(args));
 		
 		if (!CliCommandLineConsumerUsageHelper.processAndApplyHelp(pr, CONSOLE_TEXT_WIDTH)) {
-			List<CliReceivedOptionData> cliReceivedOptionData = CliCommandLineConsumer.consumeCommandLineInput(pr, DECLARED_OPTIONS);
+			CliReceivedCommand cliReceivedOptionData = CliCommandLineConsumer.consumeCommandLineInput(pr, DECLARED_OPTIONS);
 			CliCommandLineConsumerResultHandler.processCliResult(cliReceivedOptionData);
 		}
 	}
