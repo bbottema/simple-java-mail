@@ -299,6 +299,7 @@ public class MailSender {
 				LOGGER.error("Failed to send email:\n{}", email);
 				throw e;
 			}
+			LOGGER.trace("...email sent");
 		}
 	}
 	
@@ -403,6 +404,8 @@ public class MailSender {
 	private class TestConnectionClosure implements Runnable {
 		@Override
 		public void run() {
+			LOGGER.debug("testing connection...");
+			
 			boolean proxyBridgeStartedForTestingConnection = false;
 			
 			try (Transport transport = session.getTransport()) {
@@ -413,6 +416,8 @@ public class MailSender {
 					proxyBridgeStartedForTestingConnection = true;
 				}
 				transport.connect(); // actual test
+				
+				LOGGER.debug("...connection succesful");
 			} catch (final MessagingException e) {
 				throw new MailSenderException(MailSenderException.ERROR_CONNECTING_SMTP_SERVER, e);
 			} finally {
