@@ -130,7 +130,7 @@ public class MailSender {
 																   @Nonnull final Session session,
 																   @Nullable final TransportStrategy transportStrategy) {
 		if (!proxyConfig.requiresProxy()) {
-			LOGGER.debug("No proxy set, skipping proxy.");
+			LOGGER.trace("No proxy set, skipping proxy.");
 		} else {
 			if (transportStrategy == TransportStrategy.SMTPS) {
 				throw new MailSenderException(MailSenderException.INVALID_PROXY_SLL_COMBINATION);

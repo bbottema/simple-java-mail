@@ -104,7 +104,6 @@ public class MailerBuilder {
 		return new MailerRegularBuilder().withDebugLogging(debugLogging);
 	}
 	
-	
 	/**
 	 * @deprecated Used internally. Don't use this.
 	 */
