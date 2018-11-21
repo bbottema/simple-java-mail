@@ -341,14 +341,13 @@ public class EmailBuilder {
 		}
 		
 		/**
-		 * Primes the email to build with proper subject and inline forwarded email needed for a valid RFC forward. Also includes the original email
-		 * intact, to be rendered by the email client as 'forwarded email'.
+		 * Primes the email to be build with proper subject and include the forwarded email as "message/rfc822" bodypart (valid RFC forward).
 		 * <p>
 		 * <strong>Note 1</strong>: replaces subject with "Fwd: &lt;original subject&gt;" (nesting enabled).<br/>
 		 * <strong>Note 2</strong>: {@code Content-Disposition} will be left empty so the receiving email client can decide how to handle display
 		 * (most will show inline, some will show as attachment instead).
 		 *
-		 * @param message The MimeMessage that should be included in the new forwarding email.
+		 * @param message The message to be included in the new forwarding email.
 		 *
 		 * @see <a href="https://javaee.github.io/javamail/FAQ#forward">Official JavaMail FAQ on forwarding</a>
 		 * @see <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/">More reading
