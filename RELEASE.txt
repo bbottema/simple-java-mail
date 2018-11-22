@@ -6,7 +6,7 @@ http://www.simplejavamail.org
     <version>5.1.0</version>
 </dependency>
 
-v5.1.0 (7-November-2018)
+v5.1.0 (21-November-2018)
 
 - #179 You can now test the connection to the SMTP server
 
