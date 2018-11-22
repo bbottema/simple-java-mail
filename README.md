@@ -76,7 +76,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 
 ### Latest Progress ###
 
-[v5.1.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.1.0%7Cjar) (7-November-2018)
+[v5.1.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.1.0%7Cjar) (21-November-2018)
 
 - [#179](https://github.com/bbottema/simple-java-mail/issues/179) You can now test the connection to the SMTP server
 
