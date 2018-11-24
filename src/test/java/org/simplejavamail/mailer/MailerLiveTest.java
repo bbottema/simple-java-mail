@@ -9,8 +9,8 @@ import org.simplejavamail.email.EmailAssert;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
 import org.simplejavamail.email.Recipient;
-import org.simplejavamail.util.ConfigLoader;
 import org.simplejavamail.util.TestDataHelper;
+import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 import testutil.testrules.SmtpServerRule;
 import testutil.testrules.TestSmtpServer;
@@ -18,7 +18,6 @@ import testutil.testrules.TestSmtpServer;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.io.IOException;
-import java.util.Properties;
 
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +43,7 @@ public class MailerLiveTest {
 
 	@Before
 	public void setup() {
-		ConfigLoader.loadProperties(new Properties(), false); // clear out defaults
+		ConfigLoaderTestHelper.clearConfigProperties();
 		mailer = MailerBuilder.withSMTPServer(SERVER_HOST, SERVER_PORT).buildMailer();
 	}
 	
