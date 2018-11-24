@@ -15,8 +15,8 @@ cache:
   - $HOME/.m2
 branches:
   only:
+    - develop
     - master
-    - stable
 
 # Codacy's test report runner for Jacoco
 before_install:
