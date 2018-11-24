@@ -120,13 +120,13 @@
         <dependency><!-- Annotation processor -->
             <groupId>com.github.therapi</groupId>
             <artifactId>therapi-runtime-javadoc-scribe</artifactId>
-            <version>0.9.0-SNAPSHOT</version>
+            <version>0.9.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency><!-- Runtime library -->
             <groupId>com.github.therapi</groupId>
             <artifactId>therapi-runtime-javadoc</artifactId>
-            <version>0.9.0-SNAPSHOT</version>
+            <version>0.9.0</version>
         </dependency>
 
         <!-- utility -->
