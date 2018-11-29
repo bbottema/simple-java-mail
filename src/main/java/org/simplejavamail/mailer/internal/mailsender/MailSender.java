@@ -29,6 +29,7 @@ import java.util.concurrent.Phaser;
 
 import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
+import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
@@ -129,7 +130,7 @@ public class MailSender {
 																   @Nonnull final Session session,
 																   @Nullable final TransportStrategy transportStrategy) {
 		if (!proxyConfig.requiresProxy()) {
-			LOGGER.debug("No proxy set, skipping proxy.");
+			LOGGER.trace("No proxy set, skipping proxy.");
 		} else {
 			if (transportStrategy == TransportStrategy.SMTPS) {
 				throw new MailSenderException(MailSenderException.INVALID_PROXY_SLL_COMBINATION);
@@ -298,6 +299,7 @@ public class MailSender {
 				LOGGER.error("Failed to send email:\n{}", email);
 				throw e;
 			}
+			LOGGER.trace("...email sent");
 		}
 	}
 	
@@ -368,7 +370,7 @@ public class MailSender {
 			if (transportStrategy == null) {
 				throw new MailSenderException(MailSenderException.CANNOT_SET_TRUST_WITHOUT_TRANSPORTSTRATEGY);
 			}
-			final StringBuilder builder = new StringBuilder(hosts.get(0));
+			final StringBuilder builder = new StringBuilder(getFirst(hosts));
 			for (int i = 1; i < hosts.size(); i++) {
 				builder.append(" ").append(hosts.get(i));
 			}
@@ -402,6 +404,8 @@ public class MailSender {
 	private class TestConnectionClosure implements Runnable {
 		@Override
 		public void run() {
+			LOGGER.debug("testing connection...");
+			
 			boolean proxyBridgeStartedForTestingConnection = false;
 			
 			try (Transport transport = session.getTransport()) {
@@ -412,6 +416,8 @@ public class MailSender {
 					proxyBridgeStartedForTestingConnection = true;
 				}
 				transport.connect(); // actual test
+				
+				LOGGER.debug("...connection succesful");
 			} catch (final MessagingException e) {
 				throw new MailSenderException(MailSenderException.ERROR_CONNECTING_SMTP_SERVER, e);
 			} finally {

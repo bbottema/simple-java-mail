@@ -62,19 +62,16 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId><!-- or log4j2 or logback or whatever-->
             <version>2.6.1</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
             <version>2.6.1</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>2.6.1</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mnode.ical4j</groupId>
@@ -105,6 +102,31 @@
             <artifactId>outlook-message-parser</artifactId>
             <version>1.1.17</version>
             <optional>true</optional>
+        </dependency>
+
+        <!-- needed for cli support -->
+        <dependency>
+            <groupId>com.github.bbottema</groupId>
+            <artifactId>java-reflection</artifactId>
+            <version>3.8.3</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>3.6.0</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency><!-- Annotation processor -->
+            <groupId>com.github.therapi</groupId>
+            <artifactId>therapi-runtime-javadoc-scribe</artifactId>
+            <version>0.9.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency><!-- Runtime library -->
+            <groupId>com.github.therapi</groupId>
+            <artifactId>therapi-runtime-javadoc</artifactId>
+            <version>0.9.0</version>
         </dependency>
 
         <!-- utility -->
@@ -217,6 +239,23 @@
                     <encoding>${compiler.encoding}</encoding>
                     <compilerArgument>-Xlint:all</compilerArgument>
                     <useIncrementalCompilation>false</useIncrementalCompilation>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <configuration>
+                    <mainClass>org.simplejavamail.cli.SimpleJavaMail</mainClass>
+                    <arguments>
+                        <argument>send</argument>
+                        <argument>--email:replyingToSenderWithDefaultQuoteMarkup--help</argument>
+                        <!--<argument>&#45;&#45;email:replyingTo&#45;&#45;help</argument>-->
+                        <!--<argument>&#45;&#45;email:startingBlank</argument>-->
+                        <!--<argument>&#45;&#45;email:startingBlank&#45;&#45;help</argument>-->
+                        <!--<argument>&#45;&#45;help</argument>-->
+                    </arguments>
                 </configuration>
             </plugin>
 

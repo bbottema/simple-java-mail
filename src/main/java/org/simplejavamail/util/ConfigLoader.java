@@ -149,6 +149,7 @@ public final class ConfigLoader {
 	 */
 	@SuppressWarnings("unchecked")
 	@Nullable
+	// FIXME contract annotations
 	public static Boolean valueOrPropertyAsBoolean(@Nullable final Boolean value, @Nonnull final Property property, @Nullable final Boolean defaultValue) {
 		return SimpleConversions.convertToBoolean(valueOrProperty(value, property, defaultValue));
 	}
@@ -289,7 +290,7 @@ public final class ConfigLoader {
 		final Map<Property, Object> resolvedProps = new HashMap<>();
 		for (final Property prop : Property.values()) {
 			if (System.getProperty(prop.key) != null) {
-				System.out.println(prop.key + ": " + System.getProperty(prop.key));
+				LOGGER.debug(prop.key + ": " + System.getProperty(prop.key));
 			}
 			final Object asSystemProperty = parsePropertyValue(System.getProperty(prop.key));
 			if (asSystemProperty != null) {

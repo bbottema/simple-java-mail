@@ -43,6 +43,7 @@ public class EmailHelper {
 		if (includeCustomHeaders) {
 			builder = builder
 				.withHeader("dummyHeader", "dummyHeaderValue")
+				.withHeader("anotherDummyHeader", "anotherDummyHeaderValue")
 				.withDispositionNotificationTo("simple@address.com")
 				.withReturnReceiptTo("Complex Email", "simple@address.com");
 		}

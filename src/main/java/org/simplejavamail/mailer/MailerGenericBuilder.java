@@ -1,6 +1,8 @@
 package org.simplejavamail.mailer;
 
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
+import org.simplejavamail.internal.clisupport.annotation.Cli;
+import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.mailer.internal.mailsender.OperationalConfig;
 import org.simplejavamail.mailer.internal.mailsender.ProxyConfig;
 import org.simplejavamail.util.ConfigLoader;
@@ -31,6 +33,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * To start a new Mailer builder, refer to {@link MailerBuilder}.
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked", "WeakerAccess"})
+@Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	
 	/**
@@ -86,7 +89,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	private Integer proxyBridgePort;
 	
 	/**
-	 * @see #withDebugLogging(Boolean)
+	 * @see #withDebugLogging(boolean)
 	 */
 	private Boolean debugLogging;
 	
@@ -111,7 +114,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	private List<String> sslHostsToTrust = new ArrayList<>();
 	
 	/**
-	 * @see #trustingAllHosts(Boolean)
+	 * @see #trustingAllHosts(boolean)
 	 */
 	private Boolean trustAllSSLHost;
 	
@@ -186,19 +189,25 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Delegates to {@link #withProxyHost(String)} and {@link #withProxyPort(Integer)}.
 	 */
+	@Cli.ExcludeApi(reason = "API is a subset of a more detailed API")
 	public T withProxy(@Nullable final String proxyHost, @Nullable final Integer proxyPort) {
 		return (T) withProxyHost(proxyHost)
 				.withProxyPort(proxyPort);
 	}
 	
 	/**
-	 * Delegates to:
+	 * Sets proxy server settings, by delegating to:
 	 * <ol>
 	 * <li>{@link #withProxyHost(String)}</li>
 	 * <li>{@link #withProxyPort(Integer)}</li>
 	 * <li>{@link #withProxyUsername(String)}</li>
 	 * <li>{@link #withProxyPassword(String)}</li>
 	 * </ol>
+	 *
+	 * @param proxyHost See linked documentation above.
+	 * @param proxyPort See linked documentation above.
+	 * @param proxyUsername See linked documentation above.
+	 * @param proxyPassword See linked documentation above.
 	 */
 	public T withProxy(@Nullable final String proxyHost, @Nullable final Integer proxyPort, @Nullable final String proxyUsername, @Nullable final String proxyPassword) {
 		return (T) withProxyHost(proxyHost)
@@ -210,6 +219,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Sets the optional proxy host, which will override any default that might have been set (through properties file or programmatically).
 	 */
+	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	public T withProxyHost(@Nullable final String proxyHost) {
 		this.proxyHost = proxyHost;
 		return (T) this;
@@ -220,6 +230,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * <p>
 	 * Proxy port is required if a proxyHost has been configured.
 	 */
+	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	// TODO take default port from transport strategy
 	public T withProxyPort(@Nullable final Integer proxyPort) {
 		this.proxyPort = proxyPort;
@@ -227,15 +238,13 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * Sets the optional username to authenticate with the proxy.
+	 * Sets the optional username to authenticate with the proxy. If set, Simple Java Mail will use its built in proxy bridge to
+	 * perform the SOCKS authentication, as the underlying JavaMail framework doesn't support this directly. The execution path
+	 * then will be:
 	 * <p>
-	 * If set, Simple Java Mail will use its built in proxy bridge to perform the SOCKS authentication, as the underlying JavaMail framework doesn't
-	 * support this directly.
-	 * <p>
-	 * The path will be: <br>
-	 * {@code Simple Java Mail -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS
-	 * proxy}.
+	 * {@code Simple Java Mail client -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy -> SMTP server}.
 	 */
+	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	public T withProxyUsername(@Nullable final String proxyUsername) {
 		this.proxyUsername = proxyUsername;
 		return (T) this;
@@ -246,6 +255,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 *
 	 * @see #withProxyUsername(String)
 	 */
+	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	public T withProxyPassword(@Nullable final String proxyPassword) {
 		this.proxyPassword = proxyPassword;
 		return (T) this;
@@ -257,6 +267,8 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * Overrides the default for the intermediary SOCKS5 relay server bridge, which is a server that sits in between JavaMail and the remote proxy.
 	 * Defaults to {@value DEFAULT_PROXY_BRIDGE_PORT} if no custom default property was configured.
 	 *
+	 * @param proxyBridgePort The port to use for the proxy bridging server.
+	 *
 	 * @see #withProxyUsername(String)
 	 */
 	public T withProxyBridgePort(@Nullable final Integer proxyBridgePort) {
@@ -267,14 +279,18 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * This flag is set on the Session instance through {@link Session#setDebug(boolean)} so that it generates debug information. To get more
 	 * information out of the underlying JavaMail framework or out of Simple Java Mail, increase logging config of your chosen logging framework.
+	 *
+	 * @param debugLogging Enables or disables debug logging with {@code true} or {@code false}.
 	 */
-	public T withDebugLogging(@Nullable final Boolean debugLogging) {
+	public T withDebugLogging(final boolean debugLogging) {
 		this.debugLogging = debugLogging;
 		return (T) this;
 	}
 	
 	/**
 	 * Controls the timeout to use when sending emails (affects socket connect-, read- and write timeouts).
+	 *
+	 * @param sessionTimeout Duration to use for session timeout.
 	 */
 	public T withSessionTimeout(@Nullable final Integer sessionTimeout) {
 		this.sessionTimeout = sessionTimeout;
@@ -296,7 +312,9 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * Controls the maximum number of threads when sending emails in async fashion. Defaults to {@link #DEFAULT_POOL_SIZE}.
+	 * Controls the maximum number of threads when sending emails in async fashion. Defaults to {@value #DEFAULT_POOL_SIZE}.
+	 *
+	 * @param defaultPoolSize Size of the thread pool.
 	 *
 	 * @see #resetThreadpoolSize()
 	 */
@@ -308,9 +326,11 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
 	 *
+	 * @param transportModeLoggingOnly Flag {@code true} or {@code false} that enables or disables logging only mode when sending emails.
+	 *
 	 * @see #resetTransportModeLoggingOnly()
 	 */
-	public T withTransportModeLoggingOnly(@Nonnull final Boolean transportModeLoggingOnly) {
+	public T withTransportModeLoggingOnly(final boolean transportModeLoggingOnly) {
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		return (T) this;
 	}
@@ -329,7 +349,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * empty, {@code mail.smtp.ssl.trust} is unset.
 	 *
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
-	 * @see #trustingAllHosts(Boolean)
+	 * @see #trustingAllHosts(boolean)
 	 */
 	public T trustingSSLHosts(String... sslHostsToTrust) {
 		this.sslHostsToTrust = Arrays.asList(sslHostsToTrust);
@@ -338,12 +358,13 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	
 	/**
 	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property "mail.smtp(s).ssl.trust" is set to "*".
-	 * <p>
-	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
 	 *
+	 * @param trustAllHosts Flag {@code true} or {@code false} that enables or disables trusting of <strong>all</strong> hosts.
+	 *
+	 * @see <a href="https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
 	 * @see #trustingSSLHosts(String...)
 	 */
-	public T trustingAllHosts(@Nonnull final Boolean trustAllHosts) {
+	public T trustingAllHosts(final boolean trustAllHosts) {
 		this.trustAllSSLHost = trustAllHosts;
 		return (T) this;
 	}
@@ -352,7 +373,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * Adds the given properties to the total list applied to the {@link Session} when building a mailer.
 	 *
 	 * @see #withProperties(Map)
-	 * @see #withProperty(String, String)
+	 * @see #withProperty(String, Object)
 	 * @see #clearProperties()
 	 */
 	public T withProperties(@Nonnull final Properties properties) {
@@ -375,6 +396,9 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	
 	/**
 	 * Sets property or removes it if the provided value is <code>null</code>. If provided, the value is always converted <code>toString()</code>.
+	 *
+	 * @param propertyName  The name of the property that wil be set on the internal Session object.
+	 * @param propertyValue The text value of the property that wil be set on the internal Session object.
 	 *
 	 * @see #withProperties(Properties)
 	 * @see #clearProperties()
@@ -419,7 +443,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Resets transportModeLoggingOnly to {@value #DEFAULT_TRANSPORT_MODE_LOGGING_ONLY}.
 	 *
-	 * @see #withTransportModeLoggingOnly(Boolean)
+	 * @see #withTransportModeLoggingOnly(boolean)
 	 */
 	public T resetTransportModeLoggingOnly() {
 		return withTransportModeLoggingOnly(DEFAULT_TRANSPORT_MODE_LOGGING_ONLY);
@@ -462,6 +486,9 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 		return (T) this;
 	}
 	
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public abstract Mailer buildMailer();
+	
 	/**
 	 * @see #withProxyHost(String)
 	 */
@@ -498,7 +525,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * @see #withDebugLogging(Boolean)
+	 * @see #withDebugLogging(boolean)
 	 */
 	public Boolean getDebugLogging() {
 		return debugLogging;
@@ -533,14 +560,14 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * @see #trustingAllHosts(Boolean)
+	 * @see #trustingAllHosts(boolean)
 	 */
 	public Boolean getTrustAllSSLHost() {
 		return trustAllSSLHost;
 	}
 	
 	/**
-	 * @see #withTransportModeLoggingOnly(Boolean)
+	 * @see #withTransportModeLoggingOnly(boolean)
 	 */
 	public boolean getTransportModeLoggingOnly() {
 		return transportModeLoggingOnly;

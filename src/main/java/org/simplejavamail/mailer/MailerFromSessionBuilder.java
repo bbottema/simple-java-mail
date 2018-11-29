@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.internal.clisupport.annotation.Cli;
+import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
+
 import javax.annotation.Nonnull;
 import javax.mail.Message;
 import javax.mail.Session;
@@ -13,6 +16,7 @@ import javax.mail.Session;
  *
  * @see org.simplejavamail.mailer.config.TransportStrategy
  */
+@Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public class MailerFromSessionBuilder extends MailerGenericBuilder<MailerFromSessionBuilder> {
 	
 	/**
@@ -38,6 +42,8 @@ public class MailerFromSessionBuilder extends MailerGenericBuilder<MailerFromSes
 	 * <p>
 	 * For all configurable values: if omitted, a default value will be attempted by looking at property files or manually defined defauls.
 	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Mailer buildMailer() {
 		return new Mailer(this);
 	}

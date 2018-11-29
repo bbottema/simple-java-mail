@@ -2,6 +2,8 @@ package org.simplejavamail.email;
 
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
+import org.simplejavamail.internal.clisupport.annotation.Cli;
+import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
@@ -131,6 +133,14 @@ public class EmailBuilder {
 		return new EmailBuilderInstance().startingBlank();
 	}
 	
+	/**
+	 * @deprecated Used internally. Don't use this.
+	 */
+	@Deprecated
+	public static EmailBuilderInstance _createForCli() {
+		return new EmailBuilderInstance();
+	}
+	
 	private EmailBuilder() {
 	}
 	
@@ -140,6 +150,7 @@ public class EmailBuilder {
 	 * <p>
 	 * As with the EmailBuilder, every other method returns an {@link EmailPopulatingBuilder}.
 	 */
+	@Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 	public static final class EmailBuilderInstance {
 		
 		/**
@@ -227,50 +238,65 @@ public class EmailBuilder {
 		/**
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
 		 * template.
+		 *
+		 * @param message MimeMessage to reply to with new email.
 		 */
-		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email) {
-			return replyingTo(email, false, DEFAULT_QUOTING_MARKUP);
+		@Cli.OptionNameOverride("replyingToSenderWithDefaultQuoteMarkup")
+		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage message) {
+			return replyingTo(message, false, DEFAULT_QUOTING_MARKUP);
+		}
+		
+		/**
+		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
+		 *
+		 * @param message MimeMessage to reply to with new email.
+		 * @param customQuotingTemplate HTML quoting template that should be used in the reply. Should include the substring {@code "%s"},
+		 *                                    or else the original email is not embedded in the reply.
+		 */
+		@Cli.OptionNameOverride("replyingToSender")
+		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage message, @Nonnull final String customQuotingTemplate) {
+			return replyingTo(message, false, customQuotingTemplate);
 		}
 		
 		/**
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code>.
 		 *
+		 * @param message The email to include as replied-to-email and who's receivers all will receive the new reply email.
+		 * @param customQuotingTemplate HTML quoting template that should be used in the reply. Should include the substring {@code "%s"},
+		 *                                    or else the original email is not embedded in the reply.
+		 *
 		 * @see #DEFAULT_QUOTING_MARKUP
 		 */
-		public EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
-			return replyingTo(email, true, customQuotingTemplate);
-		}
-		
-		/**
-		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
-		 */
-		public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
-			return replyingTo(email, false, customQuotingTemplate);
+		public EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage message, @Nonnull final String customQuotingTemplate) {
+			return replyingTo(message, true, customQuotingTemplate);
 		}
 		
 		/**
 		 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code> and a default HTML quoting
 		 * template.
 		 *
+		 * @param message The email to include as replied-to-email and who's receivers all will receive the new reply email.
+		 *
 		 * @see #DEFAULT_QUOTING_MARKUP
 		 */
-		public EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage email) {
-			return replyingTo(email, true, DEFAULT_QUOTING_MARKUP);
+		@Cli.OptionNameOverride("replyingToAllWithDefaultQuoteMarkup")
+		public EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage message) {
+			return replyingTo(message, true, DEFAULT_QUOTING_MARKUP);
 		}
 		
 		/**
-		 * Primes the email with all subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply.
+		 * Primes the email with subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply.
 		 * <p>
 		 * <strong>Note 1:</strong> replaces subject with "Re: &lt;original subject&gt;" (but never nested).<br>
 		 * <strong>Note 2:</strong> always sets both plain text and HTML text, so if you update the content body, be sure to update HTML as well.<br>
 		 * <strong>Note 3:</strong> sets body content: text is replaced with "> text" and HTML is replaced with the provided (or default) quoting markup
-		 * (add your own content with {@code .prependText()} and {@code .prependTextHTML()}).
+		 * (add your own content with {@link EmailPopulatingBuilder#prependText(String)} and {@link EmailPopulatingBuilder#prependTextHTML(String)}).
 		 *
 		 * @param emailMessage The message from which we harvest recipients, original content to quote (including embedded images), message ID to
 		 *                     include.
 		 * @param repyToAll    Indicates whether all original receivers should be included in this new reply. Also see {@link
 		 *                     MimeMessage#reply(boolean)}.
-		 * @param htmlTemplate A valid HTML that contains the string {@code "%s"}. Be advised that HTML is very limited in emails.
+		 * @param htmlTemplate HTML quoting template that should be used in the reply. Should contains the substring {@code "%s"}. Be advised that HTML is very limited in emails.
 		 *
 		 * @see #replyingTo(Email)
 		 * @see #replyingTo(Email, String)
@@ -315,27 +341,29 @@ public class EmailBuilder {
 		}
 		
 		/**
-		 * Primes the email to build with proper subject and inline forwarded email needed for a valid RFC forward. Also includes the original email
-		 * intact, to be rendered by the email client as 'forwarded email'.
+		 * Primes the email to be build with proper subject and include the forwarded email as "message/rfc822" bodypart (valid RFC forward).
 		 * <p>
-		 * <strong>Note 1</strong>: replaces subject with "Fwd: &lt;original subject&gt;" (nesting enabled).
-		 * <p>
+		 * <strong>Note 1</strong>: replaces subject with "Fwd: &lt;original subject&gt;" (nesting enabled).<br/>
 		 * <strong>Note 2</strong>: {@code Content-Disposition} will be left empty so the receiving email client can decide how to handle display
 		 * (most will show inline, some will show as attachment instead).
+		 *
+		 * @param message The message to be included in the new forwarding email.
 		 *
 		 * @see <a href="https://javaee.github.io/javamail/FAQ#forward">Official JavaMail FAQ on forwarding</a>
 		 * @see <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/">More reading
 		 * material</a>
 		 * @see #forwarding(Email)
 		 */
-		public EmailPopulatingBuilder forwarding(@Nonnull final MimeMessage emailMessage) {
+		public EmailPopulatingBuilder forwarding(@Nonnull final MimeMessage message) {
 			return startingBlank()
-					.withForward(emailMessage)
-					.withSubject("Fwd: " + MimeMessageParser.parseSubject(emailMessage));
+					.withForward(message)
+					.withSubject("Fwd: " + MimeMessageParser.parseSubject(message));
 		}
 		
 		/**
-		 * Delegates to {@link #copying(Email)}, by converting the email first.
+		 * Delegates to {@link #copying(Email)}, by converting the provided message first.
+		 *
+		 * @param message The MimeMessage email to convert and copy to new {@link Email}.
 		 *
 		 * @see EmailConverter#mimeMessageToEmail(MimeMessage)
 		 */

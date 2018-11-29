@@ -54,6 +54,7 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 				.withDispositionNotificationTo("simple@address.com")
 				.withReturnReceiptTo("Complex Email", "simple@address.com")
 				.withHeader("dummyHeader", "dummyHeaderValue")
+				.withHeader("anotherDummyHeader", "anotherDummyHeaderValue")
 				.buildEmail();
 		
 		assertThat(EmailHelper.createDummyEmailBuilder(true, false, true).buildEmail()).isEqualTo(email);

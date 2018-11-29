@@ -274,6 +274,8 @@ public class Mailer {
 	@SuppressWarnings({"SameReturnValue", "WeakerAccess"})
 	public boolean validate(final Email email)
 			throws MailException {
+		LOGGER.debug("validating email...");
+		
 		// check for mandatory values
 		if (email.getRecipients().size() == 0) {
 			throw new MailerException(MailerException.MISSING_RECIPIENT);
@@ -337,6 +339,8 @@ public class Mailer {
 			scanForInjectionAttack(recipient.getName(), "email.recipient.name");
 			scanForInjectionAttack(recipient.getAddress(), "email.recipient.address");
 		}
+		
+		LOGGER.debug("...no problems found");
 		
 		return true;
 	}

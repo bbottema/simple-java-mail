@@ -7,7 +7,6 @@ import org.simplejavamail.util.ConfigLoader.Property;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -97,8 +96,7 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void overridefromSystemVariables()
-			throws Exception {
+	public void overridefromSystemVariables() {
 		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
 
@@ -162,8 +160,7 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesFromFileClassPath()
-			throws Exception {
+	public void loadPropertiesFromFileClassPath() {
 		ConfigLoader.loadProperties("simplejavamail.properties", false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
 		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
@@ -190,8 +187,7 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesAddingMode()
-			throws Exception {
+	public void loadPropertiesAddingMode() {
 		String s1 = "simplejavamail.javaxmail.debug=true\n"
 				+ "simplejavamail.transportstrategy=SMTPS";
 		String s2 = "simplejavamail.defaults.to.name=To Default\n"
@@ -209,8 +205,7 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesFromInputStream()
-			throws IOException {
+	public void loadPropertiesFromInputStream() {
 
 		String s = "simplejavamail.javaxmail.debug=true\n"
 				+ "simplejavamail.transportstrategy=SMTPS\n"
@@ -229,8 +224,7 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesFromProperties()
-			throws IOException {
+	public void loadPropertiesFromProperties() {
 		Properties source = new Properties();
 		source.put("simplejavamail.javaxmail.debug", "true");
 		source.put("simplejavamail.transportstrategy", "SMTPS");
@@ -249,8 +243,7 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void loadPropertiesFromObjectProperties()
-			throws IOException {
+	public void loadPropertiesFromObjectProperties() {
 		Properties source = new Properties();
 		source.put("simplejavamail.javaxmail.debug", true);
 		source.put("simplejavamail.transportstrategy", TransportStrategy.SMTPS);

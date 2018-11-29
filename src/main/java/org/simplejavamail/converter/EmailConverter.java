@@ -18,10 +18,14 @@ import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.FileSystems;
+import java.nio.file.PathMatcher;
 import java.util.Map;
 import java.util.Properties;
 
@@ -38,6 +42,9 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  */
 @SuppressWarnings("WeakerAccess")
 public final class EmailConverter {
+	
+	private static final PathMatcher EML_PATH_MATCHER = FileSystems.getDefault().getPathMatcher("glob:**/*.eml");
+	private static final PathMatcher MSG_PATH_MATCHER = FileSystems.getDefault().getPathMatcher("glob:**/*.msg");
 
 	private EmailConverter() {
 		// util / helper class
@@ -80,6 +87,9 @@ public final class EmailConverter {
 	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final File msgFile) {
+		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
+			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
+		}
 		return MiscUtil.<IOutlookEmailConverter>loadLibraryClass(
 				"org.simplejavamail.outlookmessageparser.OutlookMessageParser",
 				"org.simplejavamail.converter.internal.outlook.OutlookEmailConverter",
@@ -196,6 +206,33 @@ public final class EmailConverter {
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
 			throw new AssertionError(e.getMessage(), e);
+		}
+	}
+	
+	/**
+	 * Delegates to {@link #emlToMimeMessage(File, Session)}, using {@link #createDummySession()}.
+	 *
+	 * @see #emlToMimeMessage(File, Session)
+	 */
+	@Nonnull
+	public static MimeMessage emlToMimeMessage(@Nonnull final File emlFile) {
+		return emlToMimeMessage(emlFile, createDummySession());
+	}
+	
+	/**
+	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
+	 *
+	 * @see MimeMessage#MimeMessage(Session, InputStream)
+	 */
+	public static MimeMessage emlToMimeMessage(@Nonnull final File emlFile, @Nonnull final Session session) {
+		if (!EML_PATH_MATCHER.matches(emlFile.toPath())) {
+			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_EML, emlFile));
+		}
+		try {
+			InputStream source = new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile"));
+			return new MimeMessage(session, source);
+		} catch (final MessagingException | FileNotFoundException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML, e.getMessage()), e);
 		}
 	}
 

@@ -141,15 +141,11 @@ public class MimeMessageHelper {
 	 * <strong>Note:</strong> this is done without setting {@code Content-Disposition} so email clients can choose
 	 * how to display embedded forwards. Most client will show the forward as inline, some may show it as attachment.
 	 */
-	static void configureForwarding(@Nonnull final Email email, @Nonnull final MimeMultipart multipartRootMixed) {
+	static void configureForwarding(@Nonnull final Email email, @Nonnull final MimeMultipart multipartRootMixed) throws MessagingException {
 		if (email.getEmailToForward() != null) {
-			try {
-				final BodyPart fordwardedMessage = new MimeBodyPart();
-				fordwardedMessage.setContent(email.getEmailToForward(), "message/rfc822");
-				multipartRootMixed.addBodyPart(fordwardedMessage);
-			} catch (final MessagingException e) {
-				e.printStackTrace();
-			}
+			final BodyPart fordwardedMessage = new MimeBodyPart();
+			fordwardedMessage.setContent(email.getEmailToForward(), "message/rfc822");
+			multipartRootMixed.addBodyPart(fordwardedMessage);
 		}
 	}
 	

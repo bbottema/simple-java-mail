@@ -14,11 +14,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.toHexString;
+import static java.util.Arrays.asList;
 import static java.util.regex.Pattern.compile;
+import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 public final class MiscUtil {
@@ -164,6 +170,20 @@ public final class MiscUtil {
 		} catch (ClassNotFoundException | NoClassDefFoundError e) {
 			return false;
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static <T1,T2> Map.Entry<T1,T2>[] zip(T1[] zipLeft, T2[] zipRight) {
+		return zip(asList(zipLeft), asList(zipRight)).toArray(new Map.Entry[] {});
+	}
+	
+	public static <T1,T2> List<Map.Entry<T1,T2>> zip(List<T1> zipLeft, List<T2> zipRight) {
+		assumeTrue(zipLeft.size() == zipRight.size(), "Can't zip lists, sizes are not equals");
+		List<Map.Entry<T1,T2>> zipped = new ArrayList<>();
+		for (int i = 0; i < zipLeft.size(); i++) {
+			zipped.add(new AbstractMap.SimpleEntry<>(zipLeft.get(i), zipRight.get(i)));
+		}
+		return zipped;
 	}
 	
 	public static String normalizeNewlines(String text) {
