@@ -1,10 +1,10 @@
 package demo;
 
-import org.simplejavamail.internal.clisupport.CliSupport;
+import org.simplejavamail.internal.modules.ModuleLoader;
 
 public class CliShowCommandOptiondHelpDemoApp {
 	public static void main(String[] args) {
-		CliSupport.runCLI(new String[] {
+		ModuleLoader.loadCliModule().runCLI(new String[] {
 				"send",
 				"--email:forwarding--help",
 		});

@@ -1,6 +1,6 @@
 package demo;
 
-import org.simplejavamail.internal.clisupport.CliSupport;
+import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.mailer.ServerConfig;
 import testutil.ConfigLoaderTestHelper;
 
@@ -17,7 +17,7 @@ public class CliDemoApp extends DemoAppBase {
 	}
 	
 	private static void demoTestConnection(ServerConfig serverConfig) {
-		CliSupport.runCLI(new String[]{
+		ModuleLoader.loadCliModule().runCLI(new String[]{
 				"connect",
 				"--mailer:withSMTPServer", "smtp.gmail.com", "587", serverConfig.getUsername(), serverConfig.getPassword(),
 				"--mailer:withTransportStrategy", "SMTP_TLS"
@@ -25,7 +25,7 @@ public class CliDemoApp extends DemoAppBase {
 	}
 	
 	private static void demoSend(ServerConfig serverConfig) {
-		CliSupport.runCLI(new String[]{
+		ModuleLoader.loadCliModule().runCLI(new String[]{
 				"send",
 				"--email:forwarding", "src/test/resources/test-messages/HTML mail with replyto and attachment and embedded image.msg",
 				"--email:from", "Test sender", YOUR_GMAIL_ADDRESS,

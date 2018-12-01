@@ -7,7 +7,7 @@ import org.simplejavamail.email.CalendarMethod;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
-import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.modules.ModuleLoader;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
@@ -75,12 +75,7 @@ public final class EmailConverter {
 	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
-		return MiscUtil.<IOutlookEmailConverter>loadLibraryClass(
-				"org.simplejavamail.outlookmessageparser.OutlookMessageParser",
-				"org.simplejavamail.converter.internal.outlook.OutlookEmailConverter",
-				EmailConverterException.ERROR_OUTLOOK_MSGPARSER_LIBRARY_MISSING,
-				EmailConverterException.ERROR_LOADING_OUTLOOK_MSGPARSER_LIBRARY)
-				.outlookMsgToEmail(msgData);
+		return ModuleLoader.loadOutlookModule().outlookMsgToEmail(msgData);
 	}
 
 	/**
@@ -90,12 +85,7 @@ public final class EmailConverter {
 		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
-		return MiscUtil.<IOutlookEmailConverter>loadLibraryClass(
-				"org.simplejavamail.outlookmessageparser.OutlookMessageParser",
-				"org.simplejavamail.converter.internal.outlook.OutlookEmailConverter",
-				EmailConverterException.ERROR_OUTLOOK_MSGPARSER_LIBRARY_MISSING,
-				EmailConverterException.ERROR_LOADING_OUTLOOK_MSGPARSER_LIBRARY)
-				.outlookMsgToEmail(msgFile);
+		return ModuleLoader.loadOutlookModule().outlookMsgToEmail(msgFile);
 	}
 	
 	/**
@@ -109,12 +99,7 @@ public final class EmailConverter {
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream) {
-		return MiscUtil.<IOutlookEmailConverter>loadLibraryClass(
-				"org.simplejavamail.outlookmessageparser.OutlookMessageParser",
-				"org.simplejavamail.converter.internal.outlook.OutlookEmailConverter",
-				EmailConverterException.ERROR_OUTLOOK_MSGPARSER_LIBRARY_MISSING,
-				EmailConverterException.ERROR_LOADING_OUTLOOK_MSGPARSER_LIBRARY)
-				.outlookMsgToEmailBuilder(msgInputStream);
+		return ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgInputStream);
 	}
 	
 	/**

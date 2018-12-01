@@ -1,6 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import org.assertj.core.api.ThrowableAssert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.BDDMockito;
@@ -11,6 +12,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.AttachmentResource;
 import org.simplejavamail.email.Email;
+import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.internal.util.MiscUtil;
 import testutil.EmailHelper;
 
@@ -25,6 +27,11 @@ import static org.mockito.Matchers.any;
 @PrepareForTest(MiscUtil.class)
 @PowerMockIgnore("javax.management.*")
 public class MimeMessageHelperTest {
+	
+	@Before
+	public void setup() {
+		ModuleLoader.clearLoadedModules();
+	}
 	
 	@Test
 	public void determineResourceName1()
@@ -128,7 +135,7 @@ public class MimeMessageHelperTest {
 				EmailConverter.emailToMimeMessage(email);
 			}
 		})
-				.hasMessage(MimeMessageParseException.ERROR_SIGNING_DKIM_LIBRARY_MISSING);
+				.hasMessage("DKIM module not found, make sure it is on the classpath (https://github.com/simple-java-mail/dkim-module)");
 		
 		PowerMockito.mockStatic(MiscUtil.class);
 		BDDMockito.given(MiscUtil.loadLibraryClass(any(String.class), any(String.class), any(String.class), any(String.class))).willCallRealMethod();

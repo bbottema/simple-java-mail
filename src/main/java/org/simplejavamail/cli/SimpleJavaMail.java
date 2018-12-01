@@ -1,9 +1,6 @@
 package org.simplejavamail.cli;
 
-import org.simplejavamail.internal.clisupport.CliSupport;
-import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
-
-import java.io.IOException;
+import org.simplejavamail.internal.modules.ModuleLoader;
 
 /**
  * Wires all the args into the CLI support, which is dynamically class-loaded as it is an optional dependency.
@@ -19,12 +16,7 @@ import java.io.IOException;
  * </ul>
  */
 public class SimpleJavaMail {
-	public static void main(String[] args) throws IOException {
-		// FIXME load class dynamically so cli dependency can be optional
-		// CliSupport.runCLI(args);
-		for (CliDeclaredOptionSpec declaredOption : CliSupport.DECLARED_OPTIONS) {
-			CliSupport.runCLI(new String[]{"send", declaredOption.getName() + "--help"});
-			System.out.print("\n\n\n");
-		}
+	public static void main(String[] args) {
+		ModuleLoader.loadCliModule().runCLI(args);
 	}
 }

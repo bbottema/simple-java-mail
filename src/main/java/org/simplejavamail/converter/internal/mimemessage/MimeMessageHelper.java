@@ -5,7 +5,7 @@ import net.markenwerk.utils.mail.dkim.DkimSigner;
 import org.simplejavamail.email.AttachmentResource;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
-import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.modules.ModuleLoader;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -282,11 +282,6 @@ public class MimeMessageHelper {
 	 * @return The original mime message wrapped in a new one that performs signing when sent.
 	 */
 	public static MimeMessage signMessageWithDKIM(final MimeMessage messageToSign, final Email emailContainingSigningDetails) {
-		return MiscUtil.<IDKIMSigner>loadLibraryClass(
-				"net.markenwerk.utils.mail.dkim.DkimSigner",
-				"org.simplejavamail.converter.internal.mimemessage.DKIMSigner",
-				MimeMessageParseException.ERROR_SIGNING_DKIM_LIBRARY_MISSING,
-				MimeMessageParseException.ERROR_LOADING_DKIM_LIBRARY)
-				.signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
+		return ModuleLoader.loadDKIMModule().signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
 	}
 }

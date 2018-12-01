@@ -1,6 +1,6 @@
 package org.simplejavamail.converter.internal.outlook;
 
-import org.simplejavamail.converter.IOutlookEmailConverter;
+import org.simplejavamail.converter.OutlookModule;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;
@@ -19,7 +19,7 @@ import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 @SuppressWarnings("unused")
-public class OutlookEmailConverter implements IOutlookEmailConverter {
+public class OutlookEmailConverter implements OutlookModule {
 	
 	@Override
 	public Email outlookMsgToEmail(@Nonnull File msgFile) {

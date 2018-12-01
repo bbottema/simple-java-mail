@@ -3,6 +3,7 @@ package org.simplejavamail.internal.util;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+@SuppressWarnings("WeakerAccess")
 public class SimpleOptional<T> {
 	private final T value;
 	

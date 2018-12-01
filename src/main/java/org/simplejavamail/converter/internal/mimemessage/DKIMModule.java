@@ -7,7 +7,7 @@ import javax.mail.internet.MimeMessage;
 /**
  * This interface only serves to hide the DKIM implementation behind an easy-to-load-with-reflection class.
  */
-interface IDKIMSigner {
+public interface DKIMModule {
 	/**
 	 * @see MimeMessageHelper#signMessageWithDKIM(MimeMessage, Email)
 	 */

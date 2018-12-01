@@ -14,7 +14,7 @@ import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommands
 import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.configurePicoCli;
 import static org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder;
 
-public class CliSupport {
+public class CliSupport implements CLIModule {
 	
 	private static final int CONSOLE_TEXT_WIDTH = 150;
 	
@@ -22,12 +22,21 @@ public class CliSupport {
 	public static final List<CliDeclaredOptionSpec> DECLARED_OPTIONS 	= generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
 	private static final CommandLine PICOCLI_COMMAND_LINE 				= configurePicoCli(DECLARED_OPTIONS, CONSOLE_TEXT_WIDTH);
 
-	public static void runCLI(String[] args) {
+	@Override
+	public void runCLI(String[] args) {
 		ParseResult pr = PICOCLI_COMMAND_LINE.parseArgs(cutOffAtHelp(args));
 		
 		if (!CliCommandLineConsumerUsageHelper.processAndApplyHelp(pr, CONSOLE_TEXT_WIDTH)) {
 			CliReceivedCommand cliReceivedOptionData = CliCommandLineConsumer.consumeCommandLineInput(pr, DECLARED_OPTIONS);
 			CliCommandLineConsumerResultHandler.processCliResult(cliReceivedOptionData);
+		}
+	}
+	
+	@Override
+	public void listUsagesForAllOptions() {
+		for (CliDeclaredOptionSpec declaredOption : DECLARED_OPTIONS) {
+			runCLI(new String[]{"send", declaredOption.getName() + "--help"});
+			System.out.print("\n\n\n");
 		}
 	}
 	

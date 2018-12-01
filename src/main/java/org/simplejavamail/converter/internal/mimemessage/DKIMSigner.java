@@ -16,7 +16,7 @@ import java.security.spec.InvalidKeySpecException;
  * This class only serves to hide the DKIM implementation behind an easy-to-load-with-reflection class.
  */
 @SuppressWarnings("unused") // it is ued through reflection
-public class DKIMSigner implements IDKIMSigner {
+public class DKIMSigner implements DKIMModule {
 	
 	/**
 	 * @see MimeMessageHelper#signMessageWithDKIM(MimeMessage, Email)

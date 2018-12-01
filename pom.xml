@@ -91,12 +91,8 @@
             <artifactId>emailaddress-rfc2822</artifactId>
             <version>1.0.1</version>
         </dependency>
-        <dependency>
-            <groupId>net.markenwerk</groupId>
-            <artifactId>utils-mail-dkim</artifactId>
-            <version>1.1.10</version>
-            <optional>true</optional>
-        </dependency>
+
+        <!-- needed for outlook support (optional) -->
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>outlook-message-parser</artifactId>
@@ -104,7 +100,15 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- needed for cli support -->
+        <!-- needed for dkim support (optional) -->
+        <dependency>
+            <groupId>net.markenwerk</groupId>
+            <artifactId>utils-mail-dkim</artifactId>
+            <version>1.1.10</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- needed for cli support (mostly optional, except for therapi-runtime-javadoc-scribe, which is needed when compiling) -->
         <dependency>
             <groupId>com.github.bbottema</groupId>
             <artifactId>java-reflection</artifactId>
@@ -117,27 +121,20 @@
             <version>3.6.0</version>
             <optional>true</optional>
         </dependency>
-        <dependency><!-- Annotation processor -->
-            <groupId>com.github.therapi</groupId>
-            <artifactId>therapi-runtime-javadoc-scribe</artifactId>
-            <version>0.9.0</version>
-            <scope>provided</scope>
-        </dependency>
         <dependency><!-- Runtime library -->
             <groupId>com.github.therapi</groupId>
             <artifactId>therapi-runtime-javadoc</artifactId>
             <version>0.9.0</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency><!-- Annotation processor -->
+            <groupId>com.github.therapi</groupId>
+            <artifactId>therapi-runtime-javadoc-scribe</artifactId>
+            <version>0.9.0</version>
+            <scope>provided</scope><!-- makes library mandatory if we should support CLI (even optionally) -->
         </dependency>
 
-        <!-- utility -->
-        <dependency><!-- gives us @NonNull annotations-->
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
-            <version>3.0.1</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <!-- spring support (optional) -->
+        <!-- needed for spring support (optional) -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
@@ -158,6 +155,14 @@
             <version>${spring.version}</version>
             <scope>compile</scope>
             <optional>true</optional>
+        </dependency>
+
+        <!-- utility -->
+        <dependency><!-- gives us @NonNull annotations-->
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.1</version>
+            <scope>compile</scope>
         </dependency>
 
 
