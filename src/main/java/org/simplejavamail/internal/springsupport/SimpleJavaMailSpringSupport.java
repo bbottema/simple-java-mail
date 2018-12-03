@@ -1,4 +1,4 @@
-package org.simplejavamail.springsupport;
+package org.simplejavamail.internal.springsupport;
 
 import org.simplejavamail.mailer.Mailer;
 import org.simplejavamail.mailer.MailerBuilder;
