@@ -16,6 +16,10 @@
     <name>Simple Java Mail</name>
     <description>Simple API, Complex Emails. A light weight wrapper for the JavaMail SMTP API</description>
 
+    <properties>
+        <spring.version>[4.3.18.RELEASE,)</spring.version>
+    </properties>
+
     <scm>
         <connection>scm:git:git://github.com/bbottema/simple-java-mail.git</connection>
         <developerConnection>scm:git:git@github.com:bbottema/simple-java-mail.git</developerConnection>
@@ -41,6 +45,12 @@
             <version>2.2.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency><!-- Annotation processor -->
+            <groupId>com.github.therapi</groupId>
+            <artifactId>therapi-runtime-javadoc-scribe</artifactId>
+            <version>0.9.0</version>
+            <scope>provided</scope><!-- makes library mandatory if we should support CLI (even optionally) -->
+        </dependency>
 
         <!-- optional support modules -->
         <dependency>
@@ -55,17 +65,40 @@
             <version>${library.version}</version>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>org.simplejavamail</groupId>
-            <artifactId>spring-module</artifactId>
-            <version>${library.version}</version>
-            <optional>true</optional>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.simplejavamail</groupId>-->
+            <!--<artifactId>spring-module</artifactId>-->
+            <!--<version>${library.version}</version>-->
+            <!--<optional>true</optional>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>cli-module</artifactId>
             <version>${library.version}</version>
             <optional>true</optional>
+        </dependency>
+
+        <!-- optional Spring support -->
+
+
+        <!-- spring support (optional) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>${spring.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>${spring.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- testing -->
@@ -82,5 +115,28 @@
             </exclusions>
         </dependency>
     </dependencies>
+
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-assertions-generator-maven-plugin</artifactId>
+                <version>2.0.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate-assertions</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <classes>
+                        <param>org.simplejavamail.email.Email</param>
+                    </classes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
