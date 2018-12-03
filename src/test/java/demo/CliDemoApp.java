@@ -27,7 +27,7 @@ public class CliDemoApp extends DemoAppBase {
 	private static void demoSend(ServerConfig serverConfig) {
 		ModuleLoader.loadCliModule().runCLI(new String[]{
 				"send",
-				"--email:forwarding", "src/test/resources/test-messages/HTML mail with replyto and attachment and embedded image.msg",
+				"--email:forwarding", SOURCE_FOLDER + "/test/resources/test-messages/HTML mail with replyto and attachment and embedded image.msg",
 				"--email:from", "Test sender", YOUR_GMAIL_ADDRESS,
 				"--email:to", "Test Receiver", YOUR_GMAIL_ADDRESS,
 				"--mailer:withSMTPServer", "smtp.gmail.com", "587", serverConfig.getUsername(), serverConfig.getPassword(),

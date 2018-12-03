@@ -20,6 +20,10 @@ public class DemoAppBase {
 	 */
 	private static final boolean LOGGING_MODE = false;
 	
+	static String SOURCE_FOLDER = System.getProperty("user.dir").matches(".*[\\\\/]maven-master-project.*$")
+			? "modules\\core-module\\src"
+			: "src";
+	
 	static {
 		// make Simple Java Mail ignore the properties file completely: that's there for the junit tests, not this demo.
 		ConfigLoaderTestHelper.clearConfigProperties();
