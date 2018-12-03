@@ -1,7 +1,7 @@
 package org.simplejavamail.mailer;
 
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
-import org.simplejavamail.internal.clisupport.annotation.Cli;
+import org.simplejavamail.internal.clisupport.model.Cli;
 import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.mailer.internal.mailsender.OperationalConfig;
 import org.simplejavamail.mailer.internal.mailsender.ProxyConfig;

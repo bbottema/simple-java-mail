@@ -1,4 +1,4 @@
-package org.simplejavamail.converter;
+package org.simplejavamail.internal.modules;
 
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailPopulatingBuilder;

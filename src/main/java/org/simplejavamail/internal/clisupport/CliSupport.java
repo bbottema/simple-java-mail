@@ -2,6 +2,7 @@ package org.simplejavamail.internal.clisupport;
 
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliReceivedCommand;
+import org.simplejavamail.internal.modules.CLIModule;
 import org.simplejavamail.mailer.MailerFromSessionBuilder;
 import picocli.CommandLine;
 import picocli.CommandLine.ParseResult;

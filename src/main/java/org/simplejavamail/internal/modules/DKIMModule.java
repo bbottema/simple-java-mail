@@ -1,5 +1,6 @@
-package org.simplejavamail.converter.internal.mimemessage;
+package org.simplejavamail.internal.modules;
 
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.email.Email;
 
 import javax.mail.internet.MimeMessage;

@@ -126,7 +126,7 @@ public class MimeMessageHelperTest {
 				.buildEmail();
 		
 		PowerMockito.mockStatic(MiscUtil.class);
-		BDDMockito.given(MiscUtil.loadLibraryClass(any(String.class), any(String.class), any(String.class), any(String.class))).willCallRealMethod();
+		BDDMockito.given(ModuleLoader.loadModule(any(String.class), any(String.class), any(String.class), any(String.class))).willCallRealMethod();
 		BDDMockito.given(MiscUtil.classAvailable("net.markenwerk.utils.mail.dkim.DkimSigner")).willReturn(false);
 		
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
@@ -138,7 +138,7 @@ public class MimeMessageHelperTest {
 				.hasMessage("DKIM module not found, make sure it is on the classpath (https://github.com/simple-java-mail/dkim-module)");
 		
 		PowerMockito.mockStatic(MiscUtil.class);
-		BDDMockito.given(MiscUtil.loadLibraryClass(any(String.class), any(String.class), any(String.class), any(String.class))).willCallRealMethod();
+		BDDMockito.given(ModuleLoader.loadModule(any(String.class), any(String.class), any(String.class), any(String.class))).willCallRealMethod();
 		BDDMockito.given(MiscUtil.classAvailable("net.markenwerk.utils.mail.dkim.DkimSigner")).willCallRealMethod();
 		
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {

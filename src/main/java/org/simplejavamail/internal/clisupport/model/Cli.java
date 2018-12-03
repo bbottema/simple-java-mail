@@ -1,6 +1,4 @@
-package org.simplejavamail.internal.clisupport.annotation;
-
-import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
+package org.simplejavamail.internal.clisupport.model;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

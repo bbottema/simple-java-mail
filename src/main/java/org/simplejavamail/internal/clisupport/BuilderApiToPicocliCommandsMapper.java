@@ -7,7 +7,7 @@ import org.bbottema.javareflection.MethodUtils;
 import org.bbottema.javareflection.model.LookupMode;
 import org.bbottema.javareflection.model.MethodModifier;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
-import org.simplejavamail.internal.clisupport.annotation.Cli;
+import org.simplejavamail.internal.clisupport.model.Cli;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;

@@ -1,6 +1,6 @@
 package org.simplejavamail.converter.internal.outlook;
 
-import org.simplejavamail.converter.OutlookModule;
+import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.email.Email;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.EmailPopulatingBuilder;

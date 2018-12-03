@@ -1,8 +1,6 @@
 package org.simplejavamail.internal.clisupport.model;
 
 
-import org.simplejavamail.internal.clisupport.annotation.Cli;
-
 import java.util.List;
 
 public class CliReceivedOptionData {

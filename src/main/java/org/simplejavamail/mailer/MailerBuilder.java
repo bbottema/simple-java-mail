@@ -1,6 +1,6 @@
 package org.simplejavamail.mailer;
 
-import org.simplejavamail.internal.clisupport.annotation.Cli;
+import org.simplejavamail.internal.clisupport.model.Cli;
 import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.simplejavamail.util.ConfigLoader;

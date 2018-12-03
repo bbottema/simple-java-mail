@@ -1,7 +1,6 @@
 package org.simplejavamail.internal.util;
 
 import org.simplejavamail.email.Recipient;
-import org.simplejavamail.internal.modules.ModuleLoaderException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -146,22 +145,6 @@ public final class MiscUtil {
 	@Nullable
 	public static <T> T defaultTo(@Nullable final T value, @Nullable final T defaultValue) {
 		return value != null ? value : defaultValue;
-	}
-	
-	@SuppressWarnings("unchecked")
-	public static <T> T loadLibraryClass(@Nonnull String libraryClassWhichShouldBeAvailable,
-										  @Nonnull String apiClassToLoad,
-										  @Nonnull String libraryNotFoundMessage,
-										  @Nonnull String otherExceptions) {
-		if (!classAvailable(libraryClassWhichShouldBeAvailable)) {
-			throw new ModuleLoaderException(libraryNotFoundMessage);
-		}
-		
-		try {
-			return (T) Class.forName(apiClassToLoad).newInstance();
-		} catch (Exception | NoClassDefFoundError e) {
-			throw new ModuleLoaderException(otherExceptions, e);
-		}
 	}
 	
 	public static boolean classAvailable(@Nonnull String className) {

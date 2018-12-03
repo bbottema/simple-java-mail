@@ -1,8 +1,5 @@
 package org.simplejavamail.internal.modules;
 
-import org.simplejavamail.converter.OutlookModule;
-import org.simplejavamail.converter.internal.mimemessage.DKIMModule;
-import org.simplejavamail.internal.clisupport.CLIModule;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import java.util.HashMap;
@@ -53,11 +50,15 @@ public class ModuleLoader {
 		return (OutlookModule) LOADED_MODULES.get(OutlookModule.class);
 	}
 	
-	private static <T> T loadModule(String moduleName, String modulePrerequisiteClass, String moduleClass, String moduleHome) {
-		return MiscUtil.loadLibraryClass(
-				modulePrerequisiteClass,
-				moduleClass,
-				format(ModuleLoaderException.ERROR_MODULE_MISSING, moduleName, moduleHome),
-				format(ModuleLoaderException.ERROR_LOADING_MODULE, moduleName));
+	@SuppressWarnings("unchecked")
+	public static <T> T loadModule(String moduleName, String modulePrerequisiteClass, String moduleClass, String moduleHome) {
+		try {
+			if (!MiscUtil.classAvailable(modulePrerequisiteClass)) {
+				throw new ModuleLoaderException(format(ModuleLoaderException.ERROR_MODULE_MISSING, moduleName, moduleHome));
+			}
+			return (T) Class.forName(moduleClass).newInstance();
+		} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+			throw new ModuleLoaderException(format(ModuleLoaderException.ERROR_LOADING_MODULE, moduleName), e);
+		}
 	}
 }

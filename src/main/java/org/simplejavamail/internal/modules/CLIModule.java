@@ -1,4 +1,4 @@
-package org.simplejavamail.internal.clisupport;
+package org.simplejavamail.internal.modules;
 
 public interface CLIModule {
 	void runCLI(String[] args);

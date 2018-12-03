@@ -5,6 +5,7 @@ import net.markenwerk.utils.mail.dkim.DkimMessage;
 import net.markenwerk.utils.mail.dkim.DkimSigner;
 import net.markenwerk.utils.mail.dkim.SigningAlgorithm;
 import org.simplejavamail.email.Email;
+import org.simplejavamail.internal.modules.DKIMModule;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
