@@ -19,7 +19,7 @@ public class ModuleLoader {
 		if (!LOADED_MODULES.containsKey(DKIMModule.class)) {
 			LOADED_MODULES.put(DKIMModule.class, loadModule(
 					"DKIM",
-					"org.simplejavamail.internal.modules.DKKIMModuleMarker",
+					"org.simplejavamail.internal.modules.DKIMModuleMarker",
 					"org.simplejavamail.converter.internal.mimemessage.DKIMSigner",
 					"https://github.com/simple-java-mail/dkim-module"
 			));
