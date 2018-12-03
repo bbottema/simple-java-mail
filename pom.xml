@@ -3,21 +3,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.simplejavamail</groupId>
+
+    <parent>
+        <groupId>org.simplejavamail</groupId>
+        <artifactId>maven-master-project</artifactId>
+        <version>6.0.0.beta-SNAPSHOT</version>
+        <relativePath>../../</relativePath>
+    </parent>
+
     <artifactId>simple-java-mail</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail</name>
-    <version>6.0.0.beta-SNAPSHOT</version>
     <description>Simple API, Complex Emails. A light weight wrapper for the JavaMail SMTP API</description>
-    <url>http://www.simplejavamail.org/</url>
-
-    <licenses>
-        <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
 
     <scm>
         <connection>scm:git:git://github.com/bbottema/simple-java-mail.git</connection>
@@ -25,60 +22,7 @@
         <url>https://github.com/bbottema/simple-java-mail</url>
     </scm>
 
-    <developers>
-        <developer>
-            <id>benny</id>
-            <name>Benny Bottema</name>
-            <email>benny@bennybottema.com</email>
-            <url>http://www.bennybottema.com</url>
-            <roles>
-                <role>developer</role>
-                <role>packager</role>
-            </roles>
-        </developer>
-    </developers>
-
-    <issueManagement>
-        <system>GitHub Issues</system>
-        <url>https://github.com/bbottema/simple-java-mail/issues</url>
-    </issueManagement>
-
-    <properties>
-        <java.version>1.7</java.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <compiler.encoding>UTF-8</compiler.encoding>
-        <spring.version>4.3.18.RELEASE</spring.version>
-        <powermock.version>1.7.1</powermock.version>
-    </properties>
-
     <dependencies>
-        <!-- logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.21</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId><!-- or log4j2 or logback or whatever-->
-            <version>2.6.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>2.6.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>2.6.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mnode.ical4j</groupId>
-            <artifactId>ical4j</artifactId>
-            <version>2.2.0</version>
-            <scope>test</scope>
-        </dependency>
 
         <!-- core dependencies -->
         <dependency>
@@ -91,112 +35,40 @@
             <artifactId>emailaddress-rfc2822</artifactId>
             <version>1.0.1</version>
         </dependency>
+        <dependency>
+            <groupId>org.mnode.ical4j</groupId>
+            <artifactId>ical4j</artifactId>
+            <version>2.2.0</version>
+            <scope>test</scope>
+        </dependency>
 
-        <!-- needed for outlook support (optional) -->
+        <!-- optional support modules -->
         <dependency>
             <groupId>org.simplejavamail</groupId>
-            <artifactId>outlook-message-parser</artifactId>
-            <version>1.1.17</version>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- needed for dkim support (optional) -->
-        <dependency>
-            <groupId>net.markenwerk</groupId>
-            <artifactId>utils-mail-dkim</artifactId>
-            <version>1.1.10</version>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- needed for cli support (mostly optional, except for therapi-runtime-javadoc-scribe, which is needed when compiling) -->
-        <dependency>
-            <groupId>com.github.bbottema</groupId>
-            <artifactId>java-reflection</artifactId>
-            <version>3.8.3</version>
+            <artifactId>dkim-module</artifactId>
+            <version>${library.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>info.picocli</groupId>
-            <artifactId>picocli</artifactId>
-            <version>3.6.0</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency><!-- Runtime library -->
-            <groupId>com.github.therapi</groupId>
-            <artifactId>therapi-runtime-javadoc</artifactId>
-            <version>0.9.0</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency><!-- Annotation processor -->
-            <groupId>com.github.therapi</groupId>
-            <artifactId>therapi-runtime-javadoc-scribe</artifactId>
-            <version>0.9.0</version>
-            <scope>provided</scope><!-- makes library mandatory if we should support CLI (even optionally) -->
-        </dependency>
-
-        <!-- needed for spring support (optional) -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-            <version>${spring.version}</version>
-            <scope>compile</scope>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>outlook-module</artifactId>
+            <version>${library.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
-            <scope>compile</scope>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>spring-module</artifactId>
+            <version>${library.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-beans</artifactId>
-            <version>${spring.version}</version>
-            <scope>compile</scope>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>cli-module</artifactId>
+            <version>${library.version}</version>
             <optional>true</optional>
         </dependency>
-
-        <!-- utility -->
-        <dependency><!-- gives us @NonNull annotations-->
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
-            <version>3.0.1</version>
-            <scope>compile</scope>
-        </dependency>
-
 
         <!-- testing -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.11</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>2.4.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>1.10.19</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-module-junit4</artifactId>
-            <version>${powermock.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-api-mockito</artifactId>
-            <version>${powermock.version}</version>
-            <scope>test</scope>
-        </dependency>
         <dependency><!-- SMTP test server -->
             <groupId>org.subethamail</groupId>
             <artifactId>subethasmtp</artifactId>
@@ -211,281 +83,4 @@
         </dependency>
     </dependencies>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
-
-    <build>
-        <resources>
-            <resource>
-                <directory>.</directory>
-                <includes>
-                    <include>LICENSE-2.0.txt</include>
-                    <include>NOTICE.txt</include>
-                    <include>RELEASE.txt</include>
-                </includes>
-            </resource>
-        </resources>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.5.1</version>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                    <encoding>${compiler.encoding}</encoding>
-                    <compilerArgument>-Xlint:all</compilerArgument>
-                    <useIncrementalCompilation>false</useIncrementalCompilation>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.2.1</version>
-                <configuration>
-                    <mainClass>org.simplejavamail.cli.SimpleJavaMail</mainClass>
-                    <arguments>
-                        <argument>send</argument>
-                        <argument>--email:replyingToSenderWithDefaultQuoteMarkup--help</argument>
-                        <!--<argument>&#45;&#45;email:replyingTo&#45;&#45;help</argument>-->
-                        <!--<argument>&#45;&#45;email:startingBlank</argument>-->
-                        <!--<argument>&#45;&#45;email:startingBlank&#45;&#45;help</argument>-->
-                        <!--<argument>&#45;&#45;help</argument>-->
-                    </arguments>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.1</version>
-                <executions>
-                    <execution>
-                        <id>default-prepare-agent</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>default-report</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>2.5.2</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.assertj</groupId>
-                <artifactId>assertj-assertions-generator-maven-plugin</artifactId>
-                <version>2.0.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate-assertions</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <classes>
-                        <param>org.simplejavamail.email.Email</param>
-                    </classes>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <archive>
-                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-                    </archive>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <version>3.5.1</version>
-                <executions>
-                    <execution>
-                        <id>bundle-manifest</id>
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>manifest</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
-                <configuration>
-                    <forkCount>4</forkCount>
-                    <reuseForks>false</reuseForks>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>3.1.6</version>
-                <!-- this will make findbugs run during mvn verify -->
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <onlyAnalyze>org.simplejavamail.*</onlyAnalyze>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.3</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <!--<additionalparam>-Xdoclint:none</additionalparam>-->
-                            <additionalparam>-Xdoclint:all</additionalparam>
-                            <additionalparam>-Xdoclint:-missing</additionalparam>
-                            <show>public</show>
-                            <nohelp>true</nohelp>
-                            <excludePackageNames>*.internal.*</excludePackageNames>
-                        </configuration>
-                    </execution>
-                </executions>
-                <configuration>
-                    <failOnError>false</failOnError>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
-    <profiles>
-        <profile>
-            <id>release-sign-artifacts</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.5</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>travis-install-skip-findbugs</id>
-            <activation>
-                <property>
-                    <name>skipFindBugs</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>com.github.spotbugs</groupId>
-                        <artifactId>spotbugs-maven-plugin</artifactId>
-                        <version>3.1.6</version>
-                        <executions>
-                            <execution>
-                                <phase>none</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>travis-verify-skip-unsupported-tests</id>
-            <activation>
-                <property>
-                    <name>excludeLiveServerTests</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.19.1</version>
-                        <configuration>
-                            <excludes>
-                                <exclude>**/*LiveTest.java</exclude>
-                            </excludes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>
