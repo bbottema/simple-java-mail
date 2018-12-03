@@ -35,7 +35,7 @@ class CliCommandLineProducer {
                         "(as such, the order of --options matter as well as combinations). Furthermore, all documentation is taken from the " +
                         "builder API Javadoc. Essentially you configure builders just like you would in Java, but with CLI commands.%n" +
                         "%n" +
-                        "Note that each and every @|"+COMMAND_OPTION_STYLE+" --option|@ has an @|"+COMMAND_OPTION_STYLE+" --option--help|@ variation for full documentation." +
+                        "@|bold Note that each and every |@@|"+COMMAND_OPTION_STYLE+",bold --option|@ @|bold has an |@@|"+COMMAND_OPTION_STYLE+",bold --option--help|@ @|bold variation for full documentation.|@" +
                         "%n" +
                         "Note: All the regular functionality regarding properties and config files work with the CLI so you can provide defaults in a " +
                         "property file as long as it is visible (on class path) or as system environment variables.")
@@ -46,17 +46,19 @@ class CliCommandLineProducer {
                         colorizeOptionsInText("\tsend     [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE),
                         colorizeOptionsInText("\tconnect  [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE),
                         colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE));
-        
-        createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email",
-                                                                                        colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
-        createRootCommand(rootCommandsHolder, "connect", "Test a server connection",    colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
-        createRootCommand(rootCommandsHolder, "validate", "Validate an email",          colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+    
+        createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email.",
+                colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+        createRootCommand(rootCommandsHolder, "connect", "Test a server connection, including possible authentication and any proxy settings",
+                colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+        createRootCommand(rootCommandsHolder, "validate", "Validate an email for mandatory fields, injection detection and optional email address validation",
+                colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         
         return new CommandLine(rootCommandsHolder).setUsageHelpWidth(maxTextWidth).setSeparator(" ");
     }
     
     private static void createRootCommand(CommandSpec rootCommandsHolder, String name, String description, String synopsis,
-                                          List<CliDeclaredOptionSpec> declaredOptions, int maxTextWidth) {
+                                                 List<CliDeclaredOptionSpec> declaredOptions, int maxTextWidth) {
         final CommandSpec rootCommand = createDefaultCommandSpec(name, description);
 		final CliCommandType cliCommandType = CliCommandType.valueOf(rootCommand.name());
 		final Collection<CliBuilderApiType> compatibleBuilderApiTypes = CliBuilderApiType.findForCliSynopsis(synopsis);
