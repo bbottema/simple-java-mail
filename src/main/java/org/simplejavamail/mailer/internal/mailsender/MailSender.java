@@ -194,7 +194,7 @@ public class MailSender {
         }
         smtpRequestsPhaser.register();
 		
-		SendMailClosure sendMailClosure = new SendMailClosure(session, email);
+		SendMailClosure sendMailClosure = new SendMailClosure(session, email, async);
 		
 		if (!async) {
 			sendMailClosure.run();
@@ -233,14 +233,17 @@ public class MailSender {
 		
 		@Nonnull final Session session;
 		@Nonnull final Email email;
+		final boolean async;
 		
 		/**
 		 * @param session The session with which to produce the {@link MimeMessage} aquire the {@link Transport} for connections.
 		 * @param email   The email that will be converted into a {@link MimeMessage}.
+		 * @param async   For logging purposes, indicates whether this closure is running in async mode.
 		 */
-		private SendMailClosure(@Nonnull Session session, @Nonnull Email email) {
+		private SendMailClosure(@Nonnull Session session, @Nonnull Email email, boolean async) {
 			this.session = session;
 			this.email = email;
+			this.async = async;
 		}
 		
 		@SuppressWarnings("deprecation")
@@ -255,7 +258,7 @@ public class MailSender {
 				
 				configureBounceToAddress(session, email);
 				
-				logSession(session);
+				logSession(session, async);
 				message.saveChanges(); // some headers and id's will be set for this specific message
 				email.internalSetId(message.getMessageID());
 				
@@ -340,15 +343,15 @@ public class MailSender {
 	/**
 	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
 	 */
-	private static void logSession(final Session session) {
+	private static void logSession(final Session session, boolean async) {
 		final TransportStrategy transportStrategy = TransportStrategy.findStrategyForSession(session);
 		final Properties properties = session.getProperties();
 		final String sessionDetails = (transportStrategy != null) ? transportStrategy.toString(properties) : properties.toString();
-		LOGGER.debug("starting mail with " + sessionDetails);
+		LOGGER.debug(format("starting%s mail with %s", async ? " async" : "", sessionDetails));
 	}
 
 	/**
-	 * @see MailerGenericBuilder#trustingAllHosts(Boolean)
+	 * @see MailerGenericBuilder#trustingAllHosts(boolean)
 	 */
 	private void trustAllHosts(final boolean trustAllHosts) {
 		if (transportStrategy != null) {

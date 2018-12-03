@@ -13,12 +13,17 @@ import java.util.Properties;
  * <p>
  * All of these settings are configured on the {@link MailerGenericBuilder}.
  */
+// FIXME don't forget to include async in the operational config examples
 public class OperationalConfig {
 	/**
 	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withSessionTimeout(Integer)
 	 */
 	private final int sessionTimeout;
 	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#async(boolean)
+	 */
+	private final boolean async;
 	/**
 	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withProperties(Properties)
 	 */
@@ -30,7 +35,7 @@ public class OperationalConfig {
 	private final int threadPoolSize;
 	
 	/**
-	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withTransportModeLoggingOnly(boolean)
 	 */
 	private final boolean transportModeLoggingOnly;
 	
@@ -45,14 +50,15 @@ public class OperationalConfig {
 	private final List<String> sslHostsToTrust;
 	
 	/**
-	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#trustingAllHosts(Boolean)
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#trustingAllHosts(boolean)
 	 */
 	private final boolean trustAllSSLHost;
 	
 	/**
 	 * For internal use only.
 	 */
-	public OperationalConfig(@Nonnull Properties properties, int sessionTimeout, int threadPoolSize, boolean transportModeLoggingOnly, boolean debugLogging, List<String> sslHostsToTrust, boolean trustAllSSLHost) {
+	public OperationalConfig(boolean async, @Nonnull Properties properties, int sessionTimeout, int threadPoolSize, boolean transportModeLoggingOnly, boolean debugLogging, List<String> sslHostsToTrust, boolean trustAllSSLHost) {
+		this.async = async;
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
 		this.threadPoolSize = threadPoolSize;
@@ -60,6 +66,13 @@ public class OperationalConfig {
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
 		this.trustAllSSLHost = trustAllSSLHost;
+	}
+	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#async(boolean)
+	 */
+	public boolean isAsync() {
+		return async;
 	}
 	
 	/**
@@ -77,7 +90,7 @@ public class OperationalConfig {
 	}
 	
 	/**
-	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withTransportModeLoggingOnly(boolean)
 	 */
 	public boolean isTransportModeLoggingOnly() {
 		return transportModeLoggingOnly;
@@ -98,7 +111,7 @@ public class OperationalConfig {
 	}
 	
 	/**
-	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#trustingAllHosts(Boolean)
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#trustingAllHosts(boolean)
 	 */
 	public boolean isTrustAllSSLHost() {
 		return trustAllSSLHost;

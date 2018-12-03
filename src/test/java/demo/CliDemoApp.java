@@ -7,6 +7,10 @@ import testutil.ConfigLoaderTestHelper;
 import static java.util.Objects.requireNonNull;
 
 public class CliDemoApp extends DemoAppBase {
+	
+	/**
+	 * For more detailed logging open log4j2.xml and change "org.simplejavamail.internal.clisupport" to debug.
+	 */
 	public static void main(String[] args) {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		

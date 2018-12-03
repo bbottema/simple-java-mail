@@ -238,7 +238,7 @@ public class Mailer {
 	 * the target SMTP server.
 	 */
 	public final void sendMail(final Email email) {
-		sendMail(email, false);
+		sendMail(email, getOperationalConfig().isAsync());
 	}
 	
 	/**

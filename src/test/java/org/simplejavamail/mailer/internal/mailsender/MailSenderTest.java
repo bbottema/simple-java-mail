@@ -69,6 +69,6 @@ public class MailSenderTest {
 	
 	@Nonnull
 	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost) {
-		return new OperationalConfig(new Properties(), 0, 0, false, false, hostsToTrust, trustAllSSLHost);
+		return new OperationalConfig(false, new Properties(), 0, 0, false, false, hostsToTrust, trustAllSSLHost);
 	}
 }

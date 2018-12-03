@@ -64,6 +64,11 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	public static final boolean DEFAULT_TRANSPORT_MODE_LOGGING_ONLY = false;
 	
 	/**
+	 * @see #async()
+	 */
+	private boolean async;
+	
+	/**
 	 * @see #withProxyHost(String)
 	 */
 	private String proxyHost;
@@ -182,8 +187,18 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 * For internal use.
 	 */
 	OperationalConfig buildOperationalConfig() {
-		return new OperationalConfig(getProperties(), getSessionTimeout(), getThreadPoolSize(), getTransportModeLoggingOnly(), getDebugLogging(),
+		return new OperationalConfig(isAsync(), getProperties(), getSessionTimeout(), getThreadPoolSize(), getTransportModeLoggingOnly(), getDebugLogging(),
 				getSslHostsToTrust(), getTrustAllSSLHost());
+	}
+	
+	/**
+	 * Sets flag that send or server connection test should run in the background returning immediately.
+	 * <p>
+	 * In case of asynchronous mode, make sure you configure logging to file, as otherwise you won't know if there was an error.
+	 */
+	public T async() {
+		this.async = true;
+		return (T) this;
 	}
 	
 	/**
@@ -488,6 +503,13 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public abstract Mailer buildMailer();
+	
+	/**
+	 * @see #async()
+	 */
+	public boolean isAsync() {
+		return async;
+	}
 	
 	/**
 	 * @see #withProxyHost(String)
