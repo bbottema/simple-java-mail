@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.clisupport;
 
+import org.bbottema.javareflection.valueconverter.IncompatibleTypeException;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
@@ -73,8 +74,16 @@ class CliCommandLineConsumer {
 	}
     
     private static Object parseStringInput(@Nonnull String stringValue, @Nonnull Class<?> targetType) {
-        return ValueConversionHelper.convert(stringValue, targetType);
-    }
+		try {
+			return ValueConversionHelper.convert(stringValue, targetType);
+		} catch (IncompatibleTypeException e) {
+			LOGGER.error("Was unable to parse input from command line. The following conversions were tried and failed:");
+			for (IncompatibleTypeException cause : e.getCauses()) {
+				LOGGER.error(cause.getMessage(), cause);
+			}
+			throw e;
+		}
+	}
     
     private static void logParsedInput(CliCommandType matchedCommand, TreeMap<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision) {
         LOGGER.debug("processing mail command: {}", matchedCommand);
