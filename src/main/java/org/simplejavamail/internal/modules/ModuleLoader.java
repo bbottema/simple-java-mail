@@ -22,7 +22,7 @@ public class ModuleLoader {
 		if (!LOADED_MODULES.containsKey(DKIMModule.class)) {
 			LOADED_MODULES.put(DKIMModule.class, loadModule(
 					"DKIM",
-					"net.markenwerk.utils.mail.dkim.DkimSigner",
+					"org.simplejavamail.internal.modules.DKKIMModuleMarker",
 					"org.simplejavamail.converter.internal.mimemessage.DKIMSigner",
 					"https://github.com/simple-java-mail/dkim-module"
 			));
@@ -34,7 +34,7 @@ public class ModuleLoader {
 		if (!LOADED_MODULES.containsKey(CLIModule.class)) {
 			LOADED_MODULES.put(CLIModule.class, loadModule(
 					"CLI",
-					"com.github.therapi.runtimejavadoc.RuntimeJavadoc",
+					"org.simplejavamail.internal.modules.CliModuleMarker",
 					"org.simplejavamail.internal.clisupport.CliSupport",
 					"https://github.com/simple-java-mail/cli-module"));
 		}
@@ -45,7 +45,7 @@ public class ModuleLoader {
 		if (!LOADED_MODULES.containsKey(OutlookModule.class)) {
 			LOADED_MODULES.put(OutlookModule.class, loadModule(
 					"Outlook",
-					"org.simplejavamail.outlookmessageparser.OutlookMessageParser",
+					"org.simplejavamail.internal.modules.OutlookModuleMarker",
 					"org.simplejavamail.converter.internal.outlook.OutlookEmailConverter",
 					"https://github.com/simple-java-mail/outlook-module"
 			));
