@@ -12,7 +12,6 @@
     <Loggers>
         <Logger name="org.simplejavamail" level="debug"/>
         <Logger name="org.simplejavamail.mailer.Mailer" level="trace"/>
-        <!-- FIXME update simplejavamail.com documentation to include the following config line -->
         <Logger name="org.simplejavamail.internal.clisupport" level="info"/>
 
         <!-- in case you're using authenticated proxy -->
