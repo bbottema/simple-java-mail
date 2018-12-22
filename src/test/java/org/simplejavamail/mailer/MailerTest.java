@@ -30,8 +30,7 @@ import static org.simplejavamail.util.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 public class MailerTest {
 	
 	@Before
-	public void restoreOriginalStaticProperties()
-			throws IOException {
+	public void restoreOriginalStaticProperties() {
 		String s = "simplejavamail.javaxmail.debug=true\n"
 				+ "simplejavamail.transportstrategy=SMTP_TLS\n"
 				+ "simplejavamail.smtp.host=smtp.default.com\n"
@@ -43,12 +42,12 @@ public class MailerTest {
 				+ "simplejavamail.proxy.username=username proxy\n"
 				+ "simplejavamail.proxy.password=password proxy\n"
 				+ "simplejavamail.proxy.socks5bridge.port=1081";
+		
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 	}
 	
 	@Test
-	public void createMailSession_MinimalConstructor_WithoutConfig()
-			throws Exception {
+	public void createMailSession_MinimalConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
 		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).buildMailer();
@@ -78,8 +77,7 @@ public class MailerTest {
 	}
 	
 	@Test
-	public void createMailSession_AnonymousProxyConstructor_WithoutConfig()
-			throws Exception {
+	public void createMailSession_AnonymousProxyConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
 		Mailer mailer = createFullyConfiguredMailer(false, "", SMTP_TLS);
@@ -104,8 +102,7 @@ public class MailerTest {
 	}
 	
 	@Test
-	public void createMailSession_MaximumConstructor_WithoutConfig()
-			throws Exception {
+	public void createMailSession_MaximumConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
 		Mailer mailer = createFullyConfiguredMailer(true, "", SMTP_TLS);
@@ -201,8 +198,7 @@ public class MailerTest {
 	}
 	
 	@Test
-	public void createMailSession_MaximumConstructor_WithConfig()
-			throws Exception {
+	public void createMailSession_MaximumConstructor_WithConfig() {
 		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTP_TLS);
 		
 		Session session = mailer.getSession();
@@ -224,8 +220,7 @@ public class MailerTest {
 	}
 	
 	@Test
-	public void createMailSession_MaximumConstructor_WithConfig_TLS()
-			throws Exception {
+	public void createMailSession_MaximumConstructor_WithConfig_TLS() {
 		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTPS);
 		
 		Session session = mailer.getSession();
@@ -243,7 +238,7 @@ public class MailerTest {
 	
 	@Test
 	public void testDKIMPriming()
-			throws IOException, MessagingException {
+			throws IOException {
 		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false);
 		
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7

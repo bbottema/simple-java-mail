@@ -16,8 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class EmailConfigTest {
 
 	@Before
-	public void restoreOriginalStaticProperties()
-			throws IOException {
+	public void restoreOriginalStaticProperties() {
 		String s = "simplejavamail.defaults.from.name=From Default\n"
 				+ "simplejavamail.defaults.from.address=from@default.com\n"
 				+ "simplejavamail.defaults.replyto.name=Reply-To Default\n"
@@ -34,8 +33,7 @@ public class EmailConfigTest {
 	}
 
 	@Test
-	public void emailConstructor_WithoutConfig()
-			throws Exception {
+	public void emailConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		Email email = EmailBuilder.startingBlank().buildEmail();
 		assertThat(email.getFromRecipient()).isNull();
