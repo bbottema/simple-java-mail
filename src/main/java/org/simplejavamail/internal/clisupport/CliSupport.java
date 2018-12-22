@@ -52,6 +52,11 @@ public class CliSupport implements CLIModule {
 				break;
 			}
 		}
+		
+		if (argsToKeep.isEmpty()) {
+			argsToKeep.add("--help");
+		}
+		
 		return argsToKeep.toArray(new String[]{});
 	}
 }
