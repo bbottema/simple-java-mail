@@ -151,6 +151,26 @@
     <profiles>
         <profile>
             <id>standalone-cli</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                    <version>${log4j-slf4j-impl.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
+                    <version>${log4j-api.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                    <version>${log4j-core.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>
@@ -158,6 +178,8 @@
                         <artifactId>appassembler-maven-plugin</artifactId>
                         <version>1.8.1</version>
                         <configuration>
+                            <configurationSourceDirectory>src/main/resources</configurationSourceDirectory>
+                            <copyConfigurationDirectory>true</copyConfigurationDirectory>
                             <repositoryLayout>flat</repositoryLayout>
                             <repositoryName>lib</repositoryName>
                             <showConsoleWindow>true</showConsoleWindow>
