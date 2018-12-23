@@ -14,9 +14,10 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.ListUtil.getLast;
@@ -33,7 +34,7 @@ class CliCommandLineConsumer {
         
         final ParseResult mailCommand = providedCommand.subcommand();
         final CliCommandType matchedCommand = CliCommandType.valueOf(mailCommand.commandSpec().name());
-        final TreeMap<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision = matchProvidedOptions(declaredOptions, matchedCommand, mailCommand.matchedOptions());
+        final Map<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision = matchProvidedOptions(declaredOptions, matchedCommand, mailCommand.matchedOptions());
     
         logParsedInput(matchedCommand, matchedOptionsInOrderProvision);
 		
@@ -50,18 +51,17 @@ class CliCommandLineConsumer {
         return new CliReceivedCommand(matchedCommand, receivedOptions);
     }
 
-	private static TreeMap<CliDeclaredOptionSpec, OptionSpec> matchProvidedOptions(Iterable<CliDeclaredOptionSpec> declaredOptions, CliCommandType providedCommand, List<OptionSpec> providedOptions) {
-        TreeMap<CliDeclaredOptionSpec, OptionSpec> matchedProvidedOptions = new TreeMap<>();
-        
-        for (CliDeclaredOptionSpec declaredOption : declaredOptions) {
-            if (declaredOption.getApplicableToCliCommandTypes().contains(providedCommand)) {
-                for (OptionSpec providedOption : providedOptions) {
-                    if (providedOption.longestName().equals(declaredOption.getName())) {
-                        matchedProvidedOptions.put(declaredOption, providedOption);
-                    }
-                }
-            }
-        }
+	private static Map<CliDeclaredOptionSpec, OptionSpec> matchProvidedOptions(Iterable<CliDeclaredOptionSpec> declaredOptions, CliCommandType providedCommand, List<OptionSpec> providedOptions) {
+		Map<CliDeclaredOptionSpec, OptionSpec> matchedProvidedOptions = new LinkedHashMap<>();
+		
+		for (OptionSpec providedOption : providedOptions) {
+			for (CliDeclaredOptionSpec declaredOption : declaredOptions) {
+				if (declaredOption.getApplicableToCliCommandTypes().contains(providedCommand) &&
+						providedOption.longestName().equals(declaredOption.getName())) {
+					matchedProvidedOptions.put(declaredOption, providedOption);
+				}
+			}
+		}
         return matchedProvidedOptions;
     }
 
@@ -85,7 +85,7 @@ class CliCommandLineConsumer {
 		}
 	}
     
-    private static void logParsedInput(CliCommandType matchedCommand, TreeMap<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision) {
+    private static void logParsedInput(CliCommandType matchedCommand, Map<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision) {
         LOGGER.debug("processing mail command: {}", matchedCommand);
         for (Entry<CliDeclaredOptionSpec, OptionSpec> cliOption : matchedOptionsInOrderProvision.entrySet()) {
             CliDeclaredOptionSpec declaredOption = cliOption.getKey();
