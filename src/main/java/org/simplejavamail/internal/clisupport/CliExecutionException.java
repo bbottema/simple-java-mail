@@ -8,12 +8,16 @@ import org.simplejavamail.MailException;
 @SuppressWarnings("serial")
 class CliExecutionException extends MailException {
 	
-	static final String DID_NOT_RECOGNIZE_EMAIL_FILETYPE = "Did not recognize file type for: %s";
+	static final String WRONG_CURRENT_BUILDER = "Wrong argument for the current builder API. Make sure you start with one of the following options:\n" +
+			"\t\t--email:startingBlank\n" +
+			"\t\t--email:copying message(=FILE)\n" +
+			"\t\t--email:forwarding message(=FILE)\n" +
+			"\t\t--email:replyingTo emailMessage(=FILE) repyToAll(=BOOL) htmlTemplate(=TEXT)\n" +
+			"\t\t--email:replyingToSender message(=FILE) customQuotingTemplate(=TEXT)\n" +
+			"\t\t--email:replyingToSenderWithDefaultQuoteMarkup message(=FILE)\n" +
+			"\t\t--email:replyingToAll message(=FILE) customQuotingTemplate(=TEXT)\n" +
+			"\t\t--email:replyingToAllWithDefaultQuoteMarkup message(=FILE)";
 	static final String ERROR_INVOKING_BUILDER_API = "Got error while invoking Builder API";
-	
-	CliExecutionException(String message) {
-		super(message);
-	}
 	
 	CliExecutionException(String message, Exception cause) {
 		super(message, cause);

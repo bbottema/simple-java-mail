@@ -57,6 +57,8 @@ class CliCommandLineConsumerResultHandler {
 				try {
 					LOGGER.debug("\t\t.{}({})", option.getDeclaredOptionSpec().getSourceMethod().getName(), option.getProvidedOptionValues());
 					currentBuilder = option.getDeclaredOptionSpec().getSourceMethod().invoke(currentBuilder, option.getProvidedOptionValues().toArray());
+				} catch (IllegalArgumentException e) {
+					throw new CliExecutionException(CliExecutionException.WRONG_CURRENT_BUILDER, e);
 				} catch (IllegalAccessException | InvocationTargetException e) {
 					throw new CliExecutionException(CliExecutionException.ERROR_INVOKING_BUILDER_API, e);
 				}
