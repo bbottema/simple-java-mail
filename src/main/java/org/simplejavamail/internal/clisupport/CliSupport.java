@@ -20,7 +20,7 @@ public class CliSupport implements CLIModule {
 	private static final int CONSOLE_TEXT_WIDTH = 150;
 	
 	private static final Class<?>[] RELEVANT_BUILDER_ROOT_API 			= {EmailBuilderInstance.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class};
-	public static final List<CliDeclaredOptionSpec> DECLARED_OPTIONS 	= generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
+	private static final List<CliDeclaredOptionSpec> DECLARED_OPTIONS 	= generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
 	private static final CommandLine PICOCLI_COMMAND_LINE 				= configurePicoCli(DECLARED_OPTIONS, CONSOLE_TEXT_WIDTH);
 
 	@Override
