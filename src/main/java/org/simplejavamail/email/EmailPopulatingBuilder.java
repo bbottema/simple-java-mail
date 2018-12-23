@@ -543,8 +543,8 @@ public class EmailPopulatingBuilder {
 	 *                           <ul>
 	 *                           <li>lolly.pop@pretzelfun.com</li>
 	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>Moonpie <moonpie@pies.com>;Daisy <daisy@pies.com></li>
 	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
-	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
 	 *                           </ul>
 	 */
 	public EmailPopulatingBuilder to(@Nullable final String name, String oneOrMoreAddresses) {
@@ -558,8 +558,8 @@ public class EmailPopulatingBuilder {
 	 *                           <ul>
 	 *                           <li>lolly.pop@pretzelfun.com</li>
 	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>Moonpie <moonpie@pies.com>;Daisy <daisy@pies.com></li>
 	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
-	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
 	 *                           </ul>
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API method")
@@ -727,8 +727,8 @@ public class EmailPopulatingBuilder {
 	 *                           <ul>
 	 *                           <li>lolly.pop@pretzelfun.com</li>
 	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>Moonpie <moonpie@pies.com>;Daisy <daisy@pies.com></li>
 	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
-	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
 	 *                           </ul>
 	 */
 	public EmailPopulatingBuilder cc(@Nullable final String name, String oneOrMoreAddresses) {
@@ -742,8 +742,8 @@ public class EmailPopulatingBuilder {
 	 *                           <ul>
 	 *                           <li>lolly.pop@pretzelfun.com</li>
 	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>Moonpie <moonpie@pies.com>;Daisy <daisy@pies.com></li>
 	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
-	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
 	 *                           </ul>
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API method")
@@ -912,8 +912,8 @@ public class EmailPopulatingBuilder {
 	 *                           <ul>
 	 *                           <li>lolly.pop@pretzelfun.com</li>
 	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>Moonpie <moonpie@pies.com>;Daisy <daisy@pies.com></li>
 	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
-	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
 	 *                           </ul>
 	 */
 	public EmailPopulatingBuilder bcc(@Nullable final String name, String oneOrMoreAddresses) {
@@ -927,8 +927,8 @@ public class EmailPopulatingBuilder {
 	 *                           <ul>
 	 *                           <li>lolly.pop@pretzelfun.com</li>
 	 *                           <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                           <li>Moonpie <moonpie@pies.com>;Daisy <daisy@pies.com></li>
 	 *                           <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
-	 *                           <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
 	 *                           </ul>
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
@@ -1115,9 +1115,8 @@ public class EmailPopulatingBuilder {
 	 * @param oneOrMoreAddressesEach Collection of addresses. Each entry itself can be a delimited list of RFC2822 addresses. Examples:
 	 *                               <ul>
 	 *                               <li>lolly.pop@pretzelfun.com</li>
-	 *                               <li>Lolly Pop<lolly.pop@pretzelfun.com></li>
+	 *                               <li>Moonpie <moonpie@pies.com>;Daisy <daisy@pies.com></li>
 	 *                               <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
-	 *                               <li>a1@b1.c1;a2@b2.c2;a3@b3.c3</li>
 	 *                               </ul>
 	 */
 	@Nonnull
