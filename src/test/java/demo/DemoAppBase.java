@@ -5,6 +5,8 @@ import org.simplejavamail.mailer.MailerBuilder;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import testutil.ConfigLoaderTestHelper;
 
+import java.io.File;
+
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
 public class DemoAppBase {
@@ -20,11 +22,18 @@ public class DemoAppBase {
 	 */
 	private static final boolean LOGGING_MODE = false;
 	
-	static String SOURCE_FOLDER = System.getProperty("user.dir").matches(".*[\\\\/]maven-master-project.*$")
-			? "modules\\core-module\\src"
-			: "src";
+	static final String SOURCE_FOLDER;
 	
 	static {
+		// the following is needed bacause this is a project with submodules
+		if (new File("src/test/resources/log4j2.xml").exists()) {
+			SOURCE_FOLDER = "src";
+		} else if (new File("modules/core-module/src/test/resources/log4j2.xml").exists()) {
+			SOURCE_FOLDER = "modules/core-module/src";
+		} else {
+			throw new AssertionError("Was unable to locate resources folder");
+		}
+		
 		// make Simple Java Mail ignore the properties file completely: that's there for the junit tests, not this demo.
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
