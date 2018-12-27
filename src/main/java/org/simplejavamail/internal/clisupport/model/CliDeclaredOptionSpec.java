@@ -2,6 +2,7 @@ package org.simplejavamail.internal.clisupport.model;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -38,6 +39,16 @@ public class CliDeclaredOptionSpec implements Comparable<CliDeclaredOptionSpec> 
 	
 	public boolean applicableToRootCommand(CliCommandType name, Collection<CliBuilderApiType> compatibleBuilderApiTypes) {
 		return this.applicableToCliCommandTypes.contains(name) && compatibleBuilderApiTypes.contains(fromBuilderApiType);
+	}
+	
+	public List<CliDeclaredOptionValue> getMandatoryOptionValues() {
+		List<CliDeclaredOptionValue> mandatoryOptionValues = new ArrayList<>();
+		for (CliDeclaredOptionValue optionValue : possibleOptionValues) {
+			if (optionValue.isRequired()) {
+				mandatoryOptionValues.add(optionValue);
+			}
+		}
+		return mandatoryOptionValues;
 	}
 	
 	@Override

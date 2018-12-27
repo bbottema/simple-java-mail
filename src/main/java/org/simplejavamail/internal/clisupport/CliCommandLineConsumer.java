@@ -6,11 +6,15 @@ import org.simplejavamail.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.internal.clisupport.model.CliReceivedOptionData;
+import org.simplejavamail.internal.util.MiscUtil;
 import org.slf4j.Logger;
 import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.ParseResult;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -20,6 +24,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import static java.lang.String.format;
+import static java.util.Arrays.asList;
+import static org.bbottema.javareflection.TypeUtils.containsAnnotation;
 import static org.simplejavamail.internal.util.ListUtil.getLast;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -40,17 +46,20 @@ class CliCommandLineConsumer {
 		
         List<CliReceivedOptionData> receivedOptions = new ArrayList<>();
         for (Entry<CliDeclaredOptionSpec, OptionSpec> cliOption : matchedOptionsInOrderProvision.entrySet()) {
-            Class<?>[] expectedTypes = cliOption.getKey().getSourceMethod().getParameterTypes();
-			List<String> providedStringValues = cliOption.getValue().getValue();
-            assumeTrue(providedStringValues.size() == expectedTypes.length,
-                    format("provided %s arguments, but need %s", providedStringValues.size(), expectedTypes.length));
-			receivedOptions.add(new CliReceivedOptionData(cliOption.getKey(), convertProvidedOptionValues(providedStringValues, expectedTypes)));
+			final Method sourceMethod = cliOption.getKey().getSourceMethod();
+			final int mandatoryParameters = MiscUtil.countMandatoryParameters(sourceMethod);
+			final List<String> providedStringValues = cliOption.getValue().getValue();
+            assumeTrue(providedStringValues.size() >= mandatoryParameters,
+                    format("provided %s arguments, but need at least %s", providedStringValues.size(), mandatoryParameters));
+            assumeTrue(providedStringValues.size() <= sourceMethod.getParameterTypes().length,
+                    format("provided %s arguments, but need at most %s", providedStringValues.size(), sourceMethod.getParameterTypes().length));
+			receivedOptions.add(new CliReceivedOptionData(cliOption.getKey(), convertProvidedOptionValues(providedStringValues, sourceMethod)));
 			LOGGER.debug("\tconverted option values: {}", getLast(receivedOptions).getProvidedOptionValues());
         }
         
         return new CliReceivedCommand(matchedCommand, receivedOptions);
     }
-
+	
 	private static Map<CliDeclaredOptionSpec, OptionSpec> matchProvidedOptions(Iterable<CliDeclaredOptionSpec> declaredOptions, CliCommandType providedCommand, List<OptionSpec> providedOptions) {
 		Map<CliDeclaredOptionSpec, OptionSpec> matchedProvidedOptions = new LinkedHashMap<>();
 		
@@ -65,11 +74,23 @@ class CliCommandLineConsumer {
         return matchedProvidedOptions;
     }
 
-	private static List<Object> convertProvidedOptionValues(List<String> providedStringValues, Class<?>[] expectedTypes) {
+	static List<Object> convertProvidedOptionValues(List<String> providedStringValues, Method m) {
 		List<Object> providedValuesConverted = new ArrayList<>();
-		for (int i = 0; i < providedStringValues.size(); i++) {
-			providedValuesConverted.add(parseStringInput(providedStringValues.get(i), expectedTypes[i]));
+		
+		final Annotation[][] annotations = m.getParameterAnnotations();
+		final Class<?>[] declaredParameters = m.getParameterTypes();
+		int mandatoryParameters = MiscUtil.countMandatoryParameters(m);
+		
+		for (int i = 0; i < declaredParameters.length; i++) {
+			final boolean required = !containsAnnotation(asList(annotations[i]), Nullable.class);
+			Object providedValueConverted = null;
+			if (required || providedStringValues.size() > mandatoryParameters) {
+				providedValueConverted = parseStringInput(providedStringValues.remove(0), declaredParameters[i]);
+			}
+			providedValuesConverted.add(providedValueConverted);
+			mandatoryParameters = required ? mandatoryParameters - 1 : mandatoryParameters;
 		}
+		
 		return providedValuesConverted;
 	}
     

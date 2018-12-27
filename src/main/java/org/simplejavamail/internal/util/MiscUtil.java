@@ -13,6 +13,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -24,6 +26,7 @@ import java.util.regex.Pattern;
 import static java.lang.Integer.toHexString;
 import static java.util.Arrays.asList;
 import static java.util.regex.Pattern.compile;
+import static org.bbottema.javareflection.TypeUtils.containsAnnotation;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -172,5 +175,13 @@ public final class MiscUtil {
 	
 	public static String normalizeNewlines(String text) {
 		return text.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
+	}
+	
+	public static int countMandatoryParameters(Method m) {
+		int mandatoryParameterCount = 0;
+		for (Annotation[] annotation : m.getParameterAnnotations()) {
+			mandatoryParameterCount += !containsAnnotation(asList(annotation), Nullable.class) ? 1 : 0;
+		}
+		return mandatoryParameterCount;
 	}
 }

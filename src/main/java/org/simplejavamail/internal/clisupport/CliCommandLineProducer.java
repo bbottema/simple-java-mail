@@ -73,7 +73,9 @@ class CliCommandLineProducer {
                 rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName())
                         .type(List.class)
                         .auxiliaryTypes(String.class)
-                        .arity(String.valueOf(cliDeclaredOptionSpec.getPossibleOptionValues().size()))
+                        .arity(format("%s..%s",
+                                cliDeclaredOptionSpec.getMandatoryOptionValues().size(),
+                                cliDeclaredOptionSpec.getPossibleOptionValues().size()))
                         .paramLabel(determineParamLabel(cliDeclaredOptionSpec.getPossibleOptionValues()))
                         .hideParamSyntax(true)
                         .description(determineDescription(cliDeclaredOptionSpec, false, maxTextWidth))
@@ -124,7 +126,9 @@ class CliCommandLineProducer {
     private static String determineParamLabel(List<CliDeclaredOptionValue> possibleParams) {
         final StringBuilder paramLabel = new StringBuilder();
         for (CliDeclaredOptionValue possibleParam : possibleParams) {
-            paramLabel.append(possibleParam.getName()).append("(=").append(possibleParam.getHelpLabel()).append(") ");
+            paramLabel.append(possibleParam.isRequired() ? "" : "[");
+            paramLabel.append(possibleParam.getName()).append("(=").append(possibleParam.getHelpLabel()).append(")");
+            paramLabel.append(possibleParam.isRequired() ? " " : "] ");
         }
         String declaredParamLabel = paramLabel.toString().trim();
         return declaredParamLabel.isEmpty() ? EMPTY_PARAM_LABEL : declaredParamLabel;
