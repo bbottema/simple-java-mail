@@ -514,6 +514,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withProxyHost(String)
 	 */
+	@Nullable
 	public String getProxyHost() {
 		return proxyHost;
 	}
@@ -521,6 +522,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withProxyPort(Integer)
 	 */
+	@Nullable
 	public Integer getProxyPort() {
 		return proxyPort;
 	}
@@ -528,6 +530,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withProxyUsername(String)
 	 */
+	@Nullable
 	public String getProxyUsername() {
 		return proxyUsername;
 	}
@@ -535,6 +538,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withProxyPassword(String)
 	 */
+	@Nullable
 	public String getProxyPassword() {
 		return proxyPassword;
 	}
@@ -542,6 +546,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withProxyBridgePort(Integer)
 	 */
+	@Nullable
 	public Integer getProxyBridgePort() {
 		return proxyBridgePort;
 	}
@@ -549,6 +554,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withDebugLogging(boolean)
 	 */
+	@Nullable
 	public Boolean getDebugLogging() {
 		return debugLogging;
 	}
@@ -556,6 +562,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withSessionTimeout(Integer)
 	 */
+	@Nullable
 	public Integer getSessionTimeout() {
 		return sessionTimeout;
 	}
@@ -563,6 +570,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withEmailAddressCriteria(EnumSet)
 	 */
+	@Nullable
 	public EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
 		return emailAddressCriteria;
 	}
@@ -570,6 +578,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withThreadPoolSize(Integer)
 	 */
+	@Nullable
 	public Integer getThreadPoolSize() {
 		return threadPoolSize;
 	}
@@ -577,6 +586,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #trustingSSLHosts(String...)
 	 */
+	@Nullable
 	public List<String> getSslHostsToTrust() {
 		return sslHostsToTrust;
 	}
@@ -584,6 +594,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #trustingAllHosts(boolean)
 	 */
+	@Nullable
 	public Boolean getTrustAllSSLHost() {
 		return trustAllSSLHost;
 	}
@@ -598,6 +609,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * @see #withProperties(Properties)
 	 */
+	@Nullable
 	public Properties getProperties() {
 		return properties;
 	}

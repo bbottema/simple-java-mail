@@ -245,6 +245,7 @@ public class Mailer {
 	 * @see MailSender#send(Email, boolean)
 	 * @see #validate(Email)
 	 */
+	@Nullable
 	public final synchronized AsyncResponse sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (validate(email)) {
 			return mailSender.send(email, async);
@@ -349,7 +350,7 @@ public class Mailer {
 	 * @param value      Value checked for suspicious newline characters "\n", "\r" and "%0A" (as acknowledged by SMTP servers).
 	 * @param valueLabel The name of the field being checked, used for reporting exceptions.
 	 */
-	private static void scanForInjectionAttack(final String value, final String valueLabel) {
+	private static void scanForInjectionAttack(final @Nullable String value, final String valueLabel) {
 		if (value != null && (value.contains("\n") || value.contains("\r") || value.contains("%0A"))) {
 			throw new MailerException(format(MailerException.INJECTION_SUSPECTED, valueLabel, value));
 		}

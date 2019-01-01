@@ -2,6 +2,7 @@ package org.simplejavamail.email;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
@@ -261,6 +262,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
 	 */
+	@Nullable
 	public String getId() {
 		return id;
 	}
@@ -268,6 +270,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#from(Recipient)
 	 */
+	@Nullable
 	public Recipient getFromRecipient() {
 		return fromRecipient;
 	}
@@ -275,6 +278,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#withReplyTo(Recipient)
 	 */
+	@Nullable
 	public Recipient getReplyToRecipient() {
 		return replyToRecipient;
 	}
@@ -282,6 +286,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#withBounceTo(Recipient)
 	 */
+	@Nullable
 	public Recipient getBounceToRecipient() {
 		return bounceToRecipient;
 	}
@@ -289,6 +294,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#withSubject(String)
 	 */
+	@Nullable
 	public String getSubject() {
 		return subject;
 	}
@@ -305,6 +311,7 @@ public class Email {
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo(Recipient)
 	 */
+	@Nullable
 	public Recipient getDispositionNotificationTo() {
 		return dispositionNotificationTo;
 	}
@@ -321,6 +328,7 @@ public class Email {
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
+	@Nullable
 	public Recipient getReturnReceiptTo() {
 		return returnReceiptTo;
 	}
@@ -328,6 +336,7 @@ public class Email {
 	/**
 	 * @see EmailBuilder#forwarding(MimeMessage)
 	 */
+	@Nullable
 	public MimeMessage getEmailToForward() {
 		return emailToForward;
 	}
@@ -335,6 +344,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#withPlainText(String)
 	 */
+	@Nullable
 	public String getPlainText() {
 		return text;
 	}
@@ -342,6 +352,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#withHTMLText(String)
 	 */
+	@Nullable
 	public String getHTMLText() {
 		return textHTML;
 	}
@@ -349,6 +360,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#withCalendarText(CalendarMethod, String)
 	 */
+	@Nullable
 	public CalendarMethod getCalendarMethod() {
 		return calendarMethod;
 	}
@@ -356,6 +368,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#withCalendarText(CalendarMethod, String)
 	 */
+	@Nullable
 	public String getCalendarText() {
 		return textCalendar;
 	}
@@ -394,6 +407,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 */
+	@Nullable
 	public InputStream getDkimPrivateKeyInputStream() {
 		return dkimPrivateKeyInputStream;
 	}
@@ -401,6 +415,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
+	@Nullable
 	public File getDkimPrivateKeyFile() {
 		return dkimPrivateKeyFile;
 	}
@@ -409,6 +424,7 @@ public class Email {
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
+	@Nullable
 	public String getDkimSigningDomain() {
 		return dkimSigningDomain;
 	}
@@ -417,6 +433,7 @@ public class Email {
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
+	@Nullable
 	public String getDkimSelector() {
 		return dkimSelector;
 	}

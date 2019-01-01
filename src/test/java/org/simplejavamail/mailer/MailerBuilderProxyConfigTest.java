@@ -6,6 +6,7 @@ import org.simplejavamail.mailer.internal.mailsender.ProxyConfig;
 import org.simplejavamail.util.ConfigLoader;
 import testutil.ConfigLoaderTestHelper;
 
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
@@ -26,8 +27,7 @@ public class MailerBuilderProxyConfigTest {
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_WithoutHost()
-			throws Exception {
+	public void NoArgconstructor_WithoutConfigFile_WithoutHost() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		ProxyConfig emptyProxyConfig = new ProxyConfig(null, null, null, null, -1);
 		verifyProxyConfig(emptyProxyConfig, null, null, null, null, -1);
@@ -36,8 +36,7 @@ public class MailerBuilderProxyConfigTest {
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_WithoutPort()
-			throws Exception {
+	public void NoArgconstructor_WithoutConfigFile_WithoutPort() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
 			MailerBuilder
@@ -62,8 +61,7 @@ public class MailerBuilderProxyConfigTest {
 	}
 
 	@Test
-	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername()
-			throws Exception {
+	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 
 		try {
@@ -87,7 +85,12 @@ public class MailerBuilderProxyConfigTest {
 		}
 	}
 
-	private void verifyProxyConfig(ProxyConfig proxyConfig, String host, Integer port, String username, String password, int defaultProxyBridgePort) {
+	private void verifyProxyConfig(ProxyConfig proxyConfig,
+								   @Nullable String host,
+								   @Nullable Integer port,
+								   @Nullable String username,
+								   @Nullable String password,
+								   int defaultProxyBridgePort) {
 		assertThat(proxyConfig.getRemoteProxyHost()).isEqualTo(host);
 		assertThat(proxyConfig.getRemoteProxyPort()).isEqualTo(port);
 		assertThat(proxyConfig.getUsername()).isEqualTo(username);

@@ -123,7 +123,7 @@ public final class ConfigLoader {
 			return key;
 		}
 	}
-
+	
 	private ConfigLoader() {
 	}
 	
@@ -131,14 +131,14 @@ public final class ConfigLoader {
 	 * @return The value if not null or else the value from config file if provided or else <code>null</code>.
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public static <T> T valueOrProperty(final T value, final Property property) {
+	@Nullable
+	public static <T> T valueOrProperty(final @Nullable T value, final Property property) {
 		return valueOrProperty(value, property, null);
 	}
 	
 	/**
 	 * See {@link #valueOrProperty(Object, Property, Object)}.
 	 */
-	@SuppressWarnings("unchecked")
 	@Nullable
 	public static String valueOrPropertyAsString(@Nullable final String value, @Nonnull final Property property, @Nullable final String defaultValue) {
 		return SimpleConversions.convertToString(valueOrProperty(value, property, defaultValue));
@@ -147,7 +147,6 @@ public final class ConfigLoader {
 	/**
 	 * See {@link #valueOrProperty(Object, Property, Object)}.
 	 */
-	@SuppressWarnings("unchecked")
 	@Nullable
 	// FIXME contract annotations
 	public static Boolean valueOrPropertyAsBoolean(@Nullable final Boolean value, @Nonnull final Property property, @Nullable final Boolean defaultValue) {
@@ -157,7 +156,6 @@ public final class ConfigLoader {
 	/**
 	 * See {@link #valueOrProperty(Object, Property, Object)}.
 	 */
-	@SuppressWarnings("unchecked")
 	@Nullable
 	public static Integer valueOrPropertyAsInteger(@Nullable final Integer value, @Nonnull final Property property, @Nullable final Integer defaultValue) {
 		return SimpleConversions.convertToInteger(valueOrProperty(value, property, defaultValue));
@@ -191,14 +189,17 @@ public final class ConfigLoader {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Nullable
 	public static synchronized <T> T getProperty(final Property property) {
 		return (T) RESOLVED_PROPERTIES.get(property);
 	}
 	
+	@Nullable
 	public static synchronized String getStringProperty(final Property property) {
 		return SimpleConversions.convertToString(RESOLVED_PROPERTIES.get(property));
 	}
 	
+	@Nullable
 	public static synchronized Integer getIntegerProperty(final Property property) {
 		return SimpleConversions.convertToInteger(RESOLVED_PROPERTIES.get(property));
 	}
@@ -257,7 +258,7 @@ public final class ConfigLoader {
 	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
 	 * @return The updated properties map that is used internally.
 	 */
-	public static synchronized Map<Property, Object> loadProperties(final InputStream inputStream, final boolean addProperties) {
+	public static synchronized Map<Property, Object> loadProperties(final @Nullable InputStream inputStream, final boolean addProperties) {
 		final Properties prop = new Properties();
 
 		try {
@@ -284,7 +285,7 @@ public final class ConfigLoader {
 	/**
 	 * @return All properties in priority of System property > File properties.
 	 */
-	private static Map<Property, Object> readProperties(final Properties fileProperties) {
+	private static Map<Property, Object> readProperties(final @Nonnull Properties fileProperties) {
 		final Properties filePropertiesLeft = new Properties();
 		filePropertiesLeft.putAll(fileProperties);
 		final Map<Property, Object> resolvedProps = new HashMap<>();
@@ -324,7 +325,8 @@ public final class ConfigLoader {
 	/**
 	 * @return The property value in boolean, integer or as original string value.
 	 */
-	static Object parsePropertyValue(final String propertyValue) {
+	@Nullable
+	static Object parsePropertyValue(final @Nullable String propertyValue) {
 		if (propertyValue == null) {
 			return null;
 		}

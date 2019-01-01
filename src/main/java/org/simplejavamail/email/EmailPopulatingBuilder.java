@@ -1661,6 +1661,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see #fixingMessageId(String)
 	 */
+	@Nullable
 	public String getId() {
 		return id;
 	}
@@ -1668,6 +1669,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see #from(Recipient)
 	 */
+	@Nullable
 	public Recipient getFromRecipient() {
 		return fromRecipient;
 	}
@@ -1675,6 +1677,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see #withReplyTo(Recipient)
 	 */
+	@Nullable
 	public Recipient getReplyToRecipient() {
 		return replyToRecipient;
 	}
@@ -1682,6 +1685,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see #withBounceTo(Recipient)
 	 */
+	@Nullable
 	public Recipient getBounceToRecipient() {
 		return bounceToRecipient;
 	}
@@ -1689,6 +1693,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see #withPlainText(String)
 	 */
+	@Nullable
 	public String getText() {
 		return text;
 	}
@@ -1696,6 +1701,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see #withHTMLText(String)
 	 */
+	@Nullable
 	public String getTextHTML() {
 		return textHTML;
 	}
@@ -1703,10 +1709,12 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see #withCalendarText(CalendarMethod, String)
 	 */
+	@Nullable
 	public CalendarMethod getCalendarMethod () {
 		 return calendarMethod;
 	}
-
+	
+	@Nullable
 	public String getTextCalendar () {
 		return textCalendar;
 	}
@@ -1714,6 +1722,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see #withSubject(String)
 	 */
+	@Nullable
 	public String getSubject() {
 		return subject;
 	}
@@ -1752,6 +1761,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see #signWithDomainKey(File, String, String)
 	 */
+	@Nullable
 	public File getDkimPrivateKeyFile() {
 		return dkimPrivateKeyFile;
 	}
@@ -1759,6 +1769,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see #signWithDomainKey(InputStream, String, String)
 	 */
+	@Nullable
 	public InputStream getDkimPrivateKeyInputStream() {
 		return dkimPrivateKeyInputStream;
 	}
@@ -1767,6 +1778,7 @@ public class EmailPopulatingBuilder {
 	 * @see #signWithDomainKey(InputStream, String, String)
 	 * @see #signWithDomainKey(File, String, String)
 	 */
+	@Nullable
 	public String getDkimSigningDomain() {
 		return dkimSigningDomain;
 	}
@@ -1775,6 +1787,7 @@ public class EmailPopulatingBuilder {
 	 * @see #signWithDomainKey(InputStream, String, String)
 	 * @see #signWithDomainKey(File, String, String)
 	 */
+	@Nullable
 	public String getDkimSelector() {
 		return dkimSelector;
 	}
@@ -1783,6 +1796,7 @@ public class EmailPopulatingBuilder {
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
+	@Nullable
 	public boolean isUseDispositionNotificationTo() {
 		return useDispositionNotificationTo;
 	}
@@ -1791,6 +1805,7 @@ public class EmailPopulatingBuilder {
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
+	@Nullable
 	public Recipient getDispositionNotificationTo() {
 		return dispositionNotificationTo;
 	}
@@ -1799,6 +1814,7 @@ public class EmailPopulatingBuilder {
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
 	 */
+	@Nullable
 	public boolean isUseReturnReceiptTo() {
 		return useReturnReceiptTo;
 	}
@@ -1807,6 +1823,7 @@ public class EmailPopulatingBuilder {
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
 	 */
+	@Nullable
 	public Recipient getReturnReceiptTo() {
 		return returnReceiptTo;
 	}
@@ -1814,6 +1831,7 @@ public class EmailPopulatingBuilder {
 	/**
 	 * @see EmailBuilder#forwarding(MimeMessage)
 	 */
+	@Nullable
 	public MimeMessage getEmailToForward() {
 		return emailToForward;
 	}

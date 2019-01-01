@@ -1,6 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import javax.activation.DataSource;
+import javax.annotation.Nullable;
 import javax.mail.EncodingAware;
 import java.io.IOException;
 import java.io.InputStream;
@@ -78,6 +79,7 @@ class NamedDataSource implements DataSource, EncodingAware {
 	 * @see <a href="https://github.com/bbottema/simple-java-mail/issues/131">Bug report #131</a>
 	 */
 	@Override
+	@Nullable
 	public String getEncoding() {
 		return (this.dataSource instanceof EncodingAware) ? ((EncodingAware) this.dataSource).getEncoding() : null;
 	}

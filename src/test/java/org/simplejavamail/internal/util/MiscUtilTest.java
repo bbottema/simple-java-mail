@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class MiscUtilTest {
 	@Test
+	@SuppressWarnings("ObviousNullCheck")
 	public void checkNotNull() {
 		assertThat(MiscUtil.checkNotNull("", null)).isEqualTo("");
 		assertThat(MiscUtil.checkNotNull("blah", null)).isEqualTo("blah");

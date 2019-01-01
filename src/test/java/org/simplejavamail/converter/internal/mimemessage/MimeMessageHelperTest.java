@@ -16,6 +16,7 @@ import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.internal.util.MiscUtil;
 import testutil.EmailHelper;
 
+import javax.annotation.Nullable;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 
@@ -96,7 +97,7 @@ public class MimeMessageHelperTest {
 		assertThat(MimeMessageHelper.determineResourceName(resource7, true)).isEqualTo("the resource.txt");
 	}
 	
-	private ByteArrayDataSource getDataSource(String name)
+	private ByteArrayDataSource getDataSource(@Nullable String name)
 			throws IOException {
 		ByteArrayDataSource ds = new ByteArrayDataSource("", "text/text");
 		ds.setName(name);

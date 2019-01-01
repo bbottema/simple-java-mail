@@ -248,6 +248,7 @@ public final class MimeMessageParser {
 	}
 
 	@SuppressWarnings("WeakerAccess")
+	@Nullable
 	public static String parseDisposition(@Nonnull final MimePart currentPart) {
 		try {
 			return currentPart.getDisposition();
@@ -516,6 +517,7 @@ public final class MimeMessageParser {
 		private String calendarMethod;
 		private String calendarContent;
 		
+		@Nullable
 		public String getMessageId() {
 			return messageId;
 		}
@@ -543,43 +545,53 @@ public final class MimeMessageParser {
 		public List<InternetAddress> getBccAddresses() {
 			return bccAddresses;
 		}
-
+		
+		@Nullable
 		public String getSubject() {
 			return subject;
 		}
-
+		
+		@Nullable
 		public InternetAddress getFromAddress() {
 			return fromAddress;
 		}
-
+		
+		@Nullable
 		public InternetAddress getReplyToAddresses() {
 			return replyToAddresses;
 		}
-
+		
+		@Nullable
 		public InternetAddress getDispositionNotificationTo() {
 			return dispositionNotificationTo;
 		}
-
+		
+		@Nullable
 		public InternetAddress getReturnReceiptTo() {
 			return returnReceiptTo;
 		}
-
+		
+		@Nullable
 		public InternetAddress getBounceToAddress() {
 			return bounceToAddress;
 		}
-
+		
+		@Nullable
 		public String getPlainContent() {
 			return plainContent.length() == 0 ? null : plainContent.toString();
 		}
-
+		
+		@Nullable
 		public String getHtmlContent() {
 			return htmlContent.length() == 0 ? null : htmlContent.toString();
 		}
 		
+		@Nullable
 		public String getCalendarContent() {
 			return calendarContent;
 		}
 		
+		@Nullable
 		public String getCalendarMethod() {
 			return calendarMethod;
 		}

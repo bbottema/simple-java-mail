@@ -126,6 +126,7 @@ public class MailSender {
 	 *                          virtue of the underlying JavaMail framework). Can be omitted if the Session is presumed preconfigured.
 	 * @return null in case of no proxy or anonymous proxy, or a AnonymousSocks5Server proxy bridging server instance in case of authenticated proxy.
 	 */
+	@Nullable
 	private static AnonymousSocks5Server configureSessionWithProxy(@Nonnull final ProxyConfig proxyConfig,
 																   @Nonnull final Session session,
 																   @Nullable final TransportStrategy transportStrategy) {
@@ -183,6 +184,7 @@ public class MailSender {
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
 	 * @see Executors#newFixedThreadPool(int)
 	 */
+	@Nullable
 	public final synchronized AsyncResponse send(final Email email, final boolean async) {
 		/*
             we need to track even non-async emails to prevent async emails from shutting down
@@ -388,6 +390,7 @@ public class MailSender {
 	 *
 	 * @return An AsyncResponse in case of async == true, otherwise <code>null</code>.
 	 */
+	@Nullable
 	public synchronized AsyncResponse testConnection(boolean async) {
 		TestConnectionClosure testConnectionClosure = new TestConnectionClosure();
 		if (!async) {

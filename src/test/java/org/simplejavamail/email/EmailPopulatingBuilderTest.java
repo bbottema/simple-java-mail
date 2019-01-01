@@ -5,6 +5,7 @@ import org.junit.Test;
 import testutil.ConfigLoaderTestHelper;
 
 import javax.activation.DataSource;
+import javax.annotation.Nullable;
 import javax.mail.Message;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.InputStream;
@@ -21,7 +22,7 @@ public class EmailPopulatingBuilderTest {
 	private EmailPopulatingBuilder builder;
 	
 	@Before
-	public void setup() throws Exception {
+	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		builder = EmailBuilder.startingBlank();
 	}
@@ -650,7 +651,7 @@ public class EmailPopulatingBuilderTest {
 		// OK, InternetAddress#parse() didn't error out on these addresses
 	}
 
-	private Recipient createRecipient(final String name, final String emailAddress, final Message.RecipientType recipientType) {
+	private Recipient createRecipient(final @Nullable String name, final String emailAddress, final Message.RecipientType recipientType) {
 		return new Recipient(name, emailAddress, recipientType);
 	}
 

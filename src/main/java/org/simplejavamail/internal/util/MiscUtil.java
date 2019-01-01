@@ -38,21 +38,21 @@ public final class MiscUtil {
 	private static final Pattern TRAILING_TOKEN_DELIMITER_PATTERN = compile("<\\|>$");
 	private static final Pattern TOKEN_DELIMITER_PATTERN = compile("\\s*<\\|>\\s*");
 
-	public static <T> T checkNotNull(final T value, final String msg) {
+	public static <T> T checkNotNull(final @Nullable T value, final @Nullable String msg) {
 		if (value == null) {
 			throw new NullPointerException(msg);
 		}
 		return value;
 	}
 
-	public static <T> T checkArgumentNotEmpty(final T value, final String msg) {
+	public static <T> T checkArgumentNotEmpty(final @Nullable T value, final @Nullable String msg) {
 		if (valueNullOrEmpty(value)) {
 			throw new IllegalArgumentException(msg);
 		}
 		return value;
 	}
 
-	public static <T> boolean valueNullOrEmpty(final T value) {
+	public static <T> boolean valueNullOrEmpty(final @Nullable T value) {
 		return value == null ||
 				(value instanceof String && ((String) value).isEmpty()) ||
 				(value instanceof Collection && ((Collection<?>) value).isEmpty()) ||
@@ -75,6 +75,7 @@ public final class MiscUtil {
 	/**
 	 * To make sure email clients can interpret text properly, we need to encode some values according to RFC-2047.
 	 */
+	@Nullable
 	public static String encodeText(@Nullable final String name) {
 		if (name == null) {
 			return null;

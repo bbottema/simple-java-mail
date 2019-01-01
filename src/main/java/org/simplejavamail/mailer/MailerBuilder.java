@@ -283,22 +283,27 @@ public class MailerBuilder {
 			return new ServerConfig(getHost(), getPort(), getUsername(), getPassword());
 		}
 		
+		@Nullable
 		public String getHost() {
 			return host;
 		}
 		
+		@Nullable
 		public Integer getPort() {
 			return port;
 		}
 		
+		@Nullable
 		public String getUsername() {
 			return username;
 		}
 		
+		@Nullable
 		public String getPassword() {
 			return password;
 		}
 		
+		@Nullable
 		public TransportStrategy getTransportStrategy() {
 			return transportStrategy;
 		}

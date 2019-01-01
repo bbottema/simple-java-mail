@@ -53,22 +53,27 @@ public class ProxyConfig {
 		return str;
 	}
 	
+	@Nullable
 	public Integer getProxyBridgePort() {
 		return proxyBridgePort;
 	}
 	
+	@Nullable
 	public String getRemoteProxyHost() {
 		return remoteProxyHost;
 	}
 	
+	@Nullable
 	public Integer getRemoteProxyPort() {
 		return remoteProxyPort;
 	}
 	
+	@Nullable
 	public String getUsername() {
 		return username;
 	}
 	
+	@Nullable
 	public String getPassword() {
 		return password;
 	}

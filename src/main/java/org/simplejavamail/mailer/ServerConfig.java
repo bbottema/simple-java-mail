@@ -4,18 +4,19 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import static java.lang.String.format;
-import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 public class ServerConfig {
 	private final String host;
 	private final Integer port;
+	@Nullable
 	private final String username;
+	@Nullable
 	private final String password;
 	
 	ServerConfig(@Nonnull final String host, @Nonnull final Integer port, @Nullable final String username, @Nullable final String password) {
-		this.host = checkArgumentNotEmpty(host, "smtp host address not given and not configured in config file");
-		this.port = checkArgumentNotEmpty(port, "smtp host port not given and not configured in config file");
+		this.host = host;
+		this.port = port;
 		this.username = username;
 		this.password = password;
 		
@@ -44,10 +45,12 @@ public class ServerConfig {
 		return port;
 	}
 	
+	@Nullable
 	public String getUsername() {
 		return username;
 	}
 	
+	@Nullable
 	public String getPassword() {
 		return password;
 	}
