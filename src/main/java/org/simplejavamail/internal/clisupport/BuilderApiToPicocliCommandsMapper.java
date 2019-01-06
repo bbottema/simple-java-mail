@@ -58,6 +58,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	 * These help generate the picocli labels for the support types. Results in something like:<br/>
 	 * <code>--someOption(=NUM)</code>
 	 */
+	@SuppressWarnings("serial")
 	private static final Map<Class<?>, String> TYPE_LABELS = new HashMap<Class<?>, String>() {{
 		put(boolean.class, "BOOL");
 		put(Boolean.class, "BOOL");

@@ -21,7 +21,7 @@ public interface AsyncResponse {
 	 */
 	void onException(AsyncResponseImpl.ExceptionConsumer errorHandler);
 	
-	Future getFuture();
+	Future<?> getFuture();
 	
 	// simplified version of Java 8's Consumer
 	interface ExceptionConsumer {

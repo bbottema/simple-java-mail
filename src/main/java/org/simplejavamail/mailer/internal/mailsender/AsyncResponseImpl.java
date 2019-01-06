@@ -8,11 +8,11 @@ import java.util.concurrent.Future;
 
 public class AsyncResponseImpl implements AsyncResponse {
 	
-	@Nonnull private final Future future;
+	@Nonnull private final Future<?> future;
 	@Nullable private Runnable successHandler;
 	@Nullable private ExceptionConsumer errorHandler;
 	
-	AsyncResponseImpl(Future future) {
+	AsyncResponseImpl(Future<?> future) {
 		this.future = future;
 	}
 	
@@ -40,7 +40,7 @@ public class AsyncResponseImpl implements AsyncResponse {
 	}
 	
 	@Override
-	public Future getFuture() {
+	public Future<?> getFuture() {
 		return future;
 	}
 }

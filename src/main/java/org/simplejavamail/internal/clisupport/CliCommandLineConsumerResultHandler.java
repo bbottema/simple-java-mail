@@ -31,17 +31,20 @@ class CliCommandLineConsumerResultHandler {
 		}
 	}
 	
+	@SuppressWarnings("deprecation")
 	private static void processCliSend(List<CliReceivedOptionData> receivedOptions) {
 		final EmailPopulatingBuilder emailBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.EMAIL, EmailBuilder._createForCli());
 		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, MailerBuilder._createForCli());
 		mailerBuilder.buildMailer().sendMail(emailBuilder.buildEmail());
 	}
 	
+	@SuppressWarnings("deprecation")
 	private static void processCliTestConnection(List<CliReceivedOptionData> receivedOptions) {
 		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, MailerBuilder._createForCli());
 		mailerBuilder.buildMailer().testConnection();
 	}
 	
+	@SuppressWarnings("deprecation")
 	private static void processCliValidate(List<CliReceivedOptionData> receivedOptions) {
 		final EmailPopulatingBuilder emailBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.EMAIL, EmailBuilder._createForCli());
 		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, MailerBuilder._createForCli());

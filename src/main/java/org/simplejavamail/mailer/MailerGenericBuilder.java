@@ -34,7 +34,7 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked", "WeakerAccess"})
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
-public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
+public abstract class MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	
 	/**
 	 * The default maximum timeout value for the transport socket is {@value #DEFAULT_SESSION_TIMEOUT_MILLIS} milliseconds (affects socket connect-,
