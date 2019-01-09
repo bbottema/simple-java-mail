@@ -260,7 +260,7 @@ public class MailSender {
 				
 				configureBounceToAddress(session, email);
 				
-				logSession(session, async);
+				logSession(session, async, "mail");
 				message.saveChanges(); // some headers and id's will be set for this specific message
 				email.internalSetId(message.getMessageID());
 				
@@ -341,15 +341,15 @@ public class MailSender {
             }
         }
     }
-
+	
 	/**
 	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
 	 */
-	private static void logSession(final Session session, boolean async) {
+	private static void logSession(final Session session, boolean async, final String activity) {
 		final TransportStrategy transportStrategy = TransportStrategy.findStrategyForSession(session);
 		final Properties properties = session.getProperties();
 		final String sessionDetails = (transportStrategy != null) ? transportStrategy.toString(properties) : properties.toString();
-		LOGGER.debug(format("starting%s mail with %s", async ? " async" : "", sessionDetails));
+		LOGGER.debug("starting{} {} with {}", async ? " async" : "", activity, sessionDetails);
 	}
 
 	/**
@@ -414,6 +414,10 @@ public class MailSender {
 			
 			boolean proxyBridgeStartedForTestingConnection = false;
 			
+		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
+
+		logSession(session, "connection test");
+
 			try (Transport transport = session.getTransport()) {
 				//noinspection ConstantConditions
 				if (needsAuthenticatedProxy() && !proxyServer.isRunning()) {

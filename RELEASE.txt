@@ -3,12 +3,13 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.1.1</version>
+    <version>5.1.2</version>
 </dependency>
 
-v5.1.1 (22-December-2018)
+v5.1.1 - v5.1.2
 
-- #190 Fix for transitive dependency clash because of emailaddress-rfc2822 library
+- v5.1.2 (9-Januari-2019): #189 Bugfix for missing timeout config for .testConnection() function
+- v5.1.1 (22-December-2018): #190 Fix for transitive dependency clash because of emailaddress-rfc2822 library
 
 
 v5.1.0 (21-November-2018)
