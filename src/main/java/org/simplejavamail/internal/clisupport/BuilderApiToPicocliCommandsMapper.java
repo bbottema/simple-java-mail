@@ -14,6 +14,7 @@ import org.simplejavamail.internal.clisupport.model.CliDeclaredOptionValue;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
 import org.simplejavamail.internal.clisupport.valueinterpreters.EmlFilePathToMimeMessageFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.FilePathIdentityFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.MsgFilePathToMimeMessageFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToTransportStrategyFunction;
 import org.simplejavamail.internal.util.StringUtil;
@@ -25,6 +26,7 @@ import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.internet.MimeMessage;
+import java.io.File;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -71,9 +73,11 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(DataSource.class, "FILE");
 		put(byte[].class, "FILE");
 		put(InputStream.class, "FILE");
+		put(File.class, "FILE");
 	}};
 	
 	static {
+		ValueConversionHelper.registerValueConverter(new FilePathIdentityFunction());
 		ValueConversionHelper.registerValueConverter(new EmlFilePathToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new MsgFilePathToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());

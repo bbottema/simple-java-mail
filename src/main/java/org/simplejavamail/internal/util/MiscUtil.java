@@ -10,12 +10,14 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,6 +26,8 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.toHexString;
+import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.regex.Pattern.compile;
 import static org.bbottema.javareflection.TypeUtils.containsAnnotation;
@@ -184,5 +188,12 @@ public final class MiscUtil {
 			mandatoryParameterCount += !containsAnnotation(asList(annotation), Nullable.class) ? 1 : 0;
 		}
 		return mandatoryParameterCount;
+	}
+	
+	public static String readFileContent(@Nonnull final File file) throws IOException {
+		if (!file.exists()) {
+			throw new IllegalArgumentException(format("File not found: %s", file));
+		}
+		return new String(Files.readAllBytes(file.toPath()), UTF_8);
 	}
 }

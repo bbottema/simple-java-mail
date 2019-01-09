@@ -14,6 +14,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -416,6 +418,21 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
+	 * Delegates to {@link #withPlainText(String)}.
+	 *
+	 * @param textFile Plain text to set as email body (overwrites any previous plain text body). If no HTML body is included as well, plain text
+	 *                would be used instead by the email client.
+	 */
+	@Cli.OptionNameOverride("withPlainTextFromFile")
+	public EmailPopulatingBuilder withPlainText(@Nonnull final File textFile) {
+		try {
+			return withPlainText(MiscUtil.readFileContent(textFile));
+		} catch (IOException e) {
+			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textFile), e);
+		}
+	}
+	
+	/**
 	 * Sets the optional email message body in plain text.
 	 * <p>
 	 * Both text and HTML can be provided, which will  be offered to the email client as alternative content. Email clients that support it, will
@@ -424,6 +441,7 @@ public class EmailPopulatingBuilder {
 	 * @param text Plain text to set as email body (overwrites any previous plain text body). If no HTML body is included as well, plain text
 	 *                would be used instead by the email client.
 	 *
+	 * @see #withPlainText(File)
 	 * @see #prependText(String)
 	 * @see #appendText(String)
 	 */
@@ -433,10 +451,26 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
+	 * Delegates to {@link #prependText(String)}.
+	 *
+	 * @param textFile The plain text to prepend to whatever plain text is already there.
+	 */
+	@Cli.OptionNameOverride("prependTextFromFile")
+	public EmailPopulatingBuilder prependText(@Nonnull final File textFile) {
+		try {
+			return prependText(MiscUtil.readFileContent(textFile));
+		} catch (IOException e) {
+			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textFile), e);
+		}
+	}
+	
+	/**
 	 * Prepends text to the current plain text body (or starts it if plain text body is missing).
 	 *
 	 * @param text The plain text to prepend to whatever plain text is already there.
 	 *
+	 * @see #prependText(File)
+	 * @see #appendText(String)
 	 * @see #withPlainText(String)
 	 */
 	public EmailPopulatingBuilder prependText(@Nonnull final String text) {
@@ -445,15 +479,46 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
+	 * Delegates to {@link #appendText(String)}.
+	 *
+	 * @param textFile The plain text to append to whatever plain text is already there.
+	 */
+	@Cli.OptionNameOverride("appendTextFromFile")
+	public EmailPopulatingBuilder appendText(@Nonnull final File textFile) {
+		try {
+			return appendText(MiscUtil.readFileContent(textFile));
+		} catch (IOException e) {
+			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textFile), e);
+		}
+	}
+	
+	/**
 	 * Appends text to the current plain text body (or starts it if plain text body is missing).
 	 *
 	 * @param text The plain text to append to whatever plain text is already there.
 	 *
+	 * @see #appendText(File)
+	 * @see #prependText(String)
 	 * @see #withPlainText(String)
 	 */
 	public EmailPopulatingBuilder appendText(@Nonnull final String text) {
 		this.text = defaultTo(this.text, "") + text;
 		return this;
+	}
+	
+	/**
+	 * Delegates to {@link #withHTMLText(String)}.
+	 *
+	 * @param textHTMLFile HTML text to set as email body (overwrites any previous HTML text body). If no HTML body is included, plain text
+	 *                would be used instead by the email client if provided.
+	 */
+	@Cli.OptionNameOverride("withHTMLTextFromFile")
+	public EmailPopulatingBuilder withHTMLText(@Nonnull final File textHTMLFile) {
+		try {
+			return withHTMLText(MiscUtil.readFileContent(textHTMLFile));
+		} catch (IOException e) {
+			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textHTMLFile), e);
+		}
 	}
 	
 	/**
@@ -465,6 +530,7 @@ public class EmailPopulatingBuilder {
 	 * @param textHTML HTML text to set as email body (overwrites any previous HTML text body). If no HTML body is included, plain text
 	 *                would be used instead by the email client if provided.
 	 *
+	 * @see #withHTMLText(File)
 	 * @see #prependTextHTML(String)
 	 * @see #appendTextHTML(String)
 	 */
@@ -474,10 +540,26 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
+	 * Delegates to {@link #prependTextHTML(String)}.
+	 *
+	 * @param textHTMLFile The HTML text to prepend to whatever is already there in the body.
+	 */
+	@Cli.OptionNameOverride("prependTextHTMLFromFile")
+	public EmailPopulatingBuilder prependTextHTML(@Nonnull final File textHTMLFile) {
+		try {
+			return prependTextHTML(MiscUtil.readFileContent(textHTMLFile));
+		} catch (IOException e) {
+			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textHTMLFile), e);
+		}
+	}
+	
+	/**
 	 * Prepends HTML text to the current HTML text body (or starts it if HTML text body is missing).
 	 *
 	 * @param textHTML The HTML text to prepend to whatever is already there in the body.
 	 *
+	 * @see #prependTextHTML(File)
+	 * @see #appendTextHTML(String)
 	 * @see #withHTMLText(String)
 	 */
 	public EmailPopulatingBuilder prependTextHTML(@Nonnull final String textHTML) {
@@ -486,10 +568,26 @@ public class EmailPopulatingBuilder {
 	}
 	
 	/**
+	 * Delegates to {@link #appendTextHTML(String)}.
+	 *
+	 * @param textHTMLFile The HTML text to append to whatever is already there in the body.
+	 */
+	@Cli.OptionNameOverride("appendTextHTMLFromFile")
+	public EmailPopulatingBuilder appendTextHTML(@Nonnull final File textHTMLFile) {
+		try {
+			return appendTextHTML(MiscUtil.readFileContent(textHTMLFile));
+		} catch (IOException e) {
+			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textHTMLFile), e);
+		}
+	}
+	
+	/**
 	 * Appends HTML text to the current HTML text body (or starts it if HTML text body is missing).
 	 *
 	 * @param textHTML The HTML text to append to whatever is already there in the body.
 	 *
+	 * @see #appendTextHTML(File)
+	 * @see #prependTextHTML(String)
 	 * @see #withHTMLText(String)
 	 */
 	public EmailPopulatingBuilder appendTextHTML(@Nonnull final String textHTML) {
