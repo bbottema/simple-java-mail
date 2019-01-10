@@ -235,7 +235,7 @@ public class MailSender {
 		
 		@Nonnull final Session session;
 		@Nonnull final Email email;
-		final boolean async;
+		private final boolean async;
 		
 		/**
 		 * @param session The session with which to produce the {@link MimeMessage} aquire the {@link Transport} for connections.
@@ -392,7 +392,7 @@ public class MailSender {
 	 */
 	@Nullable
 	public synchronized AsyncResponse testConnection(boolean async) {
-		TestConnectionClosure testConnectionClosure = new TestConnectionClosure();
+		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(session, async);
 		if (!async) {
 			testConnectionClosure.run();
 			return null;
@@ -408,16 +408,24 @@ public class MailSender {
 	 */
 	// used to be a method! would still have been, if Java 7 supported lambda's :(
 	private class TestConnectionClosure implements Runnable {
+		@Nonnull final Session session;
+		private final boolean async;
+		
+		private TestConnectionClosure(@Nonnull Session session, boolean async) {
+			this.async = async;
+			this.session = session;
+		}
+		
 		@Override
 		public void run() {
 			LOGGER.debug("testing connection...");
 			
 			boolean proxyBridgeStartedForTestingConnection = false;
 			
-		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
-
-		logSession(session, "connection test");
-
+			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
+			
+			logSession(session, async, "connection test");
+			
 			try (Transport transport = session.getTransport()) {
 				//noinspection ConstantConditions
 				if (needsAuthenticatedProxy() && !proxyServer.isRunning()) {
