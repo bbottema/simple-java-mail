@@ -24,7 +24,7 @@ import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
  * <li>replyingToAll()</li>
  * <li>forwarding()</li>
  * <li>copying()</li>
- * </ul>
+ * </ul>test
  */
 public class EmailBuilder {
 	
