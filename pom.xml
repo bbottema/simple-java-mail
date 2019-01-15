@@ -37,7 +37,7 @@
         <dependency>
             <groupId>com.github.bbottema</groupId>
             <artifactId>emailaddress-rfc2822</artifactId>
-            <version>1.1.1</version>
+            <version>1.1.2</version>
         </dependency>
         <dependency>
             <groupId>org.mnode.ical4j</groupId>
