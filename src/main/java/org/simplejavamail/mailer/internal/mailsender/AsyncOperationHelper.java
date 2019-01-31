@@ -1,6 +1,6 @@
 package org.simplejavamail.mailer.internal.mailsender;
 
-import org.simplejavamail.mailer.AsyncResponse;
+import org.simplejavamail.api.mailer.AsyncResponse;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutorService;

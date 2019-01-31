@@ -3,17 +3,17 @@ package org.simplejavamail.mailer;
 import net.markenwerk.utils.mail.dkim.DkimMessage;
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.Email;
-import org.simplejavamail.email.EmailPopulatingBuilder;
-import org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder;
-import org.simplejavamail.mailer.config.TransportStrategy;
-import org.simplejavamail.util.ConfigLoader;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
+import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
@@ -22,9 +22,9 @@ import java.util.Properties;
 
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.mailer.config.TransportStrategy.SMTPS;
-import static org.simplejavamail.mailer.config.TransportStrategy.SMTP_TLS;
-import static org.simplejavamail.util.ConfigLoader.Property.OPPORTUNISTIC_TLS;
+import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
+import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
+import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 
 @SuppressWarnings("unused")
 public class MailerTest {
@@ -275,7 +275,7 @@ public class MailerTest {
 	}
 	
 	private Mailer createFullyConfiguredMailer(boolean authenticateProxy, String prefix, TransportStrategy transportStrategy) {
-		MailerRegularBuilder mailerBuilder = MailerBuilder
+		MailerRegularBuilderImpl mailerBuilder = MailerBuilder
 				.withSMTPServer(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp")
 				.withTransportStrategy(transportStrategy)
 				.withDebugLogging(true);

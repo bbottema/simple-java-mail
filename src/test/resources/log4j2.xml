@@ -11,14 +11,14 @@
     </appenders>
     <Loggers>
         <Logger name="org.simplejavamail" level="debug"/>
-        <Logger name="org.simplejavamail.mailer.Mailer" level="trace"/>
+        <Logger name="org.simplejavamail.mailer.internal.MailerImpl" level="trace"/>
         <Logger name="org.simplejavamail.internal.clisupport" level="info"/>
 
         <!-- in case you're using authenticated proxy -->
         <Logger name="socks5bridge" level="info" additivity="false">
             <AppenderRef ref="simpleConsole" />
         </Logger>
-        <Logger name="org.simplejavamail.mailer.internal.socks" level="info"/>
+        <Logger name="org.simplejavamail.api.mailer.internal.socks" level="info"/>
         <Logger name="org.subethamail.smtp.server" level="info"/>
 
         <Root level="debug">

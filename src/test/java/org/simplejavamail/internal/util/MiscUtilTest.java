@@ -1,7 +1,7 @@
 package org.simplejavamail.internal.util;
 
 import org.junit.Test;
-import org.simplejavamail.email.Recipient;
+import org.simplejavamail.api.email.Recipient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

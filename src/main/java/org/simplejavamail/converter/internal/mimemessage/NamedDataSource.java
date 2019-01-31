@@ -10,7 +10,7 @@ import java.io.OutputStream;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
- * Allows given datasource to be renamed (from {@link javax.activation.DataHandler} perspective).
+ * Allows given datasource to be renamed (for {@code javax.activation.DataHandler} perspective).
  */
 class NamedDataSource implements DataSource, EncodingAware {
 

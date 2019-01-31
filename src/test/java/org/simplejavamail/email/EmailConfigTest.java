@@ -2,12 +2,13 @@ package org.simplejavamail.email;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.internal.util.MiscUtil;
-import org.simplejavamail.util.ConfigLoader;
+import org.simplejavamail.config.ConfigLoader;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 
 import static javax.mail.Message.RecipientType.*;
 import static org.assertj.core.api.Assertions.assertThat;

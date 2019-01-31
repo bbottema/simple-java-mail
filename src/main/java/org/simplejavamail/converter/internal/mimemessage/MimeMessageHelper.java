@@ -1,10 +1,8 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import net.markenwerk.utils.mail.dkim.DkimMessage;
-import net.markenwerk.utils.mail.dkim.DkimSigner;
-import org.simplejavamail.email.AttachmentResource;
-import org.simplejavamail.email.Email;
-import org.simplejavamail.email.Recipient;
+import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.internal.modules.ModuleLoader;
 
 import javax.activation.DataHandler;
@@ -28,6 +26,7 @@ import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * Helper class that produces and populates a mime messages. Deals with javax.mail RFC MimeMessage stuff, as well as DKIM signing.
@@ -202,14 +201,14 @@ public class MimeMessageHelper {
 		}
 		
 		if (email.isUseDispositionNotificationTo()) {
-			final Address address = new InternetAddress(email.getDispositionNotificationTo().getAddress(),
-					email.getDispositionNotificationTo().getName(), CHARACTER_ENCODING);
+			final Recipient dispositionTo = checkNonEmptyArgument(email.getDispositionNotificationTo(), "dispositionNotificationTo");
+			final Address address = new InternetAddress(dispositionTo.getAddress(), dispositionTo.getName(), CHARACTER_ENCODING);
 			message.setHeader("Disposition-Notification-To", address.toString());
 		}
 		
 		if (email.isUseReturnReceiptTo()) {
-			final Address address = new InternetAddress(email.getReturnReceiptTo().getAddress(),
-					email.getReturnReceiptTo().getName(), CHARACTER_ENCODING);
+			final Recipient returnReceiptTo = checkNonEmptyArgument(email.getReturnReceiptTo(), "returnReceiptTo");
+			final Address address = new InternetAddress(returnReceiptTo.getAddress(), returnReceiptTo.getName(), CHARACTER_ENCODING);
 			message.setHeader("Return-Receipt-To", address.toString());
 		}
 	}
@@ -257,29 +256,23 @@ public class MimeMessageHelper {
 			resourceName = "resource" + UUID.randomUUID();
 		}
 		if (includeExtension && !valueNullOrEmpty(datasourceName)) {
-			@SuppressWarnings("UnnecessaryLocalVariable") final
-			String possibleFilename = datasourceName;
+			@SuppressWarnings("UnnecessaryLocalVariable")
+			final String possibleFilename = datasourceName;
 			if (!resourceName.contains(".") && possibleFilename.contains(".")) {
-				final String extension = possibleFilename.substring(possibleFilename.lastIndexOf("."), possibleFilename.length());
+				final String extension = possibleFilename.substring(possibleFilename.lastIndexOf("."));
 				if (!resourceName.endsWith(extension)) {
 					resourceName += extension;
 				}
 			}
 		} else if (!includeExtension && resourceName.contains(".") && resourceName.equals(datasourceName)) {
-			final String extension = resourceName.substring(resourceName.lastIndexOf("."), resourceName.length());
+			final String extension = resourceName.substring(resourceName.lastIndexOf("."));
 			resourceName = resourceName.replace(extension, "");
 		}
 		return resourceName;
 	}
 	
 	/**
-	 * Primes the {@link MimeMessage} instance for signing with DKIM. The signing itself is performed by {@link DkimMessage} and {@link DkimSigner}
-	 * during the physical sending of the message.
-	 *
-	 * @param messageToSign                 The message to be signed when sent.
-	 * @param emailContainingSigningDetails The {@link Email} that contains the relevant signing information
-	 *
-	 * @return The original mime message wrapped in a new one that performs signing when sent.
+	 * @see org.simplejavamail.internal.modules.DKIMModule#signMessageWithDKIM(MimeMessage, Email)
 	 */
 	public static MimeMessage signMessageWithDKIM(final MimeMessage messageToSign, final Email emailContainingSigningDetails) {
 		return ModuleLoader.loadDKIMModule().signMessageWithDKIM(messageToSign, emailContainingSigningDetails);

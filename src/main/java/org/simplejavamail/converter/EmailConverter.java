@@ -3,10 +3,11 @@ package org.simplejavamail.converter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
-import org.simplejavamail.email.CalendarMethod;
-import org.simplejavamail.email.Email;
+import org.simplejavamail.api.email.CalendarMethod;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.internal.modules.ModuleLoader;
 
 import javax.activation.DataSource;
@@ -33,10 +34,11 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
+import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
- * Utility to help convert {@link org.simplejavamail.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
+ * Utility to help convert {@link org.simplejavamail.api.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
  *
  * If you use the Outlook parsing API, make sure you load the following dependency: <em>org.simplejavamail::outlook-message-parser</em>
  */
@@ -74,18 +76,20 @@ public final class EmailConverter {
 	/**
 	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
+	@SuppressWarnings("deprecation")
 	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
-		return ModuleLoader.loadOutlookModule().outlookMsgToEmail(msgData);
+		return ModuleLoader.loadOutlookModule().outlookMsgToEmail(msgData, new EmailStartingBuilderImpl());
 	}
 
 	/**
 	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
+	@SuppressWarnings("deprecation")
 	public static Email outlookMsgToEmail(@Nonnull final File msgFile) {
 		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
-		return ModuleLoader.loadOutlookModule().outlookMsgToEmail(msgFile);
+		return ModuleLoader.loadOutlookModule().outlookMsgToEmail(msgFile, new EmailStartingBuilderImpl());
 	}
 	
 	/**
@@ -98,8 +102,9 @@ public final class EmailConverter {
 	/**
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
+	@SuppressWarnings("deprecation")
 	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream) {
-		return ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgInputStream);
+		return ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgInputStream, new EmailStartingBuilderImpl());
 	}
 	
 	/**
@@ -339,7 +344,7 @@ public final class EmailConverter {
 		builder.withHTMLText(parsed.getHtmlContent());
 		
 		if (parsed.getCalendarMethod() != null) {
-			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), parsed.getCalendarContent());
+			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), assumeNonNull(parsed.getCalendarContent()));
 		}
 		
 		for (final Map.Entry<String, DataSource> cid : parsed.getCidMap().entrySet()) {

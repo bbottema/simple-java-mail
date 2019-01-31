@@ -11,7 +11,7 @@ public class Socks5 {
 
 	private static final int SOCKS_DEFAULT_PORT = 1080;
 
-	public static final byte AUTHENTICATION_SUCCEEDED = 0x00;
+	static final byte AUTHENTICATION_SUCCEEDED = 0x00;
 
 	private Socks5 chainProxy;
 
@@ -19,6 +19,7 @@ public class Socks5 {
 
 	private InetAddress inetAddress;
 
+	@SuppressWarnings("UnusedAssignment")
 	private int port = SOCKS_DEFAULT_PORT;
 
 	private Socket proxySocket;

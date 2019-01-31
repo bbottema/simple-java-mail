@@ -1,7 +1,7 @@
 package demo;
 
-import org.simplejavamail.mailer.AsyncResponse;
-import org.simplejavamail.mailer.AsyncResponse.ExceptionConsumer;
+import org.simplejavamail.api.mailer.AsyncResponse;
+import org.simplejavamail.api.mailer.AsyncResponse.ExceptionConsumer;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -32,14 +32,14 @@ public class TestConnectionDemo {
 		
 		Future<?> f = asyncResponse.getFuture();
 		
-		// f.get() actually blocks until done, below is an example custom loop for checking result in a non-blocking way
+		// f.get() actually blocks until done, so below is an example custom while-loop for checking result in a non-blocking way
 		while (!f.isDone()) {
 			Thread.sleep(100);
 		}
 		
 		// result is in, check it
 		try {
-			f.get(); // without the above loop, this would actually block until done
+			f.get(); // without the above loop, this would actually block until done, but because of the while-loop, we know it's done already
 			System.err.println("success");
 		} catch (ExecutionException e) {
 			System.err.println("error");

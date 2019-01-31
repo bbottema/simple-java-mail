@@ -1,23 +1,18 @@
 package org.simplejavamail.mailer;
 
-import org.simplejavamail.internal.clisupport.model.Cli;
-import org.simplejavamail.internal.clisupport.model.CliBuilderApiType;
-import org.simplejavamail.mailer.config.TransportStrategy;
-import org.simplejavamail.util.ConfigLoader;
+import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.MailerRegularBuilder;
+import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.mailer.internal.MailerFromSessionBuilderImpl;
+import org.simplejavamail.mailer.internal.MailerGenericBuilderImpl;
+import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Session;
 
-import static org.simplejavamail.util.ConfigLoader.Property.SMTP_HOST;
-import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PASSWORD;
-import static org.simplejavamail.util.ConfigLoader.Property.SMTP_PORT;
-import static org.simplejavamail.util.ConfigLoader.Property.SMTP_USERNAME;
-import static org.simplejavamail.util.ConfigLoader.Property.TRANSPORT_STRATEGY;
-import static org.simplejavamail.util.ConfigLoader.hasProperty;
-
 /**
- * Entry builder used to start a {@link MailerGenericBuilder} and fully configure a Mailer.
+ * Entry builder used to start a {@link MailerGenericBuilderImpl} and fully configure a Mailer.
  * <p>
  * Any of these methods return a specialized builder, of which there are two:
  * <ul>
@@ -25,73 +20,82 @@ import static org.simplejavamail.util.ConfigLoader.hasProperty;
  * <li>One to fully configure a Mailer which will produce its own {@link Session} instance</li>
  * </ul>
  *
- * @see MailerFromSessionBuilder
- * @see MailerRegularBuilder
+ * @see MailerFromSessionBuilderImpl
+ * @see MailerRegularBuilderImpl
  */
 @SuppressWarnings("WeakerAccess")
 public class MailerBuilder {
 	
 	/**
-	 * Delegates to {@link MailerFromSessionBuilder#usingSession(Session)}.
+	 * Delegates to {@link MailerFromSessionBuilderImpl#usingSession(Session)}.
 	 */
-	public static MailerFromSessionBuilder usingSession(@Nonnull final Session session) {
-		return new MailerFromSessionBuilder().usingSession(session);
+	@SuppressWarnings("deprecation")
+	public static MailerFromSessionBuilderImpl usingSession(@Nonnull final Session session) {
+		return new MailerFromSessionBuilderImpl().usingSession(session);
 	}
 	
 	/**
 	 * Delegates to {@link MailerRegularBuilder#withTransportStrategy(TransportStrategy)}.
 	 */
-	public static MailerRegularBuilder withTransportStrategy(@Nonnull final TransportStrategy transportStrategy) {
-		return new MailerRegularBuilder().withTransportStrategy(transportStrategy);
+	@SuppressWarnings("deprecation")
+	public static MailerRegularBuilderImpl withTransportStrategy(@Nonnull final TransportStrategy transportStrategy) {
+		return new MailerRegularBuilderImpl().withTransportStrategy(transportStrategy);
 	}
 	
 	/**
 	 * Delegates to {@link MailerRegularBuilder#withSMTPServer(String, Integer, String, String)}.
 	 */
-	public static MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username, @Nullable final String password) {
-		return new MailerRegularBuilder().withSMTPServer(host, port, username, password);
+	@SuppressWarnings("deprecation")
+	public static MailerRegularBuilderImpl withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username, @Nullable final String password) {
+		return new MailerRegularBuilderImpl().withSMTPServer(host, port, username, password);
 	}
 	
 	/**
 	 * Delegates to {@link MailerRegularBuilder#withSMTPServer(String, Integer, String)}.
 	 */
-	public static MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username) {
-		return new MailerRegularBuilder().withSMTPServer(host, port, username);
+	@SuppressWarnings({"unused", "deprecation"})
+	public static MailerRegularBuilderImpl withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username) {
+		return new MailerRegularBuilderImpl().withSMTPServer(host, port, username);
 	}
 	
 	/**
 	 * Delegates to {@link MailerRegularBuilder#withSMTPServer(String, Integer)}.
 	 */
-	public static MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port) {
-		return new MailerRegularBuilder().withSMTPServer(host, port);
+	@SuppressWarnings("deprecation")
+	public static MailerRegularBuilderImpl withSMTPServer(@Nullable final String host, @Nullable final Integer port) {
+		return new MailerRegularBuilderImpl().withSMTPServer(host, port);
 	}
 	
 	/**
 	 * Delegates to {@link MailerRegularBuilder#withSMTPServerHost(String)}.
 	 */
-	public static MailerRegularBuilder withSMTPServerHost(@Nullable final String host) {
-		return new MailerRegularBuilder().withSMTPServerHost(host);
+	@SuppressWarnings("deprecation")
+	public static MailerRegularBuilderImpl withSMTPServerHost(@Nullable final String host) {
+		return new MailerRegularBuilderImpl().withSMTPServerHost(host);
 	}
 	
 	/**
 	 * Delegates to {@link MailerRegularBuilder#withSMTPServerPort(Integer)}.
 	 */
-	public static MailerRegularBuilder withSMTPServerPort(@Nullable final Integer port) {
-		return new MailerRegularBuilder().withSMTPServerPort(port);
+	@SuppressWarnings({"unused", "deprecation"})
+	public static MailerRegularBuilderImpl withSMTPServerPort(@Nullable final Integer port) {
+		return new MailerRegularBuilderImpl().withSMTPServerPort(port);
 	}
 	
 	/**
 	 * Delegates to {@link MailerRegularBuilder#withSMTPServerUsername(String)}.
 	 */
-	public static MailerRegularBuilder withSMTPServerUsername(@Nullable final String username) {
-		return new MailerRegularBuilder().withSMTPServerUsername(username);
+	@SuppressWarnings({"unused", "deprecation"})
+	public static MailerRegularBuilderImpl withSMTPServerUsername(@Nullable final String username) {
+		return new MailerRegularBuilderImpl().withSMTPServerUsername(username);
 	}
 	
 	/**
 	 * Delegates to {@link MailerRegularBuilder#withSMTPServerPassword(String)}.
 	 */
-	public static MailerRegularBuilder withSMTPServerPassword(@Nullable final String password) {
-		return new MailerRegularBuilder().withSMTPServerPassword(password);
+	@SuppressWarnings({"unused", "deprecation"})
+	public static MailerRegularBuilderImpl withSMTPServerPassword(@Nullable final String password) {
+		return new MailerRegularBuilderImpl().withSMTPServerPassword(password);
 	}
 	
 	/**
@@ -100,212 +104,21 @@ public class MailerBuilder {
 	 * <strong>Note:</strong> Assumes you don't want to use your own {@link Session} object (otherwise start with {@link #usingSession(Session)}
 	 * instead).
 	 */
-	public static MailerRegularBuilder withDebugLogging(Boolean debugLogging) {
-		return new MailerRegularBuilder().withDebugLogging(debugLogging);
-	}
-	
-	/**
-	 * @deprecated Used internally. Don't use this.
-	 */
-	@SuppressWarnings("DeprecatedIsStillUsed")
-	@Deprecated
-	public static MailerRegularBuilder _createForCli() {
-		return new MailerRegularBuilder();
+	@SuppressWarnings({"unused", "deprecation"})
+	public static MailerRegularBuilderImpl withDebugLogging(Boolean debugLogging) {
+		return new MailerRegularBuilderImpl().withDebugLogging(debugLogging);
 	}
 	
 	/**
 	 * Shortcuts to {@link MailerRegularBuilder#buildMailer()}. This means that none of the builder methods are used and the configuration completely
 	 * depends on defaults being configured from property file ("simplejavamail.properties") on the classpath or through programmatic defaults.
 	 */
+	@SuppressWarnings("deprecation")
 	public static Mailer buildMailer() {
-		return new MailerRegularBuilder().buildMailer();
+		return new MailerRegularBuilderImpl().buildMailer();
 	}
 	
 	private MailerBuilder() {
 	}
 	
-	/**
-	 * Default builder for generating Mailer instances.
-	 * <p>
-	 * In addition on generic Mailer setting, this builder is used to configure SMTP server details and transport strategy needed to produce a valid
-	 * {@link Session} instance.
-	 *
-	 * @see TransportStrategy
-	 */
-	@SuppressWarnings("WeakerAccess")
-	@Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
-	public static class MailerRegularBuilder extends MailerGenericBuilder<MailerRegularBuilder> {
-		
-		private String host;
-		private Integer port;
-		private String username;
-		private String password;
-		private TransportStrategy transportStrategy;
-		
-		/**
-		 * Sets defaults configured for SMTP host, SMTP port, SMTP username, SMTP password and transport strategy.
-		 * <p>
-		 * <strong>Note:</strong> Any builder methods invoked after this will override the default value.
-		 */
-		MailerRegularBuilder() {
-			if (hasProperty(SMTP_HOST)) {
-				withSMTPServerHost(ConfigLoader.getStringProperty(SMTP_HOST));
-			}
-			if (hasProperty(SMTP_PORT)) {
-				withSMTPServerPort(ConfigLoader.getIntegerProperty(SMTP_PORT));
-			}
-			if (hasProperty(SMTP_USERNAME)) {
-				withSMTPServerUsername(ConfigLoader.getStringProperty(SMTP_USERNAME));
-			}
-			if (hasProperty(SMTP_PASSWORD)) {
-				withSMTPServerPassword(ConfigLoader.getStringProperty(SMTP_PASSWORD));
-			}
-			withTransportStrategy(TransportStrategy.SMTP);
-			if (hasProperty(TRANSPORT_STRATEGY)) {
-				withTransportStrategy(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY));
-			}
-		}
-		
-		/**
-		 * To learn more about the various transport modes, the properties they set and the security
-		 * implications, please refer to the full TransportStrategy<br/>
-		 * <a href="www.javadoc.io/page/org.simplejavamail/simple-java-mail/latest/org/simplejavamail/mailer/config/TransportStrategy.html">javadoc</a>.
-		 *
-		 * @param transportStrategy The name of the transport strategy to use: {@link TransportStrategy#SMTP}, {@link TransportStrategy#SMTPS} or
-		 *                                {@link TransportStrategy#SMTP_TLS}. Defaults to {@link TransportStrategy#SMTP}.
-		 */
-		public MailerRegularBuilder withTransportStrategy(@Nonnull final TransportStrategy transportStrategy) {
-			this.transportStrategy = transportStrategy;
-			return this;
-		}
-		
-		/**
-		 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)}, {@link #withSMTPServerUsername(String)} and {@link
-		 * #withSMTPServerPassword(String)}.
-		 *
-		 * @param host Optional host that defaults to pre-configured property if left empty.
-		 * @param port Optional port number that defaults to pre-configured property if left empty.
-		 * @param username Optional username that defaults to pre-configured property if left empty.
-		 * @param password Optional password that defaults to pre-configured property if left empty.
-		 */
-		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username, @Nullable final String password) {
-			return withSMTPServerHost(host)
-					.withSMTPServerPort(port)
-					.withSMTPServerUsername(username)
-					.withSMTPServerPassword(password);
-		}
-		
-		/**
-		 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)} and {@link #withSMTPServerUsername(String)}.
-		 *
-		 * @param host Optional host that defaults to pre-configured property if left empty.
-		 * @param port Optional port number that defaults to pre-configured property if left empty.
-		 * @param username Optional username that defaults to pre-configured property if left empty.
-		 */
-		@Cli.ExcludeApi(reason = "API is a subset of another API method")
-		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username) {
-			return withSMTPServerHost(host)
-					.withSMTPServerPort(port)
-					.withSMTPServerUsername(username);
-		}
-		
-		/**
-		 * Delegates to {@link #withSMTPServerHost(String)} and {@link #withSMTPServerPort(Integer)}.
-		 *
-		 * @param host Optional host that defaults to pre-configured property if left empty.
-		 * @param port Optional port number that defaults to pre-configured property if left empty.
-		 */
-		@Cli.ExcludeApi(reason = "API is a subset of another API method")
-		public MailerRegularBuilder withSMTPServer(@Nullable final String host, @Nullable final Integer port) {
-			return withSMTPServerHost(host)
-					.withSMTPServerPort(port);
-		}
-		
-		/**
-		 * Sets the optional SMTP host. Will default to pre-configured property if left empty.
-		 *
-		 * @param host Optional host that defaults to pre-configured property if left empty.
-		 */
-		@Cli.ExcludeApi(reason = "API is a subset of another API method")
-		public MailerRegularBuilder withSMTPServerHost(@Nullable final String host) {
-			this.host = host;
-			return this;
-		}
-		
-		/**
-		 * Sets the optional SMTP port. Will default to pre-configured property if left empty.
-		 *
-		 * @param port Optional port number that defaults to pre-configured property if left empty.
-		 */
-		@Cli.ExcludeApi(reason = "API is a subset of another API method")
-		public MailerRegularBuilder withSMTPServerPort(@Nullable final Integer port) {
-			this.port = port;
-			return this;
-		}
-		
-		/**
-		 * Sets the optional SMTP username. Will default to pre-configured property if left empty.
-		 *
-		 * @param username Optional username that defaults to pre-configured property if left empty.
-		 */
-		@Cli.ExcludeApi(reason = "API is a subset of another API method")
-		public MailerRegularBuilder withSMTPServerUsername(@Nullable final String username) {
-			this.username = username;
-			return this;
-		}
-		
-		/**
-		 * Sets the optional SMTP password. Will default to pre-configured property if left empty.
-		 *
-		 * @param password Optional password that defaults to pre-configured property if left empty.
-		 */
-		@Cli.ExcludeApi(reason = "API is a subset of another API method")
-		public MailerRegularBuilder withSMTPServerPassword(@Nullable final String password) {
-			this.password = password;
-			return this;
-		}
-		
-		/**
-		 * Builds the actual {@link Mailer} instance with everything configured on this builder instance.
-		 * <p>
-		 * For all configurable values: if omitted, a default value will be attempted by looking at property files or manually defined defauls.
-		 */
-		@Override
-		@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-		public Mailer buildMailer() {
-			return new Mailer(this);
-		}
-		
-		/**
-		 * For internal use.
-		 */
-		ServerConfig buildServerConfig() {
-			return new ServerConfig(getHost(), getPort(), getUsername(), getPassword());
-		}
-		
-		@Nullable
-		public String getHost() {
-			return host;
-		}
-		
-		@Nullable
-		public Integer getPort() {
-			return port;
-		}
-		
-		@Nullable
-		public String getUsername() {
-			return username;
-		}
-		
-		@Nullable
-		public String getPassword() {
-			return password;
-		}
-		
-		@Nullable
-		public TransportStrategy getTransportStrategy() {
-			return transportStrategy;
-		}
-	}
 }

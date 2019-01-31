@@ -25,6 +25,7 @@ public class SocksProxyConfig {
 		return username != null;
 	}
 	
+	@SuppressWarnings("Duplicates")
 	@Override
 	public String toString() {
 		String str = format("%s:%s", remoteProxyHost, remoteProxyPort);

@@ -1,7 +1,7 @@
 package org.simplejavamail.util;
 
-import org.simplejavamail.email.AttachmentResource;
-import org.simplejavamail.email.Email;
+import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.Email;
 
 import javax.mail.util.ByteArrayDataSource;
 

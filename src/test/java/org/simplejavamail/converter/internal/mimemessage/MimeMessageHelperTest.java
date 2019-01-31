@@ -10,8 +10,8 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.AttachmentResource;
-import org.simplejavamail.email.Email;
+import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.internal.util.MiscUtil;
 import testutil.EmailHelper;
@@ -126,7 +126,7 @@ public class MimeMessageHelperTest {
 				.buildEmail();
 		
 		PowerMockito.mockStatic(MiscUtil.class);
-		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.modules.DKIMModuleMarker")).willReturn(false);
+		BDDMockito.given(MiscUtil.classAvailable("oorg.simplejavamail.internal.dkimsupport.DKIMSigner")).willReturn(false);
 		
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
 			@Override
@@ -137,7 +137,7 @@ public class MimeMessageHelperTest {
 				.hasMessage("DKIM module not found, make sure it is on the classpath (https://github.com/simple-java-mail/dkim-module)");
 		
 		PowerMockito.mockStatic(MiscUtil.class);
-		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.modules.DKIMModuleMarker")).willCallRealMethod();
+		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner")).willCallRealMethod();
 		
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
 			@Override

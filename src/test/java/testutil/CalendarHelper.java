@@ -44,7 +44,7 @@ public final class CalendarHelper {
 	}
 	
 	private static String createICalInvitation() throws IOException {
-		System.setProperty("net.fortuna.ical4j.timezone.cache.impl", MapTimeZoneCache.class.getName());
+		System.setProperty("net.fortuna.ical4j.timezone.cache.internal", MapTimeZoneCache.class.getName());
 		CompatibilityHints.setHintEnabled(CompatibilityHints.KEY_OUTLOOK_COMPATIBILITY, true);
 		
 		Calendar cal = createCalendar();

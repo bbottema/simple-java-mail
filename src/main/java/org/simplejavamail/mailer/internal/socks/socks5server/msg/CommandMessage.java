@@ -10,7 +10,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.simplejavamail.mailer.internal.socks.socks5server.msg.StreamUtil.checkEnd;
 
 public class CommandMessage {
 
@@ -28,11 +27,11 @@ public class CommandMessage {
 			throws IOException {
 		LOGGER.trace("CommandMessage.read");
 
-		checkEnd(inputStream.read()); // version, unused
-		command = checkEnd(inputStream.read());
+		StreamUtil.checkEnd(inputStream.read()); // version, unused
+		command = StreamUtil.checkEnd(inputStream.read());
 
-		checkEnd(inputStream.read());
-		final int addressType = checkEnd(inputStream.read());
+		StreamUtil.checkEnd(inputStream.read());
+		final int addressType = StreamUtil.checkEnd(inputStream.read());
 
 		if (!AddressType.isSupport(addressType) && socksServerReplyException == null) {
 			socksServerReplyException = new SocksServerReplyException(ServerReply.ADDRESS_TYPE_NOT_SUPPORTED);
@@ -46,7 +45,7 @@ public class CommandMessage {
 				break;
 
 			case AddressType.DOMAIN_NAME:
-				final int domainLength = checkEnd(inputStream.read());
+				final int domainLength = StreamUtil.checkEnd(inputStream.read());
 				if (domainLength < 1) {
 					throw new SocksException("Length of domain must great than 0");
 				}
@@ -79,7 +78,7 @@ public class CommandMessage {
 			throws IOException {
 		final byte[] bytes = new byte[length];
 		for (int i = 0; i < length; i++) {
-			bytes[i] = (byte) checkEnd(inputStream.read());
+			bytes[i] = (byte) StreamUtil.checkEnd(inputStream.read());
 		}
 		return bytes;
 	}

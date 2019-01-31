@@ -1,6 +1,6 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import org.simplejavamail.email.Email;
+import org.simplejavamail.api.email.Email;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;

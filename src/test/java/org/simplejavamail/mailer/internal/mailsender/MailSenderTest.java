@@ -2,6 +2,10 @@ package org.simplejavamail.mailer.internal.mailsender;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.ProxyConfig;
+import org.simplejavamail.mailer.internal.OperationalConfigImpl;
+import org.simplejavamail.mailer.internal.ProxyConfigImpl;
 
 import javax.annotation.Nonnull;
 import javax.mail.Session;
@@ -13,8 +17,8 @@ import java.util.Properties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.simplejavamail.mailer.config.TransportStrategy.SMTP;
-import static org.simplejavamail.mailer.config.TransportStrategy.SMTPS;
+import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
+import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 
 public class MailSenderTest {
 	
@@ -28,15 +32,16 @@ public class MailSenderTest {
 	}
 	
 	@Nonnull
+	@SuppressWarnings("deprecation")
 	private ProxyConfig createEmptyProxyConfig() {
-		return new ProxyConfig(null, null, null, null, -1);
+		return new ProxyConfigImpl(null, null, null, null, -1);
 	}
 	
 	@Test
 	public void trustAllHosts_PLAIN() {
-		new MailSender(session, createDummyOperationalConfig(EMPTY_LIST, true), createEmptyProxyConfig(), SMTP);
+		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, true), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
-		new MailSender(session, createDummyOperationalConfig(EMPTY_LIST, false), createEmptyProxyConfig(), SMTP);
+		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, false), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
 	}
 	
@@ -44,21 +49,21 @@ public class MailSenderTest {
 	public void trustAllHosts_SMTPS() {
 		ProxyConfig proxyBypassingMock = mock(ProxyConfig.class);
 		when(proxyBypassingMock.requiresProxy()).thenReturn(false);
-		new MailSender(session, createDummyOperationalConfig(EMPTY_LIST, true), proxyBypassingMock, SMTPS);
+		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, true), proxyBypassingMock, SMTPS);
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isEqualTo("*");
-		new MailSender(session, createDummyOperationalConfig(EMPTY_LIST, false), proxyBypassingMock, SMTPS);
+		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, false), proxyBypassingMock, SMTPS);
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isNull();
 	}
 	
 	@Test
 	public void trustHosts() {
-		new MailSender(session, createDummyOperationalConfig(asList(), false), createEmptyProxyConfig(), SMTP);
+		new MailSenderImpl(session, createDummyOperationalConfig(asList(), false), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
-		new MailSender(session, createDummyOperationalConfig(asList("a"), false), createEmptyProxyConfig(), SMTP);
+		new MailSenderImpl(session, createDummyOperationalConfig(asList("a"), false), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a");
-		new MailSender(session, createDummyOperationalConfig(asList("a", "b"), false), createEmptyProxyConfig(), SMTP);
+		new MailSenderImpl(session, createDummyOperationalConfig(asList("a", "b"), false), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b");
-		new MailSender(session, createDummyOperationalConfig(asList("a", "b", "c"), false), createEmptyProxyConfig(), SMTP);
+		new MailSenderImpl(session, createDummyOperationalConfig(asList("a", "b", "c"), false), createEmptyProxyConfig(), SMTP);
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b c");
 	}
 	
@@ -68,7 +73,8 @@ public class MailSenderTest {
 	}
 	
 	@Nonnull
+	@SuppressWarnings("deprecation")
 	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost) {
-		return new OperationalConfig(false, new Properties(), 0, 0, false, false, hostsToTrust, trustAllSSLHost);
+		return new OperationalConfigImpl(false, new Properties(), 0, 0, false, false, hostsToTrust, trustAllSSLHost);
 	}
 }

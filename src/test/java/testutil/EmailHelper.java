@@ -1,7 +1,7 @@
 package testutil;
 
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
 
 import javax.annotation.Nullable;
 import javax.mail.util.ByteArrayDataSource;
@@ -11,6 +11,7 @@ import java.nio.charset.Charset;
 
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilder;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 public class EmailHelper {
 	
@@ -61,6 +62,6 @@ public class EmailHelper {
 	
 	public static EmailPopulatingBuilder readOutlookMessage(final String filePath) {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream(filePath);
-		return outlookMsgToEmailBuilder(resourceAsStream);
+		return outlookMsgToEmailBuilder(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
 	}
 }

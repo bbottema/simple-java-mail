@@ -4,10 +4,10 @@ package org.simplejavamail.mailer.internal.socks.common;
 
 @SuppressWarnings("serial")
 public class SocksException extends RuntimeException {
-
-	private static final String serverReplyMessage[] = { "General SOCKS server failure", "Connection not allowed by ruleset",
+	
+	private static final String[] serverReplyMessage = {"General SOCKS server failure", "Connection not allowed by ruleset",
 			"Network " + "unreachable", "Host unreachable", "Connection refused", "TTL expired", "Command not " + "supported",
-			"Address type not supported" };
+			"Address type not supported"};
 
 	public SocksException(final String msg) {
 		super(msg);

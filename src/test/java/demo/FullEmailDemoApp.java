@@ -1,10 +1,10 @@
 package demo;
 
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.CalendarMethod;
-import org.simplejavamail.email.Email;
+import org.simplejavamail.api.email.CalendarMethod;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import testutil.CalendarHelper;
 
 import javax.mail.internet.MimeMessage;
