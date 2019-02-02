@@ -33,6 +33,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @deprecated Used internally. Don't use this. Use one of the {@link EmailBuilder#startingBlank()} instead.
 	 */
 	@Deprecated
+	@SuppressWarnings("DeprecatedIsStillUsed")
 	public EmailStartingBuilderImpl() {
 	}
 	
