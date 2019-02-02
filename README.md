@@ -2,7 +2,7 @@
 [![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22) 
 [![Javadocs](https://img.shields.io/badge/javadoc-5.1.3-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) 
 [![Build Status](https://img.shields.io/travis/simple-java-mail/maven-master-project.svg?style=flat)](https://travis-ci.org/simple-java-mail/maven-master-project) 
-[![Codacy](https://img.shields.io/codacy/grade/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
+[![Codacy](https://img.shields.io/codacy/grade/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/simple-java-mail/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.7+-lightgray.svg)
 [![Paypal Donate](https://img.shields.io/badge/donate%20with-paypal-blue.svg?style=flat)](https://paypal.me/bennybottema)
 
