@@ -39,7 +39,7 @@ public final class CalendarHelper {
 		try {
 			return createICalInvitation();
 		} catch (IOException e) {
-			throw new RuntimeException(e.getMessage(), e);
+			throw new AssertionError(e.getMessage(), e);
 		}
 	}
 	

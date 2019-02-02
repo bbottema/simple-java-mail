@@ -262,7 +262,7 @@ public final class EmailConverter {
 			return os.toString(UTF_8.name());
 		} catch (IOException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new RuntimeException(e.getMessage(), e);
+			throw new AssertionError("This should never happen", e);
 		}
 	}
 
