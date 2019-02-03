@@ -1,7 +1,6 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import com.sun.mail.handlers.text_plain;
-import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.Preconditions;
 
 import javax.activation.ActivationDataFlavor;
