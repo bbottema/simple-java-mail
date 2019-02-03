@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>spring-module</artifactId>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
     <name>Simple Java Mail - Spring module</name>
     <description>Simple API, Complex Emails. Now with Spring support</description>
 
