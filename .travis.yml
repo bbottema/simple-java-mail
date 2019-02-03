@@ -9,6 +9,8 @@ sudo: false
 install: true
 script: mvn clean verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true
 
+#test
+
 cache:
   directories:
   - $HOME/.m2
