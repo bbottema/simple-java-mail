@@ -63,6 +63,7 @@
         <module>modules/outlook-module</module>
         <module>modules/dkim-module</module>
         <module>modules/simple-java-mail</module>
+        <module>modules/jacoco-aggregator-module</module>
     </modules>
 
     <dependencies>
@@ -203,12 +204,6 @@
                         <id>default-prepare-agent</id>
                         <goals>
                             <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>default-report</id>
-                        <goals>
-                            <goal>report</goal>
                         </goals>
                     </execution>
                 </executions>
