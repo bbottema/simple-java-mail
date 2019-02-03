@@ -14,17 +14,17 @@ public class MailerFromSessionBuilderImpl
 		implements MailerFromSessionBuilder<MailerFromSessionBuilderImpl> {
 	
 	/**
+	 * @see #usingSession(Session)
+	 */
+	private Session session;
+	
+	/**
 	 * @deprecated Used internally. Don't use this. Instead use {@link org.simplejavamail.mailer.MailerBuilder#usingSession(Session)}.
 	 */
 	@Deprecated
 	@SuppressWarnings("DeprecatedIsStillUsed")
 	public MailerFromSessionBuilderImpl() {
 	}
-	
-	/**
-	 * @see #usingSession(Session)
-	 */
-	private Session session;
 	
 	/**
 	 * @see MailerFromSessionBuilder#usingSession(Session)
