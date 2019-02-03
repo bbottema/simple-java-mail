@@ -2,10 +2,10 @@ language: java
 sudo: false
 
 # CodeClimate:
-before_script:
-  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-  - chmod +x ./cc-test-reporter
-  - ./cc-test-reporter before-build
+#before_script:
+#  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+#  - chmod +x ./cc-test-reporter
+#  - ./cc-test-reporter before-build
 
 script: mvn clean verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true
 
@@ -24,7 +24,7 @@ before_install:
 
 after_success:
   # Codacy upload report
-  # - java -jar ~/codacy-coverage-reporter-assembly-latest.jar report -l Java -r target/site/jacoco/jacoco.xml
-  # CodeClimate upload report
-  - ./cc-test-reporter format-coverage modules/jacoco-aggregator-module/target/site/jacoco-aggregate/jacoco.xml --input-type jacoco
-  - ./cc-test-reporter upload-coverage -r $CC_TEST_REPORTER_ID
+  - java -jar ~/codacy-coverage-reporter-assembly-latest.jar report -l Java -r target/site/jacoco/jacoco.xml
+  ## CodeClimate upload report
+  #- ./cc-test-reporter format-coverage modules/jacoco-aggregator-module/target/site/jacoco-aggregate/jacoco.xml --input-type jacoco
+  #- ./cc-test-reporter upload-coverage -r $CC_TEST_REPORTER_ID
