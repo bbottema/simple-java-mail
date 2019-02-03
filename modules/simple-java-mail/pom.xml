@@ -8,7 +8,7 @@
         <groupId>org.simplejavamail</groupId>
         <artifactId>maven-master-project</artifactId>
         <version>6.0.0.beta-SNAPSHOT</version>
-        <relativePath>../../../..</relativePath>
+        <relativePath>../../</relativePath>
     </parent>
 
     <artifactId>simple-java-mail</artifactId>
