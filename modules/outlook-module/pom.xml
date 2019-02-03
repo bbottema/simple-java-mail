@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.simplejavamail</groupId>
+        <artifactId>maven-master-project</artifactId>
+        <version>6.0.0.beta-SNAPSHOT</version>
+        <relativePath>../../</relativePath>
+    </parent>
+
+    <artifactId>outlook-module</artifactId>
+    <packaging>jar</packaging>
+    <name>Simple Java Mail - Outlook module</name>
+    <description>Simple API, Complex Emails. Now with Outlook support</description>
+
+    <scm>
+        <connection>scm:git:git://github.com/simple-java-mail/outlook-module.git</connection>
+        <developerConnection>scm:git:git@github.com:simple-java-mail/outlook-module.git</developerConnection>
+        <url>https://github.com/simple-java-mail/outlook-module</url>
+    </scm>
+
+    <dependencies>
+
+        <!-- core dependencies -->
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>core-module</artifactId>
+            <version>${library.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- needed for outlook support -->
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>outlook-message-parser</artifactId>
+            <version>1.1.17</version>
+        </dependency>
+    </dependencies>
+
+</project>

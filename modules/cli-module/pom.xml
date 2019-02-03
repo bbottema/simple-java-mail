@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.simplejavamail</groupId>
+        <artifactId>maven-master-project</artifactId>
+        <version>6.0.0.beta-SNAPSHOT</version>
+        <relativePath>../../</relativePath>
+    </parent>
+
+    <artifactId>cli-module</artifactId>
+    <packaging>jar</packaging>
+    <name>Simple Java Mail - CLI module</name>
+    <description>Simple API, Complex Emails. Now with CLI support</description>
+
+    <scm>
+        <connection>scm:git:git://github.com/simple-java-mail/cli-module.git</connection>
+        <developerConnection>scm:git:git@github.com:simple-java-mail/cli-module.git</developerConnection>
+        <url>https://github.com/simple-java-mail/cli-module</url>
+    </scm>
+
+    <dependencies>
+
+        <!-- core dependencies -->
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>simple-java-mail</artifactId>
+            <version>${library.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- needed for cli support -->
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>3.9.0</version>
+        </dependency>
+
+        <!-- read Javadoc back from the jar for use with CLI documentation -->
+        <dependency><!-- Runtime library -->
+            <groupId>com.github.therapi</groupId>
+            <artifactId>therapi-runtime-javadoc</artifactId>
+            <version>0.9.0</version>
+        </dependency>
+
+        <!-- test -->
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>core-test-module</artifactId>
+            <version>${library.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>outlook-module</artifactId>
+            <version>${library.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

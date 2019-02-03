@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.simplejavamail</groupId>
+        <artifactId>maven-master-project</artifactId>
+        <version>6.0.0.beta-SNAPSHOT</version>
+        <relativePath>../../</relativePath>
+    </parent>
+
+    <artifactId>spring-module</artifactId>
+    <packaging>pom</packaging>
+    <name>Simple Java Mail - Spring module</name>
+    <description>Simple API, Complex Emails. Now with Spring support</description>
+
+    <properties>
+        <spring.version>[4.3.18.RELEASE,)</spring.version>
+    </properties>
+
+    <scm>
+        <connection>scm:git:git://github.com/simple-java-mail/spring-module.git</connection>
+        <developerConnection>scm:git:git@github.com:simple-java-mail/spring-module.git</developerConnection>
+        <url>https://github.com/simple-java-mail/spring-module</url>
+    </scm>
+
+    <dependencies>
+
+        <!-- core dependencies -->
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>simple-java-mail</artifactId>
+            <version>${library.version}</version>
+        </dependency>
+
+        <!-- spring support (optional) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>${spring.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>${spring.version}</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
+</project>

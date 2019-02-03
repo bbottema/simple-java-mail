@@ -1,0 +1,13 @@
+  =========================================================================
+  ==  NOTICE file for use with the Apache License, Version 2.0           ==
+  =========================================================================
+  
+  Simple Java Mail - DKIM module
+  Copyright 2009-2018 Benny Bottema
+  http://www.simplejavamail.org
+  
+  This product uses no commercial products.
+  
+  This product uses the following external (Open Source) libraries:
+
+    - DKIM signing library https://github.com/markenwerk/java-utils-mail-dkim (based on https://github.com/usrflo/DKIM-for-JavaMail)

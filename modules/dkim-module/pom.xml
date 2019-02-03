@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.simplejavamail</groupId>
+        <artifactId>maven-master-project</artifactId>
+        <version>6.0.0.beta-SNAPSHOT</version>
+        <relativePath>../../</relativePath>
+    </parent>
+
+    <artifactId>dkim-module</artifactId>
+    <packaging>jar</packaging>
+    <name>Simple Java Mail - DKIM module</name>
+    <description>Simple API, Complex Emails. Now with DKIM support</description>
+
+    <scm>
+        <connection>scm:git:git://github.com/simple-java-mail/dkim-module.git</connection>
+        <developerConnection>scm:git:git@github.com:simple-java-mail/dkim-module.git</developerConnection>
+        <url>https://github.com/simple-java-mail/dkim-module</url>
+    </scm>
+
+    <dependencies>
+
+        <!-- core dependencies -->
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>core-module</artifactId>
+            <version>${library.version}</version>
+        </dependency>
+
+        <!-- needed for dkim support -->
+        <dependency>
+            <groupId>net.markenwerk</groupId>
+            <artifactId>utils-mail-dkim</artifactId>
+            <version>1.1.12</version>
+        </dependency>
+    </dependencies>
+
+</project>

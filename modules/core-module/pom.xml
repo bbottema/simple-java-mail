@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.simplejavamail</groupId>
+        <artifactId>maven-master-project</artifactId>
+        <version>6.0.0.beta-SNAPSHOT</version>
+        <relativePath>../../</relativePath>
+    </parent>
+
+    <artifactId>core-module</artifactId>
+    <packaging>jar</packaging>
+    <name>Simple Java Mail - Core module</name>
+    <description>Simple API, Complex Emails. Core module support</description>
+
+    <scm>
+        <connection>scm:git:git://github.com/simple-java-mail/core-module.git</connection>
+        <developerConnection>scm:git:git@github.com:simple-java-mail/core-module.git</developerConnection>
+        <url>https://github.com/simple-java-mail/core-module</url>
+    </scm>
+
+    <dependencies>
+
+        <!-- core dependencies -->
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.bbottema</groupId>
+            <artifactId>emailaddress-rfc2822</artifactId>
+            <version>1.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.bbottema</groupId>
+            <artifactId>java-reflection</artifactId>
+            <version>3.9.1</version>
+        </dependency>
+        <dependency><!-- Annotation processor -->
+            <groupId>com.github.therapi</groupId>
+            <artifactId>therapi-runtime-javadoc-scribe</artifactId>
+            <version>0.9.0</version>
+            <scope>provided</scope><!-- makes library mandatory if we should support CLI (even optionally) -->
+        </dependency>
+
+        <!-- optional support modules -->
+        <dependency>
+            <groupId>net.markenwerk</groupId>
+            <artifactId>utils-mail-dkim</artifactId>
+            <version>1.1.12</version>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+</project>
