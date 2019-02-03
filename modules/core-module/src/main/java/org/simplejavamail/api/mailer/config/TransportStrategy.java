@@ -487,8 +487,12 @@ public enum TransportStrategy {
 	 * was provided, this value defaults to it default.
 	 * <p>
 	 * Setting this flag to false causes {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
+	 * <p>
+	 * Only has any effect when invoked via {@code TransportStrategy.SMTP.setOpportunisticTLS(true/false)}
 	 */
-	public void setOpportunisticTLS(@Nullable final Boolean opportunisticTLS) {}
+	public void setOpportunisticTLS(@Nullable final Boolean opportunisticTLS) {
+		// Only has any effect when invoked via {@code TransportStrategy.SMTP.setOpportunisticTLS(true/false)}
+	}
 	
 	/**
 	 * For internal use only.
