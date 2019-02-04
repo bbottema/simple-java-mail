@@ -6,13 +6,13 @@
     <groupId>org.simplejavamail</groupId>
     <artifactId>maven-master-project</artifactId>
     <packaging>pom</packaging>
-    <version>6.0.0.beta-SNAPSHOT</version>
+    <version>${library.version}</version>
  
     <name>Simple Java Mail - Maven master project</name>
     <url>http://www.simplejavamail.org/</url>
  
     <properties>
-        <library.version>6.0.0.beta-SNAPSHOT</library.version>
+        <library.version>6.0.0.beta-SNAPSHOT.2</library.version>
         <java.version>1.7</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <compiler.encoding>UTF-8</compiler.encoding>
@@ -50,9 +50,9 @@
     </issueManagement>
 
     <scm>
-        <connection>scm:git:git://github.com/simple-java-mail/maven-master-project.git</connection>
-        <developerConnection>scm:git:git@github.com:simple-java-mail/maven-master-project.git</developerConnection>
-        <url>https://github.com/simple-java-mail/maven-master-project</url>
+        <connection>scm:git:git://github.com/bbottema/simple-java-mail.git</connection>
+        <developerConnection>scm:git:git@github.com:bbottema/simple-java-mail.git</developerConnection>
+        <url>https://github.com/bbottema/simple-java-mail</url>
     </scm>
 
     <modules>
@@ -286,6 +286,19 @@
                 <version>3.0.1</version>
                 <executions>
                     <execution>
+                        <id>aggregate</id>
+                        <goals>
+                            <goal>aggregate-jar</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <doclint>all,-missing</doclint>
+                            <show>public</show>
+                            <nohelp>true</nohelp>
+                            <excludePackageNames>*.internal.*,testutil,demo</excludePackageNames>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>attach-javadocs</id>
                         <goals>
                             <goal>jar</goal>
@@ -295,19 +308,6 @@
                             <show>public</show>
                             <nohelp>true</nohelp>
                             <excludePackageNames>*.internal.*</excludePackageNames>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>aggregate</id>
-                        <goals>
-                            <goal>aggregate</goal>
-                        </goals>
-                        <phase>package</phase>
-                        <configuration>
-                            <doclint>all,-missing</doclint>
-                            <show>public</show>
-                            <nohelp>true</nohelp>
-                            <excludePackageNames>*.internal.*,testutil,demo</excludePackageNames>
                         </configuration>
                     </execution>
                 </executions>

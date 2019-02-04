@@ -7,7 +7,8 @@
     <parent>
         <groupId>org.simplejavamail</groupId>
         <artifactId>maven-master-project</artifactId>
-        <version>6.0.0.beta-SNAPSHOT</version>
+        <!--suppress MavenPropertyInParent -->
+        <version>${library.version}</version>
         <relativePath>../../</relativePath>
     </parent>
 
@@ -15,12 +16,6 @@
     <packaging>jar</packaging>
     <name>Simple Java Mail - Outlook module</name>
     <description>Simple API, Complex Emails. Now with Outlook support</description>
-
-    <scm>
-        <connection>scm:git:git://github.com/simple-java-mail/outlook-module.git</connection>
-        <developerConnection>scm:git:git@github.com:simple-java-mail/outlook-module.git</developerConnection>
-        <url>https://github.com/simple-java-mail/outlook-module</url>
-    </scm>
 
     <dependencies>
 
