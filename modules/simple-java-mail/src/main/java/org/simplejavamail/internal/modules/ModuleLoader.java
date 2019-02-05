@@ -15,12 +15,22 @@ public class ModuleLoader {
 		LOADED_MODULES.clear();
 	}
 	
+	public static AuthenticatedSocksModule loadAuthenticatedSocksModule() {
+		if (!LOADED_MODULES.containsKey(AuthenticatedSocksModule.class)) {
+			LOADED_MODULES.put(AuthenticatedSocksModule.class, loadModule(
+					"Authenticated Socks",
+					"org.simplejavamail.internal.authenticatedsockssupport.AuthenticatedSocksHelper",
+					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/authenticated-socks-module"));
+		}
+		return (AuthenticatedSocksModule) LOADED_MODULES.get(AuthenticatedSocksModule.class);
+	}
+	
 	public static DKIMModule loadDKIMModule() {
 		if (!LOADED_MODULES.containsKey(DKIMModule.class)) {
 			LOADED_MODULES.put(DKIMModule.class, loadModule(
 					"DKIM",
 					"org.simplejavamail.internal.dkimsupport.DKIMSigner",
-					"https://github.com/simple-java-mail/dkim-module"));
+					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/dkim-module"));
 		}
 		return (DKIMModule) LOADED_MODULES.get(DKIMModule.class);
 	}
@@ -30,7 +40,7 @@ public class ModuleLoader {
 			LOADED_MODULES.put(OutlookModule.class, loadModule(
 					"Outlook",
 					"org.simplejavamail.internal.outlooksupport.converter.OutlookEmailConverter",
-					"https://github.com/simple-java-mail/outlook-module"
+					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/outlook-module"
 			));
 		}
 		return (OutlookModule) LOADED_MODULES.get(OutlookModule.class);

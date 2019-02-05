@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal.socks;
 
+import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.internal.socks.common.Socks5Bridge;
 import org.simplejavamail.mailer.internal.socks.socks5client.KeyStoreInfo;
 import org.simplejavamail.mailer.internal.socks.socks5client.ProxyCredentials;
@@ -21,9 +22,9 @@ import java.net.Socket;
 public class AuthenticatingSocks5Bridge implements Socks5Bridge {
 	private static final Logger LOGGER = LoggerFactory.getLogger("socks5bridge");
 
-	private final SocksProxyConfig proxyConfig;
+	private final ProxyConfig proxyConfig;
 
-	public AuthenticatingSocks5Bridge(final SocksProxyConfig proxyConfig) {
+	public AuthenticatingSocks5Bridge(final ProxyConfig proxyConfig) {
 		this.proxyConfig = proxyConfig;
 	}
 
@@ -41,36 +42,16 @@ public class AuthenticatingSocks5Bridge implements Socks5Bridge {
 	private Socket createSocketAuthenticated(final String sessionId, final InetAddress remoteServerAddress, final int remoteServerPort)
 			throws IOException {
 		LOGGER.info("SESSION[{}] bridging to remote proxy {}", sessionId, proxyConfig);
-		final Socks5 proxyAuth = new Socks5(new InetSocketAddress(proxyConfig.remoteProxyHost, proxyConfig.remoteProxyPort));
-		proxyAuth.setCredentials(new ProxyCredentials(proxyConfig.username, proxyConfig.password));
+		final Socks5 proxyAuth = new Socks5(new InetSocketAddress(proxyConfig.getRemoteProxyHost(), proxyConfig.getRemoteProxyPort()));
+		proxyAuth.setCredentials(new ProxyCredentials(proxyConfig.getUsername(), proxyConfig.getPassword()));
 		return new SocksSocket(proxyAuth, proxyAuth.createProxySocket(), new InetSocketAddress(remoteServerAddress, remoteServerPort));
 	}
 
 	private Socket createSocketPlainAnonymous(final String sessionId, final InetAddress remoteServerAddress, final int remoteServerPort)
 			throws IOException {
-		LOGGER.info("SESSION[{}] bridging anonymously to remote proxy {}:{}", sessionId, proxyConfig.remoteProxyHost,
-				proxyConfig.remoteProxyPort);
-		final Socks5 socksProxyAnonymous = new Socks5(new InetSocketAddress(proxyConfig.remoteProxyHost, proxyConfig.remoteProxyPort));
+		LOGGER.info("SESSION[{}] bridging anonymously to remote proxy {}:{}", sessionId, proxyConfig.getRemoteProxyHost(),
+				proxyConfig.getRemoteProxyPort());
+		final Socks5 socksProxyAnonymous = new Socks5(new InetSocketAddress(proxyConfig.getRemoteProxyHost(), proxyConfig.getRemoteProxyPort()));
 		return new SocksSocket(socksProxyAnonymous, new InetSocketAddress(remoteServerAddress, remoteServerPort));
-	}
-
-	@SuppressWarnings("unused")
-	private Socket createSocketSSLAuthenticated(final String sessionId, final InetAddress remoteServerAddress, final int remoteServerPort)
-			throws IOException {
-		LOGGER.info("SESSION[{}] bridging with SSL to remote proxy {}", sessionId, proxyConfig);
-		final SSLSocks5 socksProxySSLAuth = new SSLSocks5(new InetSocketAddress("localhost", proxyConfig.proxyBridgePort),
-				new SSLConfiguration(null, new KeyStoreInfo("client-trust-keystore.jks", "123456", "JKS")));
-		socksProxySSLAuth.setCredentials(new ProxyCredentials(proxyConfig.username, proxyConfig.password));
-		return new SocksSocket(socksProxySSLAuth, new InetSocketAddress(remoteServerAddress, remoteServerPort));
-	}
-
-	@SuppressWarnings("unused")
-	private Socket createSocketSSL(final String sessionId, final InetAddress remoteServerAddress, final int remoteServerPort)
-			throws IOException {
-		LOGGER.info("SESSION[{}] bridging with SSL anonymously to remote proxy {}:{}", sessionId, proxyConfig.remoteProxyHost,
-				proxyConfig.remoteProxyPort);
-		final SSLSocks5 socksProxySSLAnonymous = new SSLSocks5(new InetSocketAddress("localhost", proxyConfig.proxyBridgePort),
-				new SSLConfiguration(null, new KeyStoreInfo("client-trust-keystore.jks", "123456", "JKS")));
-		return new SocksSocket(socksProxySSLAnonymous, new InetSocketAddress(remoteServerAddress, remoteServerPort));
 	}
 }

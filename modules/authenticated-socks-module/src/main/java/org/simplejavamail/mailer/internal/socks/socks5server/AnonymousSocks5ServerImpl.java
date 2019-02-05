@@ -13,31 +13,29 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * SOCKS server that accepts anonymous connections from JavaMail.
- * <p>
- * Java Mail only support anonymous SOCKS proxies; in order to support authenticated proxies, we need to create a man-in-the-middle: which is the
- * {@link AnonymousSocks5Server}.
+ * @see AnonymousSocks5Server
  */
-public class AnonymousSocks5Server implements Runnable {
-
+public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(AnonymousSocks5Server.class);
-
+	
 	private final Socks5Bridge socks5Bridge;
 	private final int proxyBridgePort;
-
+	
 	private ExecutorService threadPool;
 	private ServerSocket serverSocket;
 	private boolean stopping = false;
 	private boolean running = false;
-
-	public AnonymousSocks5Server(final Socks5Bridge socks5Bridge, final int proxyBridgePort) {
+	
+	public AnonymousSocks5ServerImpl(final Socks5Bridge socks5Bridge, final int proxyBridgePort) {
 		this.socks5Bridge = socks5Bridge;
 		this.proxyBridgePort = proxyBridgePort;
 	}
-
+	
 	/**
-	 * Binds the port and starts a thread to listen to incoming proxy connections from JavaMail.
+	 * @see AnonymousSocks5Server#start()
 	 */
+	@Override
 	public void start() {
 		if (running) {
 			throw new IllegalStateException("server already running!");
@@ -53,7 +51,8 @@ public class AnonymousSocks5Server implements Runnable {
 		}
 		new Thread(this).start();
 	}
-
+	
+	@Override
 	public void stop() {
 		stopping = true;
 		try {
@@ -62,7 +61,7 @@ public class AnonymousSocks5Server implements Runnable {
 			throw new SocksException(e.getMessage(), e);
 		}
 	}
-
+	
 	@Override
 	public void run() {
 		LOGGER.info("Starting proxy server at port {}", serverSocket.getLocalPort());
@@ -82,7 +81,7 @@ public class AnonymousSocks5Server implements Runnable {
 		running = false;
 		stopping = false;
 	}
-
+	
 	private void checkIoException(final Exception e) {
 		if (e.getMessage().equalsIgnoreCase("socket closed")) {
 			LOGGER.debug("socket closed");
@@ -92,11 +91,13 @@ public class AnonymousSocks5Server implements Runnable {
 			throw new SocksException("server crashed...", e);
 		}
 	}
-
+	
+	@Override
 	public boolean isStopping() {
 		return stopping;
 	}
-
+	
+	@Override
 	public boolean isRunning() {
 		return running;
 	}

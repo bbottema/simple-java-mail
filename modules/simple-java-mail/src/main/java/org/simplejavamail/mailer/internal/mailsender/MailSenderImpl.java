@@ -1,16 +1,17 @@
 package org.simplejavamail.mailer.internal.mailsender;
 
-import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.api.mailer.internal.mailsender.MailSender;
-import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.AsyncResponse;
-import org.simplejavamail.mailer.internal.MailerGenericBuilderImpl;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
-import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
-import org.simplejavamail.mailer.internal.socks.SocksProxyConfig;
+import org.simplejavamail.api.mailer.internal.mailsender.MailSender;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
+import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
+import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.mailer.internal.MailerGenericBuilderImpl;
+import org.simplejavamail.mailer.internal.socks.common.Socks5Bridge;
 import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,9 +156,11 @@ public class MailSenderImpl implements MailSender {
 					LOGGER.debug("no transport strategy provided but authenticated proxy required, expecting mail.smtp(s).socks.host and .port " +
 							"properties to be set to localhost and port " + proxyConfig.getProxyBridgePort());
 				}
-				SocksProxyConfig socksProxyConfig = new SocksProxyConfig(proxyConfig.getRemoteProxyHost(), proxyConfig.getRemoteProxyPort(),
+				AuthenticatedSocksModule asm = ModuleLoader.loadAuthenticatedSocksModule();
+				ProxyConfig socksProxyConfig = asm.createProxyConfig(proxyConfig.getRemoteProxyHost(), proxyConfig.getRemoteProxyPort(),
 						proxyConfig.getUsername(), proxyConfig.getPassword(), proxyConfig.getProxyBridgePort());
-				return new AnonymousSocks5Server(new AuthenticatingSocks5Bridge(socksProxyConfig), proxyConfig.getProxyBridgePort());
+				Socks5Bridge socks5Bridge = asm.createAuthenticatingSocks5Bridge(socksProxyConfig);
+				return asm.createAnonymousSocks5ServerImpl(socks5Bridge, proxyConfig.getProxyBridgePort());
 			}
 		}
 		return null;
