@@ -58,11 +58,11 @@
     <modules>
         <module>modules/core-module</module>
         <module>modules/core-test-module</module>
-        <module>modules/cli-module</module>
-        <module>modules/spring-module</module>
         <module>modules/outlook-module</module>
         <module>modules/dkim-module</module>
         <module>modules/simple-java-mail</module>
+        <module>modules/spring-module</module>
+        <module>modules/cli-module</module>
         <module>modules/jacoco-aggregator-module</module>
     </modules>
 

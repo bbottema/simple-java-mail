@@ -1,6 +1,6 @@
 package demo;
 
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.clisupport.CliSupport;
 
 public class CliShowGlobalHelpDemoApp {
 	
@@ -8,7 +8,7 @@ public class CliShowGlobalHelpDemoApp {
 	 * For more detailed logging open log4j2.xml and change "org.simplejavamail.internal.clisupport" to debug.
 	 */
 	public static void main(String[] args) {
-		ModuleLoader.loadCliModule().runCLI(new String[]{
+		CliSupport.runCLI(new String[]{
 				"--help"
 		});
 	}

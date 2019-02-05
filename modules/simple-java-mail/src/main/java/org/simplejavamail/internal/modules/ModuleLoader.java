@@ -25,16 +25,6 @@ public class ModuleLoader {
 		return (DKIMModule) LOADED_MODULES.get(DKIMModule.class);
 	}
 	
-	public static CLIModule loadCliModule() {
-		if (!LOADED_MODULES.containsKey(CLIModule.class)) {
-			LOADED_MODULES.put(CLIModule.class, loadModule(
-					"CLI",
-					"org.simplejavamail.internal.clisupport.CliSupport",
-					"https://github.com/simple-java-mail/cli-module"));
-		}
-		return (CLIModule) LOADED_MODULES.get(CLIModule.class);
-	}
-	
 	public static OutlookModule loadOutlookModule() {
 		if (!LOADED_MODULES.containsKey(OutlookModule.class)) {
 			LOADED_MODULES.put(OutlookModule.class, loadModule(

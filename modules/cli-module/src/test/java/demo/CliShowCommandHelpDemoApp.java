@@ -1,6 +1,6 @@
 package demo;
 
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.clisupport.CliSupport;
 
 public class CliShowCommandHelpDemoApp {
 	
@@ -9,10 +9,10 @@ public class CliShowCommandHelpDemoApp {
 	 */
 	public static void main(String[] args) {
 		System.out.println("--------------- SEND -------------------");
-		ModuleLoader.loadCliModule().runCLI(new String[]{"send", "--help"});
+		CliSupport.runCLI(new String[]{"send", "--help"});
 		System.out.println("\n\n\n\n\n\n-------------- CONNECT ------------------");
-		ModuleLoader.loadCliModule().runCLI(new String[]{"connect", "--help"});
+		CliSupport.runCLI(new String[]{"connect", "--help"});
 		System.out.println("\n\n\n\n\n\n------------- VALIDATE ------------------");
-		ModuleLoader.loadCliModule().runCLI(new String[]{"validate", "--help"});
+		CliSupport.runCLI(new String[]{"validate", "--help"});
 	}
 }

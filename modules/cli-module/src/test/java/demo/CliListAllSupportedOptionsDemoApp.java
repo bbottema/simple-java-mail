@@ -1,6 +1,6 @@
 package demo;
 
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.clisupport.CliSupport;
 
 public class CliListAllSupportedOptionsDemoApp {
 	
@@ -9,7 +9,7 @@ public class CliListAllSupportedOptionsDemoApp {
 	 */
 	public static void main(String[] args) {
 		long startMs = System.currentTimeMillis();
-		ModuleLoader.loadCliModule().listUsagesForAllOptions();
+		CliSupport.listUsagesForAllOptions();
 		System.out.println(((System.currentTimeMillis() - startMs) / 1000d) + "ms");
 	}
 }

@@ -2,6 +2,8 @@ package org.simplejavamail.cli;
 
 import org.simplejavamail.internal.modules.ModuleLoader;
 
+import static org.simplejavamail.internal.clisupport.CliSupport.*;
+
 /**
  * Wires all the args into the CLI support, which is dynamically class-loaded as it is an optional dependency.
  * <p>
@@ -17,6 +19,6 @@ import org.simplejavamail.internal.modules.ModuleLoader;
  */
 public class SimpleJavaMail {
 	public static void main(String[] args) {
-		ModuleLoader.loadCliModule().runCLI(args);
+		runCLI(args);
 	}
 }
