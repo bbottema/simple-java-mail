@@ -12,7 +12,7 @@
 		<relativePath>../../</relativePath>
 	</parent>
 
-	<artifactId>jacoco-aggregator-project</artifactId>
+	<artifactId>jacoco-aggregator-module</artifactId>
 	<packaging>pom</packaging>
 
 	<dependencies>
