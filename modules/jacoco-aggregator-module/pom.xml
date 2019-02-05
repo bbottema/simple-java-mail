@@ -30,6 +30,12 @@
 		</dependency>
 		<dependency>
 			<groupId>org.simplejavamail</groupId>
+			<artifactId>authenticated-socks-module</artifactId>
+			<version>${library.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.simplejavamail</groupId>
 			<artifactId>dkim-module</artifactId>
 			<version>${library.version}</version>
 			<scope>compile</scope>

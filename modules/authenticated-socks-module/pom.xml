@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.simplejavamail</groupId>
+        <artifactId>maven-master-project</artifactId>
+        <!--suppress MavenPropertyInParent -->
+        <version>${library.version}</version>
+        <relativePath>../../</relativePath>
+    </parent>
+
+    <artifactId>authenticated-socks-module</artifactId>
+    <packaging>jar</packaging>
+    <name>Simple Java Mail - Authenticated SOCKS module</name>
+    <description>Simple API, Complex Emails. Now with SOCKS5 support</description>
+
+    <dependencies>
+
+        <!-- core dependencies -->
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>core-module</artifactId>
+            <version>${library.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>
