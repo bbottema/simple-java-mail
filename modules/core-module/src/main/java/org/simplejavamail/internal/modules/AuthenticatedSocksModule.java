@@ -1,8 +1,8 @@
 package org.simplejavamail.internal.modules;
 
 import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.mailer.internal.socks.common.Socks5Bridge;
-import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
+import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 
 public interface AuthenticatedSocksModule {
 	ProxyConfig createProxyConfig(String remoteProxyHost, Integer remoteProxyPort, String username, String password, Integer proxyBridgePort);

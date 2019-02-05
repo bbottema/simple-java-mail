@@ -11,8 +11,8 @@ import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelp
 import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.mailer.internal.MailerGenericBuilderImpl;
-import org.simplejavamail.mailer.internal.socks.common.Socks5Bridge;
-import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
+import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

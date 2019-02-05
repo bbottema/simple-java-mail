@@ -134,7 +134,7 @@ public class MimeMessageHelperTest {
 				EmailConverter.emailToMimeMessage(email);
 			}
 		})
-				.hasMessage("DKIM module not found, make sure it is on the classpath (https://github.com/simple-java-mail/dkim-module)");
+				.hasMessage("DKIM module not found, make sure it is on the classpath (https://github.com/bbottema/simple-java-mail/tree/develop/modules/dkim-module)");
 		
 		PowerMockito.mockStatic(MiscUtil.class);
 		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner")).willCallRealMethod();

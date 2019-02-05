@@ -2,11 +2,9 @@ package org.simplejavamail.internal.authenticatedsockssupport;
 
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
-import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
-import org.simplejavamail.mailer.internal.socks.SocksProxyConfig;
-import org.simplejavamail.mailer.internal.socks.common.Socks5Bridge;
-import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5Server;
-import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5ServerImpl;
+import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
+import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.internal.authenticatedsockssupport.socks5server.AnonymousSocks5ServerImpl;
 
 @SuppressWarnings("unused")
 public class AuthenticatedSocksHelper implements AuthenticatedSocksModule {
