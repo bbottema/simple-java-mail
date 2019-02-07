@@ -1,25 +1,20 @@
 package org.simplejavamail.internal.authenticatedsockssupport;
 
-import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
-import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5server.AnonymousSocks5ServerImpl;
+import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
+
+import javax.annotation.Nonnull;
+
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 @SuppressWarnings("unused")
 public class AuthenticatedSocksHelper implements AuthenticatedSocksModule {
-	@Override
-	public ProxyConfig createProxyConfig(String remoteProxyHost, Integer remoteProxyPort, String username, String password, Integer proxyBridgePort) {
-		return new SocksProxyConfig(remoteProxyHost, remoteProxyPort, username, password, proxyBridgePort);
-	}
 	
 	@Override
-	public Socks5Bridge createAuthenticatingSocks5Bridge(ProxyConfig socksProxyConfig) {
-		return new AuthenticatingSocks5Bridge(socksProxyConfig);
-	}
-	
-	@Override
-	public AnonymousSocks5Server createAnonymousSocks5ServerImpl(Socks5Bridge socks5Bridge, int proxyBridgePort) {
-		return new AnonymousSocks5ServerImpl(socks5Bridge, proxyBridgePort);
+	public AnonymousSocks5Server createAnonymousSocks5Server(@Nonnull ProxyConfig socksProxyConfig) {
+		final Integer proxyBridgePort = checkNonEmptyArgument(socksProxyConfig.getProxyBridgePort(), "proxyBridgePort");
+		return new AnonymousSocks5ServerImpl(new AuthenticatingSocks5Bridge(socksProxyConfig), proxyBridgePort);
 	}
 }

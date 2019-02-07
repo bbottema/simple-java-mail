@@ -15,7 +15,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
 
-public class SSLConfiguration {
+class SSLConfiguration {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SSLConfiguration.class);
 
@@ -23,7 +23,7 @@ public class SSLConfiguration {
 	private final KeyStoreInfo trustKeyStoreInfo;
 
 	@SuppressWarnings("SameParameterValue")
-	public SSLConfiguration(final KeyStoreInfo keyStoreInfo, final KeyStoreInfo trustKeyStoreInfo) {
+	private SSLConfiguration(final KeyStoreInfo keyStoreInfo, final KeyStoreInfo trustKeyStoreInfo) {
 		this.keyStoreInfo = keyStoreInfo;
 		this.trustKeyStoreInfo = trustKeyStoreInfo;
 	}

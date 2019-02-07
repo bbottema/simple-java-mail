@@ -1,11 +1,9 @@
-
-
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
 import org.simplejavamail.internal.util.MiscUtil;
 
 @SuppressWarnings("SameParameterValue")
-public class KeyStoreInfo {
+class KeyStoreInfo {
 
 	private final String keyStorePath;
 	private final String password;

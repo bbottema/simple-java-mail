@@ -1,7 +1,5 @@
 package org.simplejavamail.cli;
 
-import org.simplejavamail.internal.modules.ModuleLoader;
-
 import static org.simplejavamail.internal.clisupport.CliSupport.*;
 
 /**

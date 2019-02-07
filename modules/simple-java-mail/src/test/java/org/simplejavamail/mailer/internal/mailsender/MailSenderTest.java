@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.mailer.internal.OperationalConfigImpl;
-import org.simplejavamail.mailer.internal.ProxyConfigImpl;
 
 import javax.annotation.Nonnull;
 import javax.mail.Session;
@@ -34,7 +33,7 @@ public class MailSenderTest {
 	@Nonnull
 	@SuppressWarnings("deprecation")
 	private ProxyConfig createEmptyProxyConfig() {
-		return new ProxyConfigImpl(null, null, null, null, -1);
+		return new ProxyConfig(null, null, null, null, null);
 	}
 	
 	@Test

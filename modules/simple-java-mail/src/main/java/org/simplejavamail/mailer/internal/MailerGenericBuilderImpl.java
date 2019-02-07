@@ -142,7 +142,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	@SuppressWarnings("deprecation")
 	ProxyConfig buildProxyConfig() {
 		validateProxy();
-		return new ProxyConfigImpl(getProxyHost(), getProxyPort(), getProxyUsername(), getProxyPassword(), getProxyBridgePort());
+		return new ProxyConfig(getProxyHost(), getProxyPort(), getProxyUsername(), getProxyPassword(), getProxyBridgePort());
 	}
 	
 	private void validateProxy() {
