@@ -6,7 +6,8 @@
     <groupId>org.simplejavamail</groupId>
     <artifactId>maven-master-project</artifactId>
     <packaging>pom</packaging>
-    <version>${library.version}</version>
+    <!-- update by fixing library.version and then "mvn versions:set" -->
+    <version>6.0.0.beta-SNAPSHOT.2</version>
  
     <name>Simple Java Mail - Maven master project</name>
     <url>http://www.simplejavamail.org/</url>
@@ -21,6 +22,7 @@
         <log4j-slf4j-impl.version>2.6.1</log4j-slf4j-impl.version>
         <log4j-api.version>2.6.1</log4j-api.version>
         <log4j-core.version>2.6.1</log4j-core.version>
+        <newVersion>${library.version}</newVersion> <!-- used by the maven versions plugins -->
     </properties>
 
     <licenses>

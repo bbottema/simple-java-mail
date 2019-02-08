@@ -10,13 +10,13 @@ That, or you can install one of the binaries to import the key, from here: https
 To release:
 
  1. update release notes and github readme page (don't commit)
- 2. remove SNAPSHOT version
- 3. mvn -DperformRelease=true clean deploy
+ 2. remove SNAPSHOT version from the <library.version> property and execute "mvn versions:set -DgenerateBackupPoms=false"
+ 4. mvn -DperformRelease=true clean deploy
             (set password in settings.xml or use local pgp key password, for which the public key must have been sent to a public key server,
             eg: gpg --keyserver hkp://keyserver.ubuntu.com --send-keys 05AC6403)
 		    server needed in settings.xml (see below)
- 4. Go to https://oss.sonatype.org and release the artifact so it is submitted to Maven Central
- 5. add new SNAPSHOT version and commit everything
+ 5. Go to https://oss.sonatype.org and release the artifact so it is submitted to Maven Central
+ 6. add new SNAPSHOT version to the <library.version> property, execute "mvn versions:set -DgenerateBackupPoms=false" and commit everything
 
 maven's settings.xml:
 
