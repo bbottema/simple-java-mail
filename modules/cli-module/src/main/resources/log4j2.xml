@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--suppress XmlUnboundNsPrefix -->
+<configuration status="INFO">
+    <appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss} [%t] %-5level %c{1} - %msg%n" />
+        </Console>
+        <Console name="simpleConsole" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d Simple Java Mail SOCKS5 bridge - %level %m%n" />
+        </Console>
+    </appenders>
+    <Loggers>
+        <Logger name="org.simplejavamail" level="debug"/>
+        <Logger name="org.simplejavamail.mailer.internal.MailerImpl" level="trace"/>
+        <Logger name="org.simplejavamail.internal.clisupport" level="info"/>
+
+        <!-- in case you're using authenticated proxy -->
+        <Logger name="socks5bridge" level="info" additivity="false">
+            <AppenderRef ref="simpleConsole" />
+        </Logger>
+        <Logger name="org.simplejavamail.api.mailer.internal.socks" level="info"/>
+        <Logger name="org.subethamail.smtp.server" level="info"/>
+
+        <Root level="debug">
+            <AppenderRef ref="console" />
+        </Root>
+    </Loggers>
+</configuration>

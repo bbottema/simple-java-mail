@@ -41,6 +41,28 @@
             <version>0.9.0</version>
         </dependency>
 
+        <!-- dependencies that should be included in the assembly for the stand-alone jar -->
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>authenticated-socks-module</artifactId>
+            <version>${library.version}</version>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>dkim-module</artifactId>
+            <version>${library.version}</version>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>outlook-module</artifactId>
+            <version>${library.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- test -->
         <dependency>
             <groupId>org.simplejavamail</groupId>
@@ -48,12 +70,59 @@
             <version>${library.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.simplejavamail</groupId>
-            <artifactId>outlook-module</artifactId>
-            <version>${library.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>appassembler-maven-plugin</artifactId>
+                <version>1.8.1</version>
+                <configuration>
+                    <configurationSourceDirectory>src/main/resources</configurationSourceDirectory>
+                    <copyConfigurationDirectory>true</copyConfigurationDirectory>
+                    <repositoryLayout>flat</repositoryLayout>
+                    <repositoryName>lib</repositoryName>
+                    <showConsoleWindow>true</showConsoleWindow>
+                    <platforms>
+                        <platform>unix</platform>
+                        <platform>windows</platform>
+                    </platforms>
+                    <programs>
+                        <program>
+                            <mainClass>org.simplejavamail.cli.SimpleJavaMail</mainClass>
+                            <id>sjm</id>
+                        </program>
+                    </programs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>assemble</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/assembly/standalone-cli-descriptor.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>assemble-all</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
