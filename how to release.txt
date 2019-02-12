@@ -33,7 +33,7 @@ To have a global gpg password so that it will use that automatically:
                 <id>gpg</id>
                 <properties>
                     <gpg.executable>gpg</gpg.executable>
-                    <gpg.passphrase>letmein</gpg.passphrase>
+                    <gpg.passphrase>password</gpg.passphrase>
                 </properties>
             </profile>
         </profiles>
