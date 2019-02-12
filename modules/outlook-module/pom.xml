@@ -23,7 +23,7 @@
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>core-module</artifactId>
-            <version>${library.version}</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
 

@@ -27,7 +27,7 @@
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>core-module</artifactId>
-            <version>${library.version}</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
 
@@ -35,19 +35,19 @@
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>authenticated-socks-module</artifactId>
-            <version>${library.version}</version>
+            <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>dkim-module</artifactId>
-            <version>${library.version}</version>
+            <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>outlook-module</artifactId>
-            <version>${library.version}</version>
+            <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
 
@@ -55,7 +55,7 @@
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>core-test-module</artifactId>
-            <version>${library.version}</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
