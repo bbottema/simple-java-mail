@@ -7,7 +7,13 @@ gpg --allow-secret-key-import --import <keyring>.gpg
 
 That, or you can install one of the binaries to import the key, from here: https://www.gnupg.org/download/index.html
 
-To release:
+To release through CI/CD pipeline in CircleCI
+
+ 1. update release notes and github readme page and push changes
+ 2. go to the CI/CD pipeline https://circleci.com/gh/bbottema/simple-java-mail
+ 3. select the version release needed
+
+To release manually:
 
  1. update release notes and github readme page (don't commit)
  2. remove SNAPSHOT version from the <version> property
