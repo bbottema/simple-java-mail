@@ -22,7 +22,7 @@
         <log4j-slf4j-impl.version>2.6.1</log4j-slf4j-impl.version>
         <log4j-api.version>2.6.1</log4j-api.version>
         <log4j-core.version>2.6.1</log4j-core.version>
-        <newVersion>${library.version}</newVersion> <!-- used by the maven versions plugins -->
+        <newVersion>${library.version}</newVersion> <!-- used by the maven versions plugins when updating all modules at once -->
     </properties>
 
     <licenses>
