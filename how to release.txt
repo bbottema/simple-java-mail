@@ -24,15 +24,15 @@ To release manually:
  5. Go to https://oss.sonatype.org and release the artifact so it is submitted to Maven Central
  6. add new SNAPSHOT version to the <version> property, execute and commit everything
 
-maven's settings.xml:
+    maven's settings.xml:
 
-    <server>
-      <id>ossrh</id>
-      <username>sonatype user</username>
-      <password>sonatype password</password>
-    </server>
+        <server>
+          <id>ossrh</id>
+          <username>sonatype user</username>
+          <password>sonatype password</password>
+        </server>
 
-To have a global gpg password so that it will use that automatically:
+    To have a global gpg password so that it will use that automatically:
 
         <profiles>
             <profile>
