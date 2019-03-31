@@ -1,27 +1,3 @@
-[submodule "modules/cli-module"]
-	path = modules/cli-module
-	url = https://github.com/simple-java-mail/cli-module.git
-[submodule "modules/spring-module"]
-	path = modules/spring-module
-	url = https://github.com/simple-java-mail/spring-module.git
-[submodule "modules/outlook-module"]
-	path = modules/outlook-module
-	url = https://github.com/simple-java-mail/outlook-module.git
-[submodule "modules/dkim-module"]
-	path = modules/dkim-module
-	url = https://github.com/simple-java-mail/dkim-module.git
-[submodule "modules/core-module"]
-	path = modules/core-module
-	url = https://github.com/simple-java-mail/core-module.git
-[submodule "modules/cli-module-commons"]
-	path = modules/cli-module-commons
-	url = https://github.com/simple-java-mail/cli-module-commons.git
 [submodule "angular-app"]
 	path = angular-app
 	url = https://github.com/simple-java-mail/angular-app.git
-[submodule "modules/simple-java-mail"]
-	path = modules/simple-java-mail
-	url = https://github.com/bbottema/simple-java-mail.git
-[submodule "modules/core-test-module"]
-	path = modules/core-test-module
-	url = https://github.com/simple-java-mail/core-test-module.git
