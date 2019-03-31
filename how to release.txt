@@ -7,6 +7,24 @@ gpg --allow-secret-key-import --import <keyring>.gpg
 
 That, or you can install one of the binaries to import the key, from here: https://www.gnupg.org/download/index.html
 
+To import the keyring in a CI/CD environment (CircleCI, Azure Devops, Bamboo, Jenkins etc.), you need to import the keyring
+externally (or us a private Repo). Alternatively you can import the ASCII export of the key configured as a property secret
+so you can ECHO it to a file during the build. Once exposed as file, you can use it to sign:
+
+To generate the ASCII export of a key so you can store it a secret property in your build environment:
+    - gpg --no-default-keyring --armor --secret-keyring ./secring.gpg --keyring ./pubring.gpg --export-secret-key USER > secring.gpg.asc
+    - sed ':a;N;$!ba;s/\n/\\n/g' secring.gpg.asc, OR
+    - base64 encode the text
+
+To be able to have your CI/CD script also commit the new version, you need to add github.com's official host finger print.
+    - https://serverfault.com/a/701637/157338
+    - https://discuss.circleci.com/t/error-sending-to-agent-inappropriate-ioctl-for-device/17465/2
+    - https://medium.com/@Joachim8675309/generating-gpg-key-files-cc447431415a
+    - http://frankiesardo.github.io/posts/2015-04-19-automate-everything-with-circleci.html
+    - https://github.com/toknapp/arweave4s/blob/master/.circleci/config.yml
+    - https://serverfault.com/questions/447028/non-interactive-git-clone-ssh-fingerprint-prompt
+    - https://superuser.com/questions/232373/how-to-tell-git-which-private-key-to-use
+
 To release through CI/CD pipeline in CircleCI
 
  1. update release notes and github readme page and push changes

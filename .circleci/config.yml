@@ -1,106 +1,56 @@
 version: 2.1
 
-executors:
-  maven-executor:
-    docker:
-      - image: circleci/openjdk:8u171-jdk
+orbs:
+  github-maven-deploy: github-maven-deploy/github-maven-deploy@dev:22
 
-jobs:
+mvn-build-test-command: &mvn-build-test-command
+  mvn-build-test-command: mvn verify -DexcludeLiveServerTests=true
 
-  build-and-test:
-    executor: maven-executor
+mvn-collect-artifacts-command: &mvn-collect-artifacts-command
+  mvn-collect-artifacts-command: |
+    mkdir -p artifacts/cli artifacts/coverage artifacts/junit artifacts/javadoc
+    cp **/target/*.jar artifacts/
+    cp modules/cli-module/target/*standalone* artifacts/cli/
+    cp -a target/apidocs/. artifacts/javadoc/
+    cp -a modules/jacoco-aggregator-module/target/site/jacoco-aggregate/. artifacts/coverage/
+    cp -a **/target/surefire-reports/. artifacts/junit
 
-    steps:
-      - checkout
-      - restore_cache:
-          key: simple-java-mail-{{ checksum ".circleci/config.yml" }}
-      - run:
-          command: mvn verify -DexcludeLiveServerTests=true
-      - save_cache:
-          paths:
-            - ~/.m2
-          key: simple-java-mail-{{ checksum ".circleci/config.yml" }}
-      - persist_to_workspace:
-          root: .
-          paths:
-            - .
-      - run:
-          shell: /bin/bash -eo pipefail -O globstar
-          command: |
-            mkdir -p artifacts/cli artifacts/coverage artifacts/junit artifacts/javadoc
-            cp **/target/*.jar artifacts/
-            cp modules/cli-module/target/*standalone* artifacts/cli/
-            cp -a target/apidocs/. artifacts/javadoc/
-            cp -a modules/jacoco-aggregator-module/target/site/jacoco-aggregate/. artifacts/coverage/
-            cp -a **/target/surefire-reports/. artifacts/junit
-      - store_artifacts:
-          path: artifacts
-      - store_test_results:
-          path: artifacts/junit
-
-  deploy-patch-version:
-    executor: maven-executor
-    steps:
-      - deploy:
-          versioncommand: mvn build-helper:parse-version versions:set -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion} versions:commit
-
-  deploy-minor-version:
-    executor: maven-executor
-    steps:
-      - deploy:
-          versioncommand: mvn build-helper:parse-version versions:set -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.nextMinorVersion}.\${parsedVersion.incrementalVersion} versions:commit
-
-  deploy-major-version:
-    executor: maven-executor
-    steps:
-      - deploy:
-          versioncommand: mvn build-helper:parse-version versions:set -DnewVersion=\${parsedVersion.nextMajorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.incrementalVersion} versions:commit
-
-
-commands:
-  deploy:
-    parameters:
-      versioncommand:
-        type: string
-    steps:
-      - attach_workspace:
-          at: .
-      - restore_cache:
-          key: simple-java-mail-{{ checksum ".circleci/config.yml" }}
-      - run:
-          command: |
-            echo "Starting new release..."
-            << parameters.versioncommand >>
-            MVN_VERSION=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
-            echo "Releasing version ${MVN_VERSION}..."
-            # mvn -s .circleci/maven-release-settings.xml clean deploy nexus-staging:release -DdeployAtEnd=true -DperformRelease=true -DskipTests
-            mvn build-helper:parse-version versions:set -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}-SNAPSHOT versions:commit
-            # git commit -am "released ${MVN_VERSION}" && git push
-            echo "Succesfully released ${MVN_VERSION}"
-
+mvn-deploy-command: &mvn-deploy-command
+  mvn-deploy-command: mvn -s .circleci/maven-release-settings.xml clean deploy -DdeployAtEnd=true -DperformRelease=true -DskipTests -Dspotbugs.skip=true
+  context: RELEASE_PROFILE_BBOTTEMA
 
 workflows:
   workflow:
     jobs:
-      - build-and-test
-      - approve-deploy-patch-version:
+      - github-maven-deploy/build-and-test:
+          <<: *mvn-build-test-command
+          <<: *mvn-collect-artifacts-command
+          filters:
+            branches:
+              only: master
+
+      - github-maven-deploy/approve-deploy-patch-version:
           type: approval
           requires:
-            - build-and-test
-      - approve-deploy-minor-version:
+            - github-maven-deploy/build-and-test
+      - github-maven-deploy/approve-deploy-minor-version:
           type: approval
           requires:
-            - build-and-test
-      - approve-deploy-major-version:
+            - github-maven-deploy/build-and-test
+      - github-maven-deploy/approve-deploy-major-version:
           type: approval
           requires:
-            - build-and-test
-      - deploy-patch-version:
+            - github-maven-deploy/build-and-test
+
+      - github-maven-deploy/deploy-patch-version:
           requires:
-            - approve-deploy-patch-version
-      - deploy-minor-version:
+            - github-maven-deploy/approve-deploy-patch-version
+          <<: *mvn-deploy-command
+      - github-maven-deploy/deploy-minor-version:
           requires:
-            - approve-deploy-minor-version
-      - deploy-major-version:
+            - github-maven-deploy/approve-deploy-minor-version
+          <<: *mvn-deploy-command
+      - github-maven-deploy/deploy-major-version:
           requires:
-            - approve-deploy-major-version
+            - github-maven-deploy/approve-deploy-major-version
+          <<: *mvn-deploy-command
