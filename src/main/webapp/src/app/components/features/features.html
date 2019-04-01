@@ -126,7 +126,9 @@ MailerBuilder
     </div>
 
     <div class="side">
-<pre><code>Mailer inhouseMailer = new Mailer("server", 25, "username", "password");
+<pre><code>Mailer inhouseMailer = MailerBuilder
+    .withSMTPServer("server", 25, "username", "password")
+    .buildMailer();
 
 inhouseMailer.sendMail(email);
 inhouseMailer.sendMail(anotherEmail);
