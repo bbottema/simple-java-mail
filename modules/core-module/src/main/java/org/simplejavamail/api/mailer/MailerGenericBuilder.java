@@ -31,6 +31,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	int DEFAULT_POOL_SIZE = 10;
 	/**
+	 * Default port is <code>{@value}</code>.
+	 */
+	int DEFAULT_PROXY_PORT = 1080;
+	/**
 	 * The temporary intermediary SOCKS5 relay server bridge is a server that sits in between JavaMail and the remote proxy.
 	 * Default port is <code>{@value}</code>.
 	 */
@@ -82,10 +86,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * Sets the proxy port, which will override any default that might have been set (through properties file or programmatically).
 	 * <p>
-	 * Proxy port is required if a proxyHost has been configured.
+	 * Defaults to {@value DEFAULT_PROXY_PORT} if no custom default property was configured.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
-	// TODO take default port from transport strategy
 	T withProxyPort(@Nullable Integer proxyPort);
 	
 	/**
@@ -110,6 +113,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Relevant only when using username authentication with a proxy.
 	 * <p>
 	 * Overrides the default for the intermediary SOCKS5 relay server bridge, which is a server that sits in between JavaMail and the remote proxy.
+	 * <p>
 	 * Defaults to {@value DEFAULT_PROXY_BRIDGE_PORT} if no custom default property was configured.
 	 *
 	 * @param proxyBridgePort The port to use for the proxy bridging server.

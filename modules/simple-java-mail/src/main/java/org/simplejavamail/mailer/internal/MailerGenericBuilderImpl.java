@@ -21,7 +21,6 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 
@@ -114,23 +113,21 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	MailerGenericBuilderImpl() {
 		if (hasProperty(PROXY_HOST)) {
-			withProxyHost(ConfigLoader.getStringProperty(PROXY_HOST));
-		}
-		if (hasProperty(PROXY_PORT)) {
-			withProxyPort(ConfigLoader.getIntegerProperty(PROXY_PORT));
+			this.proxyHost = ConfigLoader.getStringProperty(PROXY_HOST);
 		}
 		if (hasProperty(PROXY_USERNAME)) {
-			withProxyUsername(ConfigLoader.getStringProperty(PROXY_USERNAME));
+			this.proxyUsername = ConfigLoader.getStringProperty(PROXY_USERNAME);
 		}
 		if (hasProperty(PROXY_PASSWORD)) {
-			withProxyPassword(ConfigLoader.getStringProperty(PROXY_PASSWORD));
+			this.proxyPassword = ConfigLoader.getStringProperty(PROXY_PASSWORD);
 		}
-		
-		this.proxyBridgePort = assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
-		this.debugLogging = assumeNonNull(ConfigLoader.valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
-		this.sessionTimeout = assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
-		this.threadPoolSize = assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
-		this.transportModeLoggingOnly = assumeNonNull(ConfigLoader.valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
+
+		this.proxyPort 					= assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
+		this.proxyBridgePort 			= assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
+		this.debugLogging 				= assumeNonNull(ConfigLoader.valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
+		this.sessionTimeout 			= assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
+		this.threadPoolSize 			= assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
+		this.transportModeLoggingOnly 	= assumeNonNull(ConfigLoader.valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
 		
 		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
 		this.trustAllSSLHost = true;
@@ -212,7 +209,6 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 * @see MailerGenericBuilder#withProxyPort(Integer)
 	 */
 	@Override
-	// TODO take default port from transport strategy
 	public T withProxyPort(@Nullable final Integer proxyPort) {
 		this.proxyPort = proxyPort;
 		return (T) this;
