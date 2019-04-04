@@ -25,6 +25,9 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * To learn more about the various transport modes, the properties they set and the security
 	 * implications, please refer to the full TransportStrategy<br>
 	 * <a href="www.javadoc.io/page/org.simplejavamail/simple-java-mail/latest/org/simplejavamail/mailer/config/TransportStrategy.html">javadoc</a>.
+	 * <p>
+	 * <strong>Note:</strong> if no server port has been set, a default will be taken based on the transport strategy, since every different
+	 * connection type uses a different default port.
 	 *
 	 * @param transportStrategy The name of the transport strategy to use: {@link TransportStrategy#SMTP}, {@link TransportStrategy#SMTPS} or
 	 *                                {@link TransportStrategy#SMTP_TLS}. Defaults to {@link TransportStrategy#SMTP}.
@@ -70,7 +73,8 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	T withSMTPServerHost(@Nullable String host);
 	
 	/**
-	 * Sets the optional SMTP port. Will default to pre-configured property if left empty.
+	 * Sets the optional SMTP port. Will default to pre-configured property if not overridden. If left empty,
+	 * the default will be determined based on the transport strategy.
 	 *
 	 * @param port Optional port number that defaults to pre-configured property if left empty.
 	 */

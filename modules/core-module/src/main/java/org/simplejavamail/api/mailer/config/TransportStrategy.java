@@ -45,6 +45,12 @@ public enum TransportStrategy {
      * </ul>
 	 */
 	SMTP {
+
+		/**
+		 * When no server port has been configured either through property or by builder api (Java / CLI),
+		 * port <code>{@value}</code> will be used.
+		 */
+		private static final int DEFAULT_SMTP_PORT = 25;
 		
 		/**
 		 * Defaults to enabled opportunistic TLS behavior ({@link #opportunisticTLS}), in case value was not programmatically set or provided
@@ -141,7 +147,7 @@ public enum TransportStrategy {
 		public String propertyNameTimeout() {
 			return "mail.smtp.timeout";
 		}
-		
+
 		/**
 		 * @return "mail.smtp.writetimeout"
 		 */
@@ -174,6 +180,15 @@ public enum TransportStrategy {
 		public void setOpportunisticTLS(@Nullable final Boolean opportunisticTLS) {
 			this.opportunisticTLS = opportunisticTLS;
 		}
+
+		/**
+		 * @return {@value DEFAULT_SMTP_PORT}
+		 * @see #DEFAULT_SMTP_PORT
+		 */
+		@Override
+		public int getDefaultServerPort() {
+			return DEFAULT_SMTP_PORT;
+		}
 	},
 	/**
 	 * SMTP entirely encapsulated by TLS. Commonly known as SMTPS.
@@ -200,6 +215,13 @@ public enum TransportStrategy {
 	 * </ul>
 	 */
 	SMTPS {
+
+		/**
+		 * When no server port has been configured either through property or by builder api (Java / CLI),
+		 * port <code>{@value}</code> will be used.
+		 */
+		private static final int DEFAULT_SMTPS_PORT = 465;
+
 		/**
 		 * @see TransportStrategy#SMTPS
 		 */
@@ -275,7 +297,7 @@ public enum TransportStrategy {
 		public String propertyNameTimeout() {
 			return "mail.smtps.timeout";
 		}
-		
+
 		/**
 		 * @return "mail.smtps.writetimeout"
 		 */
@@ -299,6 +321,15 @@ public enum TransportStrategy {
 		public String propertyNameSSLTrust() {
 			return "mail.smtps.ssl.trust";
 		}
+
+		/**
+		 * @return {@value DEFAULT_SMTPS_PORT}
+		 * @see #DEFAULT_SMTPS_PORT
+		 */
+		@Override
+		public int getDefaultServerPort() {
+			return DEFAULT_SMTPS_PORT;
+		}
 	},
 	/**
 	 * Plaintext SMTP with a mandatory, authenticated STARTTLS upgrade.
@@ -316,6 +347,13 @@ public enum TransportStrategy {
 	 * </ul>
 	 */
 	SMTP_TLS {
+
+		/**
+		 * When no server port has been configured either through property or by builder api (Java / CLI),
+		 * port <code>{@value}</code> will be used.
+		 */
+		private static final int DEFAULT_SMTP_TLS_PORT = 587;
+
 		/**
 		 * @see TransportStrategy#SMTP_TLS
 		 */
@@ -392,7 +430,7 @@ public enum TransportStrategy {
 		public String propertyNameTimeout() {
 			return "mail.smtp.timeout";
 		}
-		
+
 		/**
 		 * @return "mail.smtp.writetimeout"
 		 */
@@ -415,6 +453,15 @@ public enum TransportStrategy {
 		@Override
 		public String propertyNameSSLTrust() {
 			return "mail.smtp.ssl.trust";
+		}
+
+		/**
+		 * @return {@value DEFAULT_SMTP_TLS_PORT}
+		 * @see #DEFAULT_SMTP_TLS_PORT
+		 */
+		@Override
+		public int getDefaultServerPort() {
+			return DEFAULT_SMTP_TLS_PORT;
 		}
 	};
 	
@@ -481,6 +528,10 @@ public enum TransportStrategy {
 	 * For internal use only.
 	 */
 	public abstract String propertyNameTimeout();
+	/**
+	 * For internal use only.
+	 */
+	public abstract int getDefaultServerPort();
 	
 	/**
 	 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property

@@ -5,6 +5,7 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.internal.util.SimpleOptional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -166,14 +167,14 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@SuppressWarnings("deprecation")
 	ServerConfig buildServerConfig() {
 		vallidateServerConfig();
-		return new ServerConfigImpl(assumeNonNull(getHost()), assumeNonNull(getPort()), getUsername(), getPassword());
+		final int serverPort = SimpleOptional.ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
+		return new ServerConfigImpl(assumeNonNull(getHost()), serverPort, getUsername(), getPassword());
 	}
-	
+
 	private void vallidateServerConfig() {
 		checkArgumentNotEmpty(host, "SMTP server host missing");
-		checkArgumentNotEmpty(port, "SMTP server port missing");
 	}
-	
+
 	/**
 	 * @see MailerRegularBuilder#getHost()
 	 */
