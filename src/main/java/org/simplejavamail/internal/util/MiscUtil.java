@@ -149,4 +149,9 @@ public final class MiscUtil {
 			return false;
 		}
 	}
+	
+	@Nullable
+	public static String normalizeNewlines(final @Nullable String text) {
+		return text == null ? null : text.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
+	}
 }

@@ -63,7 +63,4 @@ public class EmailHelper {
 		return outlookMsgToEmailBuilder(resourceAsStream);
 	}
 	
-	public static String normalizeText(String text) {
-		return text.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
-	}
 }

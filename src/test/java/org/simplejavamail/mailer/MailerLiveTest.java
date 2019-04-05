@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
-import static testutil.EmailHelper.normalizeText;
+import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 import static testutil.EmailHelper.readOutlookMessage;
 
 @SuppressWarnings("unused")
@@ -86,10 +86,12 @@ public class MailerLiveTest {
 		// Outlook overrode this when saving the .email to match the mail account
 		EmailAssert.assertThat(email).hasRecipients(new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO));
 		EmailAssert.assertThat(email).hasReplyToRecipient(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", null));
-		assertThat(normalizeText(email.getPlainText())).isEqualTo("We should meet up!\n");
+		assertThat(normalizeNewlines(email.getPlainText())).isEqualTo("We should meet up!\n");
 		// Outlook overrode this value too OR converted the original HTML to RTF, from which OutlookMessageParser derived this HTML
-		assertThat(normalizeText(email.getHTMLText())).contains(
-				"<html><body style=\"font-family:'Courier',monospace;font-size:10pt;\">   <br/>      <br/> <b>   We should meet up! <br/>  </b>   <br/>  <img src=\"cid:thumbsup\"> <br/> ");
+		assertThat(normalizeNewlines(email.getHTMLText())).contains(
+				"<html><body style=\"font-family:'Courier',monospace;font-size:10pt;\">   <br/> \n" +
+						"     <br/> <b>   We should meet up! <br/>  </b>   <br/>  <img src=\"cid:thumbsup\">\n" +
+						" <br/> </body></html>");
 		// the RTF was probably created by Outlook based on the HTML when the message was saved
 		assertThat(email.getAttachments()).hasSize(2);
 		assertThat(email.getEmbeddedImages()).hasSize(1);
@@ -100,9 +102,9 @@ public class MailerLiveTest {
 		assertAttachmentMetadata(attachment1, "text/plain", "dresscode.txt");
 		assertAttachmentMetadata(attachment2, "text/plain", "location.txt");
 		assertAttachmentMetadata(embeddedImg, "image/png", "thumbsup");
-
-		assertThat(normalizeText(attachment1.readAllData())).isEqualTo("Black Tie Optional");
-		assertThat(normalizeText(attachment2.readAllData())).isEqualTo("On the moon!");
+		
+		assertThat(normalizeNewlines(attachment1.readAllData())).isEqualTo("Black Tie Optional");
+		assertThat(normalizeNewlines(attachment2.readAllData())).isEqualTo("On the moon!");
 	}
 
 	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean compensateForDresscodeAttachmentNameOverrideErasure)

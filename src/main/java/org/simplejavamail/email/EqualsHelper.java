@@ -3,6 +3,8 @@ package org.simplejavamail.email;
 import javax.activation.DataSource;
 import java.util.List;
 
+import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
+
 /**
  * Util class to get rid of some boilerplate code in the core classes. The equals code was needed to analyze junit test errors.
  * <p>
@@ -30,7 +32,7 @@ final class EqualsHelper {
 		if (email1.getEmailToForward() != null ? email2.getEmailToForward() == null : email2.getEmailToForward() != null) {
 			return false;
 		}
-		if (email1.getHTMLText() != null ? !email1.getHTMLText().equals(email2.getHTMLText()) : email2.getHTMLText() != null) {
+		if (email1.getHTMLText() != null ? !normalizeNewlines(email1.getHTMLText()).equals(normalizeNewlines(email2.getHTMLText())) : email2.getHTMLText() != null) {
 			return false;
 		}
 		if (email1.getSubject() != null ? !email1.getSubject().equals(email2.getSubject()) : email2.getSubject() != null) {
