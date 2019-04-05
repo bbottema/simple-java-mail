@@ -6,6 +6,8 @@ import java.util.Objects;
 
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 
+import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
+
 /**
  * Util class to get rid of some boilerplate code in the core classes. The equals code was needed to analyze junit test errors.
  * <p>

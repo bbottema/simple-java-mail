@@ -102,7 +102,7 @@ public class MailerLiveTest {
 		AttachmentResource attachment2 = email.getAttachments().get(1);
 		AttachmentResource embeddedImg = email.getEmbeddedImages().get(0);
 		// Outlook overrode dresscode.txt, presumably because it was more than 8 character long??
-		
+
 		try {
 			assertAttachmentMetadata(attachment1, "text/plain", "dresscode.txt");
 			assertAttachmentMetadata(attachment2, "text/plain", "location.txt");
@@ -115,7 +115,7 @@ public class MailerLiveTest {
 			assertThat(normalizeNewlines(attachment2.readAllData())).isEqualTo("Black Tie Optional");
 			assertThat(normalizeNewlines(attachment1.readAllData())).isEqualTo("On the moon!");
 		}
-		
+
 		assertAttachmentMetadata(embeddedImg, "image/png", "thumbsup");
 	}
 
