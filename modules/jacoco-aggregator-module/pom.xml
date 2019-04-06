@@ -42,6 +42,12 @@
 		</dependency>
 		<dependency>
 			<groupId>org.simplejavamail</groupId>
+			<artifactId>smime-module</artifactId>
+			<version>${project.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.simplejavamail</groupId>
 			<artifactId>cli-module</artifactId>
 			<version>${project.version}</version>
 			<scope>compile</scope>
