@@ -160,6 +160,9 @@ public class MailSenderImpl implements MailSender {
 		return null;
 	}
 
+	/**
+	 * @see MailSender#send(Email, boolean)
+	 */
 	@Override
 	@Nullable
 	public final synchronized AsyncResponse send(final Email email, final boolean async) {
@@ -359,7 +362,10 @@ public class MailSenderImpl implements MailSender {
 			session.getProperties().setProperty(transportStrategy.propertyNameSSLTrust(), builder.toString());
 		}
 	}
-	
+
+	/**
+	 * @see MailSender#testConnection(boolean)
+	 */
 	@Override
 	@Nullable
 	public synchronized AsyncResponse testConnection(boolean async) {
@@ -424,12 +430,18 @@ public class MailSenderImpl implements MailSender {
 	private boolean needsAuthenticatedProxy() {
 		return proxyServer != null;
 	}
-	
+
+	/**
+	 * @see MailSender#getSession()
+	 */
 	@Override
 	public Session getSession() {
 		return session;
 	}
-	
+
+	/**
+	 * @see MailSender#getOperationalConfig()
+	 */
 	@Override
 	public OperationalConfig getOperationalConfig() {
 		return operationalConfig;
