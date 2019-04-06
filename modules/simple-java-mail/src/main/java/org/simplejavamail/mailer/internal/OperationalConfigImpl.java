@@ -10,7 +10,6 @@ import java.util.Properties;
 /**
  * @see OperationalConfig
  */
-// FIXME don't forget to include async in the operational config examples
 public class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see MailerRegularBuilder#withSessionTimeout(Integer)
