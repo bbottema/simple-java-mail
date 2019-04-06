@@ -11,6 +11,9 @@ import javax.mail.Session;
 import javax.mail.Transport;
 import java.util.concurrent.Executors;
 
+/**
+ * This interface really only exists to be able to refer to these methods from JavaDoc in de core module.
+ */
 public interface MailSender {
 	/**
 	 * Processes an {@link Email} instance into a completely configured {@link Message}.
