@@ -1,5 +1,6 @@
 package org.simplejavamail.converter;
 
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
@@ -7,6 +8,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.email.internal.EmailPopulatingBuilderImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.internal.modules.ModuleLoader;
 
@@ -27,6 +29,8 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -78,7 +82,8 @@ public final class EmailConverter {
 	 */
 	@SuppressWarnings("deprecation")
 	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
-		return ModuleLoader.loadOutlookModule().outlookMsgToEmail(msgData, new EmailStartingBuilderImpl());
+		return buildEmailAndDecryptAttachments(ModuleLoader.loadOutlookModule()
+				.outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl()));
 	}
 
 	/**
@@ -89,9 +94,23 @@ public final class EmailConverter {
 		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
-		return ModuleLoader.loadOutlookModule().outlookMsgToEmail(msgFile, new EmailStartingBuilderImpl());
+		return buildEmailAndDecryptAttachments(ModuleLoader.loadOutlookModule()
+				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl()));
 	}
-	
+
+	private static Email buildEmailAndDecryptAttachments(final EmailPopulatingBuilder emailBuilder) {
+		return ((EmailPopulatingBuilderImpl) emailBuilder)
+				.withDecryptedAttachments(decryptAttachments(emailBuilder.getAttachments()))
+				.buildEmail();
+	}
+
+	@Nonnull
+	private static List<AttachmentResource> decryptAttachments(final List<AttachmentResource> attachments) {
+		return ModuleLoader.smimeModuleAvailable()
+				? ModuleLoader.loadSMimeModule().decryptAttachments(attachments)
+				: Collections.<AttachmentResource>emptyList();
+	}
+
 	/**
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
