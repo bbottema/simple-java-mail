@@ -118,7 +118,12 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	 * @see #withAttachment(String, DataSource)
 	 */
 	private final List<AttachmentResource> attachments;
-	
+
+	/**
+	 * @see #withDecryptedAttachments(List)
+	 */
+	private final List<AttachmentResource> decryptedAttachments;
+
 	/**
 	 * @see #withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
@@ -183,6 +188,7 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 		recipients = new HashSet<>();
 		embeddedImages = new ArrayList<>();
 		attachments = new ArrayList<>();
+		decryptedAttachments = new ArrayList<>();
 		headers = new HashMap<>();
 		
 		if (applyDefaults) {
@@ -231,7 +237,7 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 		validateDkim();
 		return new Email(this);
 	}
-	
+
 	private void validateDkim() {
 		if (getDkimPrivateKeyFile() != null || getDkimPrivateKeyInputStream() != null) {
 			checkNonEmptyArgument(getDkimSelector(), "dkimSelector");
@@ -1331,7 +1337,7 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 		attachments.add(new AttachmentResource(MiscUtil.encodeText(name), filedata));
 		return this;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withAttachments(List)
 	 */
@@ -1340,6 +1346,16 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 		for (final AttachmentResource attachment : attachments) {
 			withAttachment(attachment.getName(), attachment.getDataSource());
 		}
+		return this;
+	}
+
+	/**
+	 * For internal use only.
+	 *
+	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
+	 */
+	public EmailPopulatingBuilder withDecryptedAttachments(@Nonnull final List<AttachmentResource> attachments) {
+		decryptedAttachments.addAll(attachments);
 		return this;
 	}
 	
@@ -1744,7 +1760,15 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	public List<AttachmentResource> getAttachments() {
 		return new ArrayList<>(attachments);
 	}
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
+	 */
+	@Override
+	public List<AttachmentResource> getDecryptedAttachments() {
+		return null;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#getHeaders()
 	 */

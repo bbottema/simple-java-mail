@@ -78,11 +78,17 @@ public class Email {
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource)
 	 */
 	private final List<AttachmentResource> embeddedImages;
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */
 	private final List<AttachmentResource> attachments;
+
+	/**
+	 * If the S/MIME module is loaded, this list will contain the same attachments as {@link #attachments},
+	 * but with any S/MIME signed attachments decrypted.
+	 */
+	private final List<AttachmentResource> decryptedAttachments;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
@@ -151,6 +157,7 @@ public class Email {
 		recipients = unmodifiableList(builder.getRecipients());
 		embeddedImages = unmodifiableList(builder.getEmbeddedImages());
 		attachments = unmodifiableList(builder.getAttachments());
+		decryptedAttachments = unmodifiableList(builder.getDecryptedAttachments());
 		headers = unmodifiableMap(builder.getHeaders());
 		
 		id = builder.getId();
@@ -252,6 +259,9 @@ public class Email {
 		}
 		if (!attachments.isEmpty()) {
 			s += ",\n\tattachments=" + attachments;
+		}
+		if (!decryptedAttachments.isEmpty()) {
+			s += ",\n\tdecryptedAttachments=" + decryptedAttachments;
 		}
 		if (emailToForward != null) {
 			s += ",\n\tforwardingEmail=true";
@@ -380,7 +390,14 @@ public class Email {
 	public List<AttachmentResource> getAttachments() {
 		return attachments;
 	}
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
+	 */
+	public List<AttachmentResource> getDecryptedAttachments() {
+		return decryptedAttachments;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource)
 	 */

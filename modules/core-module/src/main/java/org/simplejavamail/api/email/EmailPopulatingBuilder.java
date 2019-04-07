@@ -1215,7 +1215,14 @@ public interface EmailPopulatingBuilder {
 	 * @see #withAttachment(String, DataSource)
 	 */
 	List<AttachmentResource> getAttachments();
-	
+
+
+	/**
+	 * If the S/MIME library is loaded, this method returns a copy list of the attachments, but with any signed
+	 * attachments replaced with decrypted ones.
+	 */
+	List<AttachmentResource> getDecryptedAttachments();
+
 	/**
 	 * @see #withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
