@@ -72,9 +72,9 @@ public final class EmailConverter {
 	 */
 	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@Nonnull final MimeMessage mimeMessage) {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailBuilder.ignoringDefaults().startingBlank();
-		buildEmailFromMimeMessage(emailPopulatingBuilder, MimeMessageParser.parseMimeMessage(mimeMessage));
-		return emailPopulatingBuilder;
+		final EmailPopulatingBuilder builder = EmailBuilder.ignoringDefaults().startingBlank();
+		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage);
+		return decryptAttachments(buildEmailFromMimeMessage(builder, parsed));
 	}
 
 	/**
@@ -82,8 +82,8 @@ public final class EmailConverter {
 	 */
 	@SuppressWarnings("deprecation")
 	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
-		return buildEmailAndDecryptAttachments(ModuleLoader.loadOutlookModule()
-				.outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl()));
+		EmailPopulatingBuilder emailBuilder = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl());
+		return decryptAttachments(emailBuilder).buildEmail();
 	}
 
 	/**
@@ -94,21 +94,16 @@ public final class EmailConverter {
 		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
-		return buildEmailAndDecryptAttachments(ModuleLoader.loadOutlookModule()
-				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl()));
-	}
-
-	private static Email buildEmailAndDecryptAttachments(final EmailPopulatingBuilder emailBuilder) {
-		return ((EmailPopulatingBuilderImpl) emailBuilder)
-				.withDecryptedAttachments(decryptAttachments(emailBuilder.getAttachments()))
-				.buildEmail();
+		EmailPopulatingBuilder emailBuilder = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
+		return decryptAttachments(emailBuilder).buildEmail();
 	}
 
 	@Nonnull
-	private static List<AttachmentResource> decryptAttachments(final List<AttachmentResource> attachments) {
-		return ModuleLoader.smimeModuleAvailable()
-				? ModuleLoader.loadSMimeModule().decryptAttachments(attachments)
+	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder) {
+		final List<AttachmentResource> attachments = ModuleLoader.smimeModuleAvailable()
+				? ModuleLoader.loadSMimeModule().decryptAttachments(emailBuilder.getAttachments())
 				: Collections.<AttachmentResource>emptyList();
+		return ((EmailPopulatingBuilderImpl) emailBuilder).withDecryptedAttachments(attachments);
 	}
 
 	/**
@@ -325,7 +320,7 @@ public final class EmailConverter {
 		Helpers
 	 */
 
-	private static void buildEmailFromMimeMessage(@Nonnull final EmailPopulatingBuilder builder, @Nonnull final ParsedMimeMessageComponents parsed) {
+	private static EmailPopulatingBuilder buildEmailFromMimeMessage(@Nonnull final EmailPopulatingBuilder builder, @Nonnull final ParsedMimeMessageComponents parsed) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(parsed, "parsedMimeMessageComponents");
 		if (parsed.getFromAddress() != null) {
@@ -373,6 +368,7 @@ public final class EmailConverter {
 		for (final Map.Entry<String, DataSource> attachment : parsed.getAttachmentList().entrySet()) {
 			builder.withAttachment(extractCID(attachment.getKey()), attachment.getValue());
 		}
+		return builder;
 	}
 
 	private static Session createDummySession() {
