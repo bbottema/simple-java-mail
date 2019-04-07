@@ -6,6 +6,7 @@ import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -53,10 +54,18 @@ public class AttachmentResource {
 	}
 
 	/**
-	 * @return The content of the datasource as String, using IOUtils#toByteArray.
-	 * @throws IOException See {@link #readAllData(Charset)}
+	 * Delegates to {@link MiscUtil#readInputStreamToBytes(InputStream)} with data source input stream.
 	 */
-	@SuppressWarnings({"WeakerAccess", "JavaDoc"})
+	@Nonnull
+	public byte[] readAllBytes()
+			throws IOException {
+		return MiscUtil.readInputStreamToBytes(dataSource.getInputStream());
+	}
+
+	/**
+	 * Delegates to {@link MiscUtil#readInputStreamToString(InputStream, Charset)} with data source input stream.
+	 */
+	@SuppressWarnings({"WeakerAccess" })
 	@Nonnull
 	public String readAllData(@SuppressWarnings("SameParameterValue") @Nonnull final Charset charset)
 			throws IOException {

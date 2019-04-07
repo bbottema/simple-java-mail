@@ -140,7 +140,21 @@ public final class EmailConverter {
 		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
 		return mimeMessageToEmail(mimeMessage);
 	}
-	
+
+	/**
+	 * Delegates to {@link #emlToMimeMessage(File)} and then {@link #mimeMessageToEmail(MimeMessage)}.
+	 */
+	public static Email emlToEmail(@Nonnull final File emlFile) {
+		return mimeMessageToEmail(emlToMimeMessage(emlFile));
+	}
+
+	/**
+	 * Delegates to {@link #emlToMimeMessage(File)} and then {@link #mimeMessageToEmailBuilder(MimeMessage)}.
+	 */
+	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final File emlFile) {
+		return mimeMessageToEmailBuilder(emlToMimeMessage(emlFile));
+	}
+
 	/**
 	 * Delegates to {@link #emlToEmail(String)} with the full string value read from the given <code>InputStream</code>.
 	 */

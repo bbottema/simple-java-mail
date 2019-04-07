@@ -5,9 +5,10 @@ import javax.annotation.Nullable;
 
 @SuppressWarnings("WeakerAccess")
 public class SimpleOptional<T> {
+	@Nullable
 	private final T value;
 	
-	public SimpleOptional(T value) {
+	public SimpleOptional(@Nullable T value) {
 		this.value = value;
 	}
 	

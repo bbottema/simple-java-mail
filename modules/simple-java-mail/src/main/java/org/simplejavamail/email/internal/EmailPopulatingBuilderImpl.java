@@ -1766,7 +1766,7 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	 */
 	@Override
 	public List<AttachmentResource> getDecryptedAttachments() {
-		return null;
+		return decryptedAttachments;
 	}
 
 	/**

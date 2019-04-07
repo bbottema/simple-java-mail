@@ -113,6 +113,18 @@ public final class MiscUtil {
 	}
 
 	/**
+	 * Uses standard JDK java to read an inputstream to byte[].
+	 */
+	@Nonnull
+	public static byte[] readInputStreamToBytes(@Nonnull final InputStream inputStream)
+			throws IOException {
+		byte[] targetArray = new byte[inputStream.available()];
+		//noinspection ResultOfMethodCallIgnored
+		inputStream.read(targetArray);
+		return targetArray;
+	}
+
+	/**
 	 * Recognizes the tails of each address entry, so it can replace the [';] delimiters, thereby disambiguating the delimiters, since they can
 	 * appear in names as well (making it difficult to split on [,;] delimiters.
 	 *
