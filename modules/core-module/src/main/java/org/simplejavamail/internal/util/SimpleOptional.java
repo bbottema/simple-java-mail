@@ -14,8 +14,14 @@ public class SimpleOptional<T> {
 	public static <T> SimpleOptional<T> ofNullable(@Nullable T value) {
 		return new SimpleOptional<>(value);
 	}
-	
+
+	@Nonnull
 	public T orElse(@Nonnull T otherValue) {
+		return value != null ? value : otherValue;
+	}
+
+	@Nullable
+	public T orMaybe(@Nullable T otherValue) {
 		return value != null ? value : otherValue;
 	}
 }

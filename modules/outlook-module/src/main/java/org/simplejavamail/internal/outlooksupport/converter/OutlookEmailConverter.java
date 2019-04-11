@@ -2,7 +2,6 @@ package org.simplejavamail.internal.outlooksupport.converter;
 
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.internal.modules.OutlookModule;
-import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment;
@@ -17,6 +16,7 @@ import java.util.Map;
 
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 @SuppressWarnings("unused")
 public class OutlookEmailConverter implements OutlookModule {
@@ -63,7 +63,8 @@ public class OutlookEmailConverter implements OutlookModule {
 			builder.withEmbeddedImage(extractCID(cidName), cid.getValue().getData(), cid.getValue().getMimeTag());
 		}
 		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
-			builder.withAttachment(attachment.getLongFilename(), attachment.getData(), attachment.getMimeTag());
+			String attachmentName = ofNullable(attachment.getLongFilename()).orMaybe(attachment.getFilename());
+			builder.withAttachment(attachmentName, attachment.getData(), attachment.getMimeTag());
 		}
 	}
 	
