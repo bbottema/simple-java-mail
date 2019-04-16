@@ -1,6 +1,5 @@
 package org.simplejavamail.internal.smimesupport;
 
-import net.markenwerk.utils.mail.smime.SmimeState;
 import net.markenwerk.utils.mail.smime.SmimeUtil;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -42,16 +41,18 @@ import java.util.List;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static org.simplejavamail.internal.smimesupport.SMimeException.ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT;
+import static org.simplejavamail.internal.smimesupport.SMimeException.ERROR_DETERMINING_SMIME_SIGNER;
 import static org.simplejavamail.internal.smimesupport.SMimeException.ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT;
+import static org.simplejavamail.internal.smimesupport.SMimeException.MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED;
 
 /**
  * This class only serves to hide the S/MIME implementation behind an easy-to-load-with-reflection class.
  */
-@SuppressWarnings("unused") // it is ued through reflection
+@SuppressWarnings("unused") // it is used through reflection
 public class SMIMEDecryptor implements SMIMEModule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMEDecryptor.class);
-	private static final List<String> SMIME_MIMETYPE = asList("application/pkcs7-mime", "application/x-pkcs7-mime");
+	private static final List<String> SMIME_MIMETYPES = asList("application/pkcs7-mime", "application/x-pkcs7-mime");
 
 	/**
 	 * @see SMIMEModule#decryptAttachments(List)
@@ -59,11 +60,11 @@ public class SMIMEDecryptor implements SMIMEModule {
 	@Nonnull
 	@Override
 	public List<AttachmentResource> decryptAttachments(@Nonnull final List<AttachmentResource> attachments) {
-		LOGGER.debug("decrypting any S/MIME signed attachments...");
 		final List<AttachmentResource> decryptedAttachments = new ArrayList<>(attachments);
 		for (int i = 0; i < decryptedAttachments.size(); i++) {
 			final AttachmentResource attachment = decryptedAttachments.get(i);
 			if (isSMimeAttachment(attachment)) {
+				LOGGER.debug("decrypting S/MIME signed attachment '{}'...", attachment.getName());
 				decryptedAttachments.set(i, decryptAttachment(attachment));
 			}
 		}
@@ -75,7 +76,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 	 */
 	@Override
 	public boolean isSMimeAttachment(@Nonnull final AttachmentResource attachment) {
-		return SMIME_MIMETYPE.contains(attachment.getDataSource().getContentType());
+		return SMIME_MIMETYPES.contains(attachment.getDataSource().getContentType());
 	}
 
 	private AttachmentResource decryptAttachment(final AttachmentResource attachment) {
@@ -84,8 +85,6 @@ public class SMIMEDecryptor implements SMIMEModule {
 			internetHeaders.addHeader("Content-Type", attachment.getDataSource().getContentType());
 			final MimeBodyPart mimeBodyPart = new MimeBodyPart(internetHeaders, attachment.readAllBytes());
 			if (SmimeUtil.checkSignature(mimeBodyPart)) {
-				final SmimeState status = SmimeUtil.getStatus(mimeBodyPart); // FIXME report bug that it inspect the mimetype wrong
-
 				final MimeBodyPart signedContentBody = SmimeUtil.getSignedContent(mimeBodyPart);
 				final Object signedContent = signedContentBody.getContent();
 				if (signedContent instanceof MimeMultipart) {
@@ -123,7 +122,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 		try {
 			final InternetHeaders internetHeaders = new InternetHeaders();
 			internetHeaders.addHeader("Content-Type", smimeAttachment.getDataSource().getContentType());
-			final MimeBodyPart mimeBodyPart = new MimeBodyPart(internetHeaders, smimeAttachment.readAllBytes());
+			final MimePart mimeBodyPart = new MimeBodyPart(internetHeaders, smimeAttachment.readAllBytes());
 			if (SmimeUtil.checkSignature(mimeBodyPart)) {
 				return getSignedByAddress(mimeBodyPart);
 			} else {
@@ -135,7 +134,13 @@ public class SMIMEDecryptor implements SMIMEModule {
 		}
 	}
 
+	/**
+	 * Delegates to {@link #determineSMIMESigned(MimePart)} and {@link #getSignedByAddress(SMIMESigned)}.
+	 *
+	 * @see SMIMEModule#getSignedByAddress(MimePart)
+	 */
 	@Nullable
+	@SuppressWarnings("deprecation")
 	public String getSignedByAddress(@Nonnull MimePart mimePart) {
 		return getSignedByAddress(determineSMIMESigned(mimePart));
 	}
@@ -148,10 +153,10 @@ public class SMIMEDecryptor implements SMIMEModule {
 			} else if (mimePart.isMimeType("application/pkcs7-mime") || mimePart.isMimeType("application/x-pkcs7-mime")) {
 				return new SMIMESigned(mimePart);
 			} else {
-				return null; // FIXME fix proper MailException type
+				throw new SMimeException(format(MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED, mimePart.toString()));
 			}
 		} catch (MessagingException | CMSException | SMIMEException | IOException e) {
-			return null; // FIXME fix proper MailException type
+			throw new SMimeException(ERROR_DETERMINING_SMIME_SIGNER, e);
 		}
 	}
 
@@ -159,6 +164,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 	 * @deprecated Should be removed once the pull-request has been merged and released
 	 * @see "https://github.com/markenwerk/java-utils-mail-smime/issues/5"
 	 */
+	@SuppressWarnings("DeprecatedIsStillUsed")
 	private static String getSignedByAddress(SMIMESigned smimeSigned) {
 		try {
 			@SuppressWarnings("rawtypes")

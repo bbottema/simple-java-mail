@@ -32,10 +32,10 @@ public class OutlookEmailConverter implements OutlookModule {
 	}
 
 	@Override
-	public EmailFromOutlookMessage outlookMsgToEmailBuilder(@Nonnull String msgData, @Nonnull EmailStartingBuilder emailStartingBuilder) {
+	public EmailFromOutlookMessage outlookMsgToEmailBuilder(@Nonnull String msgFile, @Nonnull EmailStartingBuilder emailStartingBuilder) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
-				parseOutlookMsg(checkNonEmptyArgument(msgData, "msgData")));
+				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")));
 	}
 	
 	@Override
@@ -104,9 +104,9 @@ public class OutlookEmailConverter implements OutlookModule {
 	}
 	
 	@Nonnull
-	private static OutlookMessage parseOutlookMsg(@Nonnull final String msgData) {
+	private static OutlookMessage parseOutlookMsg(@Nonnull final String msgFile) {
 		try {
-			return new org.simplejavamail.outlookmessageparser.OutlookMessageParser().parseMsg(msgData);
+			return new org.simplejavamail.outlookmessageparser.OutlookMessageParser().parseMsg(msgFile);
 		} catch (final IOException e) {
 			throw new OutlookMessageException(OutlookMessageException.ERROR_PARSING_OUTLOOK_MSG, e);
 		}

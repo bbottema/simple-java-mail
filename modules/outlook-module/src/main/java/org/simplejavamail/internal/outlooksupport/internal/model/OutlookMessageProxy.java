@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * @see OutlookMessage
+ */
 public class OutlookMessageProxy implements OutlookMessage {
 
 	private final org.simplejavamail.outlookmessageparser.model.OutlookMessage delegate;

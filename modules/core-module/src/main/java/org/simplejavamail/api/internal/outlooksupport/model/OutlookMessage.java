@@ -5,6 +5,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Copies the interface of {@code org.simplejavamail.outlookmessageparser.model.OutlookMessage}.
+ * <br>
+ * This is so that Simple Java Mail will compile using this interface, which has an implementation in
+ * the Outlook Module, which proxies to the actual Outlook Message Parser's OutlookMessage as delegate.
+ * <br>
+ * This way, Simple Java Mail can code against this native OutlookMessage and still compile, even if
+ * the module is not loaded.
+ */
 public interface OutlookMessage {
 	Map<String, OutlookFileAttachment> fetchCIDMap();
 	

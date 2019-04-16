@@ -14,9 +14,15 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 class SMimeException extends MailException {
 
 	static final String ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT = "Error decrypting S/MIME signed attachment: \n\t%s";
+	static final String ERROR_DETERMINING_SMIME_SIGNER = "Error determining who signed the S/MIME attachment";
 	static final String ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT = "Error extracting signed-by address from S/MIME signed attachment: \n\t%s";
+	static final String MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED = "MimePart that was assumed to be S/MIME signed / encrypted actually wasn't: \n\t%s";
 
-	SMimeException(@SuppressWarnings("SameParameterValue") @Nonnull final String message, @Nullable final Exception cause) {
+	SMimeException(@Nonnull final String message) {
+		super(checkNonEmptyArgument(message, "message"));
+	}
+
+	SMimeException(@SuppressWarnings("SameParameterValue") @Nonnull final String message, @Nonnull final Exception cause) {
 		super(checkNonEmptyArgument(message, "message"), cause);
 	}
 }

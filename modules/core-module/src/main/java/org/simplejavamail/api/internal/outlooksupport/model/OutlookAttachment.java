@@ -1,7 +1,7 @@
 package org.simplejavamail.api.internal.outlooksupport.model;
 
 /**
- * Interface that defines an attachment.
+ * @see OutlookMessage
  */
 public interface OutlookAttachment {
 

@@ -1,5 +1,8 @@
 package org.simplejavamail.api.internal.outlooksupport.model;
 
+/**
+ * @see OutlookMessage
+ */
 public interface OutlookFileAttachment extends OutlookAttachment{
 	@SuppressWarnings("ElementOnlyUsedFromTestCode")
 	String getExtension();

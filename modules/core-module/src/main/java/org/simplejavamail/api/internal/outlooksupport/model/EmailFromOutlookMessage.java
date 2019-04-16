@@ -2,6 +2,11 @@ package org.simplejavamail.api.internal.outlooksupport.model;
 
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 
+/**
+ * Wrapper class that can hold both the resulting Email (builder) and the source OutlookMessage.
+ * <br>
+ * Useful when data is needed which didn't convert directly into the Email (builder) instance.
+ */
 public class EmailFromOutlookMessage {
 	private final EmailPopulatingBuilder emailBuilder;
 	private final OutlookMessage outlookMessage;

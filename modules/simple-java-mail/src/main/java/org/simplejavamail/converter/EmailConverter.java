@@ -14,6 +14,8 @@ import org.simplejavamail.email.internal.EmailPopulatingBuilderImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.internal.modules.SMIMEModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
@@ -53,6 +55,8 @@ import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
  */
 @SuppressWarnings("WeakerAccess")
 public final class EmailConverter {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(EmailConverter.class);
 	
 	private static final PathMatcher EML_PATH_MATCHER = FileSystems.getDefault().getPathMatcher("glob:**/*.eml");
 	private static final PathMatcher MSG_PATH_MATCHER = FileSystems.getDefault().getPathMatcher("glob:**/*.msg");
@@ -85,13 +89,13 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("deprecation")
 	@Nonnull
-	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
-		checkNonEmptyArgument(msgData, "msgData");
-		EmailFromOutlookMessage emailFromOutlookMessage = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl());
+	public static Email outlookMsgToEmail(@Nonnull final String msgFile) {
+		checkNonEmptyArgument(msgFile, "msgFile");
+		EmailFromOutlookMessage emailFromOutlookMessage = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
 		return decryptAttachments(emailFromOutlookMessage).buildEmail();
 	}
 
@@ -130,9 +134,12 @@ public final class EmailConverter {
 		List<AttachmentResource> attachments = Collections.emptyList();
 
 		if (ModuleLoader.smimeModuleAvailable()) {
+			LOGGER.debug("checking for S/MIME signed / encrypted attachments...");
 			final SMIMEModule smimeModule = ModuleLoader.loadSMimeModule();
 			final AttachmentResource onlyAttachment = emailBuilder.getAttachments().get(0);
 			if (emailBuilder.getAttachments().size() == 1 && smimeModule.isSMimeAttachment(onlyAttachment)) {
+				LOGGER.debug("Single S/MIME signed / encrypted attachment found; assuming the attachment is the message "
+						+ "body, a record of the original S/MIME details will be stored on the Email root...");
 				final OriginalSMimeDetails attachmentSMimeDetails = smimeModule.getSMimeDetails(onlyAttachment);
 				final OriginalSMimeDetails completeSMimeDetails = ofNullable(messageSMimeDetails)
 						.orElse(attachmentSMimeDetails)
@@ -230,9 +237,9 @@ public final class EmailConverter {
 	 * @return Result of {@link #outlookMsgToEmail(String)} and {@link #emailToMimeMessage(Email)}
 	 */
 	@Nonnull
-	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final String outlookMsgData) {
-		checkNonEmptyArgument(outlookMsgData, "outlookMsgData");
-		return emailToMimeMessage(outlookMsgToEmail(outlookMsgData));
+	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final String msgFile) {
+		checkNonEmptyArgument(msgFile, "outlookMsgData");
+		return emailToMimeMessage(outlookMsgToEmail(msgFile));
 	}
 
 	/**
@@ -354,9 +361,9 @@ public final class EmailConverter {
 	 * @return Result of {@link #outlookMsgToEmail(String)} and {@link #emailToEML(Email)}
 	 */
 	@Nonnull
-	public static String outlookMsgToEML(@Nonnull final String outlookMsgData) {
-		checkNonEmptyArgument(outlookMsgData, "outlookMsgData");
-		return emailToEML(outlookMsgToEmail(outlookMsgData));
+	public static String outlookMsgToEML(@Nonnull final String msgFile) {
+		checkNonEmptyArgument(msgFile, "outlookMsgData");
+		return emailToEML(outlookMsgToEmail(msgFile));
 	}
 
 	/**

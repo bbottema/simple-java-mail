@@ -4,6 +4,9 @@ import org.simplejavamail.api.internal.outlooksupport.model.OutlookRecipient;
 
 import java.util.Set;
 
+/**
+ * @see org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage
+ */
 class OutlookRecipientProxy implements OutlookRecipient {
 	private final org.simplejavamail.outlookmessageparser.model.OutlookRecipient delegate;
 

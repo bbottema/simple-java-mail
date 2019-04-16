@@ -2,6 +2,9 @@ package org.simplejavamail.internal.outlooksupport.internal.model;
 
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookFileAttachment;
 
+/**
+ * @see org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage
+ */
 class OutlookFileAttachmentProxy implements OutlookFileAttachment {
 	private final org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment delegate;
 	

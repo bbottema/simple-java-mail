@@ -8,7 +8,7 @@ import java.util.Objects;
 import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 /**
- * Indicates S/MIME details about an email. Used to show how a converted message was signed / encrypted.
+ * Indicates S/MIME details about an email. Used to show how a converted message was signed / encrypted and by whom.
  *
  * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
  */
@@ -26,6 +26,7 @@ public class OriginalSMimeDetails {
 	 * @deprecated For internal use only. Do NOT use.
 	 */
 	@Deprecated
+	@SuppressWarnings("DeprecatedIsStillUsed")
 	public OriginalSMimeDetails(@Nonnull final String smimeMime, @Nullable final String smimeType, @Nullable final String smimeName, @Nullable final String smimeSignedBy) {
 		this.smimeMime = smimeMime;
 		this.smimeType = smimeType;
@@ -33,6 +34,12 @@ public class OriginalSMimeDetails {
 		this.smimeSignedBy = smimeSignedBy;
 	}
 
+	/**
+	 * Used to combine S/MIME details from several sources (OutlookMessage root level, and S/MIME signed attachment).
+	 *
+	 * @deprecated For internal use only. Do NOT use.
+	 */
+	@Deprecated
 	@Nonnull
 	public OriginalSMimeDetails completeWith(@Nonnull final OriginalSMimeDetails attachmentSMimeDetails) {
 		return new OriginalSMimeDetails(smimeMime,
