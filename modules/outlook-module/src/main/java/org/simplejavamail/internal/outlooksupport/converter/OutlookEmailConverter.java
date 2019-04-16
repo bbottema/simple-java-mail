@@ -1,9 +1,11 @@
 package org.simplejavamail.internal.outlooksupport.converter;
 
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.internal.outlooksupport.internal.model.OutlookMessageProxy;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookMessage;
@@ -16,33 +18,36 @@ import java.io.InputStream;
 import java.util.Map;
 
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
+import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 @SuppressWarnings("unused")
 public class OutlookEmailConverter implements OutlookModule {
 
 	@Override
-	public EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull File msgFile, @Nonnull EmailStartingBuilder emailStartingBuilder) {
+	public EmailFromOutlookMessage outlookMsgToEmailBuilder(@Nonnull File msgFile, @Nonnull EmailStartingBuilder emailStartingBuilder) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
 				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")));
 	}
 
 	@Override
-	public EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull String msgData, @Nonnull EmailStartingBuilder emailStartingBuilder) {
+	public EmailFromOutlookMessage outlookMsgToEmailBuilder(@Nonnull String msgData, @Nonnull EmailStartingBuilder emailStartingBuilder) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
 				parseOutlookMsg(checkNonEmptyArgument(msgData, "msgData")));
 	}
 	
 	@Override
-	public EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull InputStream msgInputStream, @Nonnull EmailStartingBuilder emailStartingBuilder) {
+	public EmailFromOutlookMessage outlookMsgToEmailBuilder(@Nonnull InputStream msgInputStream, @Nonnull EmailStartingBuilder emailStartingBuilder) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
 				parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream")));
 	}
 	
-	private static EmailPopulatingBuilder buildEmailFromOutlookMessage(@Nonnull final EmailPopulatingBuilder builder, @Nonnull final OutlookMessage outlookMessage) {
+	private static EmailFromOutlookMessage buildEmailFromOutlookMessage(
+			@Nonnull final EmailPopulatingBuilder builder,
+			@Nonnull final OutlookMessage outlookMessage) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(outlookMessage, "outlookMessage");
 		builder.from(outlookMessage.getFromName(), outlookMessage.getFromEmail());
@@ -56,13 +61,13 @@ public class OutlookEmailConverter implements OutlookModule {
 		
 		for (final Map.Entry<String, OutlookFileAttachment> cid : outlookMessage.fetchCIDMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
-			//noinspection ConstantConditions
-			builder.withEmbeddedImage(extractCID(cidName), cid.getValue().getData(), cid.getValue().getMimeTag());
+			builder.withEmbeddedImage(assumeNonNull(extractCID(cidName)), cid.getValue().getData(), cid.getValue().getMimeTag());
 		}
 		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
 			builder.withAttachment(attachment.getLongFilename(), attachment.getData(), attachment.getMimeTag());
 		}
-		return builder;
+
+		return new EmailFromOutlookMessage(builder, new OutlookMessageProxy(outlookMessage));
 	}
 	
 	private static void copyReceiversFromOutlookMessage(@Nonnull EmailPopulatingBuilder builder, @Nonnull OutlookMessage outlookMessage) {

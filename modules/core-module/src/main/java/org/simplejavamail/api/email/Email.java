@@ -140,12 +140,17 @@ public class Email {
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
 	private String dkimSigningDomain;
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
 	private String dkimSelector;
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+	 */
+	private OriginalSMimeDetails originalSMimeDetails;
 	
 	/**
 	 * Simply transfers everything from {@link EmailPopulatingBuilder} to this Email instance.
@@ -175,6 +180,8 @@ public class Email {
 		dispositionNotificationTo = builder.getDispositionNotificationTo();
 		returnReceiptTo = builder.getReturnReceiptTo();
 		emailToForward = builder.getEmailToForward();
+
+		originalSMimeDetails = builder.getOriginalSMimeDetails();
 		
 		if (useDispositionNotificationTo && MiscUtil.valueNullOrEmpty(builder.getDispositionNotificationTo())) {
 			//noinspection IfMayBeConditional
@@ -265,6 +272,9 @@ public class Email {
 		}
 		if (emailToForward != null) {
 			s += ",\n\tforwardingEmail=true";
+		}
+		if (originalSMimeDetails != null) {
+			s += ",\n\toriginalSMimeDetails=" + originalSMimeDetails;
 		}
 		s += "\n}";
 		return s;
@@ -446,7 +456,7 @@ public class Email {
 	public String getDkimSigningDomain() {
 		return dkimSigningDomain;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
@@ -454,5 +464,13 @@ public class Email {
 	@Nullable
 	public String getDkimSelector() {
 		return dkimSelector;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+	 */
+	@Nullable
+	public OriginalSMimeDetails getOriginalSMimeDetails() {
+		return originalSMimeDetails;
 	}
 }

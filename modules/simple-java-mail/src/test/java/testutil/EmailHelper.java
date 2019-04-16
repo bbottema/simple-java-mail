@@ -62,6 +62,6 @@ public class EmailHelper {
 	
 	public static EmailPopulatingBuilder readOutlookMessage(final String filePath) {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream(filePath);
-		return outlookMsgToEmailBuilder(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
+		return outlookMsgToEmailBuilder(checkNonEmptyArgument(resourceAsStream, "resourceAsStream")).getEmailBuilder();
 	}
 }

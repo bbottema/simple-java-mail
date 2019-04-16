@@ -1,19 +1,23 @@
 package org.simplejavamail.converter;
 
 import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.CalendarMethod;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.OriginalSMimeDetails;
+import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
-import org.simplejavamail.api.email.CalendarMethod;
-import org.simplejavamail.api.email.Email;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.email.internal.EmailPopulatingBuilderImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.modules.SMIMEModule;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
@@ -40,6 +44,7 @@ import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 /**
  * Utility to help convert {@link org.simplejavamail.api.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
@@ -63,6 +68,7 @@ public final class EmailConverter {
 	/**
 	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
 	 */
+	@Nonnull
 	public static Email mimeMessageToEmail(@Nonnull final MimeMessage mimeMessage) {
 		return mimeMessageToEmailBuilder(mimeMessage).buildEmail();
 	}
@@ -70,6 +76,7 @@ public final class EmailConverter {
 	/**
 	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
 	 */
+	@Nonnull
 	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@Nonnull final MimeMessage mimeMessage) {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
 		final EmailPopulatingBuilder builder = EmailBuilder.ignoringDefaults().startingBlank();
@@ -81,49 +88,84 @@ public final class EmailConverter {
 	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("deprecation")
+	@Nonnull
 	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
-		EmailPopulatingBuilder emailBuilder = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl());
-		return decryptAttachments(emailBuilder).buildEmail();
+		checkNonEmptyArgument(msgData, "msgData");
+		EmailFromOutlookMessage emailFromOutlookMessage = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl());
+		return decryptAttachments(emailFromOutlookMessage).buildEmail();
 	}
 
 	/**
 	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("deprecation")
+	@Nonnull
 	public static Email outlookMsgToEmail(@Nonnull final File msgFile) {
+		checkNonEmptyArgument(msgFile, "msgFile");
 		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
-		EmailPopulatingBuilder emailBuilder = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
+		EmailFromOutlookMessage emailBuilder = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
 		return decryptAttachments(emailBuilder).buildEmail();
 	}
 
 	@Nonnull
-	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder) {
-		final List<AttachmentResource> attachments = ModuleLoader.smimeModuleAvailable()
-				? ModuleLoader.loadSMimeModule().decryptAttachments(emailBuilder.getAttachments())
-				: Collections.<AttachmentResource>emptyList();
+	private static EmailPopulatingBuilder decryptAttachments(@Nonnull final EmailFromOutlookMessage email) {
+		return decryptAttachments(email.getEmailBuilder(), new OriginalSMimeDetails(
+				email.getOutlookMessage().getSmimeMime(),
+				email.getOutlookMessage().getSmimeType(),
+				email.getOutlookMessage().getSmimeName(),
+				null));
+	}
+
+	@Nonnull
+	private static EmailPopulatingBuilder decryptAttachments(@Nonnull final EmailPopulatingBuilder emailBuilder) {
+		return decryptAttachments(emailBuilder, null);
+	}
+
+	@Nonnull
+	private static EmailPopulatingBuilder decryptAttachments(
+			@Nonnull final EmailPopulatingBuilder emailBuilder,
+			@Nullable final OriginalSMimeDetails messageSMimeDetails) {
+		List<AttachmentResource> attachments = Collections.emptyList();
+
+		if (ModuleLoader.smimeModuleAvailable()) {
+			final SMIMEModule smimeModule = ModuleLoader.loadSMimeModule();
+			final AttachmentResource onlyAttachment = emailBuilder.getAttachments().get(0);
+			if (emailBuilder.getAttachments().size() == 1 && smimeModule.isSMimeAttachment(onlyAttachment)) {
+				final OriginalSMimeDetails attachmentSMimeDetails = smimeModule.getSMimeDetails(onlyAttachment);
+				final OriginalSMimeDetails completeSMimeDetails = ofNullable(messageSMimeDetails)
+						.orElse(attachmentSMimeDetails)
+						.completeWith(attachmentSMimeDetails);
+				((EmailPopulatingBuilderImpl) emailBuilder).withOriginalSMimeDetails(completeSMimeDetails);
+			}
+			attachments = smimeModule.decryptAttachments(emailBuilder.getAttachments());
+		}
+
 		return ((EmailPopulatingBuilderImpl) emailBuilder).withDecryptedAttachments(attachments);
 	}
 
 	/**
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
+	@Nonnull
 	public static Email outlookMsgToEmail(@Nonnull final InputStream msgInputStream) {
-		return outlookMsgToEmailBuilder(msgInputStream).buildEmail();
+		return outlookMsgToEmailBuilder(msgInputStream).getEmailBuilder().buildEmail();
 	}
 	
 	/**
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("deprecation")
-	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream) {
+	@Nonnull
+	public static EmailFromOutlookMessage outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream) {
 		return ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgInputStream, new EmailStartingBuilderImpl());
 	}
 	
 	/**
 	 * Delegates to {@link #emlToEmail(String)} with the full string value read from the given <code>InputStream</code>.
 	 */
+	@Nonnull
 	public static Email emlToEmail(@Nonnull final InputStream emlInputStream) {
 		try {
 			return emlToEmail(readInputStreamToString(checkNonEmptyArgument(emlInputStream, "emlInputStream"), UTF_8));
@@ -136,6 +178,7 @@ public final class EmailConverter {
 	 * Delegates to {@link #emlToMimeMessage(String, Session)} using a dummy {@link Session} instance and passes the result to {@link
 	 * #mimeMessageToEmail(MimeMessage)};
 	 */
+	@Nonnull
 	public static Email emlToEmail(@Nonnull final String eml) {
 		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
 		return mimeMessageToEmail(mimeMessage);
@@ -144,6 +187,7 @@ public final class EmailConverter {
 	/**
 	 * Delegates to {@link #emlToMimeMessage(File)} and then {@link #mimeMessageToEmail(MimeMessage)}.
 	 */
+	@Nonnull
 	public static Email emlToEmail(@Nonnull final File emlFile) {
 		return mimeMessageToEmail(emlToMimeMessage(emlFile));
 	}
@@ -151,6 +195,7 @@ public final class EmailConverter {
 	/**
 	 * Delegates to {@link #emlToMimeMessage(File)} and then {@link #mimeMessageToEmailBuilder(MimeMessage)}.
 	 */
+	@Nonnull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final File emlFile) {
 		return mimeMessageToEmailBuilder(emlToMimeMessage(emlFile));
 	}
@@ -158,6 +203,7 @@ public final class EmailConverter {
 	/**
 	 * Delegates to {@link #emlToEmail(String)} with the full string value read from the given <code>InputStream</code>.
 	 */
+	@Nonnull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final InputStream emlInputStream) {
 		try {
 			return emlToEmailBuilder(readInputStreamToString(checkNonEmptyArgument(emlInputStream, "emlInputStream"), UTF_8));
@@ -170,6 +216,7 @@ public final class EmailConverter {
 	 * Delegates to {@link #emlToMimeMessage(String, Session)} using a dummy {@link Session} instance and passes the result to {@link
 	 * #mimeMessageToEmail(MimeMessage)};
 	 */
+	@Nonnull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final String eml) {
 		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
 		return mimeMessageToEmailBuilder(mimeMessage);

@@ -5,6 +5,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.email.OriginalSMimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.email.EmailBuilder;
@@ -175,12 +176,17 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	 * @see #withReturnReceiptTo(Recipient)
 	 */
 	private Recipient returnReceiptTo;
-	
+
 	/**
 	 * @see EmailBuilder#forwarding(MimeMessage)
 	 */
 	private MimeMessage emailToForward;
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+	 */
+	private OriginalSMimeDetails originalSMimeDetails;
+
 	/**
 	 * @see EmailStartingBuilder#startingBlank()
 	 */
@@ -1520,7 +1526,15 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 		this.returnReceiptTo = new Recipient(recipient.getName(), recipient.getAddress(), null);
 		return this;
 	}
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+	 */
+	public EmailPopulatingBuilder withOriginalSMimeDetails(final OriginalSMimeDetails originalSMimeDetails) {
+		this.originalSMimeDetails = originalSMimeDetails;
+		return this;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#clearId()
 	 */
@@ -1854,5 +1868,14 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	@Nullable
 	public MimeMessage getEmailToForward() {
 		return emailToForward;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+	 */
+	@Nullable
+	@Override
+	public OriginalSMimeDetails getOriginalSMimeDetails() {
+		return originalSMimeDetails;
 	}
 }

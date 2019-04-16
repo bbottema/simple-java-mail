@@ -1147,7 +1147,7 @@ public interface EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearReturnReceiptTo();
-	
+
 	/**
 	 * @see #fixingMessageId(String)
 	 */
@@ -1286,4 +1286,13 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Nullable
 	MimeMessage getEmailToForward();
+
+	/**
+	 * If this Email instance was the result of a conversion in which the source message was S/MIME signed / encrypted,
+	 * this field will be filled for historical purpose.
+	 * <br>
+	 * For example, you can use it to determine if the message was encrypted or signed and also who did the signing.
+	 */
+	@Nullable
+	OriginalSMimeDetails getOriginalSMimeDetails();
 }
