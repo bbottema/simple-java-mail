@@ -36,9 +36,9 @@ public class OriginalSMimeDetails {
 	@Nonnull
 	public OriginalSMimeDetails completeWith(@Nonnull final OriginalSMimeDetails attachmentSMimeDetails) {
 		return new OriginalSMimeDetails(smimeMime,
-				ofNullable(smimeType).orElse(attachmentSMimeDetails.smimeType),
-				ofNullable(smimeName).orElse(attachmentSMimeDetails.smimeName),
-				ofNullable(smimeSignedBy).orElse(attachmentSMimeDetails.smimeSignedBy));
+				ofNullable(smimeType).orMaybe(attachmentSMimeDetails.smimeType),
+				ofNullable(smimeName).orMaybe(attachmentSMimeDetails.smimeName),
+				ofNullable(smimeSignedBy).orMaybe(attachmentSMimeDetails.smimeSignedBy));
 	}
 
 	@Override
