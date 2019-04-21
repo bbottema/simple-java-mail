@@ -4,11 +4,10 @@ import org.junit.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 
 import java.io.File;
 import java.util.AbstractMap.SimpleEntry;
@@ -68,7 +67,7 @@ public class TestSmimeAttachments {
 
 		// verify msg that was sent with Outlook against eml that was received in Thunderbird
 		EmailPopulatingBuilder fromEmlBuilder = EmailConverter.emlToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
-		Email emailExpectedFromEml = ((InternalEmailPopulatingBuilder) fromEmlBuilder)
+		Email emailExpectedFromEml = fromEmlBuilder
 				.clearId() // set by Outlook when sending, so is missing in the saved .msg from before sending
 				.clearHeaders() // same
 				.clearReplyTo() // same
@@ -149,7 +148,7 @@ public class TestSmimeAttachments {
 
 		// verify msg that was sent with Outlook against eml that was received in Thunderbird
 		EmailPopulatingBuilder fromEmlBuilder = EmailConverter.emlToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
-		Email emailExpectedFromEml = ((InternalEmailPopulatingBuilder) fromEmlBuilder)
+		Email emailExpectedFromEml = fromEmlBuilder
 				.clearId() // set by Outlook when sending, so is missing in the saved .msg from before sending
 				.clearHeaders() // same
 				.clearReplyTo() // same
