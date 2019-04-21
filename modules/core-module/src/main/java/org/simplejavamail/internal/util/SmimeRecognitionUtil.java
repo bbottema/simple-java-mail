@@ -22,7 +22,14 @@ public final class SmimeRecognitionUtil {
 	 * @return Whether the given attachment is S/MIME signed / encrypted.
 	 */
 	public static boolean isSmimeAttachment(@Nonnull final AttachmentResource attachment) {
-		return SMIME_MIMETYPES.contains(attachment.getDataSource().getContentType());
+		return isSmimeContentType(attachment.getDataSource().getContentType());
+	}
+
+	/**
+	 * @return Whether the given attachment is S/MIME signed / encrypted.
+	 */
+	public static boolean isSmimeContentType(@Nonnull final String contentType) {
+		return SMIME_MIMETYPES.contains(contentType);
 	}
 
 	public static boolean isGeneratedSmimeMessageId(@Nonnull final Map.Entry headerEntry) {

@@ -69,8 +69,6 @@ public class TestSmimeAttachments {
 		// verify msg that was sent with Outlook against eml that was received in Thunderbird
 		EmailPopulatingBuilder fromEmlBuilder = EmailConverter.emlToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
 		Email emailExpectedFromEml = ((InternalEmailPopulatingBuilder) fromEmlBuilder)
-				// for mime message I have been unable to get the smime type+name mime-parameters from the mime header
-				.withOriginalSmimeDetails(assumeNonNull(emailParsedFromMsg.getOriginalSmimeDetails()))
 				.clearId() // set by Outlook when sending, so is missing in the saved .msg from before sending
 				.clearHeaders() // same
 				.clearReplyTo() // same
@@ -79,7 +77,18 @@ public class TestSmimeAttachments {
 				.buildEmail();
 
 		EmailAssert.assertThat(emailParsedFromMsg).isEqualTo(emailExpectedFromEml);
-		// FIXME fix getting S/MIME mime parameters for mime messages
+	}
+
+	@Test
+	@SuppressWarnings("deprecation")
+	public void testEmlSmimeHeaderRecognition() {
+		Email emailFromSignedEml = EmailConverter.emlToEmail(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
+		EmailAssert.assertThat(emailFromSignedEml).hasOriginalSmimeDetails(new OriginalSmimeDetails(
+				"application/pkcs7-mime",
+				"signed-data",
+				"smime.p7m",
+				"shatzing5@outlook.com"
+		));
 	}
 
 	@Test
@@ -141,8 +150,6 @@ public class TestSmimeAttachments {
 		// verify msg that was sent with Outlook against eml that was received in Thunderbird
 		EmailPopulatingBuilder fromEmlBuilder = EmailConverter.emlToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
 		Email emailExpectedFromEml = ((InternalEmailPopulatingBuilder) fromEmlBuilder)
-				// for mime message I have been unable to get the smime type+name mime-parameters from the mime header
-				.withOriginalSmimeDetails(assumeNonNull(emailParsedFromMsg.getOriginalSmimeDetails()))
 				.clearId() // set by Outlook when sending, so is missing in the saved .msg from before sending
 				.clearHeaders() // same
 				.clearReplyTo() // same

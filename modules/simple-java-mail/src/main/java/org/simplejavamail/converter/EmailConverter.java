@@ -6,6 +6,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
+import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
@@ -22,6 +23,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Session;
+import javax.mail.internet.ContentType;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
@@ -40,11 +42,13 @@ import java.util.Properties;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.simplejavamail.converter.EmailConverterException.ERROR_READING_SMIME_CONTENT_TYPE;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
+import static org.simplejavamail.internal.util.SmimeRecognitionUtil.isSmimeContentType;
 
 /**
  * Utility to help convert {@link org.simplejavamail.api.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
@@ -83,7 +87,7 @@ public final class EmailConverter {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
 		final EmailPopulatingBuilder builder = EmailBuilder.ignoringDefaults().startingBlank();
 		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage);
-		return decryptAttachments(buildEmailFromMimeMessage(builder, parsed));
+		return decryptAttachments(buildEmailFromMimeMessage(builder, parsed), mimeMessage);
 	}
 
 	/**
@@ -93,8 +97,8 @@ public final class EmailConverter {
 	@Nonnull
 	public static Email outlookMsgToEmail(@Nonnull final String msgFile) {
 		checkNonEmptyArgument(msgFile, "msgFile");
-		EmailFromOutlookMessage emailFromOutlookMessage = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
-		return decryptAttachments(emailFromOutlookMessage).buildEmail();
+		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
+		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage()).buildEmail();
 	}
 
 	/**
@@ -117,24 +121,45 @@ public final class EmailConverter {
 		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
-		EmailFromOutlookMessage emailBuilder = ModuleLoader.loadOutlookModule()
+		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
 				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
-		return decryptAttachments(emailBuilder);
+		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage());
 	}
 
 	@Nonnull
 	@SuppressWarnings("deprecation")
-	private static EmailPopulatingBuilder decryptAttachments(@Nonnull final EmailFromOutlookMessage email) {
-		return decryptAttachments(email.getEmailBuilder(), new OriginalSmimeDetails(
-				email.getOutlookMessage().getSmimeMime(),
-				email.getOutlookMessage().getSmimeType(),
-				email.getOutlookMessage().getSmimeName(),
+	private static EmailPopulatingBuilder decryptAttachments(
+			@Nonnull final EmailPopulatingBuilder emailBuilder,
+			@Nonnull final OutlookMessage outlookMessage) {
+		return decryptAttachments(emailBuilder, new OriginalSmimeDetails(
+				outlookMessage.getSmimeMime(),
+				outlookMessage.getSmimeType(),
+				outlookMessage.getSmimeName(),
 				null));
 	}
 
 	@Nonnull
-	private static EmailPopulatingBuilder decryptAttachments(@Nonnull final EmailPopulatingBuilder emailBuilder) {
-		return decryptAttachments(emailBuilder, null);
+	private static EmailPopulatingBuilder decryptAttachments(
+			@Nonnull final EmailPopulatingBuilder emailBuilder,
+			@Nonnull final MimeMessage mimeMessage) {
+		OriginalSmimeDetails originalSmimeDetails = null;
+
+		try {
+			if (mimeMessage.getHeader("Content-Type", null) != null) {
+				ContentType ct = new ContentType(mimeMessage.getHeader("Content-Type", null));
+				if (isSmimeContentType(ct.getBaseType())) {
+					originalSmimeDetails = new OriginalSmimeDetails(
+							ct.getBaseType(),
+							ct.getParameter("smime-type"),
+							ct.getParameter("name"),
+							null);
+				}
+			}
+		} catch (MessagingException e) {
+			throw new EmailConverterException(ERROR_READING_SMIME_CONTENT_TYPE, e);
+		}
+
+		return decryptAttachments(emailBuilder, originalSmimeDetails);
 	}
 
 	@Nonnull
