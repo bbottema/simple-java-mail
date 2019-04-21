@@ -5,7 +5,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
-import org.simplejavamail.api.email.OriginalSMimeDetails;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.email.EmailBuilder;
@@ -37,11 +37,6 @@ import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
-import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
-import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
-import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
-import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
@@ -57,12 +52,18 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
 import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
+import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
+import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 
 /**
  * @see EmailPopulatingBuilder
  */
 @SuppressWarnings({"UnusedReturnValue", "unused"})
-public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
+public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilder {
 	
 	/**
 	 * @see #fixingMessageId(String)
@@ -183,9 +184,19 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	private MimeMessage emailToForward;
 
 	/**
-	 * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
-	private OriginalSMimeDetails originalSMimeDetails;
+	private OriginalSmimeDetails originalSmimeDetails;
+
+	/**
+	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
+	 */
+	private Email smimeSignedEmail;
+
+	/**
+	 * @see EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment()
+	 */
+	private boolean mergeSingleSMIMESignedAttachment = true;
 
 	/**
 	 * @see EmailStartingBuilder#startingBlank()
@@ -408,7 +419,8 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	/**
 	 * @see EmailStartingBuilder#forwarding(MimeMessage)
 	 */
-	EmailPopulatingBuilder withForward(@Nullable final MimeMessage emailMessageToForward) {
+	@Nonnull
+	public InternalEmailPopulatingBuilder withForward(@Nullable final MimeMessage emailMessageToForward) {
 		this.emailToForward = emailMessageToForward;
 		return this;
 	}
@@ -1299,14 +1311,27 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 		}
 		return this;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withHeaders(Map)
 	 */
 	@Override
 	public <T> EmailPopulatingBuilder withHeaders(@Nonnull final Map<String, T> headers) {
+		return withHeaders(headers, false);
+	}
+
+	/**
+	 * Copies headers, but if required will ignore generated Message-ID header, which should not be copied to a new message. This
+	 * Message ID was never meant to be used for sending messages, but for handling nested S/MIME encrypted message attachments.
+	 *
+	 * @see EmailPopulatingBuilder#withHeaders(Map)
+	 */
+	@Nonnull
+	public <T> InternalEmailPopulatingBuilder withHeaders(@Nonnull final Map<String, T> headers, final boolean ignoreSmimeMessageId) {
 		for (Map.Entry<String, T> headerEntry : headers.entrySet()) {
-			withHeader(headerEntry.getKey(), headerEntry.getValue());
+			if (!ignoreSmimeMessageId || !isGeneratedSmimeMessageId(headerEntry)) {
+				withHeader(headerEntry.getKey(), headerEntry.getValue());
+			}
 		}
 		return this;
 	}
@@ -1356,11 +1381,11 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	}
 
 	/**
-	 * For internal use only.
-	 *
 	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
 	 */
-	public EmailPopulatingBuilder withDecryptedAttachments(@Nonnull final List<AttachmentResource> attachments) {
+	@Nonnull
+	@Override
+	public InternalEmailPopulatingBuilder withDecryptedAttachments(@Nonnull final List<AttachmentResource> attachments) {
 		decryptedAttachments.addAll(attachments);
 		return this;
 	}
@@ -1528,10 +1553,30 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
-	public EmailPopulatingBuilder withOriginalSMimeDetails(final OriginalSMimeDetails originalSMimeDetails) {
-		this.originalSMimeDetails = originalSMimeDetails;
+	@Nonnull
+	@Override
+	public InternalEmailPopulatingBuilder withOriginalSmimeDetails(@Nonnull final OriginalSmimeDetails originalSmimeDetails) {
+		this.originalSmimeDetails = originalSmimeDetails;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
+	 */
+	@Nonnull
+	@Override
+	public InternalEmailPopulatingBuilder withSmimeSignedEmail(@Nonnull final Email smimeSignedEmail) {
+		this.smimeSignedEmail = smimeSignedEmail;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment()
+	 */
+	public EmailPopulatingBuilder notMergingSingleSMIMESignedAttachment() {
+		this.mergeSingleSMIMESignedAttachment = false;
 		return this;
 	}
 
@@ -1663,6 +1708,15 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	public EmailPopulatingBuilder clearReturnReceiptTo() {
 		this.useReturnReceiptTo = false;
 		this.returnReceiptTo = null;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearSMIMESignedAttachmentMergingBehavior()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearSMIMESignedAttachmentMergingBehavior() {
+		this.mergeSingleSMIMESignedAttachment = true;
 		return this;
 	}
 	
@@ -1871,11 +1925,28 @@ public class EmailPopulatingBuilderImpl implements EmailPopulatingBuilder {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
 	@Nullable
 	@Override
-	public OriginalSMimeDetails getOriginalSMimeDetails() {
-		return originalSMimeDetails;
+	public OriginalSmimeDetails getOriginalSmimeDetails() {
+		return originalSmimeDetails;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
+	 */
+	@Nullable
+	@Override
+	public Email getSmimeSignedEmail() {
+		return smimeSignedEmail;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getMergeSingleSMIMESignedAttachment()
+	 */
+	@Override
+	public boolean getMergeSingleSMIMESignedAttachment() {
+		return mergeSingleSMIMESignedAttachment;
 	}
 }

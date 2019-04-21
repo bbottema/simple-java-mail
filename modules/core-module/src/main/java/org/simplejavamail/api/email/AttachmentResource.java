@@ -1,5 +1,6 @@
 package org.simplejavamail.api.email;
 
+import org.simplejavamail.MailException;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
@@ -59,7 +60,7 @@ public class AttachmentResource {
 	@Nonnull
 	public byte[] readAllBytes()
 			throws IOException {
-		return MiscUtil.readInputStreamToBytes(dataSource.getInputStream());
+		return MiscUtil.readInputStreamToBytes(getDataSourceInputStream());
 	}
 
 	/**
@@ -70,14 +71,27 @@ public class AttachmentResource {
 	public String readAllData(@SuppressWarnings("SameParameterValue") @Nonnull final Charset charset)
 			throws IOException {
 		checkNonEmptyArgument(charset, "charset");
-		return MiscUtil.readInputStreamToString(dataSource.getInputStream(), charset);
+		return MiscUtil.readInputStreamToString(getDataSourceInputStream(), charset);
 	}
 
 	/**
 	 * @return {@link #dataSource}
 	 */
+	@Nonnull
 	public DataSource getDataSource() {
 		return dataSource;
+	}
+
+	/**
+	 * Delegates to {@link DataSource#getInputStream}
+	 */
+	@Nonnull
+	public InputStream getDataSourceInputStream() {
+		try {
+			return dataSource.getInputStream();
+		} catch (IOException e) {
+			throw new AttachmentResourceException("Error getting input stream from attachment's data source", e);
+		}
 	}
 
 	/**
@@ -108,5 +122,11 @@ public class AttachmentResource {
 				",\n\t\tdataSource.name=" + dataSource.getName() +
 				",\n\t\tdataSource.getContentType=" + dataSource.getContentType() +
 				"\n\t}";
+	}
+
+	private static class AttachmentResourceException extends MailException {
+		protected AttachmentResourceException(final String message, final Throwable cause) {
+			super(message, cause);
+		}
 	}
 }

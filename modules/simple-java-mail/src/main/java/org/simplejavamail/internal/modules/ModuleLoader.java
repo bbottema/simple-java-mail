@@ -46,7 +46,7 @@ public class ModuleLoader {
 		return (OutlookModule) LOADED_MODULES.get(OutlookModule.class);
 	}
 
-	public static SMIMEModule loadSMimeModule() {
+	public static SMIMEModule loadSmimeModule() {
 		if (!LOADED_MODULES.containsKey(SMIMEModule.class)) {
 			LOADED_MODULES.put(SMIMEModule.class, loadModule(
 					"S/MIME",

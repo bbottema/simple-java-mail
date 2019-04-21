@@ -4,14 +4,14 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.OriginalSMimeDetails;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.email.internal.EmailPopulatingBuilderImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
+import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.internal.modules.SMIMEModule;
 import org.slf4j.Logger;
@@ -35,8 +35,6 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -100,22 +98,34 @@ public final class EmailConverter {
 	}
 
 	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilder(File)} and then builds and returns the email.
+	 *
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 */
+	@Nonnull
+	public static Email outlookMsgToEmail(@Nonnull final File msgFile) {
+		return outlookMsgToEmailBuilder(msgFile).buildEmail();
+	}
+
+	/**
 	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("deprecation")
 	@Nonnull
-	public static Email outlookMsgToEmail(@Nonnull final File msgFile) {
+	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final File msgFile) {
 		checkNonEmptyArgument(msgFile, "msgFile");
 		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
-		EmailFromOutlookMessage emailBuilder = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
-		return decryptAttachments(emailBuilder).buildEmail();
+		EmailFromOutlookMessage emailBuilder = ModuleLoader.loadOutlookModule()
+				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
+		return decryptAttachments(emailBuilder);
 	}
 
 	@Nonnull
+	@SuppressWarnings("deprecation")
 	private static EmailPopulatingBuilder decryptAttachments(@Nonnull final EmailFromOutlookMessage email) {
-		return decryptAttachments(email.getEmailBuilder(), new OriginalSMimeDetails(
+		return decryptAttachments(email.getEmailBuilder(), new OriginalSmimeDetails(
 				email.getOutlookMessage().getSmimeMime(),
 				email.getOutlookMessage().getSmimeType(),
 				email.getOutlookMessage().getSmimeName(),
@@ -130,26 +140,40 @@ public final class EmailConverter {
 	@Nonnull
 	private static EmailPopulatingBuilder decryptAttachments(
 			@Nonnull final EmailPopulatingBuilder emailBuilder,
-			@Nullable final OriginalSMimeDetails messageSMimeDetails) {
-		List<AttachmentResource> attachments = Collections.emptyList();
-
+			@Nullable final OriginalSmimeDetails messageSmimeDetails) {
 		if (ModuleLoader.smimeModuleAvailable()) {
-			LOGGER.debug("checking for S/MIME signed / encrypted attachments...");
-			final SMIMEModule smimeModule = ModuleLoader.loadSMimeModule();
-			final AttachmentResource onlyAttachment = emailBuilder.getAttachments().get(0);
-			if (emailBuilder.getAttachments().size() == 1 && smimeModule.isSMimeAttachment(onlyAttachment)) {
-				LOGGER.debug("Single S/MIME signed / encrypted attachment found; assuming the attachment is the message "
-						+ "body, a record of the original S/MIME details will be stored on the Email root...");
-				final OriginalSMimeDetails attachmentSMimeDetails = smimeModule.getSMimeDetails(onlyAttachment);
-				final OriginalSMimeDetails completeSMimeDetails = ofNullable(messageSMimeDetails)
-						.orElse(attachmentSMimeDetails)
-						.completeWith(attachmentSMimeDetails);
-				((EmailPopulatingBuilderImpl) emailBuilder).withOriginalSMimeDetails(completeSMimeDetails);
-			}
-			attachments = smimeModule.decryptAttachments(emailBuilder.getAttachments());
-		}
+			final InternalEmailPopulatingBuilder internalEmailBuilder = (InternalEmailPopulatingBuilder) emailBuilder;
 
-		return ((EmailPopulatingBuilderImpl) emailBuilder).withDecryptedAttachments(attachments);
+			LOGGER.debug("checking for S/MIME signed / encrypted attachments...");
+			final SMIMEModule smimeModule = ModuleLoader.loadSmimeModule();
+			internalEmailBuilder.withDecryptedAttachments(smimeModule.decryptAttachments(emailBuilder.getAttachments()));
+
+			if (emailBuilder.getAttachments().size() == 1) {
+				final AttachmentResource onlyAttachment = emailBuilder.getAttachments().get(0);
+				final AttachmentResource onlyAttachmentDecrypted = internalEmailBuilder.getDecryptedAttachments().get(0);
+				if (smimeModule.isSmimeAttachment(onlyAttachment) && isMimeMessageAttachment(onlyAttachmentDecrypted)) {
+					internalEmailBuilder.withOriginalSmimeDetails(determineSmimeDetails(messageSmimeDetails, smimeModule, onlyAttachment));
+					internalEmailBuilder.withSmimeSignedEmail(emlToEmail(onlyAttachmentDecrypted.getDataSourceInputStream()));
+				}
+			}
+		}
+		return emailBuilder;
+	}
+
+	private static boolean isMimeMessageAttachment(final AttachmentResource attachment) {
+		return attachment.getDataSource().getContentType().equals("message/rfc822");
+	}
+
+	@Nonnull
+	@SuppressWarnings("deprecation")
+	private static OriginalSmimeDetails determineSmimeDetails(@Nullable final OriginalSmimeDetails messageSmimeDetails, final SMIMEModule smimeModule,
+			final AttachmentResource attachment) {
+		LOGGER.debug("Single S/MIME signed / encrypted attachment found; assuming the attachment is the message "
+				+ "body, a record of the original S/MIME details will be stored on the Email root...");
+		final OriginalSmimeDetails attachmentSmimeDetails = smimeModule.getSmimeDetails(attachment);
+		return ofNullable(messageSmimeDetails)
+				.orElse(attachmentSmimeDetails)
+				.completeWith(attachmentSmimeDetails);
 	}
 
 	/**
@@ -280,7 +304,7 @@ public final class EmailConverter {
 			throw new AssertionError(e.getMessage(), e);
 		}
 	}
-	
+
 	/**
 	 * Delegates to {@link #emlToMimeMessage(File, Session)}, using {@link #createDummySession()}.
 	 *
@@ -290,21 +314,40 @@ public final class EmailConverter {
 	public static MimeMessage emlToMimeMessage(@Nonnull final File emlFile) {
 		return emlToMimeMessage(emlFile, createDummySession());
 	}
-	
+
 	/**
-	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
-	 *
-	 * @see MimeMessage#MimeMessage(Session, InputStream)
+	 * Delegates to {@link #emlToMimeMessage(InputStream, Session)}.
 	 */
 	public static MimeMessage emlToMimeMessage(@Nonnull final File emlFile, @Nonnull final Session session) {
 		if (!EML_PATH_MATCHER.matches(emlFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_EML, emlFile));
 		}
 		try {
-			InputStream source = new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile"));
-			return new MimeMessage(session, source);
-		} catch (final MessagingException | FileNotFoundException e) {
-			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML, e.getMessage()), e);
+			return emlToMimeMessage(new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile")), session);
+		} catch (final FileNotFoundException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_FILE, e.getMessage()), e);
+		}
+	}
+
+	/**
+	 * Delegates to {@link #emlToMimeMessage(InputStream, Session)} using {@link #createDummySession()}.
+	 */
+	@Nonnull
+	public static MimeMessage emlToMimeMessage(@Nonnull final InputStream inputStream) {
+		return emlToMimeMessage(inputStream, createDummySession());
+	}
+
+	/**
+	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
+	 *
+	 * @see MimeMessage#MimeMessage(Session, InputStream)
+	 */
+	@Nonnull
+	public static MimeMessage emlToMimeMessage(@Nonnull final InputStream inputStream, @Nonnull final Session session) {
+		try {
+			return new MimeMessage(session, inputStream);
+		} catch (final MessagingException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_STREAM, e.getMessage()), e);
 		}
 	}
 
@@ -326,7 +369,7 @@ public final class EmailConverter {
 		try {
 			return new MimeMessage(session, new ByteArrayInputStream(eml.getBytes(UTF_8)));
 		} catch (final MessagingException e) {
-			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML, e.getMessage()), e);
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_STREAM, e.getMessage()), e);
 		}
 	}
 

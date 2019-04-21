@@ -13,6 +13,7 @@ import java.util.Map;
 
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
+import static org.simplejavamail.internal.util.ListUtil.merge;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
@@ -148,10 +149,15 @@ public class Email {
 	private String dkimSelector;
 
 	/**
-	 * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
 	 */
-	private OriginalSMimeDetails originalSMimeDetails;
-	
+	private Email smimeSignedEmail;
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
+	 */
+	private OriginalSmimeDetails originalSmimeDetails;
+
 	/**
 	 * Simply transfers everything from {@link EmailPopulatingBuilder} to this Email instance.
 	 *
@@ -159,18 +165,31 @@ public class Email {
 	 */
 	public Email(@Nonnull final EmailPopulatingBuilder builder) {
 		checkNonEmptyArgument(builder, "builder");
+
+		smimeSignedEmail = builder.getSmimeSignedEmail();
+
+		final boolean smimeMerge = builder.getMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
+
 		recipients = unmodifiableList(builder.getRecipients());
-		embeddedImages = unmodifiableList(builder.getEmbeddedImages());
-		attachments = unmodifiableList(builder.getAttachments());
-		decryptedAttachments = unmodifiableList(builder.getDecryptedAttachments());
-		headers = unmodifiableMap(builder.getHeaders());
-		
+		embeddedImages = unmodifiableList((smimeMerge)
+				? merge(builder.getEmbeddedImages(), smimeSignedEmail.getEmbeddedImages())
+				: builder.getEmbeddedImages());
+		attachments = unmodifiableList((smimeMerge)
+				? merge(builder.getAttachments(), smimeSignedEmail.getAttachments())
+				: builder.getAttachments());
+		decryptedAttachments = unmodifiableList((smimeMerge)
+				? merge(builder.getDecryptedAttachments(), smimeSignedEmail.getDecryptedAttachments())
+				: builder.getDecryptedAttachments());
+		headers = unmodifiableMap((smimeMerge)
+				? merge(builder.getHeaders(), smimeSignedEmail.getHeaders())
+				: builder.getHeaders());
+
 		id = builder.getId();
 		fromRecipient = builder.getFromRecipient();
 		replyToRecipient = builder.getReplyToRecipient();
 		bounceToRecipient = builder.getBounceToRecipient();
-		text = builder.getText();
-		textHTML = builder.getTextHTML();
+		text = smimeMerge ? smimeSignedEmail.getPlainText() : builder.getText();
+		textHTML = smimeMerge ? smimeSignedEmail.getHTMLText() : builder.getTextHTML();
 		calendarMethod = builder.getCalendarMethod();
 		textCalendar = builder.getTextCalendar();
 		subject = builder.getSubject();
@@ -181,7 +200,7 @@ public class Email {
 		returnReceiptTo = builder.getReturnReceiptTo();
 		emailToForward = builder.getEmailToForward();
 
-		originalSMimeDetails = builder.getOriginalSMimeDetails();
+		originalSmimeDetails = builder.getOriginalSmimeDetails();
 		
 		if (useDispositionNotificationTo && MiscUtil.valueNullOrEmpty(builder.getDispositionNotificationTo())) {
 			//noinspection IfMayBeConditional
@@ -219,6 +238,16 @@ public class Email {
 	@Deprecated
 	public void internalSetId(@Nonnull final String id) {
 		this.id = id;
+	}
+
+	/**
+	 * @deprecated Don't use this method. This method is used internally when using the builder API to copy an email that
+	 * contains an S/MIME signed message. Without this method, we don't know if the copy should also be merged to match the
+	 * copied email.
+	 */
+	@Deprecated
+	public boolean wasMergedWithSmimeSignedMessage() {
+		return false;
 	}
 	
 	@SuppressWarnings("SameReturnValue")
@@ -273,8 +302,11 @@ public class Email {
 		if (emailToForward != null) {
 			s += ",\n\tforwardingEmail=true";
 		}
-		if (originalSMimeDetails != null) {
-			s += ",\n\toriginalSMimeDetails=" + originalSMimeDetails;
+		if (smimeSignedEmail != null) {
+			s += ",\n\t\tsmimeSignedEmail=" + smimeSignedEmail;
+		}
+		if (originalSmimeDetails != null) {
+			s += ",\n\t\toriginalSmimeDetails=" + originalSmimeDetails;
 		}
 		s += "\n}";
 		return s;
@@ -467,10 +499,18 @@ public class Email {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
 	 */
 	@Nullable
-	public OriginalSMimeDetails getOriginalSMimeDetails() {
-		return originalSMimeDetails;
+	public Email getSmimeSignedEmail() {
+		return smimeSignedEmail;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
+	 */
+	@Nullable
+	public OriginalSmimeDetails getOriginalSmimeDetails() {
+		return originalSmimeDetails;
 	}
 }

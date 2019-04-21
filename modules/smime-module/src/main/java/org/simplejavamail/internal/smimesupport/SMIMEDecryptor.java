@@ -18,7 +18,7 @@ import org.bouncycastle.mail.smime.SMIMESigned;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.util.Store;
 import org.simplejavamail.api.email.AttachmentResource;
-import org.simplejavamail.api.email.OriginalSMimeDetails;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.internal.modules.SMIMEModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,8 +26,11 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Session;
 import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimePart;
 import javax.mail.util.ByteArrayDataSource;
@@ -40,10 +43,11 @@ import java.util.List;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static org.simplejavamail.internal.smimesupport.SMimeException.ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT;
-import static org.simplejavamail.internal.smimesupport.SMimeException.ERROR_DETERMINING_SMIME_SIGNER;
-import static org.simplejavamail.internal.smimesupport.SMimeException.ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT;
-import static org.simplejavamail.internal.smimesupport.SMimeException.MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DETERMINING_SMIME_SIGNER;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT;
+import static org.simplejavamail.internal.smimesupport.SmimeException.MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED;
+import static org.simplejavamail.internal.util.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
 
 /**
  * This class only serves to hide the S/MIME implementation behind an easy-to-load-with-reflection class.
@@ -63,7 +67,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 		final List<AttachmentResource> decryptedAttachments = new ArrayList<>(attachments);
 		for (int i = 0; i < decryptedAttachments.size(); i++) {
 			final AttachmentResource attachment = decryptedAttachments.get(i);
-			if (isSMimeAttachment(attachment)) {
+			if (isSmimeAttachment(attachment)) {
 				LOGGER.debug("decrypting S/MIME signed attachment '{}'...", attachment.getName());
 				decryptedAttachments.set(i, decryptAttachment(attachment));
 			}
@@ -72,10 +76,10 @@ public class SMIMEDecryptor implements SMIMEModule {
 	}
 
 	/**
-	 * @see SMIMEModule#isSMimeAttachment(AttachmentResource)
+	 * @see SMIMEModule#isSmimeAttachment(AttachmentResource)
 	 */
 	@Override
-	public boolean isSMimeAttachment(@Nonnull final AttachmentResource attachment) {
+	public boolean isSmimeAttachment(@Nonnull final AttachmentResource attachment) {
 		return SMIME_MIMETYPES.contains(attachment.getDataSource().getContentType());
 	}
 
@@ -89,7 +93,14 @@ public class SMIMEDecryptor implements SMIMEModule {
 				final Object signedContent = signedContentBody.getContent();
 				if (signedContent instanceof MimeMultipart) {
 					final ByteArrayOutputStream os = new ByteArrayOutputStream();
-					((MimeMultipart) signedContent).writeTo(os);
+					final MimeMessage decryptedMessage = new MimeMessage((Session) null) {
+						@Override
+						protected void updateMessageID() throws MessagingException {
+							setHeader("Message-ID", SMIME_ATTACHMENT_MESSAGE_ID);
+						}
+					};
+					decryptedMessage.setContent((Multipart) signedContent);
+					decryptedMessage.writeTo(os);
 					return new AttachmentResource("signed-email.eml", new ByteArrayDataSource(os.toByteArray(), "message/rfc822"));
 				} else {
 					LOGGER.warn("S/MIME signed content type not recognized, please raise an issue for " + signedContent.getClass());
@@ -99,18 +110,18 @@ public class SMIMEDecryptor implements SMIMEModule {
 			}
 			return attachment;
 		} catch (MessagingException | IOException e) {
-			throw new SMimeException(format(ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT, attachment), e);
+			throw new SmimeException(format(ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT, attachment), e);
 		}
 	}
 
 	/**
-	 * @see SMIMEModule#getSMimeDetails(AttachmentResource)
+	 * @see SMIMEModule#getSmimeDetails(AttachmentResource)
 	 */
 	@Nonnull
 	@Override
 	@SuppressWarnings("deprecation")
-	public OriginalSMimeDetails getSMimeDetails(@Nonnull final AttachmentResource attachment) {
-		return new OriginalSMimeDetails(attachment.getDataSource().getContentType(), null, null, getSignedByAddress(attachment));
+	public OriginalSmimeDetails getSmimeDetails(@Nonnull final AttachmentResource attachment) {
+		return new OriginalSmimeDetails(attachment.getDataSource().getContentType(), null, null, getSignedByAddress(attachment));
 	}
 
 	/**
@@ -130,7 +141,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 			}
 			return null;
 		} catch (MessagingException | IOException e) {
-			throw new SMimeException(format(ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT, smimeAttachment), e);
+			throw new SmimeException(format(ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT, smimeAttachment), e);
 		}
 	}
 
@@ -153,10 +164,10 @@ public class SMIMEDecryptor implements SMIMEModule {
 			} else if (mimePart.isMimeType("application/pkcs7-mime") || mimePart.isMimeType("application/x-pkcs7-mime")) {
 				return new SMIMESigned(mimePart);
 			} else {
-				throw new SMimeException(format(MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED, mimePart.toString()));
+				throw new SmimeException(format(MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED, mimePart.toString()));
 			}
 		} catch (MessagingException | CMSException | SMIMEException | IOException e) {
-			throw new SMimeException(ERROR_DETERMINING_SMIME_SIGNER, e);
+			throw new SmimeException(ERROR_DETERMINING_SMIME_SIGNER, e);
 		}
 	}
 

@@ -10,9 +10,9 @@ import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 /**
  * Indicates S/MIME details about an email. Used to show how a converted message was signed / encrypted and by whom.
  *
- * @see EmailPopulatingBuilder#getOriginalSMimeDetails()
+ * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
  */
-public class OriginalSMimeDetails {
+public class OriginalSmimeDetails {
 	@Nonnull
 	private final String smimeMime;
 	@Nullable
@@ -27,7 +27,7 @@ public class OriginalSMimeDetails {
 	 */
 	@Deprecated
 	@SuppressWarnings("DeprecatedIsStillUsed")
-	public OriginalSMimeDetails(@Nonnull final String smimeMime, @Nullable final String smimeType, @Nullable final String smimeName, @Nullable final String smimeSignedBy) {
+	public OriginalSmimeDetails(@Nonnull final String smimeMime, @Nullable final String smimeType, @Nullable final String smimeName, @Nullable final String smimeSignedBy) {
 		this.smimeMime = smimeMime;
 		this.smimeType = smimeType;
 		this.smimeName = smimeName;
@@ -41,16 +41,16 @@ public class OriginalSMimeDetails {
 	 */
 	@Deprecated
 	@Nonnull
-	public OriginalSMimeDetails completeWith(@Nonnull final OriginalSMimeDetails attachmentSMimeDetails) {
-		return new OriginalSMimeDetails(smimeMime,
-				ofNullable(smimeType).orMaybe(attachmentSMimeDetails.smimeType),
-				ofNullable(smimeName).orMaybe(attachmentSMimeDetails.smimeName),
-				ofNullable(smimeSignedBy).orMaybe(attachmentSMimeDetails.smimeSignedBy));
+	public OriginalSmimeDetails completeWith(@Nonnull final OriginalSmimeDetails attachmentSmimeDetails) {
+		return new OriginalSmimeDetails(smimeMime,
+				ofNullable(smimeType).orMaybe(attachmentSmimeDetails.smimeType),
+				ofNullable(smimeName).orMaybe(attachmentSmimeDetails.smimeName),
+				ofNullable(smimeSignedBy).orMaybe(attachmentSmimeDetails.smimeSignedBy));
 	}
 
 	@Override
 	public String toString() {
-		final StringBuilder sb = new StringBuilder("SMimeDetails{");
+		final StringBuilder sb = new StringBuilder("SmimeDetails{");
 		sb.append("smimeMime='").append(smimeMime).append('\'');
 		sb.append(", smimeType='").append(smimeType).append('\'');
 		sb.append(", smimeName='").append(smimeName).append('\'');
@@ -67,7 +67,7 @@ public class OriginalSMimeDetails {
 		if (o == null || getClass() != o.getClass()) {
 			return false;
 		}
-		final OriginalSMimeDetails that = (OriginalSMimeDetails) o;
+		final OriginalSmimeDetails that = (OriginalSmimeDetails) o;
 		return smimeMime.equals(that.smimeMime) &&
 				Objects.equals(smimeType, that.smimeType) &&
 				Objects.equals(smimeName, that.smimeName) &&

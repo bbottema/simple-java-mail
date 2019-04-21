@@ -1,7 +1,7 @@
 package org.simplejavamail.internal.modules;
 
 import org.simplejavamail.api.email.AttachmentResource;
-import org.simplejavamail.api.email.OriginalSMimeDetails;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -19,9 +19,9 @@ public interface SMIMEModule {
 	List<AttachmentResource> decryptAttachments(@Nonnull List<AttachmentResource> attachments);
 
 	/**
-	 * @return Whether the given attachment is S/MIME signed / encrypted.
+	 * @return Whether the given attachment is S/MIME signed / encrypted. Defers to {@link org.simplejavamail.internal.util.SmimeRecognitionUtil#isSmimeAttachment(AttachmentResource)}.
 	 */
-	boolean isSMimeAttachment(@Nonnull AttachmentResource attachment);
+	boolean isSmimeAttachment(@Nonnull AttachmentResource attachment);
 
 	/**
 	 * @return The S/MIME mime type and signed who signed the attachment.
@@ -29,7 +29,7 @@ public interface SMIMEModule {
 	 * <strong>Note:</strong> the attachment is assumed to be a signed / encrypted {@link javax.mail.internet.MimeBodyPart}.
 	 */
 	@Nonnull
-	OriginalSMimeDetails getSMimeDetails(@Nonnull AttachmentResource onlyAttachment);
+	OriginalSmimeDetails getSmimeDetails(@Nonnull AttachmentResource attachment);
 
 	/**
 	 * Delegates to {@link #getSignedByAddress(MimePart)}, where the datasource of the attachment is read completely as a MimeMessage.
