@@ -2,6 +2,7 @@ package org.simplejavamail.internal.modules;
 
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -16,7 +17,10 @@ public interface SMIMEModule {
 	 * @return A copy of given original 'true' attachments, with S/MIME encrypted / signed attachments replaced with the actual attachment.
 	 */
 	@Nonnull
-	List<AttachmentResource> decryptAttachments(@Nonnull List<AttachmentResource> attachments);
+	List<AttachmentResource> decryptAttachments(
+			@Nonnull List<AttachmentResource> attachments,
+			@Nullable Pkcs12Config pkcs12Config,
+			@Nullable final OriginalSmimeDetails messageSmimeDetails);
 
 	/**
 	 * @return Whether the given attachment is S/MIME signed / encrypted. Defers to {@link org.simplejavamail.internal.util.SmimeRecognitionUtil#isSmimeAttachment(AttachmentResource)}.

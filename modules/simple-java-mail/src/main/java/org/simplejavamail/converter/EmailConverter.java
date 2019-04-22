@@ -7,6 +7,7 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
@@ -37,6 +38,7 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -78,27 +80,52 @@ public final class EmailConverter {
 	public static Email mimeMessageToEmail(@Nonnull final MimeMessage mimeMessage) {
 		return mimeMessageToEmailBuilder(mimeMessage).buildEmail();
 	}
-	
+
 	/**
+	 * Delegates to {@link #mimeMessageToEmailBuilder(MimeMessage, Pkcs12Config)}.
+	 *
 	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
 	 */
 	@Nonnull
 	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@Nonnull final MimeMessage mimeMessage) {
-		checkNonEmptyArgument(mimeMessage, "mimeMessage");
-		final EmailPopulatingBuilder builder = EmailBuilder.ignoringDefaults().startingBlank();
-		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage);
-		return decryptAttachments(buildEmailFromMimeMessage(builder, parsed), mimeMessage);
+		return mimeMessageToEmailBuilder(mimeMessage, null);
 	}
 
 	/**
+	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                        (only needed when the message is encrypted rather than just signed).
+	 */
+	@Nonnull
+	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@Nonnull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(mimeMessage, "mimeMessage");
+		final EmailPopulatingBuilder builder = EmailBuilder.ignoringDefaults().startingBlank();
+		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage);
+		return decryptAttachments(buildEmailFromMimeMessage(builder, parsed), mimeMessage, pkcs12Config);
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmail(String, Pkcs12Config)}
 	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("deprecation")
 	@Nonnull
 	public static Email outlookMsgToEmail(@Nonnull final String msgFile) {
+		return outlookMsgToEmail(msgFile, null);
+	}
+
+	/**
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                        (only needed when the message is encrypted rather than just signed).
+	 */
+	@SuppressWarnings("deprecation")
+	@Nonnull
+	public static Email outlookMsgToEmail(@Nonnull final String msgFile, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgFile, "msgFile");
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
-		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage()).buildEmail();
+		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config)
+				.buildEmail();
 	}
 
 	/**
@@ -112,36 +139,51 @@ public final class EmailConverter {
 	}
 
 	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilder(File, Pkcs12Config)}.
+	 *
 	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 */
+	@Nonnull
+	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final File msgFile) {
+		return outlookMsgToEmailBuilder(msgFile, null);
+	}
+
+	/**
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                        (only needed when the message is encrypted rather than just signed).
 	 */
 	@SuppressWarnings("deprecation")
 	@Nonnull
-	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final File msgFile) {
+	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final File msgFile, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgFile, "msgFile");
 		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
 				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
-		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage());
+		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config);
 	}
 
 	@Nonnull
 	@SuppressWarnings("deprecation")
 	private static EmailPopulatingBuilder decryptAttachments(
 			@Nonnull final EmailPopulatingBuilder emailBuilder,
-			@Nonnull final OutlookMessage outlookMessage) {
-		return decryptAttachments(emailBuilder, new OriginalSmimeDetails(
+			@Nonnull final OutlookMessage outlookMessage,
+			@Nullable final Pkcs12Config pkcs12Config) {
+		OriginalSmimeDetails messageSmimeDetails = new OriginalSmimeDetails(
 				outlookMessage.getSmimeMime(),
 				outlookMessage.getSmimeType(),
 				outlookMessage.getSmimeName(),
-				null));
+				null);
+		return decryptAttachments(emailBuilder, messageSmimeDetails, pkcs12Config);
 	}
 
 	@Nonnull
 	private static EmailPopulatingBuilder decryptAttachments(
 			@Nonnull final EmailPopulatingBuilder emailBuilder,
-			@Nonnull final MimeMessage mimeMessage) {
+			@Nonnull final MimeMessage mimeMessage,
+			@Nullable final Pkcs12Config pkcs12Config) {
 		OriginalSmimeDetails originalSmimeDetails = null;
 
 		try {
@@ -159,19 +201,22 @@ public final class EmailConverter {
 			throw new EmailConverterException(ERROR_READING_SMIME_CONTENT_TYPE, e);
 		}
 
-		return decryptAttachments(emailBuilder, originalSmimeDetails);
+		return decryptAttachments(emailBuilder, originalSmimeDetails, pkcs12Config);
 	}
 
 	@Nonnull
 	private static EmailPopulatingBuilder decryptAttachments(
 			@Nonnull final EmailPopulatingBuilder emailBuilder,
-			@Nullable final OriginalSmimeDetails messageSmimeDetails) {
+			@Nullable final OriginalSmimeDetails messageSmimeDetails,
+			@Nullable final Pkcs12Config pkcs12Config) {
 		if (ModuleLoader.smimeModuleAvailable()) {
 			final InternalEmailPopulatingBuilder internalEmailBuilder = (InternalEmailPopulatingBuilder) emailBuilder;
 
 			LOGGER.debug("checking for S/MIME signed / encrypted attachments...");
 			final SMIMEModule smimeModule = ModuleLoader.loadSmimeModule();
-			internalEmailBuilder.withDecryptedAttachments(smimeModule.decryptAttachments(emailBuilder.getAttachments()));
+			List<AttachmentResource> decryptedAttachments = smimeModule
+					.decryptAttachments(emailBuilder.getAttachments(), pkcs12Config, messageSmimeDetails);
+			internalEmailBuilder.withDecryptedAttachments(decryptedAttachments);
 
 			if (emailBuilder.getAttachments().size() == 1) {
 				final AttachmentResource onlyAttachment = emailBuilder.getAttachments().get(0);
