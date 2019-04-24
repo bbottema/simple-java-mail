@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -102,7 +103,7 @@ public final class MimeMessageParser {
 		HEADERS_TO_IGNORE.add("Content-ID");
 		HEADERS_TO_IGNORE.add("name");
 		HEADERS_TO_IGNORE.add("From");
-		
+
 		MailcapCommandMap mc = (MailcapCommandMap)CommandMap.getDefaultCommandMap();
 		mc.addMailcap("text/calendar;; x-java-content-handler=" + text_calendar.class.getName());
 		CommandMap.setDefaultCommandMap(mc);
@@ -176,13 +177,13 @@ public final class MimeMessageParser {
 			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}
 	}
-	
+
 	private static boolean isEmailHeader(Header header, String emailHeaderName) {
 		return header.getName().equals(emailHeaderName) &&
 				!valueNullOrEmpty(header.getValue()) &&
 				!header.getValue().equals("<>");
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	public static String parseFileName(@Nonnull final Part currentPart) {
 		try {
@@ -191,7 +192,7 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_FILENAME, e);
 		}
 	}
-	
+
 	/**
 	 * @return Returns the "method" part from the Calendar content type (such as "{@code text/calendar; charset="UTF-8"; method="REQUEST"}").
 	 */
@@ -208,7 +209,7 @@ public final class MimeMessageParser {
 		Preconditions.assumeTrue(matcher.find(), "Calendar METHOD not found in bodypart content type");
 		return matcher.group(1);
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
 	public static String parseContentID(@Nonnull final MimePart currentPart) {
@@ -486,20 +487,21 @@ public final class MimeMessageParser {
 		}
 	}
 
-	private static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
+	static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
 		final String htmlContent = parsedComponents.htmlContent.toString();
-		for (Map.Entry<String, DataSource> cidEntry : parsedComponents.cidMap.entrySet()) {
+		for(Iterator<Map.Entry<String, DataSource>> it = parsedComponents.cidMap.entrySet().iterator(); it.hasNext(); ) {
+			Map.Entry<String, DataSource> cidEntry = it.next();
 			String cid = extractCID(cidEntry.getKey());
 			if (!htmlContent.contains("cid:" + cid)) {
 				parsedComponents.attachmentList.put(cid, cidEntry.getValue());
-				parsedComponents.cidMap.remove(cidEntry.getKey());
+				it.remove();
 			}
 		}
 	}
 
 	public static class ParsedMimeMessageComponents {
-		private final Map<String, DataSource> attachmentList = new TreeMap<>();
-		private final Map<String, DataSource> cidMap = new TreeMap<>();
+		final Map<String, DataSource> attachmentList = new TreeMap<>();
+		final Map<String, DataSource> cidMap = new TreeMap<>();
 		private final Map<String, Object> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
 		private final List<InternetAddress> ccAddresses = new ArrayList<>();
@@ -512,10 +514,10 @@ public final class MimeMessageParser {
 		private InternetAddress returnReceiptTo;
 		private InternetAddress bounceToAddress;
 		private final StringBuilder plainContent = new StringBuilder();
-		private final StringBuilder htmlContent = new StringBuilder();
+		final StringBuilder htmlContent = new StringBuilder();
 		private String calendarMethod;
 		private String calendarContent;
-		
+
 		@Nullable
 		public String getMessageId() {
 			return messageId;
@@ -544,58 +546,58 @@ public final class MimeMessageParser {
 		public List<InternetAddress> getBccAddresses() {
 			return bccAddresses;
 		}
-		
+
 		@Nullable
 		public String getSubject() {
 			return subject;
 		}
-		
+
 		@Nullable
 		public InternetAddress getFromAddress() {
 			return fromAddress;
 		}
-		
+
 		@Nullable
 		public InternetAddress getReplyToAddresses() {
 			return replyToAddresses;
 		}
-		
+
 		@Nullable
 		public InternetAddress getDispositionNotificationTo() {
 			return dispositionNotificationTo;
 		}
-		
+
 		@Nullable
 		public InternetAddress getReturnReceiptTo() {
 			return returnReceiptTo;
 		}
-		
+
 		@Nullable
 		public InternetAddress getBounceToAddress() {
 			return bounceToAddress;
 		}
-		
+
 		@Nullable
 		public String getPlainContent() {
 			return plainContent.length() == 0 ? null : plainContent.toString();
 		}
-		
+
 		@Nullable
 		public String getHtmlContent() {
 			return htmlContent.length() == 0 ? null : htmlContent.toString();
 		}
-		
+
 		@Nullable
 		public String getCalendarContent() {
 			return calendarContent;
 		}
-		
+
 		@Nullable
 		public String getCalendarMethod() {
 			return calendarMethod;
 		}
 	}
-	
+
 	/**
 	 * DataContentHandler for text/calendar, based on {@link com.sun.mail.handlers.text_html}.
 	 * <p>
@@ -605,7 +607,7 @@ public final class MimeMessageParser {
 		private static final ActivationDataFlavor[] myDF = {
 				new ActivationDataFlavor(String.class, "text/calendar", "iCalendar String")
 		};
-		
+
 		@Override
 		protected ActivationDataFlavor[] getDataFlavors() {
 			return myDF;
