@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -447,20 +448,21 @@ public final class MimeMessageParser {
 		}
 	}
 
-	private static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
+	static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
 		final String htmlContent = parsedComponents.htmlContent;
-		for (Map.Entry<String, DataSource> cidEntry : parsedComponents.cidMap.entrySet()) {
+		for(Iterator<Map.Entry<String, DataSource>> it = parsedComponents.cidMap.entrySet().iterator(); it.hasNext(); ) {
+			Map.Entry<String, DataSource> cidEntry = it.next();
 			String cid = extractCID(cidEntry.getKey());
 			if (htmlContent == null || !htmlContent.contains("cid:" + cid)) {
 				parsedComponents.attachmentList.put(cid, cidEntry.getValue());
-				parsedComponents.cidMap.remove(cidEntry.getKey());
+				it.remove();
 			}
 		}
 	}
 
 	public static class ParsedMimeMessageComponents {
-		private final Map<String, DataSource> attachmentList = new TreeMap<>();
-		private final Map<String, DataSource> cidMap = new TreeMap<>();
+		final Map<String, DataSource> attachmentList = new TreeMap<>();
+		final Map<String, DataSource> cidMap = new TreeMap<>();
 		private final Map<String, Object> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
 		private final List<InternetAddress> ccAddresses = new ArrayList<>();
@@ -473,7 +475,7 @@ public final class MimeMessageParser {
 		private InternetAddress returnReceiptTo;
 		private InternetAddress bounceToAddress;
 		private String plainContent;
-		private String htmlContent;
+		String htmlContent;
 
 		public String getMessageId() {
 			return messageId;
