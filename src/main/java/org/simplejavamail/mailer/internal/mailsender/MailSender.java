@@ -25,6 +25,8 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
@@ -192,14 +194,31 @@ public class MailSender {
         smtpRequestsPhaser.register();
 		if (async) {
 			// start up thread pool if necessary
-			if (executor == null || executor.isTerminated()) {
-				executor = Executors.newFixedThreadPool(operationalConfig.getThreadPoolSize());
+			if (executor == null) {
+				executor = Executors.newFixedThreadPool(operationalConfig.getThreadPoolSize(), new ThreadFactory() {
+					final AtomicInteger threadCounter = new AtomicInteger(0);
+					@Override
+					public Thread newThread(Runnable r) {
+						Thread thread = new Thread(r, "Simple Java Mail async mail sender #" + threadCounter.getAndIncrement());
+						if (!thread.isDaemon()) {
+							thread.setDaemon(true);
+						}
+						if (thread.getPriority() != Thread.NORM_PRIORITY) {
+							thread.setPriority(Thread.NORM_PRIORITY);
+						}
+						return thread;
+					}
+				});
 			}
 			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
 			executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					sendMailClosure(session, email);
+					try {
+						sendMailClosure(session, email);
+					} catch (Exception e) {
+						LOGGER.error("Failed to send email", e);
+					}
 				}
 
 				@Override
@@ -300,7 +319,7 @@ public class MailSender {
 	}
 	
 	/**
-	 * We need to keep a count of running threads in case a proxyserver is running or a connection pool needs to be shut down.
+	 * We need to keep a count of running threads in case a proxyserver is running
      */
     private synchronized void checkShutDownRunningProcesses() {
         smtpRequestsPhaser.arriveAndDeregister();
@@ -312,11 +331,6 @@ public class MailSender {
 			if (needsAuthenticatedProxy() && proxyServer.isRunning() && !proxyServer.isStopping()) {
                 LOGGER.trace("stopping proxy bridge...");
                 proxyServer.stop();
-            }
-            // shutdown the threadpool, or else the Mailer will keep any JVM alive forever
-            // executor is only available in async mode
-            if (executor != null) {
-                executor.shutdown();
             }
         }
     }
