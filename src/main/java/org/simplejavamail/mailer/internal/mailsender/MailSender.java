@@ -23,8 +23,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Phaser;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
@@ -192,9 +194,19 @@ public class MailSender {
         smtpRequestsPhaser.register();
 		if (async) {
 			// start up thread pool if necessary
-			if (executor == null || executor.isShutdown()) {
-				executor = Executors.newFixedThreadPool(operationalConfig.getThreadPoolSize(),
-						new NamedThreadFactory("Simple Java Mail async mail sender"));
+			if (executor == null) {
+				ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
+					operationalConfig.getThreadPoolSize(),
+					operationalConfig.getThreadPoolSize(),
+					operationalConfig.getThreadPoolTimeout(),
+					TimeUnit.MILLISECONDS,
+					new LinkedBlockingQueue<Runnable>(),
+					new NamedThreadFactory("Simple Java Mail async mail sender")
+				);
+				if(operationalConfig.getThreadPoolTimeout() > 0) {
+					threadPoolExecutor.allowCoreThreadTimeOut(true);
+				}
+				executor = threadPoolExecutor;
 			}
 			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
 			executor.execute(new Runnable() {
@@ -300,7 +312,7 @@ public class MailSender {
 	}
 	
 	/**
-	 * We need to keep a count of running threads in case a proxyserver is running or a connection pool needs to be shut down.
+	 * We need to keep a count of running threads in case a proxyserver is running
      */
     private synchronized void checkShutDownRunningProcesses() {
         smtpRequestsPhaser.arriveAndDeregister();
@@ -311,11 +323,6 @@ public class MailSender {
 			if (needsAuthenticatedProxy() && proxyServer.isRunning() && !proxyServer.isStopping()) {
                 LOGGER.trace("stopping proxy bridge...");
                 proxyServer.stop();
-            }
-            // shutdown the threadpool, or else the Mailer will keep any JVM alive forever
-            // executor is only available in async mode
-            if (executor != null) {
-                executor.shutdown();
             }
         }
     }

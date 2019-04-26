@@ -30,6 +30,11 @@ public class OperationalConfig {
 	private final int threadPoolSize;
 	
 	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withThreadPoolTimeout(Integer)
+	 */
+	private final int threadPoolTimeout;
+	
+	/**
 	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
 	private final boolean transportModeLoggingOnly;
@@ -56,6 +61,7 @@ public class OperationalConfig {
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
 		this.threadPoolSize = threadPoolSize;
+		this.threadPoolTimeout = 1; // TODO wire it up to all the config files
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
@@ -75,7 +81,14 @@ public class OperationalConfig {
 	public int getThreadPoolSize() {
 		return threadPoolSize;
 	}
-	
+
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withThreadPoolSize(Integer)
+	 */
+	public int getThreadPoolTimeout() {
+		return threadPoolTimeout;
+	}
+
 	/**
 	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
