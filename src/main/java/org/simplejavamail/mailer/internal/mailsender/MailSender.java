@@ -200,7 +200,11 @@ public class MailSender {
 			executor.execute(new NamedRunnable("sendMail process") {
 				@Override
 				public void run() {
-					sendMailClosure(session, email);
+					try {
+						sendMailClosure(session, email);
+					} catch (Exception e) {
+						LOGGER.error("Failed to send email", e);
+					}
 				}
 			});
 		} else {
