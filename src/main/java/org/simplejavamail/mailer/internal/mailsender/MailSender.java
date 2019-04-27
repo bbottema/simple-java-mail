@@ -6,6 +6,7 @@ import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
 import org.simplejavamail.mailer.MailerGenericBuilder;
 import org.simplejavamail.mailer.config.TransportStrategy;
+import org.simplejavamail.mailer.internal.mailsender.concurrent.NamedRunnable;
 import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
 import org.simplejavamail.mailer.internal.socks.SocksProxyConfig;
 import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5Server;
@@ -196,15 +197,10 @@ public class MailSender {
 				executor = Executors.newFixedThreadPool(operationalConfig.getThreadPoolSize());
 			}
 			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
-			executor.execute(new Runnable() {
+			executor.execute(new NamedRunnable("sendMail process") {
 				@Override
 				public void run() {
 					sendMailClosure(session, email);
-				}
-
-				@Override
-				public String toString() {
-					return "sendMail process";
 				}
 			});
 		} else {
