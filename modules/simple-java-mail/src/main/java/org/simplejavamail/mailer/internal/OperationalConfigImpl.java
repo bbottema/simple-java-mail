@@ -24,11 +24,16 @@ public class OperationalConfigImpl implements OperationalConfig {
 	 * @see MailerRegularBuilder#withProperties(Properties)
 	 */
 	private final Properties properties;
-	
+
 	/**
 	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
 	 */
 	private final int threadPoolSize;
+
+	/**
+	 * @see MailerRegularBuilder#withThreadTimeout(Integer)
+	 */
+	private final int threadPoolTimeout;
 	
 	/**
 	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
@@ -55,11 +60,13 @@ public class OperationalConfigImpl implements OperationalConfig {
 	 */
 	@Deprecated
 	@SuppressWarnings("DeprecatedIsStillUsed")
-	public OperationalConfigImpl(boolean async, Properties properties, int sessionTimeout, int threadPoolSize, boolean transportModeLoggingOnly, boolean debugLogging, List<String> sslHostsToTrust, boolean trustAllSSLHost) {
+	public OperationalConfigImpl(boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolTimeout, boolean transportModeLoggingOnly, boolean debugLogging,
+			List<String> sslHostsToTrust, boolean trustAllSSLHost) {
 		this.async = async;
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
 		this.threadPoolSize = threadPoolSize;
+		this.threadPoolTimeout = threadPoolTimeout;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
@@ -81,13 +88,21 @@ public class OperationalConfigImpl implements OperationalConfig {
 	public int getSessionTimeout() {
 		return sessionTimeout;
 	}
-	
+
 	/**
 	 * @see OperationalConfig#getThreadPoolSize()
 	 */
 	@Override
 	public int getThreadPoolSize() {
 		return threadPoolSize;
+	}
+
+	/**
+	 * @see OperationalConfig#getThreadPoolTimeout()
+	 */
+	@Override
+	public int getThreadPoolTimeout() {
+		return threadPoolTimeout;
 	}
 	
 	/**

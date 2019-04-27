@@ -23,11 +23,16 @@ public interface OperationalConfig {
 	 * @see MailerRegularBuilder#withSessionTimeout(Integer)
 	 */
 	int getSessionTimeout();
-	
+
 	/**
 	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
 	 */
 	int getThreadPoolSize();
+
+	/**
+	 * @see MailerRegularBuilder#withThreadPoolTimeout(Integer)
+	 */
+	int getThreadPoolTimeout();
 	
 	/**
 	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)

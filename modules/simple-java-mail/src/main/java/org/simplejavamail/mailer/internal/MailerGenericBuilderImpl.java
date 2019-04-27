@@ -163,7 +163,8 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	@SuppressWarnings("deprecation")
 	OperationalConfig buildOperationalConfig() {
-		return new OperationalConfigImpl(isAsync(), getProperties(), getSessionTimeout(), getThreadPoolSize(), isTransportModeLoggingOnly(), isDebugLogging(),
+		// FIXME threadpool config
+		return new OperationalConfigImpl(isAsync(), getProperties(), getSessionTimeout(), getThreadPoolSize(), 2000, isTransportModeLoggingOnly(), isDebugLogging(),
 				getSslHostsToTrust(), isTrustAllSSLHost());
 	}
 	

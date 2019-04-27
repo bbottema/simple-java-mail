@@ -11,6 +11,7 @@ import org.simplejavamail.api.mailer.internal.mailsender.MailSender;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.mailer.internal.MailerGenericBuilderImpl;
+import org.simplejavamail.mailer.internal.mailsender.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +25,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
 
 import static java.lang.String.format;
@@ -162,6 +162,7 @@ public class MailSenderImpl implements MailSender {
 
 	/**
 	 * @see MailSender#send(Email, boolean)
+	 * @see NonJvmBlockingThreadPoolExecutor
 	 */
 	@Override
 	@Nullable
@@ -183,8 +184,8 @@ public class MailSenderImpl implements MailSender {
 			return null;
 		} else {
 			// start up thread pool if necessary
-			if (executor == null || executor.isShutdown()) {
-				executor = Executors.newFixedThreadPool(operationalConfig.getThreadPoolSize());
+			if (executor == null) {
+				executor = new NonJvmBlockingThreadPoolExecutor(operationalConfig, "Simple Java Mail async mail sender");
 			}
 			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
 
@@ -301,7 +302,7 @@ public class MailSenderImpl implements MailSender {
 	}
 	
 	/**
-	 * We need to keep a count of running threads in case a proxyserver is running or a connection pool needs to be shut down.
+	 * We need to keep a count of running threads in case a proxyserver is running
      */
     private synchronized void checkShutDownRunningProcesses() {
         smtpRequestsPhaser.arriveAndDeregister();
@@ -309,15 +310,9 @@ public class MailSenderImpl implements MailSender {
         // if this thread is the last one finishing
         if (smtpRequestsPhaser.getUnarrivedParties() == 0) {
             LOGGER.trace("all threads have finished processing");
-			//noinspection ConstantConditions
 			if (needsAuthenticatedProxy() && proxyServer.isRunning() && !proxyServer.isStopping()) {
                 LOGGER.trace("stopping proxy bridge...");
                 proxyServer.stop();
-            }
-            // shutdown the threadpool, or else the Mailer will keep any JVM alive forever
-            // executor is only available in async mode
-            if (executor != null) {
-                executor.shutdown();
             }
         }
     }
@@ -404,7 +399,6 @@ public class MailSenderImpl implements MailSender {
 			logSession(session, async, "connection test");
 
 			try (Transport transport = session.getTransport()) {
-				//noinspection ConstantConditions
 				if (needsAuthenticatedProxy() && !proxyServer.isRunning()) {
 					LOGGER.trace("starting proxy bridge for testing connection");
 					proxyServer.start();
