@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer.internal.mailsender;
 
 import org.simplejavamail.api.mailer.AsyncResponse;
+import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutorService;
@@ -8,12 +9,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Util that facilitates running a concurrent operation while supporting {@link AsyncResponse}.
  */
 @SuppressWarnings("SameParameterValue")
 class AsyncOperationHelper {
+
+	private static final Logger LOGGER = getLogger(AsyncOperationHelper.class);
 	
 	private AsyncOperationHelper() {
 	}
@@ -54,6 +58,7 @@ class AsyncOperationHelper {
 					operation.run();
 					asyncResponseRef.get().delegateSuccessHandling();
 				} catch (Exception e) {
+					LOGGER.error("Failed to run " + processName, e);
 					asyncResponseRef.get().delegateExceptionHandling(e);
 					throw e; // trigger the returned Future's exception handle
 				} finally {
