@@ -204,6 +204,7 @@ public class MailSender {
 						sendMailClosure(session, email);
 					} catch (Exception e) {
 						LOGGER.error("Failed to send email", e);
+						throw e;
 					}
 				}
 			});
