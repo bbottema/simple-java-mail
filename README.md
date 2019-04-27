@@ -79,7 +79,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 v5.1.1 - [v5.1.6](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.1.6%7Cjar)
 
 - v5.1.6 (27-April-2019): [#204](https://github.com/bbottema/simple-java-mail/issues/204) A Concurrent exception when an async process starts when the previous connection pool didn't shutdown in time
-- v5.1.6 (27-April-2019): [#204](https://github.com/bbottema/simple-java-mail/issues/204) B Exceptions in threads are now caught and logged and don't bubble up anymore
+- v5.1.6 (27-April-2019): [#204](https://github.com/bbottema/simple-java-mail/issues/204) B Exceptions in threads are now caught and logged and don't bubble up anymore. Note that more comprehensive exception handling will be available in 6.0.0 (#148).
 - v5.1.5 (24-April-2019): [#202](https://github.com/bbottema/simple-java-mail/issues/202) Fixed ConcurrentModificationException when moving invalid embedded images as regular attachments
 - v5.1.4 (5-April-2019): [#163](https://github.com/bbottema/simple-java-mail/issues/163) Fixed missing mimetype for attachments when parsing Outlook messages where mimeTag was not included
 - v5.1.3 (15-Januari-2019): Updated to newer rfc-validator version, which fixed a regression bug in that library
