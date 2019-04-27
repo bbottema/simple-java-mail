@@ -193,7 +193,7 @@ public class MailSender {
         smtpRequestsPhaser.register();
 		if (async) {
 			// start up thread pool if necessary
-			if (executor == null || executor.isTerminated()) {
+			if (executor == null || executor.isShutdown()) {
 				executor = Executors.newFixedThreadPool(operationalConfig.getThreadPoolSize());
 			}
 			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
