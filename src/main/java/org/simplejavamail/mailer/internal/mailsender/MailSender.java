@@ -71,7 +71,7 @@ public class MailSender {
 	 * Only set when {@link ProxyConfig} is provided with authentication details.
 	 */
 	@Nullable
-	private AnonymousSocks5Server proxyServer = null;
+	private AnonymousSocks5Server proxyServer;
 
 	/**
 	 * Allows us to manage how many thread we run at the same time using a thread pool.
