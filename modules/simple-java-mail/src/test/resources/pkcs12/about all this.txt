@@ -1,0 +1,8 @@
+how-to.html
+    -> to generate CA cert, private key and and S/MIME format
+https://knowledge.digicert.com/solution/SO26449.html
+    -> to get p7b file from PEM (.key file) (not needed after all)
+smime.cnf
+    -> openssl config file from the how-to.html
+
+Password for everything: letmein
