@@ -175,19 +175,19 @@ public class MailSenderImpl implements MailSender {
             smtpRequestsPhaser = new Phaser();
         }
         smtpRequestsPhaser.register();
-		
+
 		SendMailClosure sendMailClosure = new SendMailClosure(session, email, async);
-		
+
 		if (!async) {
 			sendMailClosure.run();
 			return null;
 		} else {
 			// start up thread pool if necessary
-			if (executor == null || executor.isTerminated()) {
+			if (executor == null || executor.isShutdown()) {
 				executor = Executors.newFixedThreadPool(operationalConfig.getThreadPoolSize());
 			}
 			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
-			
+
 			return AsyncOperationHelper.executeAsync(executor, "sendMail process", sendMailClosure);
 		}
 	}
@@ -212,11 +212,11 @@ public class MailSenderImpl implements MailSender {
 	 */
 	// used to be a method with simple parameters! would still have been, if Java 7 supported lambda's :(
 	private class SendMailClosure implements Runnable {
-		
+
 		@Nonnull final Session session;
 		@Nonnull final Email email;
 		private final boolean async;
-		
+
 		/**
 		 * @param session The session with which to produce the {@link MimeMessage} aquire the {@link Transport} for connections.
 		 * @param email   The email that will be converted into a {@link MimeMessage}.
@@ -227,7 +227,7 @@ public class MailSenderImpl implements MailSender {
 			this.email = email;
 			this.async = async;
 		}
-		
+
 		@SuppressWarnings("deprecation")
 		@Override
 		public void run() {
@@ -237,13 +237,13 @@ public class MailSenderImpl implements MailSender {
 				final MimeMessage message = MimeMessageProducerHelper.produceMimeMessage(
 						checkNonEmptyArgument(email, "email"),
 						checkNonEmptyArgument(session, "session"));
-				
+
 				configureBounceToAddress(session, email);
-				
+
 				logSession(session, async, "mail");
 				message.saveChanges(); // some headers and id's will be set for this specific message
 				email.internalSetId(message.getMessageID());
-				
+
 				try {
 					synchronized (this) {
 						if (needsAuthenticatedProxy()) {
@@ -255,11 +255,11 @@ public class MailSenderImpl implements MailSender {
 							proxyServer.start();
 						}
 					}
-					
+
 					if (!operationalConfig.isTransportModeLoggingOnly()) {
 						LOGGER.trace("\t\nEmail: {}", email);
 						LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEML(message));
-						
+
 						try (Transport transport = session.getTransport()) {
 							transport.connect();
 							transport.sendMessage(message, message.getAllRecipients());
@@ -321,7 +321,7 @@ public class MailSenderImpl implements MailSender {
             }
         }
     }
-	
+
 	/**
 	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
 	 */
@@ -377,7 +377,7 @@ public class MailSenderImpl implements MailSender {
 			return AsyncOperationHelper.executeAsync("testSMTPConnection process", testConnectionClosure);
 		}
 	}
-	
+
 	/**
 	 * Extra closure for the actual connection test, so this can be called regularly as well as from async thread.
 	 * <p>
@@ -387,22 +387,22 @@ public class MailSenderImpl implements MailSender {
 	private class TestConnectionClosure implements Runnable {
 		@Nonnull final Session session;
 		private final boolean async;
-		
+
 		private TestConnectionClosure(@Nonnull Session session, boolean async) {
 			this.async = async;
 			this.session = session;
 		}
-		
+
 		@Override
 		public void run() {
 			LOGGER.debug("testing connection...");
-			
+
 			boolean proxyBridgeStartedForTestingConnection = false;
-			
+
 			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
-			
+
 			logSession(session, async, "connection test");
-			
+
 			try (Transport transport = session.getTransport()) {
 				//noinspection ConstantConditions
 				if (needsAuthenticatedProxy() && !proxyServer.isRunning()) {
@@ -411,7 +411,7 @@ public class MailSenderImpl implements MailSender {
 					proxyBridgeStartedForTestingConnection = true;
 				}
 				transport.connect(); // actual test
-				
+
 				LOGGER.debug("...connection succesful");
 			} catch (final MessagingException e) {
 				throw new MailSenderException(MailSenderException.ERROR_CONNECTING_SMTP_SERVER, e);
@@ -423,7 +423,7 @@ public class MailSenderImpl implements MailSender {
 			}
 		}
 	}
-	
+
 	/**
 	 * Proxy server is null when not needed. Method is for readability.
 	 */
@@ -446,5 +446,5 @@ public class MailSenderImpl implements MailSender {
 	public OperationalConfig getOperationalConfig() {
 		return operationalConfig;
 	}
-	
+
 }
