@@ -6,6 +6,8 @@ import org.simplejavamail.email.Email;
 import org.simplejavamail.email.Recipient;
 import org.simplejavamail.mailer.MailerGenericBuilder;
 import org.simplejavamail.mailer.config.TransportStrategy;
+import org.simplejavamail.mailer.internal.mailsender.concurrent.NamedRunnable;
+import org.simplejavamail.mailer.internal.mailsender.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.simplejavamail.mailer.internal.socks.AuthenticatingSocks5Bridge;
 import org.simplejavamail.mailer.internal.socks.SocksProxyConfig;
 import org.simplejavamail.mailer.internal.socks.socks5server.AnonymousSocks5Server;
@@ -23,10 +25,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Phaser;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
@@ -180,7 +179,7 @@ public class MailSender {
 	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
 	 *              send the email and this method returns immediately.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
-	 * @see Executors#newFixedThreadPool(int)
+	 * @see NonJvmBlockingThreadPoolExecutor
 	 */
 	public final synchronized void send(final Email email, final boolean async) {
 		/*
@@ -195,29 +194,13 @@ public class MailSender {
 		if (async) {
 			// start up thread pool if necessary
 			if (executor == null) {
-				ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-					operationalConfig.getThreadPoolSize(),
-					operationalConfig.getThreadPoolSize(),
-					operationalConfig.getThreadPoolTimeout(),
-					TimeUnit.MILLISECONDS,
-					new LinkedBlockingQueue<Runnable>(),
-					new NamedThreadFactory("Simple Java Mail async mail sender")
-				);
-				if(operationalConfig.getThreadPoolTimeout() > 0) {
-					threadPoolExecutor.allowCoreThreadTimeOut(true);
-				}
-				executor = threadPoolExecutor;
+				executor = new NonJvmBlockingThreadPoolExecutor(operationalConfig, "Simple Java Mail async mail sender");
 			}
 			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
-			executor.execute(new Runnable() {
+			executor.execute(new NamedRunnable("sendMail process") {
 				@Override
 				public void run() {
 					sendMailClosure(session, email);
-				}
-
-				@Override
-				public String toString() {
-					return "sendMail process";
 				}
 			});
 		} else {

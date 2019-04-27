@@ -1,4 +1,4 @@
-package org.simplejavamail.mailer.internal.mailsender;
+package org.simplejavamail.mailer.internal.mailsender.concurrent;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.ThreadFactory;
@@ -12,7 +12,7 @@ class NamedThreadFactory implements ThreadFactory {
 	private final ThreadGroup group;
 	private final String threadName;
 	
-	NamedThreadFactory(@Nonnull final String threadName) {
+	public NamedThreadFactory(@Nonnull final String threadName) {
 		SecurityManager s = System.getSecurityManager();
 		group = (s != null) ? s.getThreadGroup() : currentThread().getThreadGroup();
 		this.threadName = threadName;
