@@ -44,7 +44,7 @@ import java.util.Properties;
  * <li>simplejavamail.defaults.cc.address</li>
  * <li>simplejavamail.defaults.bcc.name</li>
  * <li>simplejavamail.defaults.bcc.address</li>
- * <li>simplejavamail.defaults.poolsize</li>(sets both core and max)
+ * <li>simplejavamail.defaults.poolsize (sets both core and max)</li>
  * <li>simplejavamail.defaults.poolsize.core</li>
  * <li>simplejavamail.defaults.poolsize.max</li>
  * <li>simplejavamail.defaults.poolsize.keepalivetime</li>

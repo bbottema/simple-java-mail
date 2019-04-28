@@ -38,9 +38,9 @@ public class OperationalConfigImpl implements OperationalConfig {
 	private final int threadPoolMaxSize;
 
 	/**
-	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTimeMillis(Integer)
+	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTime(Integer)
 	 */
-	private final int threadPoolKeepAliveTimeMillis;
+	private final int threadPoolKeepAliveTime;
 	
 	/**
 	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
@@ -67,14 +67,14 @@ public class OperationalConfigImpl implements OperationalConfig {
 	 */
 	@Deprecated
 	@SuppressWarnings("DeprecatedIsStillUsed")
-	public OperationalConfigImpl(boolean async, Properties properties, int sessionTimeout, int threadPoolCoreSize, int threadPoolMaxSize, int threadPoolKeepAliveTimeMillis, boolean transportModeLoggingOnly, boolean debugLogging,
+	public OperationalConfigImpl(boolean async, Properties properties, int sessionTimeout, int threadPoolCoreSize, int threadPoolMaxSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly, boolean debugLogging,
 			List<String> sslHostsToTrust, boolean trustAllSSLHost) {
 		this.async = async;
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
 		this.threadPoolCoreSize = threadPoolCoreSize;
 		this.threadPoolMaxSize = threadPoolMaxSize;
-		this.threadPoolKeepAliveTimeMillis = threadPoolKeepAliveTimeMillis;
+		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
@@ -114,11 +114,11 @@ public class OperationalConfigImpl implements OperationalConfig {
 	}
 
 	/**
-	 * @see OperationalConfig#getThreadPoolKeepAliveTimeMillis()
+	 * @see OperationalConfig#getThreadPoolKeepAliveTime()
 	 */
 	@Override
-	public int getThreadPoolKeepAliveTimeMillis() {
-		return threadPoolKeepAliveTimeMillis;
+	public int getThreadPoolKeepAliveTime() {
+		return threadPoolKeepAliveTime;
 	}
 	
 	/**
