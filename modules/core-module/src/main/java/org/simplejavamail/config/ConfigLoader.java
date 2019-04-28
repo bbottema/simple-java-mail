@@ -50,7 +50,10 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.defaults.cc.address</li>
  * <li>simplejavamail.defaults.bcc.name</li>
  * <li>simplejavamail.defaults.bcc.address</li>
- * <li>simplejavamail.defaults.poolsize</li>
+ * <li>simplejavamail.defaults.poolsize</li>(sets both core and max)
+ * <li>simplejavamail.defaults.poolsize.core</li>
+ * <li>simplejavamail.defaults.poolsize.max</li>
+ * <li>simplejavamail.defaults.poolsize.keepalivetime</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.transport.mode.logging.only</li>
  * <li>simplejavamail.opportunistic.tls</li>
@@ -108,7 +111,10 @@ public final class ConfigLoader {
 		DEFAULT_CC_ADDRESS("simplejavamail.defaults.cc.address"),
 		DEFAULT_BCC_NAME("simplejavamail.defaults.bcc.name"),
 		DEFAULT_BCC_ADDRESS("simplejavamail.defaults.bcc.address"),
-		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize"),
+		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize"),// FIXME support this as well
+		DEFAULT_CORE_POOL_SIZE("simplejavamail.defaults.poolsize.core"),
+		DEFAULT_MAX_POOL_SIZE("simplejavamail.defaults.poolsize.max"),
+		DEFAULT_POOL_KEEP_ALIVE_TIME("simplejavamail.defaults.poolsize.keepalivetime"),
 		DEFAULT_SESSION_TIMEOUT_MILLIS("simplejavamail.defaults.sessiontimeoutmillis"),
 		TRANSPORT_MODE_LOGGING_ONLY("simplejavamail.transport.mode.logging.only"),
 		OPPORTUNISTIC_TLS("simplejavamail.opportunistic.tls");

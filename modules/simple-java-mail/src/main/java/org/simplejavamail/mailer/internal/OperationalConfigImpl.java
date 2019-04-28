@@ -27,13 +27,20 @@ public class OperationalConfigImpl implements OperationalConfig {
 
 	/**
 	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
+	 * @see MailerRegularBuilder#withThreadPoolCoreSize(Integer)
 	 */
-	private final int threadPoolSize;
+	private final int threadPoolCoreSize;
 
 	/**
-	 * @see MailerRegularBuilder#withThreadTimeout(Integer)
+	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
+	 * @see MailerRegularBuilder#withThreadPoolMaxSize(Integer)
 	 */
-	private final int threadPoolTimeout;
+	private final int threadPoolMaxSize;
+
+	/**
+	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTimeMillis(Integer)
+	 */
+	private final int threadPoolKeepAliveTimeMillis;
 	
 	/**
 	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
@@ -60,13 +67,14 @@ public class OperationalConfigImpl implements OperationalConfig {
 	 */
 	@Deprecated
 	@SuppressWarnings("DeprecatedIsStillUsed")
-	public OperationalConfigImpl(boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolTimeout, boolean transportModeLoggingOnly, boolean debugLogging,
+	public OperationalConfigImpl(boolean async, Properties properties, int sessionTimeout, int threadPoolCoreSize, int threadPoolMaxSize, int threadPoolKeepAliveTimeMillis, boolean transportModeLoggingOnly, boolean debugLogging,
 			List<String> sslHostsToTrust, boolean trustAllSSLHost) {
 		this.async = async;
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
-		this.threadPoolSize = threadPoolSize;
-		this.threadPoolTimeout = threadPoolTimeout;
+		this.threadPoolCoreSize = threadPoolCoreSize;
+		this.threadPoolMaxSize = threadPoolMaxSize;
+		this.threadPoolKeepAliveTimeMillis = threadPoolKeepAliveTimeMillis;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
@@ -90,19 +98,27 @@ public class OperationalConfigImpl implements OperationalConfig {
 	}
 
 	/**
-	 * @see OperationalConfig#getThreadPoolSize()
+	 * @see OperationalConfig#getThreadPoolCoreSize()
 	 */
 	@Override
-	public int getThreadPoolSize() {
-		return threadPoolSize;
+	public int getThreadPoolCoreSize() {
+		return threadPoolCoreSize;
 	}
 
 	/**
-	 * @see OperationalConfig#getThreadPoolTimeout()
+	 * @see OperationalConfig#getThreadPoolMaxSize()
 	 */
 	@Override
-	public int getThreadPoolTimeout() {
-		return threadPoolTimeout;
+	public int getThreadPoolMaxSize() {
+		return threadPoolMaxSize;
+	}
+
+	/**
+	 * @see OperationalConfig#getThreadPoolKeepAliveTimeMillis()
+	 */
+	@Override
+	public int getThreadPoolKeepAliveTimeMillis() {
+		return threadPoolKeepAliveTimeMillis;
 	}
 	
 	/**

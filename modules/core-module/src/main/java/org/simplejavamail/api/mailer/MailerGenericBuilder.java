@@ -11,6 +11,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Builder superclass which contains API to take care of all generic Mailer properties unrelated to the SMTP server
@@ -26,10 +27,23 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	int DEFAULT_SESSION_TIMEOUT_MILLIS = 60_000;
 	/**
-	 * For multi-threaded scenario's where a batch of emails sent asynchronously, the default maximum number of threads is <code>{@value}</code>.
-	 * Can be overridden from a config file or through System variable.
+	 * {@value}
+	 *
+	 * @see #withThreadPoolCoreSize(Integer)
 	 */
-	int DEFAULT_POOL_SIZE = 10;
+	int DEFAULT_CORE_POOL_SIZE = 10;
+	/**
+	 * {@value}
+	 *
+	 * @see #withThreadPoolMaxSize(Integer)
+	 */
+	int DEFAULT_MAX_POOL_SIZE = 10;
+	/**
+	 * {@value}
+	 *
+	 * @see #withThreadPoolKeepAliveTime(Integer)
+	 */
+	int DEFAULT_POOL_KEEP_ALIVE_TIME = 2000;
 	/**
 	 * Default port is <code>{@value}</code>.
 	 */
@@ -147,15 +161,66 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #resetEmailAddressCriteria()
 	 */
 	T withEmailAddressCriteria(@Nonnull EnumSet<EmailAddressCriteria> emailAddressCriteria);
-	
+
 	/**
-	 * Controls the maximum number of threads when sending emails in async fashion. Defaults to {@value #DEFAULT_POOL_SIZE}.
+	 * Sets both core thread pool size and max thread pool size to the given size.
 	 *
-	 * @param defaultPoolSize Size of the thread pool.
+	 * @param threadPoolSize See main description.
 	 *
 	 * @see #resetThreadpoolSize()
+	 * @see #withThreadPoolCoreSize(Integer)
+	 * @see #withThreadPoolMaxSize(Integer)
 	 */
-	T withThreadPoolSize(@Nonnull Integer defaultPoolSize);
+	T withThreadPoolSize(@Nonnull Integer threadPoolSize);
+
+	/**
+	 * When sending in async / batch mode, controls the minimum number of threads when starting up and when idling. However, by default a keepAlivetime is also configured, so the core threads
+	 * actually die off, as to not block the JVM from exiting.
+	 * <p>
+	 * To revert to normal maxCoreThreads behavior, configure keepAlivetime to zero.
+	 * <p>
+	 * For more details on this, refer to {@link java.util.concurrent.ThreadPoolExecutor#setCorePoolSize(int)}, {@link java.util.concurrent.ThreadPoolExecutor#setKeepAliveTime(long, TimeUnit)} and
+	 * particularly {@link java.util.concurrent.ThreadPoolExecutor#allowCoreThreadTimeOut(boolean)}
+	 * <p>
+	 * Defaults to {@value #DEFAULT_CORE_POOL_SIZE}.
+	 *
+	 * @param threadPoolCoreSize See main description.
+	 *
+	 * @see #resetThreadpoolCoreSize()
+	 */
+	T withThreadPoolCoreSize(@Nonnull Integer threadPoolCoreSize);
+
+	/**
+	 * When sending in async / batch mode, controls the maximum number of concurrent threads when ramping up mail sessions.
+	 * by default a keepAlivetime is also configured, so these threads die off automatically, as to not block the JVM from exiting.
+	 * <p>
+	 * To revert to normal maxThreads behavior, configure keepAliveTime to zero.
+	 * <p>
+	 * For more details on this, refer to {@link java.util.concurrent.ThreadPoolExecutor#setMaximumPoolSize(int)}, {@link java.util.concurrent.ThreadPoolExecutor#setKeepAliveTime(long, TimeUnit)}.
+	 * <p>
+	 * Defaults to {@value #DEFAULT_MAX_POOL_SIZE}.
+	 *
+	 * @param threadPoolMaxSize See main description.
+	 *
+	 * @see #resetThreadpoolMaxSize()
+	 */
+	T withThreadPoolMaxSize(@Nonnull Integer threadPoolMaxSize);
+
+	/**
+	 * When set to a non-zero value (milliseconds), this keepAlivetime is applied to <em>both</em> core and extra threads. This is so that
+	 * these threads can never block the JVM from exiting once they finish their task. This is different from daemon threads,
+	 * which are abandonded without waiting for them to finish the tasks.
+	 * <p>
+	 * When set to zero, this keepAliveTime is applied only to extra threads, not core threads. This is the classic executor
+	 * behavior, but this blocks the JVM from exiting.
+	 * <p>
+	 * Defaults to {@value #DEFAULT_POOL_KEEP_ALIVE_TIME}.
+	 *
+	 * @param threadPoolKeepAliveTime Value in milliseconds. See main description for details.
+	 *
+	 * @see #resetThreadpoolKeepAliveTime()
+	 */
+	T withThreadPoolKeepAliveTime(@Nonnull Integer threadPoolKeepAliveTime);
 	
 	/**
 	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
@@ -234,13 +299,36 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #clearEmailAddressCriteria()
 	 */
 	T resetEmailAddressCriteria();
-	
+
 	/**
-	 * Resets threadPoolSize to its default ({@value #DEFAULT_POOL_SIZE}).
+	 * Resets both thread pool max and core size to their defaults.
 	 *
 	 * @see #withThreadPoolSize(Integer)
+	 * @see #resetThreadpoolCoreSize()
+	 * @see #resetThreadpoolMaxSize()
 	 */
 	T resetThreadpoolSize();
+
+	/**
+	 * Resets thread pool core size to its default ({@value #DEFAULT_CORE_POOL_SIZE}).
+	 *
+	 * @see #withThreadPoolCoreSize(Integer)
+	 */
+	T resetThreadpoolCoreSize();
+
+	/**
+	 * Resets thread pool max size to its default ({@value #DEFAULT_MAX_POOL_SIZE}).
+	 *
+	 * @see #withThreadPoolMaxSize(Integer)
+	 */
+	T resetThreadpoolMaxSize();
+
+	/**
+	 * Resets threadPoolMaxSize to its default ({@value #DEFAULT_POOL_KEEP_ALIVE_TIME}).
+	 *
+	 * @see #withThreadPoolKeepAliveTime(Integer)
+	 */
+	T resetThreadpoolKeepAliveTime();
 	
 	/**
 	 * Resets transportModeLoggingOnly to {@value #DEFAULT_TRANSPORT_MODE_LOGGING_ONLY}.
@@ -330,12 +418,24 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	EnumSet<EmailAddressCriteria> getEmailAddressCriteria();
-	
+
 	/**
-	 * @see #withThreadPoolSize(Integer)
+	 * @see #withThreadPoolCoreSize(Integer)
 	 */
-	@Nullable
-	Integer getThreadPoolSize();
+	@Nonnull
+	Integer getThreadPoolCoreSize();
+
+	/**
+	 * @see #withThreadPoolMaxSize(Integer)
+	 */
+	@Nonnull
+	Integer getThreadPoolMaxSize();
+
+	/**
+	 * @see #withThreadPoolKeepAliveTime(Integer)
+	 */
+	@Nonnull
+	Integer getThreadPoolKeepAliveTime();
 	
 	/**
 	 * @see #trustingSSLHosts(String...)

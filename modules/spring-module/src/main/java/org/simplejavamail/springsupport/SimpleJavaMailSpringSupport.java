@@ -44,7 +44,10 @@ import java.util.Properties;
  * <li>simplejavamail.defaults.cc.address</li>
  * <li>simplejavamail.defaults.bcc.name</li>
  * <li>simplejavamail.defaults.bcc.address</li>
- * <li>simplejavamail.defaults.poolsize</li>
+ * <li>simplejavamail.defaults.poolsize</li>(sets both core and max)
+ * <li>simplejavamail.defaults.poolsize.core</li>
+ * <li>simplejavamail.defaults.poolsize.max</li>
+ * <li>simplejavamail.defaults.poolsize.keepalivetime</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.transport.mode.logging.only</li>
  * <li>simplejavamail.opportunistic.tls</li>
@@ -82,6 +85,9 @@ public class SimpleJavaMailSpringSupport {
 			@Value("${simplejavamail.defaults.bcc.name:#{null}}") final String defaultBccName,
 			@Value("${simplejavamail.defaults.bcc.address:#{null}}") final String defaultBccAddress,
 			@Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
+			@Value("${simplejavamail.defaults.poolsize.core:#{null}}") final String defaultCorePoolsize,
+			@Value("${simplejavamail.defaults.poolsize.max:#{null}}") final String defaultMaxPoolsize,
+			@Value("${simplejavamail.defaults.poolsize.keepalive:#{null}}") final String defaultPoolKeepAlivetime,
 			@Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
 			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly,
 			@Value("${simplejavamail.opportunistic.tls:#{null}}") final String defaultOpportunisticTls) {
@@ -111,6 +117,9 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_BCC_NAME.key(), defaultBccName);
 		setNullableProperty(emailProperties, Property.DEFAULT_BCC_ADDRESS.key(), defaultBccAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_POOL_SIZE.key(), defaultPoolsize);
+		setNullableProperty(emailProperties, Property.DEFAULT_CORE_POOL_SIZE.key(), defaultCorePoolsize);
+		setNullableProperty(emailProperties, Property.DEFAULT_MAX_POOL_SIZE.key(), defaultMaxPoolsize);
+		setNullableProperty(emailProperties, Property.DEFAULT_POOL_KEEP_ALIVE_TIME.key(), defaultPoolKeepAlivetime);
 		setNullableProperty(emailProperties, Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key(), defaultSessionTimeoutMillis);
 		setNullableProperty(emailProperties, Property.TRANSPORT_MODE_LOGGING_ONLY.key(), defaultTransportModeLoggingOnly);
 		setNullableProperty(emailProperties, Property.OPPORTUNISTIC_TLS.key(), defaultOpportunisticTls);

@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.simplejavamail.config.ConfigLoader.getIntegerProperty;
+import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsBoolean;
+import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsInteger;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
@@ -77,12 +80,24 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	@Nonnull
 	private EnumSet<EmailAddressCriteria> emailAddressCriteria;
-	
+
 	/**
-	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
+	 * @see MailerGenericBuilder#withThreadPoolCoreSize(Integer)
 	 */
 	@Nonnull
-	private Integer threadPoolSize;
+	private Integer threadPoolCoreSize;
+
+	/**
+	 * @see MailerGenericBuilder#withThreadPoolMaxSize(Integer)
+	 */
+	@Nonnull
+	private Integer threadPoolMaxSize;
+
+	/**
+	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
+	 */
+	@Nonnull
+	private Integer threadPoolKeepAliveTime;
 	
 	/**
 	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
@@ -122,12 +137,14 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 			this.proxyPassword = ConfigLoader.getStringProperty(PROXY_PASSWORD);
 		}
 
-		this.proxyPort 					= assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
-		this.proxyBridgePort 			= assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
-		this.debugLogging 				= assumeNonNull(ConfigLoader.valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
-		this.sessionTimeout 			= assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
-		this.threadPoolSize 			= assumeNonNull(ConfigLoader.valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
-		this.transportModeLoggingOnly 	= assumeNonNull(ConfigLoader.valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
+		this.proxyPort 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
+		this.proxyBridgePort 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
+		this.debugLogging 				= assumeNonNull(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
+		this.sessionTimeout 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
+		this.threadPoolCoreSize 		= assumeNonNull(valueOrPropertyAsInteger(getIntegerProperty(Property.DEFAULT_POOL_SIZE), Property.DEFAULT_CORE_POOL_SIZE, DEFAULT_CORE_POOL_SIZE));
+		this.threadPoolMaxSize 			= assumeNonNull(valueOrPropertyAsInteger(getIntegerProperty(Property.DEFAULT_POOL_SIZE), Property.DEFAULT_MAX_POOL_SIZE, DEFAULT_MAX_POOL_SIZE));
+		this.threadPoolKeepAliveTime 	= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
+		this.transportModeLoggingOnly 	= assumeNonNull(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
 		
 		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
 		this.trustAllSSLHost = true;
@@ -163,9 +180,17 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	@SuppressWarnings("deprecation")
 	OperationalConfig buildOperationalConfig() {
-		// FIXME threadpool config
-		return new OperationalConfigImpl(isAsync(), getProperties(), getSessionTimeout(), getThreadPoolSize(), 2000, isTransportModeLoggingOnly(), isDebugLogging(),
-				getSslHostsToTrust(), isTrustAllSSLHost());
+		return new OperationalConfigImpl(
+				isAsync(),
+				getProperties(),
+				getSessionTimeout(),
+				getThreadPoolCoreSize(),
+				getThreadPoolMaxSize(),
+				getThreadPoolKeepAliveTime(),
+				isTransportModeLoggingOnly(),
+				isDebugLogging(),
+				getSslHostsToTrust(),
+				isTrustAllSSLHost());
 	}
 	
 	/**
@@ -268,13 +293,40 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 		this.emailAddressCriteria = emailAddressCriteria.clone();
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	@Override
-	public T withThreadPoolSize(@Nonnull final Integer defaultPoolSize) {
-		this.threadPoolSize = defaultPoolSize;
+	public T withThreadPoolSize(@Nonnull final Integer threadPoolSize) {
+		return (T) withThreadPoolCoreSize(threadPoolSize)
+				.withThreadPoolMaxSize(threadPoolSize);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withThreadPoolCoreSize(Integer)
+	 */
+	@Override
+	public T withThreadPoolCoreSize(@Nonnull final Integer threadPoolCoreSize) {
+		this.threadPoolCoreSize = threadPoolCoreSize;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withThreadPoolMaxSize(Integer)
+	 */
+	@Override
+	public T withThreadPoolMaxSize(@Nonnull final Integer threadPoolMaxSize) {
+		this.threadPoolMaxSize = threadPoolMaxSize;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
+	 */
+	@Override
+	public T withThreadPoolKeepAliveTime(@Nonnull final Integer threadPoolKeepAliveTime) {
+		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
 		return (T) this;
 	}
 	
@@ -355,13 +407,38 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	public T resetEmailAddressCriteria() {
 		return withEmailAddressCriteria(EmailAddressCriteria.RFC_COMPLIANT);
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#resetThreadpoolSize()
 	 */
 	@Override
 	public T resetThreadpoolSize() {
-		return withThreadPoolSize(DEFAULT_POOL_SIZE);
+		return (T) resetThreadpoolCoreSize()
+				.resetThreadpoolMaxSize();
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetThreadpoolCoreSize()
+	 */
+	@Override
+	public T resetThreadpoolCoreSize() {
+		return withThreadPoolCoreSize(DEFAULT_CORE_POOL_SIZE);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetThreadpoolMaxSize()
+	 */
+	@Override
+	public T resetThreadpoolMaxSize() {
+		return withThreadPoolMaxSize(DEFAULT_MAX_POOL_SIZE);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetThreadpoolKeepAliveTime()
+	 */
+	@Override
+	public T resetThreadpoolKeepAliveTime() {
+		return withThreadPoolKeepAliveTime(DEFAULT_POOL_KEEP_ALIVE_TIME);
 	}
 	
 	/**
@@ -484,14 +561,32 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	public EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
 		return emailAddressCriteria;
 	}
-	
+
 	/**
-	 * @see MailerGenericBuilder#getThreadPoolSize()
+	 * @see MailerGenericBuilder#getThreadPoolCoreSize()
 	 */
 	@Override
 	@Nonnull
-	public Integer getThreadPoolSize() {
-		return threadPoolSize;
+	public Integer getThreadPoolCoreSize() {
+		return threadPoolCoreSize;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getThreadPoolMaxSize()
+	 */
+	@Override
+	@Nonnull
+	public Integer getThreadPoolMaxSize() {
+		return threadPoolMaxSize;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getThreadPoolKeepAliveTime()
+	 */
+	@Override
+	@Nonnull
+	public Integer getThreadPoolKeepAliveTime() {
+		return threadPoolKeepAliveTime;
 	}
 	
 	/**

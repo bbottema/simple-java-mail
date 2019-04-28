@@ -26,13 +26,20 @@ public interface OperationalConfig {
 
 	/**
 	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
+	 * @see MailerRegularBuilder#withThreadPoolCoreSize(Integer)
 	 */
-	int getThreadPoolSize();
+	int getThreadPoolCoreSize();
 
 	/**
-	 * @see MailerRegularBuilder#withThreadPoolTimeout(Integer)
+	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
+	 * @see MailerRegularBuilder#withThreadPoolMaxSize(Integer)
 	 */
-	int getThreadPoolTimeout();
+	int getThreadPoolMaxSize();
+
+	/**
+	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTime(Integer)
+	 */
+	int getThreadPoolKeepAliveTime();
 	
 	/**
 	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
