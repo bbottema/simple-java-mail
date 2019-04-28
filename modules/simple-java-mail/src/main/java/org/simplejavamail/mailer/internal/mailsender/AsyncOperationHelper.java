@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer.internal.mailsender;
 
 import org.simplejavamail.api.mailer.AsyncResponse;
+import org.simplejavamail.mailer.internal.mailsender.concurrent.NamedRunnable;
 import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;
@@ -50,7 +51,7 @@ class AsyncOperationHelper {
 		// atomic reference is needed to be able to smuggle the asyncResponse
 		// into the Runnable which is passed itself to the asyncResponse.
 		final AtomicReference<AsyncResponseImpl> asyncResponseRef = new AtomicReference<>();
-		asyncResponseRef.set(new AsyncResponseImpl(executorService.submit(new Runnable() {
+		asyncResponseRef.set(new AsyncResponseImpl(executorService.submit(new NamedRunnable(processName) {
 			@Override
 			public void run() {
 				// by the time the code reaches here, the user would have configured the appropriate handlers
@@ -67,11 +68,7 @@ class AsyncOperationHelper {
 					}
 				}
 			}
-			
-			@Override
-			public String toString() {
-				return processName;
-			}
+
 		})));
 		return asyncResponseRef.get();
 	}
