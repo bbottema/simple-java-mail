@@ -248,7 +248,6 @@ public class MailSenderImpl implements MailSender {
 				try {
 					synchronized (this) {
 						if (needsAuthenticatedProxy()) {
-							assert proxyServer != null; // actually superfluous, but otherwise IntelliJ won't shut up
 							if (!proxyServer.isRunning()) {
 								LOGGER.trace("starting proxy bridge");
 								proxyServer.start();
