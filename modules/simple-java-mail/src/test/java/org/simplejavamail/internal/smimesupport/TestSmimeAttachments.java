@@ -23,6 +23,7 @@ public class TestSmimeAttachments {
 
 	private static final String RESOURCE_FOLDER = determineResourceFolder("simple-java-mail") + "/test/resources/test-messages";
 
+	@SuppressWarnings("deprecation")
 	@Test
 	public void testSMIMEMessageFromOutlookMsgWithDefaultMergeBehavior() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).msg"));
@@ -58,12 +59,13 @@ public class TestSmimeAttachments {
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(2);
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "3 crucial benefits of Cloud computing.docx");
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(new OriginalSmimeDetails(
-				"application/pkcs7-mime",
-				"signed-data",
-				"smime.p7m",
-				"shatzing5@outlook.com"
-		));
+		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMime("application/pkcs7-mime")
+				.smimeType("signed-data")
+				.smimeName("smime.p7m")
+				.smimeSignedBy("shatzing5@outlook.com")
+				.smimeSignatureValid(true)
+				.build());
 
 		// verify msg that was sent with Outlook against eml that was received in Thunderbird
 		EmailPopulatingBuilder fromEmlBuilder = EmailConverter.emlToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
@@ -82,14 +84,16 @@ public class TestSmimeAttachments {
 	@SuppressWarnings("deprecation")
 	public void testEmlSmimeHeaderRecognition() {
 		Email emailFromSignedEml = EmailConverter.emlToEmail(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
-		EmailAssert.assertThat(emailFromSignedEml).hasOriginalSmimeDetails(new OriginalSmimeDetails(
-				"application/pkcs7-mime",
-				"signed-data",
-				"smime.p7m",
-				"shatzing5@outlook.com"
-		));
+		EmailAssert.assertThat(emailFromSignedEml).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMime("application/pkcs7-mime")
+				.smimeType("signed-data")
+				.smimeName("smime.p7m")
+				.smimeSignedBy("shatzing5@outlook.com")
+				.smimeSignatureValid(true)
+				.build());
 	}
 
+	@SuppressWarnings("deprecation")
 	@Test
 	public void testSMIMEMessageFromOutlookMsgWithNonMergingBehavior() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).msg"))
@@ -139,12 +143,13 @@ public class TestSmimeAttachments {
 		assertThat(smimeSignedEmail.getDecryptedAttachments()).hasSize(1);
 		assertThat(smimeSignedEmail.getDecryptedAttachments()).extracting("name").containsExactly("3 crucial benefits of Cloud computing.docx");
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(new OriginalSmimeDetails(
-				"application/pkcs7-mime",
-				"signed-data",
-				"smime.p7m",
-				"shatzing5@outlook.com"
-		));
+		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMime("application/pkcs7-mime")
+				.smimeType("signed-data")
+				.smimeName("smime.p7m")
+				.smimeSignedBy("shatzing5@outlook.com")
+				.smimeSignatureValid(true)
+				.build());
 
 		// verify msg that was sent with Outlook against eml that was received in Thunderbird
 		EmailPopulatingBuilder fromEmlBuilder = EmailConverter.emlToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
@@ -169,5 +174,4 @@ public class TestSmimeAttachments {
 				.buildEmail();
 		EmailAssert.assertThat(emailWithDefaultMerginBehavior).isEqualTo(emailExpectedFromEml);
 	}
-
 }

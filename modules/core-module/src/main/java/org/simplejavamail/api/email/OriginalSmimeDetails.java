@@ -13,25 +13,52 @@ import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
  * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
  */
 public class OriginalSmimeDetails {
-	@Nonnull
-	private final String smimeMime;
-	@Nullable
-	private final String smimeType;
-	@Nullable
-	private final String smimeName;
-	@Nullable
-	private final String smimeSignedBy;
 
-	/**
-	 * @deprecated For internal use only. Do NOT use.
-	 */
-	@Deprecated
-	@SuppressWarnings("DeprecatedIsStillUsed")
-	public OriginalSmimeDetails(@Nonnull final String smimeMime, @Nullable final String smimeType, @Nullable final String smimeName, @Nullable final String smimeSignedBy) {
+	public static final OriginalSmimeDetails EMPTY = OriginalSmimeDetails.builder().build();
+
+	@Nullable private final String smimeMime;
+	@Nullable private final String smimeType;
+	@Nullable private final String smimeName;
+	@Nullable private final String smimeProtocol;
+	@Nullable private final String smimeMicalg;
+	@Nullable private final String smimeSignedBy;
+	@Nullable private final Boolean smimeSignatureValid;
+
+	@java.beans.ConstructorProperties({ "smimeMime", "smimeType", "smimeName", "smimeProtocol", "smimeMicalg", "smimeSignedBy", "smimeSignatureValid" })
+	private OriginalSmimeDetails(@Nullable String smimeMime, @Nullable String smimeType, @Nullable String smimeName, @Nullable String smimeProtocol, @Nullable String smimeMicalg,
+			@Nullable String smimeSignedBy, @Nullable Boolean smimeSignatureValid) {
 		this.smimeMime = smimeMime;
 		this.smimeType = smimeType;
 		this.smimeName = smimeName;
+		this.smimeProtocol = smimeProtocol;
+		this.smimeMicalg = smimeMicalg;
 		this.smimeSignedBy = smimeSignedBy;
+		this.smimeSignatureValid = smimeSignatureValid;
+	}
+
+	/**
+	 * For internal use only
+	 * FIXME extract interface for public exposure, then hide this implementation
+	 */
+	@Deprecated
+	public OriginalSmimeDetailsBuilder toBuilder() {
+		return OriginalSmimeDetails.builder()
+				.smimeMime(smimeMime)
+				.smimeType(smimeType)
+				.smimeName(smimeName)
+				.smimeProtocol(smimeProtocol)
+				.smimeMicalg(smimeMicalg)
+				.smimeSignedBy(smimeSignedBy)
+				.smimeSignatureValid(smimeSignatureValid);
+	}
+
+	/**
+	 * For internal use only
+	 * FIXME extract interface for public exposure, then hide this implementation
+	 */
+	@Deprecated
+	public static OriginalSmimeDetailsBuilder builder() {
+		return new OriginalSmimeDetailsBuilder();
 	}
 
 	/**
@@ -42,21 +69,14 @@ public class OriginalSmimeDetails {
 	@Deprecated
 	@Nonnull
 	public OriginalSmimeDetails completeWith(@Nonnull final OriginalSmimeDetails attachmentSmimeDetails) {
-		return new OriginalSmimeDetails(smimeMime,
+		return new OriginalSmimeDetails(
+				ofNullable(smimeMime).orMaybe(attachmentSmimeDetails.smimeMime),
 				ofNullable(smimeType).orMaybe(attachmentSmimeDetails.smimeType),
 				ofNullable(smimeName).orMaybe(attachmentSmimeDetails.smimeName),
-				ofNullable(smimeSignedBy).orMaybe(attachmentSmimeDetails.smimeSignedBy));
-	}
-
-	@Override
-	public String toString() {
-		final StringBuilder sb = new StringBuilder("SmimeDetails{");
-		sb.append("smimeMime='").append(smimeMime).append('\'');
-		sb.append(", smimeType='").append(smimeType).append('\'');
-		sb.append(", smimeName='").append(smimeName).append('\'');
-		sb.append(", smimeSignedBy='").append(smimeSignedBy).append('\'');
-		sb.append('}');
-		return sb.toString();
+				ofNullable(smimeProtocol).orMaybe(attachmentSmimeDetails.smimeProtocol),
+				ofNullable(smimeMicalg).orMaybe(attachmentSmimeDetails.smimeMicalg),
+				ofNullable(smimeSignedBy).orMaybe(attachmentSmimeDetails.smimeSignedBy),
+				ofNullable(smimeSignatureValid).orMaybe(attachmentSmimeDetails.smimeSignatureValid));
 	}
 
 	@Override
@@ -68,34 +88,119 @@ public class OriginalSmimeDetails {
 			return false;
 		}
 		final OriginalSmimeDetails that = (OriginalSmimeDetails) o;
-		return smimeMime.equals(that.smimeMime) &&
+		return Objects.equals(smimeMime, that.smimeMime) &&
 				Objects.equals(smimeType, that.smimeType) &&
 				Objects.equals(smimeName, that.smimeName) &&
-				Objects.equals(smimeSignedBy, that.smimeSignedBy);
+				Objects.equals(smimeProtocol, that.smimeProtocol) &&
+				Objects.equals(smimeMicalg, that.smimeMicalg) &&
+				Objects.equals(smimeSignedBy, that.smimeSignedBy) &&
+				Objects.equals(smimeSignatureValid, that.smimeSignatureValid);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(smimeMime, smimeType, smimeName, smimeSignedBy);
+		return Objects.hash(smimeMime, smimeType, smimeName, smimeProtocol, smimeMicalg, smimeSignedBy, smimeSignatureValid);
 	}
 
-	@Nonnull
+	public String toString() {
+		return "OriginalSmimeDetails(smimeMime=" + this.getSmimeMime() + ", smimeType=" + this.getSmimeType() + ", smimeName=" + this.getSmimeName() + ", smimeProtocol=" + this.getSmimeProtocol()
+				+ ", smimeMicalg=" + this.getSmimeMicalg() + ", smimeSignedBy=" + this.getSmimeSignedBy() + ", smimeSignatureValid=" + this.getSmimeSignatureValid() + ")";
+	}
+
+	@SuppressWarnings("WeakerAccess")
+	@Nullable
 	public String getSmimeMime() {
-		return smimeMime;
+		return this.smimeMime;
 	}
 
 	@Nullable
 	public String getSmimeType() {
-		return smimeType;
+		return this.smimeType;
 	}
 
+	@SuppressWarnings("WeakerAccess")
 	@Nullable
 	public String getSmimeName() {
-		return smimeName;
+		return this.smimeName;
 	}
 
 	@Nullable
+	public String getSmimeProtocol() {
+		return this.smimeProtocol;
+	}
+
+	@Nullable
+	public String getSmimeMicalg() {
+		return this.smimeMicalg;
+	}
+
+	@SuppressWarnings("WeakerAccess")
+	@Nullable
 	public String getSmimeSignedBy() {
-		return smimeSignedBy;
+		return this.smimeSignedBy;
+	}
+
+	@SuppressWarnings("WeakerAccess")
+	@Nullable
+	public Boolean getSmimeSignatureValid() {
+		return this.smimeSignatureValid;
+	}
+
+	@SuppressWarnings("unused")
+	public static class OriginalSmimeDetailsBuilder {
+		private String smimeMime;
+		private String smimeType;
+		private String smimeName;
+		private String smimeProtocol;
+		private String smimeMicalg;
+		private String smimeSignedBy;
+		private Boolean smimeSignatureValid;
+
+		OriginalSmimeDetailsBuilder() {
+		}
+
+		public OriginalSmimeDetails.OriginalSmimeDetailsBuilder smimeMime(@Nullable String smimeMime) {
+			this.smimeMime = smimeMime;
+			return this;
+		}
+
+		public OriginalSmimeDetails.OriginalSmimeDetailsBuilder smimeType(@Nullable String smimeType) {
+			this.smimeType = smimeType;
+			return this;
+		}
+
+		public OriginalSmimeDetails.OriginalSmimeDetailsBuilder smimeName(@Nullable String smimeName) {
+			this.smimeName = smimeName;
+			return this;
+		}
+
+		public OriginalSmimeDetails.OriginalSmimeDetailsBuilder smimeProtocol(@Nullable String smimeProtocol) {
+			this.smimeProtocol = smimeProtocol;
+			return this;
+		}
+
+		public OriginalSmimeDetails.OriginalSmimeDetailsBuilder smimeMicalg(@Nullable String smimeMicalg) {
+			this.smimeMicalg = smimeMicalg;
+			return this;
+		}
+
+		public OriginalSmimeDetails.OriginalSmimeDetailsBuilder smimeSignedBy(@Nullable String smimeSignedBy) {
+			this.smimeSignedBy = smimeSignedBy;
+			return this;
+		}
+
+		public OriginalSmimeDetails.OriginalSmimeDetailsBuilder smimeSignatureValid(@Nullable Boolean smimeSignatureValid) {
+			this.smimeSignatureValid = smimeSignatureValid;
+			return this;
+		}
+
+		public OriginalSmimeDetails build() {
+			return new OriginalSmimeDetails(smimeMime, smimeType, smimeName, smimeProtocol, smimeMicalg, smimeSignedBy, smimeSignatureValid);
+		}
+
+		public String toString() {
+			return "OriginalSmimeDetails.OriginalSmimeDetailsBuilder(smimeMime=" + this.smimeMime + ", smimeType=" + this.smimeType + ", smimeName=" + this.smimeName + ", smimeProtocol="
+					+ this.smimeProtocol + ", smimeMicalg=" + this.smimeMicalg + ", smimeSignedBy=" + this.smimeSignedBy + ", smimeSignatureValid=" + this.smimeSignatureValid + ")";
+		}
 	}
 }

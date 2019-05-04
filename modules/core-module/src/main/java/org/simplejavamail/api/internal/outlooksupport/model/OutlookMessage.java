@@ -19,8 +19,6 @@ public interface OutlookMessage {
 	
 	List<OutlookFileAttachment> fetchTrueAttachments();
 	
-	String toLongString();
-	
 	List<OutlookAttachment> getOutlookAttachments();
 	
 	List<OutlookRecipient> getRecipients();
@@ -81,10 +79,6 @@ public interface OutlookMessage {
 	String getReplyToEmail();
 	
 	String getReplyToName();
-	
-	String getSmimeMime();
-	
-	String getSmimeType();
-	
-	String getSmimeName();
+
+	OutlookSmime getSmimeMime();
 }

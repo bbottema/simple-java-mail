@@ -6,6 +6,7 @@ import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimePart;
 import java.util.List;
 
@@ -48,4 +49,6 @@ public interface SMIMEModule {
 	 */
 	@Nullable
 	String getSignedByAddress(@Nonnull MimePart mimePart);
+
+	boolean verifyValidSignature(@Nonnull MimeMessage mimeMessage, @Nonnull OriginalSmimeDetails messageSmimeDetails);
 }

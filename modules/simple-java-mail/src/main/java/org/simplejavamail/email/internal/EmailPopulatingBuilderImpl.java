@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
@@ -57,6 +58,7 @@ import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 import static org.simplejavamail.internal.util.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 
 /**
@@ -1335,7 +1337,16 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		}
 		return this;
 	}
-	
+
+	@Nonnull
+	@Override
+	public InternalEmailPopulatingBuilder withSignatureValid(final boolean signatureValid) {
+		OriginalSmimeDetails s = ofNullable(originalSmimeDetails).orElse(OriginalSmimeDetails.EMPTY);
+		return withOriginalSmimeDetails(s.toBuilder()
+				.smimeSignatureValid(TRUE.equals(s.getSmimeSignatureValid()) || signatureValid)
+				.build());
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
 	 */

@@ -21,4 +21,5 @@ public interface InternalEmailPopulatingBuilder  extends EmailPopulatingBuilder 
 	@Nonnull InternalEmailPopulatingBuilder withOriginalSmimeDetails(@Nonnull OriginalSmimeDetails originalSmimeDetails);
 	@Nonnull InternalEmailPopulatingBuilder withSmimeSignedEmail(@Nonnull Email email);
 	@Nonnull <T> InternalEmailPopulatingBuilder withHeaders(@Nonnull final Map<String, T> headers, final boolean ignoreSmimeMessageId);
+	@Nonnull InternalEmailPopulatingBuilder withSignatureValid(boolean signatureValid);
 }

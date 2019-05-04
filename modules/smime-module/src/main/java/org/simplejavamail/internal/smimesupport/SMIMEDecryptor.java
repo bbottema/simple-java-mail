@@ -62,7 +62,7 @@ import static org.simplejavamail.internal.util.SmimeRecognitionUtil.SMIME_ATTACH
 public class SMIMEDecryptor implements SMIMEModule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMEDecryptor.class);
-	private static final List<String> SMIME_MIMETYPES = asList("application/pkcs7-mime", "application/x-pkcs7-mime");
+	private static final List<String> SMIME_MIMETYPES = asList("application/pkcs7-mime", "application/x-pkcs7-mime", "multipart/signed");
 
 	/**
 	 * @see SMIMEModule#decryptAttachments(List, Pkcs12Config, OriginalSmimeDetails)
@@ -98,7 +98,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 			@Nullable final OriginalSmimeDetails messageSmimeDetails) {
 		try {
 			final InternetHeaders internetHeaders = new InternetHeaders();
-			internetHeaders.addHeader("Content-Type", attachment.getDataSource().getContentType());
+			internetHeaders.addHeader("Content-Type", restoreSmimeContentType(attachment, messageSmimeDetails));
 			final MimeBodyPart mimeBodyPart = new MimeBodyPart(internetHeaders, attachment.readAllBytes());
 
 			AttachmentResource liberatedContent = null;
@@ -129,6 +129,16 @@ public class SMIMEDecryptor implements SMIMEModule {
 		}
 	}
 
+	private String restoreSmimeContentType(@Nonnull final AttachmentResource attachment, final OriginalSmimeDetails originalSmimeDetails) {
+		String contentType = attachment.getDataSource().getContentType();
+		if (contentType.contains("multipart/signed") && !contentType.contains("protocol") && originalSmimeDetails.getSmimeProtocol() != null) {
+			// this step is needed, because converted messages from Outlook don't come out correctly
+			contentType = format("multipart/signed;protocol=\"%s\";micalg=%s",
+					originalSmimeDetails.getSmimeProtocol(), originalSmimeDetails.getSmimeMicalg());
+		}
+		return contentType;
+	}
+
 	@Nullable
 	private AttachmentResource handleLiberatedContent(final Object content)
 			throws MessagingException, IOException {
@@ -149,7 +159,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 		return null;
 	}
 
-	private SmimeState determineStatus(@Nonnull final MimeBodyPart mimeBodyPart, @Nullable final OriginalSmimeDetails messageSmimeDetails) {
+	private SmimeState determineStatus(@Nonnull final MimePart mimeBodyPart, @Nullable final OriginalSmimeDetails messageSmimeDetails) {
 		SmimeState status = SmimeUtil.getStatus(mimeBodyPart);
 		boolean trustStatus = status != ENCRYPTED || messageSmimeDetails == null;
 		if (trustStatus) {
@@ -168,7 +178,10 @@ public class SMIMEDecryptor implements SMIMEModule {
 	@Override
 	@SuppressWarnings("deprecation")
 	public OriginalSmimeDetails getSmimeDetails(@Nonnull final AttachmentResource attachment) {
-		return new OriginalSmimeDetails(attachment.getDataSource().getContentType(), null, null, getSignedByAddress(attachment));
+		return OriginalSmimeDetails.builder()
+				.smimeMime(attachment.getDataSource().getContentType())
+				.smimeSignedBy(getSignedByAddress(attachment))
+				.build();
 	}
 
 	/**
@@ -201,6 +214,11 @@ public class SMIMEDecryptor implements SMIMEModule {
 	@SuppressWarnings("deprecation")
 	public String getSignedByAddress(@Nonnull MimePart mimePart) {
 		return getSignedByAddress(determineSMIMESigned(mimePart));
+	}
+
+	public boolean verifyValidSignature(@Nonnull MimeMessage mimeMessage, @Nonnull OriginalSmimeDetails messageSmimeDetails) {
+		return determineStatus(mimeMessage, messageSmimeDetails) != SIGNED ||
+				SmimeUtil.checkSignature(mimeMessage);
 	}
 
 	@Nonnull

@@ -4,6 +4,11 @@ import org.simplejavamail.api.internal.outlooksupport.model.OutlookAttachment;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookFileAttachment;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookRecipient;
+import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime;
+import org.simplejavamail.internal.outlooksupport.internal.model.OutlookSmimeProxy.OutlookSmimeApplicationSmimeProxy;
+import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeApplicationOctetStream;
+import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeApplicationSmime;
+import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeMultipartSigned;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -12,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.simplejavamail.internal.outlooksupport.internal.model.OutlookSmimeProxy.*;
 
 /**
  * @see OutlookMessage
@@ -40,11 +47,6 @@ public class OutlookMessageProxy implements OutlookMessage {
 			wrappedTrueAttachments.add(new OutlookFileAttachmentProxy(trueAttachment));
 		}
 		return wrappedTrueAttachments;
-	}
-
-	@Override
-	public String toLongString() {
-		return delegate.toLongString();
 	}
 
 	@Override
@@ -197,18 +199,15 @@ public class OutlookMessageProxy implements OutlookMessage {
 	}
 
 	@Override
-	public String getSmimeMime() {
-		return delegate.getSmimeMime();
-	}
-
-	@Override
-	public String getSmimeType() {
-		return delegate.getSmimeType();
-	}
-
-	@Override
-	public String getSmimeName() {
-		return delegate.getSmimeName();
+	public OutlookSmime getSmimeMime() {
+		if (delegate.getSmime() instanceof OutlookSmimeApplicationSmime) {
+			return new OutlookSmimeApplicationSmimeProxy((OutlookSmimeApplicationSmime) delegate.getSmime());
+		} else if (delegate.getSmime() instanceof OutlookSmimeApplicationOctetStream) {
+			return new OutlookSmimeApplicationOctetStreamProxy((OutlookSmimeApplicationOctetStream) delegate.getSmime());
+		} else if (delegate.getSmime() instanceof OutlookSmimeMultipartSigned) {
+			return new OutlookSmimeMultipartSignedProxy((OutlookSmimeMultipartSigned) delegate.getSmime());
+		}
+		return null;
 	}
 
 	@Nonnull
