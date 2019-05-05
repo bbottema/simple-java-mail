@@ -1,20 +1,22 @@
 package org.simplejavamail.api.internal.outlooksupport.model;
 
+import javax.annotation.Nullable;
+
 /**
  * @see OutlookMessage
  */
 public interface OutlookSmime {
 
 	interface OutlookSmimeApplicationSmime extends OutlookSmime {
-		String getSmimeMime();
-		String getSmimeType();
-		String getSmimeName();
+		@Nullable String getSmimeMime();
+		@Nullable String getSmimeType();
+		@Nullable String getSmimeName();
 	}
 
 	interface OutlookSmimeMultipartSigned extends OutlookSmime {
-		String getSmimeMime();
-		String getSmimeProtocol();
-		String getSmimeMicalg();
+		@Nullable String getSmimeMime();
+		@Nullable String getSmimeProtocol();
+		@Nullable String getSmimeMicalg();
 	}
 
 	interface OutlookSmimeApplicationOctetStream extends OutlookSmime {

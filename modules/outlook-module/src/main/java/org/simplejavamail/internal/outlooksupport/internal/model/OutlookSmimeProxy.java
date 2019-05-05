@@ -2,6 +2,8 @@ package org.simplejavamail.internal.outlooksupport.internal.model;
 
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime;
 
+import javax.annotation.Nullable;
+
 public abstract class OutlookSmimeProxy<T extends org.simplejavamail.outlookmessageparser.model.OutlookSmime> implements OutlookSmime {
 
 	final T delegate;
@@ -16,9 +18,9 @@ public abstract class OutlookSmimeProxy<T extends org.simplejavamail.outlookmess
 		public OutlookSmimeApplicationSmimeProxy(org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeApplicationSmime delegate) {
 			super(delegate);
 		}
-		public String getSmimeMime() { return delegate.getSmimeMime(); }
-		public String getSmimeType() { return delegate.getSmimeType(); }
-		public String getSmimeName() { return delegate.getSmimeName(); }
+		@Nullable public String getSmimeMime() { return delegate.getSmimeMime(); }
+		@Nullable public String getSmimeType() { return delegate.getSmimeType(); }
+		@Nullable public String getSmimeName() { return delegate.getSmimeName(); }
 	}
 
 	public static class OutlookSmimeMultipartSignedProxy
@@ -27,9 +29,9 @@ public abstract class OutlookSmimeProxy<T extends org.simplejavamail.outlookmess
 		protected OutlookSmimeMultipartSignedProxy(final org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeMultipartSigned delegate) {
 			super(delegate);
 		}
-		public String getSmimeMime() { return delegate.getSmimeMime(); }
-		public String getSmimeProtocol() { return delegate.getSmimeProtocol(); }
-		public String getSmimeMicalg() { return delegate.getSmimeMicalg(); }
+		@Nullable public String getSmimeMime() { return delegate.getSmimeMime(); }
+		@Nullable public String getSmimeProtocol() { return delegate.getSmimeProtocol(); }
+		@Nullable public String getSmimeMicalg() { return delegate.getSmimeMicalg(); }
 	}
 
 	public static class OutlookSmimeApplicationOctetStreamProxy
