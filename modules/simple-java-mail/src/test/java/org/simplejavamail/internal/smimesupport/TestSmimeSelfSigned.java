@@ -7,15 +7,21 @@ import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 
+import javax.annotation.Nonnull;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 public class TestSmimeSelfSigned {
 
@@ -92,5 +98,87 @@ public class TestSmimeSelfSigned {
 				.smimeMicalg("sha-512")
 				.smimeSignatureValid(true)
 				.build());
+	}
+
+	@SuppressWarnings("deprecation")
+	@Test
+	public void testEncryptedMessageMsg()
+			throws FileNotFoundException {
+		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message encrypted.msg"), loadPkcs12KeyStore());
+
+		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
+		EmailAssert.assertThat(emailParsedFromMsg).hasSubject("S/MIME test message encrypted");
+		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO));
+
+		assertThat(normalizeNewlines(emailParsedFromMsg.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
+				+ "attachment.\n"
+				+ "\n"
+				+ "For testing purposes in the Simple Java Mail project.\n"
+				+ "\n");
+
+		assertThat(emailParsedFromMsg.getEmbeddedImages()).hasSize(1);
+		AttachmentResource embeddedImg = emailParsedFromMsg.getEmbeddedImages().get(0);
+		assertThat(embeddedImg.getName()).isEqualTo("part1.EDA02623.55A510EE@bennybottema.com");
+		assertThat(embeddedImg.getDataSource().getName()).isEqualTo("module_architecture.png");
+		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo("image/png");
+		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getName()));
+
+		assertThat(emailParsedFromMsg.getAttachments()).hasSize(2);
+		assertThat(emailParsedFromMsg.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7m", "03-07-2005 errata SharnErrata.pdf");
+		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(2);
+		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
+
+		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMode(SmimeMode.ENCRYPTED)
+				.smimeMime("application/pkcs7-mime")
+				.smimeType("enveloped-data")
+				.smimeName("smime.p7m")
+				.build());
+	}
+
+	@Test
+	public void testEncryptedMessageEml()
+			throws FileNotFoundException {
+		Email emailParsedFromEml = EmailConverter.emlToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message encrypted.eml"), loadPkcs12KeyStore());
+
+		EmailAssert.assertThat(emailParsedFromEml).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
+		EmailAssert.assertThat(emailParsedFromEml).hasSubject("S/MIME test message encrypted");
+		EmailAssert.assertThat(emailParsedFromEml).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO));
+
+		assertThat(normalizeNewlines(emailParsedFromEml.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
+				+ "attachment.\n"
+				+ "\n"
+				+ "For testing purposes in the Simple Java Mail project.\n"
+				+ "\n");
+
+		assertThat(emailParsedFromEml.getEmbeddedImages()).hasSize(1);
+		AttachmentResource embeddedImg = emailParsedFromEml.getEmbeddedImages().get(0);
+		assertThat(embeddedImg.getName()).isEqualTo("part1.EDA02623.55A510EE@bennybottema.com");
+		assertThat(embeddedImg.getDataSource().getName()).isEqualTo("module_architecture.png");
+		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo("image/png");
+		assertThat(emailParsedFromEml.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getName()));
+
+		assertThat(emailParsedFromEml.getAttachments()).hasSize(2);
+		assertThat(emailParsedFromEml.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7m", "03-07-2005 errata SharnErrata.pdf");
+		assertThat(emailParsedFromEml.getDecryptedAttachments()).hasSize(2);
+		assertThat(emailParsedFromEml.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
+
+		EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMode(SmimeMode.ENCRYPTED)
+				.smimeMime("application/pkcs7-mime")
+				.smimeType("enveloped-data")
+				.smimeName("smime.p7m")
+				.build());
+	}
+
+	@Nonnull
+	private Pkcs12Config loadPkcs12KeyStore()
+			throws FileNotFoundException {
+		return new Pkcs12Config(
+				new FileInputStream(RESOURCES_PKCS + "/smime_keystore.pkcs12"),
+				"letmein".toCharArray(),
+				"smime_test_user_alias",
+				"letmein".toCharArray()
+		);
 	}
 }

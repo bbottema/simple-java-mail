@@ -5,4 +5,8 @@ https://knowledge.digicert.com/solution/SO26449.html
 smime.cnf
     -> openssl config file from the how-to.html
 
+smime_keystore.pkcs12 with key "smime_test_user_alias"
+    -> created following https://stackoverflow.com/a/22647106/441662:
+        - openssl pkcs12 -export -in smime_test_user.pem.crt -inkey smime_test_user.key -out smime_keystore.pkcs12 -name smime_test_user_alias -noiter -nomaciter
+
 Password for everything: letmein

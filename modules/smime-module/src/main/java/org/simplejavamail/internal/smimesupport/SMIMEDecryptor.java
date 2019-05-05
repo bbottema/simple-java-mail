@@ -200,10 +200,12 @@ public class SMIMEDecryptor implements SMIMEModule {
 			final InternetHeaders internetHeaders = new InternetHeaders();
 			internetHeaders.addHeader("Content-Type", smimeAttachment.getDataSource().getContentType());
 			final MimePart mimeBodyPart = new MimeBodyPart(internetHeaders, smimeAttachment.readAllBytes());
-			if (SmimeUtil.checkSignature(mimeBodyPart)) {
-				return getSignedByAddress(mimeBodyPart);
-			} else {
-				LOGGER.warn("Content is S/MIME signed, but signature is not valid, returning null...");
+			if (SmimeUtil.getStatus(mimeBodyPart) == SIGNED) {
+				if (SmimeUtil.checkSignature(mimeBodyPart)) {
+					return getSignedByAddress(mimeBodyPart);
+				} else {
+					LOGGER.warn("Content is S/MIME signed, but signature is not valid, returning null...");
+				}
 			}
 			return null;
 		} catch (MessagingException | IOException e) {

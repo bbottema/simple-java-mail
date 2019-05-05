@@ -5,6 +5,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeApplicationSmime;
@@ -111,7 +112,8 @@ public final class EmailConverter {
 		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage);
 		decryptAttachments(buildEmailFromMimeMessage(builder, parsed), mimeMessage, pkcs12Config);
 
-		if (builder.getOriginalSmimeDetails() != null) {
+		if (builder.getOriginalSmimeDetails() != null &&
+				builder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
 			boolean signatureValid = checkSignature(mimeMessage, builder.getOriginalSmimeDetails());
 			((InternalEmailPopulatingBuilder) builder).withSignatureValid(signatureValid);
 		}
@@ -609,7 +611,7 @@ public final class EmailConverter {
 
 	@Nonnull
 	@SuppressWarnings("deprecation")
-	private static EmailPopulatingBuilder decryptAttachments(@Nonnull final EmailPopulatingBuilder emailBuilder, @Nonnull final OutlookMessage outlookMessage, @Nullable final Pkcs12Config pkcs12Config) {
+	private static EmailPopulatingBuilder decryptAttachments(@Nonnull final EmailPopulatingBuilder builder, @Nonnull final OutlookMessage outlookMessage, @Nullable final Pkcs12Config pkcs12Config) {
 		OriginalSmimeDetails messageSmimeDetails = null;
 		if (outlookMessage.getSmimeMime() instanceof OutlookSmimeApplicationSmime) {
 			final OutlookSmimeApplicationSmime s = (OutlookSmimeApplicationSmime) outlookMessage.getSmimeMime();
@@ -627,15 +629,16 @@ public final class EmailConverter {
 					.build();
 		}
 
-		decryptAttachments(emailBuilder, messageSmimeDetails, pkcs12Config);
+		decryptAttachments(builder, messageSmimeDetails, pkcs12Config);
 
-		if (emailBuilder.getOriginalSmimeDetails() != null) {
+		if (builder.getOriginalSmimeDetails() != null &&
+				builder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
 			// this is the only way for Outlook messages to know a valid signature was included
-			((InternalEmailPopulatingBuilder) emailBuilder)
-					.withSignatureValid(emailBuilder.getSmimeSignedEmail() != null);
+			((InternalEmailPopulatingBuilder) builder)
+					.withSignatureValid(builder.getSmimeSignedEmail() != null);
 		}
 
-		return emailBuilder;
+		return builder;
 	}
 
 	@SuppressWarnings({ "deprecation" })
