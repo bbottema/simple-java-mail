@@ -73,12 +73,18 @@ public class SMIMEDecryptor implements SMIMEModule {
 			@Nonnull final List<AttachmentResource> attachments,
 			@Nullable final Pkcs12Config pkcs12Config,
 			@Nullable final OriginalSmimeDetails messageSmimeDetails) {
-		final List<AttachmentResource> decryptedAttachments = new ArrayList<>(attachments);
+		final List<AttachmentResource> decryptedAttachments;
+		decryptedAttachments = new ArrayList<>(attachments);
+
 		for (int i = 0; i < decryptedAttachments.size(); i++) {
 			final AttachmentResource attachment = decryptedAttachments.get(i);
 			if (isSmimeAttachment(attachment)) {
-				LOGGER.debug("decrypting S/MIME signed attachment '{}'...", attachment.getName());
-				decryptedAttachments.set(i, decryptAndUnsignAttachment(attachment, pkcs12Config, messageSmimeDetails));
+				try {
+					LOGGER.debug("decrypting S/MIME signed attachment '{}'...", attachment.getName());
+					decryptedAttachments.set(i, decryptAndUnsignAttachment(attachment, pkcs12Config, messageSmimeDetails));
+				} catch (Exception e) {
+					throw new SmimeException(format(ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT, attachment), e);
+				}
 			}
 		}
 		return decryptedAttachments;
