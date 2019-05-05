@@ -201,7 +201,7 @@ public class Email {
 		emailToForward = builder.getEmailToForward();
 
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
-		
+
 		if (useDispositionNotificationTo && MiscUtil.valueNullOrEmpty(builder.getDispositionNotificationTo())) {
 			//noinspection IfMayBeConditional
 			if (builder.getReplyToRecipient() != null) {
@@ -230,7 +230,7 @@ public class Email {
 			this.dkimSelector = builder.getDkimSelector();
 		}
 	}
-	
+
 	/**
 	 * @deprecated Don't use this method, refer to {@link EmailPopulatingBuilder#fixingMessageId(String)} instead. This method is used internally to
 	 * update the message id once a mail has been sent.

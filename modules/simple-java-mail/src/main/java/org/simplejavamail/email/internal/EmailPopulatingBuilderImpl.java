@@ -38,6 +38,7 @@ import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
+import static org.simplejavamail.api.email.OriginalSmimeDetails.*;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
@@ -254,7 +255,23 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmail() {
 		validateDkim();
+		completeSmimeMode();
 		return new Email(this);
+	}
+
+	/**
+	 * if we have both an encrypted and signed part in the email, have the
+	 * top-level email reflect this as {@link SmimeMode#SIGNED_ENCRYPTED}.
+	 */
+	private void completeSmimeMode() {
+		if (smimeSignedEmail != null &&
+				originalSmimeDetails != null && smimeSignedEmail.getOriginalSmimeDetails() != null) {
+			if (smimeSignedEmail.getOriginalSmimeDetails().getSmimeMode() != originalSmimeDetails.getSmimeMode()) {
+				originalSmimeDetails = originalSmimeDetails.toBuilder()
+						.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
+						.build();
+			}
+		}
 	}
 
 	private void validateDkim() {
@@ -1341,7 +1358,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nonnull
 	@Override
 	public InternalEmailPopulatingBuilder withSignatureValid(final boolean signatureValid) {
-		OriginalSmimeDetails s = ofNullable(originalSmimeDetails).orElse(OriginalSmimeDetails.EMPTY);
+		OriginalSmimeDetails s = ofNullable(originalSmimeDetails).orElse(EMPTY);
 		return withOriginalSmimeDetails(s.toBuilder()
 				.smimeSignatureValid(TRUE.equals(s.getSmimeSignatureValid()) || signatureValid)
 				.build());

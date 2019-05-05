@@ -171,6 +171,50 @@ public class TestSmimeSelfSigned {
 				.build());
 	}
 
+	@SuppressWarnings("deprecation")
+	@Test
+	public void testSignedAndEncryptedMessageMsg()
+			throws FileNotFoundException {
+		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message signed & encrypted.msg"), loadPkcs12KeyStore());
+
+		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
+		EmailAssert.assertThat(emailParsedFromMsg).hasSubject("S/MIME test message signed & encrypted");
+		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO));
+
+		assertThat(normalizeNewlines(emailParsedFromMsg.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
+				+ "attachment.\n"
+				+ "\n"
+				+ "For testing purposes in the Simple Java Mail project.\n"
+				+ "\n");
+
+		assertThat(emailParsedFromMsg.getEmbeddedImages()).hasSize(1);
+		AttachmentResource embeddedImg = emailParsedFromMsg.getEmbeddedImages().get(0);
+		assertThat(embeddedImg.getName()).isEqualTo("part1.0B245DA7.F5872CD5@bennybottema.com");
+		assertThat(embeddedImg.getDataSource().getName()).isEqualTo("module_architecture.png");
+		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo("image/png");
+		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getName()));
+
+		assertThat(emailParsedFromMsg.getAttachments()).hasSize(3);
+		assertThat(emailParsedFromMsg.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7m", "smime.p7s", "03-07-2005 errata SharnErrata.pdf");
+		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(3);
+		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
+
+		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
+				.smimeMime("application/pkcs7-mime")
+				.smimeType("enveloped-data")
+				.smimeName("smime.p7m")
+				.build());
+		EmailAssert.assertThat(emailParsedFromMsg.getSmimeSignedEmail()).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMode(SmimeMode.SIGNED)
+				.smimeMime("multipart/signed")
+				.smimeProtocol("application/pkcs7-signature")
+				.smimeMicalg("sha-512")
+				.smimeSignatureValid(true)
+				.smimeSignedBy("Benny Bottema")
+				.build());
+	}
+
 	@Nonnull
 	private Pkcs12Config loadPkcs12KeyStore()
 			throws FileNotFoundException {
