@@ -5,6 +5,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
@@ -60,6 +61,7 @@ public class TestSmimeAttachments {
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "3 crucial benefits of Cloud computing.docx");
 
 		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("signed-data")
 				.smimeName("smime.p7m")
@@ -85,6 +87,7 @@ public class TestSmimeAttachments {
 	public void testEmlSmimeHeaderRecognition() {
 		Email emailFromSignedEml = EmailConverter.emlToEmail(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
 		EmailAssert.assertThat(emailFromSignedEml).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("signed-data")
 				.smimeName("smime.p7m")
@@ -144,6 +147,7 @@ public class TestSmimeAttachments {
 		assertThat(smimeSignedEmail.getDecryptedAttachments()).extracting("name").containsExactly("3 crucial benefits of Cloud computing.docx");
 
 		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("signed-data")
 				.smimeName("smime.p7m")

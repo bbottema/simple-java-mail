@@ -5,6 +5,7 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.converter.EmailConverter;
 
@@ -49,6 +50,7 @@ public class TestSmimeSelfSigned {
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
 
 		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("multipart/signed")
 				.smimeProtocol("application/pkcs7-signature")
 				.smimeMicalg("sha-512")
@@ -84,6 +86,7 @@ public class TestSmimeSelfSigned {
 		assertThat(emailParsedFromEml.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "03-07-2005 errata SharnErrata.pdf");
 
 		EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("multipart/signed")
 				.smimeProtocol("application/pkcs7-signature")
 				.smimeMicalg("sha-512")
