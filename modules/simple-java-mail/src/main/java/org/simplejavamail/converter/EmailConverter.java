@@ -112,10 +112,12 @@ public final class EmailConverter {
 		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage);
 		decryptAttachments(buildEmailFromMimeMessage(builder, parsed), mimeMessage, pkcs12Config);
 
-		if (builder.getOriginalSmimeDetails() != null &&
-				builder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
-			boolean signatureValid = checkSignature(mimeMessage, builder.getOriginalSmimeDetails());
-			((InternalEmailPopulatingBuilder) builder).withSignatureValid(signatureValid);
+		if (builder.getOriginalSmimeDetails() != null) {
+			((InternalEmailPopulatingBuilder) builder).complementWithSignedBy(checkSignedBy(mimeMessage));
+			if (builder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
+				boolean signatureValid = checkSignature(mimeMessage, builder.getOriginalSmimeDetails());
+				((InternalEmailPopulatingBuilder) builder).complementWithSignatureValid(signatureValid);
+			}
 		}
 		return builder;
 	}
@@ -635,7 +637,7 @@ public final class EmailConverter {
 				builder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
 			// this is the only way for Outlook messages to know a valid signature was included
 			((InternalEmailPopulatingBuilder) builder)
-					.withSignatureValid(builder.getSmimeSignedEmail() != null);
+					.complementWithSignatureValid(builder.getSmimeSignedEmail() != null);
 		}
 
 		return builder;
@@ -683,6 +685,14 @@ public final class EmailConverter {
 			return validSignature;
 		}
 		return false;
+	}
+
+	private static String checkSignedBy(@Nonnull final MimeMessage mimeMessage) {
+		if (ModuleLoader.smimeModuleAvailable()) {
+			LOGGER.debug("checking who signed this message...");
+			return ModuleLoader.loadSmimeModule().getSignedByAddress(mimeMessage);
+		}
+		return null;
 	}
 
 	@Nonnull

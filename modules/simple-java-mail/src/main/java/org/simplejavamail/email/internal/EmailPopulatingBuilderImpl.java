@@ -1357,10 +1357,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 
 	@Nonnull
 	@Override
-	public InternalEmailPopulatingBuilder withSignatureValid(final boolean signatureValid) {
+	public InternalEmailPopulatingBuilder complementWithSignatureValid(final boolean signatureValid) {
 		OriginalSmimeDetails s = ofNullable(originalSmimeDetails).orElse(EMPTY);
 		return withOriginalSmimeDetails(s.toBuilder()
 				.smimeSignatureValid(TRUE.equals(s.getSmimeSignatureValid()) || signatureValid)
+				.build());
+	}
+
+	@Nonnull
+	@Override
+	public InternalEmailPopulatingBuilder complementWithSignedBy(@Nullable final String signedBy) {
+		OriginalSmimeDetails s = ofNullable(originalSmimeDetails).orElse(EMPTY);
+		return withOriginalSmimeDetails(s.toBuilder()
+				.smimeSignedBy(ofNullable(s.getSmimeSignedBy()).orMaybe(signedBy))
 				.build());
 	}
 

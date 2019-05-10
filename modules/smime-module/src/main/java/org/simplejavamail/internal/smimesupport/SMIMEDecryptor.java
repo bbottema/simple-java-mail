@@ -51,6 +51,7 @@ import static net.markenwerk.utils.mail.smime.SmimeState.*;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DETERMINING_SMIME_SIGNER;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SUBJECT_FROM_CERTIFICATE;
 import static org.simplejavamail.internal.smimesupport.SmimeException.MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
@@ -199,20 +200,11 @@ public class SMIMEDecryptor implements SMIMEModule {
 		try {
 			final InternetHeaders internetHeaders = new InternetHeaders();
 			internetHeaders.addHeader("Content-Type", smimeAttachment.getDataSource().getContentType());
-			final MimePart mimeBodyPart = new MimeBodyPart(internetHeaders, smimeAttachment.readAllBytes());
-			if (SmimeUtil.getStatus(mimeBodyPart) == SIGNED) {
-				if (SmimeUtil.checkSignature(mimeBodyPart)) {
-					return getSignedByAddress(mimeBodyPart);
-				} else {
-					LOGGER.warn("Content is S/MIME signed, but signature is not valid, returning null...");
-				}
-			}
-			return null;
+			return getSignedByAddress(new MimeBodyPart(internetHeaders, smimeAttachment.readAllBytes()));
 		} catch (MessagingException | IOException e) {
 			throw new SmimeException(format(ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT, smimeAttachment), e);
 		}
 	}
-
 	/**
 	 * Delegates to {@link #determineSMIMESigned(MimePart)} and {@link #getSignedByAddress(SMIMESigned)}.
 	 *
@@ -221,7 +213,12 @@ public class SMIMEDecryptor implements SMIMEModule {
 	@Nullable
 	@SuppressWarnings("deprecation")
 	public String getSignedByAddress(@Nonnull MimePart mimePart) {
-		return getSignedByAddress(determineSMIMESigned(mimePart));
+		try {
+			return getSignedByAddress(determineSMIMESigned(mimePart));
+		} catch (SmimeException e) {
+			// not the right scenario to find signed-by, skip attempt
+			return null;
+		}
 	}
 
 	public boolean verifyValidSignature(@Nonnull MimeMessage mimeMessage, @Nonnull OriginalSmimeDetails messageSmimeDetails) {
@@ -261,7 +258,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 			RDN cn = x500name.getRDNs(BCStyle.CN)[0];
 			return IETFUtils.valueToString(cn.getFirst().getValue());
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			throw new SmimeException(ERROR_EXTRACTING_SUBJECT_FROM_CERTIFICATE, e);
 		}
 	}
 

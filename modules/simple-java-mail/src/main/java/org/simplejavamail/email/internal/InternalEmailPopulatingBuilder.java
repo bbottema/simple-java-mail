@@ -20,6 +20,7 @@ public interface InternalEmailPopulatingBuilder  extends EmailPopulatingBuilder 
 	@Nonnull InternalEmailPopulatingBuilder withDecryptedAttachments(@Nonnull List<AttachmentResource> attachments);
 	@Nonnull InternalEmailPopulatingBuilder withOriginalSmimeDetails(@Nonnull OriginalSmimeDetails originalSmimeDetails);
 	@Nonnull InternalEmailPopulatingBuilder withSmimeSignedEmail(@Nonnull Email email);
-	@Nonnull <T> InternalEmailPopulatingBuilder withHeaders(@Nonnull final Map<String, T> headers, final boolean ignoreSmimeMessageId);
-	@Nonnull InternalEmailPopulatingBuilder withSignatureValid(boolean signatureValid);
+	@Nonnull <T> InternalEmailPopulatingBuilder withHeaders(@Nonnull Map<String, T> headers, boolean ignoreSmimeMessageId);
+	@Nonnull InternalEmailPopulatingBuilder complementWithSignatureValid(boolean signatureValid);
+	@Nonnull  InternalEmailPopulatingBuilder complementWithSignedBy(@Nullable String signedBy);
 }
