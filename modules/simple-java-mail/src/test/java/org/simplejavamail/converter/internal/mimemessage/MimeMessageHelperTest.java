@@ -106,7 +106,7 @@ public class MimeMessageHelperTest {
 	
 	@Test
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseItWillTryToSign() throws IOException {
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false)
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
 		
@@ -121,7 +121,7 @@ public class MimeMessageHelperTest {
 	
 	@Test
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseDKIMLibraryIsMissing() throws IOException {
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false)
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
 		

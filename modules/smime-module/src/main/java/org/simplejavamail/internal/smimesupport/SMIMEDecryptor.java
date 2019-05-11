@@ -22,8 +22,16 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.util.Store;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
+import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
+import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeApplicationSmime;
+import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeMultipartSigned;
+import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.modules.SMIMEModule;
+import org.simplejavamail.internal.smimesupport.builder.SmimeParseResultBuilder;
+import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
+import org.simplejavamail.internal.smimesupport.model.SmimeDetailsImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +40,7 @@ import javax.annotation.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Session;
+import javax.mail.internet.ContentType;
 import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -47,14 +56,18 @@ import java.util.List;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static net.markenwerk.utils.mail.smime.SmimeState.*;
+import static net.markenwerk.utils.mail.smime.SmimeState.ENCRYPTED;
+import static net.markenwerk.utils.mail.smime.SmimeState.SIGNED;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DETERMINING_SMIME_SIGNER;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SUBJECT_FROM_CERTIFICATE;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_READING_SMIME_CONTENT_TYPE;
 import static org.simplejavamail.internal.smimesupport.SmimeException.MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
-import static org.simplejavamail.internal.util.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
+import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
+import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isSmimeContentType;
+
 
 /**
  * This class only serves to hide the S/MIME implementation behind an easy-to-load-with-reflection class.
@@ -65,6 +78,121 @@ public class SMIMEDecryptor implements SMIMEModule {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMEDecryptor.class);
 	private static final List<String> SMIME_MIMETYPES = asList("application/pkcs7-mime", "application/x-pkcs7-mime", "multipart/signed");
 
+	public SmimeParseResultBuilder decryptAttachments(@Nonnull final List<AttachmentResource> attachments, @Nonnull final OutlookMessage outlookMessage,
+			@Nullable final Pkcs12Config pkcs12Config) {
+		final SmimeParseResultBuilder smimeBuilder = new SmimeParseResultBuilder();
+
+		if (outlookMessage.getSmimeMime() instanceof OutlookSmimeApplicationSmime) {
+			final OutlookSmimeApplicationSmime s = (OutlookSmimeApplicationSmime) outlookMessage.getSmimeMime();
+			smimeBuilder.getOriginalSmimeDetails().completeWith(OriginalSmimeDetailsImpl.builder()
+					.smimeMime(s.getSmimeMime())
+					.smimeType(s.getSmimeType())
+					.smimeName(s.getSmimeName())
+					.build());
+		} else if (outlookMessage.getSmimeMime() instanceof OutlookSmimeMultipartSigned) {
+			final OutlookSmimeMultipartSigned s = (OutlookSmimeMultipartSigned) outlookMessage.getSmimeMime();
+			smimeBuilder.getOriginalSmimeDetails().completeWith(OriginalSmimeDetailsImpl.builder()
+					.smimeMime(s.getSmimeMime())
+					.smimeProtocol(s.getSmimeProtocol())
+					.smimeMicalg(s.getSmimeMicalg())
+					.build());
+		}
+
+		decryptAttachments(smimeBuilder, attachments, pkcs12Config);
+
+		if (smimeBuilder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
+			// this is the only way for Outlook messages to know a valid signature was included
+			smimeBuilder.getOriginalSmimeDetails().completeWithSmimeSignatureValid(smimeBuilder.getSmimeSignedEmail() != null);
+		}
+
+		return smimeBuilder;
+	}
+
+	public SmimeParseResultBuilder decryptAttachments(@Nonnull final List<AttachmentResource> attachments, @Nonnull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
+		final SmimeParseResultBuilder smimeBuilder = new SmimeParseResultBuilder();
+
+		initSmimeMetadata(smimeBuilder, mimeMessage);
+		decryptAttachments(smimeBuilder, attachments, pkcs12Config);
+		finalizeSmimeMetadata(smimeBuilder, mimeMessage);
+
+		return smimeBuilder;
+	}
+
+	private void initSmimeMetadata(final SmimeParseResultBuilder smimeBuilder, @Nonnull final MimeMessage mimeMessage) {
+		try {
+			if (mimeMessage.getHeader("Content-Type", null) != null) {
+				ContentType ct = new ContentType(mimeMessage.getHeader("Content-Type", null));
+				if (isSmimeContentType(ct)) {
+					smimeBuilder.getOriginalSmimeDetails()
+							.completeWith(OriginalSmimeDetailsImpl.builder()
+									.smimeMime(ct.getBaseType())
+									.smimeType(ct.getParameter("smime-type"))
+									.smimeName(ct.getParameter("name"))
+									.smimeProtocol(ct.getParameter("protocol"))
+									.smimeMicalg(ct.getParameter("micalg"))
+									.build());
+				}
+			}
+		} catch (MessagingException e) {
+			throw new SmimeException(ERROR_READING_SMIME_CONTENT_TYPE, e);
+		}
+	}
+
+	private void finalizeSmimeMetadata(final SmimeParseResultBuilder smimeBuilder, @Nonnull final MimeMessage mimeMessage) {
+		final OriginalSmimeDetailsImpl originalSmimeDetails = smimeBuilder.getOriginalSmimeDetails();
+
+		if (originalSmimeDetails.getSmimeMode() != SmimeMode.PLAIN) {
+			LOGGER.debug("checking who signed this message...");
+			originalSmimeDetails.completeWithSmimeSignedBy(getSignedByAddress(mimeMessage));
+			if (originalSmimeDetails.getSmimeMode() == SmimeMode.SIGNED) {
+				originalSmimeDetails.completeWithSmimeSignatureValid(checkSignature(mimeMessage, originalSmimeDetails));
+			}
+		}
+	}
+
+	private boolean checkSignature(@Nonnull final MimeMessage mimeMessage, @Nullable final OriginalSmimeDetails messageSmimeDetails) {
+		if (messageSmimeDetails != null) {
+			LOGGER.debug("verifying signed mimemessage...");
+			final boolean validSignature = verifyValidSignature(mimeMessage, messageSmimeDetails);
+			if (!validSignature) {
+				LOGGER.warn("Message contains invalid S/MIME signature! Assume this emal has been tampered with.");
+			}
+			return validSignature;
+		}
+		return false;
+	}
+
+	private void decryptAttachments(@Nonnull final SmimeParseResultBuilder smimeBuilder, @Nonnull final List<AttachmentResource> attachments,
+			@Nullable final Pkcs12Config pkcs12Config) {
+		LOGGER.debug("checking for S/MIME signed / encrypted attachments...");
+		List<AttachmentResource> decryptedAttachments = decryptAttachments(attachments, pkcs12Config, smimeBuilder.getOriginalSmimeDetails());
+		smimeBuilder.addDecryptedAttachments(decryptedAttachments);
+
+		if (attachments.size() == 1) {
+			final AttachmentResource onlyAttachment = attachments.get(0);
+			final AttachmentResource onlyAttachmentDecrypted = smimeBuilder.getDecryptedAttachments().get(0);
+			if (isSmimeAttachment(onlyAttachment) && isMimeMessageAttachment(onlyAttachmentDecrypted)) {
+				smimeBuilder.getOriginalSmimeDetails().completeWith(determineSmimeDetails(onlyAttachment));
+				smimeBuilder.setSmimeSignedEmailToProcess(onlyAttachmentDecrypted);
+			}
+		}
+	}
+
+	private boolean isMimeMessageAttachment(final AttachmentResource attachment) {
+		return attachment.getDataSource().getContentType().equals("message/rfc822");
+	}
+
+	@Nonnull
+	private OriginalSmimeDetailsImpl determineSmimeDetails(final AttachmentResource attachment) {
+		LOGGER.debug("Single S/MIME signed / encrypted attachment found; assuming the attachment is the message "
+				+ "body, a record of the original S/MIME details will be stored on the Email root...");
+		SmimeDetails smimeDetails = getSmimeDetails(attachment);
+		return OriginalSmimeDetailsImpl.builder()
+				.smimeMime(smimeDetails.getSmimeMime())
+				.smimeSignedBy(smimeDetails.getSignedBy())
+				.build();
+	}
+
 	/**
 	 * @see SMIMEModule#decryptAttachments(List, Pkcs12Config, OriginalSmimeDetails)
 	 */
@@ -73,7 +201,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 	public List<AttachmentResource> decryptAttachments(
 			@Nonnull final List<AttachmentResource> attachments,
 			@Nullable final Pkcs12Config pkcs12Config,
-			@Nullable final OriginalSmimeDetails messageSmimeDetails) {
+			@Nonnull final OriginalSmimeDetails messageSmimeDetails) {
 		final List<AttachmentResource> decryptedAttachments;
 		decryptedAttachments = new ArrayList<>(attachments);
 
@@ -102,7 +230,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 	private AttachmentResource decryptAndUnsignAttachment(
 			@Nonnull final AttachmentResource attachment,
 			@Nullable final Pkcs12Config pkcs12Config,
-			@Nullable final OriginalSmimeDetails messageSmimeDetails) {
+			@Nonnull final OriginalSmimeDetails messageSmimeDetails) {
 		try {
 			final InternetHeaders internetHeaders = new InternetHeaders();
 			internetHeaders.addHeader("Content-Type", restoreSmimeContentType(attachment, messageSmimeDetails));
@@ -166,16 +294,10 @@ public class SMIMEDecryptor implements SMIMEModule {
 		return null;
 	}
 
-	private SmimeState determineStatus(@Nonnull final MimePart mimeBodyPart, @Nullable final OriginalSmimeDetails messageSmimeDetails) {
+	private SmimeState determineStatus(@Nonnull final MimePart mimeBodyPart, @Nonnull final OriginalSmimeDetails messageSmimeDetails) {
 		SmimeState status = SmimeUtil.getStatus(mimeBodyPart);
-		boolean trustStatus = status != ENCRYPTED || messageSmimeDetails == null;
-		if (trustStatus) {
-			return status;
-		} else {
-			return "signed-data".equals(messageSmimeDetails.getSmimeType())
-					? SIGNED
-					: ENCRYPTED; // revert back to original value from markenwerk's SmimeUtil
-		}
+		boolean trustStatus = status != ENCRYPTED || messageSmimeDetails.getSmimeMode() == SmimeMode.PLAIN;
+		return trustStatus ? status : "signed-data".equals(messageSmimeDetails.getSmimeType()) ? SIGNED : ENCRYPTED;
 	}
 
 	/**
@@ -183,12 +305,10 @@ public class SMIMEDecryptor implements SMIMEModule {
 	 */
 	@Nonnull
 	@Override
-	@SuppressWarnings("deprecation")
-	public OriginalSmimeDetails getSmimeDetails(@Nonnull final AttachmentResource attachment) {
-		return OriginalSmimeDetails.builder()
-				.smimeMime(attachment.getDataSource().getContentType())
-				.smimeSignedBy(getSignedByAddress(attachment))
-				.build();
+	public SmimeDetails getSmimeDetails(@Nonnull final AttachmentResource attachment) {
+		final String contentType = attachment.getDataSource().getContentType();
+		final String signedByAddress = getSignedByAddress(attachment);
+		return new SmimeDetailsImpl(contentType, signedByAddress);
 	}
 
 	/**
@@ -222,8 +342,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 	}
 
 	public boolean verifyValidSignature(@Nonnull MimeMessage mimeMessage, @Nonnull OriginalSmimeDetails messageSmimeDetails) {
-		return determineStatus(mimeMessage, messageSmimeDetails) != SIGNED ||
-				SmimeUtil.checkSignature(mimeMessage);
+		return determineStatus(mimeMessage, messageSmimeDetails) != SIGNED || SmimeUtil.checkSignature(mimeMessage);
 	}
 
 	@Nonnull

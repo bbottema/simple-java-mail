@@ -4,11 +4,11 @@ import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
 import javax.annotation.Nonnull;
 import java.io.File;
@@ -17,18 +17,15 @@ import java.io.FileNotFoundException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
-import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 public class TestSmimeSelfSigned {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 	private static final String RESOURCES_MESSAGES = RESOURCES_PKCS + "/test messages";
 
-	@SuppressWarnings("deprecation")
 	@Test
 	public void testSignedMessageMsg() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message signed.msg"));
@@ -55,7 +52,7 @@ public class TestSmimeSelfSigned {
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(2);
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("multipart/signed")
 				.smimeProtocol("application/pkcs7-signature")
@@ -91,7 +88,7 @@ public class TestSmimeSelfSigned {
 		assertThat(emailParsedFromEml.getDecryptedAttachments()).hasSize(2);
 		assertThat(emailParsedFromEml.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "03-07-2005 errata SharnErrata.pdf");
 
-		EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+		EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("multipart/signed")
 				.smimeProtocol("application/pkcs7-signature")
@@ -100,7 +97,6 @@ public class TestSmimeSelfSigned {
 				.build());
 	}
 
-	@SuppressWarnings("deprecation")
 	@Test
 	public void testEncryptedMessageMsg()
 			throws FileNotFoundException {
@@ -128,7 +124,7 @@ public class TestSmimeSelfSigned {
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(2);
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.ENCRYPTED)
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("enveloped-data")
@@ -163,7 +159,7 @@ public class TestSmimeSelfSigned {
 		assertThat(emailParsedFromEml.getDecryptedAttachments()).hasSize(2);
 		assertThat(emailParsedFromEml.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
 
-		EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+		EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.ENCRYPTED)
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("enveloped-data")
@@ -171,7 +167,6 @@ public class TestSmimeSelfSigned {
 				.build());
 	}
 
-	@SuppressWarnings("deprecation")
 	@Test
 	public void testSignedAndEncryptedMessageMsg()
 			throws FileNotFoundException {
@@ -199,13 +194,13 @@ public class TestSmimeSelfSigned {
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(3);
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("enveloped-data")
 				.smimeName("smime.p7m")
 				.build());
-		EmailAssert.assertThat(emailParsedFromMsg.getSmimeSignedEmail()).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+		EmailAssert.assertThat(emailParsedFromMsg.getSmimeSignedEmail()).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("multipart/signed")
 				.smimeProtocol("application/pkcs7-signature")

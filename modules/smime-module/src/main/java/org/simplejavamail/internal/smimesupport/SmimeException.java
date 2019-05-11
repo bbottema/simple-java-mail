@@ -18,6 +18,7 @@ class SmimeException extends MailException {
 	static final String ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT = "Error extracting signed-by address from S/MIME signed attachment: \n\t%s";
 	static final String ERROR_EXTRACTING_SUBJECT_FROM_CERTIFICATE = "Error extracting subject from certificate to which it was issued";
 	static final String MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED = "MimePart that was assumed to be S/MIME signed / encrypted actually wasn't: \n\t%s";
+	static final String ERROR_READING_SMIME_CONTENT_TYPE = "Error reading S/MIME Content-Type header from MimeMessage";
 
 	SmimeException(@Nonnull final String message) {
 		super(checkNonEmptyArgument(message, "message"));

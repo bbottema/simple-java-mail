@@ -11,6 +11,7 @@ import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeAp
 import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeMultipartSigned;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -199,6 +200,7 @@ public class OutlookMessageProxy implements OutlookMessage {
 	}
 
 	@Override
+	@Nullable
 	public OutlookSmime getSmimeMime() {
 		if (delegate.getSmime() instanceof OutlookSmimeApplicationSmime) {
 			return new OutlookSmimeApplicationSmimeProxy((OutlookSmimeApplicationSmime) delegate.getSmime());

@@ -1222,16 +1222,19 @@ public interface EmailPopulatingBuilder {
 	 * @see #cc(Recipient...)
 	 * @see #bcc(Recipient...)
 	 */
+	@Nonnull
 	List<Recipient> getRecipients();
 	
 	/**
 	 * @see #withEmbeddedImage(String, DataSource)
 	 */
+	@Nonnull
 	List<AttachmentResource> getEmbeddedImages();
 	
 	/**
 	 * @see #withAttachment(String, DataSource)
 	 */
+	@Nonnull
 	List<AttachmentResource> getAttachments();
 
 
@@ -1239,12 +1242,14 @@ public interface EmailPopulatingBuilder {
 	 * If the S/MIME library is loaded, this method returns a copy list of the attachments, but with any signed
 	 * attachments replaced with decrypted ones.
 	 */
+	@Nonnull
 	List<AttachmentResource> getDecryptedAttachments();
 
 	/**
 	 * @see #withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
+	@Nonnull
 	Map<String, String> getHeaders();
 	
 	/**
@@ -1311,7 +1316,7 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * For example, you can use it to determine if the message was encrypted or signed and also who did the signing.
 	 */
-	@Nullable
+	@Nonnull
 	OriginalSmimeDetails getOriginalSmimeDetails();
 
 	/**

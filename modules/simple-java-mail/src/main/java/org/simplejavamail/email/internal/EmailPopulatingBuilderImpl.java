@@ -8,6 +8,7 @@ import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
+import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.MiscUtil;
 
@@ -30,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
@@ -38,7 +38,6 @@ import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.*;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
@@ -54,13 +53,12 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
 import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
+import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
-import static org.simplejavamail.internal.util.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 
 /**
  * @see EmailPopulatingBuilder
@@ -112,27 +110,32 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #cc(Recipient...)
 	 * @see #bcc(Recipient...)
 	 */
+	@Nonnull
 	private final Set<Recipient> recipients;
 	
 	/**
 	 * @see #withEmbeddedImage(String, DataSource)
 	 */
+	@Nonnull
 	private final List<AttachmentResource> embeddedImages;
 	
 	/**
 	 * @see #withAttachment(String, DataSource)
 	 */
+	@Nonnull
 	private final List<AttachmentResource> attachments;
 
 	/**
 	 * @see #withDecryptedAttachments(List)
 	 */
+	@Nonnull
 	private final List<AttachmentResource> decryptedAttachments;
 
 	/**
 	 * @see #withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
+	@Nonnull
 	private final Map<String, String> headers;
 	
 	/**
@@ -189,6 +192,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
+	@Nonnull
 	private OriginalSmimeDetails originalSmimeDetails;
 
 	/**
@@ -210,7 +214,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		attachments = new ArrayList<>();
 		decryptedAttachments = new ArrayList<>();
 		headers = new HashMap<>();
-		
+		originalSmimeDetails = new PlainSmimeDetails();
+
 		if (applyDefaults) {
 			if (hasProperty(DEFAULT_FROM_ADDRESS)) {
 				from((String) getProperty(DEFAULT_FROM_NAME), assumeNonNull((String) getProperty(DEFAULT_FROM_ADDRESS)));
@@ -255,23 +260,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmail() {
 		validateDkim();
-		completeSmimeMode();
 		return new Email(this);
-	}
-
-	/**
-	 * if we have both an encrypted and signed part in the email, have the
-	 * top-level email reflect this as {@link SmimeMode#SIGNED_ENCRYPTED}.
-	 */
-	private void completeSmimeMode() {
-		if (smimeSignedEmail != null &&
-				originalSmimeDetails != null && smimeSignedEmail.getOriginalSmimeDetails() != null) {
-			if (smimeSignedEmail.getOriginalSmimeDetails().getSmimeMode() != originalSmimeDetails.getSmimeMode()) {
-				originalSmimeDetails = originalSmimeDetails.toBuilder()
-						.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
-						.build();
-			}
-		}
 	}
 
 	private void validateDkim() {
@@ -1355,24 +1344,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
-	@Nonnull
-	@Override
-	public InternalEmailPopulatingBuilder complementWithSignatureValid(final boolean signatureValid) {
-		OriginalSmimeDetails s = ofNullable(originalSmimeDetails).orElse(EMPTY);
-		return withOriginalSmimeDetails(s.toBuilder()
-				.smimeSignatureValid(TRUE.equals(s.getSmimeSignatureValid()) || signatureValid)
-				.build());
-	}
-
-	@Nonnull
-	@Override
-	public InternalEmailPopulatingBuilder complementWithSignedBy(@Nullable final String signedBy) {
-		OriginalSmimeDetails s = ofNullable(originalSmimeDetails).orElse(EMPTY);
-		return withOriginalSmimeDetails(s.toBuilder()
-				.smimeSignedBy(ofNullable(s.getSmimeSignedBy()).orMaybe(signedBy))
-				.build());
-	}
-
 	/**
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
 	 */
@@ -1845,6 +1816,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see EmailPopulatingBuilder#getRecipients()
 	 */
+	@Nonnull
 	@Override
 	public List<Recipient> getRecipients() {
 		return new ArrayList<>(recipients);
@@ -1853,6 +1825,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see EmailPopulatingBuilder#getEmbeddedImages()
 	 */
+	@Nonnull
 	@Override
 	public List<AttachmentResource> getEmbeddedImages() {
 		return new ArrayList<>(embeddedImages);
@@ -1861,6 +1834,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see EmailPopulatingBuilder#getAttachments()
 	 */
+	@Nonnull
 	@Override
 	public List<AttachmentResource> getAttachments() {
 		return new ArrayList<>(attachments);
@@ -1869,6 +1843,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
 	 */
+	@Nonnull
 	@Override
 	public List<AttachmentResource> getDecryptedAttachments() {
 		return decryptedAttachments;
@@ -1877,6 +1852,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see EmailPopulatingBuilder#getHeaders()
 	 */
+	@Nonnull
 	@Override
 	public Map<String, String> getHeaders() {
 		return new HashMap<>(headers);
@@ -1964,7 +1940,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
-	@Nullable
+	@Nonnull
 	@Override
 	public OriginalSmimeDetails getOriginalSmimeDetails() {
 		return originalSmimeDetails;

@@ -8,8 +8,11 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
+import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -51,31 +54,31 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_EmptySubjectAndBody()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false), true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMailBasicFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false), true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_AllFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false), true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false, true), true);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_IncludingCustomHeaders()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true), true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true, true), true);
 	}
 
 	@Test
 	public void createMailSession_StandardDummyMailWithId()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false), true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false, true), true);
 	}
 	
 	@Test
@@ -139,11 +142,17 @@ public class MailerLiveTest {
 		if (originalEmailPopulatingBuilder.getBounceToRecipient() != null) {
 			originalEmailPopulatingBuilder.clearBounceTo();
 		}
+
+		if (originalEmailPopulatingBuilder.getOriginalSmimeDetails() instanceof PlainSmimeDetails) {
+			// because the S/MIME module is loaded, the default PLAIN version gets replaced with the one from the module
+			((InternalEmailPopulatingBuilder) originalEmailPopulatingBuilder)
+					.withOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder().build());
+		}
 		
 		if (compensateForDresscodeAttachmentNameOverrideErasure) {
 			TestDataHelper.fixDresscodeAttachment(receivedEmail);
 		}
-		
+
 		assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());
 		return receivedEmail;
 	}

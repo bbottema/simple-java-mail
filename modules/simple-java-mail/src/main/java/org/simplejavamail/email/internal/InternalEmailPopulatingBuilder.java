@@ -17,10 +17,8 @@ import java.util.Map;
 @SuppressWarnings("UnusedReturnValue")
 public interface InternalEmailPopulatingBuilder  extends EmailPopulatingBuilder {
 	@Nonnull InternalEmailPopulatingBuilder withForward(@Nullable MimeMessage emailMessageToForward);
-	@Nonnull InternalEmailPopulatingBuilder withDecryptedAttachments(@Nonnull List<AttachmentResource> attachments);
-	@Nonnull InternalEmailPopulatingBuilder withOriginalSmimeDetails(@Nonnull OriginalSmimeDetails originalSmimeDetails);
-	@Nonnull InternalEmailPopulatingBuilder withSmimeSignedEmail(@Nonnull Email email);
 	@Nonnull <T> InternalEmailPopulatingBuilder withHeaders(@Nonnull Map<String, T> headers, boolean ignoreSmimeMessageId);
-	@Nonnull InternalEmailPopulatingBuilder complementWithSignatureValid(boolean signatureValid);
-	@Nonnull  InternalEmailPopulatingBuilder complementWithSignedBy(@Nullable String signedBy);
+	@Nonnull InternalEmailPopulatingBuilder withDecryptedAttachments(List<AttachmentResource> decryptedAttachments);
+	@Nonnull InternalEmailPopulatingBuilder  withSmimeSignedEmail(@Nonnull Email smimeSignedEmail);
+	@Nonnull InternalEmailPopulatingBuilder  withOriginalSmimeDetails(@Nonnull OriginalSmimeDetails originalSmimeDetails);
 }

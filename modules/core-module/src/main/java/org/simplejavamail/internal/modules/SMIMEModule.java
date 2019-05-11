@@ -2,6 +2,9 @@ package org.simplejavamail.internal.modules;
 
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
+import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
+import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import javax.annotation.Nonnull;
@@ -14,14 +17,22 @@ import java.util.List;
  * This interface only serves to hide the S/MIME implementation behind an easy-to-load-with-reflection class.
  */
 public interface SMIMEModule {
+
+	/**
+	 * @return The results of the S/MIME decryption of any compatible encrypted / signed attachments.
+	 */
+	SmimeParseResult decryptAttachments(@Nonnull List<AttachmentResource> attachments, @Nonnull OutlookMessage outlookMessage, @Nullable Pkcs12Config pkcs12Config);
+
+	/**
+	 * @return The results of the S/MIME decryption of any compatible encrypted / signed attachments.
+	 */
+	SmimeParseResult decryptAttachments(@Nonnull List<AttachmentResource> attachments, @Nonnull MimeMessage mimeMessage, @Nullable Pkcs12Config pkcs12Config);
+
 	/**
 	 * @return A copy of given original 'true' attachments, with S/MIME encrypted / signed attachments replaced with the actual attachment.
 	 */
 	@Nonnull
-	List<AttachmentResource> decryptAttachments(
-			@Nonnull List<AttachmentResource> attachments,
-			@Nullable Pkcs12Config pkcs12Config,
-			@Nullable final OriginalSmimeDetails messageSmimeDetails);
+	List<AttachmentResource> decryptAttachments(@Nonnull List<AttachmentResource> attachments, @Nullable Pkcs12Config pkcs12Config, @Nonnull OriginalSmimeDetails messageSmimeDetails);
 
 	/**
 	 * @return Whether the given attachment is S/MIME signed / encrypted. Defers to {@link org.simplejavamail.internal.util.SmimeRecognitionUtil#isSmimeAttachment(AttachmentResource)}.
@@ -34,7 +45,7 @@ public interface SMIMEModule {
 	 * <strong>Note:</strong> the attachment is assumed to be a signed / encrypted {@link javax.mail.internet.MimeBodyPart}.
 	 */
 	@Nonnull
-	OriginalSmimeDetails getSmimeDetails(@Nonnull AttachmentResource attachment);
+	SmimeDetails getSmimeDetails(@Nonnull AttachmentResource attachment);
 
 	/**
 	 * Delegates to {@link #getSignedByAddress(MimePart)}, where the datasource of the attachment is read completely as a MimeMessage.

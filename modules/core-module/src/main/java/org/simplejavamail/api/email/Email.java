@@ -73,28 +73,33 @@ public class Email {
 	 * @see EmailPopulatingBuilder#cc(Recipient...)
 	 * @see EmailPopulatingBuilder#bcc(Recipient...)
 	 */
+	@Nonnull
 	private final List<Recipient> recipients;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource)
 	 */
+	@Nonnull
 	private final List<AttachmentResource> embeddedImages;
 
 	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */
+	@Nonnull
 	private final List<AttachmentResource> attachments;
 
 	/**
 	 * If the S/MIME module is loaded, this list will contain the same attachments as {@link #attachments},
 	 * but with any S/MIME signed attachments decrypted.
 	 */
+	@Nonnull
 	private final List<AttachmentResource> decryptedAttachments;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
+	@Nonnull
 	private final Map<String, String> headers;
 	
 	/**
@@ -156,6 +161,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
+	@Nonnull
 	private OriginalSmimeDetails originalSmimeDetails;
 
 	/**
@@ -509,7 +515,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
-	@Nullable
+	@Nonnull
 	public OriginalSmimeDetails getOriginalSmimeDetails() {
 		return originalSmimeDetails;
 	}

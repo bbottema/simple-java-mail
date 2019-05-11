@@ -1,6 +1,5 @@
 package org.simplejavamail.converter;
 
-import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -8,8 +7,7 @@ import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
-import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeApplicationSmime;
-import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeMultipartSigned;
+import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
@@ -18,16 +16,13 @@ import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.modules.ModuleLoader;
-import org.simplejavamail.internal.modules.SMIMEModule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Session;
-import javax.mail.internet.ContentType;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
@@ -41,19 +36,16 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.simplejavamail.converter.EmailConverterException.ERROR_READING_SMIME_CONTENT_TYPE;
+import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
-import static org.simplejavamail.internal.util.SmimeRecognitionUtil.isSmimeContentType;
 
 /**
  * Utility to help convert {@link org.simplejavamail.api.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
@@ -62,8 +54,6 @@ import static org.simplejavamail.internal.util.SmimeRecognitionUtil.isSmimeConte
  */
 @SuppressWarnings("WeakerAccess")
 public final class EmailConverter {
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(EmailConverter.class);
 	
 	private static final PathMatcher EML_PATH_MATCHER = FileSystems.getDefault().getPathMatcher("glob:**/*.eml");
 	private static final PathMatcher MSG_PATH_MATCHER = FileSystems.getDefault().getPathMatcher("glob:**/*.msg");
@@ -110,16 +100,7 @@ public final class EmailConverter {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
 		final EmailPopulatingBuilder builder = EmailBuilder.ignoringDefaults().startingBlank();
 		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage);
-		decryptAttachments(buildEmailFromMimeMessage(builder, parsed), mimeMessage, pkcs12Config);
-
-		if (builder.getOriginalSmimeDetails() != null) {
-			((InternalEmailPopulatingBuilder) builder).complementWithSignedBy(checkSignedBy(mimeMessage));
-			if (builder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
-				boolean signatureValid = checkSignature(mimeMessage, builder.getOriginalSmimeDetails());
-				((InternalEmailPopulatingBuilder) builder).complementWithSignatureValid(signatureValid);
-			}
-		}
-		return builder;
+		return decryptAttachments(buildEmailFromMimeMessage(builder, parsed), mimeMessage, pkcs12Config);
 	}
 
 	/**
@@ -127,6 +108,7 @@ public final class EmailConverter {
 	 *
 	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
+	@SuppressWarnings("unused")
 	@Nonnull
 	public static Email outlookMsgToEmail(@Nonnull final String msgFile) {
 		return outlookMsgToEmail(msgFile, null);
@@ -197,6 +179,7 @@ public final class EmailConverter {
 	/**
 	 * Delegates to {@link #outlookMsgToEmail(InputStream, Pkcs12Config)}.
 	 */
+	@SuppressWarnings("unused")
 	@Nonnull
 	public static Email outlookMsgToEmail(@Nonnull final InputStream msgInputStream) {
 		return outlookMsgToEmail(msgInputStream, null);
@@ -213,7 +196,6 @@ public final class EmailConverter {
 	/**
 	 * Delegates to {@link #outlookMsgToEmailBuilder(InputStream, Pkcs12Config)}.
 	 */
-	@SuppressWarnings("deprecation")
 	@Nonnull
 	public static EmailFromOutlookMessage outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream) {
 		return outlookMsgToEmailBuilder(msgInputStream, null);
@@ -226,9 +208,47 @@ public final class EmailConverter {
 	@Nonnull
 	public static EmailFromOutlookMessage outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
 		EmailFromOutlookMessage fromMsgBuilder = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgInputStream, new EmailStartingBuilderImpl());
-		decryptAttachments(fromMsgBuilder.getEmailBuilder(), fromMsgBuilder.getOutlookMessage(), pkcs12Config)
-				.buildEmail();
+		decryptAttachments(fromMsgBuilder.getEmailBuilder(), fromMsgBuilder.getOutlookMessage(), pkcs12Config);
 		return fromMsgBuilder;
+	}
+
+	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder, final OutlookMessage outlookMessage, @Nullable final Pkcs12Config pkcs12Config) {
+		if (ModuleLoader.smimeModuleAvailable()) {
+			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, ModuleLoader.loadSmimeModule()
+					.decryptAttachments(emailBuilder.getAttachments(), outlookMessage, pkcs12Config));
+		}
+		updateEmailIfBothSignedAndEncrypted(emailBuilder);
+		return emailBuilder;
+	}
+
+	/**
+	 * if we have both an encrypted and signed part in the email, have the
+	 * top-level email reflect this as {@link SmimeMode#SIGNED_ENCRYPTED}.
+	 */
+	private static void updateEmailIfBothSignedAndEncrypted(final EmailPopulatingBuilder emailBuilder) {
+		if (emailBuilder.getSmimeSignedEmail() != null) {
+			OriginalSmimeDetails nestedSmime = emailBuilder.getSmimeSignedEmail().getOriginalSmimeDetails();
+			OriginalSmimeDetailsImpl originalSmimeDetails = (OriginalSmimeDetailsImpl) emailBuilder.getOriginalSmimeDetails();
+			if (nestedSmime.getSmimeMode() != PLAIN && nestedSmime.getSmimeMode() != originalSmimeDetails.getSmimeMode()) {
+				originalSmimeDetails.completeWithSmimeMode(SmimeMode.SIGNED_ENCRYPTED);
+			}
+		}
+	}
+
+	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder, final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
+		if (ModuleLoader.smimeModuleAvailable()) {
+			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, ModuleLoader.loadSmimeModule()
+					.decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config));
+		}
+		return emailBuilder;
+	}
+
+	private static void handleSmimeParseResult(final InternalEmailPopulatingBuilder emailBuilder, final SmimeParseResult smimeParseResult) {
+		emailBuilder.withDecryptedAttachments(smimeParseResult.getDecryptedAttachments());
+		emailBuilder.withOriginalSmimeDetails(smimeParseResult.getOriginalSmimeDetails());
+		if (smimeParseResult.getSmimeSignedEmail() != null) {
+			emailBuilder.withSmimeSignedEmail(emlToEmail(smimeParseResult.getSmimeSignedEmail().getDataSourceInputStream()));
+		}
 	}
 
 	/**
@@ -611,129 +631,4 @@ public final class EmailConverter {
 		return Session.getDefaultInstance(new Properties());
 	}
 
-	@Nonnull
-	@SuppressWarnings("deprecation")
-	private static EmailPopulatingBuilder decryptAttachments(@Nonnull final EmailPopulatingBuilder builder, @Nonnull final OutlookMessage outlookMessage, @Nullable final Pkcs12Config pkcs12Config) {
-		OriginalSmimeDetails messageSmimeDetails = null;
-		if (outlookMessage.getSmimeMime() instanceof OutlookSmimeApplicationSmime) {
-			final OutlookSmimeApplicationSmime s = (OutlookSmimeApplicationSmime) outlookMessage.getSmimeMime();
-			messageSmimeDetails = OriginalSmimeDetails.builder()
-					.smimeMime(s.getSmimeMime())
-					.smimeType(s.getSmimeType())
-					.smimeName(s.getSmimeName())
-					.build();
-		} else if (outlookMessage.getSmimeMime() instanceof OutlookSmimeMultipartSigned) {
-			final OutlookSmimeMultipartSigned s = (OutlookSmimeMultipartSigned) outlookMessage.getSmimeMime();
-			messageSmimeDetails = OriginalSmimeDetails.builder()
-					.smimeMime(s.getSmimeMime())
-					.smimeProtocol(s.getSmimeProtocol())
-					.smimeMicalg(s.getSmimeMicalg())
-					.build();
-		}
-
-		decryptAttachments(builder, messageSmimeDetails, pkcs12Config);
-
-		if (builder.getOriginalSmimeDetails() != null &&
-				builder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
-			// this is the only way for Outlook messages to know a valid signature was included
-			((InternalEmailPopulatingBuilder) builder)
-					.complementWithSignatureValid(builder.getSmimeSignedEmail() != null);
-		}
-
-		return builder;
-	}
-
-	@SuppressWarnings({ "deprecation" })
-	private static void decryptAttachments(
-			@Nonnull final EmailPopulatingBuilder emailBuilder,
-			@Nonnull final MimeMessage mimeMessage,
-			@Nullable final Pkcs12Config pkcs12Config) {
-		OriginalSmimeDetails originalSmimeDetails = null;
-
-		try {
-			if (mimeMessage.getHeader("Content-Type", null) != null) {
-				ContentType ct = new ContentType(mimeMessage.getHeader("Content-Type", null));
-				if (isSmimeContentType(ct)) {
-					originalSmimeDetails = OriginalSmimeDetails.builder()
-							.smimeMime(ct.getBaseType())
-							.smimeType(ct.getParameter("smime-type"))
-							.smimeName(ct.getParameter("name"))
-							.smimeProtocol(ct.getParameter("protocol"))
-							.smimeMicalg(ct.getParameter("micalg"))
-							.build();
-					OriginalSmimeDetails relevantDetails = ofNullable(emailBuilder.getOriginalSmimeDetails())
-							.orElse(OriginalSmimeDetails.EMPTY)
-							.completeWith(originalSmimeDetails);
-					((InternalEmailPopulatingBuilder) emailBuilder).withOriginalSmimeDetails(relevantDetails);
-				}
-			}
-		} catch (MessagingException e) {
-			throw new EmailConverterException(ERROR_READING_SMIME_CONTENT_TYPE, e);
-		}
-
-		decryptAttachments(emailBuilder, originalSmimeDetails, pkcs12Config);
-	}
-
-	private static boolean checkSignature(@Nonnull final MimeMessage mimeMessage, @Nullable final OriginalSmimeDetails messageSmimeDetails) {
-		if (messageSmimeDetails != null && ModuleLoader.smimeModuleAvailable()) {
-			LOGGER.debug("verifying signed mimemessage...");
-			final SMIMEModule smimeModule = ModuleLoader.loadSmimeModule();
-			final boolean validSignature = smimeModule.verifyValidSignature(mimeMessage, messageSmimeDetails);
-			if (!validSignature) {
-				LOGGER.warn("Message contains invalid S/MIME signature! Assume this emal has been tampered with.");
-			}
-			return validSignature;
-		}
-		return false;
-	}
-
-	private static String checkSignedBy(@Nonnull final MimeMessage mimeMessage) {
-		if (ModuleLoader.smimeModuleAvailable()) {
-			LOGGER.debug("checking who signed this message...");
-			return ModuleLoader.loadSmimeModule().getSignedByAddress(mimeMessage);
-		}
-		return null;
-	}
-
-	@Nonnull
-	private static EmailPopulatingBuilder decryptAttachments(
-			@Nonnull final EmailPopulatingBuilder emailBuilder,
-			@Nullable final OriginalSmimeDetails messageSmimeDetails,
-			@Nullable final Pkcs12Config pkcs12Config) {
-		if (ModuleLoader.smimeModuleAvailable()) {
-			final InternalEmailPopulatingBuilder internalEmailBuilder = (InternalEmailPopulatingBuilder) emailBuilder;
-
-			LOGGER.debug("checking for S/MIME signed / encrypted attachments...");
-			final SMIMEModule smimeModule = ModuleLoader.loadSmimeModule();
-			List<AttachmentResource> decryptedAttachments = smimeModule
-					.decryptAttachments(emailBuilder.getAttachments(), pkcs12Config, messageSmimeDetails);
-			internalEmailBuilder.withDecryptedAttachments(decryptedAttachments);
-
-			if (emailBuilder.getAttachments().size() == 1) {
-				final AttachmentResource onlyAttachment = emailBuilder.getAttachments().get(0);
-				final AttachmentResource onlyAttachmentDecrypted = internalEmailBuilder.getDecryptedAttachments().get(0);
-				if (smimeModule.isSmimeAttachment(onlyAttachment) && isMimeMessageAttachment(onlyAttachmentDecrypted)) {
-					internalEmailBuilder.withOriginalSmimeDetails(determineSmimeDetails(messageSmimeDetails, smimeModule, onlyAttachment));
-					internalEmailBuilder.withSmimeSignedEmail(emlToEmail(onlyAttachmentDecrypted.getDataSourceInputStream()));
-				}
-			}
-		}
-		return emailBuilder;
-	}
-
-	private static boolean isMimeMessageAttachment(final AttachmentResource attachment) {
-		return attachment.getDataSource().getContentType().equals("message/rfc822");
-	}
-
-	@Nonnull
-	@SuppressWarnings("deprecation")
-	private static OriginalSmimeDetails determineSmimeDetails(@Nullable final OriginalSmimeDetails messageSmimeDetails, final SMIMEModule smimeModule,
-			final AttachmentResource attachment) {
-		LOGGER.debug("Single S/MIME signed / encrypted attachment found; assuming the attachment is the message "
-				+ "body, a record of the original S/MIME details will be stored on the Email root...");
-		final OriginalSmimeDetails attachmentSmimeDetails = smimeModule.getSmimeDetails(attachment);
-		return ofNullable(messageSmimeDetails)
-				.orElse(attachmentSmimeDetails)
-				.completeWith(attachmentSmimeDetails);
-	}
 }

@@ -4,11 +4,11 @@ import org.junit.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
 import java.io.File;
 import java.util.AbstractMap.SimpleEntry;
@@ -18,13 +18,12 @@ import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
-import static org.simplejavamail.internal.util.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
+import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
 
 public class TestSmimeAttachments {
 
 	private static final String RESOURCE_FOLDER = determineResourceFolder("simple-java-mail") + "/test/resources/test-messages";
 
-	@SuppressWarnings("deprecation")
 	@Test
 	public void testSMIMEMessageFromOutlookMsgWithDefaultMergeBehavior() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).msg"));
@@ -60,7 +59,7 @@ public class TestSmimeAttachments {
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(2);
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "3 crucial benefits of Cloud computing.docx");
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("signed-data")
@@ -83,10 +82,9 @@ public class TestSmimeAttachments {
 	}
 
 	@Test
-	@SuppressWarnings("deprecation")
 	public void testEmlSmimeHeaderRecognition() {
 		Email emailFromSignedEml = EmailConverter.emlToEmail(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
-		EmailAssert.assertThat(emailFromSignedEml).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+		EmailAssert.assertThat(emailFromSignedEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("signed-data")
@@ -96,7 +94,6 @@ public class TestSmimeAttachments {
 				.build());
 	}
 
-	@SuppressWarnings("deprecation")
 	@Test
 	public void testSMIMEMessageFromOutlookMsgWithNonMergingBehavior() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).msg"))
@@ -146,7 +143,7 @@ public class TestSmimeAttachments {
 		assertThat(smimeSignedEmail.getDecryptedAttachments()).hasSize(1);
 		assertThat(smimeSignedEmail.getDecryptedAttachments()).extracting("name").containsExactly("3 crucial benefits of Cloud computing.docx");
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetails.builder()
+		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED)
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("signed-data")

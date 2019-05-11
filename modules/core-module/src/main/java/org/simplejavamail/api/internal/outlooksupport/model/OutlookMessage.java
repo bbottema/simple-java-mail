@@ -1,5 +1,6 @@
 package org.simplejavamail.api.internal.outlooksupport.model;
 
+import javax.annotation.Nullable;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -80,5 +81,6 @@ public interface OutlookMessage {
 	
 	String getReplyToName();
 
+	@Nullable
 	OutlookSmime getSmimeMime();
 }
