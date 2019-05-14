@@ -213,11 +213,11 @@ public class TestSmimeSelfSigned {
 	@Nonnull
 	private Pkcs12Config loadPkcs12KeyStore()
 			throws FileNotFoundException {
-		return new Pkcs12Config(
-				new FileInputStream(RESOURCES_PKCS + "/smime_keystore.pkcs12"),
-				"letmein".toCharArray(),
-				"smime_test_user_alias",
-				"letmein".toCharArray()
-		);
+		return Pkcs12Config.builder()
+				.pkcs12Store(RESOURCES_PKCS + "/smime_keystore.pkcs12")
+				.storePassword("letmein")
+				.keyAlias("smime_test_user_alias")
+				.keyPassword("letmein")
+				.build();
 	}
 }
