@@ -1,6 +1,7 @@
 package org.simplejavamail.internal.modules;
 
 import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
@@ -66,8 +67,11 @@ public interface SMIMEModule {
 	boolean verifyValidSignature(@Nonnull MimeMessage mimeMessage, @Nonnull OriginalSmimeDetails messageSmimeDetails);
 
 	@Nonnull
-	MimeMessage signMessage(@Nonnull Session session, @Nonnull MimeMessage message, @Nonnull Pkcs12Config pkcs12Config);
+	MimeMessage signAndOrEncryptEmail(@Nonnull final Session session, @Nonnull final MimeMessage messageToProtect, @Nonnull final Email emailContainingSmimeDetails);
 
 	@Nonnull
-	MimeMessage encryptMessage(@Nonnull Session session, @Nonnull MimeMessage message, @Nonnull X509Certificate certificate);
+	MimeMessage signMessage(@Nullable Session session, @Nonnull MimeMessage message, @Nonnull Pkcs12Config pkcs12Config);
+
+	@Nonnull
+	MimeMessage encryptMessage(@Nullable Session session, @Nonnull MimeMessage message, @Nonnull X509Certificate certificate);
 }

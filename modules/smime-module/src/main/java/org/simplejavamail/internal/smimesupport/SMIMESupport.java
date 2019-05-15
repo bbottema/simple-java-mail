@@ -21,6 +21,7 @@ import org.bouncycastle.mail.smime.SMIMESigned;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.util.Store;
 import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
@@ -410,14 +411,26 @@ public class SMIMESupport implements SMIMEModule {
 
 	@Nonnull
 	@Override
-	public MimeMessage signMessage(@Nonnull Session session, @Nonnull MimeMessage message, @Nonnull Pkcs12Config pkcs12Config) {
+	public MimeMessage signAndOrEncryptEmail(@Nullable final Session session, @Nonnull final MimeMessage messageToProtect, @Nonnull final Email emailContainingSmimeDetails) {
+		if (emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning() != null) {
+			return signMessage(session, messageToProtect, emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning());
+		}
+		if (emailContainingSmimeDetails.getX509CertificateForSmimeEncryption() != null) {
+			return encryptMessage(session, messageToProtect, emailContainingSmimeDetails.getX509CertificateForSmimeEncryption());
+		}
+		return messageToProtect;
+	}
+
+	@Nonnull
+	@Override
+	public MimeMessage signMessage(@Nullable Session session, @Nonnull MimeMessage message, @Nonnull Pkcs12Config pkcs12Config) {
 		SmimeKey smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
 		return SmimeUtil.sign(session, message, smimeKey);
 	}
 
 	@Nonnull
 	@Override
-	public MimeMessage encryptMessage(@Nonnull Session session, @Nonnull MimeMessage message, @Nonnull X509Certificate certificate) {
+	public MimeMessage encryptMessage(@Nullable Session session, @Nonnull MimeMessage message, @Nonnull X509Certificate certificate) {
 		return SmimeUtil.encrypt(session, message, certificate);
 	}
 
