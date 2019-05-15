@@ -713,6 +713,7 @@ public class EmailPopulatingBuilderImplTest {
 	public void testEncryptWithSmime_FromFile() throws Exception {
 		Security.addProvider(new BouncyCastleProvider());
 
+		// FIXME we need to have the proper cert anyway, if we want to test the round-trip as live test
 		// I don't seem to have a proper public PEM certificate, so let's just use the CA one
 		FileInputStream inPem = new FileInputStream(new File(RESOURCES_PKCS + "/ca.crt"));
 
@@ -728,6 +729,7 @@ public class EmailPopulatingBuilderImplTest {
 	public void testEncryptWithSmime_FromCertificate() throws Exception {
 		Security.addProvider(new BouncyCastleProvider());
 
+		// FIXME we need to have the proper cert anyway, if we want to test the round-trip as live test
 		// I don't seem to have a proper public PEM certificate, so let's just use the CA one
 		FileInputStream inPem = new FileInputStream(new File(RESOURCES_PKCS + "/ca.crt"));
 		CertificateFactory factory = CertificateFactory.getInstance("X.509", "BC");
