@@ -10,14 +10,10 @@ import java.io.InputStream;
  * Config holder for PKCS12 store+key info used for S/MIME encrypting / decrypting.
  */
 public final class Pkcs12Config {
-	@Nonnull
-	private final InputStream pkcs12StoreStream;
-	@Nonnull
-	private final char[] storePassword;
-	@Nonnull
-	private final String keyAlias;
-	@Nonnull
-	private final char[] keyPassword;
+	@Nonnull private final InputStream pkcs12StoreStream;
+	@Nonnull private final char[] storePassword;
+	@Nonnull private final String keyAlias;
+	@Nonnull private final char[] keyPassword;
 
 	private Pkcs12Config(@Nonnull InputStream pkcs12StoreStream, @Nonnull char[] storePassword, @Nonnull String keyAlias, @Nonnull char[] keyPassword) {
 		this.pkcs12StoreStream = pkcs12StoreStream;
@@ -59,12 +55,16 @@ public final class Pkcs12Config {
 		private Pkcs12ConfigBuilder() {
 		}
 
-		public Pkcs12ConfigBuilder pkcs12Store(String pkcs12StorePath) throws FileNotFoundException {
+		public Pkcs12ConfigBuilder pkcs12Store(String pkcs12StorePath) {
 			return pkcs12Store(new File(pkcs12StorePath));
 		}
 
-		public Pkcs12ConfigBuilder pkcs12Store(File pkcs12StorePath) throws FileNotFoundException {
-			return pkcs12Store(new FileInputStream(pkcs12StorePath));
+		public Pkcs12ConfigBuilder pkcs12Store(File pkcs12StorePath) {
+			try {
+				return pkcs12Store(new FileInputStream(pkcs12StorePath));
+			} catch (FileNotFoundException e) {
+				throw new IllegalStateException("error reading PKCS12 store from File", e);
+			}
 		}
 
 		public Pkcs12ConfigBuilder pkcs12Store(InputStream pkcs12StoreStream) {

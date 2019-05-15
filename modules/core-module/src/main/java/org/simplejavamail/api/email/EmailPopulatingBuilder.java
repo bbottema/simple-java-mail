@@ -2,6 +2,7 @@ package org.simplejavamail.api.email;
 
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
@@ -13,6 +14,7 @@ import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -968,7 +970,53 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	EmailPopulatingBuilder signWithDomainKey(@Nonnull File dkimPrivateKeyFile, @Nonnull String signingDomain, @Nonnull String dkimSelector);
-	
+
+	/**
+	 * Signs this email with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
+	 * can verify whether the email content was tampered with.
+	 *
+	 * @see #clearSmime()
+	 * @see <a href="https://en.wikipedia.org/wiki/S/MIME">S/MIME on Wikipedia</a>
+	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
+	 */
+	@Cli.ExcludeApi(reason = "delegated method contains CLI compatible arguments")
+	EmailPopulatingBuilder signWithSmime(@Nonnull Pkcs12Config pkcs12Config);
+
+	/**
+	 * Delegates to {@link #signWithSmime(Pkcs12Config)}.
+	 *
+	 * @param pkcs12StoreStream The key store file to use to find the indicated key
+	 * @param storePassword The store's password
+	 * @param keyAlias The name of the certificate in the key store to use
+	 * @param keyPassword The password of the certificate
+	 */
+	EmailPopulatingBuilder signWithSmime(@Nonnull InputStream pkcs12StoreStream, @Nonnull String storePassword, @Nonnull String keyAlias, @Nonnull String keyPassword);
+
+	/**
+	 * Delegates to {@link #encryptWithSmime(X509Certificate)} using the provided PEM file.
+	 *
+	 * @param pemStream A PEM encoded file that will be read as X509Certificate.
+	 */
+	EmailPopulatingBuilder encryptWithSmime(@Nonnull InputStream pemStream);
+
+	/**
+	 * Encrypts this email with a X509 certificate according to the <a href="https://tools.ietf.org/html/rfc5751">S/MIME spec</a>
+	 * signature.
+	 * <p>
+	 * You can sign this email with the public key you received from your recipient. The recipient then is the only person that
+	 * can decrypt the email with his or her private key.
+	 *
+	 * @param certificate The recipient's public key to use for encryption.
+	 *
+	 * @see #clearSmime()
+	 * @see <a href="https://en.wikipedia.org/wiki/S/MIME">S/MIME on Wikipedia</a>
+	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
+	 * @see <a href="https://github.com/markenwerk/java-utils-mail-smime">Underlying library's documentation</a>
+	 */
+	@Cli.ExcludeApi(reason = "Not sure yet how to convert from file to certificate")
+	// FIXME enable this from CLI somehow
+	EmailPopulatingBuilder encryptWithSmime(@Nonnull X509Certificate certificate);
+
 	/**
 	 * Indicates that we want to use the NPM flag {@code dispositionNotificationTo}. The actual address will default to the {@code replyToRecipient}
 	 * first if set or else {@code fromRecipient} (the final address is determined when sending this email).
@@ -1139,12 +1187,21 @@ public interface EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearHeaders();
-	
+
 	/**
 	 * Resets all dkim properties to empty.
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearDkim();
+
+	/**
+	 * For signing and encrypting this email when sending, resets all S/MIME properties to empty.
+	 *
+	 * @see #signWithSmime(Pkcs12Config)
+	 * @see #encryptWithSmime(X509Certificate)
+	 */
+	@SuppressWarnings("unused")
+	EmailPopulatingBuilder clearSmime();
 	
 	/**
 	 * Resets <em>dispositionNotificationTo</em> to empty.
@@ -1159,8 +1216,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearReturnReceiptTo();
 
 	/**
-	 * Reverts back to the default merging behavior for single S/MIME signed attachments, which is that it <em>is</em> merged into the
-	 * root message.
+	 * When readig and converting an email, this flag makes the behavior revert back to the default merging
+	 * behavior for single S/MIME signed attachments, which is that it <em>is</em> merged into the root message.
 	 * <p>
 	 * This can be useful when copying an {@link Email} that <em>was</em> merged (default behavior), to unmerge it.
 	 */
@@ -1332,5 +1389,20 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * @see #notMergingSingleSMIMESignedAttachment()
 	 */
-	boolean getMergeSingleSMIMESignedAttachment();
+	boolean isMergeSingleSMIMESignedAttachment();
+
+	/**
+	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
+	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)
+	 */
+	@Nullable
+	Pkcs12Config getPkcs12ConfigForSmimeSigning();
+
+	/**
+	 * @see EmailPopulatingBuilder#encryptWithSmime(X509Certificate)
+	 * @see EmailPopulatingBuilder#encryptWithSmime(InputStream)
+	 */
+	@Nullable
+	X509Certificate getX509CertificateForSmimeEncryption();
 }
+

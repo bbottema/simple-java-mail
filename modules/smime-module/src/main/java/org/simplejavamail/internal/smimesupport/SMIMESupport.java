@@ -49,6 +49,7 @@ import javax.mail.internet.MimePart;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -62,6 +63,7 @@ import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DECR
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DETERMINING_SMIME_SIGNER;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SUBJECT_FROM_CERTIFICATE;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_READING_PKCS12_KEYSTORE;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_READING_SMIME_CONTENT_TYPE;
 import static org.simplejavamail.internal.smimesupport.SmimeException.MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
@@ -73,9 +75,9 @@ import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isSm
  * This class only serves to hide the S/MIME implementation behind an easy-to-load-with-reflection class.
  */
 @SuppressWarnings("unused") // it is used through reflection
-public class SMIMEDecryptor implements SMIMEModule {
+public class SMIMESupport implements SMIMEModule {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMEDecryptor.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMESupport.class);
 	private static final List<String> SMIME_MIMETYPES = asList("application/pkcs7-mime", "application/x-pkcs7-mime", "multipart/signed");
 
 	public SmimeParseResultBuilder decryptAttachments(@Nonnull final List<AttachmentResource> attachments, @Nonnull final OutlookMessage outlookMessage,
@@ -249,8 +251,7 @@ public class SMIMEDecryptor implements SMIMEModule {
 					break;
 				case ENCRYPTED:
 					assumeTrue(pkcs12Config != null, "Message was encrypted, but no Pkcs12Config was given to decrypt it with");
-					SmimeKeyStore smimeKeyStore = new SmimeKeyStore(pkcs12Config.getPkcs12StoreStream(), pkcs12Config.getStorePassword());
-					SmimeKey smimeKey = smimeKeyStore.getPrivateKey(pkcs12Config.getKeyAlias(), pkcs12Config.getKeyPassword());
+					SmimeKey smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
 					MimeBodyPart liberatedBodyPart = SmimeUtil.decrypt(mimeBodyPart, smimeKey);
 					liberatedContent = handleLiberatedContent(liberatedBodyPart.getContent());
 					break;
@@ -405,5 +406,29 @@ public class SMIMEDecryptor implements SMIMEModule {
 		JcaSimpleSignerInfoVerifierBuilder builder = new JcaSimpleSignerInfoVerifierBuilder();
 		builder.setProvider(BouncyCastleProvider.PROVIDER_NAME);
 		return builder.build(certificate);
+	}
+
+	@Nonnull
+	@Override
+	public MimeMessage signMessage(@Nonnull Session session, @Nonnull MimeMessage message, @Nonnull Pkcs12Config pkcs12Config) {
+		SmimeKey smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
+		return SmimeUtil.sign(session, message, smimeKey);
+	}
+
+	@Nonnull
+	@Override
+	public MimeMessage encryptMessage(@Nonnull Session session, @Nonnull MimeMessage message, @Nonnull X509Certificate certificate) {
+		return SmimeUtil.encrypt(session, message, certificate);
+	}
+
+	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@Nonnull Pkcs12Config pkcs12Config) {
+		try {
+			try (InputStream pkcs12StoreStream = pkcs12Config.getPkcs12StoreStream()) {
+				return new SmimeKeyStore(pkcs12StoreStream, pkcs12Config.getStorePassword())
+						.getPrivateKey(pkcs12Config.getKeyAlias(), pkcs12Config.getKeyPassword());
+			}
+		} catch (IOException e) {
+			throw new SmimeException(ERROR_READING_PKCS12_KEYSTORE, e);
+		}
 	}
 }

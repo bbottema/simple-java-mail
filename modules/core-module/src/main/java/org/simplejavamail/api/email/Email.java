@@ -1,5 +1,6 @@
 package org.simplejavamail.api.email;
 
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
@@ -8,6 +9,7 @@ import javax.annotation.Nullable;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
+import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +24,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  */
 @SuppressWarnings("SameParameterValue")
 public class Email {
-	
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
 	 */
@@ -112,7 +113,7 @@ public class Email {
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo(Recipient)
 	 */
-	private Recipient dispositionNotificationTo;
+	private final Recipient dispositionNotificationTo;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
@@ -124,7 +125,7 @@ public class Email {
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
-	private Recipient returnReceiptTo;
+	private final Recipient returnReceiptTo;
 	
 	/**
 	 * @see EmailStartingBuilder#forwarding(MimeMessage)
@@ -134,35 +135,47 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 */
-	private InputStream dkimPrivateKeyInputStream;
+	private final InputStream dkimPrivateKeyInputStream;
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
-	private File dkimPrivateKeyFile; // supported separately, so we don't have to do resource management ourselves for the InputStream
+	private final File dkimPrivateKeyFile; // supported separately, so we don't have to do resource management ourselves for the InputStream
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
-	private String dkimSigningDomain;
+	private final String dkimSigningDomain;
 
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
-	private String dkimSelector;
+	private final String dkimSelector;
+
+	/**
+	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
+	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)
+	 */
+	private final X509Certificate x509CertificateForSmimeEncryption;
+
+	/**
+	 * @see EmailPopulatingBuilder#encryptWithSmime(X509Certificate)
+	 * @see EmailPopulatingBuilder#encryptWithSmime(InputStream)
+	 */
+	private final Pkcs12Config pkcs12ConfigForSmimeSigning;
 
 	/**
 	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
 	 */
-	private Email smimeSignedEmail;
+	private final Email smimeSignedEmail;
 
 	/**
 	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
 	@Nonnull
-	private OriginalSmimeDetails originalSmimeDetails;
+	private final OriginalSmimeDetails originalSmimeDetails;
 
 	/**
 	 * Simply transfers everything from {@link EmailPopulatingBuilder} to this Email instance.
@@ -174,7 +187,7 @@ public class Email {
 
 		smimeSignedEmail = builder.getSmimeSignedEmail();
 
-		final boolean smimeMerge = builder.getMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
+		final boolean smimeMerge = builder.isMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
 
 		recipients = unmodifiableList(builder.getRecipients());
 		embeddedImages = unmodifiableList((smimeMerge)
@@ -202,11 +215,12 @@ public class Email {
 		
 		useDispositionNotificationTo = builder.isUseDispositionNotificationTo();
 		useReturnReceiptTo = builder.isUseReturnReceiptTo();
-		dispositionNotificationTo = builder.getDispositionNotificationTo();
-		returnReceiptTo = builder.getReturnReceiptTo();
 		emailToForward = builder.getEmailToForward();
 
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
+
+		x509CertificateForSmimeEncryption = builder.getX509CertificateForSmimeEncryption();
+		pkcs12ConfigForSmimeSigning = builder.getPkcs12ConfigForSmimeSigning();
 
 		if (useDispositionNotificationTo && MiscUtil.valueNullOrEmpty(builder.getDispositionNotificationTo())) {
 			//noinspection IfMayBeConditional
@@ -215,25 +229,36 @@ public class Email {
 			} else {
 				dispositionNotificationTo = builder.getFromRecipient();
 			}
+		} else {
+			dispositionNotificationTo = builder.getDispositionNotificationTo();
 		}
 		
-		if (useReturnReceiptTo && MiscUtil.valueNullOrEmpty(builder.getDispositionNotificationTo())) {
+		if (useReturnReceiptTo && MiscUtil.valueNullOrEmpty(builder.getReturnReceiptTo())) {
 			//noinspection IfMayBeConditional
 			if (builder.getReplyToRecipient() != null) {
 				returnReceiptTo = builder.getReplyToRecipient();
 			} else {
 				returnReceiptTo = builder.getFromRecipient();
 			}
+		} else {
+			returnReceiptTo = builder.getReturnReceiptTo();
 		}
 		
 		if (builder.getDkimPrivateKeyFile() != null) {
+			this.dkimPrivateKeyInputStream = null;
 			this.dkimPrivateKeyFile = builder.getDkimPrivateKeyFile();
 			this.dkimSigningDomain = builder.getDkimSigningDomain();
 			this.dkimSelector = builder.getDkimSelector();
 		} else if (builder.getDkimPrivateKeyInputStream() != null) {
+			this.dkimPrivateKeyFile = null;
 			this.dkimPrivateKeyInputStream = builder.getDkimPrivateKeyInputStream();
 			this.dkimSigningDomain = builder.getDkimSigningDomain();
 			this.dkimSelector = builder.getDkimSelector();
+		} else {
+			this.dkimPrivateKeyFile = null;
+			this.dkimPrivateKeyInputStream = null;
+			this.dkimSigningDomain = null;
+			this.dkimSelector = null;
 		}
 	}
 
@@ -311,10 +336,7 @@ public class Email {
 		if (smimeSignedEmail != null) {
 			s += ",\n\t\tsmimeSignedEmail=" + smimeSignedEmail;
 		}
-		if (originalSmimeDetails != null) {
-			s += ",\n\t\toriginalSmimeDetails=" + originalSmimeDetails;
-		}
-		s += "\n}";
+		s += ",\n\t\toriginalSmimeDetails=" + originalSmimeDetails + "\n}";
 		return s;
 	}
 	
@@ -435,6 +457,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */
+	@Nonnull
 	public List<AttachmentResource> getAttachments() {
 		return attachments;
 	}
@@ -442,6 +465,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
 	 */
+	@Nonnull
 	public List<AttachmentResource> getDecryptedAttachments() {
 		return decryptedAttachments;
 	}
@@ -449,6 +473,7 @@ public class Email {
 	/**
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource)
 	 */
+	@Nonnull
 	public List<AttachmentResource> getEmbeddedImages() {
 		return embeddedImages;
 	}
@@ -458,6 +483,7 @@ public class Email {
 	 * @see EmailPopulatingBuilder#cc(Recipient...)
 	 * @see EmailPopulatingBuilder#bcc(Recipient...)
 	 */
+	@Nonnull
 	public List<Recipient> getRecipients() {
 		return recipients;
 	}
@@ -466,6 +492,7 @@ public class Email {
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
+	@Nonnull
 	public Map<String, String> getHeaders() {
 		return headers;
 	}
@@ -502,6 +529,24 @@ public class Email {
 	@Nullable
 	public String getDkimSelector() {
 		return dkimSelector;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
+	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)
+	 */
+	@Nullable
+	public X509Certificate getX509CertificateForSmimeEncryption() {
+		return x509CertificateForSmimeEncryption;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#encryptWithSmime(X509Certificate)
+	 * @see EmailPopulatingBuilder#encryptWithSmime(InputStream)
+	 */
+	@Nullable
+	public Pkcs12Config getPkcs12ConfigForSmimeSigning() {
+		return pkcs12ConfigForSmimeSigning;
 	}
 
 	/**

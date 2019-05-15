@@ -9,6 +9,7 @@ import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.MiscUtil;
 
@@ -23,6 +24,10 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -53,6 +58,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
 import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
+import static org.simplejavamail.email.internal.EmailException.*;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
@@ -159,6 +165,22 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #signWithDomainKey(File, String, String)
 	 */
 	private String dkimSelector;
+
+	/**
+	 * @see #signWithSmime(Pkcs12Config)
+	 * @see #signWithSmime(InputStream, String, String, String)
+	 * @see #encryptWithSmime(X509Certificate)
+	 * @see #encryptWithSmime(InputStream)
+	 */
+	private Pkcs12Config pkcs12ConfigForSmimeSigning;
+
+	/**
+	 * @see #encryptWithSmime(X509Certificate)
+	 * @see #encryptWithSmime(InputStream)
+	 * @see #signWithSmime(Pkcs12Config)
+	 * @see #signWithSmime(InputStream, String, String, String)
+	 */
+	private X509Certificate x509CertificateForSmimeEncryption;
 	
 	/**
 	 * @see #withDispositionNotificationTo()
@@ -442,7 +464,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		try {
 			return withPlainText(MiscUtil.readFileContent(textFile));
 		} catch (IOException e) {
-			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textFile), e);
 		}
 	}
 	
@@ -464,7 +486,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		try {
 			return prependText(MiscUtil.readFileContent(textFile));
 		} catch (IOException e) {
-			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textFile), e);
 		}
 	}
 	
@@ -486,7 +508,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		try {
 			return appendText(MiscUtil.readFileContent(textFile));
 		} catch (IOException e) {
-			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textFile), e);
 		}
 	}
 	
@@ -508,7 +530,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		try {
 			return withHTMLText(MiscUtil.readFileContent(textHTMLFile));
 		} catch (IOException e) {
-			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textHTMLFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLFile), e);
 		}
 	}
 	
@@ -530,7 +552,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		try {
 			return prependTextHTML(MiscUtil.readFileContent(textHTMLFile));
 		} catch (IOException e) {
-			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textHTMLFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLFile), e);
 		}
 	}
 	
@@ -552,7 +574,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		try {
 			return appendTextHTML(MiscUtil.readFileContent(textHTMLFile));
 		} catch (IOException e) {
-			throw new EmailException(format(EmailException.ERROR_READING_FROM_FILE, textHTMLFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLFile), e);
 		}
 	}
 	
@@ -1303,7 +1325,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withEmbeddedImage(@Nullable final String name, @Nonnull final DataSource imagedata) {
 		checkNonEmptyArgument(imagedata, "imagedata");
 		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName())) {
-			throw new EmailException(EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE);
+			throw new EmailException(NAME_MISSING_FOR_EMBEDDED_IMAGE);
 		}
 		embeddedImages.add(new AttachmentResource(name, imagedata));
 		return this;
@@ -1441,7 +1463,54 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
 	}
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder signWithSmime(@Nonnull final InputStream pkcs12StoreStream, @Nonnull final String storePassword, @Nonnull final String keyAlias, @Nonnull final String keyPassword) {
+		return signWithSmime(Pkcs12Config.builder()
+				.pkcs12Store(pkcs12StoreStream)
+				.storePassword(storePassword)
+				.keyAlias(keyAlias)
+				.keyPassword(keyPassword)
+				.build());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
+	 */
+	@Override
+	public EmailPopulatingBuilder signWithSmime(@Nonnull final Pkcs12Config pkcs12Config) {
+		this.pkcs12ConfigForSmimeSigning = pkcs12Config;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#encryptWithSmime(InputStream)
+	 */
+	@Override
+	public EmailPopulatingBuilder encryptWithSmime(@Nonnull final InputStream pemStream) {
+		try {
+			CertificateFactory factory = CertificateFactory.getInstance("X.509", "BC");
+			X509Certificate certificate = (X509Certificate) factory.generateCertificate(pemStream);
+			return encryptWithSmime(certificate);
+		} catch (CertificateException e) {
+			throw new EmailException(ERROR_READING_FROM_PEM_INPUTSTREAM, e);
+		} catch (NoSuchProviderException e) {
+			throw new EmailException(ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT, e);
+		}
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#encryptWithSmime(X509Certificate)
+	 */
+	@Override
+	public EmailPopulatingBuilder encryptWithSmime(@Nonnull final X509Certificate certificate) {
+		this.x509CertificateForSmimeEncryption = certificate;
+		return this;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
 	 */
@@ -1698,7 +1767,17 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		this.dkimSelector = null;
 		return this;
 	}
-	
+
+	/**
+	 * See {@link EmailPopulatingBuilder#clearSmime()}
+	 */
+	@Override
+	public EmailPopulatingBuilder clearSmime() {
+		this.pkcs12ConfigForSmimeSigning = null;
+		this.x509CertificateForSmimeEncryption = null;
+		return this;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#clearDispositionNotificationTo()
 	 */
@@ -1956,10 +2035,28 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getMergeSingleSMIMESignedAttachment()
+	 * @see EmailPopulatingBuilder#isMergeSingleSMIMESignedAttachment()
 	 */
 	@Override
-	public boolean getMergeSingleSMIMESignedAttachment() {
+	public boolean isMergeSingleSMIMESignedAttachment() {
 		return mergeSingleSMIMESignedAttachment;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getPkcs12ConfigForSmimeSigning()
+	 */
+	@Override
+	@Nullable
+	public Pkcs12Config getPkcs12ConfigForSmimeSigning() {
+		return pkcs12ConfigForSmimeSigning;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getX509CertificateForSmimeEncryption()
+	 */
+	@Override
+	@Nullable
+	public X509Certificate getX509CertificateForSmimeEncryption() {
+		return x509CertificateForSmimeEncryption;
 	}
 }

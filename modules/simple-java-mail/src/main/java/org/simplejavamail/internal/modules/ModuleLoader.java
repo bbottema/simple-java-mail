@@ -50,7 +50,7 @@ public class ModuleLoader {
 		if (!LOADED_MODULES.containsKey(SMIMEModule.class)) {
 			LOADED_MODULES.put(SMIMEModule.class, loadModule(
 					"S/MIME",
-					"org.simplejavamail.internal.smimesupport.SMIMEDecryptor",
+					"org.simplejavamail.internal.smimesupport.SMIMESupport",
 					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/smime-module"
 			));
 		}
@@ -58,7 +58,7 @@ public class ModuleLoader {
 	}
 
 	public static boolean smimeModuleAvailable() {
-		return MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMEDecryptor");
+		return MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
 	}
 
 	@SuppressWarnings("unchecked")

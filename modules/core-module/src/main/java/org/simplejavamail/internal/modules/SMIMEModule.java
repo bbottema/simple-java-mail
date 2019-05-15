@@ -9,8 +9,10 @@ import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimePart;
+import java.security.cert.X509Certificate;
 import java.util.List;
 
 /**
@@ -35,7 +37,7 @@ public interface SMIMEModule {
 	List<AttachmentResource> decryptAttachments(@Nonnull List<AttachmentResource> attachments, @Nullable Pkcs12Config pkcs12Config, @Nonnull OriginalSmimeDetails messageSmimeDetails);
 
 	/**
-	 * @return Whether the given attachment is S/MIME signed / encrypted. Defers to {@link org.simplejavamail.internal.util.SmimeRecognitionUtil#isSmimeAttachment(AttachmentResource)}.
+	 * @return Whether the given attachment is S/MIME signed / encrypted. Defers to {@code SmimeRecognitionUtil.isSmimeAttachment(..)}.
 	 */
 	boolean isSmimeAttachment(@Nonnull AttachmentResource attachment);
 
@@ -62,4 +64,10 @@ public interface SMIMEModule {
 	String getSignedByAddress(@Nonnull MimePart mimePart);
 
 	boolean verifyValidSignature(@Nonnull MimeMessage mimeMessage, @Nonnull OriginalSmimeDetails messageSmimeDetails);
+
+	@Nonnull
+	MimeMessage signMessage(@Nonnull Session session, @Nonnull MimeMessage message, @Nonnull Pkcs12Config pkcs12Config);
+
+	@Nonnull
+	MimeMessage encryptMessage(@Nonnull Session session, @Nonnull MimeMessage message, @Nonnull X509Certificate certificate);
 }
