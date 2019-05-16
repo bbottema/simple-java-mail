@@ -715,14 +715,14 @@ public class EmailPopulatingBuilderImplTest {
 
 		// FIXME we need to have the proper cert anyway, if we want to test the round-trip as live test
 		// I don't seem to have a proper public PEM certificate, so let's just use the CA one
-		FileInputStream inPem = new FileInputStream(new File(RESOURCES_PKCS + "/ca.crt"));
+		FileInputStream inPem = new FileInputStream(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 
 		builder.encryptWithSmime(inPem);
 
 		final X509Certificate certificateOut = builder.buildEmail().getX509CertificateForSmimeEncryption();
 
 		assertThat(certificateOut).isNotNull();
-		assertSignedBy(certificateOut, "Simple Java Mail CA");
+		assertSignedBy(certificateOut, "Benny Bottema");
 	}
 
 	@Test
@@ -731,7 +731,7 @@ public class EmailPopulatingBuilderImplTest {
 
 		// FIXME we need to have the proper cert anyway, if we want to test the round-trip as live test
 		// I don't seem to have a proper public PEM certificate, so let's just use the CA one
-		FileInputStream inPem = new FileInputStream(new File(RESOURCES_PKCS + "/ca.crt"));
+		FileInputStream inPem = new FileInputStream(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 		CertificateFactory factory = CertificateFactory.getInstance("X.509", "BC");
 		X509Certificate certificateIn = (X509Certificate) factory.generateCertificate(inPem);
 
@@ -740,7 +740,7 @@ public class EmailPopulatingBuilderImplTest {
 		final X509Certificate certificateOut = builder.buildEmail().getX509CertificateForSmimeEncryption();
 
 		assertThat(certificateOut).isNotNull();
-		assertSignedBy(certificateOut, "Simple Java Mail CA");
+		assertSignedBy(certificateOut, "Benny Bottema");
 	}
 
 	private void assertSignedBy(X509Certificate certificate, @SuppressWarnings("SameParameterValue") final String expectedSignedBy)
