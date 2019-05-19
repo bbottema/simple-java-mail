@@ -323,9 +323,10 @@ public class MailerImpl implements Mailer {
 
 	/**
 	 * Depending on the Email configuration, signs and then encrypts message (both steps optional), using the S/MIME module.
+	 *
+	 * @see SMIMEModule#signAndOrEncryptEmail(Session, MimeMessage, Email)
 	 */
 	@SuppressWarnings("unused")
-	// FIXME documentation
 	public static MimeMessage signAndOrEncryptMessageWithSmime(@Nonnull final Session session, @Nonnull final MimeMessage messageToProtect, @Nonnull final Email emailContainingSmimeDetails) {
 		if (ModuleLoader.smimeModuleAvailable()) {
 			return ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, messageToProtect, emailContainingSmimeDetails);

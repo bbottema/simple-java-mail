@@ -51,6 +51,7 @@ import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -80,6 +81,10 @@ public class SMIMESupport implements SMIMEModule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMESupport.class);
 	private static final List<String> SMIME_MIMETYPES = asList("application/pkcs7-mime", "application/x-pkcs7-mime", "multipart/signed");
+
+	static {
+		Security.addProvider(new BouncyCastleProvider());
+	}
 
 	public SmimeParseResultBuilder decryptAttachments(@Nonnull final List<AttachmentResource> attachments, @Nonnull final OutlookMessage outlookMessage,
 			@Nullable final Pkcs12Config pkcs12Config) {
@@ -251,10 +256,12 @@ public class SMIMESupport implements SMIMEModule {
 					}
 					break;
 				case ENCRYPTED:
-					assumeTrue(pkcs12Config != null, "Message was encrypted, but no Pkcs12Config was given to decrypt it with");
-					SmimeKey smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
-					MimeBodyPart liberatedBodyPart = SmimeUtil.decrypt(mimeBodyPart, smimeKey);
-					liberatedContent = handleLiberatedContent(liberatedBodyPart.getContent());
+					if (pkcs12Config != null) {
+						LOGGER.warn("Message was encrypted, but no Pkcs12Config was given to decrypt it with, skipping attachment...");
+						SmimeKey smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
+						MimeBodyPart liberatedBodyPart = SmimeUtil.decrypt(mimeBodyPart, smimeKey);
+						liberatedContent = handleLiberatedContent(liberatedBodyPart.getContent());
+					}
 					break;
 			}
 
@@ -412,13 +419,14 @@ public class SMIMESupport implements SMIMEModule {
 	@Nonnull
 	@Override
 	public MimeMessage signAndOrEncryptEmail(@Nullable final Session session, @Nonnull final MimeMessage messageToProtect, @Nonnull final Email emailContainingSmimeDetails) {
+		MimeMessage result = messageToProtect;
 		if (emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning() != null) {
-			return signMessage(session, messageToProtect, emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning());
+			result = signMessage(session, result, emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning());
 		}
 		if (emailContainingSmimeDetails.getX509CertificateForSmimeEncryption() != null) {
-			return encryptMessage(session, messageToProtect, emailContainingSmimeDetails.getX509CertificateForSmimeEncryption());
+			result = encryptMessage(session, result, emailContainingSmimeDetails.getX509CertificateForSmimeEncryption());
 		}
-		return messageToProtect;
+		return result;
 	}
 
 	@Nonnull

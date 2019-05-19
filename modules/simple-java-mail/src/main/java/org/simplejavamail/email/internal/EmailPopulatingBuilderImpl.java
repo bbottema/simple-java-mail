@@ -22,6 +22,8 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchProviderException;
@@ -1465,6 +1467,28 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @param pkcs12StoreFile The file containing the keystore
+	 * @param storePassword  The password to get keys from the store
+	 * @param keyAlias The key we need for signing
+	 * @param keyPassword The password for the key
+	 *
+	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder signWithSmime(@Nonnull final File pkcs12StoreFile, @Nonnull final String storePassword, @Nonnull final String keyAlias, @Nonnull final String keyPassword) {
+		try {
+			return signWithSmime(new FileInputStream(pkcs12StoreFile), storePassword, keyAlias, keyPassword);
+		} catch (FileNotFoundException e) {
+			throw new EmailException(format(ERROR_READING_FROM_FILE, pkcs12StoreFile), e);
+		}
+	}
+
+	/**
+	 * @param pkcs12StoreStream The data (file) input stream containing the keystore
+	 * @param storePassword  The password to get keys from the store
+	 * @param keyAlias The key we need for signing
+	 * @param keyPassword The password for the key
+	 *
 	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)
 	 */
 	@Override
@@ -1484,6 +1508,18 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder signWithSmime(@Nonnull final Pkcs12Config pkcs12Config) {
 		this.pkcs12ConfigForSmimeSigning = pkcs12Config;
 		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#encryptWithSmime(File)
+	 */
+	@Override
+	public EmailPopulatingBuilder encryptWithSmime(@Nonnull final File pemFile) {
+		try {
+			return encryptWithSmime(new FileInputStream(pemFile));
+		} catch (FileNotFoundException e) {
+			throw new EmailException(format(ERROR_READING_FROM_FILE, pemFile), e);
+		}
 	}
 
 	/**

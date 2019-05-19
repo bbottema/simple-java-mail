@@ -6,20 +6,17 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
-import javax.annotation.Nonnull;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.lang.String.format;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
+import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 public class TestSmimeSelfSigned {
 
@@ -93,13 +90,13 @@ public class TestSmimeSelfSigned {
 				.smimeMime("multipart/signed")
 				.smimeProtocol("application/pkcs7-signature")
 				.smimeMicalg("sha-512")
+				.smimeSignedBy("Benny Bottema")
 				.smimeSignatureValid(true)
 				.build());
 	}
 
 	@Test
-	public void testEncryptedMessageMsg()
-			throws FileNotFoundException {
+	public void testEncryptedMessageMsg() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message encrypted.msg"), loadPkcs12KeyStore());
 
 		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
@@ -133,8 +130,7 @@ public class TestSmimeSelfSigned {
 	}
 
 	@Test
-	public void testEncryptedMessageEml()
-			throws FileNotFoundException {
+	public void testEncryptedMessageEml() {
 		Email emailParsedFromEml = EmailConverter.emlToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message encrypted.eml"), loadPkcs12KeyStore());
 
 		EmailAssert.assertThat(emailParsedFromEml).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
@@ -168,8 +164,7 @@ public class TestSmimeSelfSigned {
 	}
 
 	@Test
-	public void testSignedAndEncryptedMessageMsg()
-			throws FileNotFoundException {
+	public void testSignedAndEncryptedMessageMsg() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message signed & encrypted.msg"), loadPkcs12KeyStore());
 
 		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
@@ -208,16 +203,5 @@ public class TestSmimeSelfSigned {
 				.smimeSignatureValid(true)
 				.smimeSignedBy("Benny Bottema")
 				.build());
-	}
-
-	@Nonnull
-	private Pkcs12Config loadPkcs12KeyStore()
-			throws FileNotFoundException {
-		return Pkcs12Config.builder()
-				.pkcs12Store(RESOURCES_PKCS + "/smime_keystore.pkcs12")
-				.storePassword("letmein")
-				.keyAlias("smime_test_user_alias")
-				.keyPassword("letmein")
-				.build();
 	}
 }

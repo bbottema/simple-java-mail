@@ -42,6 +42,7 @@ import java.util.Properties;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
+import static org.simplejavamail.internal.modules.ModuleLoader.loadSmimeModule;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
@@ -214,10 +215,19 @@ public final class EmailConverter {
 
 	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder, final OutlookMessage outlookMessage, @Nullable final Pkcs12Config pkcs12Config) {
 		if (ModuleLoader.smimeModuleAvailable()) {
-			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, ModuleLoader.loadSmimeModule()
-					.decryptAttachments(emailBuilder.getAttachments(), outlookMessage, pkcs12Config));
+			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), outlookMessage, pkcs12Config);
+			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
+			updateEmailIfBothSignedAndEncrypted(emailBuilder);
 		}
-		updateEmailIfBothSignedAndEncrypted(emailBuilder);
+		return emailBuilder;
+	}
+
+	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder, final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
+		if (ModuleLoader.smimeModuleAvailable()) {
+			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config);
+			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
+			updateEmailIfBothSignedAndEncrypted(emailBuilder);
+		}
 		return emailBuilder;
 	}
 
@@ -233,14 +243,6 @@ public final class EmailConverter {
 				originalSmimeDetails.completeWithSmimeMode(SmimeMode.SIGNED_ENCRYPTED);
 			}
 		}
-	}
-
-	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder, final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
-		if (ModuleLoader.smimeModuleAvailable()) {
-			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, ModuleLoader.loadSmimeModule()
-					.decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config));
-		}
-		return emailBuilder;
 	}
 
 	private static void handleSmimeParseResult(final InternalEmailPopulatingBuilder emailBuilder, final SmimeParseResult smimeParseResult) {

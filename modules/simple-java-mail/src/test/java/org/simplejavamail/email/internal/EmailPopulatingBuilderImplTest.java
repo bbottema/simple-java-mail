@@ -14,22 +14,19 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
 
 import javax.activation.DataSource;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Message;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.NoSuchProviderException;
 import java.security.Security;
-import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
@@ -39,6 +36,8 @@ import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
+import static testutil.CertificationUtil.extractSignedBy;
 
 public class EmailPopulatingBuilderImplTest {
 
@@ -678,12 +677,7 @@ public class EmailPopulatingBuilderImplTest {
 
 	@Test
 	public void testSignWithSmime_WithConfigObject() {
-		builder.signWithSmime(Pkcs12Config.builder()
-				.pkcs12Store(RESOURCES_PKCS + "/smime_keystore.pkcs12")
-				.storePassword("letmein")
-				.keyAlias("smime_test_user_alias")
-				.keyPassword("letmein")
-				.build());
+		builder.signWithSmime(loadPkcs12KeyStore());
 
 		final Email email = builder.buildEmail();
 
@@ -695,10 +689,8 @@ public class EmailPopulatingBuilderImplTest {
 	}
 
 	@Test
-	public void testSignWithSmime_WithConfigParameters()
-			throws FileNotFoundException {
-		FileInputStream in = new FileInputStream(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"));
-		builder.signWithSmime(in, "letmein", "smime_test_user_alias", "letmein");
+	public void testSignWithSmime_WithConfigParameters() {
+		builder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
 
 		final Email email = builder.buildEmail();
 
@@ -713,11 +705,7 @@ public class EmailPopulatingBuilderImplTest {
 	public void testEncryptWithSmime_FromFile() throws Exception {
 		Security.addProvider(new BouncyCastleProvider());
 
-		// FIXME we need to have the proper cert anyway, if we want to test the round-trip as live test
-		// I don't seem to have a proper public PEM certificate, so let's just use the CA one
-		FileInputStream inPem = new FileInputStream(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
-
-		builder.encryptWithSmime(inPem);
+		builder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 
 		final X509Certificate certificateOut = builder.buildEmail().getX509CertificateForSmimeEncryption();
 
@@ -729,8 +717,6 @@ public class EmailPopulatingBuilderImplTest {
 	public void testEncryptWithSmime_FromCertificate() throws Exception {
 		Security.addProvider(new BouncyCastleProvider());
 
-		// FIXME we need to have the proper cert anyway, if we want to test the round-trip as live test
-		// I don't seem to have a proper public PEM certificate, so let's just use the CA one
 		FileInputStream inPem = new FileInputStream(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 		CertificateFactory factory = CertificateFactory.getInstance("X.509", "BC");
 		X509Certificate certificateIn = (X509Certificate) factory.generateCertificate(inPem);
@@ -745,17 +731,7 @@ public class EmailPopulatingBuilderImplTest {
 
 	private void assertSignedBy(X509Certificate certificate, @SuppressWarnings("SameParameterValue") final String expectedSignedBy)
 			throws OperatorCreationException {
-		// FIXME extract all this to a CertificateUtils
-		JcaSimpleSignerInfoVerifierBuilder builder = new JcaSimpleSignerInfoVerifierBuilder();
-		builder.setProvider(BouncyCastleProvider.PROVIDER_NAME);
-		SignerInformationVerifier verifier = builder.build(certificate);
-		X500Name x500name = verifier.getAssociatedCertificate().getSubject();
-		final RDN[] subject = x500name.getRDNs(BCStyle.CN);
-		final RDN[] org = x500name.getRDNs(BCStyle.O);
-		RDN cn = subject.length > 0 ? subject[0] : org[0];
-		String signedBy = IETFUtils.valueToString(cn.getFirst().getValue());
-
-		assertThat(signedBy).isEqualTo(expectedSignedBy);
+		assertThat(extractSignedBy(certificate)).isEqualTo(expectedSignedBy);
 	}
 
 	private Recipient createRecipient(final @Nullable String name, final String emailAddress, final Message.RecipientType recipientType) {

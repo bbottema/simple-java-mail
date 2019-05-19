@@ -47,16 +47,16 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 	/**
 	 * Used to combine S/MIME details from several sources (OutlookMessage root level, and S/MIME signed attachment).
 	 */
-	public void completeWith(@Nonnull final OriginalSmimeDetailsImpl attachmentSmimeDetails) {
-		this.smimeMime = ofNullable(smimeMime).orMaybe(attachmentSmimeDetails.smimeMime);
-		this.smimeType = ofNullable(smimeType).orMaybe(attachmentSmimeDetails.smimeType);
-		this.smimeName = ofNullable(smimeName).orMaybe(attachmentSmimeDetails.smimeName);
-		this.smimeProtocol = ofNullable(smimeProtocol).orMaybe(attachmentSmimeDetails.smimeProtocol);
-		this.smimeMicalg = ofNullable(smimeMicalg).orMaybe(attachmentSmimeDetails.smimeMicalg);
-		this.smimeSignedBy = ofNullable(smimeSignedBy).orMaybe(attachmentSmimeDetails.smimeSignedBy);
-		this.smimeSignatureValid = ofNullable(smimeSignatureValid).orMaybe(attachmentSmimeDetails.smimeSignatureValid);
+	public void completeWith(@Nonnull final OriginalSmimeDetails attachmentSmimeDetails) {
+		this.smimeMime = ofNullable(smimeMime).orMaybe(attachmentSmimeDetails.getSmimeMime());
+		this.smimeType = ofNullable(smimeType).orMaybe(attachmentSmimeDetails.getSmimeType());
+		this.smimeName = ofNullable(smimeName).orMaybe(attachmentSmimeDetails.getSmimeName());
+		this.smimeProtocol = ofNullable(smimeProtocol).orMaybe(attachmentSmimeDetails.getSmimeProtocol());
+		this.smimeMicalg = ofNullable(smimeMicalg).orMaybe(attachmentSmimeDetails.getSmimeMicalg());
+		this.smimeSignedBy = ofNullable(smimeSignedBy).orMaybe(attachmentSmimeDetails.getSmimeSignedBy());
+		this.smimeSignatureValid = ofNullable(smimeSignatureValid).orMaybe(attachmentSmimeDetails.getSmimeSignatureValid());
 
-		this.smimeMode = determineSmode(ofNullable(smimeMode).orElse(attachmentSmimeDetails.smimeMode));
+		this.smimeMode = determineSmode(ofNullable(smimeMode).orElse(attachmentSmimeDetails.getSmimeMode()));
 	}
 
 	private SmimeMode determineSmode(@Nonnull final SmimeMode smimeMode) {
@@ -221,8 +221,7 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 	}
 
 	@Nonnull
-	private static String toString(final StringBuilder sb, final SmimeMode smimeMode, final String smimeMime, final String smimeType, final String smimeName, final String smimeProtocol,
-			final String smimeMicalg, final String smimeSignedBy, final Boolean smimeSignatureValid) {
+	private static String toString(final StringBuilder sb, @Nullable final SmimeMode smimeMode, @Nullable final String smimeMime, @Nullable final String smimeType, @Nullable final String smimeName, @Nullable final String smimeProtocol, @Nullable final String smimeMicalg, @Nullable final String smimeSignedBy, @Nullable final Boolean smimeSignatureValid) {
 		sb.append("smimeMode=").append(smimeMode);
 		sb.append(", smimeMime='").append(smimeMime).append('\'');
 		sb.append(", smimeType='").append(smimeType).append('\'');

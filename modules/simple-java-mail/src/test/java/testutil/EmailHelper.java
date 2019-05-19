@@ -1,7 +1,7 @@
 package testutil;
 
-import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
@@ -14,6 +14,7 @@ import java.nio.charset.Charset;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilder;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 public class EmailHelper {
 	

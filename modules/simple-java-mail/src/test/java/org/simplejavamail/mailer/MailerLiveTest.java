@@ -7,6 +7,7 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.Mailer;
@@ -21,14 +22,17 @@ import testutil.testrules.TestSmtpServer;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+import java.io.File;
 import java.io.IOException;
 
+import static demo.ResourceFolderHelper.determineResourceFolder;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
+import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.EmailHelper.readOutlookMessage;
 
 /*
@@ -36,6 +40,8 @@ import static testutil.EmailHelper.readOutlookMessage;
  */
 @SuppressWarnings("unused")
 public class MailerLiveTest {
+
+	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 
 	private static final String SERVER_HOST = "localhost";
 	private static final Integer SERVER_PORT = 251;
@@ -54,38 +60,106 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_EmptySubjectAndBody()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true, false);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMailBasicFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true, false);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_AllFields()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false, true), true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false, true), true, false);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_IncludingCustomHeaders()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true, true), true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true, true), true, false);
 	}
 
 	@Test
 	public void createMailSession_StandardDummyMailWithId()
 			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false, true), true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false, true), true, false);
 	}
-	
+
 	@Test
 	public void createMailSession_OutlookMessageTest()
 			throws IOException, MessagingException {
-		Email email = assertSendingEmail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"), false);
+		Email email = assertSendingEmail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"), false, false);
+		verifyReceivedOutlookEmail(email, false, false);
+	}
 
+	@Test
+	public void createMailSession_OutlookMessageSmimeSignTest()
+			throws IOException, MessagingException {
+		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
+		builder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
+		Email email = assertSendingEmail(builder, false, true);
+		verifyReceivedOutlookEmail(email, true, false);
+
+		EmailAssert.assertThat(email).wasNotMergedWithSmimeSignedMessage();
+
+		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.SIGNED)
+				.smimeMime("multipart/signed")
+				.smimeProtocol("application/pkcs7-signature")
+				.smimeMicalg("sha-256")
+				.smimeSignedBy("Benny Bottema")
+				.smimeSignatureValid(true)
+				.build());
+	}
+
+	@Test
+	public void createMailSession_OutlookMessageSmimeEncryptTest()
+			throws IOException, MessagingException {
+		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
+		builder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
+		Email email = assertSendingEmail(builder, false, true);
+		verifyReceivedOutlookEmail(email, false, true);
+
+		EmailAssert.assertThat(email).wasMergedWithSmimeSignedMessage();
+
+		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.ENCRYPTED)
+				.smimeMime("application/pkcs7-mime")
+				.smimeType("enveloped-data")
+				.smimeName("smime.p7m")
+				.build());
+	}
+
+	@Test
+	public void createMailSession_OutlookMessageSmimeSignEncryptTest()
+			throws IOException, MessagingException {
+		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
+		builder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
+		builder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
+		Email email = assertSendingEmail(builder, false, true);
+		verifyReceivedOutlookEmail(email, true, true);
+
+		EmailAssert.assertThat(email).wasMergedWithSmimeSignedMessage();
+
+		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
+				.smimeMime("application/pkcs7-mime")
+				.smimeType("enveloped-data")
+				.smimeName("smime.p7m")
+				.build());
+		EmailAssert.assertThat(email.getSmimeSignedEmail()).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.SIGNED)
+				.smimeMime("multipart/signed")
+				.smimeProtocol("application/pkcs7-signature")
+				.smimeMicalg("sha-256")
+				.smimeSignatureValid(true)
+				.smimeSignedBy("Benny Bottema")
+				.build());
+	}
+
+	private void verifyReceivedOutlookEmail(final Email email, final boolean smimeSigned, final boolean smimeEncrypted) throws IOException {
 		// Google SMTP overrode this, Outlook recognized it as: Benny Bottema <b.bottema@gmail.com>; on behalf of; lollypop <b.bottema@projectnibble.org>
 		EmailAssert.assertThat(email).hasFromRecipient(new Recipient("lollypop", "b.bottema@projectnibble.org", null));
 		EmailAssert.assertThat(email).hasSubject("hey");
@@ -95,14 +169,33 @@ public class MailerLiveTest {
 		assertThat(normalizeNewlines(email.getPlainText())).isEqualTo("We should meet up!\n");
 		// Outlook overrode this value too OR converted the original HTML to RTF, from which OutlookMessageParser derived this HTML
 		assertThat(normalizeNewlines(email.getHTMLText())).contains(
-						"<html><body style=\"font-family:'Courier',monospace;font-size:10pt;\">   <br/> \n" +
+				"<html><body style=\"font-family:'Courier',monospace;font-size:10pt;\">   <br/> \n" +
 						"     <br/> <b>   We should meet up! <br/>  </b>   <br/>  <img src=\"cid:thumbsup\">\n" +
 						" <br/> </body></html>");
 		// the RTF was probably created by Outlook based on the HTML when the message was saved
-		assertThat(email.getAttachments()).hasSize(2);
+
+		final AttachmentResource attachment1;
+		final AttachmentResource attachment2;
+
+		if (smimeSigned && smimeEncrypted) {
+			assertThat(email.getAttachments()).hasSize(4);
+			attachment1 = email.getAttachments().get(1);
+			attachment2 = email.getAttachments().get(2);
+		} else if (smimeSigned) {
+			assertThat(email.getAttachments()).hasSize(3);
+			attachment1 = email.getAttachments().get(0);
+			attachment2 = email.getAttachments().get(1);
+		} else if (smimeEncrypted) {
+			assertThat(email.getAttachments()).hasSize(3);
+			attachment1 = email.getAttachments().get(1);
+			attachment2 = email.getAttachments().get(2);
+		} else {
+			assertThat(email.getAttachments()).hasSize(2);
+			attachment1 = email.getAttachments().get(0);
+			attachment2 = email.getAttachments().get(1);
+		}
+
 		assertThat(email.getEmbeddedImages()).hasSize(1);
-		AttachmentResource attachment1 = email.getAttachments().get(0);
-		AttachmentResource attachment2 = email.getAttachments().get(1);
 		AttachmentResource embeddedImg = email.getEmbeddedImages().get(0);
 		// Outlook overrode dresscode.txt, presumably because it was more than 8 character long??
 
@@ -122,14 +215,14 @@ public class MailerLiveTest {
 		assertAttachmentMetadata(embeddedImg, "image/png", "thumbsup");
 	}
 
-	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean compensateForDresscodeAttachmentNameOverrideErasure)
+	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean compensateForDresscodeAttachmentNameOverrideErasure, final boolean skipChecksDueToSmime)
 			throws MessagingException {
 		Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
 		mailer.sendMail(originalEmail);
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
 		
-		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage);
+		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage, loadPkcs12KeyStore());
 		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty
 		if (originalEmailPopulatingBuilder.getReplyToRecipient() == null) {
 			originalEmailPopulatingBuilder.withReplyTo(originalEmailPopulatingBuilder.getFromRecipient());
@@ -153,7 +246,10 @@ public class MailerLiveTest {
 			TestDataHelper.fixDresscodeAttachment(receivedEmail);
 		}
 
-		assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());
+		if (!skipChecksDueToSmime) { // reading a signed mail is different from building a new one
+			assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());
+		}
+
 		return receivedEmail;
 	}
 	
@@ -167,7 +263,7 @@ public class MailerLiveTest {
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder
-				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false))
+				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false, false))
 				.from("dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
@@ -199,7 +295,7 @@ public class MailerLiveTest {
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder
-				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false))
+				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false, false))
 				.withHeader("References", "dummy-references")
 				.from("dummy@domain.com")
 				.withPlainText("This is the reply")

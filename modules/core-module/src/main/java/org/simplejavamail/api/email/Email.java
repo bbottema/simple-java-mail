@@ -178,6 +178,11 @@ public class Email {
 	private final OriginalSmimeDetails originalSmimeDetails;
 
 	/**
+	 * @see Email#wasMergedWithSmimeSignedMessage()
+	 */
+	private final boolean wasMergedWithSmimeSignedMessage;
+
+	/**
 	 * Simply transfers everything from {@link EmailPopulatingBuilder} to this Email instance.
 	 *
 	 * @see EmailPopulatingBuilder#buildEmail()
@@ -188,6 +193,8 @@ public class Email {
 		smimeSignedEmail = builder.getSmimeSignedEmail();
 
 		final boolean smimeMerge = builder.isMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
+
+		this.wasMergedWithSmimeSignedMessage = smimeMerge;
 
 		recipients = unmodifiableList(builder.getRecipients());
 		embeddedImages = unmodifiableList((smimeMerge)
@@ -278,7 +285,7 @@ public class Email {
 	 */
 	@Deprecated
 	public boolean wasMergedWithSmimeSignedMessage() {
-		return false;
+		return wasMergedWithSmimeSignedMessage;
 	}
 	
 	@SuppressWarnings("SameReturnValue")
@@ -335,6 +342,12 @@ public class Email {
 		}
 		if (smimeSignedEmail != null) {
 			s += ",\n\t\tsmimeSignedEmail=" + smimeSignedEmail;
+		}
+		if (pkcs12ConfigForSmimeSigning != null) {
+			s += ",\n\t\tpkcs12ConfigForSmimeSigning=" + pkcs12ConfigForSmimeSigning;
+		}
+		if (x509CertificateForSmimeEncryption != null) {
+			s += ",\n\t\tx509CertificateForSmimeEncryption=" + x509CertificateForSmimeEncryption;
 		}
 		s += ",\n\t\toriginalSmimeDetails=" + originalSmimeDetails + "\n}";
 		return s;

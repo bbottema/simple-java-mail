@@ -983,6 +983,16 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder signWithSmime(@Nonnull Pkcs12Config pkcs12Config);
 
 	/**
+	 * Delegates to {@link #signWithSmime(InputStream, String, String, String)}.
+	 *
+	 * @param pkcs12StoreFile The key store file to use to find the indicated key
+	 * @param storePassword The store's password
+	 * @param keyAlias The name of the certificate in the key store to use
+	 * @param keyPassword The password of the certificate
+	 */
+	EmailPopulatingBuilder signWithSmime(@Nonnull File pkcs12StoreFile, @Nonnull String storePassword, @Nonnull String keyAlias, @Nonnull String keyPassword);
+
+	/**
 	 * Delegates to {@link #signWithSmime(Pkcs12Config)}.
 	 *
 	 * @param pkcs12StoreStream The key store file to use to find the indicated key
@@ -997,7 +1007,15 @@ public interface EmailPopulatingBuilder {
 	 *
 	 * @param pemStream A PEM encoded file that will be read as X509Certificate.
 	 */
+	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
 	EmailPopulatingBuilder encryptWithSmime(@Nonnull InputStream pemStream);
+
+	/**
+	 * Delegates to {@link #encryptWithSmime(InputStream)} using the provided PEM file.
+	 *
+	 * @param pemFile A PEM encoded file that will be read as X509Certificate.
+	 */
+	EmailPopulatingBuilder encryptWithSmime(@Nonnull File pemFile);
 
 	/**
 	 * Encrypts this email with a X509 certificate according to the <a href="https://tools.ietf.org/html/rfc5751">S/MIME spec</a>
