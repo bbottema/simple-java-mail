@@ -11,6 +11,7 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.util.CertificationUtil;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
@@ -28,7 +29,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,7 +60,10 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
 import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
-import static org.simplejavamail.email.internal.EmailException.*;
+import static org.simplejavamail.email.internal.EmailException.ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT;
+import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_FILE;
+import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_PEM_INPUTSTREAM;
+import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
@@ -1528,9 +1531,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder encryptWithSmime(@Nonnull final InputStream pemStream) {
 		try {
-			CertificateFactory factory = CertificateFactory.getInstance("X.509", "BC");
-			X509Certificate certificate = (X509Certificate) factory.generateCertificate(pemStream);
-			return encryptWithSmime(certificate);
+			return encryptWithSmime(CertificationUtil.readFromPem(pemStream));
 		} catch (CertificateException e) {
 			throw new EmailException(ERROR_READING_FROM_PEM_INPUTSTREAM, e);
 		} catch (NoSuchProviderException e) {

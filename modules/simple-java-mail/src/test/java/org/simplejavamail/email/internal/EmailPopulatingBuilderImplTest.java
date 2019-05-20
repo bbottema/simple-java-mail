@@ -1,11 +1,5 @@
 package org.simplejavamail.email.internal;
 
-import org.bouncycastle.asn1.x500.RDN;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x500.style.IETFUtils;
-import org.bouncycastle.cms.SignerInformationVerifier;
-import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
@@ -15,19 +9,17 @@ import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.util.CertificationUtil;
 import testutil.ConfigLoaderTestHelper;
 
 import javax.activation.DataSource;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Message;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.Security;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -717,9 +709,7 @@ public class EmailPopulatingBuilderImplTest {
 	public void testEncryptWithSmime_FromCertificate() throws Exception {
 		Security.addProvider(new BouncyCastleProvider());
 
-		FileInputStream inPem = new FileInputStream(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
-		CertificateFactory factory = CertificateFactory.getInstance("X.509", "BC");
-		X509Certificate certificateIn = (X509Certificate) factory.generateCertificate(inPem);
+		X509Certificate certificateIn = CertificationUtil.readFromPem(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 
 		builder.encryptWithSmime(certificateIn);
 
