@@ -1000,6 +1000,7 @@ public interface EmailPopulatingBuilder {
 	 * @param keyAlias The name of the certificate in the key store to use
 	 * @param keyPassword The password of the certificate
 	 */
+	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
 	EmailPopulatingBuilder signWithSmime(@Nonnull InputStream pkcs12StoreStream, @Nonnull String storePassword, @Nonnull String keyAlias, @Nonnull String keyPassword);
 
 	/**
@@ -1015,6 +1016,7 @@ public interface EmailPopulatingBuilder {
 	 *
 	 * @param pemFile A PEM encoded file that will be read as X509Certificate.
 	 */
+	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
 	EmailPopulatingBuilder encryptWithSmime(@Nonnull File pemFile);
 
 	/**
@@ -1031,8 +1033,6 @@ public interface EmailPopulatingBuilder {
 	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
 	 * @see <a href="https://github.com/markenwerk/java-utils-mail-smime">Underlying library's documentation</a>
 	 */
-	@Cli.ExcludeApi(reason = "Not sure yet how to convert from file to certificate")
-	// FIXME enable this from CLI somehow
 	EmailPopulatingBuilder encryptWithSmime(@Nonnull X509Certificate certificate);
 
 	/**
