@@ -1026,14 +1026,14 @@ public interface EmailPopulatingBuilder {
 	 * You can sign this email with the public key you received from your recipient. The recipient then is the only person that
 	 * can decrypt the email with his or her private key.
 	 *
-	 * @param certificate The recipient's public key to use for encryption.
+	 * @param x509Certificate The recipient's public key to use for encryption.
 	 *
 	 * @see #clearSmime()
 	 * @see <a href="https://en.wikipedia.org/wiki/S/MIME">S/MIME on Wikipedia</a>
 	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
 	 * @see <a href="https://github.com/markenwerk/java-utils-mail-smime">Underlying library's documentation</a>
 	 */
-	EmailPopulatingBuilder encryptWithSmime(@Nonnull X509Certificate certificate);
+	EmailPopulatingBuilder encryptWithSmime(@Nonnull X509Certificate x509Certificate);
 
 	/**
 	 * Indicates that we want to use the NPM flag {@code dispositionNotificationTo}. The actual address will default to the {@code replyToRecipient}

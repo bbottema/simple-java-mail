@@ -1543,8 +1543,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#encryptWithSmime(X509Certificate)
 	 */
 	@Override
-	public EmailPopulatingBuilder encryptWithSmime(@Nonnull final X509Certificate certificate) {
-		this.x509CertificateForSmimeEncryption = certificate;
+	public EmailPopulatingBuilder encryptWithSmime(@Nonnull final X509Certificate x509Certificate) {
+		this.x509CertificateForSmimeEncryption = x509Certificate;
 		return this;
 	}
 
