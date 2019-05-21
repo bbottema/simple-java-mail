@@ -14,15 +14,14 @@ import java.nio.charset.Charset;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilder;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 public class EmailHelper {
 	
-	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean basicFields, boolean includeCustomHeaders, boolean useMainSmimeClass) throws IOException {
-		return createDummyEmailBuilder(null, includeSubjectAndBody, basicFields, includeCustomHeaders, useMainSmimeClass);
+	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean basicFields, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule) throws IOException {
+		return createDummyEmailBuilder(null, includeSubjectAndBody, basicFields, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule);
 	}
 	
-	public static EmailPopulatingBuilder createDummyEmailBuilder(@Nullable String id, boolean includeSubjectAndBody, boolean basicFields, boolean includeCustomHeaders, boolean useMainSmimeClass)
+	public static EmailPopulatingBuilder createDummyEmailBuilder(@Nullable String id, boolean includeSubjectAndBody, boolean basicFields, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule)
 			throws IOException {
 		EmailPopulatingBuilder builder = EmailBuilder.startingBlank()
 				.fixingMessageId(id)
@@ -63,7 +62,7 @@ public class EmailHelper {
 				.withEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png"))
 				.withDecryptedAttachments(builder.getAttachments());
 
-		if (useMainSmimeClass) {
+		if (useSmimeDetailsImplFromSmimeModule) {
 			internalBuilder.withOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder().build());
 		}
 

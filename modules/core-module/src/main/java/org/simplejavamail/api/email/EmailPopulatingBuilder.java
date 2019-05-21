@@ -1017,6 +1017,14 @@ public interface EmailPopulatingBuilder {
 	 * @param pemFile A PEM encoded file that will be read as X509Certificate.
 	 */
 	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
+	EmailPopulatingBuilder encryptWithSmime(@Nonnull String pemFile);
+
+	/**
+	 * Delegates to {@link #encryptWithSmime(InputStream)} using the provided PEM file.
+	 *
+	 * @param pemFile A PEM encoded file that will be read as X509Certificate.
+	 */
+	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
 	EmailPopulatingBuilder encryptWithSmime(@Nonnull File pemFile);
 
 	/**

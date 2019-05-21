@@ -5,6 +5,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Objects;
+
+import static org.simplejavamail.internal.util.MiscUtil.inputStreamEqual;
 
 /**
  * Config holder for PKCS12 store+key info used for S/MIME encrypting / decrypting.
@@ -44,6 +48,40 @@ public final class Pkcs12Config {
 	@Nonnull
 	public char[] getKeyPassword() {
 		return this.keyPassword;
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder sb = new StringBuilder("Pkcs12Config{");
+		sb.append("pkcs12StoreStream=").append(pkcs12StoreStream);
+		sb.append(", storePassword=***");
+		sb.append(", keyAlias='").append(keyAlias).append('\'');
+		sb.append(", keyPassword=***");
+		sb.append('}');
+		return sb.toString();
+	}
+
+	@Override
+	public boolean equals(final Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+		final Pkcs12Config that = (Pkcs12Config) o;
+		return inputStreamEqual(pkcs12StoreStream, that.pkcs12StoreStream) &&
+				Arrays.equals(storePassword, that.storePassword) &&
+				keyAlias.equals(that.keyAlias) &&
+				Arrays.equals(keyPassword, that.keyPassword);
+	}
+
+	@Override
+	public int hashCode() {
+		int result = Objects.hash(pkcs12StoreStream, keyAlias);
+		result = 31 * result + Arrays.hashCode(storePassword);
+		result = 31 * result + Arrays.hashCode(keyPassword);
+		return result;
 	}
 
 	public static class Pkcs12ConfigBuilder {

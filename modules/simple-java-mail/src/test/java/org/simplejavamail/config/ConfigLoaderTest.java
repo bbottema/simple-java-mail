@@ -30,6 +30,11 @@ import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_SOCKS5BRIDGE_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PORT;
@@ -164,15 +169,18 @@ public class ConfigLoaderTest {
 		ConfigLoader.loadProperties("simplejavamail.properties", false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
 		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
+
 		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
 		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
 		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
+
 		assertThat(ConfigLoader.getProperty(PROXY_HOST)).isEqualTo("proxy.default.com");
 		assertThat(ConfigLoader.getProperty(PROXY_PORT)).isEqualTo(1080);
 		assertThat(ConfigLoader.getProperty(PROXY_USERNAME)).isEqualTo("username proxy");
 		assertThat(ConfigLoader.getProperty(PROXY_PASSWORD)).isEqualTo("password proxy");
 		assertThat(ConfigLoader.getProperty(PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(1081);
+
 		assertThat(ConfigLoader.getProperty(DEFAULT_FROM_NAME)).isEqualTo("From Default");
 		assertThat(ConfigLoader.getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("from@default.com");
 		assertThat(ConfigLoader.getProperty(DEFAULT_REPLYTO_NAME)).isEqualTo("Reply-To Default");
@@ -184,6 +192,12 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.getProperty(DEFAULT_BCC_NAME)).isEqualTo("BCC Default");
 		assertThat(ConfigLoader.getProperty(DEFAULT_BCC_ADDRESS)).isEqualTo("bcc@default.com");
 		assertThat(ConfigLoader.getProperty(DEFAULT_SUBJECT)).isEqualTo("Default Subject");
+
+		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEYSTORE)).isEqualTo("src/test/resources/pkcs12/smime_keystore.pkcs12");
+		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEYSTORE_PASSWORD)).isEqualTo("letmein");
+		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEY_ALIAS)).isEqualTo("smime_test_user_alias");
+		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("letmein");
+		assertThat(ConfigLoader.getProperty(SMIME_ENCRYPTION_CERTIFICATE)).isEqualTo("src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
 	}
 
 	@Test

@@ -54,6 +54,11 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.transport.mode.logging.only</li>
  * <li>simplejavamail.opportunistic.tls</li>
+ * <li>simplejavamail.smime.signing.keystore</li>
+ * <li>simplejavamail.smime.signing.keystore_password</li>
+ * <li>simplejavamail.smime.signing.key_alias</li>
+ * <li>simplejavamail.smime.signing.key_password</li>
+ * <li>simplejavamail.smime.encryption.certificate</li>
  * </ul>
  */
 public final class ConfigLoader {
@@ -111,7 +116,12 @@ public final class ConfigLoader {
 		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize"),
 		DEFAULT_SESSION_TIMEOUT_MILLIS("simplejavamail.defaults.sessiontimeoutmillis"),
 		TRANSPORT_MODE_LOGGING_ONLY("simplejavamail.transport.mode.logging.only"),
-		OPPORTUNISTIC_TLS("simplejavamail.opportunistic.tls");
+		OPPORTUNISTIC_TLS("simplejavamail.opportunistic.tls"),
+		SMIME_SIGNING_KEYSTORE("simplejavamail.smime.signing.keystore"),
+		SMIME_SIGNING_KEYSTORE_PASSWORD("simplejavamail.smime.signing.keystore_password"),
+		SMIME_SIGNING_KEY_ALIAS("simplejavamail.smime.signing.key_alias"),
+		SMIME_SIGNING_KEY_PASSWORD("simplejavamail.smime.signing.key_password"),
+		SMIME_ENCRYPTION_CERTIFICATE("simplejavamail.smime.encryption.certificate");
 
 		private final String key;
 

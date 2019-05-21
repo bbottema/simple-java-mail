@@ -210,4 +210,30 @@ public final class MiscUtil {
 		}
 		return new String(Files.readAllBytes(file.toPath()), UTF_8);
 	}
+
+	public static boolean inputStreamEqual(InputStream input1, InputStream input2) {
+		if (!(input1 instanceof BufferedInputStream)) {
+			input1 = new BufferedInputStream(input1);
+		}
+		if (!(input2 instanceof BufferedInputStream)) {
+			input2 = new BufferedInputStream(input2);
+		}
+
+		int ch;
+		try {
+			ch = input1.read();
+			while (ch != -1) {
+				int ch2 = input2.read();
+				if (ch != ch2) {
+					return false;
+				}
+				ch = input1.read();
+			}
+
+			int ch2 = input2.read();
+			return (ch2 == -1);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

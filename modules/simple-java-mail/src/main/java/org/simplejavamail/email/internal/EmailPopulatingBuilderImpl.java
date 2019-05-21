@@ -58,7 +58,12 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NA
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.getProperty;
+import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.email.internal.EmailException.ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_FILE;
@@ -245,37 +250,48 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 
 		if (applyDefaults) {
 			if (hasProperty(DEFAULT_FROM_ADDRESS)) {
-				from((String) getProperty(DEFAULT_FROM_NAME), assumeNonNull((String) getProperty(DEFAULT_FROM_ADDRESS)));
+				from(getStringProperty(DEFAULT_FROM_NAME), assumeNonNull(getStringProperty(DEFAULT_FROM_ADDRESS)));
 			}
 			if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
-				withReplyTo((String) getProperty(DEFAULT_REPLYTO_NAME), assumeNonNull((String) getProperty(DEFAULT_REPLYTO_ADDRESS)));
+				withReplyTo(getStringProperty(DEFAULT_REPLYTO_NAME), assumeNonNull(getStringProperty(DEFAULT_REPLYTO_ADDRESS)));
 			}
 			if (hasProperty(DEFAULT_BOUNCETO_ADDRESS)) {
-				withBounceTo((String) getProperty(DEFAULT_BOUNCETO_NAME), assumeNonNull((String) getProperty(DEFAULT_BOUNCETO_ADDRESS)));
+				withBounceTo(getStringProperty(DEFAULT_BOUNCETO_NAME), assumeNonNull(getStringProperty(DEFAULT_BOUNCETO_ADDRESS)));
 			}
 			if (hasProperty(DEFAULT_TO_ADDRESS)) {
 				if (hasProperty(DEFAULT_TO_NAME)) {
-					to((String) getProperty(DEFAULT_TO_NAME), (String) getProperty(DEFAULT_TO_ADDRESS));
+					to(getStringProperty(DEFAULT_TO_NAME), getStringProperty(DEFAULT_TO_ADDRESS));
 				} else {
-					to(assumeNonNull((String) getProperty(DEFAULT_TO_ADDRESS)));
+					to(assumeNonNull(getStringProperty(DEFAULT_TO_ADDRESS)));
 				}
 			}
 			if (hasProperty(DEFAULT_CC_ADDRESS)) {
 				if (hasProperty(DEFAULT_CC_NAME)) {
-					cc((String) getProperty(DEFAULT_CC_NAME), (String) getProperty(DEFAULT_CC_ADDRESS));
+					cc(getStringProperty(DEFAULT_CC_NAME), getStringProperty(DEFAULT_CC_ADDRESS));
 				} else {
-					cc(assumeNonNull((String) getProperty(DEFAULT_CC_ADDRESS)));
+					cc(assumeNonNull(getStringProperty(DEFAULT_CC_ADDRESS)));
 				}
 			}
 			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 				if (hasProperty(DEFAULT_BCC_NAME)) {
-					bcc((String) getProperty(DEFAULT_BCC_NAME), (String) getProperty(DEFAULT_BCC_ADDRESS));
+					bcc(getStringProperty(DEFAULT_BCC_NAME), getStringProperty(DEFAULT_BCC_ADDRESS));
 				} else {
-					bcc(assumeNonNull((String) getProperty(DEFAULT_BCC_ADDRESS)));
+					bcc(assumeNonNull(getStringProperty(DEFAULT_BCC_ADDRESS)));
 				}
 			}
 			if (hasProperty(DEFAULT_SUBJECT)) {
 				withSubject((String) getProperty(DEFAULT_SUBJECT));
+			}
+			if (hasProperty(SMIME_SIGNING_KEYSTORE)) {
+				signWithSmime(Pkcs12Config.builder()
+						.pkcs12Store(assumeNonNull(getStringProperty(SMIME_SIGNING_KEYSTORE)))
+						.storePassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEYSTORE_PASSWORD), "Keystore password property"))
+						.keyAlias(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_ALIAS), "Key alias property"))
+						.keyPassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEYSTORE_PASSWORD), "Key password property"))
+						.build());
+			}
+			if (hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
+				encryptWithSmime(assumeNonNull(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));
 			}
 		}
 	}
@@ -1511,6 +1527,18 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder signWithSmime(@Nonnull final Pkcs12Config pkcs12Config) {
 		this.pkcs12ConfigForSmimeSigning = pkcs12Config;
 		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#encryptWithSmime(String)
+	 */
+	@Override
+	public EmailPopulatingBuilder encryptWithSmime(@Nonnull final String pemFile) {
+		try {
+			return encryptWithSmime(new FileInputStream(new File(pemFile)));
+		} catch (FileNotFoundException e) {
+			throw new EmailException(format(ERROR_READING_FROM_FILE, pemFile), e);
+		}
 	}
 
 	/**
