@@ -19,6 +19,7 @@ class MailerException extends MailException {
 	static final String MISSING_DISPOSITIONNOTIFICATIONTO = "Email is not valid: it is set to use \"Disposition Notification To\", but the address is empty";
 	static final String MISSING_RETURNRECEIPTTO = "Email is not valid: it is set to use \"Return Receipt To\", but the address is empty";
 	static final String INJECTION_SUSPECTED = "Suspected of injection attack, field: %s with suspicious value: %s";
+	static final String SMIME_MODULE_NOT_AVAILABLE = "Cannot sign and/or encrypt message, S/MIME module not found";
 
 	MailerException(final String message) {
 		super(message);

@@ -5,6 +5,7 @@ import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -12,6 +13,8 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.internal.mailsender.MailSender;
+import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.mailer.internal.mailsender.MailSenderImpl;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -24,6 +27,7 @@ import javax.mail.Authenticator;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
+import java.security.cert.X509Certificate;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Properties;
@@ -32,6 +36,7 @@ import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
+import static org.simplejavamail.mailer.internal.MailerException.SMIME_MODULE_NOT_AVAILABLE;
 
 /**
  * @see Mailer
@@ -307,13 +312,27 @@ public class MailerImpl implements Mailer {
 			throw new MailerException(format(MailerException.INJECTION_SUSPECTED, valueLabel, value));
 		}
 	}
-	
+
 	/**
 	 * Refer to {@link MimeMessageHelper#signMessageWithDKIM(MimeMessage, Email)}
 	 */
 	@SuppressWarnings("unused")
-	public static MimeMessage signMessageWithDKIM(final MimeMessage messageToSign, final Email emailContainingSigningDetails) {
+	public static MimeMessage signMessageWithDKIM(@Nonnull final MimeMessage messageToSign, @Nonnull final Email emailContainingSigningDetails) {
 		return MimeMessageHelper.signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
+	}
+
+	/**
+	 * Depending on the Email configuration, signs and then encrypts message (both steps optional), using the S/MIME module.
+	 *
+	 * @see SMIMEModule#signAndOrEncryptEmail(Session, MimeMessage, Email)
+	 */
+	@SuppressWarnings("unused")
+	public static MimeMessage signAndOrEncryptMessageWithSmime(@Nonnull final Session session, @Nonnull final MimeMessage messageToProtect, @Nonnull final Email emailContainingSmimeDetails) {
+		if (ModuleLoader.smimeModuleAvailable()) {
+			return ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, messageToProtect, emailContainingSmimeDetails);
+		} else {
+			throw new MailerException(SMIME_MODULE_NOT_AVAILABLE);
+		}
 	}
 	
 	/**

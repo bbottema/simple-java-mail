@@ -48,6 +48,11 @@ import java.util.Properties;
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.transport.mode.logging.only</li>
  * <li>simplejavamail.opportunistic.tls</li>
+ * <li>simplejavamail.smime.signing.keystore</li>
+ * <li>simplejavamail.smime.signing.keystore_password</li>
+ * <li>simplejavamail.smime.signing.key_alias</li>
+ * <li>simplejavamail.smime.signing.key_password</li>
+ * <li>simplejavamail.smime.encryption.certificate</li>
  * </ul>
  */
 @Configuration
@@ -84,7 +89,12 @@ public class SimpleJavaMailSpringSupport {
 			@Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
 			@Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
 			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly,
-			@Value("${simplejavamail.opportunistic.tls:#{null}}") final String defaultOpportunisticTls) {
+			@Value("${simplejavamail.opportunistic.tls:#{null}}") final String defaultOpportunisticTls,
+			@Value("${simplejavamail.smime.signing.keystore:#{null}}") final String smimeSigningKeyStore,
+			@Value("${simplejavamail.smime.signing.keystore_password:#{null}}") final String smimeSigningKeyStorePassword,
+			@Value("${simplejavamail.smime.signing.key_alias:#{null}}") final String smimeSigningKeyAlias,
+			@Value("${simplejavamail.smime.signing.key_password:#{null}}") final String smimeSigningKeyPassword,
+			@Value("${simplejavamail.smime.encryption.certificate:#{null}}") final String smimeEncryptionCertificate) {
 		final Properties emailProperties = new Properties();
 		setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG.key(), javaxmailDebug);
 		setNullableProperty(emailProperties, Property.TRANSPORT_STRATEGY.key(), transportstrategy);
@@ -114,6 +124,11 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key(), defaultSessionTimeoutMillis);
 		setNullableProperty(emailProperties, Property.TRANSPORT_MODE_LOGGING_ONLY.key(), defaultTransportModeLoggingOnly);
 		setNullableProperty(emailProperties, Property.OPPORTUNISTIC_TLS.key(), defaultOpportunisticTls);
+		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEYSTORE.key(), smimeSigningKeyStore);
+		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEYSTORE_PASSWORD.key(), smimeSigningKeyStorePassword);
+		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_ALIAS.key(), smimeSigningKeyAlias);
+		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_PASSWORD.key(), smimeSigningKeyPassword);
+		setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_CERTIFICATE.key(), smimeEncryptionCertificate);
 
 		ConfigLoader.loadProperties(emailProperties, true);
 

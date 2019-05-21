@@ -61,6 +61,7 @@
         <module>modules/authenticated-socks-module</module>
         <module>modules/outlook-module</module>
         <module>modules/dkim-module</module>
+        <module>modules/smime-module</module>
         <module>modules/simple-java-mail</module>
         <module>modules/spring-module</module>
         <module>modules/cli-module</module>

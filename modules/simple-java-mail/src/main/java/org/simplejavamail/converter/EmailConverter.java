@@ -1,17 +1,26 @@
 package org.simplejavamail.converter;
 
+import org.simplejavamail.api.email.CalendarMethod;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
+import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
+import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
+import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
-import org.simplejavamail.api.email.CalendarMethod;
-import org.simplejavamail.api.email.Email;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
+import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
@@ -32,6 +41,8 @@ import java.util.Properties;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
+import static org.simplejavamail.internal.modules.ModuleLoader.loadSmimeModule;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
@@ -55,96 +66,294 @@ public final class EmailConverter {
 	/*
 		To Email instance
 	 */
-	
+
 	/**
-	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
+	 * Delegates to {@link #mimeMessageToEmail(MimeMessage, Pkcs12Config)}.
 	 */
+	@Nonnull
 	public static Email mimeMessageToEmail(@Nonnull final MimeMessage mimeMessage) {
-		return mimeMessageToEmailBuilder(mimeMessage).buildEmail();
-	}
-	
-	/**
-	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
-	 */
-	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@Nonnull final MimeMessage mimeMessage) {
-		checkNonEmptyArgument(mimeMessage, "mimeMessage");
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailBuilder.ignoringDefaults().startingBlank();
-		buildEmailFromMimeMessage(emailPopulatingBuilder, MimeMessageParser.parseMimeMessage(mimeMessage));
-		return emailPopulatingBuilder;
+		return mimeMessageToEmail(mimeMessage, null);
 	}
 
 	/**
-	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * Delegates to {@link #mimeMessageToEmailBuilder(MimeMessage, Pkcs12Config)}.
 	 */
-	@SuppressWarnings("deprecation")
-	public static Email outlookMsgToEmail(@Nonnull final String msgData) {
-		return ModuleLoader.loadOutlookModule().outlookMsgToEmail(msgData, new EmailStartingBuilderImpl());
+	@Nonnull
+	public static Email mimeMessageToEmail(@Nonnull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
+		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config).buildEmail();
+	}
+
+	/**
+	 * Delegates to {@link #mimeMessageToEmailBuilder(MimeMessage, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@Nonnull final MimeMessage mimeMessage) {
+		return mimeMessageToEmailBuilder(mimeMessage, null);
+	}
+
+	/**
+	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                        (only needed when the message is encrypted rather than just signed).
+	 */
+	@Nonnull
+	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@Nonnull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(mimeMessage, "mimeMessage");
+		final EmailPopulatingBuilder builder = EmailBuilder.ignoringDefaults().startingBlank();
+		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage);
+		return decryptAttachments(buildEmailFromMimeMessage(builder, parsed), mimeMessage, pkcs12Config);
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmail(String, Pkcs12Config)}.
+	 *
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 */
+	@SuppressWarnings("unused")
+	@Nonnull
+	public static Email outlookMsgToEmail(@Nonnull final String msgFile) {
+		return outlookMsgToEmail(msgFile, null);
 	}
 
 	/**
 	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                        (only needed when the message is encrypted rather than just signed).
 	 */
 	@SuppressWarnings("deprecation")
+	@Nonnull
+	public static Email outlookMsgToEmail(@Nonnull final String msgFile, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(msgFile, "msgFile");
+		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
+		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config)
+				.buildEmail();
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilder(File)} and then builds and returns the email.
+	 *
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 */
+	@Nonnull
 	public static Email outlookMsgToEmail(@Nonnull final File msgFile) {
+		return outlookMsgToEmailBuilder(msgFile).buildEmail();
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilder(File, Pkcs12Config)} and then builds and returns the email.
+	 *
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 */
+	@SuppressWarnings("unused")
+	@Nonnull
+	public static Email outlookMsgToEmail(@Nonnull final File msgFile, @Nullable final Pkcs12Config pkcs12Config) {
+		return outlookMsgToEmailBuilder(msgFile, pkcs12Config).buildEmail();
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilder(File, Pkcs12Config)}.
+	 *
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 */
+	@Nonnull
+	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final File msgFile) {
+		return outlookMsgToEmailBuilder(msgFile, null);
+	}
+
+	/**
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                        (only needed when the message is encrypted rather than just signed).
+	 */
+	@SuppressWarnings({ "deprecation" })
+	@Nonnull
+	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final File msgFile, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(msgFile, "msgFile");
 		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
-		return ModuleLoader.loadOutlookModule().outlookMsgToEmail(msgFile, new EmailStartingBuilderImpl());
+		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
+				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
+		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config);
 	}
-	
+
 	/**
-	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * Delegates to {@link #outlookMsgToEmail(InputStream, Pkcs12Config)}.
 	 */
+	@SuppressWarnings("unused")
+	@Nonnull
 	public static Email outlookMsgToEmail(@Nonnull final InputStream msgInputStream) {
-		return outlookMsgToEmailBuilder(msgInputStream).buildEmail();
+		return outlookMsgToEmail(msgInputStream, null);
 	}
-	
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilder(InputStream, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static Email outlookMsgToEmail(@Nonnull final InputStream msgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
+		return outlookMsgToEmailBuilder(msgInputStream, pkcs12Config).getEmailBuilder().buildEmail();
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilder(InputStream, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static EmailFromOutlookMessage outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream) {
+		return outlookMsgToEmailBuilder(msgInputStream, null);
+	}
+
 	/**
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("deprecation")
-	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream) {
-		return ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgInputStream, new EmailStartingBuilderImpl());
+	@Nonnull
+	public static EmailFromOutlookMessage outlookMsgToEmailBuilder(@Nonnull final InputStream msgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
+		EmailFromOutlookMessage fromMsgBuilder = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgInputStream, new EmailStartingBuilderImpl());
+		decryptAttachments(fromMsgBuilder.getEmailBuilder(), fromMsgBuilder.getOutlookMessage(), pkcs12Config);
+		return fromMsgBuilder;
 	}
-	
+
+	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder, final OutlookMessage outlookMessage, @Nullable final Pkcs12Config pkcs12Config) {
+		if (ModuleLoader.smimeModuleAvailable()) {
+			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), outlookMessage, pkcs12Config);
+			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
+			updateEmailIfBothSignedAndEncrypted(emailBuilder);
+		}
+		return emailBuilder;
+	}
+
+	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder, final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
+		if (ModuleLoader.smimeModuleAvailable()) {
+			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config);
+			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
+			updateEmailIfBothSignedAndEncrypted(emailBuilder);
+		}
+		return emailBuilder;
+	}
+
 	/**
-	 * Delegates to {@link #emlToEmail(String)} with the full string value read from the given <code>InputStream</code>.
+	 * if we have both an encrypted and signed part in the email, have the
+	 * top-level email reflect this as {@link SmimeMode#SIGNED_ENCRYPTED}.
 	 */
+	private static void updateEmailIfBothSignedAndEncrypted(final EmailPopulatingBuilder emailBuilder) {
+		if (emailBuilder.getSmimeSignedEmail() != null) {
+			OriginalSmimeDetails nestedSmime = emailBuilder.getSmimeSignedEmail().getOriginalSmimeDetails();
+			OriginalSmimeDetailsImpl originalSmimeDetails = (OriginalSmimeDetailsImpl) emailBuilder.getOriginalSmimeDetails();
+			if (nestedSmime.getSmimeMode() != PLAIN && nestedSmime.getSmimeMode() != originalSmimeDetails.getSmimeMode()) {
+				originalSmimeDetails.completeWithSmimeMode(SmimeMode.SIGNED_ENCRYPTED);
+			}
+		}
+	}
+
+	private static void handleSmimeParseResult(final InternalEmailPopulatingBuilder emailBuilder, final SmimeParseResult smimeParseResult) {
+		emailBuilder.withDecryptedAttachments(smimeParseResult.getDecryptedAttachments());
+		emailBuilder.withOriginalSmimeDetails(smimeParseResult.getOriginalSmimeDetails());
+		if (smimeParseResult.getSmimeSignedEmail() != null) {
+			emailBuilder.withSmimeSignedEmail(emlToEmail(smimeParseResult.getSmimeSignedEmail().getDataSourceInputStream()));
+		}
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmail(InputStream, Pkcs12Config)}.
+	 */
+	@Nonnull
 	public static Email emlToEmail(@Nonnull final InputStream emlInputStream) {
-		try {
-			return emlToEmail(readInputStreamToString(checkNonEmptyArgument(emlInputStream, "emlInputStream"), UTF_8));
-		} catch (IOException e) {
-			throw new EmailConverterException(EmailConverterException.ERROR_READING_EML_INPUTSTREAM, e);
-		}
+		return emlToEmail(emlInputStream, null);
 	}
-	
+
 	/**
-	 * Delegates to {@link #emlToMimeMessage(String, Session)} using a dummy {@link Session} instance and passes the result to {@link
-	 * #mimeMessageToEmail(MimeMessage)};
+	 * Delegates to {@link #emlToEmailBuilder(InputStream, Pkcs12Config)} with the full string value read from the given <code>InputStream</code>.
 	 */
-	public static Email emlToEmail(@Nonnull final String eml) {
-		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
-		return mimeMessageToEmail(mimeMessage);
+	@Nonnull
+	public static Email emlToEmail(@Nonnull final InputStream emlInputStream, @Nullable final Pkcs12Config pkcs12Config) {
+		return emlToEmailBuilder(emlInputStream, pkcs12Config).buildEmail();
 	}
-	
+
+	/**
+	 * Delegates to {@link #emlToEmail(String, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static Email emlToEmail(@Nonnull final String eml) {
+		return emlToEmail(eml, null);
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(String, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static Email emlToEmail(@Nonnull final String eml, @Nullable final Pkcs12Config pkcs12Config) {
+		return emlToEmailBuilder(eml, pkcs12Config).buildEmail();
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmail(File, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static Email emlToEmail(@Nonnull final File emlFile) {
+		return emlToEmail(emlFile, null);
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(File, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static Email emlToEmail(@Nonnull final File emlFile, @Nullable final Pkcs12Config pkcs12Config) {
+		return emlToEmailBuilder(emlFile, pkcs12Config).buildEmail();
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(File, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final File emlFile) {
+		return emlToEmailBuilder(emlFile, null);
+	}
+
+	/**
+	 * Delegates to {@link #emlToMimeMessage(File)} and then {@link #mimeMessageToEmailBuilder(MimeMessage, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final File emlFile, @Nullable final Pkcs12Config pkcs12Config) {
+		return mimeMessageToEmailBuilder(emlToMimeMessage(emlFile), pkcs12Config);
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(InputStream, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final InputStream emlInputStream) {
+		return emlToEmailBuilder(emlInputStream, null);
+	}
+
 	/**
 	 * Delegates to {@link #emlToEmail(String)} with the full string value read from the given <code>InputStream</code>.
 	 */
-	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final InputStream emlInputStream) {
+	@Nonnull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final InputStream emlInputStream, @Nullable final Pkcs12Config pkcs12Config) {
 		try {
-			return emlToEmailBuilder(readInputStreamToString(checkNonEmptyArgument(emlInputStream, "emlInputStream"), UTF_8));
+			String emlStr = readInputStreamToString(checkNonEmptyArgument(emlInputStream, "emlInputStream"), UTF_8);
+			return emlToEmailBuilder(emlStr, pkcs12Config);
 		} catch (IOException e) {
 			throw new EmailConverterException(EmailConverterException.ERROR_READING_EML_INPUTSTREAM, e);
 		}
 	}
-	
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(String, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final String eml) {
+		return emlToEmailBuilder(eml, null);
+	}
+
 	/**
 	 * Delegates to {@link #emlToMimeMessage(String, Session)} using a dummy {@link Session} instance and passes the result to {@link
-	 * #mimeMessageToEmail(MimeMessage)};
+	 * #mimeMessageToEmailBuilder(MimeMessage, Pkcs12Config)}.
 	 */
-	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final String eml) {
+	@Nonnull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@Nonnull final String eml, @Nullable final Pkcs12Config pkcs12Config) {
 		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
-		return mimeMessageToEmailBuilder(mimeMessage);
+		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config);
 	}
 
 	/*
@@ -152,30 +361,54 @@ public final class EmailConverter {
 	 */
 
 	/**
-	 * @return Result of {@link #outlookMsgToEmail(String)} and {@link #emailToMimeMessage(Email)}
+	 * Delegates to {@link #outlookMsgToMimeMessage(String, Pkcs12Config)}.
 	 */
 	@Nonnull
-	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final String outlookMsgData) {
-		checkNonEmptyArgument(outlookMsgData, "outlookMsgData");
-		return emailToMimeMessage(outlookMsgToEmail(outlookMsgData));
+	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final String msgFile) {
+		return outlookMsgToMimeMessage(msgFile, null);
 	}
 
 	/**
-	 * @return Result of {@link #outlookMsgToEmail(File)} and {@link #emailToMimeMessage(Email)}
+	 * @return Result of {@link #outlookMsgToEmail(String, Pkcs12Config)} and {@link #emailToMimeMessage(Email)}.
+	 */
+	@Nonnull
+	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final String msgFile, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(msgFile, "outlookMsgData");
+		return emailToMimeMessage(outlookMsgToEmail(msgFile, pkcs12Config));
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToMimeMessage(File, Pkcs12Config)}.
 	 */
 	@Nonnull
 	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final File outlookMsgFile) {
-		checkNonEmptyArgument(outlookMsgFile, "outlookMsgFile");
-		return emailToMimeMessage(outlookMsgToEmail(outlookMsgFile));
+		return outlookMsgToMimeMessage(outlookMsgFile, null);
 	}
 
 	/**
-	 * @return Result of {@link #outlookMsgToEmail(InputStream)} and {@link #emailToMimeMessage(Email)}
+	 * @return Result of {@link #outlookMsgToEmail(File, Pkcs12Config)} and {@link #emailToMimeMessage(Email)}.
 	 */
 	@Nonnull
-	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final InputStream outloookMsgInputStream) {
-		checkNonEmptyArgument(outloookMsgInputStream, "outloookMsgInputStream");
-		return emailToMimeMessage(outlookMsgToEmail(outloookMsgInputStream));
+	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final File outlookMsgFile, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(outlookMsgFile, "outlookMsgFile");
+		return emailToMimeMessage(outlookMsgToEmail(outlookMsgFile, pkcs12Config));
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToMimeMessage(InputStream, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final InputStream outlookMsgInputStream) {
+		return outlookMsgToMimeMessage(outlookMsgInputStream, null);
+	}
+
+	/**
+	 * @return Result of {@link #outlookMsgToEmail(InputStream, Pkcs12Config)} and {@link #emailToMimeMessage(Email)}.
+	 */
+	@Nonnull
+	public static MimeMessage outlookMsgToMimeMessage(@Nonnull final InputStream outlookMsgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(outlookMsgInputStream, "outlookMsgInputStream");
+		return emailToMimeMessage(outlookMsgToEmail(outlookMsgInputStream, pkcs12Config));
 	}
 
 	/**
@@ -188,7 +421,7 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Refer to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session)}
+	 * Refer to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session)}.
 	 */
 	public static MimeMessage emailToMimeMessage(@Nonnull final Email email, @Nonnull final Session session) {
 		try {
@@ -198,38 +431,53 @@ public final class EmailConverter {
 			throw new AssertionError(e.getMessage(), e);
 		}
 	}
-	
+
 	/**
 	 * Delegates to {@link #emlToMimeMessage(File, Session)}, using {@link #createDummySession()}.
-	 *
-	 * @see #emlToMimeMessage(File, Session)
 	 */
 	@Nonnull
 	public static MimeMessage emlToMimeMessage(@Nonnull final File emlFile) {
 		return emlToMimeMessage(emlFile, createDummySession());
 	}
-	
+
 	/**
-	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
-	 *
-	 * @see MimeMessage#MimeMessage(Session, InputStream)
+	 * Delegates to {@link #emlToMimeMessage(InputStream, Session)}.
 	 */
 	public static MimeMessage emlToMimeMessage(@Nonnull final File emlFile, @Nonnull final Session session) {
 		if (!EML_PATH_MATCHER.matches(emlFile.toPath())) {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_EML, emlFile));
 		}
 		try {
-			InputStream source = new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile"));
-			return new MimeMessage(session, source);
-		} catch (final MessagingException | FileNotFoundException e) {
-			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML, e.getMessage()), e);
+			return emlToMimeMessage(new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile")), session);
+		} catch (final FileNotFoundException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_FILE, e.getMessage()), e);
+		}
+	}
+
+	/**
+	 * Delegates to {@link #emlToMimeMessage(InputStream, Session)} using {@link #createDummySession()}.
+	 */
+	@Nonnull
+	public static MimeMessage emlToMimeMessage(@Nonnull final InputStream inputStream) {
+		return emlToMimeMessage(inputStream, createDummySession());
+	}
+
+	/**
+	 * Relies on JavaMail's native parser of EML data, {@link MimeMessage#MimeMessage(Session, InputStream)}.
+	 *
+	 * @see MimeMessage#MimeMessage(Session, InputStream)
+	 */
+	@Nonnull
+	public static MimeMessage emlToMimeMessage(@Nonnull final InputStream inputStream, @Nonnull final Session session) {
+		try {
+			return new MimeMessage(session, inputStream);
+		} catch (final MessagingException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_STREAM, e.getMessage()), e);
 		}
 	}
 
 	/**
 	 * Delegates to {@link #emlToMimeMessage(String, Session)} with an empty {@link Session} instance.
-	 *
-	 * @see #emailToMimeMessage(Email, Session)
 	 */
 	public static MimeMessage emlToMimeMessage(@Nonnull final String eml) {
 		return emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
@@ -244,7 +492,7 @@ public final class EmailConverter {
 		try {
 			return new MimeMessage(session, new ByteArrayInputStream(eml.getBytes(UTF_8)));
 		} catch (final MessagingException e) {
-			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML, e.getMessage()), e);
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_STREAM, e.getMessage()), e);
 		}
 	}
 
@@ -276,37 +524,61 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * @return Result of {@link #outlookMsgToEmail(String)} and {@link #emailToEML(Email)}
+	 * Delegates to {@link #outlookMsgToEML(String, Pkcs12Config)}.
 	 */
 	@Nonnull
-	public static String outlookMsgToEML(@Nonnull final String outlookMsgData) {
-		checkNonEmptyArgument(outlookMsgData, "outlookMsgData");
-		return emailToEML(outlookMsgToEmail(outlookMsgData));
+	public static String outlookMsgToEML(@Nonnull final String msgFile) {
+		return outlookMsgToEML(msgFile, null);
 	}
 
 	/**
-	 * @return Result of {@link #outlookMsgToEmail(File)} and {@link #emailToEML(Email)}
+	 * @return Result of {@link #outlookMsgToEmail(String, Pkcs12Config)} and {@link #emailToEML(Email)}
+	 */
+	@Nonnull
+	public static String outlookMsgToEML(@Nonnull final String msgFile, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(msgFile, "outlookMsgData");
+		return emailToEML(outlookMsgToEmail(msgFile, pkcs12Config));
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEML(File, Pkcs12Config)}.
 	 */
 	@Nonnull
 	public static String outlookMsgToEML(@Nonnull final File outlookMsgFile) {
-		checkNonEmptyArgument(outlookMsgFile, "outlookMsgFile");
-		return emailToEML(outlookMsgToEmail(outlookMsgFile));
+		return outlookMsgToEML(outlookMsgFile, null);
 	}
 
 	/**
-	 * @return Result of {@link #outlookMsgToEmail(InputStream)} and {@link #emailToEML(Email)}
+	 * @return Result of {@link #outlookMsgToEmail(File, Pkcs12Config)} and {@link #emailToEML(Email)}
 	 */
 	@Nonnull
-	public static String outlookMsgToEML(@Nonnull final InputStream outloookMsgInputStream) {
-		checkNonEmptyArgument(outloookMsgInputStream, "outloookMsgInputStream");
-		return emailToEML(outlookMsgToEmail(outloookMsgInputStream));
+	public static String outlookMsgToEML(@Nonnull final File outlookMsgFile, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(outlookMsgFile, "outlookMsgFile");
+		return emailToEML(outlookMsgToEmail(outlookMsgFile, pkcs12Config));
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEML(InputStream, Pkcs12Config)}.
+	 */
+	@Nonnull
+	public static String outlookMsgToEML(@Nonnull final InputStream outlookMsgInputStream) {
+		return outlookMsgToEML(outlookMsgInputStream, null);
+	}
+
+	/**
+	 * @return Result of {@link #outlookMsgToEmail(InputStream, Pkcs12Config)} and {@link #emailToEML(Email)}
+	 */
+	@Nonnull
+	public static String outlookMsgToEML(@Nonnull final InputStream outlookMsgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(outlookMsgInputStream, "outlookMsgInputStream");
+		return emailToEML(outlookMsgToEmail(outlookMsgInputStream, pkcs12Config));
 	}
 
 	/*
 		Helpers
 	 */
 
-	private static void buildEmailFromMimeMessage(@Nonnull final EmailPopulatingBuilder builder, @Nonnull final ParsedMimeMessageComponents parsed) {
+	private static EmailPopulatingBuilder buildEmailFromMimeMessage(@Nonnull final EmailPopulatingBuilder builder, @Nonnull final ParsedMimeMessageComponents parsed) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(parsed, "parsedMimeMessageComponents");
 		if (parsed.getFromAddress() != null) {
@@ -354,9 +626,11 @@ public final class EmailConverter {
 		for (final Map.Entry<String, DataSource> attachment : parsed.getAttachmentList().entrySet()) {
 			builder.withAttachment(extractCID(attachment.getKey()), attachment.getValue());
 		}
+		return builder;
 	}
 
 	private static Session createDummySession() {
 		return Session.getDefaultInstance(new Properties());
 	}
+
 }

@@ -14,6 +14,7 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.internal.util.MiscUtil;
+import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
 import javax.annotation.Nullable;
@@ -31,6 +32,7 @@ public class MimeMessageHelperTest {
 	@Before
 	public void setup() {
 		ModuleLoader.clearLoadedModules();
+		ConfigLoaderTestHelper.clearConfigProperties();
 	}
 	
 	@Test
@@ -106,7 +108,7 @@ public class MimeMessageHelperTest {
 	
 	@Test
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseItWillTryToSign() throws IOException {
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false)
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
 		
@@ -121,7 +123,7 @@ public class MimeMessageHelperTest {
 	
 	@Test
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseDKIMLibraryIsMissing() throws IOException {
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false)
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
 		

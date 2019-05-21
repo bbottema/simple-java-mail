@@ -234,9 +234,7 @@ public class MailSenderImpl implements MailSender {
 			LOGGER.trace("sending email...");
 			try {
 				// fill and send wrapped mime message parts
-				final MimeMessage message = MimeMessageProducerHelper.produceMimeMessage(
-						checkNonEmptyArgument(email, "email"),
-						checkNonEmptyArgument(session, "session"));
+				final MimeMessage message = MimeMessageProducerHelper.produceMimeMessage(email, session);
 
 				configureBounceToAddress(session, email);
 

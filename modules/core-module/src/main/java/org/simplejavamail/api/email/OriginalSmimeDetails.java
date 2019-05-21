@@ -1,0 +1,29 @@
+package org.simplejavamail.api.email;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+/**
+ * Indicates S/MIME details about an email. Used to show how a converted message was signed / encrypted and by whom.
+ * <p>
+ * Note: the difference between this and {@link org.simplejavamail.api.internal.smimesupport.model.SmimeDetails} is that
+ * this class is intended for exposing S/MIME metadata to the end user, while the other class is for internal use
+ * by the S/MIME module alone.
+ *
+ * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
+ */
+public interface OriginalSmimeDetails {
+
+	enum SmimeMode {
+		PLAIN, SIGNED, ENCRYPTED, SIGNED_ENCRYPTED
+	}
+
+	@Nonnull SmimeMode getSmimeMode();
+	@Nullable String getSmimeMime();
+	@Nullable String getSmimeType();
+	@Nullable String getSmimeName();
+	@Nullable String getSmimeProtocol();
+	@Nullable String getSmimeMicalg();
+	@Nullable String getSmimeSignedBy();
+	@Nullable Boolean getSmimeSignatureValid();
+}

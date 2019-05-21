@@ -6,8 +6,6 @@ import java.util.Objects;
 
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 
-import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
-
 /**
  * Util class to get rid of some boilerplate code in the core classes. The equals code was needed to analyze junit test errors.
  * <p>
@@ -69,6 +67,16 @@ final class EqualsHelper {
 			return false;
 		}
 		if (email1.getDispositionNotificationTo() != null ? !email1.getDispositionNotificationTo().equals(email2.getDispositionNotificationTo()) : email2.getDispositionNotificationTo() != null) {
+			return false;
+		}
+		if (email1.getOriginalSmimeDetails() != null ? !email1.getOriginalSmimeDetails().equals(email2.getOriginalSmimeDetails()) : email2.getOriginalSmimeDetails() != null) {
+			return false;
+		}
+		if (email1.getPkcs12ConfigForSmimeSigning() != null ? !email1.getPkcs12ConfigForSmimeSigning().equals(email2.getPkcs12ConfigForSmimeSigning()) : email2.getPkcs12ConfigForSmimeSigning() != null) {
+			return false;
+		}
+		if (email1.getX509CertificateForSmimeEncryption() != null ? !email1.getX509CertificateForSmimeEncryption().equals(email2.getX509CertificateForSmimeEncryption()) :
+				email2.getX509CertificateForSmimeEncryption() != null) {
 			return false;
 		}
 		return email1.getReturnReceiptTo() != null ? email1.getReturnReceiptTo().equals(email2.getReturnReceiptTo()) : email2.getReturnReceiptTo() == null;

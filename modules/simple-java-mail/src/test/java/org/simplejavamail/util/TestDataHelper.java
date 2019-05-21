@@ -2,12 +2,18 @@ package org.simplejavamail.util;
 
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
+import javax.annotation.Nonnull;
 import javax.mail.util.ByteArrayDataSource;
 
+import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.util.Objects.requireNonNull;
 
 public class TestDataHelper {
+
+	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
+
 	/**
 	 * Since the dresscode attachment name was overridden in the input Email, the original attachment's name is lost forever and won't come back when
 	 * converted to MimeMessage. This would result in an unequal email if the MimeMessage was converted back again, so we need to either clear it in
@@ -22,5 +28,15 @@ public class TestDataHelper {
 				break;
 			}
 		}
+	}
+
+	@Nonnull
+	public static Pkcs12Config loadPkcs12KeyStore() {
+		return Pkcs12Config.builder()
+				.pkcs12Store(RESOURCES_PKCS + "/smime_keystore.pkcs12")
+				.storePassword("letmein")
+				.keyAlias("smime_test_user_alias")
+				.keyPassword("letmein")
+				.build();
 	}
 }

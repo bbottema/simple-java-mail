@@ -1,6 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.internal.modules.ModuleLoader;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
@@ -37,7 +38,10 @@ public final class MimeMessageProducerHelper {
 	public static MimeMessage produceMimeMessage(@Nonnull Email email, @Nonnull Session session) throws UnsupportedEncodingException, MessagingException {
 		for (MimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
 			if (mimeMessageProducer.compatibleWithEmail(email)) {
-				return mimeMessageProducer.populateMimeMessage(email, session);
+				final MimeMessage mimeMessage = mimeMessageProducer.populateMimeMessage(email, session);
+				return ModuleLoader.smimeModuleAvailable()
+						? ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, mimeMessage, email)
+						: mimeMessage;
 			}
 		}
 		throw new AssertionError("no compatible MimeMessageProducer found for email");

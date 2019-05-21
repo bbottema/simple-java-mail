@@ -6,6 +6,8 @@ import net.markenwerk.utils.mail.dkim.DkimSigner;
 import net.markenwerk.utils.mail.dkim.SigningAlgorithm;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.modules.DKIMModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
@@ -20,11 +22,14 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  */
 @SuppressWarnings("unused") // it is ued through reflection
 public class DKIMSigner implements DKIMModule {
-	
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(DKIMSigner.class);
+
 	/**
 	 * @see DKIMModule#signMessageWithDKIM(MimeMessage, Email)
 	 */
 	public MimeMessage signMessageWithDKIM(final MimeMessage messageToSign, final Email signingDetails) {
+		LOGGER.debug("signing MimeMessage with DKIM...");
 		try {
 			final String dkimSelector = checkNonEmptyArgument(signingDetails.getDkimSelector(), "dkimSelector");
 			final DkimSigner dkimSigner = signingDetails.getDkimPrivateKeyFile() != null

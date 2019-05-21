@@ -15,7 +15,8 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
 import org.simplejavamail.internal.clisupport.valueinterpreters.EmlFilePathToMimeMessageFunction;
-import org.simplejavamail.internal.clisupport.valueinterpreters.FilePathIdentityFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.PemFilePathToX509CertificateFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToFileFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.MsgFilePathToMimeMessageFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToCalendarMethodFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToTransportStrategyFunction;
@@ -31,6 +32,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -70,17 +72,19 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(CalendarMethod.class, "RFC-2446 VEVENT METHOD");
 		put(int.class, "NUM");
 		put(Integer.class, "NUM");
-		put(MimeMessage.class, "FILE");
+		put(MimeMessage.class, "EML FILE");
 		put(DataSource.class, "FILE");
 		put(byte[].class, "FILE");
 		put(InputStream.class, "FILE");
 		put(File.class, "FILE");
+		put(X509Certificate.class, "PEM FILE");
 	}};
 	
 	static {
-		ValueConversionHelper.registerValueConverter(new FilePathIdentityFunction());
+		ValueConversionHelper.registerValueConverter(new StringToFileFunction());
 		ValueConversionHelper.registerValueConverter(new EmlFilePathToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new MsgFilePathToMimeMessageFunction());
+		ValueConversionHelper.registerValueConverter(new PemFilePathToX509CertificateFunction());
 		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
 		ValueConversionHelper.registerValueConverter(new StringToCalendarMethodFunction());
 	}

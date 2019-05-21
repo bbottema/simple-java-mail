@@ -8,9 +8,9 @@ public class ImplLoader {
 	
 	public static MailerRegularBuilder<?> loadMailerBuilder() {
 		try {
-			Class<?> mailerBuilderClass = Class.forName("org.simplejavamail.api.mailer.MailerBuilder");
-			return (MailerRegularBuilder) mailerBuilderClass.getMethod("_createForCliOrTest").invoke(mailerBuilderClass);
-		} catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			Class<?> mailerBuilderClass = Class.forName("org.simplejavamail.mailer.internal.MailerRegularBuilderImpl");
+			return (MailerRegularBuilder<?>) mailerBuilderClass.newInstance();
+		} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}
 	}
