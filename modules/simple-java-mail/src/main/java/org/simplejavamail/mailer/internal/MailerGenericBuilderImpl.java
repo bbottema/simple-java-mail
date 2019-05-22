@@ -16,16 +16,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.simplejavamail.config.ConfigLoader.getIntegerProperty;
+import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
+import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
+import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
+import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsBoolean;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsInteger;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
-import static org.simplejavamail.config.ConfigLoader.hasProperty;
 
 /**
  * @see MailerGenericBuilder
@@ -82,16 +81,10 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	private EnumSet<EmailAddressCriteria> emailAddressCriteria;
 
 	/**
-	 * @see MailerGenericBuilder#withThreadPoolCoreSize(Integer)
+	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	@Nonnull
-	private Integer threadPoolCoreSize;
-
-	/**
-	 * @see MailerGenericBuilder#withThreadPoolMaxSize(Integer)
-	 */
-	@Nonnull
-	private Integer threadPoolMaxSize;
+	private Integer threadPoolSize;
 
 	/**
 	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
@@ -141,8 +134,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 		this.proxyBridgePort 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
 		this.debugLogging 				= assumeNonNull(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
 		this.sessionTimeout 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
-		this.threadPoolCoreSize 		= assumeNonNull(valueOrPropertyAsInteger(getIntegerProperty(Property.DEFAULT_POOL_SIZE), Property.DEFAULT_CORE_POOL_SIZE, DEFAULT_CORE_POOL_SIZE));
-		this.threadPoolMaxSize 			= assumeNonNull(valueOrPropertyAsInteger(getIntegerProperty(Property.DEFAULT_POOL_SIZE), Property.DEFAULT_MAX_POOL_SIZE, DEFAULT_MAX_POOL_SIZE));
+		this.threadPoolSize 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
 		this.threadPoolKeepAliveTime 	= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
 		this.transportModeLoggingOnly 	= assumeNonNull(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
 		
@@ -184,8 +176,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 				isAsync(),
 				getProperties(),
 				getSessionTimeout(),
-				getThreadPoolCoreSize(),
-				getThreadPoolMaxSize(),
+				getThreadPoolSize(),
 				getThreadPoolKeepAliveTime(),
 				isTransportModeLoggingOnly(),
 				isDebugLogging(),
@@ -299,25 +290,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	@Override
 	public T withThreadPoolSize(@Nonnull final Integer threadPoolSize) {
-		return (T) withThreadPoolCoreSize(threadPoolSize)
-				.withThreadPoolMaxSize(threadPoolSize);
-	}
-
-	/**
-	 * @see MailerGenericBuilder#withThreadPoolCoreSize(Integer)
-	 */
-	@Override
-	public T withThreadPoolCoreSize(@Nonnull final Integer threadPoolCoreSize) {
-		this.threadPoolCoreSize = threadPoolCoreSize;
-		return (T) this;
-	}
-
-	/**
-	 * @see MailerGenericBuilder#withThreadPoolMaxSize(Integer)
-	 */
-	@Override
-	public T withThreadPoolMaxSize(@Nonnull final Integer threadPoolMaxSize) {
-		this.threadPoolMaxSize = threadPoolMaxSize;
+		this.threadPoolSize = threadPoolSize;
 		return (T) this;
 	}
 
@@ -413,24 +386,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	@Override
 	public T resetThreadpoolSize() {
-		return (T) resetThreadpoolCoreSize()
-				.resetThreadpoolMaxSize();
-	}
-
-	/**
-	 * @see MailerGenericBuilder#resetThreadpoolCoreSize()
-	 */
-	@Override
-	public T resetThreadpoolCoreSize() {
-		return withThreadPoolCoreSize(DEFAULT_CORE_POOL_SIZE);
-	}
-
-	/**
-	 * @see MailerGenericBuilder#resetThreadpoolMaxSize()
-	 */
-	@Override
-	public T resetThreadpoolMaxSize() {
-		return withThreadPoolMaxSize(DEFAULT_MAX_POOL_SIZE);
+		return this.withThreadPoolSize(DEFAULT_POOL_SIZE);
 	}
 
 	/**
@@ -563,21 +519,12 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	}
 
 	/**
-	 * @see MailerGenericBuilder#getThreadPoolCoreSize()
+	 * @see MailerGenericBuilder#getThreadPoolSize()
 	 */
 	@Override
 	@Nonnull
-	public Integer getThreadPoolCoreSize() {
-		return threadPoolCoreSize;
-	}
-
-	/**
-	 * @see MailerGenericBuilder#getThreadPoolMaxSize()
-	 */
-	@Override
-	@Nonnull
-	public Integer getThreadPoolMaxSize() {
-		return threadPoolMaxSize;
+	public Integer getThreadPoolSize() {
+		return threadPoolSize;
 	}
 
 	/**

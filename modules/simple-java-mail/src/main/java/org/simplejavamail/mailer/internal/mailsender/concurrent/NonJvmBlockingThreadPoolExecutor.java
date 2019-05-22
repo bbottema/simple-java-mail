@@ -16,8 +16,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class NonJvmBlockingThreadPoolExecutor extends ThreadPoolExecutor {
 	public NonJvmBlockingThreadPoolExecutor(OperationalConfig operationalConfig, String threadNamePrefix) {
-		super(operationalConfig.getThreadPoolCoreSize(),
-				operationalConfig.getThreadPoolMaxSize(),
+		super(operationalConfig.getThreadPoolSize(),
+				operationalConfig.getThreadPoolSize(),
 				operationalConfig.getThreadPoolKeepAliveTime(),
 				TimeUnit.MILLISECONDS,
 				new LinkedBlockingQueue<Runnable>(),

@@ -27,15 +27,8 @@ public class OperationalConfigImpl implements OperationalConfig {
 
 	/**
 	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
-	 * @see MailerRegularBuilder#withThreadPoolCoreSize(Integer)
 	 */
-	private final int threadPoolCoreSize;
-
-	/**
-	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
-	 * @see MailerRegularBuilder#withThreadPoolMaxSize(Integer)
-	 */
-	private final int threadPoolMaxSize;
+	private final int threadPoolSize;
 
 	/**
 	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTime(Integer)
@@ -67,13 +60,12 @@ public class OperationalConfigImpl implements OperationalConfig {
 	 */
 	@Deprecated
 	@SuppressWarnings("DeprecatedIsStillUsed")
-	public OperationalConfigImpl(boolean async, Properties properties, int sessionTimeout, int threadPoolCoreSize, int threadPoolMaxSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly, boolean debugLogging,
+	public OperationalConfigImpl(boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly, boolean debugLogging,
 			List<String> sslHostsToTrust, boolean trustAllSSLHost) {
 		this.async = async;
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
-		this.threadPoolCoreSize = threadPoolCoreSize;
-		this.threadPoolMaxSize = threadPoolMaxSize;
+		this.threadPoolSize = threadPoolSize;
 		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.debugLogging = debugLogging;
@@ -98,19 +90,11 @@ public class OperationalConfigImpl implements OperationalConfig {
 	}
 
 	/**
-	 * @see OperationalConfig#getThreadPoolCoreSize()
+	 * @see OperationalConfig#getThreadPoolSize()
 	 */
 	@Override
-	public int getThreadPoolCoreSize() {
-		return threadPoolCoreSize;
-	}
-
-	/**
-	 * @see OperationalConfig#getThreadPoolMaxSize()
-	 */
-	@Override
-	public int getThreadPoolMaxSize() {
-		return threadPoolMaxSize;
+	public int getThreadPoolSize() {
+		return threadPoolSize;
 	}
 
 	/**

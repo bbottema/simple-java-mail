@@ -26,15 +26,8 @@ public interface OperationalConfig {
 
 	/**
 	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
-	 * @see MailerRegularBuilder#withThreadPoolCoreSize(Integer)
 	 */
-	int getThreadPoolCoreSize();
-
-	/**
-	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
-	 * @see MailerRegularBuilder#withThreadPoolMaxSize(Integer)
-	 */
-	int getThreadPoolMaxSize();
+	int getThreadPoolSize();
 
 	/**
 	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTime(Integer)

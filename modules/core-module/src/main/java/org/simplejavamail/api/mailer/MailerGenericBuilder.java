@@ -11,7 +11,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Builder superclass which contains API to take care of all generic Mailer properties unrelated to the SMTP server
@@ -29,15 +28,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * {@value}
 	 *
-	 * @see #withThreadPoolCoreSize(Integer)
+	 * @see #withThreadPoolSize(Integer)
 	 */
-	int DEFAULT_CORE_POOL_SIZE = 10;
-	/**
-	 * {@value}
-	 *
-	 * @see #withThreadPoolMaxSize(Integer)
-	 */
-	int DEFAULT_MAX_POOL_SIZE = 10;
+	int DEFAULT_POOL_SIZE = 10;
 	/**
 	 * {@value}
 	 *
@@ -168,43 +161,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @param threadPoolSize See main description.
 	 *
 	 * @see #resetThreadpoolSize()
-	 * @see #withThreadPoolCoreSize(Integer)
-	 * @see #withThreadPoolMaxSize(Integer)
+	 * @see #withThreadPoolSize(Integer)
 	 */
 	T withThreadPoolSize(@Nonnull Integer threadPoolSize);
-
-	/**
-	 * When sending in async / batch mode, controls the minimum number of threads when starting up and when idling. However, by default a keepAlivetime is also configured, so the core threads
-	 * actually die off, as to not block the JVM from exiting.
-	 * <p>
-	 * To revert to normal maxCoreThreads behavior, configure keepAlivetime to zero.
-	 * <p>
-	 * For more details on this, refer to {@link java.util.concurrent.ThreadPoolExecutor#setCorePoolSize(int)}, {@link java.util.concurrent.ThreadPoolExecutor#setKeepAliveTime(long, TimeUnit)} and
-	 * particularly {@link java.util.concurrent.ThreadPoolExecutor#allowCoreThreadTimeOut(boolean)}
-	 * <p>
-	 * Defaults to {@value #DEFAULT_CORE_POOL_SIZE}.
-	 *
-	 * @param threadPoolCoreSize See main description.
-	 *
-	 * @see #resetThreadpoolCoreSize()
-	 */
-	T withThreadPoolCoreSize(@Nonnull Integer threadPoolCoreSize);
-
-	/**
-	 * When sending in async / batch mode, controls the maximum number of concurrent threads when ramping up mail sessions.
-	 * by default a keepAlivetime is also configured, so these threads die off automatically, as to not block the JVM from exiting.
-	 * <p>
-	 * To revert to normal maxThreads behavior, configure keepAliveTime to zero.
-	 * <p>
-	 * For more details on this, refer to {@link java.util.concurrent.ThreadPoolExecutor#setMaximumPoolSize(int)}, {@link java.util.concurrent.ThreadPoolExecutor#setKeepAliveTime(long, TimeUnit)}.
-	 * <p>
-	 * Defaults to {@value #DEFAULT_MAX_POOL_SIZE}.
-	 *
-	 * @param threadPoolMaxSize See main description.
-	 *
-	 * @see #resetThreadpoolMaxSize()
-	 */
-	T withThreadPoolMaxSize(@Nonnull Integer threadPoolMaxSize);
 
 	/**
 	 * When set to a non-zero value (milliseconds), this keepAlivetime is applied to <em>both</em> core and extra threads. This is so that
@@ -310,20 +269,6 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetThreadpoolSize();
 
 	/**
-	 * Resets thread pool core size to its default ({@value #DEFAULT_CORE_POOL_SIZE}).
-	 *
-	 * @see #withThreadPoolCoreSize(Integer)
-	 */
-	T resetThreadpoolCoreSize();
-
-	/**
-	 * Resets thread pool max size to its default ({@value #DEFAULT_MAX_POOL_SIZE}).
-	 *
-	 * @see #withThreadPoolMaxSize(Integer)
-	 */
-	T resetThreadpoolMaxSize();
-
-	/**
 	 * Resets threadPoolMaxSize to its default ({@value #DEFAULT_POOL_KEEP_ALIVE_TIME}).
 	 *
 	 * @see #withThreadPoolKeepAliveTime(Integer)
@@ -420,16 +365,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	EnumSet<EmailAddressCriteria> getEmailAddressCriteria();
 
 	/**
-	 * @see #withThreadPoolCoreSize(Integer)
+	 * @see #withThreadPoolSize(Integer)
 	 */
 	@Nonnull
-	Integer getThreadPoolCoreSize();
-
-	/**
-	 * @see #withThreadPoolMaxSize(Integer)
-	 */
-	@Nonnull
-	Integer getThreadPoolMaxSize();
+	Integer getThreadPoolSize();
 
 	/**
 	 * @see #withThreadPoolKeepAliveTime(Integer)
