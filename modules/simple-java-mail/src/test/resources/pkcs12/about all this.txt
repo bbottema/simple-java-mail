@@ -1,0 +1,17 @@
+how-to.html
+    -> to generate CA cert, private key and and S/MIME format
+https://knowledge.digicert.com/solution/SO26449.html
+    -> to get p7b file from PEM (.key file) (not needed after all)
+smime.cnf
+    -> openssl config file from the how-to.html
+
+smime_keystore.pkcs12 with key "smime_test_user_alias"
+    -> created following https://stackoverflow.com/a/22647106/441662:
+        - openssl pkcs12 -export -in smime_test_user.pem.crt -inkey smime_test_user.key -out smime_keystore.pkcs12 -name smime_test_user_alias -noiter -nomaciter
+
+smime_test_user.pem.openssl.crt is the openssl nonstandard format
+    - https://stackoverflow.com/questions/55550299/java-can-not-load-begin-trusted-certificate-format-certificate
+smime_test_user.pem.standard.crt is the converted version
+    - openssl x509 <smime_test_user.pem.openssl.crt >smime_test_user.pem.standard.crt
+
+Password for everything: letmein

@@ -58,6 +58,13 @@
         </dependency>
         <dependency>
             <groupId>org.simplejavamail</groupId>
+            <artifactId>smime-module</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
             <artifactId>outlook-module</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>

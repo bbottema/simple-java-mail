@@ -467,7 +467,7 @@ public final class MimeMessageParser {
 		}
 	}
 
-	@Nullable
+	@Nonnull
 	public static String parseSubject(@Nonnull final MimeMessage mimeMessage) {
 		try {
 			return ofNullable(mimeMessage.getSubject()).orElse("");

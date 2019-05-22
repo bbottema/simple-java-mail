@@ -5,6 +5,7 @@ import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -12,6 +13,8 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.internal.mailsender.MailSender;
+import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.mailer.internal.mailsender.MailSenderImpl;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -24,6 +27,8 @@ import javax.mail.Authenticator;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
+import java.security.cert.X509Certificate;
+import javax.mail.internet.MimeUtility;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Properties;
@@ -32,6 +37,7 @@ import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
+import static org.simplejavamail.mailer.internal.MailerException.SMIME_MODULE_NOT_AVAILABLE;
 
 /**
  * @see Mailer
@@ -190,7 +196,7 @@ public class MailerImpl implements Mailer {
 	public void testConnection() {
 		this.testConnection(false);
 	}
-	
+
 	/**
 	 * @see Mailer#testConnection(boolean)
 	 */
@@ -228,7 +234,7 @@ public class MailerImpl implements Mailer {
 	public boolean validate(final Email email)
 			throws MailException {
 		LOGGER.debug("validating email...");
-		
+
 		// check for mandatory values
 		if (email.getRecipients().size() == 0) {
 			throw new MailerException(MailerException.MISSING_RECIPIENT);
@@ -270,7 +276,11 @@ public class MailerImpl implements Mailer {
 		scanForInjectionAttack(email.getSubject(), "email.subject");
 		for (final Map.Entry<String, String> headerEntry : email.getHeaders().entrySet()) {
 			scanForInjectionAttack(headerEntry.getKey(), "email.header.mapEntryKey");
-			scanForInjectionAttack(headerEntry.getValue(), "email.header." + headerEntry.getKey());
+			if (headerEntry.getKey().equals("References")) {
+				scanForInjectionAttack(MimeUtility.unfold(headerEntry.getValue()), "email.header.References");
+			} else {
+				scanForInjectionAttack(headerEntry.getValue(), "email.header." + headerEntry.getKey());
+			}
 		}
 		for (final AttachmentResource attachment : email.getAttachments()) {
 			scanForInjectionAttack(attachment.getName(), "email.attachment.name");
@@ -294,28 +304,47 @@ public class MailerImpl implements Mailer {
 		}
 		
 		LOGGER.debug("...no problems found");
-		
+
 		return true;
 	}
 	
 	/**
 	 * @param value      Value checked for suspicious newline characters "\n", "\r" and "%0A" (as acknowledged by SMTP servers).
 	 * @param valueLabel The name of the field being checked, used for reporting exceptions.
+	 *
+	 * @see <a href="http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security">http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security</a>
+	 * @see <a href="https://security.stackexchange.com/a/54100/110048">https://security.stackexchange.com/a/54100/110048</a>
+	 * @see <a href="https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)">https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)</a>
+	 * @see <a href="http://cwe.mitre.org/data/definitions/93.html">http://cwe.mitre.org/data/definitions/93.html</a>
 	 */
 	private static void scanForInjectionAttack(final @Nullable String value, final String valueLabel) {
 		if (value != null && (value.contains("\n") || value.contains("\r") || value.contains("%0A"))) {
 			throw new MailerException(format(MailerException.INJECTION_SUSPECTED, valueLabel, value));
 		}
 	}
-	
+
 	/**
 	 * Refer to {@link MimeMessageHelper#signMessageWithDKIM(MimeMessage, Email)}
 	 */
 	@SuppressWarnings("unused")
-	public static MimeMessage signMessageWithDKIM(final MimeMessage messageToSign, final Email emailContainingSigningDetails) {
+	public static MimeMessage signMessageWithDKIM(@Nonnull final MimeMessage messageToSign, @Nonnull final Email emailContainingSigningDetails) {
 		return MimeMessageHelper.signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
 	}
-	
+
+	/**
+	 * Depending on the Email configuration, signs and then encrypts message (both steps optional), using the S/MIME module.
+	 *
+	 * @see SMIMEModule#signAndOrEncryptEmail(Session, MimeMessage, Email)
+	 */
+	@SuppressWarnings("unused")
+	public static MimeMessage signAndOrEncryptMessageWithSmime(@Nonnull final Session session, @Nonnull final MimeMessage messageToProtect, @Nonnull final Email emailContainingSmimeDetails) {
+		if (ModuleLoader.smimeModuleAvailable()) {
+			return ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, messageToProtect, emailContainingSmimeDetails);
+		} else {
+			throw new MailerException(SMIME_MODULE_NOT_AVAILABLE);
+		}
+	}
+
 	/**
 	 * Simple Authenticator used to create a {@link Session} object with in {@link #createMailSession(ServerConfig, TransportStrategy)}.
 	 */

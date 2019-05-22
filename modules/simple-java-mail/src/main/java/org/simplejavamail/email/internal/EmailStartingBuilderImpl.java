@@ -6,8 +6,6 @@ import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.email.internal.EmailException;
-import org.simplejavamail.email.internal.EmailPopulatingBuilderImpl;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
@@ -157,7 +155,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder forwarding(@Nonnull final MimeMessage message) {
-		return ((EmailPopulatingBuilderImpl) startingBlank())
+		return ((InternalEmailPopulatingBuilder) startingBlank())
 				.withForward(message)
 				.withSubject("Fwd: " + MimeMessageParser.parseSubject(message));
 	}
@@ -181,9 +179,10 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	/**
 	 * @see EmailStartingBuilder#copying(Email)
 	 */
+	@SuppressWarnings({ "CastCanBeRemovedNarrowingVariableType", "deprecation" })
 	@Override
 	public EmailPopulatingBuilder copying(@Nonnull final Email email) {
-		EmailPopulatingBuilderImpl builder = new EmailPopulatingBuilderImpl(applyDefaults);
+		EmailPopulatingBuilder builder = new EmailPopulatingBuilderImpl(applyDefaults);
 		if (email.getId() != null) {
 			builder.fixingMessageId(email.getId());
 		}
@@ -215,7 +214,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			builder.withAttachments(email.getAttachments());
 		}
 		if (email.getHeaders() != null) {
-			builder.withHeaders(email.getHeaders());
+			((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
 		}
 		if (email.getDkimPrivateKeyFile() != null) {
 			builder.signWithDomainKey(email.getDkimPrivateKeyFile(), assumeNonNull(email.getDkimSigningDomain()), assumeNonNull(email.getDkimSelector()));
@@ -230,7 +229,19 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			builder.withReturnReceiptTo(email.getReturnReceiptTo());
 		}
 		if (email.getEmailToForward() != null) {
-			builder.withForward(email.getEmailToForward());
+			((InternalEmailPopulatingBuilder) builder).withForward(email.getEmailToForward());
+		}
+		if (email.getDecryptedAttachments() != null) {
+			((InternalEmailPopulatingBuilder) builder).withDecryptedAttachments(email.getDecryptedAttachments());
+		}
+		if (email.getSmimeSignedEmail() != null) {
+			((InternalEmailPopulatingBuilder) builder).withSmimeSignedEmail(email.getSmimeSignedEmail());
+		}
+		if (email.getOriginalSmimeDetails() != null) {
+			((InternalEmailPopulatingBuilder) builder).withOriginalSmimeDetails(email.getOriginalSmimeDetails());
+		}
+		if (!email.wasMergedWithSmimeSignedMessage()) {
+			builder.notMergingSingleSMIMESignedAttachment();
 		}
 		return builder;
 	}

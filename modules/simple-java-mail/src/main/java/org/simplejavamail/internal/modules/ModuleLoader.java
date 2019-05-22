@@ -34,7 +34,7 @@ public class ModuleLoader {
 		}
 		return (DKIMModule) LOADED_MODULES.get(DKIMModule.class);
 	}
-	
+
 	public static OutlookModule loadOutlookModule() {
 		if (!LOADED_MODULES.containsKey(OutlookModule.class)) {
 			LOADED_MODULES.put(OutlookModule.class, loadModule(
@@ -45,7 +45,22 @@ public class ModuleLoader {
 		}
 		return (OutlookModule) LOADED_MODULES.get(OutlookModule.class);
 	}
-	
+
+	public static SMIMEModule loadSmimeModule() {
+		if (!LOADED_MODULES.containsKey(SMIMEModule.class)) {
+			LOADED_MODULES.put(SMIMEModule.class, loadModule(
+					"S/MIME",
+					"org.simplejavamail.internal.smimesupport.SMIMESupport",
+					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/smime-module"
+			));
+		}
+		return (SMIMEModule) LOADED_MODULES.get(SMIMEModule.class);
+	}
+
+	public static boolean smimeModuleAvailable() {
+		return MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
+	}
+
 	@SuppressWarnings("unchecked")
 	private static <T> T loadModule(String moduleName, String moduleClass, String moduleHome) {
 		try {

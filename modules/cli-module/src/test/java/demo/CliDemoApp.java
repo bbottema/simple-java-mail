@@ -1,10 +1,10 @@
 package demo;
 
 import org.simplejavamail.internal.clisupport.CliSupport;
-import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import testutil.ConfigLoaderTestHelper;
 
+import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.util.Objects.requireNonNull;
 
 public class CliDemoApp extends DemoAppBase {

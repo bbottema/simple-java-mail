@@ -3,7 +3,7 @@ package org.simplejavamail.internal.clisupport.valueinterpreters;
 import javax.annotation.Nonnull;
 import java.io.File;
 
-public class FilePathIdentityFunction extends FileBasedFunction<File> {
+public class StringToFileFunction extends FileBasedFunction<File> {
 	
 	@Override
 	public Class<String> getFromType() {

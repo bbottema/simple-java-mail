@@ -239,7 +239,7 @@ public class MailerTest {
 	@Test
 	public void testDKIMPriming()
 			throws IOException {
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false);
+		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false, true);
 		
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
 		String privateDERkeyBase64 =
@@ -260,7 +260,7 @@ public class MailerTest {
 	@Test
 	public void testParser()
 			throws Exception {
-		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailHelper.createDummyEmailBuilder(true, false, false);
+		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailHelper.createDummyEmailBuilder(true, false, false, true);
 		
 		// let's try producing and then consuming a MimeMessage ->
 		// (bounce recipient is not part of the Mimemessage but the Envelope and is configured on the Session, so just ignore this)

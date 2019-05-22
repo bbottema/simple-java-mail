@@ -113,6 +113,18 @@ public final class MiscUtil {
 	}
 
 	/**
+	 * Uses standard JDK java to read an inputstream to byte[].
+	 */
+	@Nonnull
+	public static byte[] readInputStreamToBytes(@Nonnull final InputStream inputStream)
+			throws IOException {
+		byte[] targetArray = new byte[inputStream.available()];
+		//noinspection ResultOfMethodCallIgnored
+		inputStream.read(targetArray);
+		return targetArray;
+	}
+
+	/**
 	 * Recognizes the tails of each address entry, so it can replace the [';] delimiters, thereby disambiguating the delimiters, since they can
 	 * appear in names as well (making it difficult to split on [,;] delimiters.
 	 *
@@ -197,5 +209,31 @@ public final class MiscUtil {
 			throw new IllegalArgumentException(format("File not found: %s", file));
 		}
 		return new String(Files.readAllBytes(file.toPath()), UTF_8);
+	}
+
+	public static boolean inputStreamEqual(InputStream input1, InputStream input2) {
+		if (!(input1 instanceof BufferedInputStream)) {
+			input1 = new BufferedInputStream(input1);
+		}
+		if (!(input2 instanceof BufferedInputStream)) {
+			input2 = new BufferedInputStream(input2);
+		}
+
+		int ch;
+		try {
+			ch = input1.read();
+			while (ch != -1) {
+				int ch2 = input2.read();
+				if (ch != ch2) {
+					return false;
+				}
+				ch = input1.read();
+			}
+
+			int ch2 = input2.read();
+			return (ch2 == -1);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

@@ -5,8 +5,6 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import testutil.ConfigLoaderTestHelper;
 import testutil.ImplLoader;
 
-import java.io.File;
-
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
 public class DemoAppBase {
@@ -33,17 +31,6 @@ public class DemoAppBase {
 		//noinspection ConstantConditions
 		if (YOUR_GMAIL_ADDRESS.equals("your_gmail_user@gmail.com")) {
 			throw new AssertionError("For these demo's to work, please provide your Gnail credentials in DemoAppBase.java first (or change the SMTP config)");
-		}
-	}
-	
-	static String determineResourceFolder(@SuppressWarnings("SameParameterValue") final String module) {
-		// the following is needed bacause this is a project with submodules
-		if (new File("src/test/resources/log4j2.xml").exists()) {
-			return "src";
-		} else if (new File("modules/" + module + "/src/test/resources/log4j2.xml").exists()) {
-			return "modules/" + module + "/src";
-		} else {
-			throw new AssertionError("Was unable to locate resources folder");
 		}
 	}
 	
