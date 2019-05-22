@@ -21,6 +21,7 @@ import javax.mail.Authenticator;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeUtility;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Properties;
@@ -302,7 +303,11 @@ public class Mailer {
 		scanForInjectionAttack(email.getSubject(), "email.subject");
 		for (final Map.Entry<String, String> headerEntry : email.getHeaders().entrySet()) {
 			scanForInjectionAttack(headerEntry.getKey(), "email.header.mapEntryKey");
-			scanForInjectionAttack(headerEntry.getValue(), "email.header." + headerEntry.getKey());
+			if (headerEntry.getKey().equals("References")) {
+				scanForInjectionAttack(MimeUtility.unfold(headerEntry.getValue()), "email.header.References");
+			} else {
+				scanForInjectionAttack(headerEntry.getValue(), "email.header." + headerEntry.getKey());
+			}
 		}
 		for (final AttachmentResource attachment : email.getAttachments()) {
 			scanForInjectionAttack(attachment.getName(), "email.attachment.name");
@@ -331,6 +336,11 @@ public class Mailer {
 	/**
 	 * @param value      Value checked for suspicious newline characters "\n", "\r" and "%0A" (as acknowledged by SMTP servers).
 	 * @param valueLabel The name of the field being checked, used for reporting exceptions.
+	 *
+	 * @see <a href="http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security">http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security</a>
+	 * @see <a href="https://security.stackexchange.com/a/54100/110048">https://security.stackexchange.com/a/54100/110048</a>
+	 * @see <a href="https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)">https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)</a>
+	 * @see <a href="http://cwe.mitre.org/data/definitions/93.html">http://cwe.mitre.org/data/definitions/93.html</a>
 	 */
 	private static void scanForInjectionAttack(final String value, final String valueLabel) {
 		if (value != null && (value.contains("\n") || value.contains("\r") || value.contains("%0A"))) {
