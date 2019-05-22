@@ -23,9 +23,11 @@ import testutil.testrules.TestSmtpServer;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
+import javax.mail.internet.MimeUtility;
 import java.io.IOException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static java.lang.String.format;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
@@ -241,7 +243,7 @@ public class MailerLiveTest {
 			((InternalEmailPopulatingBuilder) originalEmailPopulatingBuilder)
 					.withOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder().build());
 		}
-		
+
 		if (compensateForDresscodeAttachmentNameOverrideErasure) {
 			TestDataHelper.fixDresscodeAttachment(receivedEmail);
 		}
@@ -296,20 +298,42 @@ public class MailerLiveTest {
 		// send reply to initial mail
 		Email reply = EmailBuilder
 				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false, false))
-				.withHeader("References", "dummy-references")
-				.from("dummy@domain.com")
+				.from("Moo Shmoo", "dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
 		
 		// test received reply to initial mail
 		mailer.sendMail(reply);
-		MimeMessage receivedMimeMessageReply1 = smtpServerRule.getOnlyMessage("lo.pop.replyto@somemail.com");
-		Email receivedReply = mimeMessageToEmail(receivedMimeMessageReply1);
+		MimeMessage receivedMimeMessageReply = smtpServerRule.getOnlyMessage("lo.pop.replyto@somemail.com");
+		Email receivedReply = mimeMessageToEmail(receivedMimeMessageReply);
 		
 		EmailAssert.assertThat(receivedReply).hasSubject("Re: hey");
 		EmailAssert.assertThat(receivedReply).hasOnlyRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO));
 		assertThat(receivedReply.getHeaders()).contains(entry("In-Reply-To", receivedEmailPopulatingBuilder.getId()));
-		assertThat(receivedReply.getHeaders()).contains(entry("References", "dummy-references"));
+		assertThat(receivedReply.getHeaders()).contains(entry("References", receivedEmailPopulatingBuilder.getId()));
+
+		EmailPopulatingBuilder receivedEmailReplyPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessageReply);
+
+		Email replyToReply = EmailBuilder
+				.replyingTo(assertSendingEmail(receivedEmailReplyPopulatingBuilder, false, false))
+				.from("Pappa Moo", "dummy@domain.com")
+				.withPlainText("This is the reply to the reply")
+				.buildEmail();
+
+		// test received reply to initial mail
+		mailer.sendMail(replyToReply);
+		MimeMessage receivedMimeMessageReplyToReply = smtpServerRule.getOnlyMessage("dummy@domain.com");
+		Email receivedReplyToReply = mimeMessageToEmail(receivedMimeMessageReplyToReply);
+
+		EmailAssert.assertThat(receivedReplyToReply).hasSubject("Re: hey");
+		EmailAssert.assertThat(receivedReplyToReply).hasOnlyRecipients(new Recipient("Moo Shmoo", "dummy@domain.com", TO));
+		assertThat(receivedReplyToReply.getHeaders()).contains(entry("In-Reply-To", receivedEmailReplyPopulatingBuilder.getId()));
+
+		assertThat(receivedReplyToReply.getHeaders()).contains(entry("References",
+				MimeUtility.fold("References: ".length(), format("%s\n%s",
+						receivedEmailPopulatingBuilder.getId(),
+						receivedEmailReplyPopulatingBuilder.getId()))
+		));
 	}
 	
 	private void assertAttachmentMetadata(AttachmentResource embeddedImg, String mimeType, String filename) {

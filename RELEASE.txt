@@ -3,11 +3,12 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.1.6</version>
+    <version>5.1.7</version>
 </dependency>
 
-v5.1.1 - v5.1.6
+v5.1.1 - v5.1.7
 
+- v5.1.7 (22-May-2019): #171 Header validation tripping on known safe emails due to References header
 - v5.1.6 (27-April-2019): #204A Concurrent exception when an async process starts when the previous connection pool didn't shutdown in time
 - v5.1.6 (27-April-2019): #204B Exceptions in threads are now caught and logged and don't bubble up anymore
 - v5.1.5 (24-April-2019): #202 Fixed ConcurrentModificationException when moving invalid embedded images as regular attachments
