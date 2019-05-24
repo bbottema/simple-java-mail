@@ -108,7 +108,7 @@ public class MailerBuilder {
 	public static MailerRegularBuilderImpl withDebugLogging(Boolean debugLogging) {
 		return new MailerRegularBuilderImpl().withDebugLogging(debugLogging);
 	}
-	
+
 	/**
 	 * Shortcuts to {@link MailerRegularBuilder#buildMailer()}. This means that none of the builder methods are used and the configuration completely
 	 * depends on defaults being configured from property file ("simplejavamail.properties") on the classpath or through programmatic defaults.
