@@ -37,7 +37,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @see #withThreadPoolKeepAliveTime(Integer)
 	 */
-	int DEFAULT_POOL_KEEP_ALIVE_TIME = 2000;
+	int DEFAULT_POOL_KEEP_ALIVE_TIME = 1;
 	/**
 	 * Default port is <code>{@value}</code>.
 	 */
