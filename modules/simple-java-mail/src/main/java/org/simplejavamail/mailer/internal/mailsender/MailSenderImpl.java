@@ -31,7 +31,6 @@ import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
-import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * Class that performs the actual javax.mail SMTP integration.
@@ -56,7 +55,7 @@ public class MailSenderImpl implements MailSender {
 	 * Depending on the transport strategy, these properties are different, that's why we need to keep a global hold on this instance.
 	 * <p>
 	 * <strong>NOTE:</strong><br>
-	 * This is an optional parameter and as such some functions will throw an error when used (such as {@link #trustAllHosts(boolean)}) or
+	 * This is an optional parameter and as such some functions will throw an error when used (such as {@link #trustAllHosts(Session, boolean, TransportStrategy)}) or
 	 * will skip setting optional properties (such as default timeouts) and also skip mandatory properties which are assumed to be preconfigured on
 	 * the Session instance (these will be logged on DEBUG level, such as proxy host and port properties).
 	 */
@@ -95,21 +94,22 @@ public class MailSenderImpl implements MailSender {
 						  @Nonnull final OperationalConfig operationalConfig,
 						  @Nonnull final ProxyConfig proxyConfig,
 						  @Nullable final TransportStrategy transportStrategy) {
+		initSession(session, operationalConfig, transportStrategy);
+
 		this.session = session;
 		this.operationalConfig = operationalConfig;
 		this.transportStrategy = transportStrategy;
 		this.proxyServer = configureSessionWithProxy(proxyConfig, session, transportStrategy);
-		init(operationalConfig);
 	}
 	
-	private void init(@Nonnull OperationalConfig operationalConfig) {
+	private void initSession(@Nonnull final Session session, @Nonnull OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
 		session.setDebug(operationalConfig.isDebugLogging());
 		session.getProperties().putAll(operationalConfig.getProperties());
 		if (transportStrategy != null) {
 			if (operationalConfig.isTrustAllSSLHost()) {
-				trustAllHosts(true);
+				trustAllHosts(session, true, transportStrategy);
 			} else {
-				trustHosts(operationalConfig.getSslHostsToTrust());
+				trustHosts(session, operationalConfig.getSslHostsToTrust(), transportStrategy);
 			}
 		}
 	}
@@ -325,33 +325,26 @@ public class MailSenderImpl implements MailSender {
 	}
 
 	/**
-	 * @see MailerGenericBuilderImpl#trustingAllHosts(boolean)
-	 */
-	private void trustAllHosts(final boolean trustAllHosts) {
-		if (transportStrategy != null) {
-			session.getProperties().remove(transportStrategy.propertyNameSSLTrust());
-			if (trustAllHosts) {
-				session.getProperties().setProperty(transportStrategy.propertyNameSSLTrust(), "*");
-			}
-		} else {
-			throw new MailSenderException(MailSenderException.CANNOT_SET_TRUST_WITHOUT_TRANSPORTSTRATEGY);
-		}
-	}
-
-	/**
 	 * @see MailerGenericBuilderImpl#trustingSSLHosts(String...)
 	 */
-	private void trustHosts(@Nonnull final List<String>  hosts) {
-		trustAllHosts(false);
+	private void trustHosts(@Nonnull final Session session, @Nonnull final List<String> hosts, @Nonnull final TransportStrategy transportStrategy) {
+		trustAllHosts(session, false, transportStrategy);
 		if (!hosts.isEmpty()) {
-			if (transportStrategy == null) {
-				throw new MailSenderException(MailSenderException.CANNOT_SET_TRUST_WITHOUT_TRANSPORTSTRATEGY);
-			}
 			final StringBuilder builder = new StringBuilder(getFirst(hosts));
 			for (int i = 1; i < hosts.size(); i++) {
 				builder.append(" ").append(hosts.get(i));
 			}
 			session.getProperties().setProperty(transportStrategy.propertyNameSSLTrust(), builder.toString());
+		}
+	}
+
+	/**
+	 * @see MailerGenericBuilderImpl#trustingAllHosts(boolean)
+	 */
+	private void trustAllHosts(@Nonnull final Session session, final boolean trustAllHosts, @Nonnull final TransportStrategy transportStrategy) {
+		session.getProperties().remove(transportStrategy.propertyNameSSLTrust());
+		if (trustAllHosts) {
+			session.getProperties().setProperty(transportStrategy.propertyNameSSLTrust(), "*");
 		}
 	}
 
