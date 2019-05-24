@@ -21,6 +21,7 @@
         <Logger name="org.simplejavamail.api.mailer.internal.socks" level="info"/>
         <Logger name="org.subethamail.smtp.server" level="info"/>
         <Logger name="org.simplejavamail.outlookmessageparser" level="warn"/>
+        <Logger name="net.fortuna.ical4j" level="info"/>
 
         <Root level="debug">
             <AppenderRef ref="console" />
