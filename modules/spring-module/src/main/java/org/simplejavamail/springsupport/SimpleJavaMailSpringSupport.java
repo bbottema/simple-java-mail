@@ -1,10 +1,11 @@
 package org.simplejavamail.springsupport;
 
 import org.simplejavamail.api.mailer.Mailer;
-import org.simplejavamail.mailer.MailerBuilder;
-import org.simplejavamail.mailer.internal.MailerImpl;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
+import org.simplejavamail.mailer.internal.MailerImpl;
+import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -60,7 +61,13 @@ import java.util.Properties;
 public class SimpleJavaMailSpringSupport {
 
 	@Bean
-	public Mailer loadGlobalConfigAndCreateDefaultMailer(
+	public Mailer defaultMailer(MailerGenericBuilder defaultMailerBuilder) {
+		return defaultMailerBuilder.buildMailer();
+	}
+
+	@SuppressWarnings("deprecation")
+	@Bean("defaultMailerBuilder")
+	public MailerGenericBuilder loadGlobalConfigAndCreateDefaultMailer(
 			// now obviously there are easier ways to do this, but this is the only way
 			// I can think of that actually works across Spring versions
 			@Value("${simplejavamail.javaxmail.debug:#{null}}") final String javaxmailDebug,
@@ -137,7 +144,7 @@ public class SimpleJavaMailSpringSupport {
 
 		// This will configure itself with the global config and is ready to use.
 		// Ofcourse this is optional simply as a convenience default.
-		return MailerBuilder.buildMailer();
+		return new MailerRegularBuilderImpl();
 	}
 
 	private static void setNullableProperty(final Properties emailProperties, final String key, final String value) {
