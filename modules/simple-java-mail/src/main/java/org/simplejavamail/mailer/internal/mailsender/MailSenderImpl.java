@@ -212,7 +212,6 @@ public class MailSenderImpl implements MailSender {
 	/**
 	 * Separate closure that can be executed directly or from a thread. Refer to {@link #send(Email, boolean)} for details.
 	 */
-	// used to be a method with simple parameters! would still have been, if Java 7 supported lambda's :(
 	private class SendMailClosure implements Runnable {
 
 		@Nonnull final Session session;
