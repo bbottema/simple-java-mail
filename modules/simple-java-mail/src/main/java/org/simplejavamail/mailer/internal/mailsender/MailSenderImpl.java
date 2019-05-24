@@ -105,6 +105,9 @@ public class MailSenderImpl implements MailSender {
 	private void initSession(@Nonnull final Session session, @Nonnull OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
 		session.setDebug(operationalConfig.isDebugLogging());
 		session.getProperties().putAll(operationalConfig.getProperties());
+
+		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
+
 		if (transportStrategy != null) {
 			if (operationalConfig.isTrustAllSSLHost()) {
 				trustAllHosts(session, true, transportStrategy);
@@ -187,8 +190,6 @@ public class MailSenderImpl implements MailSender {
 			if (executor == null) {
 				executor = new NonJvmBlockingThreadPoolExecutor(operationalConfig, "Simple Java Mail async mail sender");
 			}
-			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
-
 			return AsyncOperationHelper.executeAsync(executor, "sendMail process", sendMailClosure);
 		}
 	}
