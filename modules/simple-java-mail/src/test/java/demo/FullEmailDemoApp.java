@@ -1,10 +1,10 @@
 package demo;
 
-import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.email.EmailBuilder;
 import testutil.CalendarHelper;
 
 import javax.mail.internet.MimeMessage;
@@ -15,7 +15,6 @@ import java.nio.charset.Charset;
 /**
  * Demonstration program for the Simple Java Mail framework. Just fill your gmail, password and press GO.
  */
-@SuppressWarnings({"WeakerAccess", "UnusedAssignment"})
 public class FullEmailDemoApp extends DemoAppBase {
 	
 	public static void main(final String[] args) throws IOException {
@@ -58,7 +57,7 @@ public class FullEmailDemoApp extends DemoAppBase {
 		Email emailNormal = emailPopulatingBuilderNormal.buildEmail();
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
-		
+
 		mailerSMTP.sendMail(emailNormal);
 		mailerTLS.sendMail(emailNormal);
 		mailerSSL.sendMail(emailNormal);
