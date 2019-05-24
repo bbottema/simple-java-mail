@@ -510,12 +510,28 @@ public enum TransportStrategy {
 	public abstract String propertyNameSocksPort();
 	/**
 	 * For internal use only.
+	 *
+	 * @see "SMTP.propertyNameConnectionTimeout()"
+	 * @see "SMTPS.propertyNameConnectionTimeout()"
+	 * @see "SMTP_TLS.propertyNameConnectionTimeout()"
 	 */
 	public abstract String propertyNameConnectionTimeout();
 	/**
 	 * For internal use only.
+	 *
+	 * @see "SMTP.propertyNameWriteTimeout()"
+	 * @see "SMTPS.propertyNameWriteTimeout()"
+	 * @see "SMTP_TLS.propertyNameWriteTimeout()"
 	 */
 	public abstract String propertyNameWriteTimeout();
+	/**
+	 * For internal use only.
+	 *
+	 * @see "SMTP.propertyNameTimeout()"
+	 * @see "SMTPS.propertyNameTimeout()"
+	 * @see "SMTP_TLS.propertyNameTimeout()"
+	 */
+	public abstract String propertyNameTimeout();
 	/**
 	 * For internal use only.
 	 */
@@ -524,10 +540,6 @@ public enum TransportStrategy {
 	 * For internal use only.
 	 */
 	public abstract String propertyNameSSLTrust();
-	/**
-	 * For internal use only.
-	 */
-	public abstract String propertyNameTimeout();
 	/**
 	 * For internal use only.
 	 */

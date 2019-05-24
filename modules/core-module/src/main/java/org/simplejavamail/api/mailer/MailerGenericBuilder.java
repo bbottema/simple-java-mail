@@ -3,6 +3,7 @@ package org.simplejavamail.api.mailer;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
+import org.simplejavamail.api.mailer.config.TransportStrategy;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -139,6 +140,14 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	
 	/**
 	 * Controls the timeout to use when sending emails (affects socket connect-, read- and write timeouts).
+	 * <p>
+	 * Will configure a set of properties on the Session instance with the given value, of which the names
+	 * depend on the transport strategy:
+	 * <ul>
+	 *     <li>{@link TransportStrategy#propertyNameConnectionTimeout()}</li>
+	 *     <li>{@link TransportStrategy#propertyNameTimeout()}</li>
+	 *     <li>{@link TransportStrategy#propertyNameWriteTimeout()}</li>
+	 * </ul>
 	 *
 	 * @param sessionTimeout Duration to use for session timeout.
 	 */
