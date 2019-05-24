@@ -2,14 +2,19 @@ package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.mailer.internal.mailsender.concurrent.NonJvmBlockingThreadPoolExecutor;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
 
 /**
  * @see OperationalConfig
  */
+// FIXME Lombok
 public class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see MailerRegularBuilder#withSessionTimeout(Integer)
@@ -48,20 +53,27 @@ public class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see MailerRegularBuilder#trustingSSLHosts(String...)
 	 */
+	@Nonnull
 	private final List<String> sslHostsToTrust;
-	
+
 	/**
 	 * @see MailerRegularBuilder#trustingAllHosts(boolean)
 	 */
 	private final boolean trustAllSSLHost;
+
+	/**
+	 * @see MailerRegularBuilder#withExecutorService(ExecutorService)
+	 */
+	@Nonnull
+	private final ExecutorService executorService;
 	
 	/**
 	 * @deprecated For internal use only.
 	 */
 	@Deprecated
 	@SuppressWarnings("DeprecatedIsStillUsed")
-	public OperationalConfigImpl(boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly, boolean debugLogging,
-			List<String> sslHostsToTrust, boolean trustAllSSLHost) {
+	public OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly,
+			boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, @Nullable final ExecutorService executorService) {
 		this.async = async;
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
@@ -71,8 +83,11 @@ public class OperationalConfigImpl implements OperationalConfig {
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
 		this.trustAllSSLHost = trustAllSSLHost;
+		this.executorService = executorService != null
+				? executorService
+				: new NonJvmBlockingThreadPoolExecutor(getThreadPoolSize(), getThreadPoolKeepAliveTime());
 	}
-	
+
 	/**
 	 * @see OperationalConfig#isAsync()
 	 */
@@ -124,6 +139,7 @@ public class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see OperationalConfig#getSslHostsToTrust()
 	 */
+	@Nonnull
 	@Override
 	public List<String> getSslHostsToTrust() {
 		return sslHostsToTrust;
@@ -140,8 +156,15 @@ public class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see OperationalConfig#getProperties()
 	 */
+	@Nonnull
 	@Override
 	public Properties getProperties() {
 		return properties;
+	}
+
+	@Nonnull
+	@Override
+	public ExecutorService getExecutorService() {
+		return executorService;
 	}
 }

@@ -14,6 +14,8 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
+import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.util.Preconditions;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -25,6 +27,8 @@ import javax.mail.internet.MimeMessage;
 import java.io.File;
 import javax.mail.internet.MimeUtility;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.lang.String.format;
@@ -34,6 +38,7 @@ import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
+import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.EmailHelper.readOutlookMessage;
 
@@ -61,47 +66,53 @@ public class MailerLiveTest {
 	
 	@Test
 	public void createMailSession_EmptySubjectAndBody()
-			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true, false);
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true, false, false);
 	}
-	
+
 	@Test
 	public void createMailSession_StandardDummyMailBasicFields()
-			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true, false);
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true, false, false);
+	}
+
+	@Test
+	public void createMailSession_StandardDummyMailBasicFields_Async()
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true), true, false, true);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_AllFields()
-			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false, true), true, false);
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false, true), true, false, false);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_IncludingCustomHeaders()
-			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true, true), true, false);
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true, true), true, false, false);
 	}
 
 	@Test
 	public void createMailSession_StandardDummyMailWithId()
-			throws IOException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false, true), true, false);
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false, true), true, false, false);
 	}
 
 	@Test
 	public void createMailSession_OutlookMessageTest()
-			throws IOException, MessagingException {
-		Email email = assertSendingEmail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"), false, false);
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
+		Email email = assertSendingEmail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"), false, false, false);
 		verifyReceivedOutlookEmail(email, false, false);
 	}
 
 	@Test
 	public void createMailSession_OutlookMessageSmimeSignTest()
-			throws IOException, MessagingException {
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
 		builder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
-		Email email = assertSendingEmail(builder, false, true);
+		Email email = assertSendingEmail(builder, false, true, false);
 		verifyReceivedOutlookEmail(email, true, false);
 
 		EmailAssert.assertThat(email).wasNotMergedWithSmimeSignedMessage();
@@ -118,10 +129,10 @@ public class MailerLiveTest {
 
 	@Test
 	public void createMailSession_OutlookMessageSmimeEncryptTest()
-			throws IOException, MessagingException {
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
 		builder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
-		Email email = assertSendingEmail(builder, false, true);
+		Email email = assertSendingEmail(builder, false, true, false);
 		verifyReceivedOutlookEmail(email, false, true);
 
 		EmailAssert.assertThat(email).wasMergedWithSmimeSignedMessage();
@@ -136,11 +147,11 @@ public class MailerLiveTest {
 
 	@Test
 	public void createMailSession_OutlookMessageSmimeSignEncryptTest()
-			throws IOException, MessagingException {
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
 		builder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
 		builder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
-		Email email = assertSendingEmail(builder, false, true);
+		Email email = assertSendingEmail(builder, false, true, false);
 		verifyReceivedOutlookEmail(email, true, true);
 
 		EmailAssert.assertThat(email).wasMergedWithSmimeSignedMessage();
@@ -217,10 +228,16 @@ public class MailerLiveTest {
 		assertAttachmentMetadata(embeddedImg, "image/png", "thumbsup");
 	}
 
-	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean compensateForDresscodeAttachmentNameOverrideErasure, final boolean skipChecksDueToSmime)
-			throws MessagingException {
+	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean compensateForDresscodeAttachmentNameOverrideErasure, boolean skipChecksDueToSmime,
+			boolean async)
+			throws MessagingException, ExecutionException, InterruptedException {
 		Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
-		mailer.sendMail(originalEmail);
+
+		if (!async) {
+			mailer.sendMail(originalEmail);
+		} else {
+			assumeNonNull(mailer.sendMail(originalEmail, async)).getFuture().get();
+		}
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
 		
@@ -257,7 +274,7 @@ public class MailerLiveTest {
 	
 	@Test
 	public void createMailSession_ReplyToMessage()
-			throws MessagingException {
+			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
@@ -265,7 +282,7 @@ public class MailerLiveTest {
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder
-				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false, false))
+				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false))
 				.from("dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
@@ -289,7 +306,7 @@ public class MailerLiveTest {
 	
 	@Test
 	public void createMailSession_ReplyToMessage_NotAll_AndCustomReferences()
-			throws MessagingException {
+			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
@@ -297,7 +314,7 @@ public class MailerLiveTest {
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder
-				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false, false))
+				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false))
 				.from("Moo Shmoo", "dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
@@ -315,7 +332,7 @@ public class MailerLiveTest {
 		EmailPopulatingBuilder receivedEmailReplyPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessageReply);
 
 		Email replyToReply = EmailBuilder
-				.replyingTo(assertSendingEmail(receivedEmailReplyPopulatingBuilder, false, false))
+				.replyingTo(assertSendingEmail(receivedEmailReplyPopulatingBuilder, false, false, false))
 				.from("Pappa Moo", "dummy@domain.com")
 				.withPlainText("This is the reply to the reply")
 				.buildEmail();

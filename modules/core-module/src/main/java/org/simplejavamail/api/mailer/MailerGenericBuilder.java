@@ -12,6 +12,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Builder superclass which contains API to take care of all generic Mailer properties unrelated to the SMTP server
@@ -57,9 +59,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	boolean DEFAULT_JAVAXMAIL_DEBUG = false;
 	
 	/**
-	 * Sets flag that send or server connection test should run in the background returning immediately.
+	 * Changes the default for sending emails and testing server connections to asynchronous (batch mode).
 	 * <p>
-	 * In case of asynchronous mode, make sure you configure logging to file, as otherwise you won't know if there was an error.
+	 * In case of asynchronous mode, make sure you configure logging to file or inspect the returned {@link AsyncResponse}.
 	 */
 	T async();
 	
@@ -165,6 +167,27 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withEmailAddressCriteria(@Nonnull EnumSet<EmailAddressCriteria> emailAddressCriteria);
 
 	/**
+	 * <strong>For advanced use cases.</strong>
+	 * <p>
+	 * Allows you to fully customize and manage the thread pool, threads and concurrency characteristics when
+	 * sending in batch mode.
+	 * <p>
+	 * By default the {@code NonJvmBlockingThreadPoolExecutor} is used:
+	 * <ul>
+	 *     <li>with core and max threads fixed to the given pool size</li>
+	 *     <li>with keepAliveTime as specified (if greater than zero, core thread will also time out and die off)</li>
+	 *     <li>A {@link LinkedBlockingQueue}</li>
+	 *     <li>The {@code NamedThreadFactory}, which creates named non-daemon threads</li>
+	 * </ul>
+	 * <p>
+	 * <strong>Note:</strong> What makes it NonJvm is that the default keepAliveTime is set to the lowest non-zero value (so 1), so that
+	 * any threads will die off as soon as possible, as not to block the JVM from shutting down.
+	 *
+	 * @param executorService A custom executor service (ThreadPoolExecutor), replacing the {@code NonJvmBlockingThreadPoolExecutor}.
+	 */
+	T withExecutorService(@Nonnull ExecutorService executorService);
+
+	/**
 	 * Sets both core thread pool size and max thread pool size to the given size.
 	 *
 	 * @param threadPoolSize See main description.
@@ -182,7 +205,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * When set to zero, this keepAliveTime is applied only to extra threads, not core threads. This is the classic executor
 	 * behavior, but this blocks the JVM from exiting.
 	 * <p>
-	 * Defaults to {@value #DEFAULT_POOL_KEEP_ALIVE_TIME}.
+	 * Defaults to {@value #DEFAULT_POOL_KEEP_ALIVE_TIME}ms.
 	 *
 	 * @param threadPoolKeepAliveTime Value in milliseconds. See main description for details.
 	 *
@@ -269,11 +292,16 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetEmailAddressCriteria();
 
 	/**
+	 * Resets the executor services to be used back to the default.
+	 *
+	 * @see #withExecutorService(ExecutorService)
+	 */
+	T resetExecutorService();
+
+	/**
 	 * Resets both thread pool max and core size to their defaults.
 	 *
 	 * @see #withThreadPoolSize(Integer)
-	 * @see #resetThreadpoolCoreSize()
-	 * @see #resetThreadpoolMaxSize()
 	 */
 	T resetThreadpoolSize();
 
@@ -372,6 +400,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	EnumSet<EmailAddressCriteria> getEmailAddressCriteria();
+
+	/**
+	 * @see #withExecutorService(ExecutorService)
+	 */
+	@Nullable
+	ExecutorService getExecutorService();
 
 	/**
 	 * @see #withThreadPoolSize(Integer)

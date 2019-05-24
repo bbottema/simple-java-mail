@@ -15,6 +15,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
 
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
@@ -79,6 +80,12 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	@Nonnull
 	private EnumSet<EmailAddressCriteria> emailAddressCriteria;
+
+	/**
+	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
+	 */
+	@Nullable
+	private ExecutorService executorService;
 
 	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
@@ -181,7 +188,8 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 				isTransportModeLoggingOnly(),
 				isDebugLogging(),
 				getSslHostsToTrust(),
-				isTrustAllSSLHost());
+				isTrustAllSSLHost(),
+				getExecutorService());
 	}
 	
 	/**
@@ -286,6 +294,15 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	}
 
 	/**
+	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
+	 */
+	@Override
+	public T withExecutorService(@Nonnull final ExecutorService executorService) {
+		this.executorService = executorService;
+		return (T) this;
+	}
+
+	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	@Override
@@ -379,6 +396,15 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	@Override
 	public T resetEmailAddressCriteria() {
 		return withEmailAddressCriteria(EmailAddressCriteria.RFC_COMPLIANT);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetExecutorService()
+	 */
+	@Override
+	public T resetExecutorService() {
+		this.executorService = null;
+		return (T) this;
 	}
 
 	/**
@@ -516,6 +542,15 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	@Nonnull
 	public EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
 		return emailAddressCriteria;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getExecutorService()
+	 */
+	@Override
+	@Nullable
+	public ExecutorService getExecutorService() {
+		return executorService;
 	}
 
 	/**

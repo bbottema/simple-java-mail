@@ -4,8 +4,10 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Contains all the configuration that affect how a {@link Mailer} operates. This includes connection settings such as
@@ -47,6 +49,7 @@ public interface OperationalConfig {
 	/**
 	 * @see MailerRegularBuilder#trustingSSLHosts(String...)
 	 */
+	@Nonnull
 	List<String> getSslHostsToTrust();
 	
 	/**
@@ -57,5 +60,12 @@ public interface OperationalConfig {
 	/**
 	 * @see MailerRegularBuilder#withProperties(Properties)
 	 */
+	@Nonnull
 	Properties getProperties();
+
+	/**
+	 * @see MailerRegularBuilder#withExecutorService(ExecutorService)
+	 */
+	@Nonnull
+	ExecutorService getExecutorService();
 }

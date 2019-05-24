@@ -1,10 +1,10 @@
 package org.simplejavamail.mailer.internal.mailsender.concurrent;
 
-import org.simplejavamail.api.mailer.config.OperationalConfig;
-
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import static java.lang.String.format;
 
 /**
  * Unbounded ThreadPoolExecutor that won't block the JVM from shutting down,
@@ -15,16 +15,19 @@ import java.util.concurrent.TimeUnit;
  * @see NamedThreadFactory
  */
 public class NonJvmBlockingThreadPoolExecutor extends ThreadPoolExecutor {
-	public NonJvmBlockingThreadPoolExecutor(OperationalConfig operationalConfig, String threadNamePrefix) {
-		super(operationalConfig.getThreadPoolSize(),
-				operationalConfig.getThreadPoolSize(),
-				operationalConfig.getThreadPoolKeepAliveTime(),
+
+	private static int counter = 1;
+
+	public NonJvmBlockingThreadPoolExecutor(int threadPoolSize, int threadPoolKeepAliveTime) {
+		super(threadPoolSize,
+				threadPoolSize,
+				threadPoolKeepAliveTime,
 				TimeUnit.MILLISECONDS,
 				new LinkedBlockingQueue<Runnable>(),
-				new NamedThreadFactory(threadNamePrefix));
+				new NamedThreadFactory(format("Simple Java Mail async mail sender, executor %s / thread", counter++)));
 		// if a timeout is configured, the user wants threads to die off automatically
 		// so they won't block the JVM from shutting down
-		if (operationalConfig.getThreadPoolKeepAliveTime() > 0) {
+		if (threadPoolKeepAliveTime > 0) {
 			allowCoreThreadTimeOut(true);
 		}
 	}

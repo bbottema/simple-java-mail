@@ -24,7 +24,6 @@ import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Phaser;
 
 import static java.lang.String.format;
@@ -49,6 +48,7 @@ public class MailSenderImpl implements MailSender {
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
 	 */
+	@Nonnull
 	private final Session session;
 	
 	/**
@@ -65,6 +65,7 @@ public class MailSenderImpl implements MailSender {
 	/**
 	 * @see OperationalConfig
 	 */
+	@Nonnull
 	private final OperationalConfig operationalConfig;
 	
 	/**
@@ -73,14 +74,6 @@ public class MailSenderImpl implements MailSender {
 	 */
 	@Nullable
 	private final AnonymousSocks5Server proxyServer;
-
-	/**
-	 * Allows us to manage how many thread we run at the same time using a thread pool.
-	 * <p>
-	 * Can't be initialized in the field, because we need to reinitialize it whenever the threadpool was closed after a batch of emails and this
-	 * MailSender instance is again engaged.
-	 */
-	private ExecutorService executor;
 
 	/**
 	 * Used to keep track of running SMTP requests, so that we know when to close down the proxy bridging server (if used).
@@ -106,7 +99,7 @@ public class MailSenderImpl implements MailSender {
 		session.setDebug(operationalConfig.isDebugLogging());
 		session.getProperties().putAll(operationalConfig.getProperties());
 
-		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
+		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);
 
 		if (transportStrategy != null) {
 			if (operationalConfig.isTrustAllSSLHost()) {
@@ -186,18 +179,14 @@ public class MailSenderImpl implements MailSender {
 			sendMailClosure.run();
 			return null;
 		} else {
-			// start up thread pool if necessary
-			if (executor == null) {
-				executor = new NonJvmBlockingThreadPoolExecutor(operationalConfig, "Simple Java Mail async mail sender");
-			}
-			return AsyncOperationHelper.executeAsync(executor, "sendMail process", sendMailClosure);
+			return AsyncOperationHelper.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
 		}
 	}
 	
 	/**
 	 * Configures the {@link Session} with the same timeout for socket connection timeout, read and write timeout.
 	 */
-	private void configureSessionWithTimeout(final Session session, final int sessionTimeout) {
+	private void configureSessionWithTimeout(@Nonnull final Session session, final int sessionTimeout, @Nullable final TransportStrategy transportStrategy) {
 		if (transportStrategy != null) {
 			// socket timeouts handling
 			final Properties sessionProperties = session.getProperties();
@@ -384,7 +373,7 @@ public class MailSenderImpl implements MailSender {
 
 			boolean proxyBridgeStartedForTestingConnection = false;
 
-			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
+			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);
 
 			logSession(session, async, "connection test");
 
@@ -419,6 +408,7 @@ public class MailSenderImpl implements MailSender {
 	 * @see MailSender#getSession()
 	 */
 	@Override
+	@Nonnull
 	public Session getSession() {
 		return session;
 	}
@@ -427,6 +417,7 @@ public class MailSenderImpl implements MailSender {
 	 * @see MailSender#getOperationalConfig()
 	 */
 	@Override
+	@Nonnull
 	public OperationalConfig getOperationalConfig() {
 		return operationalConfig;
 	}
