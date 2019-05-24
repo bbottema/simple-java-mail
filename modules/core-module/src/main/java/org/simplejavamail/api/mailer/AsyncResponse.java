@@ -3,10 +3,12 @@ package org.simplejavamail.api.mailer;
 import java.util.concurrent.Future;
 
 /**
- * Useful when sending mails or testing connections asynchronously. <br>
+ * Used when sending mails or testing connections asynchronously.
+ * <p>
  * Provides both a {@link Future} as well as support for direct callbacks.
  *
  * @see "The async demo's code in TestConnectionDemo"
+ * @see MailerGenericBuilder#async()
  */
 public interface AsyncResponse {
 	
