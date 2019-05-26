@@ -1,6 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.internal.modules.ModuleLoader;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
@@ -43,7 +44,7 @@ public abstract class MimeMessageProducer {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
 		
-		final MimeMessage message = new MimeMessage(session) {
+		MimeMessage message = new MimeMessage(session) {
 			@Override
 			protected void updateMessageID() throws MessagingException {
 				if (valueNullOrEmpty(email.getId())) {
@@ -75,9 +76,13 @@ public abstract class MimeMessageProducer {
 		message.setSentDate(new Date());
 
 		if (!valueNullOrEmpty(email.getDkimSigningDomain())) {
-			return signMessageWithDKIM(message, email);
+			message = signMessageWithDKIM(message, email);
 		}
-		
+
+		if (ModuleLoader.smimeModuleAvailable()) {
+			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email);
+		}
+
 		return message;
 	}
 	

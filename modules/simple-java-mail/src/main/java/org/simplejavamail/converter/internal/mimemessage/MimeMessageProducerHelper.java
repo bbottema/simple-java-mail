@@ -38,10 +38,7 @@ public final class MimeMessageProducerHelper {
 	public static MimeMessage produceMimeMessage(@Nonnull Email email, @Nonnull Session session) throws UnsupportedEncodingException, MessagingException {
 		for (MimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
 			if (mimeMessageProducer.compatibleWithEmail(email)) {
-				final MimeMessage mimeMessage = mimeMessageProducer.populateMimeMessage(email, session);
-				return ModuleLoader.smimeModuleAvailable()
-						? ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, mimeMessage, email)
-						: mimeMessage;
+				return mimeMessageProducer.populateMimeMessage(email, session);
 			}
 		}
 		throw new AssertionError("no compatible MimeMessageProducer found for email");
