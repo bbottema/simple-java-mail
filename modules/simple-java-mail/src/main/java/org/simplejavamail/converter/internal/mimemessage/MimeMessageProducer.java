@@ -14,12 +14,21 @@ import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
- * Helper class that produces and populates a mime messages. Deals with javax.mail RFC MimeMessage stuff, as well as DKIM signing.
+ * Helper class that produces and populates a mime messages. Deals with javax.mail RFC MimeMessage stuff, as well as
+ * <a href="http://www.simplejavamail.org/#section-dkim">DKIM signing</a> and
+ * <a href="http://www.simplejavamail.org/#section-sending-smime">S/MIME signing / encryption</a>.
  * <p>
  * Some more <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/">helpful reading
  * material</a>.
+ * <p>
+ * One goal of these classes is to produce a Mime structure that exactly matches the email's need. Previously, Simple Java Mail
+ * used a complex RFC-conforming structure that is compatible with all situations, but it seems
+ * <a href="https://github.com/bbottema/simple-java-mail/issues/133">some email clients</a> would still get confused.
+ * Due to this, we explicitely define all possible structures so we take the least complex one needed.
+ *
+ * @see <a href="https://github.com/bbottema/simple-java-mail/issues/144">#144: Simple Java Mail should tailor the MimeMessage structure to specific needs</a>
  */
-abstract class MimeMessageProducer {
+public abstract class MimeMessageProducer {
 	
 	/**
 	 * @return Whether this mimemessage producer exactly matches the needs of the given email.

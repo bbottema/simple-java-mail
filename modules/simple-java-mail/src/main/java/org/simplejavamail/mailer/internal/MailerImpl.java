@@ -3,40 +3,36 @@ package org.simplejavamail.mailer.internal;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 import org.simplejavamail.MailException;
-import org.simplejavamail.api.mailer.AsyncResponse;
-import org.simplejavamail.api.mailer.Mailer;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
-import org.simplejavamail.api.mailer.config.ServerConfig;
-import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.mailer.AsyncResponse;
+import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.ProxyConfig;
+import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.internal.mailsender.MailSender;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.mailer.internal.mailsender.MailSenderImpl;
-import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.mail.Authenticator;
-import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
-import java.security.cert.X509Certificate;
 import javax.mail.internet.MimeUtility;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Properties;
 
 import static java.lang.String.format;
+import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.mailer.internal.MailerException.SMIME_MODULE_NOT_AVAILABLE;
 
 /**
@@ -132,61 +128,6 @@ public class MailerImpl implements Mailer {
 		} else {
 			return Session.getInstance(props);
 		}
-	}
-	
-	/**
-	 * @see Mailer#getSession()
-	 */
-	@Override
-	public Session getSession() {
-		LOGGER.warn("Providing access to Session instance for emergency fall-back scenario. Please let us know why you need it.");
-		LOGGER.warn("\t\t> https://github.com/bbottema/simple-java-mail/issues");
-		return mailSender.getSession();
-	}
-	
-	/**
-	 * @see Mailer#getServerConfig()
-	 */
-	@Override
-	@Nullable
-	public ServerConfig getServerConfig() {
-		return this.serverConfig;
-	}
-	
-	/**
-	 * @see Mailer#getTransportStrategy()
-	 */
-	@Override
-	@Nullable
-	public TransportStrategy getTransportStrategy() {
-		return this.transportStrategy;
-	}
-	
-	/**
-	 * @see Mailer#getProxyConfig()
-	 */
-	@Override
-	@Nonnull
-	public ProxyConfig getProxyConfig() {
-		return this.proxyConfig;
-	}
-	
-	/**
-	 * @see Mailer#getOperationalConfig()
-	 */
-	@Override
-	@Nonnull
-	public OperationalConfig getOperationalConfig() {
-		return mailSender.getOperationalConfig();
-	}
-	
-	/**
-	 * @see Mailer#getEmailAddressCriteria()
-	 */
-	@Override
-	@Nonnull
-	public EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
-		return emailAddressCriteria;
 	}
 	
 	/**
@@ -346,18 +287,57 @@ public class MailerImpl implements Mailer {
 	}
 
 	/**
-	 * Simple Authenticator used to create a {@link Session} object with in {@link #createMailSession(ServerConfig, TransportStrategy)}.
+	 * @see Mailer#getSession()
 	 */
-	private static class SmtpAuthenticator extends Authenticator {
-		private final ServerConfig serverConfig;
-		
-		SmtpAuthenticator(final ServerConfig serverConfig) {
-			this.serverConfig = serverConfig;
-		}
-		
-		@Override
-		protected PasswordAuthentication getPasswordAuthentication() {
-			return new PasswordAuthentication(serverConfig.getUsername(), serverConfig.getPassword());
-		}
+	@Override
+	public Session getSession() {
+		LOGGER.warn("Providing access to Session instance for emergency fall-back scenario. Please let us know why you need it.");
+		LOGGER.warn("\t\t> https://github.com/bbottema/simple-java-mail/issues");
+		return mailSender.getSession();
+	}
+
+	/**
+	 * @see Mailer#getServerConfig()
+	 */
+	@Override
+	@Nullable
+	public ServerConfig getServerConfig() {
+		return this.serverConfig;
+	}
+
+	/**
+	 * @see Mailer#getTransportStrategy()
+	 */
+	@Override
+	@Nullable
+	public TransportStrategy getTransportStrategy() {
+		return this.transportStrategy;
+	}
+
+	/**
+	 * @see Mailer#getProxyConfig()
+	 */
+	@Override
+	@Nonnull
+	public ProxyConfig getProxyConfig() {
+		return this.proxyConfig;
+	}
+
+	/**
+	 * @see Mailer#getOperationalConfig()
+	 */
+	@Override
+	@Nonnull
+	public OperationalConfig getOperationalConfig() {
+		return mailSender.getOperationalConfig();
+	}
+
+	/**
+	 * @see Mailer#getEmailAddressCriteria()
+	 */
+	@Override
+	@Nonnull
+	public EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
+		return emailAddressCriteria;
 	}
 }

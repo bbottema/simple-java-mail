@@ -37,9 +37,11 @@ import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
  * Refer to {@link #send(Email, boolean)} for details.
  * <p>
  * <hr>
- * On a technical note, this is the most complex class in the library (aside from the SOCKS5 bridging server), because it deals with optional
+ * On a technical note, this is the most complex class in the library (aside from the SOCKS5 bridging server and S/MIME module), because it deals with optional
  * asynchronous mailing requests and an optional proxy server that needs to be started and stopped on the fly depending on how many emails are (still)
  * being sent. Especially the combination of asynchronous emails and synchronous emails needs to be managed properly.
+ *
+ * @see org.simplejavamail.converter.internal.mimemessage.MimeMessageProducer
  */
 public class MailSenderImpl implements MailSender {
 

@@ -12,13 +12,13 @@ import javax.mail.Transport;
 import java.util.concurrent.Executors;
 
 /**
- * This interface really only exists to be able to refer to these methods from JavaDoc in de core module.
+ * (this separate interface really only exists to be able to refer to these methods from JavaDoc in de core module)
  */
 public interface MailSender {
 	/**
 	 * Processes an {@link Email} instance into a completely configured {@link Message}.
 	 * <p>
-	 * Sends the Sun JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all
+	 * Sends the JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all
 	 * connection details have been configured in the provided {@link Session} instance and finally {@link Transport#sendMessage(Message,
 	 * javax.mail.Address[])}.
 	 * <p>
