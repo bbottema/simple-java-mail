@@ -202,22 +202,26 @@ public class MailSenderImpl implements MailSender {
 	
 	/**
 	 * Separate closure that can be executed directly or from a thread. Refer to {@link #send(Email, boolean)} for details.
+	 * <p>
+	 * Note that this Runnable implementation is <strong>not</strong> thread related, it is just to encapsulate the code to
+	 * be run directly or from a <em>real</em> Runnable.
 	 */
 	private class SendMailClosure implements Runnable {
 
 		@Nonnull final Session session;
 		@Nonnull final Email email;
-		private final boolean async;
+		private final boolean asyncForLoggingPurpose;
+
 
 		/**
 		 * @param session The session with which to produce the {@link MimeMessage} aquire the {@link Transport} for connections.
 		 * @param email   The email that will be converted into a {@link MimeMessage}.
-		 * @param async   For logging purposes, indicates whether this closure is running in async mode.
+		 * @param asyncForLoggingPurpose   For logging purposes, indicates whether this closure is running in async mode.
 		 */
-		private SendMailClosure(@Nonnull Session session, @Nonnull Email email, boolean async) {
+		private SendMailClosure(@Nonnull Session session, @Nonnull Email email, boolean asyncForLoggingPurpose) {
 			this.session = session;
 			this.email = email;
-			this.async = async;
+			this.asyncForLoggingPurpose = asyncForLoggingPurpose;
 		}
 
 		@SuppressWarnings("deprecation")
@@ -230,7 +234,7 @@ public class MailSenderImpl implements MailSender {
 
 				configureBounceToAddress(session, email);
 
-				logSession(session, async, "mail");
+				logSession(session, asyncForLoggingPurpose, "mail");
 				message.saveChanges(); // some headers and id's will be set for this specific message
 				email.internalSetId(message.getMessageID());
 
