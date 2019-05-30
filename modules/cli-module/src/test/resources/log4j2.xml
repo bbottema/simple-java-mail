@@ -11,7 +11,7 @@
     </appenders>
     <Loggers>
         <Logger name="org.simplejavamail" level="debug"/>
-        <Logger name="org.simplejavamail.api.mailer.MailerImpl" level="trace"/>
+        <Logger name="org.simplejavamail.mailer.internal.MailerImpl" level="trace"/>
         <Logger name="org.simplejavamail.internal.clisupport" level="info"/>
 
         <!-- in case you're using authenticated proxy -->
