@@ -245,20 +245,22 @@ public class MailSenderImpl implements MailSender {
 						}
 					}
 
-					if (!operationalConfig.isTransportModeLoggingOnly()) {
-						LOGGER.trace("\t\nEmail: {}", email);
-						LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEML(message));
-
-						try (Transport transport = session.getTransport()) {
-							transport.connect();
-							transport.sendMessage(message, message.getAllRecipients());
-						} finally {
-							LOGGER.trace("closing transport");
-						}
-					} else {
+					if (operationalConfig.isTransportModeLoggingOnly()) {
 						LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
 						LOGGER.info("\n\nEmail: {}\n", email);
 						LOGGER.info("\n\nMimeMessage: {}\n", mimeMessageToEML(message));
+						return;
+					}
+
+					LOGGER.trace("\t\nEmail: {}", email);
+					LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEML(message));
+
+					try (Transport transport = session.getTransport()) {
+						transport.connect();
+						transport.sendMessage(message, message.getAllRecipients());
+						LOGGER.trace("...email sent");
+					} finally {
+						LOGGER.trace("closing transport");
 					}
 				} finally {
 					checkShutDownRunningProcesses();
@@ -273,7 +275,6 @@ public class MailSenderImpl implements MailSender {
 				LOGGER.error("Failed to send email:\n{}", email);
 				throw e;
 			}
-			LOGGER.trace("...email sent");
 		}
 	}
 	
