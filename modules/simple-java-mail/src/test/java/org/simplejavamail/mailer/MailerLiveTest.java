@@ -19,6 +19,7 @@ import org.simplejavamail.internal.util.Preconditions;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
+import testutil.testrules.MimeMessageAndEnvelope;
 import testutil.testrules.SmtpServerRule;
 import testutil.testrules.TestSmtpServer;
 
@@ -238,10 +239,16 @@ public class MailerLiveTest {
 		} else {
 			assumeNonNull(mailer.sendMail(originalEmail, async)).getFuture().get();
 		}
-		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
-		
-		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage, loadPkcs12KeyStore());
+		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());
+
+		if (originalEmail.getBounceToRecipient() != null) {
+			assertThat(receivedMimeMessage.getEnvelopeSender()).isEqualTo(originalEmail.getBounceToRecipient().getAddress());
+		} else {
+			assertThat(receivedMimeMessage.getEnvelopeSender()).isEqualTo(originalEmail.getFromRecipient().getAddress());
+		}
+
+		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage.getMimeMessage(), loadPkcs12KeyStore());
 		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty
 		if (originalEmailPopulatingBuilder.getReplyToRecipient() == null) {
 			originalEmailPopulatingBuilder.withReplyTo(originalEmailPopulatingBuilder.getFromRecipient());
@@ -250,7 +257,7 @@ public class MailerLiveTest {
 		if (originalEmailPopulatingBuilder.getHeaders().get("Message-ID") == null) {
 			originalEmailPopulatingBuilder.withHeader("Message-ID", originalEmail.getId());
 		}
-		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session, so just ignore this
+		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session and is not received back on the MimeMessage
 		if (originalEmailPopulatingBuilder.getBounceToRecipient() != null) {
 			originalEmailPopulatingBuilder.clearBounceTo();
 		}
@@ -277,8 +284,8 @@ public class MailerLiveTest {
 			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
-		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
+		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder
@@ -309,8 +316,8 @@ public class MailerLiveTest {
 			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
-		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
+		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder

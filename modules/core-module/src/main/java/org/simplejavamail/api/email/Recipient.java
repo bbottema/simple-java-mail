@@ -35,10 +35,6 @@ public final class Recipient {
 		this.type = type;
 	}
 
-	public String asStandardString() {
-		return valueNullOrEmpty(getName()) ? getAddress() : format("%s <%s>", getName(), getAddress());
-	}
-
 	@Override
 	public boolean equals(final Object o) {
 		if (this == o) {

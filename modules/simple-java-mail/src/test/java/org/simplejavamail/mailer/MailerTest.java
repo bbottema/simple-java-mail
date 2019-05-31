@@ -263,7 +263,7 @@ public class MailerTest {
 		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailHelper.createDummyEmailBuilder(true, false, false, true);
 		
 		// let's try producing and then consuming a MimeMessage ->
-		// (bounce recipient is not part of the Mimemessage but the Envelope and is configured on the Session, so just ignore this)
+		// (bounce recipient is not part of the Mimemessage but the Envelope and is not received back on the MimeMessage
 		emailPopulatingBuilderNormal.clearBounceTo();
 		final Email emailNormal = emailPopulatingBuilderNormal.buildEmail();
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);

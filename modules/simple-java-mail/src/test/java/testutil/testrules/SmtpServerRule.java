@@ -37,8 +37,7 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 	}
 
 	@Override
-	protected void before()
-			throws Throwable {
+	protected void before() {
 		this.wiser = new Wiser();
 		this.wiser.setPort(SmtpServerSupport.getPort());
 		this.wiser.setHostname(SmtpServerSupport.getHostname());
@@ -77,15 +76,15 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 	}
 	
 	@Nonnull
-	public MimeMessage getOnlyMessage()
+	public MimeMessageAndEnvelope getOnlyMessage()
 			throws MessagingException {
 		checkState("getMessages()");
 		List<WiserMessage> messages = getMessages();
 		assertThat(messages).hasSize(1);
 		Iterator<WiserMessage> iterator = messages.iterator();
-		MimeMessage mimeMessage = iterator.next().getMimeMessage();
+		WiserMessage wiserMessage = iterator.next();
 		iterator.remove();
-		return mimeMessage;
+		return new MimeMessageAndEnvelope(wiserMessage.getMimeMessage(), wiserMessage.getEnvelopeSender());
 	}
 	
 	@Nonnull
@@ -117,7 +116,7 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 	}
 
 	public void deliver(String from, String recipient, InputStream data)
-			throws TooMuchDataException, IOException {
+			throws IOException {
 		checkState("deliver(String, String, InputStream)");
 		wiser.deliver(from, recipient, data);
 	}
