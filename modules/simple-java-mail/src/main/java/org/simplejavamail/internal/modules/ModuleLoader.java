@@ -57,6 +57,17 @@ public class ModuleLoader {
 		return (SMIMEModule) LOADED_MODULES.get(SMIMEModule.class);
 	}
 
+	public static BatchModule loadBatchModule() {
+		if (!LOADED_MODULES.containsKey(BatchModule.class)) {
+			LOADED_MODULES.put(BatchModule.class, loadModule(
+					"Batch",
+					"org.simplejavamail.internal.batchsupport.BatchSupport",
+					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/batch-module"
+			));
+		}
+		return (BatchModule) LOADED_MODULES.get(BatchModule.class);
+	}
+
 	public static boolean smimeModuleAvailable() {
 		return MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
 	}
