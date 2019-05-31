@@ -13,7 +13,6 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.internal.mailsender.MailSender;
-import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.mailer.internal.mailsender.MailSenderImpl;
@@ -264,11 +263,11 @@ public class MailerImpl implements Mailer {
 	}
 
 	/**
-	 * Refer to {@link MimeMessageHelper#signMessageWithDKIM(MimeMessage, Email)}
+	 * @see org.simplejavamail.internal.modules.DKIMModule#signMessageWithDKIM(MimeMessage, Email)
 	 */
 	@SuppressWarnings("unused")
 	public static MimeMessage signMessageWithDKIM(@Nonnull final MimeMessage messageToSign, @Nonnull final Email emailContainingSigningDetails) {
-		return MimeMessageHelper.signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
+		return ModuleLoader.loadDKIMModule().signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
 	}
 
 	/**

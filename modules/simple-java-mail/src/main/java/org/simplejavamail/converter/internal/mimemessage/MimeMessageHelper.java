@@ -270,11 +270,4 @@ public class MimeMessageHelper {
 		}
 		return resourceName;
 	}
-	
-	/**
-	 * @see org.simplejavamail.internal.modules.DKIMModule#signMessageWithDKIM(MimeMessage, Email)
-	 */
-	public static MimeMessage signMessageWithDKIM(final MimeMessage messageToSign, final Email emailContainingSigningDetails) {
-		return ModuleLoader.loadDKIMModule().signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
-	}
 }

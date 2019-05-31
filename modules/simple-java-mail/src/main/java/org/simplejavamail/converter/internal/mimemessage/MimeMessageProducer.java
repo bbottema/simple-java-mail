@@ -11,8 +11,6 @@ import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
-import static java.lang.String.format;
-import static org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper.signMessageWithDKIM;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
@@ -74,12 +72,12 @@ public abstract class MimeMessageProducer {
 		MimeMessageHelper.setHeaders(email, message);
 		message.setSentDate(new Date());
 
-		if (!valueNullOrEmpty(email.getDkimSigningDomain())) {
-			message = signMessageWithDKIM(message, email);
-		}
-
 		if (ModuleLoader.smimeModuleAvailable()) {
 			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email);
+		}
+
+		if (!valueNullOrEmpty(email.getDkimSigningDomain())) {
+			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, email);
 		}
 
 		// IMPORTANT: SMTPMessage should be the last one, so we're sure the extra fields are used
