@@ -364,7 +364,6 @@ public class MailSenderImpl implements MailSender {
 	 * <p>
 	 * See {@link #testConnection(boolean)} for details.
 	 */
-	// used to be a method! would still have been, if Java 7 supported lambda's :(
 	private class TestConnectionClosure implements Runnable {
 		@Nonnull final Session session;
 		private final boolean async;
