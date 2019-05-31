@@ -72,6 +72,12 @@ public abstract class MimeMessageProducer {
 		MimeMessageHelper.setHeaders(email, message);
 		message.setSentDate(new Date());
 
+		/*
+			The following order is important:
+			1. S/MIME signing
+			2. S/MIME encryption
+			3. DKIM signing
+		 */
 		if (ModuleLoader.smimeModuleAvailable()) {
 			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email);
 		}
@@ -80,7 +86,6 @@ public abstract class MimeMessageProducer {
 			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, email);
 		}
 
-		// IMPORTANT: SMTPMessage should be the last one, so we're sure the extra fields are used
 		if (email.getBounceToRecipient() != null) {
 			message = new SMTPMessageProxy(message);
 			// display name not applicable: https://tools.ietf.org/html/rfc5321#section-4.1.2
