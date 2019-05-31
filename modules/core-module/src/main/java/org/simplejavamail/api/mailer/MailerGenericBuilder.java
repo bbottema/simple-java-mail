@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -292,9 +293,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetEmailAddressCriteria();
 
 	/**
-	 * Resets the executor services to be used back to the default.
+	 * Resets the executor services to be used back to the default, created by the Batch module if loaded, or else
+	 * {@link Executors#newSingleThreadExecutor()}.
 	 *
 	 * @see #withExecutorService(ExecutorService)
+	 * @see
+	 * <a href="https://javadoc.io/page/org.simplejavamail/simple-java-mail/latest/org/simplejavamail/internal/batchsupport/concurrent/NonJvmBlockingThreadPoolExecutor.html">Batch module's NonJvmBlockingThreadPoolExecutor</a>
 	 */
 	T resetExecutorService();
 

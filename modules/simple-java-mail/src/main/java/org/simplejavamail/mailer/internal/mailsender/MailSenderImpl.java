@@ -11,7 +11,6 @@ import org.simplejavamail.api.mailer.internal.mailsender.MailSender;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.mailer.internal.MailerGenericBuilderImpl;
-import org.simplejavamail.mailer.internal.mailsender.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,14 +31,9 @@ import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 
 /**
- * Class that performs the actual javax.mail SMTP integration.
+ * Class that performs the actual javax.mail SMTP integration including authenticated socks proxy.
  * <p>
  * Refer to {@link #send(Email, boolean)} for details.
- * <p>
- * <hr>
- * On a technical note, this is the most complex class in the library (aside from the SOCKS5 bridging server and S/MIME module), because it deals with optional
- * asynchronous mailing requests and an optional proxy server that needs to be started and stopped on the fly depending on how many emails are (still)
- * being sent. Especially the combination of asynchronous emails and synchronous emails needs to be managed properly.
  *
  * @see org.simplejavamail.converter.internal.mimemessage.MimeMessageProducer
  */
@@ -160,7 +154,6 @@ public class MailSenderImpl implements MailSender {
 
 	/**
 	 * @see MailSender#send(Email, boolean)
-	 * @see NonJvmBlockingThreadPoolExecutor
 	 */
 	@Override
 	@Nullable
@@ -181,7 +174,8 @@ public class MailSenderImpl implements MailSender {
 			sendMailClosure.run();
 			return null;
 		} else {
-			return AsyncOperationHelper.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
+			return ModuleLoader.loadBatchModule()
+					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
 		}
 	}
 	
@@ -355,7 +349,8 @@ public class MailSenderImpl implements MailSender {
 			testConnectionClosure.run();
 			return null;
 		} else {
-			return AsyncOperationHelper.executeAsync("testSMTPConnection process", testConnectionClosure);
+			return ModuleLoader.loadBatchModule()
+					.executeAsync("testSMTPConnection process", testConnectionClosure);
 		}
 	}
 
@@ -427,5 +422,4 @@ public class MailSenderImpl implements MailSender {
 	public OperationalConfig getOperationalConfig() {
 		return operationalConfig;
 	}
-
 }

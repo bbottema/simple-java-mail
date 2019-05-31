@@ -2,10 +2,8 @@ package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.mailer.internal.mailsender.concurrent.NonJvmBlockingThreadPoolExecutor;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -22,6 +20,8 @@ public class OperationalConfigImpl implements OperationalConfig {
 	private final int sessionTimeout;
 	
 	/**
+	 * Can be overridden when calling {@code mailer.send(async = true)}.
+	 *
 	 * @see MailerRegularBuilder#async()
 	 */
 	private final boolean async;
@@ -73,8 +73,8 @@ public class OperationalConfigImpl implements OperationalConfig {
 	@Deprecated
 	@SuppressWarnings("DeprecatedIsStillUsed")
 	public OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly,
-			boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, @Nullable final ExecutorService executorService) {
-		this.async = async;
+			boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, @Nonnull final ExecutorService executorService) {
+		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
 		this.threadPoolSize = threadPoolSize;
@@ -83,9 +83,7 @@ public class OperationalConfigImpl implements OperationalConfig {
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
 		this.trustAllSSLHost = trustAllSSLHost;
-		this.executorService = executorService != null
-				? executorService
-				: new NonJvmBlockingThreadPoolExecutor(getThreadPoolSize(), getThreadPoolKeepAliveTime());
+		this.executorService = executorService;
 	}
 
 	/**

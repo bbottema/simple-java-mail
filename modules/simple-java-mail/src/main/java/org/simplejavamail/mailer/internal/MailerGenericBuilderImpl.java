@@ -6,6 +6,7 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
+import org.simplejavamail.internal.modules.ModuleLoader;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
@@ -84,7 +86,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	/**
 	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
-	@Nullable
+	@Nonnull
 	private ExecutorService executorService;
 
 	/**
@@ -147,6 +149,8 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 		
 		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
 		this.trustAllSSLHost = true;
+
+		this.executorService = determineDefaultExecutorService();
 	}
 	
 	/**
@@ -403,8 +407,15 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	@Override
 	public T resetExecutorService() {
-		this.executorService = null;
+		this.executorService = determineDefaultExecutorService();
 		return (T) this;
+	}
+
+	@Nonnull
+	private ExecutorService determineDefaultExecutorService() {
+		return (ModuleLoader.batchModuleAvailable())
+				? ModuleLoader.loadBatchModule().createDefaultExecutorService(getThreadPoolSize(), getThreadPoolKeepAliveTime())
+				: Executors.newSingleThreadExecutor();
 	}
 
 	/**
@@ -548,7 +559,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 * @see MailerGenericBuilder#getExecutorService()
 	 */
 	@Override
-	@Nullable
+	@Nonnull
 	public ExecutorService getExecutorService() {
 		return executorService;
 	}

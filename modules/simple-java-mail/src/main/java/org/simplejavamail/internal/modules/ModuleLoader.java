@@ -68,6 +68,10 @@ public class ModuleLoader {
 		return (BatchModule) LOADED_MODULES.get(BatchModule.class);
 	}
 
+	public static boolean batchModuleAvailable() {
+		return MiscUtil.classAvailable("org.simplejavamail.internal.batchsupport.BatchSupport");
+	}
+
 	public static boolean smimeModuleAvailable() {
 		return MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
 	}

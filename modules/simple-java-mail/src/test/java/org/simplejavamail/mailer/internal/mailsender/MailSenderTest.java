@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -74,6 +75,7 @@ public class MailSenderTest {
 	@Nonnull
 	@SuppressWarnings("deprecation")
 	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost) {
-		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, false, false, hostsToTrust, trustAllSSLHost, null);
+		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, false, false, hostsToTrust, trustAllSSLHost,
+				Executors.newSingleThreadExecutor());
 	}
 }

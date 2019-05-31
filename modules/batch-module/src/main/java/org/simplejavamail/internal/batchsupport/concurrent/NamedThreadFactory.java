@@ -1,4 +1,4 @@
-package org.simplejavamail.mailer.internal.mailsender.concurrent;
+package org.simplejavamail.internal.batchsupport.concurrent;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.ThreadFactory;
