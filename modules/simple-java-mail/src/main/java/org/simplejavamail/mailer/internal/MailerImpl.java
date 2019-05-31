@@ -33,7 +33,6 @@ import static java.lang.String.format;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.mailer.internal.MailerException.SMIME_MODULE_NOT_AVAILABLE;
 
 /**
  * @see Mailer
@@ -279,11 +278,8 @@ public class MailerImpl implements Mailer {
 	 */
 	@SuppressWarnings("unused")
 	public static MimeMessage signAndOrEncryptMessageWithSmime(@Nonnull final Session session, @Nonnull final MimeMessage messageToProtect, @Nonnull final Email emailContainingSmimeDetails) {
-		if (ModuleLoader.smimeModuleAvailable()) {
-			return ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, messageToProtect, emailContainingSmimeDetails);
-		} else {
-			throw new MailerException(SMIME_MODULE_NOT_AVAILABLE);
-		}
+		return ModuleLoader.loadSmimeModule()
+				.signAndOrEncryptEmail(session, messageToProtect, emailContainingSmimeDetails);
 	}
 
 	/**
