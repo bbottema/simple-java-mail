@@ -1,34 +1,26 @@
 package org.simplejavamail.mailer.internal.mailsender;
 
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.internal.mailsender.MailSender;
-import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.mailer.internal.MailerGenericBuilderImpl;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.mail.MessagingException;
 import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.MimeMessage;
-import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.lang.String.format;
-import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Class that performs the actual javax.mail SMTP integration including authenticated socks proxy.
@@ -39,24 +31,13 @@ import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
  */
 public class MailSenderImpl implements MailSender {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(MailSenderImpl.class);
+	private static final Logger LOGGER = getLogger(MailSenderImpl.class);
 
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
 	 */
 	@Nonnull
 	private final Session session;
-	
-	/**
-	 * Depending on the transport strategy, these properties are different, that's why we need to keep a global hold on this instance.
-	 * <p>
-	 * <strong>NOTE:</strong><br>
-	 * This is an optional parameter and as such some functions will throw an error when used (such as {@link #trustAllHosts(Session, boolean, TransportStrategy)}) or
-	 * will skip setting optional properties (such as default timeouts) and also skip mandatory properties which are assumed to be preconfigured on
-	 * the Session instance (these will be logged on DEBUG level, such as proxy host and port properties).
-	 */
-	@Nullable
-	private final TransportStrategy transportStrategy;
 	
 	/**
 	 * @see OperationalConfig
@@ -73,12 +54,10 @@ public class MailSenderImpl implements MailSender {
 
 	/**
 	 * Used to keep track of running SMTP requests, so that we know when to close down the proxy bridging server (if used).
-	 * <p>
-	 * Can't be initialized in the field, because we need to reinitialize if the phaser was terminated after a batch of emails and this MailSender
-	 * instance is again engaged.
 	 */
-	private Phaser smtpRequestsPhaser;
-	
+	@Nonnull
+	private final AtomicInteger smtpConnectionCounter = new AtomicInteger();
+
 	public MailSenderImpl(@Nonnull final Session session,
 						  @Nonnull final OperationalConfig operationalConfig,
 						  @Nonnull final ProxyConfig proxyConfig,
@@ -87,7 +66,6 @@ public class MailSenderImpl implements MailSender {
 
 		this.session = session;
 		this.operationalConfig = operationalConfig;
-		this.transportStrategy = transportStrategy;
 		this.proxyServer = configureSessionWithProxy(proxyConfig, session, transportStrategy);
 	}
 	
@@ -153,33 +131,6 @@ public class MailSenderImpl implements MailSender {
 	}
 
 	/**
-	 * @see MailSender#send(Email, boolean)
-	 */
-	@Override
-	@Nullable
-	public final synchronized AsyncResponse send(final Email email, final boolean async) {
-		/*
-            we need to track even non-async emails to prevent async emails from shutting down
-            the proxy bridge server (or connection pool in async mode) while a non-async email is still being processed
-		 */
-        // phaser auto-terminates each time the all parties have arrived, so re-initialize when needed
-        if (smtpRequestsPhaser == null || smtpRequestsPhaser.isTerminated()) {
-            smtpRequestsPhaser = new Phaser();
-        }
-        smtpRequestsPhaser.register();
-
-		SendMailClosure sendMailClosure = new SendMailClosure(session, email, async);
-
-		if (!async) {
-			sendMailClosure.run();
-			return null;
-		} else {
-			return ModuleLoader.loadBatchModule()
-					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
-		}
-	}
-	
-	/**
 	 * Configures the {@link Session} with the same timeout for socket connection timeout, read and write timeout.
 	 */
 	private void configureSessionWithTimeout(@Nonnull final Session session, final int sessionTimeout, @Nullable final TransportStrategy transportStrategy) {
@@ -192,126 +143,6 @@ public class MailSenderImpl implements MailSender {
 		} else {
 			LOGGER.debug("No transport strategy provided, skipping defaults for .connectiontimout, .timout and .writetimeout");
 		}
-	}
-	
-	/**
-	 * Separate closure that can be executed directly or from a thread. Refer to {@link #send(Email, boolean)} for details.
-	 * <p>
-	 * Note that this Runnable implementation is <strong>not</strong> thread related, it is just to encapsulate the code to
-	 * be run directly or from a <em>real</em> Runnable.
-	 */
-	private class SendMailClosure implements Runnable {
-
-		@Nonnull final Session session;
-		@Nonnull final Email email;
-		private final boolean asyncForLoggingPurpose;
-
-
-		/**
-		 * @param session The session with which to produce the {@link MimeMessage} aquire the {@link Transport} for connections.
-		 * @param email   The email that will be converted into a {@link MimeMessage}.
-		 * @param asyncForLoggingPurpose   For logging purposes, indicates whether this closure is running in async mode.
-		 */
-		private SendMailClosure(@Nonnull Session session, @Nonnull Email email, boolean asyncForLoggingPurpose) {
-			this.session = session;
-			this.email = email;
-			this.asyncForLoggingPurpose = asyncForLoggingPurpose;
-		}
-
-		@SuppressWarnings("deprecation")
-		@Override
-		public void run() {
-			LOGGER.trace("sending email...");
-			try {
-				// fill and send wrapped mime message parts
-				final MimeMessage message = MimeMessageProducerHelper.produceMimeMessage(email, session);
-
-				configureBounceToAddress(session, email);
-
-				logSession(session, asyncForLoggingPurpose, "mail");
-				message.saveChanges(); // some headers and id's will be set for this specific message
-				email.internalSetId(message.getMessageID());
-
-				try {
-					synchronized (this) {
-						if (needsAuthenticatedProxy()) {
-							if (!proxyServer.isRunning()) {
-								LOGGER.trace("starting proxy bridge");
-								proxyServer.start();
-							}
-							proxyServer.start();
-						}
-					}
-
-					if (operationalConfig.isTransportModeLoggingOnly()) {
-						LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
-						LOGGER.info("\n\nEmail: {}\n", email);
-						LOGGER.info("\n\nMimeMessage: {}\n", mimeMessageToEML(message));
-						return;
-					}
-
-					LOGGER.trace("\t\nEmail: {}", email);
-					LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEML(message));
-
-					try (Transport transport = session.getTransport()) {
-						transport.connect();
-						transport.sendMessage(message, message.getAllRecipients());
-						LOGGER.trace("...email sent");
-					} finally {
-						LOGGER.trace("closing transport");
-					}
-				} finally {
-					checkShutDownRunningProcesses();
-				}
-			} catch (final UnsupportedEncodingException e) {
-				LOGGER.error("Failed to send email:\n{}", email);
-				throw new MailSenderException(MailSenderException.INVALID_ENCODING, e);
-			} catch (final MessagingException e) {
-				LOGGER.error("Failed to send email:\n{}", email);
-				throw new MailSenderException(MailSenderException.GENERIC_ERROR, e);
-			} catch (final Exception e) {
-				LOGGER.error("Failed to send email:\n{}", email);
-				throw e;
-			}
-		}
-	}
-	
-	private void configureBounceToAddress(final Session session, final Email email) {
-		final Recipient bounceAddress = email.getBounceToRecipient();
-		if (bounceAddress != null) {
-			if (transportStrategy != null) {
-				final String formattedRecipient = format("%s <%s>", bounceAddress.getName(), bounceAddress.getAddress());
-				session.getProperties().setProperty(transportStrategy.propertyNameEnvelopeFrom(), formattedRecipient);
-			} else {
-				throw new MailSenderException(MailSenderException.CANNOT_SET_BOUNCETO_WITHOUT_TRANSPORTSTRATEGY);
-			}
-		}
-	}
-	
-	/**
-	 * We need to keep a count of running threads in case a proxyserver is running
-     */
-    private synchronized void checkShutDownRunningProcesses() {
-        smtpRequestsPhaser.arriveAndDeregister();
-        LOGGER.trace("SMTP request threads left: {}", smtpRequestsPhaser.getUnarrivedParties());
-        // if this thread is the last one finishing
-        if (smtpRequestsPhaser.getUnarrivedParties() == 0) {
-            LOGGER.trace("all threads have finished processing");
-			if (needsAuthenticatedProxy() && proxyServer.isRunning() && !proxyServer.isStopping()) {
-                LOGGER.trace("stopping proxy bridge...");
-                proxyServer.stop();
-            }
-        }
-    }
-
-	/**
-	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
-	 */
-	private static void logSession(final Session session, boolean async, final String activity) {
-		final TransportStrategy transportStrategy = TransportStrategy.findStrategyForSession(session);
-		final Properties properties = session.getProperties();
-		final String sessionDetails = (transportStrategy != null) ? transportStrategy.toString(properties) : properties.toString();
-		LOGGER.debug("starting{} {} with {}", async ? " async" : "", activity, sessionDetails);
 	}
 
 	/**
@@ -339,12 +170,30 @@ public class MailSenderImpl implements MailSender {
 	}
 
 	/**
+	 * @see MailSender#send(Email, boolean)
+	 */
+	@Override
+	@Nullable
+	public final synchronized AsyncResponse send(final Email email, final boolean async) {
+		SendMailClosure sendMailClosure = new SendMailClosure(session, email, proxyServer, async, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
+
+		if (!async) {
+			sendMailClosure.run();
+			return null;
+		} else {
+			return ModuleLoader.loadBatchModule()
+					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
+		}
+	}
+
+	/**
 	 * @see MailSender#testConnection(boolean)
 	 */
 	@Override
 	@Nullable
 	public synchronized AsyncResponse testConnection(boolean async) {
-		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(session, async);
+		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(session, proxyServer, async, smtpConnectionCounter);
+
 		if (!async) {
 			testConnectionClosure.run();
 			return null;
@@ -352,57 +201,6 @@ public class MailSenderImpl implements MailSender {
 			return ModuleLoader.loadBatchModule()
 					.executeAsync("testSMTPConnection process", testConnectionClosure);
 		}
-	}
-
-	/**
-	 * Extra closure for the actual connection test, so this can be called regularly as well as from async thread.
-	 * <p>
-	 * See {@link #testConnection(boolean)} for details.
-	 */
-	private class TestConnectionClosure implements Runnable {
-		@Nonnull final Session session;
-		private final boolean async;
-
-		private TestConnectionClosure(@Nonnull Session session, boolean async) {
-			this.async = async;
-			this.session = session;
-		}
-
-		@Override
-		public void run() {
-			LOGGER.debug("testing connection...");
-
-			boolean proxyBridgeStartedForTestingConnection = false;
-
-			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);
-
-			logSession(session, async, "connection test");
-
-			try (Transport transport = session.getTransport()) {
-				if (needsAuthenticatedProxy() && !proxyServer.isRunning()) {
-					LOGGER.trace("starting proxy bridge for testing connection");
-					proxyServer.start();
-					proxyBridgeStartedForTestingConnection = true;
-				}
-				transport.connect(); // actual test
-
-				LOGGER.debug("...connection succesful");
-			} catch (final MessagingException e) {
-				throw new MailSenderException(MailSenderException.ERROR_CONNECTING_SMTP_SERVER, e);
-			} finally {
-				if (proxyBridgeStartedForTestingConnection) {
-					LOGGER.trace("stopping proxy bridge after connection test");
-					proxyServer.stop();
-				}
-			}
-		}
-	}
-
-	/**
-	 * Proxy server is null when not needed. Method is for readability.
-	 */
-	private boolean needsAuthenticatedProxy() {
-		return proxyServer != null;
 	}
 
 	/**

@@ -11,7 +11,6 @@ class MailSenderException extends MailException {
 	static final String INVALID_PROXY_SLL_COMBINATION = "Proxy is not supported for SSL connections (this is a limitation by the underlying JavaMail framework)";
 	static final String GENERIC_ERROR = "Third party error";
 	static final String INVALID_ENCODING = "Encoding not accepted";
-	static final String CANNOT_SET_BOUNCETO_WITHOUT_TRANSPORTSTRATEGY = "Cannot determine the envelope .from property to set without a provided transport strategy";
 	static final String ERROR_CONNECTING_SMTP_SERVER = "Was unable to connect to SMTP server";
 	
 	MailSenderException(@SuppressWarnings("SameParameterValue") final String message) {

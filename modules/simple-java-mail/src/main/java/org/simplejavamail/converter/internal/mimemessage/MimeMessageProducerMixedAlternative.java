@@ -44,7 +44,7 @@ class MimeMessageProducerMixedAlternative extends MimeMessageProducer {
 				multipartRootMixed.addBodyPart(contentAlternativeMessages);
 				contentAlternativeMessages.setContent(multipartAlternativeMessages);
 			} catch (final MessagingException e) {
-				throw new MimeMessageParseException(e.getMessage(), e);
+				throw new MimeMessageProduceException(e.getMessage(), e);
 			}
 		}
 	}

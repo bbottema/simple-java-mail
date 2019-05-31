@@ -5,6 +5,8 @@ import javax.annotation.Nullable;
 import javax.mail.Message.RecipientType;
 import java.util.Objects;
 
+import static java.lang.String.format;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
@@ -31,6 +33,10 @@ public final class Recipient {
 		this.name = name;
 		this.address = checkNonEmptyArgument(address, "address");
 		this.type = type;
+	}
+
+	public String asStandardString() {
+		return valueNullOrEmpty(getName()) ? getAddress() : format("%s <%s>", getName(), getAddress());
 	}
 
 	@Override

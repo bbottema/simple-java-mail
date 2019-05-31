@@ -32,8 +32,7 @@ class MimeMessageParseException extends MailException {
 	static final String ERROR_GETTING_SUBJECT = "Error getting subject";
 	static final String ERROR_GETTING_MESSAGE_ID = "Error getting message ID";
 	static final String ERROR_PARSING_REPLY_TO_ADDRESSES = "Error parsing replyTo addresses";
-	static final String ERROR_SIGNING_DKIM_INVALID_DOMAINKEY = "Error signing MimeMessage with DKIM";
-	
+
 	MimeMessageParseException(@Nonnull final String message, @Nullable final Exception cause) {
 		super(checkNonEmptyArgument(message, "message"), cause);
 	}

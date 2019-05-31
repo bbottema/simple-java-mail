@@ -107,22 +107,25 @@ public class MimeMessageHelperTest {
 	}
 	
 	@Test
-	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseItWillTryToSign() throws IOException {
+	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseItWillTryToSign()
+			throws IOException, ClassNotFoundException {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
 		
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
 			@Override
-			public void call() throws Throwable {
+			public void call() {
 				EmailConverter.emailToMimeMessage(email);
 			}
 		})
-				.hasMessage(MimeMessageParseException.ERROR_SIGNING_DKIM_INVALID_DOMAINKEY);
+				.isInstanceOf(Class.forName("org.simplejavamail.internal.dkimsupport.DKIMSigningException"))
+				.hasMessage("Error signing MimeMessage with DKIM");
 	}
 	
 	@Test
-	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseDKIMLibraryIsMissing() throws IOException {
+	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseDKIMLibraryIsMissing()
+			throws IOException, ClassNotFoundException {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
@@ -147,6 +150,7 @@ public class MimeMessageHelperTest {
 				EmailConverter.emailToMimeMessage(email);
 			}
 		})
-				.hasMessage(MimeMessageParseException.ERROR_SIGNING_DKIM_INVALID_DOMAINKEY);
+				.isInstanceOf(Class.forName("org.simplejavamail.internal.dkimsupport.DKIMSigningException"))
+				.hasMessage("Error signing MimeMessage with DKIM");
 	}
 }

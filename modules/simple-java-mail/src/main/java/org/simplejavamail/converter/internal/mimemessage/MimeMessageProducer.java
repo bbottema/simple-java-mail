@@ -1,5 +1,6 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import com.sun.mail.smtp.SMTPMessage;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.modules.ModuleLoader;
 
@@ -10,6 +11,7 @@ import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
+import static java.lang.String.format;
 import static org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper.signMessageWithDKIM;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -36,14 +38,11 @@ public abstract class MimeMessageProducer {
 	 */
 	abstract boolean compatibleWithEmail(@Nonnull Email email);
 	
-	/**
-	 * Performs a standard population and then delegates multipart specifics to the subclass.
-	 */
 	final MimeMessage populateMimeMessage(@Nonnull final Email email, @Nonnull Session session)
 			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
-		
+
 		MimeMessage message = new MimeMessage(session) {
 			@Override
 			protected void updateMessageID() throws MessagingException {
@@ -83,9 +82,15 @@ public abstract class MimeMessageProducer {
 			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email);
 		}
 
+		// IMPORTANT: SMTPMessage should be the last one, so we're sure the extra fields are used
+		if (email.getBounceToRecipient() != null) {
+			message = new SMTPMessage(message);
+			((SMTPMessage) message).setEnvelopeFrom(email.getBounceToRecipient().asStandardString());
+		}
+
 		return message;
 	}
-	
+
 	abstract void populateMimeMessageMultipartStructure(@Nonnull MimeMessage  message, @Nonnull Email email) throws MessagingException;
 	
 	
