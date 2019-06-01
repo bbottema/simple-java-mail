@@ -9,7 +9,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.converter.internal.mimemessage.SMTPMessageProxy;
+import org.simplejavamail.converter.internal.mimemessage.ImmutableDelegatingSMTPMessage;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
@@ -259,8 +259,8 @@ public class MailerTest {
 		emailPopulatingBuilder.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
 		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, signing did not produce an error
-		assertThat(mimeMessage).isInstanceOf(SMTPMessageProxy.class);
-		assertThat(((SMTPMessageProxy) mimeMessage).getDelegate()).isInstanceOf(DkimMessage.class);
+		assertThat(mimeMessage).isInstanceOf(ImmutableDelegatingSMTPMessage.class);
+		assertThat(((ImmutableDelegatingSMTPMessage) mimeMessage).getDelegate()).isInstanceOf(DkimMessage.class);
 	}
 
 	@Test
@@ -284,8 +284,8 @@ public class MailerTest {
 
 		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, signing did not produce an error
-		assertThat(mimeMessage).isInstanceOf(SMTPMessageProxy.class);
-		assertThat(((SMTPMessageProxy) mimeMessage).getDelegate()).isInstanceOf(DkimMessage.class);
+		assertThat(mimeMessage).isInstanceOf(ImmutableDelegatingSMTPMessage.class);
+		assertThat(((ImmutableDelegatingSMTPMessage) mimeMessage).getDelegate()).isInstanceOf(DkimMessage.class);
 	}
 	
 	@Test

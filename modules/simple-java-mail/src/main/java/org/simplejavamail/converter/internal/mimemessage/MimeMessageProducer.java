@@ -87,9 +87,8 @@ public abstract class MimeMessageProducer {
 		}
 
 		if (email.getBounceToRecipient() != null) {
-			message = new SMTPMessageProxy(message);
 			// display name not applicable: https://tools.ietf.org/html/rfc5321#section-4.1.2
-			((SMTPMessage) message).setEnvelopeFrom(email.getBounceToRecipient().getAddress());
+			message = new ImmutableDelegatingSMTPMessage(message, email.getBounceToRecipient().getAddress());
 		}
 
 		return message;
