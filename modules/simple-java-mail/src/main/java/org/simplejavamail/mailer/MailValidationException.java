@@ -1,12 +1,8 @@
-package org.simplejavamail.mailer.internal;
+package org.simplejavamail.mailer;
 
 import org.simplejavamail.MailException;
 
-/**
- * This exception is used to communicate errors during the validation of email.
- */
-@SuppressWarnings("serial")
-class MailerException extends MailException {
+class MailValidationException extends MailException {
 
 	static final String INVALID_RECIPIENT = "Invalid TO address: %s";
 	static final String INVALID_REPLYTO = "Invalid REPLY TO address: %s";
@@ -20,7 +16,8 @@ class MailerException extends MailException {
 	static final String MISSING_RETURNRECEIPTTO = "Email is not valid: it is set to use \"Return Receipt To\", but the address is empty";
 	static final String INJECTION_SUSPECTED = "Suspected of injection attack, field: %s with suspicious value: %s";
 
-	MailerException(final String message) {
+
+	MailValidationException(final String message) {
 		super(message);
 	}
 }

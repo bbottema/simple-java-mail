@@ -67,11 +67,13 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 	}
 
 	@Override
+	@Nullable
 	public String getSubmitter() {
 		return (delegate instanceof SMTPMessage) ? ((SMTPMessage) delegate).getSubmitter() : null;
 	}
 
 	@Override
+	@Nullable
 	public String getMailExtension() {
 		return (delegate instanceof SMTPMessage) ? ((SMTPMessage) delegate).getMailExtension() : null;
 	}
