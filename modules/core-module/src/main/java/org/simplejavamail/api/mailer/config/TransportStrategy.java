@@ -471,7 +471,8 @@ public enum TransportStrategy {
 	 * Marker property used to track which {@link TransportStrategy} has been used. This way we can differentiate between preconfigured custom
 	 * <code>Session</code> and sessions created by a <code>Mailer</code> instance, without checking each and every property for a specific strategy.
 	 * <p>
-	 * This is mainly for logging purposes.
+	 * This is nescesary in case Simple Java Mail was used first to create an independant Session instance which is later used
+	 * as a custom session when sending emails.
 	 */
 	private static final String TRANSPORT_STRATEGY_MARKER = "simplejavamail.transportstrategy";
 	
@@ -565,6 +566,7 @@ public enum TransportStrategy {
 	 * @see #TRANSPORT_STRATEGY_MARKER
 	 * @see #generateProperties()
 	 */
+	@Nullable
 	public static TransportStrategy findStrategyForSession(final Session session) {
 		final String transportStrategyMarker = session.getProperty(TRANSPORT_STRATEGY_MARKER);
 		if (transportStrategyMarker != null) {

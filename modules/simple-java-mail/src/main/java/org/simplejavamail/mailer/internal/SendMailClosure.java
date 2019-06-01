@@ -1,9 +1,9 @@
-package org.simplejavamail.mailer.internal.mailsender;
+package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
-import org.simplejavamail.mailer.internal.mailsender.util.SessionLogger;
+import org.simplejavamail.mailer.internal.util.SessionLogger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -64,10 +64,10 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 			}
 		} catch (final UnsupportedEncodingException e) {
 			LOGGER.error("Failed to send email:\n{}", email);
-			throw new MailSenderException(MailSenderException.INVALID_ENCODING, e);
+			throw new MailerException(MailerException.INVALID_ENCODING, e);
 		} catch (final MessagingException e) {
 			LOGGER.error("Failed to send email:\n{}", email);
-			throw new MailSenderException(MailSenderException.GENERIC_ERROR, e);
+			throw new MailerException(MailerException.GENERIC_ERROR, e);
 		} catch (final Exception e) {
 			LOGGER.error("Failed to send email:\n{}", email);
 			throw e;

@@ -1,7 +1,7 @@
-package org.simplejavamail.mailer.internal.mailsender;
+package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
-import org.simplejavamail.mailer.internal.mailsender.util.SessionLogger;
+import org.simplejavamail.mailer.internal.util.SessionLogger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -37,7 +37,7 @@ class TestConnectionClosure extends AbstractProxyServerSyncingClosure {
 				LOGGER.trace("closing transport");
 			}
 		} catch (final MessagingException e) {
-			throw new MailSenderException(MailSenderException.ERROR_CONNECTING_SMTP_SERVER, e);
+			throw new MailerException(MailerException.ERROR_CONNECTING_SMTP_SERVER, e);
 		} catch (final Exception e) {
 			LOGGER.error("Failed to test connection email");
 			throw e;

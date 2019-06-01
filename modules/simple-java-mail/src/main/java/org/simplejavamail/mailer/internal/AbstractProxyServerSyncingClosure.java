@@ -1,4 +1,4 @@
-package org.simplejavamail.mailer.internal.mailsender;
+package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.slf4j.Logger;

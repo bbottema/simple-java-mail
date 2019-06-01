@@ -1,9 +1,11 @@
-package org.simplejavamail.mailer.internal.mailsender;
+package org.simplejavamail.mailer.internal;
 
+import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
+import org.simplejavamail.mailer.internal.MailerImpl;
 import org.simplejavamail.mailer.internal.OperationalConfigImpl;
 
 import javax.annotation.Nonnull;
@@ -14,13 +16,15 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 
+import static java.util.EnumSet.noneOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 
-public class MailSenderTest {
+@SuppressWarnings("deprecation")
+public class MailerImplTest {
 	
 	private Session session;
 	
@@ -39,9 +43,9 @@ public class MailSenderTest {
 	
 	@Test
 	public void trustAllHosts_PLAIN() {
-		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, true), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, true));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
-		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, false), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
 	}
 	
@@ -49,21 +53,21 @@ public class MailSenderTest {
 	public void trustAllHosts_SMTPS() {
 		ProxyConfig proxyBypassingMock = mock(ProxyConfig.class);
 		when(proxyBypassingMock.requiresProxy()).thenReturn(false);
-		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, true), proxyBypassingMock, SMTPS);
+		new MailerImpl(null, SMTPS, noneOf(EmailAddressCriteria.class), proxyBypassingMock, session, createDummyOperationalConfig(EMPTY_LIST, true));
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isEqualTo("*");
-		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, false), proxyBypassingMock, SMTPS);
+		new MailerImpl(null, SMTPS, noneOf(EmailAddressCriteria.class), proxyBypassingMock, session, createDummyOperationalConfig(EMPTY_LIST, false));
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isNull();
 	}
 	
 	@Test
 	public void trustHosts() {
-		new MailSenderImpl(session, createDummyOperationalConfig(asList(), false), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList(), false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
-		new MailSenderImpl(session, createDummyOperationalConfig(asList("a"), false), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList("a"), false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a");
-		new MailSenderImpl(session, createDummyOperationalConfig(asList("a", "b"), false), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList("a", "b"), false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b");
-		new MailSenderImpl(session, createDummyOperationalConfig(asList("a", "b", "c"), false), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList("a", "b", "c"), false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b c");
 	}
 	
