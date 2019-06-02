@@ -1,8 +1,11 @@
 package org.simplejavamail.internal.modules;
 
+import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.AsyncResponse;
 
 import javax.annotation.Nonnull;
+import javax.mail.Session;
+import javax.mail.Transport;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -29,4 +32,16 @@ public interface BatchModule {
 	 */
 	@Nonnull
 	ExecutorService createDefaultExecutorService(final int threadPoolSize, final int keepAliveTime);
+
+	/**
+	 * @return A (new) {@link Transport} for the given session.
+	 */
+	@Nonnull
+	LifecycleDelegatingTransport acquireTransport(@Nonnull Session session);
+
+	/**
+	 * Shuts down all remaining open transport connections and empties all the Session-keyed pools.
+	 */
+	// FIXME invoke
+	void clearTransportPool(@Nonnull Session session);
 }
