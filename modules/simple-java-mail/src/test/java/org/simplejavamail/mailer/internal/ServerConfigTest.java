@@ -24,7 +24,6 @@ public class ServerConfigTest {
 	}
 
 	@Test
-	@SuppressWarnings("deprecation")
 	public void NoArgconstructor_WithoutConfigFile_WithoutHost() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
@@ -37,7 +36,6 @@ public class ServerConfigTest {
 	}
 
 	@Test
-	@SuppressWarnings("deprecation")
 	public void NoArgconstructor_WithoutConfigFile_WithoutPort() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
@@ -49,7 +47,6 @@ public class ServerConfigTest {
 	}
 
 	@Test
-	@SuppressWarnings("deprecation")
 	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, "username", null);
@@ -64,7 +61,6 @@ public class ServerConfigTest {
 	}
 
 	@Test
-	@SuppressWarnings("deprecation")
 	public void NoArgconstructor_WithoutConfigFile_Authenticated() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, "username", "password");
@@ -72,7 +68,6 @@ public class ServerConfigTest {
 	}
 
 	@Test
-	@SuppressWarnings("deprecation")
 	public void testToString() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, null, null);
@@ -83,6 +78,7 @@ public class ServerConfigTest {
 		assertThat(serverConfig.toString()).isEqualTo("host:1234, username: username (authenticated)");
 	}
 
+	@SuppressWarnings("SameParameterValue")
 	private void verifyServerConfig(ServerConfig serverConfig, @Nullable String host, @Nullable Integer port, @Nullable String username, @Nullable String password) {
 		assertThat(serverConfig.getHost()).isEqualTo(host);
 		assertThat(serverConfig.getPort()).isEqualTo(port);

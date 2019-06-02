@@ -164,7 +164,6 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	/**
 	 * For internal use.
 	 */
-	@SuppressWarnings("deprecation")
 	ServerConfig buildServerConfig() {
 		vallidateServerConfig();
 		final int serverPort = SimpleOptional.ofNullable(port).orElse(transportStrategy.getDefaultServerPort());

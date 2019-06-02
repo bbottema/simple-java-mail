@@ -33,7 +33,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
  * @see MailerGenericBuilder
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
-public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements MailerGenericBuilder<T> {
+abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements MailerGenericBuilder<T> {
 	
 	/**
 	 * @see MailerGenericBuilder#async()
@@ -156,10 +156,9 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	/**
 	 * For internal use.
 	 */
-	@SuppressWarnings("deprecation")
 	ProxyConfig buildProxyConfig() {
 		validateProxy();
-		return new ProxyConfig(getProxyHost(), getProxyPort(), getProxyUsername(), getProxyPassword(), getProxyBridgePort());
+		return new ProxyConfigImpl(getProxyHost(), getProxyPort(), getProxyUsername(), getProxyPassword(), getProxyBridgePort());
 	}
 	
 	private void validateProxy() {
@@ -181,7 +180,6 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	/**
 	 * For internal use.
 	 */
-	@SuppressWarnings("deprecation")
 	OperationalConfig buildOperationalConfig() {
 		return new OperationalConfigImpl(
 				isAsync(),

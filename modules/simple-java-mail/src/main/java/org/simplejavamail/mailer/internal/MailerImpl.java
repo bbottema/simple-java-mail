@@ -12,6 +12,7 @@ import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.mailer.MailerHelper;
+import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +24,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.util.EnumSet.noneOf;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
@@ -141,7 +141,6 @@ public class MailerImpl implements Mailer {
 	 * @see TransportStrategy#propertyNameUsername()
 	 * @see TransportStrategy#propertyNameAuthenticate()
 	 */
-	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static Session createMailSession(@Nonnull final ServerConfig serverConfig, @Nonnull final TransportStrategy transportStrategy) {
 		final Properties props = transportStrategy.generateProperties();

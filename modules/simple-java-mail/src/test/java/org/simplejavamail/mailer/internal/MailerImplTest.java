@@ -5,8 +5,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.mailer.internal.MailerImpl;
-import org.simplejavamail.mailer.internal.OperationalConfigImpl;
 
 import javax.annotation.Nonnull;
 import javax.mail.Session;
@@ -36,9 +34,8 @@ public class MailerImplTest {
 	}
 	
 	@Nonnull
-	@SuppressWarnings("deprecation")
 	private ProxyConfig createEmptyProxyConfig() {
-		return new ProxyConfig(null, null, null, null, null);
+		return new ProxyConfigImpl(null, null, null, null, null);
 	}
 	
 	@Test
@@ -77,7 +74,6 @@ public class MailerImplTest {
 	}
 	
 	@Nonnull
-	@SuppressWarnings("deprecation")
 	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost) {
 		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, false, false, hostsToTrust, trustAllSSLHost,
 				Executors.newSingleThreadExecutor());

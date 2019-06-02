@@ -4,7 +4,6 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.MailerFromSessionBuilderImpl;
-import org.simplejavamail.mailer.internal.MailerGenericBuilderImpl;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 
 import javax.annotation.Nonnull;
@@ -12,7 +11,7 @@ import javax.annotation.Nullable;
 import javax.mail.Session;
 
 /**
- * Entry builder used to start a {@link MailerGenericBuilderImpl} and fully configure a Mailer.
+ * Entry builder used to start a {@link org.simplejavamail.api.mailer.MailerGenericBuilder} and fully configure a Mailer.
  * <p>
  * Any of these methods return a specialized builder, of which there are two:
  * <ul>

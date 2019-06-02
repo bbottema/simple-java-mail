@@ -13,7 +13,7 @@ import java.util.concurrent.ExecutorService;
  * @see OperationalConfig
  */
 // FIXME Lombok
-public class OperationalConfigImpl implements OperationalConfig {
+class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see MailerRegularBuilder#withSessionTimeout(Integer)
 	 */
@@ -67,12 +67,7 @@ public class OperationalConfigImpl implements OperationalConfig {
 	@Nonnull
 	private final ExecutorService executorService;
 	
-	/**
-	 * @deprecated For internal use only.
-	 */
-	@Deprecated
-	@SuppressWarnings("DeprecatedIsStillUsed")
-	public OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly,
+	OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly,
 			boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, @Nonnull final ExecutorService executorService) {
 		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
