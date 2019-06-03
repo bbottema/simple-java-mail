@@ -5,7 +5,7 @@ import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.simplejavamail.internal.batchsupport.transportpool.LifecycleDelegatingTransportImpl;
 import org.simplejavamail.internal.batchsupport.transportpool.PoolableTransportAllocatorFactory;
-import org.simplejavamail.internal.batchsupport.transportpool.keyedcloseablepools.KeyedObjectPools;
+import org.simplejavamail.internal.batchsupport.transportpool.keyedcloseablepools.KeyedCyclingObjectPools;
 import org.simplejavamail.internal.batchsupport.transportpool.keyedcloseablepools.SimpleDelegatingPoolable;
 import org.simplejavamail.internal.modules.BatchModule;
 import org.slf4j.Logger;
@@ -19,7 +19,9 @@ import javax.mail.Transport;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.simplejavamail.internal.batchsupport.BatchException.ERROR_ACQUIRING_KEYED_POOLABLE;
 
 /**
  * This class only serves to hide the Batch implementation behind an easy-to-load-with-reflection class.
@@ -31,8 +33,8 @@ public class BatchSupport implements BatchModule {
 	private static final Timeout WAIT_FOREVER = new Timeout(Long.MAX_VALUE, TimeUnit.DAYS);
 	private static final TimeExpiration<SimpleDelegatingPoolable<Transport>> TIME_TO_LIVE_5_SECONDS = new TimeExpiration<>(5, SECONDS);
 
-	private final KeyedObjectPools<Session, SimpleDelegatingPoolable<Transport>> transportPools =
-			new KeyedObjectPools<>(new PoolableTransportAllocatorFactory(), TIME_TO_LIVE_5_SECONDS, WAIT_FOREVER);
+	private final KeyedCyclingObjectPools<Session, SimpleDelegatingPoolable<Transport>> transportPools =
+			new KeyedCyclingObjectPools<>(new PoolableTransportAllocatorFactory(), TIME_TO_LIVE_5_SECONDS, WAIT_FOREVER);
 
 	/**
 	 * @see BatchModule#executeAsync(String, Runnable)
@@ -68,7 +70,11 @@ public class BatchSupport implements BatchModule {
 	@Override
 	@SuppressWarnings("deprecation")
 	public LifecycleDelegatingTransport acquireTransport(@Nonnull final Session session) {
-		return new LifecycleDelegatingTransportImpl(transportPools.acquire(session));
+		try {
+			return new LifecycleDelegatingTransportImpl(transportPools.acquire(session));
+		} catch (InterruptedException e) {
+			throw new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session), e);
+		}
 	}
 
 	/**
