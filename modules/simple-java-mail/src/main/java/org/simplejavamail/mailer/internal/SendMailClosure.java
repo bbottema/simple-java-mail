@@ -4,12 +4,12 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
+import org.simplejavamail.mailer.internal.util.TransportRunner;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Session;
-import javax.mail.Transport;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -54,13 +54,7 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 			if (transportModeLoggingOnly) {
 				LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
 			} else {
-				try (Transport transport = session.getTransport()) {
-					transport.connect();
-					transport.sendMessage(message, message.getAllRecipients());
-					LOGGER.trace("...email sent");
-				} finally {
-					LOGGER.trace("closing transport");
-				}
+				TransportRunner.sendMessage(session, message, message.getAllRecipients());
 			}
 		} catch (final UnsupportedEncodingException e) {
 			LOGGER.error("Failed to send email:\n{}", email);

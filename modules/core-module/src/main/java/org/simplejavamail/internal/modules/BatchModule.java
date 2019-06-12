@@ -34,7 +34,7 @@ public interface BatchModule {
 	ExecutorService createDefaultExecutorService(final int threadPoolSize, final int keepAliveTime);
 
 	/**
-	 * @return A (new) {@link Transport} for the given session.
+	 * @return A (new) {@link Transport} for the given session from the SMTP connection pool.
 	 */
 	@Nonnull
 	LifecycleDelegatingTransport acquireTransport(@Nonnull Session session);

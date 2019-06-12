@@ -1,23 +1,21 @@
 package org.simplejavamail.internal.batchsupport;
 
+import org.bbottema.clusterstormpot.core.api.ResourceKey.ResourcePoolKey;
+import org.bbottema.clusterstormpot.util.SimpleDelegatingPoolable;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
-import org.simplejavamail.internal.batchsupport.transportpool.LifecycleDelegatingTransportImpl;
-import org.simplejavamail.internal.batchsupport.transportpool.PoolableTransportAllocatorFactory;
-import org.simplejavamail.internal.batchsupport.transportpool.keyedcloseablepools.KeyedCyclingObjectPools;
-import org.simplejavamail.internal.batchsupport.transportpool.keyedcloseablepools.SimpleDelegatingPoolable;
 import org.simplejavamail.internal.modules.BatchModule;
+import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
+import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import stormpot.TimeExpiration;
-import stormpot.Timeout;
 
 import javax.annotation.Nonnull;
 import javax.mail.Session;
 import javax.mail.Transport;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -30,11 +28,15 @@ import static org.simplejavamail.internal.batchsupport.BatchException.ERROR_ACQU
 public class BatchSupport implements BatchModule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchSupport.class);
-	private static final Timeout WAIT_FOREVER = new Timeout(Long.MAX_VALUE, TimeUnit.DAYS);
-	private static final TimeExpiration<SimpleDelegatingPoolable<Transport>> TIME_TO_LIVE_5_SECONDS = new TimeExpiration<>(5, SECONDS);
 
-	private final KeyedCyclingObjectPools<Session, SimpleDelegatingPoolable<Transport>> transportPools =
-			new KeyedCyclingObjectPools<>(new PoolableTransportAllocatorFactory(), TIME_TO_LIVE_5_SECONDS, WAIT_FOREVER);
+	private final SmtpConnectionPool smtpConnectionPool = configureSmtpConnectionPool();
+
+	private static SmtpConnectionPool configureSmtpConnectionPool() {
+		final TimeExpiration<SimpleDelegatingPoolable<Transport>> expiryPolicy = new TimeExpiration<>(5, SECONDS);
+		SmtpClusterConfig smtpClusterConfig = new SmtpClusterConfig();
+		smtpClusterConfig.getConfigBuilder().defaultExpirationPolicy(expiryPolicy);
+		return new SmtpConnectionPool(smtpClusterConfig);
+	}
 
 	/**
 	 * @see BatchModule#executeAsync(String, Runnable)
@@ -68,10 +70,10 @@ public class BatchSupport implements BatchModule {
 	 */
 	@Nonnull
 	@Override
-	@SuppressWarnings("deprecation")
 	public LifecycleDelegatingTransport acquireTransport(@Nonnull final Session session) {
 		try {
-			return new LifecycleDelegatingTransportImpl(transportPools.acquire(session));
+			SimpleDelegatingPoolable<Transport> poolableTransport = smtpConnectionPool.claimResourceFromPool(new ResourcePoolKey<>(session));
+			return new LifecycleDelegatingTransportImpl(smtpConnectionPool, poolableTransport);
 		} catch (InterruptedException e) {
 			throw new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session), e);
 		}
@@ -82,6 +84,6 @@ public class BatchSupport implements BatchModule {
 	 */
 	@Override
 	public void clearTransportPool(@Nonnull final Session session) {
-		transportPools.clearPool(session);
+		smtpConnectionPool.clearPool(session);
 	}
 }

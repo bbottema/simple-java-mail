@@ -2,12 +2,12 @@ package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
+import org.simplejavamail.mailer.internal.util.TransportRunner;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Session;
-import javax.mail.Transport;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -29,13 +29,7 @@ class TestConnectionClosure extends AbstractProxyServerSyncingClosure {
 		LOGGER.debug("testing connection...");
 		try {
 			SessionLogger.logSession(session, async, "connection test");
-
-			try (Transport transport = session.getTransport()) {
-				transport.connect(); // actual test
-				LOGGER.debug("...connection succesful");
-			} finally {
-				LOGGER.trace("closing transport");
-			}
+			TransportRunner.connect(session);
 		} catch (final MessagingException e) {
 			throw new MailerException(MailerException.ERROR_CONNECTING_SMTP_SERVER, e);
 		} catch (final Exception e) {

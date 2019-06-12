@@ -11,4 +11,5 @@ import javax.annotation.Nonnull;
 public interface LifecycleDelegatingTransport {
 	@Nonnull Transport getTransport();
 	void signalTransportUsed();
+	void signalTransportFailed();
 }

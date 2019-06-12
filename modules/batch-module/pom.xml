@@ -28,9 +28,9 @@
 
         <!-- needed for pooling SMTP (JavaMail Transport) connections -->
         <dependency>
-          <groupId>com.github.chrisvest</groupId>
-          <artifactId>stormpot</artifactId>
-          <version>2.4.1</version>
+          <groupId>org.simplejavamail</groupId>
+          <artifactId>smtp-connection-pool</artifactId>
+          <version>0.0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
