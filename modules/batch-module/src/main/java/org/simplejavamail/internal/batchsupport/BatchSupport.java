@@ -73,7 +73,7 @@ public class BatchSupport implements BatchModule {
 	public LifecycleDelegatingTransport acquireTransport(@Nonnull final Session session) {
 		try {
 			SimpleDelegatingPoolable<Transport> poolableTransport = smtpConnectionPool.claimResourceFromPool(new ResourcePoolKey<>(session));
-			return new LifecycleDelegatingTransportImpl(smtpConnectionPool, poolableTransport);
+			return new LifecycleDelegatingTransportImpl(poolableTransport);
 		} catch (InterruptedException e) {
 			throw new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session), e);
 		}
