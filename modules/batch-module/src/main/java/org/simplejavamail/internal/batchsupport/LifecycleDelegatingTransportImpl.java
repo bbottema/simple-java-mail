@@ -1,26 +1,26 @@
 package org.simplejavamail.internal.batchsupport;
 
-import org.bbottema.clusterstormpot.util.SimpleDelegatingPoolable;
+import org.bbottema.genericobjectpool.PoolableObject;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 
 import javax.annotation.Nonnull;
 import javax.mail.Transport;
 
 /**
- * Wraps {@link SimpleDelegatingPoolable} to implement {@link LifecycleDelegatingTransport}, so transport resources
+ * Wraps {@link PoolableObject} to implement {@link LifecycleDelegatingTransport}, so transport resources
  * can be used outside the batchmodule and released to be reused in connection pool.
  */
 class LifecycleDelegatingTransportImpl implements LifecycleDelegatingTransport {
-	private final SimpleDelegatingPoolable<Transport> pooledTransport;
+	private final PoolableObject<Transport> pooledTransport;
 
-	LifecycleDelegatingTransportImpl(final SimpleDelegatingPoolable<Transport> pooledTransport) {
+	LifecycleDelegatingTransportImpl(final PoolableObject<Transport> pooledTransport) {
 		this.pooledTransport = pooledTransport;
 	}
 
 	@Nonnull
 	@Override
 	public Transport getTransport() {
-		return pooledTransport.getAllocatedDelegate();
+		return pooledTransport.getAllocatedObject();
 	}
 
 	@Override
@@ -30,6 +30,6 @@ class LifecycleDelegatingTransportImpl implements LifecycleDelegatingTransport {
 
 	@Override
 	public void signalTransportFailed() {
-		pooledTransport.releaseFaulty();
+		pooledTransport.invalidate();
 	}
 }

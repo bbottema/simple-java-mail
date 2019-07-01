@@ -1,7 +1,8 @@
 package org.simplejavamail.internal.batchsupport;
 
-import org.bbottema.clusterstormpot.core.api.ResourceKey.ResourcePoolKey;
-import org.bbottema.clusterstormpot.util.SimpleDelegatingPoolable;
+import org.bbottema.clusteredobjectpool.core.api.ResourceKey.ResourcePoolKey;
+import org.bbottema.genericobjectpool.PoolableObject;
+import org.bbottema.genericobjectpool.expirypolicies.TimeoutSinceLastAllocationExpirationPolicy;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
@@ -10,7 +11,6 @@ import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import stormpot.TimeExpiration;
 
 import javax.annotation.Nonnull;
 import javax.mail.Session;
@@ -32,7 +32,7 @@ public class BatchSupport implements BatchModule {
 	private final SmtpConnectionPool smtpConnectionPool = configureSmtpConnectionPool();
 
 	private static SmtpConnectionPool configureSmtpConnectionPool() {
-		final TimeExpiration<SimpleDelegatingPoolable<Transport>> expiryPolicy = new TimeExpiration<>(5, SECONDS);
+		final TimeoutSinceLastAllocationExpirationPolicy<Transport> expiryPolicy = new TimeoutSinceLastAllocationExpirationPolicy<>(5, SECONDS);
 		SmtpClusterConfig smtpClusterConfig = new SmtpClusterConfig();
 		smtpClusterConfig.getConfigBuilder().defaultExpirationPolicy(expiryPolicy);
 		return new SmtpConnectionPool(smtpClusterConfig);
@@ -72,7 +72,7 @@ public class BatchSupport implements BatchModule {
 	@Override
 	public LifecycleDelegatingTransport acquireTransport(@Nonnull final Session session) {
 		try {
-			SimpleDelegatingPoolable<Transport> poolableTransport = smtpConnectionPool.claimResourceFromPool(new ResourcePoolKey<>(session));
+			PoolableObject<Transport> poolableTransport = smtpConnectionPool.claimResourceFromPool(new ResourcePoolKey<>(session));
 			return new LifecycleDelegatingTransportImpl(poolableTransport);
 		} catch (InterruptedException e) {
 			throw new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session), e);

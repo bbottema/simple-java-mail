@@ -30,7 +30,6 @@ public class TransportRunner {
 			@Override
 			public void run(final Transport transport)
 					throws MessagingException {
-				transport.connect();
 				transport.sendMessage(message, allRecipients);
 				LOGGER.trace("...email sent");
 			}
@@ -41,9 +40,8 @@ public class TransportRunner {
 			throws MessagingException {
 		runOnSessionTransport(session, new TransportRunnable() {
 			@Override
-			public void run(final Transport transport)
-					throws MessagingException {
-				transport.connect();
+			public void run(final Transport transport) {
+				// the fact that we reached here means a connection was made succesfully
 				LOGGER.debug("...connection succesful");
 			}
 		});
