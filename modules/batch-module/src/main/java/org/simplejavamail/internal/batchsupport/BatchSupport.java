@@ -32,9 +32,9 @@ public class BatchSupport implements BatchModule {
 	private final SmtpConnectionPool smtpConnectionPool = configureSmtpConnectionPool();
 
 	private static SmtpConnectionPool configureSmtpConnectionPool() {
-		final TimeoutSinceLastAllocationExpirationPolicy<Transport> expiryPolicy = new TimeoutSinceLastAllocationExpirationPolicy<>(5, SECONDS);
 		SmtpClusterConfig smtpClusterConfig = new SmtpClusterConfig();
-		smtpClusterConfig.getConfigBuilder().defaultExpirationPolicy(expiryPolicy);
+		smtpClusterConfig.getConfigBuilder()
+				.defaultExpirationPolicy(new TimeoutSinceLastAllocationExpirationPolicy<Transport>(5, SECONDS));
 		return new SmtpConnectionPool(smtpClusterConfig);
 	}
 
