@@ -2,8 +2,6 @@ package testutil;
 
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
-import java.lang.reflect.InvocationTargetException;
-
 public class ImplLoader {
 	
 	public static MailerRegularBuilder<?> loadMailerBuilder() {

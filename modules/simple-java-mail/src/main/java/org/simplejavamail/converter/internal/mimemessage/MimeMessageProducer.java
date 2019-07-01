@@ -1,6 +1,5 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import com.sun.mail.smtp.SMTPMessage;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.modules.ModuleLoader;
 

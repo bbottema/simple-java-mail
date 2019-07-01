@@ -3,7 +3,6 @@ package org.simplejavamail.converter.internal.mimemessage;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.internal.modules.ModuleLoader;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;

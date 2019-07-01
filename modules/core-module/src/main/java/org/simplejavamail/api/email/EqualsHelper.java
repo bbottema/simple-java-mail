@@ -69,6 +69,7 @@ final class EqualsHelper {
 		if (email1.getDispositionNotificationTo() != null ? !email1.getDispositionNotificationTo().equals(email2.getDispositionNotificationTo()) : email2.getDispositionNotificationTo() != null) {
 			return false;
 		}
+		//noinspection ConstantConditions
 		if (email1.getOriginalSmimeDetails() != null ? !email1.getOriginalSmimeDetails().equals(email2.getOriginalSmimeDetails()) : email2.getOriginalSmimeDetails() != null) {
 			return false;
 		}
@@ -121,6 +122,7 @@ final class EqualsHelper {
 		if (resource1.getName() != null ? !resource1.getName().equals(resource2.getName()) : resource2.getName() != null) {
 			return false;
 		}
+		//noinspection ConstantConditions
 		return resource1.getDataSource() != null ? isEqualDataSource(resource1.getDataSource(), resource2.getDataSource()) : resource2.getDataSource() == null;
 	}
 

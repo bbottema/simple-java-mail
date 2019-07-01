@@ -180,6 +180,7 @@ public class Email {
 	/**
 	 * @see Email#wasMergedWithSmimeSignedMessage()
 	 */
+	@SuppressWarnings("deprecation")
 	private final boolean wasMergedWithSmimeSignedMessage;
 
 	/**

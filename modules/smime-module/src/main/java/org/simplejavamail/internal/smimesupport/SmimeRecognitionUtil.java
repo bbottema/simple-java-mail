@@ -11,7 +11,6 @@ import java.util.Map;
 import static java.util.Arrays.asList;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.*;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.ENCRYPTED;
 
 public final class SmimeRecognitionUtil {
 

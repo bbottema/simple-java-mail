@@ -5,7 +5,6 @@ import org.simplejavamail.api.internal.outlooksupport.model.OutlookFileAttachmen
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookRecipient;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime;
-import org.simplejavamail.internal.outlooksupport.internal.model.OutlookSmimeProxy.OutlookSmimeApplicationSmimeProxy;
 import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeApplicationOctetStream;
 import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeApplicationSmime;
 import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeMultipartSigned;

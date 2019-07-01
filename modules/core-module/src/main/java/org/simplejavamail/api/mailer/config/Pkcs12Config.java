@@ -52,6 +52,7 @@ public final class Pkcs12Config {
 
 	@Override
 	public String toString() {
+		@SuppressWarnings("StringBufferReplaceableByString")
 		final StringBuilder sb = new StringBuilder("Pkcs12Config{");
 		sb.append("pkcs12StoreStream=").append(pkcs12StoreStream);
 		sb.append(", storePassword=***");

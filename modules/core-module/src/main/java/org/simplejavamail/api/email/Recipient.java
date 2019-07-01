@@ -5,8 +5,6 @@ import javax.annotation.Nullable;
 import javax.mail.Message.RecipientType;
 import java.util.Objects;
 
-import static java.lang.String.format;
-import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
