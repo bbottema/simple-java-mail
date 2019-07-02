@@ -63,6 +63,20 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Changes the default for sending emails and testing server connections to asynchronous (batch mode).
 	 * <p>
 	 * In case of asynchronous mode, make sure you configure logging to file or inspect the returned {@link AsyncResponse}.
+	 * <p>
+	 * Note that you can configure a couple of concurrency properties such as thread pool size, keepAlivetime, connection pool size (or even a cluster) etc.
+	 *
+	 * <p>
+	 * <strong>Note:</strong> without configuring a thread pool (see {@link #withExecutorService(ExecutorService)} or
+	 * @see #withExecutorService(ExecutorService)
+	 * @see #withThreadPoolSize(Integer)
+	 * @see #withThreadPoolKeepAliveTime(Integer)
+	 * @see #withCoreConnectionPoolSize(Integer)
+	 * @see #withMaxConnectionPoolSize(Integer)
+	 * @see #withLoadBalancerStrategy(Integer)
+	 * @see #withExpiryPolicy(Integer)
+	 * @see #withConnectionClaimTimeout(Integer)
+	 * @see #withConnection... FIXME add all pool, cluster and smtp pool options here and in the property files
 	 */
 	T async();
 	
@@ -173,10 +187,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Allows you to fully customize and manage the thread pool, threads and concurrency characteristics when
 	 * sending in batch mode.
 	 * <p>
-	 * By default the {@code NonJvmBlockingThreadPoolExecutor} is used:
+	 * Without calling this, by default the {@code NonJvmBlockingThreadPoolExecutor} is used:
 	 * <ul>
-	 *     <li>with core and max threads fixed to the given pool size</li>
-	 *     <li>with keepAliveTime as specified (if greater than zero, core thread will also time out and die off)</li>
+	 *     <li>with max threads fixed to the given pool size (default is {@value #DEFAULT_POOL_SIZE})</li>
+	 *     <li>with keepAliveTime as specified (if greater than zero, core threads will also time out and die off), default is {@value #DEFAULT_POOL_KEEP_ALIVE_TIME}</li>
 	 *     <li>A {@link LinkedBlockingQueue}</li>
 	 *     <li>The {@code NamedThreadFactory}, which creates named non-daemon threads</li>
 	 * </ul>
@@ -189,7 +203,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withExecutorService(@Nonnull ExecutorService executorService);
 
 	/**
-	 * Sets both core thread pool size and max thread pool size to the given size.
+	 * Sets both max thread pool size to the given size (default is {@value #DEFAULT_POOL_SIZE}).
 	 *
 	 * @param threadPoolSize See main description.
 	 *
@@ -303,7 +317,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetExecutorService();
 
 	/**
-	 * Resets both thread pool max and core size to their defaults.
+	 * Resets both pool size to its default of {@value #DEFAULT_POOL_SIZE}.
 	 *
 	 * @see #withThreadPoolSize(Integer)
 	 */
