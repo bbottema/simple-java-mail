@@ -35,6 +35,21 @@ public interface OperationalConfig {
 	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTime(Integer)
 	 */
 	int getThreadPoolKeepAliveTime();
+
+	/**
+	 * @see MailerRegularBuilder#withConnectionPoolCoreSize(Integer)
+	 */
+	int getConnectionPoolCoreSize();
+
+	/**
+	 * @see MailerRegularBuilder#withConnectionPoolMaxSize(Integer)
+	 */
+	int getConnectionPoolMaxSize();
+
+	/**
+	 * @see MailerRegularBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 */
+	int getConnectionPoolExpireAfterMillis();
 	
 	/**
 	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)

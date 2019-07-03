@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 /**
  * @see OperationalConfig
  */
-// FIXME Lombok
+// FIXME Lombok, especially builder pattern
 class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see MailerRegularBuilder#withSessionTimeout(Integer)
@@ -39,6 +39,21 @@ class OperationalConfigImpl implements OperationalConfig {
 	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTime(Integer)
 	 */
 	private final int threadPoolKeepAliveTime;
+
+	/**
+	 * @see MailerRegularBuilder#withConnectionPoolCoreSize(Integer)
+	 */
+	private final int connectionPoolCoreSize;
+
+	/**
+	 * @see MailerRegularBuilder#withConnectionPoolMaxSize(Integer)
+	 */
+	private final int connectionPoolMaxSize;
+
+	/**
+	 * @see MailerRegularBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 */
+	private final int connectionPoolExpireAfterMillis;
 	
 	/**
 	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
@@ -67,13 +82,15 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Nonnull
 	private final ExecutorService executorService;
 	
-	OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly,
-			boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, @Nonnull final ExecutorService executorService) {
+	OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, int connectionPoolCoreSize, int connectionPoolMaxSize, int connectionPoolExpireAfterMillis, boolean transportModeLoggingOnly, boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, @Nonnull final ExecutorService executorService) {
 		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
 		this.threadPoolSize = threadPoolSize;
 		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
+		this.connectionPoolCoreSize = connectionPoolCoreSize;
+		this.connectionPoolMaxSize = connectionPoolMaxSize;
+		this.connectionPoolExpireAfterMillis = connectionPoolExpireAfterMillis;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
@@ -111,6 +128,30 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Override
 	public int getThreadPoolKeepAliveTime() {
 		return threadPoolKeepAliveTime;
+	}
+
+	/**
+	 * @see OperationalConfig#getConnectionPoolCoreSize()
+	 */
+	@Override
+	public int getConnectionPoolCoreSize() {
+		return connectionPoolCoreSize;
+	}
+
+	/**
+	 * @see OperationalConfig#getConnectionPoolMaxSize()
+	 */
+	@Override
+	public int getConnectionPoolMaxSize() {
+		return connectionPoolMaxSize;
+	}
+
+	/**
+	 * @see OperationalConfig#getConnectionPoolExpireAfterMillis()
+	 */
+	@Override
+	public int getConnectionPoolExpireAfterMillis() {
+		return connectionPoolExpireAfterMillis;
 	}
 	
 	/**

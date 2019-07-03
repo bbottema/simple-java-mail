@@ -100,6 +100,24 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Nonnull
 	private Integer threadPoolKeepAliveTime;
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
+	 */
+	@Nonnull
+	private Integer connectionPoolCoreSize;
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
+	 */
+	@Nonnull
+	private Integer connectionPoolMaxSize;
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 */
+	@Nonnull
+	private Integer connectionPoolExpireAfterMillis;
 	
 	/**
 	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
@@ -139,13 +157,16 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 			this.proxyPassword = ConfigLoader.getStringProperty(PROXY_PASSWORD);
 		}
 
-		this.proxyPort 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
-		this.proxyBridgePort 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
-		this.debugLogging 				= assumeNonNull(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
-		this.sessionTimeout 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
-		this.threadPoolSize 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
-		this.threadPoolKeepAliveTime 	= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
-		this.transportModeLoggingOnly 	= assumeNonNull(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
+		this.proxyPort 							= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
+		this.proxyBridgePort 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
+		this.debugLogging 						= assumeNonNull(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
+		this.sessionTimeout 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
+		this.threadPoolSize 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
+		this.threadPoolKeepAliveTime 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
+		this.connectionPoolCoreSize 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
+		this.connectionPoolMaxSize 				= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
+		this.connectionPoolExpireAfterMillis 	= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
+		this.transportModeLoggingOnly 			= assumeNonNull(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
 		
 		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
 		this.trustAllSSLHost = true;
@@ -187,6 +208,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getSessionTimeout(),
 				getThreadPoolSize(),
 				getThreadPoolKeepAliveTime(),
+				getConnectionPoolCoreSize(),
+				getConnectionPoolMaxSize(),
+				getConnectionPoolExpireAfterMillis(),
 				isTransportModeLoggingOnly(),
 				isDebugLogging(),
 				getSslHostsToTrust(),
@@ -321,6 +345,33 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
 		return (T) this;
 	}
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
+	 */
+	@Override
+	public T withConnectionPoolCoreSize(@Nonnull final Integer connectionPoolCoreSize) {
+		this.connectionPoolCoreSize = connectionPoolCoreSize;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
+	 */
+	@Override
+	public T withConnectionPoolMaxSize(@Nonnull final Integer connectionPoolMaxSize) {
+		this.connectionPoolMaxSize = connectionPoolMaxSize;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 */
+	@Override
+	public T withConnectionPoolExpireAfterMillis(@Nonnull final Integer connectionPoolExpireAfterMillis) {
+		this.connectionPoolExpireAfterMillis = connectionPoolExpireAfterMillis;
+		return (T) this;
+	}
 	
 	/**
 	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
@@ -430,6 +481,30 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T resetThreadPoolKeepAliveTime() {
 		return withThreadPoolKeepAliveTime(DEFAULT_POOL_KEEP_ALIVE_TIME);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetConnectionPoolCoreSize()
+	 */
+	@Override
+	public T resetConnectionPoolCoreSize() {
+		return this.withConnectionPoolCoreSize(DEFAULT_CONNECTIONPOOL_CORE_SIZE);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetConnectionPoolMaxSize()
+	 */
+	@Override
+	public T resetConnectionPoolMaxSize() {
+		return this.withConnectionPoolCoreSize(DEFAULT_CONNECTIONPOOL_MAX_SIZE);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetConnectionPoolExpireAfterMillis()
+	 */
+	@Override
+	public T resetConnectionPoolExpireAfterMillis() {
+		return this.withConnectionPoolExpireAfterMillis(DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS);
 	}
 	
 	/**
@@ -578,6 +653,33 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nonnull
 	public Integer getThreadPoolKeepAliveTime() {
 		return threadPoolKeepAliveTime;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getConnectionPoolCoreSize()
+	 */
+	@Override
+	@Nonnull
+	public Integer getConnectionPoolCoreSize() {
+		return connectionPoolCoreSize;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getConnectionPoolMaxSize()
+	 */
+	@Override
+	@Nonnull
+	public Integer getConnectionPoolMaxSize() {
+		return connectionPoolMaxSize;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getConnectionPoolExpireAfterMillis()
+	 */
+	@Override
+	@Nonnull
+	public Integer getConnectionPoolExpireAfterMillis() {
+		return connectionPoolExpireAfterMillis;
 	}
 	
 	/**

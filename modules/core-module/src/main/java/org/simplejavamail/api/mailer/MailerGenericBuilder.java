@@ -42,6 +42,24 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	int DEFAULT_POOL_KEEP_ALIVE_TIME = 1;
 	/**
+	 * {@value}
+	 *
+	 * @see #withConnectionPoolCoreSize(Integer)
+	 */
+	int DEFAULT_CONNECTIONPOOL_CORE_SIZE = 0;
+	/**
+	 * {@value}
+	 *
+	 * @see #withConnectionPoolMaxSize(Integer)
+	 */
+	int DEFAULT_CONNECTIONPOOL_MAX_SIZE = 4;
+	/**
+	 * {@value}
+	 *
+	 * @see #withConnectionPoolExpireAfterMillis(Integer)
+	 */
+	int DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS = 5000;
+	/**
 	 * Default port is <code>{@value}</code>.
 	 */
 	int DEFAULT_PROXY_PORT = 1080;
@@ -71,11 +89,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withExecutorService(ExecutorService)
 	 * @see #withThreadPoolSize(Integer)
 	 * @see #withThreadPoolKeepAliveTime(Integer)
-	 * @see #withCoreConnectionPoolSize(Integer)
-	 * @see #withMaxConnectionPoolSize(Integer)
-	 * @see #withLoadBalancerStrategy(Integer)
-	 * @see #withExpiryPolicy(Integer)
-	 * @see #withConnectionClaimTimeout(Integer)
+	 * @see #withConnectionPoolCoreSize(Integer)
+	 * @see #withConnectionPoolMaxSize(Integer)
+	 * @see #withConnectionPoolExpireAfterMillis(Integer)
 	 * @see #withConnection... FIXME add all pool, cluster and smtp pool options here and in the property files
 	 */
 	T async();
@@ -227,6 +243,21 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #resetThreadPoolKeepAliveTime()
 	 */
 	T withThreadPoolKeepAliveTime(@Nonnull Integer threadPoolKeepAliveTime);
+
+	/**
+	 * FIXME javadoc
+	 */
+	T withConnectionPoolCoreSize(@Nonnull Integer connectionPoolCoreSize);
+
+	/**
+	 * FIXME javadoc
+	 */
+	T withConnectionPoolMaxSize(@Nonnull Integer connectionPoolMaxSize);
+
+	/**
+	 * FIXME javadoc
+	 */
+	T withConnectionPoolExpireAfterMillis(@Nonnull Integer connectionPoolExpireAfterMillis);
 	
 	/**
 	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
@@ -329,6 +360,21 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withThreadPoolKeepAliveTime(Integer)
 	 */
 	T resetThreadPoolKeepAliveTime();
+
+	/**
+	 * FIXME javadoc
+	 */
+	T resetConnectionPoolCoreSize();
+
+	/**
+	 * FIXME javadoc
+	 */
+	T resetConnectionPoolMaxSize();
+
+	/**
+	 * FIXME javadoc
+	 */
+	T resetConnectionPoolExpireAfterMillis();
 	
 	/**
 	 * Resets transportModeLoggingOnly to {@value #DEFAULT_TRANSPORT_MODE_LOGGING_ONLY}.
@@ -436,6 +482,24 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nonnull
 	Integer getThreadPoolKeepAliveTime();
+
+	/**
+	 * @see #withConnectionPoolCoreSize(Integer)
+	 */
+	@Nonnull
+	Integer getConnectionPoolCoreSize();
+
+	/**
+	 * @see #withConnectionPoolMaxSize(Integer)
+	 */
+	@Nonnull
+	Integer getConnectionPoolMaxSize();
+
+	/**
+	 * @see #withConnectionPoolExpireAfterMillis(Integer)
+	 */
+	@Nonnull
+	Integer getConnectionPoolExpireAfterMillis();
 	
 	/**
 	 * @see #trustingSSLHosts(String...)

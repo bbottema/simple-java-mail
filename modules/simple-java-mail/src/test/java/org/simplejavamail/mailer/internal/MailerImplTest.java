@@ -21,7 +21,6 @@ import static org.mockito.Mockito.when;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 
-@SuppressWarnings("deprecation")
 public class MailerImplTest {
 	
 	private Session session;
@@ -75,7 +74,7 @@ public class MailerImplTest {
 	
 	@Nonnull
 	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost) {
-		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, false, false, hostsToTrust, trustAllSSLHost,
+		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, 0, 1, 5000, false, false, hostsToTrust, trustAllSSLHost,
 				Executors.newSingleThreadExecutor());
 	}
 }
