@@ -417,18 +417,18 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	/**
-	 * @see MailerGenericBuilder#resetThreadpoolSize()
+	 * @see MailerGenericBuilder#resetThreadPoolSize()
 	 */
 	@Override
-	public T resetThreadpoolSize() {
+	public T resetThreadPoolSize() {
 		return this.withThreadPoolSize(DEFAULT_POOL_SIZE);
 	}
 
 	/**
-	 * @see MailerGenericBuilder#resetThreadpoolKeepAliveTime()
+	 * @see MailerGenericBuilder#resetThreadPoolKeepAliveTime()
 	 */
 	@Override
-	public T resetThreadpoolKeepAliveTime() {
+	public T resetThreadPoolKeepAliveTime() {
 		return withThreadPoolKeepAliveTime(DEFAULT_POOL_KEEP_ALIVE_TIME);
 	}
 	

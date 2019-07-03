@@ -66,7 +66,7 @@ public interface Mailer {
 	 * a message id.
 	 * <p>
 	 * If the email should be sent asynchrounously - perhaps as part of a batch, then a new thread is started using the <em>executor</em> for
-	 * threadpooling.
+	 * thread pooling.
 	 * <p>
 	 * If the email should go through an authenticated proxy server, then the SOCKS proxy bridge is started if not already running. When the last
 	 * email in a batch has finished, the proxy bridging server is shut down.

@@ -203,11 +203,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withExecutorService(@Nonnull ExecutorService executorService);
 
 	/**
-	 * Sets both max thread pool size to the given size (default is {@value #DEFAULT_POOL_SIZE}).
+	 * Sets max thread pool size to the given size (default is {@value #DEFAULT_POOL_SIZE}).
 	 *
 	 * @param threadPoolSize See main description.
 	 *
-	 * @see #resetThreadpoolSize()
+	 * @see #resetThreadPoolSize()
 	 * @see #withThreadPoolSize(Integer)
 	 */
 	T withThreadPoolSize(@Nonnull Integer threadPoolSize);
@@ -224,7 +224,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @param threadPoolKeepAliveTime Value in milliseconds. See main description for details.
 	 *
-	 * @see #resetThreadpoolKeepAliveTime()
+	 * @see #resetThreadPoolKeepAliveTime()
 	 */
 	T withThreadPoolKeepAliveTime(@Nonnull Integer threadPoolKeepAliveTime);
 	
@@ -317,18 +317,18 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetExecutorService();
 
 	/**
-	 * Resets both pool size to its default of {@value #DEFAULT_POOL_SIZE}.
+	 * Resets max thread pool size to its default of {@value #DEFAULT_POOL_SIZE}.
 	 *
 	 * @see #withThreadPoolSize(Integer)
 	 */
-	T resetThreadpoolSize();
+	T resetThreadPoolSize();
 
 	/**
-	 * Resets threadPoolMaxSize to its default ({@value #DEFAULT_POOL_KEEP_ALIVE_TIME}).
+	 * Resets thread pool keepAliveTime to its default ({@value #DEFAULT_POOL_KEEP_ALIVE_TIME}).
 	 *
 	 * @see #withThreadPoolKeepAliveTime(Integer)
 	 */
-	T resetThreadpoolKeepAliveTime();
+	T resetThreadPoolKeepAliveTime();
 	
 	/**
 	 * Resets transportModeLoggingOnly to {@value #DEFAULT_TRANSPORT_MODE_LOGGING_ONLY}.
