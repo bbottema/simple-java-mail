@@ -12,6 +12,9 @@ import java.util.concurrent.ExecutorService;
  * This interface only serves to hide the Batch implementation behind an easy-to-load-with-reflection class.
  */
 public interface BatchModule {
+
+	String NAME = "Advanced batch processing module";
+
 	/**
 	 * Executes using a single-execution ExecutorService, which shutdown immediately after the thread finishes.
 	 *

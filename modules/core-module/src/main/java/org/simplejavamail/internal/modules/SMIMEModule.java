@@ -21,6 +21,8 @@ import java.util.List;
  */
 public interface SMIMEModule {
 
+	String NAME = "S/MIME module";
+
 	/**
 	 * @return The results of the S/MIME decryption of any compatible encrypted / signed attachments.
 	 */

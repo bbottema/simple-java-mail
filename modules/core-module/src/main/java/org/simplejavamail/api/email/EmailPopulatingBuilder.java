@@ -934,6 +934,8 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
 	 * dkimPrivateKey} data.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
 	 */
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	@SuppressWarnings("unused")
@@ -942,6 +944,8 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
 	 * dkimPrivateKey} string converted to UTF_8 byte array.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
 	 */
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	@SuppressWarnings("unused")
@@ -949,6 +953,8 @@ public interface EmailPopulatingBuilder {
 	
 	/**
 	 * Primes this email for signing with a DKIM domain key. Actual signing is done when sending using a <code>Mailer</code>.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
 	 *
 	 * @param dkimPrivateKeyInputStream De key content used to sign for the sending party.
 	 * @param signingDomain             The domain being authorized to send.
@@ -967,6 +973,8 @@ public interface EmailPopulatingBuilder {
 	
 	/**
 	 * As {@link #signWithDomainKey(InputStream, String, String)}, but with a File reference that is later read as {@code InputStream}.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
 	 */
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	EmailPopulatingBuilder signWithDomainKey(@Nonnull File dkimPrivateKeyFile, @Nonnull String signingDomain, @Nonnull String dkimSelector);
@@ -974,6 +982,8 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Signs this email with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
 	 * can verify whether the email content was tampered with.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
 	 * @see #clearSmime()
 	 * @see <a href="https://en.wikipedia.org/wiki/S/MIME">S/MIME on Wikipedia</a>
@@ -984,6 +994,8 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #signWithSmime(InputStream, String, String, String)}.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
 	 * @param pkcs12StoreFile The key store file to use to find the indicated key
 	 * @param storePassword The store's password
@@ -994,6 +1006,8 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #signWithSmime(Pkcs12Config)}.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
 	 * @param pkcs12StoreStream The key store file to use to find the indicated key
 	 * @param storePassword The store's password
@@ -1005,6 +1019,8 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #encryptWithSmime(X509Certificate)} using the provided PEM file.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
 	 * @param pemStream A PEM encoded file that will be read as X509Certificate.
 	 */
@@ -1013,6 +1029,8 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #encryptWithSmime(InputStream)} using the provided PEM file.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
 	 * @param pemFile A PEM encoded file that will be read as X509Certificate.
 	 */
@@ -1021,6 +1039,8 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #encryptWithSmime(InputStream)} using the provided PEM file.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
 	 * @param pemFile A PEM encoded file that will be read as X509Certificate.
 	 */
@@ -1033,6 +1053,8 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * You can sign this email with the public key you received from your recipient. The recipient then is the only person that
 	 * can decrypt the email with his or her private key.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
 	 * @param x509Certificate The recipient's public key to use for encryption.
 	 *
@@ -1042,6 +1064,17 @@ public interface EmailPopulatingBuilder {
 	 * @see <a href="https://github.com/markenwerk/java-utils-mail-smime">Underlying library's documentation</a>
 	 */
 	EmailPopulatingBuilder encryptWithSmime(@Nonnull X509Certificate x509Certificate);
+
+	/**
+	 * When the S/MIME module is loaded, S/MIME signed / encrypted attachments are decrypted and kept in a separate list. However
+	 * if it is a single attachment and the actual attachment has mimetype "message/rfc822", it is assumes to be the message
+	 * itself and by default will be merged with the top level email (basically overriding body, headers and attachments).
+	 * <br>
+	 * This API disables this behavior and stricly keeps all attachments as-is (still decrypted, but not merged with the email).
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 */
+	EmailPopulatingBuilder notMergingSingleSMIMESignedAttachment();
 
 	/**
 	 * Indicates that we want to use the NPM flag {@code dispositionNotificationTo}. The actual address will default to the {@code replyToRecipient}
@@ -1142,15 +1175,6 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withReturnReceiptTo(@Nonnull Recipient recipient);
 
 	/**
-	 * When the S/MIME module is loaded, S/MIME signed / encrypted attachments are decrypted and kept in a separate list. However
-	 * if it is a single attachment and the actual attachment has mimetype "message/rfc822", it is assumes to be the message
-	 * itself and by default will be merged with the top level email (basically overriding body, headers and attachments).
-	 * <br>
-	 * This API disables this behavior and stricly keeps all attachments as-is (still decrypted, but not merged with the email).
-	 */
-	EmailPopulatingBuilder notMergingSingleSMIMESignedAttachment();
-
-	/**
 	 * Resets <em>id</em> to empty.
 	 */
 	@SuppressWarnings("unused")
@@ -1216,12 +1240,16 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Resets all dkim properties to empty.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearDkim();
 
 	/**
 	 * For signing and encrypting this email when sending, resets all S/MIME properties to empty.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
 	 * @see #signWithSmime(Pkcs12Config)
 	 * @see #encryptWithSmime(X509Certificate)
@@ -1246,6 +1274,8 @@ public interface EmailPopulatingBuilder {
 	 * behavior for single S/MIME signed attachments, which is that it <em>is</em> merged into the root message.
 	 * <p>
 	 * This can be useful when copying an {@link Email} that <em>was</em> merged (default behavior), to unmerge it.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
 	EmailPopulatingBuilder clearSMIMESignedAttachmentMergingBehavior();
 
@@ -1324,6 +1354,8 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * If the S/MIME library is loaded, this method returns a copy list of the attachments, but with any signed
 	 * attachments replaced with decrypted ones.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
 	@Nonnull
 	List<AttachmentResource> getDecryptedAttachments();
@@ -1398,6 +1430,8 @@ public interface EmailPopulatingBuilder {
 	 * this field will be filled for historical purpose.
 	 * <p>
 	 * For example, you can use it to determine if the message was encrypted or signed and also who did the signing.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
 	@Nonnull
 	OriginalSmimeDetails getOriginalSmimeDetails();
@@ -1408,6 +1442,8 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * By default, this message is merged into the parent email, as it is actually the same message (this behavior can be
 	 * turned off with {@link #notMergingSingleSMIMESignedAttachment()}).
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
 	@Nullable
 	Email getSmimeSignedEmail();
