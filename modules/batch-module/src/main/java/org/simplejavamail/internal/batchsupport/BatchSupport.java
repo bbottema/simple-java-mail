@@ -83,6 +83,7 @@ public class BatchSupport implements BatchModule {
 	/**
 	 * @see BatchModule#shutdownConnectionPools()
 	 */
+	@Nonnull
 	@Override
 	public Future<?> shutdownConnectionPools() {
 		return smtpConnectionPool.shutDown();
