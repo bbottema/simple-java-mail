@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import javax.mail.Session;
 import javax.mail.Transport;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 /**
  * This interface only serves to hide the Batch implementation behind an easy-to-load-with-reflection class.
@@ -43,8 +44,7 @@ public interface BatchModule {
 	LifecycleDelegatingTransport acquireTransport(@Nonnull Session session);
 
 	/**
-	 * Shuts down all remaining open transport connections and empties all the Session-keyed pools.
+	 * Shuts down connection pool(s) and closes remaining open connections. Waits until all connections still in use become available again to deallocate them as well.
 	 */
-	// FIXME invoke
-	void clearTransportPool(@Nonnull Session session);
+	Future<?> shutdownConnectionPools();
 }

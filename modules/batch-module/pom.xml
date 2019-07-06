@@ -30,7 +30,7 @@
         <dependency>
           <groupId>org.simplejavamail</groupId>
           <artifactId>smtp-connection-pool</artifactId>
-          <version>1.0.3</version>
+          <version>1.0.4</version>
         </dependency>
     </dependencies>
 

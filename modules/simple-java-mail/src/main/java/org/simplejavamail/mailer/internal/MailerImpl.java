@@ -22,6 +22,7 @@ import javax.mail.Session;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
@@ -309,6 +310,14 @@ public class MailerImpl implements Mailer {
 	public boolean validate(@Nonnull final Email email)
 			throws MailException {
 		return MailerHelper.validate(email, emailAddressCriteria);
+	}
+
+	/**
+	 * @see Mailer#shutdownConnectionPool()
+	 */
+	@Override
+	public Future<?> shutdownConnectionPool() {
+		return ModuleLoader.loadBatchModule().shutdownConnectionPools();
 	}
 
 	/**

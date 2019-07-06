@@ -16,6 +16,7 @@ import javax.annotation.Nonnull;
 import javax.mail.Session;
 import javax.mail.Transport;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -80,10 +81,10 @@ public class BatchSupport implements BatchModule {
 	}
 
 	/**
-	 * @see BatchModule#clearTransportPool(Session)
+	 * @see BatchModule#shutdownConnectionPools()
 	 */
 	@Override
-	public void clearTransportPool(@Nonnull final Session session) {
-		smtpConnectionPool.clearPool(session);
+	public Future<?> shutdownConnectionPools() {
+		return smtpConnectionPool.shutDown();
 	}
 }

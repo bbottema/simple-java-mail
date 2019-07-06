@@ -15,6 +15,7 @@ import javax.mail.Message;
 import javax.mail.Session;
 import javax.mail.Transport;
 import java.util.EnumSet;
+import java.util.concurrent.Future;
 
 /**
  * Mailing tool created exclusively using {@link MailerRegularBuilder}. This class is the facade to most Simple Java Mail functionality
@@ -102,6 +103,14 @@ public interface Mailer {
 	 */
 	@SuppressWarnings({"SameReturnValue" })
 	boolean validate(Email email) throws MailException;
+
+	/**
+	 * Shuts down connection pool(s) and closes remaining open connections. Waits until all connections still in use become available again
+	 * to deallocate them as well.
+	 * <p>
+	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 */
+	Future<?> shutdownConnectionPool();
 
 	/**
 	 * @return The server connection details. Will be {@code null} in case a custom fixed {@link Session} instance is used.
