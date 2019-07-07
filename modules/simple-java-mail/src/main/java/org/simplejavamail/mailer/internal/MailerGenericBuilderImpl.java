@@ -4,7 +4,6 @@ import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.internal.modules.ModuleLoader;
 
@@ -22,6 +21,7 @@ import java.util.concurrent.Executors;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
+import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsBoolean;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsInteger;
@@ -148,13 +148,13 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	MailerGenericBuilderImpl() {
 		if (hasProperty(PROXY_HOST)) {
-			this.proxyHost = ConfigLoader.getStringProperty(PROXY_HOST);
+			this.proxyHost = getStringProperty(PROXY_HOST);
 		}
 		if (hasProperty(PROXY_USERNAME)) {
-			this.proxyUsername = ConfigLoader.getStringProperty(PROXY_USERNAME);
+			this.proxyUsername = getStringProperty(PROXY_USERNAME);
 		}
 		if (hasProperty(PROXY_PASSWORD)) {
-			this.proxyPassword = ConfigLoader.getStringProperty(PROXY_PASSWORD);
+			this.proxyPassword = getStringProperty(PROXY_PASSWORD);
 		}
 
 		this.proxyPort 							= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
@@ -167,7 +167,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.connectionPoolMaxSize 				= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
 		this.connectionPoolExpireAfterMillis 	= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
 		this.transportModeLoggingOnly 			= assumeNonNull(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
-		
+
 		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
 		this.trustAllSSLHost = true;
 

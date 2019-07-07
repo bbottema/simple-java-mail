@@ -50,7 +50,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.defaults.cc.address</li>
  * <li>simplejavamail.defaults.bcc.name</li>
  * <li>simplejavamail.defaults.bcc.address</li>
- * FIXME rename pool properties to separate their meaning better from the connection pool properties
+ * <li>FIXME rename pool properties to separate their meaning better from the connection pool properties</li>
  * <li>simplejavamail.defaults.poolsize</li>
  * <li>simplejavamail.defaults.poolsize.keepalivetime</li>
  * <li>simplejavamail.defaults.connectionpool.coresize</li>
@@ -153,7 +153,7 @@ public final class ConfigLoader {
 	public static <T> T valueOrProperty(final @Nullable T value, final Property property) {
 		return valueOrProperty(value, property, null);
 	}
-	
+
 	/**
 	 * See {@link #valueOrProperty(Object, Property, Object)}.
 	 */

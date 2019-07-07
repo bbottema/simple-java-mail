@@ -105,8 +105,10 @@ public interface Mailer {
 	boolean validate(Email email) throws MailException;
 
 	/**
-	 * Shuts down connection pool(s) and closes remaining open connections. Waits until all connections still in use become available again
+	 * Shuts down the connection pool associated with this {@link Mailer} instance and closes remaining open connections. Waits until all connections still in use become available again
 	 * to deallocate them as well.
+	 * <p>
+	 * In order to shut down the whole connection pool (in case of clustering), each individual {@link Mailer} instance should be shutdown.
 	 * <p>
 	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 */

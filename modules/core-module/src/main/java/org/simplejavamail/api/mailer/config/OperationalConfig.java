@@ -17,69 +17,69 @@ import java.util.concurrent.ExecutorService;
  */
 public interface OperationalConfig {
 	/**
-	 * @see MailerRegularBuilder#async()
+	 * @see MailerGenericBuilder#async()
 	 */
 	boolean isAsync();
 	
 	/**
-	 * @see MailerRegularBuilder#withSessionTimeout(Integer)
+	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
 	int getSessionTimeout();
 
 	/**
-	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
+	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	int getThreadPoolSize();
 
 	/**
-	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTime(Integer)
+	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
 	 */
 	int getThreadPoolKeepAliveTime();
 
 	/**
-	 * @see MailerRegularBuilder#withConnectionPoolCoreSize(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
 	 */
 	int getConnectionPoolCoreSize();
 
 	/**
-	 * @see MailerRegularBuilder#withConnectionPoolMaxSize(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
 	 */
 	int getConnectionPoolMaxSize();
 
 	/**
-	 * @see MailerRegularBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	int getConnectionPoolExpireAfterMillis();
 	
 	/**
-	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
+	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
 	boolean isTransportModeLoggingOnly();
 	
 	/**
-	 * @see MailerRegularBuilder#withDebugLogging(Boolean)
+	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	boolean isDebugLogging();
 	
 	/**
-	 * @see MailerRegularBuilder#trustingSSLHosts(String...)
+	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
 	@Nonnull
 	List<String> getSslHostsToTrust();
 	
 	/**
-	 * @see MailerRegularBuilder#trustingAllHosts(boolean)
+	 * @see MailerGenericBuilder#trustingAllHosts(boolean)
 	 */
 	boolean isTrustAllSSLHost();
 	
 	/**
-	 * @see MailerRegularBuilder#withProperties(Properties)
+	 * @see MailerGenericBuilder#withProperties(Properties)
 	 */
 	@Nonnull
 	Properties getProperties();
 
 	/**
-	 * @see MailerRegularBuilder#withExecutorService(ExecutorService)
+	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
 	@Nonnull
 	ExecutorService getExecutorService();

@@ -1,6 +1,5 @@
 package org.simplejavamail.mailer.internal;
 
-import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 import javax.annotation.Nonnull;
@@ -15,28 +14,28 @@ import java.util.concurrent.ExecutorService;
 // FIXME Lombok, especially builder pattern
 class OperationalConfigImpl implements OperationalConfig {
 	/**
-	 * @see MailerRegularBuilder#withSessionTimeout(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
 	private final int sessionTimeout;
 	
 	/**
 	 * Can be overridden when calling {@code mailer.send(async = true)}.
 	 *
-	 * @see MailerRegularBuilder#async()
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#async()
 	 */
 	private final boolean async;
 	/**
-	 * @see MailerRegularBuilder#withProperties(Properties)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Properties)
 	 */
 	private final Properties properties;
 
 	/**
-	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	private final int threadPoolSize;
 
 	/**
-	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTime(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
 	 */
 	private final int threadPoolKeepAliveTime;
 
@@ -46,38 +45,38 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final int connectionPoolCoreSize;
 
 	/**
-	 * @see MailerRegularBuilder#withConnectionPoolMaxSize(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
 	 */
 	private final int connectionPoolMaxSize;
 
 	/**
-	 * @see MailerRegularBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	private final int connectionPoolExpireAfterMillis;
 	
 	/**
-	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
 	private final boolean transportModeLoggingOnly;
 	
 	/**
-	 * @see MailerRegularBuilder#withDebugLogging(Boolean)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	private final boolean debugLogging;
 	
 	/**
-	 * @see MailerRegularBuilder#trustingSSLHosts(String...)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
 	@Nonnull
 	private final List<String> sslHostsToTrust;
 
 	/**
-	 * @see MailerRegularBuilder#trustingAllHosts(boolean)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#trustingAllHosts(boolean)
 	 */
 	private final boolean trustAllSSLHost;
 
 	/**
-	 * @see MailerRegularBuilder#withExecutorService(ExecutorService)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
 	@Nonnull
 	private final ExecutorService executorService;
