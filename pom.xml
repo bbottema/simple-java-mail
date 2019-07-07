@@ -7,7 +7,7 @@
     <artifactId>simple-java-mail</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail</name>
-    <version>5.1.8-SNAPSHOT</version>
+    <version>5.2.1-SNAPSHOT</version>
     <description>Simple API, Complex Emails. A light weight wrapper for the JavaMail SMTP API</description>
     <url>http://http://www.simplejavamail.org/</url>
 

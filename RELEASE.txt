@@ -3,8 +3,17 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.1.7</version>
+    <version>5.2.0</version>
 </dependency>
+
+v5.2.0 (7-July-2019)
+
+- #213: Update from javax.mail:1.6.0 to jakarta.mail:1.6.3
+
+Note that dependencies that switched as well have been updated as part of this change. This includes the optional DKIM library and the email validation library:
+- net.markenwerk:utils-mail-dkim (1.1.10 -> 1.2.0)
+- com.github.bbottema:emailaddress-rfc2822 (1.1.2 -> 2.1.3)
+
 
 v5.1.1 - v5.1.7
 

@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE-2.0.txt) 
 [![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-5.1.7-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) 
+[![Javadocs](https://img.shields.io/badge/javadoc-5.2.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) 
 [![Build Status](https://img.shields.io/travis/bbottema/simple-java-mail.svg?style=flat)](https://travis-ci.org/bbottema/simple-java-mail) 
 [![Codacy](https://img.shields.io/codacy/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
 [![Paypal Donate](https://img.shields.io/badge/donate%20with-paypal-blue.svg?style=flat)](https://paypal.me/bennybottema)
@@ -69,11 +69,20 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.1.7</version>
+    <version>5.2.0</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+[v5.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.2.0%7Cjar) (7-July-2019)
+
+- [#213](https://github.com/bbottema/simple-java-mail/issues/213) Update from javax.mail:1.6.0 to jakarta.mail:1.6.3
+
+Note that dependencies that switched as well have been updated as part of this change. This includes the optional DKIM library and the email validation library:
+- net.markenwerk:utils-mail-dkim (1.1.10 -> 1.2.0) 
+- com.github.bbottema:emailaddress-rfc2822 (1.1.2 -> 2.1.3)
+
 
 v5.1.1 - [v5.1.7](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.1.7%7Cjar)
 
