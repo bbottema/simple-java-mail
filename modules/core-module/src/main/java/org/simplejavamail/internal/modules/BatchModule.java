@@ -6,6 +6,7 @@ import org.simplejavamail.api.mailer.AsyncResponse;
 import javax.annotation.Nonnull;
 import javax.mail.Session;
 import javax.mail.Transport;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -38,14 +39,16 @@ public interface BatchModule {
 	ExecutorService createDefaultExecutorService(final int threadPoolSize, final int keepAliveTime);
 
 	/**
+	 * @param stickySession Indicates whether transport should be from this specific Session, or any session instance from the cluster. Useful when testing connections.
+	 *
 	 * @return A (new) {@link Transport} for the given session from the SMTP connection pool.
 	 */
 	@Nonnull
-	LifecycleDelegatingTransport acquireTransport(@Nonnull Session session);
+	LifecycleDelegatingTransport acquireTransport(@Nonnull UUID clusterKey, @Nonnull Session session, boolean stickySession);
 
 	/**
 	 * Shuts down connection pool(s) and closes remaining open connections. Waits until all connections still in use become available again to deallocate them as well.
 	 */
 	@Nonnull
-	Future<?> shutdownConnectionPools();
+	Future<?> shutdownConnectionPools(@Nonnull Session session);
 }

@@ -15,9 +15,11 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
@@ -102,6 +104,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private Integer threadPoolKeepAliveTime;
 
 	/**
+	 * @see MailerGenericBuilder#withClusterKey(UUID)
+	 */
+	@Nonnull
+	private UUID clusterKey;
+
+	/**
 	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
 	 */
 	@Nonnull
@@ -156,6 +164,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		if (hasProperty(PROXY_PASSWORD)) {
 			this.proxyPassword = getStringProperty(PROXY_PASSWORD);
 		}
+		this.clusterKey = hasProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)
+				? UUID.fromString(assumeNonNull(getStringProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))
+				: UUID.randomUUID();
 
 		this.proxyPort 							= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
 		this.proxyBridgePort 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
@@ -208,6 +219,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getSessionTimeout(),
 				getThreadPoolSize(),
 				getThreadPoolKeepAliveTime(),
+				getClusterKey(),
 				getConnectionPoolCoreSize(),
 				getConnectionPoolMaxSize(),
 				getConnectionPoolExpireAfterMillis(),
@@ -347,6 +359,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	/**
+	 * @see MailerGenericBuilder#withClusterKey(UUID)
+	 */
+	@Override
+	public T withClusterKey(@Nonnull final UUID clusterKey) {
+		this.clusterKey = clusterKey;
+		return (T) this;
+	}
+
+	/**
 	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
 	 */
 	@Override
@@ -481,6 +502,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T resetThreadPoolKeepAliveTime() {
 		return withThreadPoolKeepAliveTime(DEFAULT_POOL_KEEP_ALIVE_TIME);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetClusterKey()
+	 */
+	@Override
+	public T resetClusterKey() {
+		return this.withClusterKey(UUID.randomUUID());
 	}
 
 	/**
@@ -653,6 +682,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nonnull
 	public Integer getThreadPoolKeepAliveTime() {
 		return threadPoolKeepAliveTime;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getClusterKey()
+	 */
+	@Override
+	@Nonnull
+	public UUID getClusterKey() {
+		return clusterKey;
 	}
 
 	/**

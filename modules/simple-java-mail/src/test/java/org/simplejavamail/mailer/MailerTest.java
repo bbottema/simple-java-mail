@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.UUID;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
@@ -54,8 +55,9 @@ public class MailerTest {
 	@Test
 	public void createMailSession_MinimalConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		
-		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).buildMailer();
+
+		final UUID clusterKey = UUID.randomUUID();
+		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).withClusterKey(clusterKey).buildMailer();
 		Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isFalse();
@@ -72,10 +74,12 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.auth")).isNull();
 		assertThat(session.getProperty("mail.smtp.socks.host")).isNull();
 		assertThat(session.getProperty("mail.smtp.socks.port")).isNull();
+
+		assertThat(mailer.getOperationalConfig().getClusterKey()).isEqualTo(clusterKey);
 		
 		// all constructors, providing the same minimal information
-		Mailer alternative1 = MailerBuilder.withSMTPServer("host", 25).buildMailer();
-		Mailer alternative2 = MailerBuilder.usingSession(session).buildMailer();
+		Mailer alternative1 = MailerBuilder.withSMTPServer("host", 25).withClusterKey(clusterKey).buildMailer();
+		Mailer alternative2 = MailerBuilder.usingSession(session).withClusterKey(clusterKey).buildMailer();
 		
 		assertThat(session.getProperties()).isEqualTo(alternative1.getSession().getProperties());
 		assertThat(session.getProperties()).isEqualTo(alternative2.getSession().getProperties());

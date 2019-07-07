@@ -53,6 +53,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>FIXME rename pool properties to separate their meaning better from the connection pool properties</li>
  * <li>simplejavamail.defaults.poolsize</li>
  * <li>simplejavamail.defaults.poolsize.keepalivetime</li>
+ * <li>simplejavamail.defaults.connectionpool.clusterkey.uuid</li>
  * <li>simplejavamail.defaults.connectionpool.coresize</li>
  * <li>simplejavamail.defaults.connectionpool.maxsize</li>
  * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
@@ -119,6 +120,7 @@ public final class ConfigLoader {
 		DEFAULT_BCC_NAME("simplejavamail.defaults.bcc.name"),
 		DEFAULT_BCC_ADDRESS("simplejavamail.defaults.bcc.address"),
 		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize"),
+		DEFAULT_CONNECTIONPOOL_CLUSTER_KEY("simplejavamail.defaults.connectionpool.clusterkey.uuid"),
 		DEFAULT_CONNECTIONPOOL_CORE_SIZE("simplejavamail.defaults.connectionpool.coresize"),
 		DEFAULT_CONNECTIONPOOL_MAX_SIZE("simplejavamail.defaults.connectionpool.maxsize"),
 		DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS("simplejavamail.defaults.connectionpool.expireafter.millis"),

@@ -12,6 +12,7 @@ import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
@@ -24,15 +25,17 @@ import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
  */
 class SendMailClosure extends AbstractProxyServerSyncingClosure {
 
+	@Nonnull private final UUID clusterKey;
 	@Nonnull private final Session session;
 	@Nonnull private final Email email;
 	private final boolean asyncForLoggingPurpose;
 	private final boolean transportModeLoggingOnly;
 
-	SendMailClosure(@Nonnull Session session, @Nonnull Email email, @Nullable final AnonymousSocks5Server proxyServer, boolean asyncForLoggingPurpose, boolean transportModeLoggingOnly, @Nonnull AtomicInteger smtpConnectionCounter) {
+	SendMailClosure(@Nonnull UUID clusterKey, @Nonnull Session session, @Nonnull Email email, @Nullable AnonymousSocks5Server proxyServer, boolean asyncForLoggingPurpose, boolean transportModeLoggingOnly, @Nonnull AtomicInteger smtpConnectionCounter) {
 		super(smtpConnectionCounter, proxyServer);
 		this.session = session;
 		this.email = email;
+		this.clusterKey = clusterKey;
 		this.asyncForLoggingPurpose = asyncForLoggingPurpose;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 	}
@@ -54,7 +57,7 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 			if (transportModeLoggingOnly) {
 				LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
 			} else {
-				TransportRunner.sendMessage(session, message, message.getAllRecipients());
+				TransportRunner.sendMessage(clusterKey, session, message, message.getAllRecipients());
 			}
 		} catch (final UnsupportedEncodingException e) {
 			LOGGER.error("Failed to send email:\n{}", email);

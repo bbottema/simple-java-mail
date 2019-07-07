@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -40,7 +41,13 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final int threadPoolKeepAliveTime;
 
 	/**
-	 * @see MailerRegularBuilder#withConnectionPoolCoreSize(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withClusterKey(UUID)
+	 */
+	@Nonnull
+	private final UUID clusterKey;
+
+	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
 	 */
 	private final int connectionPoolCoreSize;
 
@@ -81,12 +88,13 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Nonnull
 	private final ExecutorService executorService;
 	
-	OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, int connectionPoolCoreSize, int connectionPoolMaxSize, int connectionPoolExpireAfterMillis, boolean transportModeLoggingOnly, boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, @Nonnull final ExecutorService executorService) {
+	OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, @Nonnull UUID clusterKey, int connectionPoolCoreSize, int connectionPoolMaxSize, int connectionPoolExpireAfterMillis, boolean transportModeLoggingOnly, boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, @Nonnull final ExecutorService executorService) {
 		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
 		this.threadPoolSize = threadPoolSize;
 		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
+		this.clusterKey = clusterKey;
 		this.connectionPoolCoreSize = connectionPoolCoreSize;
 		this.connectionPoolMaxSize = connectionPoolMaxSize;
 		this.connectionPoolExpireAfterMillis = connectionPoolExpireAfterMillis;
@@ -199,5 +207,11 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Override
 	public ExecutorService getExecutorService() {
 		return executorService;
+	}
+
+	@Nonnull
+	@Override
+	public UUID getClusterKey() {
+		return clusterKey;
 	}
 }

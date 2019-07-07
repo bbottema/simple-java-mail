@@ -12,6 +12,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -254,6 +255,17 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withThreadPoolKeepAliveTime(@Nonnull Integer threadPoolKeepAliveTime);
 
 	/**
+	 * By defining a clusterKey, you can form clusters where other {@link Mailer} instances define
+	 * individual connection pools within the same cluster.
+	 * <p>
+	 * By default a cluster key is uniquely generated, so a new cluster is always generated for a single Mailer,
+	 * thus effectively nothing is clustered.
+	 *
+	 * @see <a href="FIXME">Clustering with Simple Java Mail</a>
+	 */
+	T withClusterKey(@Nonnull UUID clusterKey);
+
+	/**
 	 * Configures the connection pool's core size (default {@value DEFAULT_CONNECTIONPOOL_CORE_SIZE}), which means the SMTP connection pool will keep X connections open at all times until shut down.
 	 * Note that this also means that if you configure an auto-expiry timeout, these connections die off and new ones are created immediately to maintain core size.
 	 * <p>
@@ -396,6 +408,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetThreadPoolKeepAliveTime();
 
 	/**
+	 * Reset the cluster key to empty, so it will be generated uniquely, avoiding clustering with any other {@link Mailer}.
+	 */
+	T resetClusterKey();
+
+	/**
 	 * Resets connection pool core size to its default ({@value #DEFAULT_CONNECTIONPOOL_CORE_SIZE}).
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
@@ -528,6 +545,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nonnull
 	Integer getThreadPoolKeepAliveTime();
+
+	/**
+	 * @see #withClusterKey(UUID)
+	 */
+	@Nonnull
+	UUID getClusterKey();
 
 	/**
 	 * @see #withConnectionPoolCoreSize(Integer)

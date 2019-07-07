@@ -7,6 +7,7 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -83,4 +84,10 @@ public interface OperationalConfig {
 	 */
 	@Nonnull
 	ExecutorService getExecutorService();
+
+	/**
+	 * @see MailerGenericBuilder#withClusterKey(UUID)
+	 */
+	@Nonnull
+	UUID getClusterKey();
 }

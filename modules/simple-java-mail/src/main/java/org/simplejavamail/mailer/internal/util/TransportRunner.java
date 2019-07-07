@@ -4,11 +4,13 @@ import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.slf4j.Logger;
 
+import javax.annotation.Nullable;
 import javax.mail.Address;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.MimeMessage;
+import java.util.UUID;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -24,9 +26,9 @@ public class TransportRunner {
 
 	private static final Logger LOGGER = getLogger(TransportRunner.class);
 
-	public static void sendMessage(final Session session, final MimeMessage message, final Address[] allRecipients)
+	public static void sendMessage(final UUID clusterKey, final Session session, final MimeMessage message, final Address[] allRecipients)
 			throws MessagingException {
-		runOnSessionTransport(session, new TransportRunnable() {
+		runOnSessionTransport(clusterKey, session, false, new TransportRunnable() {
 			@Override
 			public void run(final Transport transport)
 					throws MessagingException {
@@ -36,9 +38,9 @@ public class TransportRunner {
 		});
 	}
 
-	public static void connect(final Session session)
+	public static void connect(UUID clusterKey, @Nullable final Session session)
 			throws MessagingException {
-		runOnSessionTransport(session, new TransportRunnable() {
+		runOnSessionTransport(clusterKey, session, true, new TransportRunnable() {
 			@Override
 			public void run(final Transport transport) {
 				// the fact that we reached here means a connection was made succesfully
@@ -47,10 +49,10 @@ public class TransportRunner {
 		});
 	}
 
-	private static void runOnSessionTransport(Session session, TransportRunnable runnable)
+	private static void runOnSessionTransport(UUID clusterKey, Session session, final boolean stickySession, TransportRunnable runnable)
 			throws MessagingException {
 		if (ModuleLoader.batchModuleAvailable()) {
-			LifecycleDelegatingTransport delegatingTransport = ModuleLoader.loadBatchModule().acquireTransport(session);
+			LifecycleDelegatingTransport delegatingTransport = ModuleLoader.loadBatchModule().acquireTransport(clusterKey, session, stickySession);
 			try {
 				runnable.run(delegatingTransport.getTransport());
 			} catch (final MessagingException messagingException) {

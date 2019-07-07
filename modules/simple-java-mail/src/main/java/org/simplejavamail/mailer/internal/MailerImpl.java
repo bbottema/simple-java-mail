@@ -166,6 +166,7 @@ public class MailerImpl implements Mailer {
 
 		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);
 		configureTrustedHosts(session, operationalConfig, transportStrategy);
+		configureClusterKey(session, operationalConfig);
 	}
 
 	/**
@@ -202,6 +203,11 @@ public class MailerImpl implements Mailer {
 		} else {
 			LOGGER.debug("No transport strategy provided, skipping configuration for trusted hosts");
 		}
+	}
+
+	private void configureClusterKey(@Nonnull final Session session, @Nonnull final OperationalConfig operationalConfig) {
+		// FIXME remove this property and do a project-wide text search
+		session.getProperties().put("cluster-key", operationalConfig.getClusterKey().toString());
 	}
 
 	/**
@@ -263,7 +269,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@Nullable
 	public synchronized AsyncResponse testConnection(boolean async) {
-		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(session, proxyServer, async, smtpConnectionCounter);
+		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig.getClusterKey(), session, proxyServer, async, smtpConnectionCounter);
 
 		if (!async) {
 			testConnectionClosure.run();
@@ -289,7 +295,8 @@ public class MailerImpl implements Mailer {
 	@Nullable
 	public final AsyncResponse sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (validate(email)) {
-			SendMailClosure sendMailClosure = new SendMailClosure(session, email, proxyServer, async, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
+			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig.getClusterKey(), session, email, proxyServer, async, operationalConfig.isTransportModeLoggingOnly(),
+					smtpConnectionCounter);
 
 			if (!async) {
 				sendMailClosure.run();
@@ -317,7 +324,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	public Future<?> shutdownConnectionPool() {
-		return ModuleLoader.loadBatchModule().shutdownConnectionPools();
+		return ModuleLoader.loadBatchModule().shutdownConnectionPools(session);
 	}
 
 	/**

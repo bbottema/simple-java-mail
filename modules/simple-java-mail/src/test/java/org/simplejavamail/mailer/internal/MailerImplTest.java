@@ -15,6 +15,8 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 
 import static java.util.EnumSet.noneOf;
+import static java.util.UUID.*;
+import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -74,7 +76,6 @@ public class MailerImplTest {
 	
 	@Nonnull
 	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost) {
-		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, 0, 1, 5000, false, false, hostsToTrust, trustAllSSLHost,
-				Executors.newSingleThreadExecutor());
+		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, randomUUID(), 0, 1, 5000, false, false, hostsToTrust, trustAllSSLHost, newSingleThreadExecutor());
 	}
 }
