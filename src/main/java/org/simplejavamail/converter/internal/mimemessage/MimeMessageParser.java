@@ -25,14 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
@@ -133,13 +126,21 @@ public final class MimeMessageParser {
 			final DataSource ds = createDataSource(currentPart);
 			// if the diposition is not provided, for now the part should be treated as inline (later non-embedded inline attachments are moved)
 			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-				parsedComponents.attachmentList.put(parseResourceName(parseContentID(currentPart), parseFileName(currentPart)), ds);
+				String resourceName = parseResourceName(parseContentID(currentPart), parseFileName(currentPart));
+				if (valueNullOrEmpty(resourceName)) {
+					resourceName = "unnamed";
+				}
+				parsedComponents.attachmentList.add(new AbstractMap.SimpleEntry(resourceName, ds));
 			} else if (disposition == null || Part.INLINE.equalsIgnoreCase(disposition)) {
 				if (parseContentID(currentPart) != null) {
 					parsedComponents.cidMap.put(parseContentID(currentPart), ds);
 				} else {
 					// contentID missing -> treat as standard attachment
-					parsedComponents.attachmentList.put(parseResourceName(null, parseFileName(currentPart)), ds);
+					String resourceName = parseResourceName(null, parseFileName(currentPart));
+					if (valueNullOrEmpty(resourceName)) {
+						resourceName = "unnamed";
+					}
+					parsedComponents.attachmentList.add(new AbstractMap.SimpleEntry(resourceName, ds));
 				}
 			} else {
 				throw new IllegalStateException("invalid attachment type");
@@ -454,14 +455,14 @@ public final class MimeMessageParser {
 			Map.Entry<String, DataSource> cidEntry = it.next();
 			String cid = extractCID(cidEntry.getKey());
 			if (htmlContent == null || !htmlContent.contains("cid:" + cid)) {
-				parsedComponents.attachmentList.put(cid, cidEntry.getValue());
+				parsedComponents.attachmentList.add(new AbstractMap.SimpleEntry(cid, cidEntry.getValue()));
 				it.remove();
 			}
 		}
 	}
 
 	public static class ParsedMimeMessageComponents {
-		final Map<String, DataSource> attachmentList = new TreeMap<>();
+		final List<Map.Entry<String, DataSource>> attachmentList = new ArrayList<>();
 		final Map<String, DataSource> cidMap = new TreeMap<>();
 		private final Map<String, Object> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
@@ -481,7 +482,7 @@ public final class MimeMessageParser {
 			return messageId;
 		}
 
-		public Map<String, DataSource> getAttachmentList() {
+		public List<Map.Entry<String, DataSource>> getAttachmentList() {
 			return attachmentList;
 		}
 
