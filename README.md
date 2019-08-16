@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](LICENSE-2.0.txt) 
 [![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-5.2.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) 
+[![Javadocs](https://img.shields.io/badge/javadoc-5.3.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) 
 [![Build Status](https://img.shields.io/travis/bbottema/simple-java-mail.svg?style=flat)](https://travis-ci.org/bbottema/simple-java-mail) 
 [![Codacy](https://img.shields.io/codacy/9f142ca8c8c640c984835a8ae02d29f3.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
 [![Paypal Donate](https://img.shields.io/badge/donate%20with-paypal-blue.svg?style=flat)](https://paypal.me/bennybottema)
@@ -69,13 +69,21 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.2.1</version>
+    <version>5.3.0</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-[v5.2.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.2.1%7Cjar) (TBA)
+[v5.3.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.3.0%7Cjar) (16-August-2019)
+
+- [#215](https://github.com/bbottema/simple-java-mail/issues/215) Bug: Current DKIM header canonicalization can lead to invalid DKIM
+
+Note this release should have no impact, but nonetheless is a minor update so you can determine for yourself if this update would cause issues.
+The release changes DKIM header canonicalization from SIMPLE to RELAXED.
+
+
+[v5.2.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.2.1%7Cjar) (16-August-2019)
 
 - [#219](https://github.com/bbottema/simple-java-mail/issues/219) Bug: MimeMessageParser rejects attachments with duplicate names
 

@@ -3,10 +3,18 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.2.1</version>
+    <version>5.3.0</version>
 </dependency>
 
-v5.2.1 (TBA)
+v5.3.0 (16-August-2019)
+
+- #215: Enhancement: Make DKIM header canonicalization RELAXED instead of SIMPLE
+
+Note this release should have no impact, but nonetheless is a minor update so you can determine for yourself if this update would cause issues.
+The release changes DKIM header canonicalization from SIMPLE to RELAXED.
+
+
+v5.2.1 (16-August-2019)
 
 - #219: Bug: MimeMessageParser rejects attachments with duplicate names
 
