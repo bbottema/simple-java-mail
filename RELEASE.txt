@@ -6,6 +6,11 @@ http://www.simplejavamail.org
     <version>5.2.0</version>
 </dependency>
 
+v5.2.1 (TBA)
+
+- #219: Bug: MimeMessageParser rejects attachments with duplicate names
+
+
 v5.2.0 (7-July-2019)
 
 - #213: Update from javax.mail:1.6.0 to jakarta.mail:1.6.3

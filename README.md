@@ -75,6 +75,11 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 
 ### Latest Progress ###
 
+[v5.2.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.2.1%7Cjar) (TBA)
+
+- [#219](https://github.com/bbottema/simple-java-mail/issues/219) Bug: MimeMessageParser rejects attachments with duplicate names
+
+
 [v5.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.2.0%7Cjar) (7-July-2019)
 
 - [#213](https://github.com/bbottema/simple-java-mail/issues/213) Update from javax.mail:1.6.0 to jakarta.mail:1.6.3
