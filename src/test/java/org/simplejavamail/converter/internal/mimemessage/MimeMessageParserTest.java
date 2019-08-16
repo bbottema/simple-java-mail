@@ -18,10 +18,9 @@ public class MimeMessageParserTest {
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).isEmpty();
-		assertThat(parsedComponents.attachmentList.size()).isEqualTo(2);
-		assertThat(parsedComponents.attachmentList.get(0).getKey()).isEqualTo("moo1");
-		assertThat(parsedComponents.attachmentList.get(1).getKey()).isEqualTo("moo2");
+		assertThat(parsedComponents.attachmentList).extracting("key").containsOnly("moo1", "moo2");
 	}
+	
 	@Test
 	public void testMoveInvalidEmbeddedResourcesToAttachments_HtmlButNoInvalid() throws IOException {
 		ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
@@ -31,9 +30,7 @@ public class MimeMessageParserTest {
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).isEmpty();
-		assertThat(parsedComponents.attachmentList.size()).isEqualTo(2);
-		assertThat(parsedComponents.attachmentList.get(0).getKey()).isEqualTo("moo1");
-		assertThat(parsedComponents.attachmentList.get(1).getKey()).isEqualTo("moo2");
+		assertThat(parsedComponents.attachmentList).extracting("key").containsOnly("moo1", "moo2");
 	}
 	
 	@Test
@@ -45,7 +42,6 @@ public class MimeMessageParserTest {
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).containsOnlyKeys("moo1");
-		assertThat(parsedComponents.attachmentList.size()).isEqualTo(1);
-		assertThat(parsedComponents.attachmentList.get(0).getKey()).isEqualTo("moo2");
+		assertThat(parsedComponents.attachmentList).extracting("key").containsOnly("moo2");
 	}
 }

@@ -1,5 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import org.simplejavamail.internal.util.NaturalEntryKeyComparator;
+
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
@@ -26,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
+import java.util.AbstractMap.SimpleEntry;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
@@ -126,21 +129,13 @@ public final class MimeMessageParser {
 			final DataSource ds = createDataSource(currentPart);
 			// if the diposition is not provided, for now the part should be treated as inline (later non-embedded inline attachments are moved)
 			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-				String resourceName = parseResourceName(parseContentID(currentPart), parseFileName(currentPart));
-				if (valueNullOrEmpty(resourceName)) {
-					resourceName = "unnamed";
-				}
-				parsedComponents.attachmentList.add(new AbstractMap.SimpleEntry(resourceName, ds));
+				parsedComponents.attachmentList.add(new SimpleEntry<>(parseResourceNameOrUnnamed(parseContentID(currentPart), parseFileName(currentPart)), ds));
 			} else if (disposition == null || Part.INLINE.equalsIgnoreCase(disposition)) {
 				if (parseContentID(currentPart) != null) {
 					parsedComponents.cidMap.put(parseContentID(currentPart), ds);
 				} else {
 					// contentID missing -> treat as standard attachment
-					String resourceName = parseResourceName(null, parseFileName(currentPart));
-					if (valueNullOrEmpty(resourceName)) {
-						resourceName = "unnamed";
-					}
-					parsedComponents.attachmentList.add(new AbstractMap.SimpleEntry(resourceName, ds));
+					parsedComponents.attachmentList.add(new SimpleEntry<>(parseResourceNameOrUnnamed(null, parseFileName(currentPart)), ds));
 				}
 			} else {
 				throw new IllegalStateException("invalid attachment type");
@@ -220,7 +215,13 @@ public final class MimeMessageParser {
 	}
 
 	@Nonnull
-	private static String parseResourceName(@Nullable final String possibleWrappedContentID, @Nonnull final String fileName) {
+	private static String parseResourceNameOrUnnamed(@Nullable final String possibleWrappedContentID, @Nonnull final String fileName) {
+		String resourceName = parseResourceName(possibleWrappedContentID, fileName);
+		return valueNullOrEmpty(resourceName) ? "unnamed" : resourceName;
+	}
+	
+	@Nonnull
+	private static String parseResourceName(@Nullable String possibleWrappedContentID, @Nonnull String fileName) {
 		if (!valueNullOrEmpty(possibleWrappedContentID)) {
 			// https://regex101.com/r/46ulb2/1
 			String unwrappedContentID = possibleWrappedContentID.replaceAll("^<?(.*?)>?$", "$1");
@@ -232,7 +233,7 @@ public final class MimeMessageParser {
 			return fileName;
 		}
 	}
-
+	
 	@SuppressWarnings("WeakerAccess")
 	@Nonnull
 	public static List<Header> retrieveAllHeaders(@Nonnull final MimePart part) {
@@ -455,14 +456,15 @@ public final class MimeMessageParser {
 			Map.Entry<String, DataSource> cidEntry = it.next();
 			String cid = extractCID(cidEntry.getKey());
 			if (htmlContent == null || !htmlContent.contains("cid:" + cid)) {
-				parsedComponents.attachmentList.add(new AbstractMap.SimpleEntry(cid, cidEntry.getValue()));
+				parsedComponents.attachmentList.add(new SimpleEntry<>(cid, cidEntry.getValue()));
 				it.remove();
 			}
 		}
 	}
 
 	public static class ParsedMimeMessageComponents {
-		final List<Map.Entry<String, DataSource>> attachmentList = new ArrayList<>();
+		@SuppressWarnings("unchecked")
+		final Set<Map.Entry<String, DataSource>> attachmentList = new TreeSet<>(NaturalEntryKeyComparator.INSTANCE);
 		final Map<String, DataSource> cidMap = new TreeMap<>();
 		private final Map<String, Object> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
@@ -482,7 +484,7 @@ public final class MimeMessageParser {
 			return messageId;
 		}
 
-		public List<Map.Entry<String, DataSource>> getAttachmentList() {
+		public Set<Map.Entry<String, DataSource>> getAttachmentList() {
 			return attachmentList;
 		}
 
