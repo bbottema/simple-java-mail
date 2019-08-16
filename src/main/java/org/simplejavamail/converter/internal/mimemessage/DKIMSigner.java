@@ -34,7 +34,7 @@ public class DKIMSigner implements IDKIMSigner {
 						emailContainingSigningDetails.getDkimPrivateKeyInputStream());
 			}
 			dkimSigner.setIdentity(emailContainingSigningDetails.getFromRecipient().getAddress());
-			dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
+			dkimSigner.setHeaderCanonicalization(Canonicalization.RELAXED);
 			dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
 			dkimSigner.setSigningAlgorithm(SigningAlgorithm.SHA256_WITH_RSA);
 			dkimSigner.setLengthParam(true);
