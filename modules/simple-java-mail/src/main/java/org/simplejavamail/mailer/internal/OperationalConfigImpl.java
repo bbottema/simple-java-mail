@@ -62,6 +62,11 @@ public class OperationalConfigImpl implements OperationalConfig {
 	private final boolean trustAllSSLHost;
 
 	/**
+	 * @see MailerRegularBuilder#verifyingServerIdentity(boolean)
+	 */
+	private final boolean verifyingServerIdentity;
+
+	/**
 	 * @see MailerRegularBuilder#withExecutorService(ExecutorService)
 	 */
 	@Nonnull
@@ -73,7 +78,7 @@ public class OperationalConfigImpl implements OperationalConfig {
 	@Deprecated
 	@SuppressWarnings("DeprecatedIsStillUsed")
 	public OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly,
-			boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, @Nullable final ExecutorService executorService) {
+			boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, boolean verifyingServerIdentity, @Nullable final ExecutorService executorService) {
 		this.async = async;
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
@@ -83,6 +88,7 @@ public class OperationalConfigImpl implements OperationalConfig {
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
 		this.trustAllSSLHost = trustAllSSLHost;
+		this.verifyingServerIdentity = verifyingServerIdentity;
 		this.executorService = executorService != null
 				? executorService
 				: new NonJvmBlockingThreadPoolExecutor(getThreadPoolSize(), getThreadPoolKeepAliveTime());
@@ -144,13 +150,21 @@ public class OperationalConfigImpl implements OperationalConfig {
 	public List<String> getSslHostsToTrust() {
 		return sslHostsToTrust;
 	}
-	
+
 	/**
 	 * @see OperationalConfig#isTrustAllSSLHost()
 	 */
 	@Override
 	public boolean isTrustAllSSLHost() {
 		return trustAllSSLHost;
+	}
+
+	/**
+	 * @see OperationalConfig#isVerifyingServerIdentity()
+	 */
+	@Override
+	public boolean isVerifyingServerIdentity() {
+		return verifyingServerIdentity;
 	}
 	
 	/**

@@ -104,11 +104,16 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	@Nonnull
 	private List<String> sslHostsToTrust = new ArrayList<>();
-	
+
 	/**
 	 * @see MailerGenericBuilder#trustingAllHosts(boolean)
 	 */
 	private boolean trustAllSSLHost;
+
+	/**
+	 * @see MailerGenericBuilder#verifyingServerIdentity(boolean)
+	 */
+	private boolean verifyingServerIdentity;
 	
 	/**
 	 * @see MailerGenericBuilder#withProperties(Properties)
@@ -147,6 +152,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 		
 		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
 		this.trustAllSSLHost = true;
+		this.verifyingServerIdentity = true;
 	}
 	
 	/**
@@ -189,6 +195,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 				isDebugLogging(),
 				getSslHostsToTrust(),
 				isTrustAllSSLHost(),
+				isVerifyingServerIdentity(),
 				getExecutorService());
 	}
 	
@@ -344,6 +351,15 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	@Override
 	public T trustingAllHosts(final boolean trustAllHosts) {
 		this.trustAllSSLHost = trustAllHosts;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#verifyingServerIdentity(boolean)
+	 */
+	@Override
+	public T verifyingServerIdentity(final boolean verifyingServerIdentity) {
+		this.verifyingServerIdentity = verifyingServerIdentity;
 		return (T) this;
 	}
 	
@@ -579,13 +595,21 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	public List<String> getSslHostsToTrust() {
 		return sslHostsToTrust;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#isTrustAllSSLHost()
 	 */
 	@Override
 	public boolean isTrustAllSSLHost() {
 		return trustAllSSLHost;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#isVerifyingServerIdentity()
+	 */
+	@Override
+	public boolean isVerifyingServerIdentity() {
+		return verifyingServerIdentity;
 	}
 	
 	/**

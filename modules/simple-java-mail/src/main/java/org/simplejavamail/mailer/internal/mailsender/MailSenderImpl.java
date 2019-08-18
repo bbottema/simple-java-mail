@@ -104,11 +104,19 @@ public class MailSenderImpl implements MailSender {
 		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);
 
 		if (transportStrategy != null) {
+			configureServerVerification(session, transportStrategy, operationalConfig);
 			if (operationalConfig.isTrustAllSSLHost()) {
 				trustAllHosts(session, true, transportStrategy);
 			} else {
 				trustHosts(session, operationalConfig.getSslHostsToTrust(), transportStrategy);
 			}
+		}
+	}
+
+	private void configureServerVerification(@Nonnull final Session session, @Nonnull TransportStrategy transportStrategy, @Nonnull OperationalConfig operationalConfig) {
+		if (transportStrategy != TransportStrategy.SMTP) {
+			session.getProperties().setProperty(transportStrategy.propertyNameCheckServerIdentity(),
+					Boolean.toString(operationalConfig.isVerifyingServerIdentity()));
 		}
 	}
 	
@@ -281,7 +289,7 @@ public class MailSenderImpl implements MailSender {
 			}
 		}
 	}
-	
+
 	private void configureBounceToAddress(final Session session, final Email email) {
 		final Recipient bounceAddress = email.getBounceToRecipient();
 		if (bounceAddress != null) {

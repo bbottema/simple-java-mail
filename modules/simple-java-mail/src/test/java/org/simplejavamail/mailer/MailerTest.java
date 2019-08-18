@@ -61,7 +61,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
 		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("false");
+		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		
 		assertThat(session.getProperty("mail.smtp.username")).isNull();
 		assertThat(session.getProperty("mail.smtp.auth")).isNull();
@@ -188,7 +188,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
 		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("false");
+		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		
 		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
@@ -278,6 +278,7 @@ public class MailerTest {
 		MailerRegularBuilderImpl mailerBuilder = MailerBuilder
 				.withSMTPServer(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp")
 				.withTransportStrategy(transportStrategy)
+				.verifyingServerIdentity(true)
 				.withDebugLogging(true);
 		
 		if (transportStrategy == SMTP_TLS) {
