@@ -40,8 +40,6 @@ public enum TransportStrategy {
 	 *     <li>Only {@code mail.smtp} properties are set.</li>
 	 *     <li>STARTTLS is enabled by setting {@code mail.smtp.starttls.enable} to {@code true}.</li>
 	 *     <li>STARTTLS plaintext fallback is enabled by setting {@code mail.smtp.starttls.required} to {@code false}.</li>
-	 *     <li>Certificate issuer checks are disabled by setting {@code mail.smtp.ssl.trust} to {@code "*"}.</li>
-	 *     <li>Certificate identity checks are disabled by setting {@code mail.smtp.ssl.checkserveridentity} to {@code false}.</li>
      * </ul>
 	 */
 	SMTP {
@@ -51,7 +49,7 @@ public enum TransportStrategy {
 		 * port <code>{@value}</code> will be used.
 		 */
 		private static final int DEFAULT_SMTP_PORT = 25;
-		
+
 		/**
 		 * Defaults to enabled opportunistic TLS behavior ({@link #opportunisticTLS}), in case value was not programmatically set or provided
 		 * as property value.
@@ -78,8 +76,6 @@ public enum TransportStrategy {
 				LOGGER.debug("Opportunistic TLS mode enabled for SMTP plain protocol.");
 				props.put("mail.smtp.starttls.enable", "true");
 				props.put("mail.smtp.starttls.required", "false");
-				props.put("mail.smtp.ssl.trust", "*");
-				props.put("mail.smtp.ssl.checkserveridentity", "false");
 			}
 			return props;
 		}
@@ -173,6 +169,14 @@ public enum TransportStrategy {
 		}
 		
 		/**
+		 * @return "mail.smtp.ssl.checkserveridentity"
+		 */
+		@Override
+		public String propertyNameCheckServerIdentity() {
+			throw new AssertionError("This property is not relevant for plain SMTP");
+		}
+
+		/**
 		 * Sets {@link #opportunisticTLS}. Setting <code>null</code> will revert to property value if available or default to {@value
 		 * DEFAULT_OPPORTUNISTIC_TLS}
 		 */
@@ -200,7 +204,6 @@ public enum TransportStrategy {
 	 * <ul>
 	 *     <li>The transport protocol is explicitly set to {@code smtps}.</li>
 	 *     <li>Only {@code mail.smtps} properties are set.</li>
-	 *     <li>Certificate identity checks are enabled by setting {@code mail.smtp.ssl.checkserveridentity} to {@code true}.</li>
 	 *     <li>
 	 * {@code mail.smtps.quitwait} is set to {@code false} to get rid of a strange SSLException:
 	 * <pre>
@@ -229,7 +232,6 @@ public enum TransportStrategy {
 		public Properties generateProperties() {
 			final Properties properties = super.generateProperties();
 			properties.put("mail.transport.protocol", "smtps");
-			properties.put("mail.smtps.ssl.checkserveridentity", "true");
 			properties.put("mail.smtps.quitwait", "false");
 			return properties;
 		}
@@ -330,6 +332,14 @@ public enum TransportStrategy {
 		public int getDefaultServerPort() {
 			return DEFAULT_SMTPS_PORT;
 		}
+
+		/**
+		 * @return "mail.smtps.ssl.checkserveridentity"
+		 */
+		@Override
+		public String propertyNameCheckServerIdentity() {
+			return "mail.smtps.ssl.checkserveridentity";
+		}
 	},
 	/**
 	 * Plaintext SMTP with a mandatory, authenticated STARTTLS upgrade.
@@ -343,7 +353,6 @@ public enum TransportStrategy {
 	 *     <li>Only {@code mail.smtp} properties are set.</li>
 	 *     <li>STARTTLS is enabled by setting {@code mail.smtp.starttls.enable} to {@code true}.</li>
 	 *     <li>STARTTLS plaintext fallback is disabled by setting {@code mail.smtp.starttls.required} to {@code true}.</li>
-	 *     <li>Certificate identity checks are enabled by setting {@code mail.smtp.ssl.checkserveridentity} to {@code true}.</li>
 	 * </ul>
 	 */
 	SMTP_TLS {
@@ -363,7 +372,6 @@ public enum TransportStrategy {
 			props.put("mail.transport.protocol", "smtp");
 			props.put("mail.smtp.starttls.enable", "true");
 			props.put("mail.smtp.starttls.required", "true");
-			props.put("mail.smtp.ssl.checkserveridentity", "true");
 			return props;
 		}
 
@@ -463,6 +471,14 @@ public enum TransportStrategy {
 		public int getDefaultServerPort() {
 			return DEFAULT_SMTP_TLS_PORT;
 		}
+
+		/**
+		 * @return "mail.smtp.ssl.checkserveridentity"
+		 */
+		@Override
+		public String propertyNameCheckServerIdentity() {
+			return "mail.smtp.ssl.checkserveridentity";
+		}
 	};
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(TransportStrategy.class);
@@ -541,6 +557,10 @@ public enum TransportStrategy {
 	 * For internal use only.
 	 */
 	public abstract String propertyNameSSLTrust();
+	/**
+	 * For internal use only.
+	 */
+	public abstract String propertyNameCheckServerIdentity();
 	/**
 	 * For internal use only.
 	 */

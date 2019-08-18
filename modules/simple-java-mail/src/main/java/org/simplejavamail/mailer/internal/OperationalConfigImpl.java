@@ -60,7 +60,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	private final int connectionPoolExpireAfterMillis;
-	
+
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
@@ -83,12 +83,17 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final boolean trustAllSSLHost;
 
 	/**
+	 * @see MailerRegularBuilder#verifyingServerIdentity(boolean)
+	 */
+	private final boolean verifyingServerIdentity;
+
+	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
 	@Nonnull
 	private final ExecutorService executorService;
 	
-	OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, @Nonnull UUID clusterKey, int connectionPoolCoreSize, int connectionPoolMaxSize, int connectionPoolExpireAfterMillis, boolean transportModeLoggingOnly, boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, @Nonnull final ExecutorService executorService) {
+	OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, @Nonnull UUID clusterKey, int connectionPoolCoreSize, int connectionPoolMaxSize, int connectionPoolExpireAfterMillis, boolean transportModeLoggingOnly, boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, boolean verifyingServerIdentity, @Nonnull final ExecutorService executorService) {
 		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
@@ -102,6 +107,7 @@ class OperationalConfigImpl implements OperationalConfig {
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
 		this.trustAllSSLHost = trustAllSSLHost;
+		this.verifyingServerIdentity = verifyingServerIdentity;
 		this.executorService = executorService;
 	}
 
@@ -160,7 +166,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	public int getConnectionPoolExpireAfterMillis() {
 		return connectionPoolExpireAfterMillis;
 	}
-	
+
 	/**
 	 * @see OperationalConfig#isTransportModeLoggingOnly()
 	 */
@@ -185,7 +191,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	public List<String> getSslHostsToTrust() {
 		return sslHostsToTrust;
 	}
-	
+
 	/**
 	 * @see OperationalConfig#isTrustAllSSLHost()
 	 */
@@ -193,7 +199,15 @@ class OperationalConfigImpl implements OperationalConfig {
 	public boolean isTrustAllSSLHost() {
 		return trustAllSSLHost;
 	}
-	
+
+	/**
+	 * @see OperationalConfig#isVerifyingServerIdentity()
+	 */
+	@Override
+	public boolean isVerifyingServerIdentity() {
+		return verifyingServerIdentity;
+	}
+
 	/**
 	 * @see OperationalConfig#getProperties()
 	 */

@@ -166,6 +166,7 @@ public class MailerImpl implements Mailer {
 
 		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);
 		configureTrustedHosts(session, operationalConfig, transportStrategy);
+		configureServerIdentityVerification(session, operationalConfig, transportStrategy);
 		configureClusterKey(session, operationalConfig);
 	}
 
@@ -202,6 +203,13 @@ public class MailerImpl implements Mailer {
 			}
 		} else {
 			LOGGER.debug("No transport strategy provided, skipping configuration for trusted hosts");
+		}
+	}
+
+	private void configureServerIdentityVerification(@Nonnull final Session session, @Nonnull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
+		if (transportStrategy != null && transportStrategy != TransportStrategy.SMTP) {
+			session.getProperties().setProperty(transportStrategy.propertyNameCheckServerIdentity(),
+					Boolean.toString(operationalConfig.isVerifyingServerIdentity()));
 		}
 	}
 

@@ -38,7 +38,7 @@ public class DKIMSigner implements DKIMModule {
 					// InputStream is managed by SimpleJavaMail user
 					: new DkimSigner(signingDetails.getDkimSigningDomain(), dkimSelector, signingDetails.getDkimPrivateKeyInputStream());
 			dkimSigner.setIdentity(checkNonEmptyArgument(signingDetails.getFromRecipient(), "fromRecipient").getAddress());
-			dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
+			dkimSigner.setHeaderCanonicalization(Canonicalization.RELAXED);
 			dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
 			dkimSigner.setSigningAlgorithm(SigningAlgorithm.SHA256_WITH_RSA);
 			dkimSigner.setLengthParam(true);

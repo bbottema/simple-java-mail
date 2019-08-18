@@ -67,11 +67,16 @@ public interface OperationalConfig {
 	 */
 	@Nonnull
 	List<String> getSslHostsToTrust();
-	
+
 	/**
 	 * @see MailerGenericBuilder#trustingAllHosts(boolean)
 	 */
 	boolean isTrustAllSSLHost();
+
+	/**
+	 * @see MailerRegularBuilder#verifyingServerIdentity(boolean)
+	 */
+	boolean isVerifyingServerIdentity();
 	
 	/**
 	 * @see MailerGenericBuilder#withProperties(Properties)

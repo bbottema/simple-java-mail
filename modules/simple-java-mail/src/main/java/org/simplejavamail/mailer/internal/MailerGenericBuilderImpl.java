@@ -126,18 +126,23 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Nonnull
 	private Integer connectionPoolExpireAfterMillis;
-	
+
 	/**
 	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
 	@Nonnull
 	private List<String> sslHostsToTrust = new ArrayList<>();
-	
+
 	/**
 	 * @see MailerGenericBuilder#trustingAllHosts(boolean)
 	 */
 	private boolean trustAllSSLHost;
-	
+
+	/**
+	 * @see MailerGenericBuilder#verifyingServerIdentity(boolean)
+	 */
+	private boolean verifyingServerIdentity;
+
 	/**
 	 * @see MailerGenericBuilder#withProperties(Properties)
 	 */
@@ -181,6 +186,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
 		this.trustAllSSLHost = true;
+		this.verifyingServerIdentity = true;
 
 		this.executorService = determineDefaultExecutorService();
 	}
@@ -227,6 +233,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				isDebugLogging(),
 				getSslHostsToTrust(),
 				isTrustAllSSLHost(),
+				isVerifyingServerIdentity(),
 				getExecutorService());
 	}
 	
@@ -393,7 +400,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.connectionPoolExpireAfterMillis = connectionPoolExpireAfterMillis;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
@@ -420,7 +427,16 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.trustAllSSLHost = trustAllHosts;
 		return (T) this;
 	}
-	
+
+	/**
+	 * @see MailerGenericBuilder#verifyingServerIdentity(boolean)
+	 */
+	@Override
+	public T verifyingServerIdentity(final boolean verifyingServerIdentity) {
+		this.verifyingServerIdentity = verifyingServerIdentity;
+		return (T) this;
+	}
+
 	/**
 	 * @see MailerGenericBuilder#withProperties(Properties)
 	 */
@@ -535,7 +551,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public T resetConnectionPoolExpireAfterMillis() {
 		return this.withConnectionPoolExpireAfterMillis(DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS);
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#resetTransportModeLoggingOnly()
 	 */
@@ -719,7 +735,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public Integer getConnectionPoolExpireAfterMillis() {
 		return connectionPoolExpireAfterMillis;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#getSslHostsToTrust()
 	 */
@@ -728,7 +744,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public List<String> getSslHostsToTrust() {
 		return sslHostsToTrust;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#isTrustAllSSLHost()
 	 */
@@ -736,7 +752,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public boolean isTrustAllSSLHost() {
 		return trustAllSSLHost;
 	}
-	
+
+	/**
+	 * @see MailerGenericBuilder#isVerifyingServerIdentity()
+	 */
+	@Override
+	public boolean isVerifyingServerIdentity() {
+		return verifyingServerIdentity;
+	}
+
 	/**
 	 * @see MailerGenericBuilder#isTransportModeLoggingOnly()
 	 */
