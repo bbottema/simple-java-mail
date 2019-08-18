@@ -320,8 +320,8 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * Configures the new session to only accept server certificates issued to one of the provided hostnames, <strong>and disables certificate issuer
-	 * validation.</strong>
+	 * Configures the new session to only accept server certificates issued to one of the provided hostnames. Note that verifying server identity
+	 * can be turned on and off with {@link #verifyingServerIdentity(Boolean)}.
 	 * <p>
 	 * Passing an empty list resets the current session's trust behavior to the default, and is equivalent to never calling this method in the first
 	 * place.
@@ -334,6 +334,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 *
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
 	 * @see #trustingAllHosts(Boolean)
+	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
 	 */
 	public T trustingSSLHosts(String... sslHostsToTrust) {
 		this.sslHostsToTrust = Arrays.asList(sslHostsToTrust);
@@ -343,11 +344,12 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Configures the current session to trust all hosts. Defaults to true, but this allows you to white list <em>only</em> certain hosts.
 	 * <p>
-	 * Note that this is <em>not</em> the same as server identity verification, which is an SSL feature enabled through {@link #verifyingServerIdentity(Boolean)}.
+	 * Note that this is <em>not</em> the same as server identity verification, which is enabled through {@link #verifyingServerIdentity(Boolean)}.
 	 * It would be prudent to have at least one of these features turned on, lest you be vulnerable to man-in-the-middle attacks.
 	 *
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
 	 * @see #trustingSSLHosts(String...)
+	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
 	 */
 	public T trustingAllHosts(@Nonnull final Boolean trustAllHosts) {
 		this.trustAllSSLHost = trustAllHosts;
@@ -357,12 +359,13 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	/**
 	 * Configures the current session to not verify the server's identity on an SSL connection. Defaults to true.
 	 * <p>
-	 * Note that this is <em>not</em> the same as {@link #trustingAllHosts(Boolean)} or {@link #trustingSSLHosts(String...)}, which are not related to SSL connections.
+	 * Note that this is <em>not</em> the same as {@link #trustingAllHosts(Boolean)} or {@link #trustingSSLHosts(String...)}.<br/>
 	 * It would be prudent to have at least one of these features turned on, lest you be vulnerable to man-in-the-middle attacks.
 	 *
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.checkserveridentity">mail.smtp.ssl.checkserveridentity</a>
 	 * @see #trustingAllHosts(Boolean)
 	 * @see #trustingSSLHosts(String...)
+	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
 	 */
 	public T verifyingServerIdentity(@Nonnull final Boolean verifyingServerIdentity) {
 		this.verifyingServerIdentity = verifyingServerIdentity;
