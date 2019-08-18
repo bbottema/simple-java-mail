@@ -97,10 +97,10 @@ public class MailSender {
 		this.operationalConfig = operationalConfig;
 		this.transportStrategy = transportStrategy;
 		this.proxyServer = configureSessionWithProxy(proxyConfig, session, transportStrategy);
-		init(operationalConfig);
+		init(transportStrategy, operationalConfig);
 	}
 	
-	private void init(@Nonnull OperationalConfig operationalConfig) {
+	private void init(@Nullable TransportStrategy transportStrategy, @Nonnull OperationalConfig operationalConfig) {
 		session.setDebug(operationalConfig.isDebugLogging());
 		session.getProperties().putAll(operationalConfig.getProperties());
 		if (transportStrategy != null) {
@@ -109,6 +109,14 @@ public class MailSender {
 			} else {
 				trustHosts(operationalConfig.getSslHostsToTrust());
 			}
+			configureServerVerification(transportStrategy, operationalConfig);
+		}
+	}
+	
+	private void configureServerVerification(@Nonnull TransportStrategy transportStrategy, @Nonnull OperationalConfig operationalConfig) {
+		if (transportStrategy != TransportStrategy.SMTP) {
+			session.getProperties().setProperty(transportStrategy.propertyNameCheckServerIdentity(),
+					Boolean.toString(operationalConfig.isVerifyingServerIdentity()));
 		}
 	}
 	

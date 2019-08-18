@@ -54,7 +54,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	public static final int DEFAULT_PROXY_BRIDGE_PORT = 1081;
 	
 	/**
-	 * Defaults to {@value DEFAULT_TRANSPORT_MODE_LOGGING_ONLY}, sending mails rather than just only logging the mails.
+	 * Defaults to {@value}, sending mails rather than just only logging the mails.
 	 */
 	public static final boolean DEFAULT_TRANSPORT_MODE_LOGGING_ONLY = false;
 	
@@ -114,6 +114,11 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	private Boolean trustAllSSLHost;
 	
 	/**
+	 * @see #verifyingServerIdentity(Boolean)
+	 */
+	private Boolean verifyingServerIdentity;
+	
+	/**
 	 * @see #withProperties(Properties)
 	 */
 	private Properties properties = new Properties();
@@ -150,6 +155,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 		
 		withEmailAddressCriteria(EmailAddressCriteria.RFC_COMPLIANT);
 		trustingAllHosts(true);
+		verifyingServerIdentity(true);
 	}
 	
 	/**
@@ -178,7 +184,7 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 */
 	OperationalConfig buildOperationalConfig() {
 		return new OperationalConfig(getProperties(), getSessionTimeout(), getThreadPoolSize(), getTransportModeLoggingOnly(), getDebugLogging(),
-				getSslHostsToTrust(), getTrustAllSSLHost());
+				getSslHostsToTrust(), getTrustAllSSLHost(), getVerifyingServerIdentity());
 	}
 	
 	/**
@@ -335,14 +341,31 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	}
 	
 	/**
-	 * Configures the current session to trust all hosts and don't validate any SSL keys. The property "mail.smtp(s).ssl.trust" is set to "*".
+	 * Configures the current session to trust all hosts. Defaults to true, but this allows you to white list <em>only</em> certain hosts.
 	 * <p>
-	 * Refer to https://javamail.java.net/nonav/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust
+	 * Note that this is <em>not</em> the same as server identity verification, which is an SSL feature enabled through {@link #verifyingServerIdentity(Boolean)}.
+	 * It would be prudent to have at least one of these features turned on, lest you be vulnerable to man-in-the-middle attacks.
 	 *
+	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
 	 * @see #trustingSSLHosts(String...)
 	 */
 	public T trustingAllHosts(@Nonnull final Boolean trustAllHosts) {
 		this.trustAllSSLHost = trustAllHosts;
+		return (T) this;
+	}
+	
+	/**
+	 * Configures the current session to not verify the server's identity on an SSL connection. Defaults to true.
+	 * <p>
+	 * Note that this is <em>not</em> the same as {@link #trustingAllHosts(Boolean)} or {@link #trustingSSLHosts(String...)}, which are not related to SSL connections.
+	 * It would be prudent to have at least one of these features turned on, lest you be vulnerable to man-in-the-middle attacks.
+	 *
+	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.checkserveridentity">mail.smtp.ssl.checkserveridentity</a>
+	 * @see #trustingAllHosts(Boolean)
+	 * @see #trustingSSLHosts(String...)
+	 */
+	public T verifyingServerIdentity(@Nonnull final Boolean verifyingServerIdentity) {
+		this.verifyingServerIdentity = verifyingServerIdentity;
 		return (T) this;
 	}
 	
@@ -533,6 +556,13 @@ public abstract class MailerGenericBuilder<T extends MailerGenericBuilder> {
 	 */
 	public Boolean getTrustAllSSLHost() {
 		return trustAllSSLHost;
+	}
+	
+	/**
+	 * @see #verifyingServerIdentity(Boolean)
+	 */
+	public Boolean getVerifyingServerIdentity() {
+		return verifyingServerIdentity;
 	}
 	
 	/**

@@ -50,9 +50,14 @@ public class OperationalConfig {
 	private final boolean trustAllSSLHost;
 	
 	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#verifyingServerIdentity(Boolean)
+	 */
+	private final boolean verifyingServerIdentity;
+	
+	/**
 	 * For internal use only.
 	 */
-	public OperationalConfig(@Nonnull Properties properties, int sessionTimeout, int threadPoolSize, boolean transportModeLoggingOnly, boolean debugLogging, List<String> sslHostsToTrust, boolean trustAllSSLHost) {
+	public OperationalConfig(@Nonnull Properties properties, int sessionTimeout, int threadPoolSize, boolean transportModeLoggingOnly, boolean debugLogging, List<String> sslHostsToTrust, boolean trustAllSSLHost, boolean verifyingServerIdentity) {
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
 		this.threadPoolSize = threadPoolSize;
@@ -60,6 +65,7 @@ public class OperationalConfig {
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
 		this.trustAllSSLHost = trustAllSSLHost;
+		this.verifyingServerIdentity = verifyingServerIdentity;
 	}
 	
 	/**
@@ -102,6 +108,13 @@ public class OperationalConfig {
 	 */
 	public boolean isTrustAllSSLHost() {
 		return trustAllSSLHost;
+	}
+	
+	/**
+	 * @see org.simplejavamail.mailer.MailerBuilder.MailerRegularBuilder#verifyingServerIdentity(Boolean)
+	 */
+	public boolean isVerifyingServerIdentity() {
+		return verifyingServerIdentity;
 	}
 	
 	/**
