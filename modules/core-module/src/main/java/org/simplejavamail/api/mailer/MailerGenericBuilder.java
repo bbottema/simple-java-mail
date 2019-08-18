@@ -255,10 +255,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withThreadPoolKeepAliveTime(@Nonnull Integer threadPoolKeepAliveTime);
 
 	/**
-	 * By defining a clusterKey, you can form clusters where other {@link Mailer} instances define
-	 * individual connection pools within the same cluster.
+	 * By defining a clusterKey, you can form clusters where other {@link Mailer} instances represent
+	 * individual connection pools within the same cluster. Having multiple mailers using the same clusterKey
+	 * means those mailes form a cluster where mail-send action are rotated over connection pools stemming from these
+	 * mailer instances (this has implications for mailers defining connections differently from eachother, see documentation).
 	 * <p>
-	 * By default a cluster key is uniquely generated, so a new cluster is always generated for a single Mailer,
+	 * By default a cluster key is uniquely generated, so for a single new mailer a new cluster is always generated,
 	 * thus effectively nothing is clustered.
 	 *
 	 * @see <a href="FIXME">Clustering with Simple Java Mail</a>
