@@ -425,6 +425,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 
 	/**
 	 * Reset the cluster key to empty, so it will be generated uniquely, avoiding clustering with any other {@link Mailer}.
+	 *
+	 * @see #withClusterKey(UUID)
 	 */
 	T resetClusterKey();
 
