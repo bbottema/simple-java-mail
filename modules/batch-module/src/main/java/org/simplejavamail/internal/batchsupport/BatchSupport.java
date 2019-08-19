@@ -34,6 +34,7 @@ public class BatchSupport implements BatchModule {
 	// no need to make this static, because this module itself is already static in the ModuleLoader
 	private final SmtpConnectionPoolClustered smtpConnectionPool = configureSmtpConnectionPool();
 
+	// FIXME allow configurating the max poolsize, core poolsize
 	private static SmtpConnectionPoolClustered configureSmtpConnectionPool() {
 		SmtpClusterConfig smtpClusterConfig = new SmtpClusterConfig();
 		smtpClusterConfig.getConfigBuilder()
