@@ -39,6 +39,11 @@ public interface BatchModule {
 	ExecutorService createDefaultExecutorService(final int threadPoolSize, final int keepAliveTime);
 
 	/**
+	 * Creates connection pool for the clusterkey and session combination if it doesn't exist yet.
+	 */
+	void registerToCluster(@Nonnull UUID clusterKey, @Nonnull Session session);
+
+	/**
 	 * @param stickySession Indicates whether transport should be from this specific Session, or any session instance from the cluster. Useful when testing connections.
 	 *
 	 * @return A (new) {@link Transport} for the given session from the SMTP connection pool.

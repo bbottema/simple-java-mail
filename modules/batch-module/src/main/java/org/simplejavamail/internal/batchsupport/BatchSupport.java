@@ -70,23 +70,26 @@ public class BatchSupport implements BatchModule {
 	}
 
 	/**
+	 * @see BatchModule#registerToCluster(UUID, Session)
+	 */
+	@Override
+	public void registerToCluster(@Nonnull final UUID clusterKey, @Nonnull final Session session) {
+		final ResourceClusterAndPoolKey<UUID, Session> poolKey = new ResourceClusterAndPoolKey<>(clusterKey, session);
+		if (!smtpConnectionPool.isPoolRegistered(poolKey)) {
+			smtpConnectionPool.registerResourcePool(poolKey);
+		}
+	}
+
+	/**
 	 * @see BatchModule#acquireTransport(UUID, Session, boolean)
 	 */
 	@Nonnull
 	@Override
 	public LifecycleDelegatingTransport acquireTransport(@Nonnull final UUID clusterKey, @Nonnull final Session session, boolean stickySession) {
 		try {
-			final ResourceClusterAndPoolKey<UUID, Session> poolKey = new ResourceClusterAndPoolKey<>(clusterKey, session);
-			final PoolableObject<Transport> pooledTransport;
-			if (stickySession) {
-				pooledTransport = smtpConnectionPool.claimResourceFromPool(poolKey);
-			} else {
-				// add pool not yet registered, add it to the cluster
-				if (!smtpConnectionPool.isPoolRegistered(poolKey)) {
-					smtpConnectionPool.registerResourcePool(poolKey);
-				}
-				pooledTransport = smtpConnectionPool.claimResourceFromCluster(clusterKey);
-			}
+			final PoolableObject<Transport> pooledTransport = stickySession
+					? smtpConnectionPool.claimResourceFromPool(new ResourceClusterAndPoolKey<>(clusterKey, session))
+					: smtpConnectionPool.claimResourceFromCluster(clusterKey);
 			return new LifecycleDelegatingTransportImpl(pooledTransport);
 		} catch (InterruptedException e) {
 			throw new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session), e);

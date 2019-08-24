@@ -106,7 +106,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	/**
 	 * @see MailerGenericBuilder#withClusterKey(UUID)
 	 */
-	@Nonnull
+	@Nullable
 	private UUID clusterKey;
 
 	/**
@@ -169,9 +169,10 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		if (hasProperty(PROXY_PASSWORD)) {
 			this.proxyPassword = getStringProperty(PROXY_PASSWORD);
 		}
+		final UUID randomUuid = ModuleLoader.batchModuleAvailable() ? UUID.randomUUID() : null;
 		this.clusterKey = hasProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)
 				? UUID.fromString(assumeNonNull(getStringProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))
-				: UUID.randomUUID();
+				: randomUuid;
 
 		this.proxyPort 							= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
 		this.proxyBridgePort 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
@@ -704,7 +705,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getClusterKey()
 	 */
 	@Override
-	@Nonnull
+	@Nullable
 	public UUID getClusterKey() {
 		return clusterKey;
 	}

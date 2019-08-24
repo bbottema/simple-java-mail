@@ -120,6 +120,7 @@ public class MailerImpl implements Mailer {
 		final TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orMaybe(findStrategyForSession(session));
 		this.proxyServer = configureSessionWithProxy(proxyConfig, session, effectiveTransportStrategy);
 		initSession(session, operationalConfig, effectiveTransportStrategy);
+		initCluster(session, operationalConfig);
 	}
 
 	/**
@@ -167,7 +168,6 @@ public class MailerImpl implements Mailer {
 		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);
 		configureTrustedHosts(session, operationalConfig, transportStrategy);
 		configureServerIdentityVerification(session, operationalConfig, transportStrategy);
-		configureClusterKey(session, operationalConfig);
 	}
 
 	/**
@@ -211,11 +211,6 @@ public class MailerImpl implements Mailer {
 			session.getProperties().setProperty(transportStrategy.propertyNameCheckServerIdentity(),
 					Boolean.toString(operationalConfig.isVerifyingServerIdentity()));
 		}
-	}
-
-	private void configureClusterKey(@Nonnull final Session session, @Nonnull final OperationalConfig operationalConfig) {
-		// FIXME remove this property and do a project-wide text search
-		session.getProperties().put("cluster-key", operationalConfig.getClusterKey().toString());
 	}
 
 	/**
@@ -262,6 +257,12 @@ public class MailerImpl implements Mailer {
 			}
 		}
 		return null;
+	}
+
+	private void initCluster(@Nonnull final Session session, @Nonnull final OperationalConfig operationalConfig) {
+		if (operationalConfig.getClusterKey() != null) {
+			ModuleLoader.loadBatchModule().registerToCluster(operationalConfig.getClusterKey(), session);
+		}
 	}
 
 	/**

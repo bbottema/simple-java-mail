@@ -3,6 +3,7 @@ package org.simplejavamail.mailer.internal;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -43,7 +44,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withClusterKey(UUID)
 	 */
-	@Nonnull
+	@Nullable
 	private final UUID clusterKey;
 
 	/**
@@ -83,7 +84,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final boolean trustAllSSLHost;
 
 	/**
-	 * @see MailerRegularBuilder#verifyingServerIdentity(boolean)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#verifyingServerIdentity(boolean)
 	 */
 	private final boolean verifyingServerIdentity;
 
@@ -93,7 +94,8 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Nonnull
 	private final ExecutorService executorService;
 	
-	OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, @Nonnull UUID clusterKey, int connectionPoolCoreSize, int connectionPoolMaxSize, int connectionPoolExpireAfterMillis, boolean transportModeLoggingOnly, boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, boolean verifyingServerIdentity, @Nonnull final ExecutorService executorService) {
+	OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, @Nullable UUID clusterKey, int connectionPoolCoreSize,
+			int connectionPoolMaxSize, int connectionPoolExpireAfterMillis, boolean transportModeLoggingOnly, boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, boolean verifyingServerIdentity, @Nonnull final ExecutorService executorService) {
 		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
@@ -223,7 +225,7 @@ class OperationalConfigImpl implements OperationalConfig {
 		return executorService;
 	}
 
-	@Nonnull
+	@Nullable
 	@Override
 	public UUID getClusterKey() {
 		return clusterKey;

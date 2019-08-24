@@ -263,7 +263,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * By default a cluster key is uniquely generated, so for a single new mailer a new cluster is always generated,
 	 * thus effectively nothing is clustered.
 	 *
-	 * @see <a href="FIXME">Clustering with Simple Java Mail</a>
+	 * @see <a href="http://www.simplejavamail.org/configuration.html#section-batch-and-clustering">Clustering with Simple Java Mail</a>
 	 */
 	T withClusterKey(@Nonnull UUID clusterKey);
 
@@ -566,7 +566,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * @see #withClusterKey(UUID)
 	 */
-	@Nonnull
+	@Nullable
 	UUID getClusterKey();
 
 	/**
