@@ -41,15 +41,6 @@
             <version>0.9.0</version>
             <scope>provided</scope><!-- makes library mandatory if we should support CLI (even optionally) -->
         </dependency>
-
-        <!-- optional support modules -->
-        <!-- FIXME why is this here?? -->
-        <dependency>
-            <groupId>net.markenwerk</groupId>
-            <artifactId>utils-mail-dkim</artifactId>
-            <version>1.2.0</version>
-            <optional>true</optional>
-        </dependency>
     </dependencies>
 
 </project>
