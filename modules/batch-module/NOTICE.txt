@@ -10,4 +10,4 @@
   
   This product uses the following external (Open Source) libraries:
 
-    - Stormpot for generic object pooling https://github.com/chrisvest/stormpot/
+    - smtp-connection-pool https://github.com/simple-java-mail/smtp-connection-pool
