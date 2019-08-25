@@ -2,8 +2,10 @@ package org.simplejavamail.internal.modules;
 
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.AsyncResponse;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.mail.Session;
 import javax.mail.Transport;
 import java.util.UUID;
@@ -39,9 +41,11 @@ public interface BatchModule {
 	ExecutorService createDefaultExecutorService(final int threadPoolSize, final int keepAliveTime);
 
 	/**
-	 * Creates connection pool for the clusterkey and session combination if it doesn't exist yet.
+	 * Initializes the connection pool cluster if not initialized yet.
+	 * <p>
+	 * Creates connection pool for the cluster key and session combination if it doesn't exist yet.
 	 */
-	void registerToCluster(@Nonnull UUID clusterKey, @Nonnull Session session);
+	void registerToCluster(@Nonnull OperationalConfig operationalConfig, @Nonnull final UUID clusterKey, @Nonnull Session session);
 
 	/**
 	 * @param stickySession Indicates whether transport should be from this specific Session, or any session instance from the cluster. Useful when testing connections.
