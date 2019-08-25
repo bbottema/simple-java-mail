@@ -5,7 +5,6 @@ import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -94,6 +93,6 @@ public interface OperationalConfig {
 	/**
 	 * @see MailerGenericBuilder#withClusterKey(UUID)
 	 */
-	@Nullable
+	@Nonnull
 	UUID getClusterKey();
 }

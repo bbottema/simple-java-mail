@@ -16,11 +16,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class TestConnectionClosure extends AbstractProxyServerSyncingClosure {
 
-	@Nonnull private final UUID clusterKey;
+	@Nonnull  private final UUID clusterKey;
 	@Nonnull private final Session session;
 	private final boolean async;
 
-	TestConnectionClosure(@Nonnull UUID clusterKey, @Nonnull Session session, @Nullable final AnonymousSocks5Server proxyServer, final boolean async, @Nonnull AtomicInteger smtpConnectionCounter) {
+	TestConnectionClosure(@Nonnull  UUID clusterKey, @Nonnull Session session, @Nullable final AnonymousSocks5Server proxyServer, final boolean async, @Nonnull AtomicInteger smtpConnectionCounter) {
 		super(smtpConnectionCounter, proxyServer);
 		this.clusterKey = clusterKey;
 		this.session = session;
