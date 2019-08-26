@@ -3,6 +3,7 @@ package org.simplejavamail.api.mailer;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
 import javax.annotation.Nonnull;
@@ -60,6 +61,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	int DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS = 5000;
+	/**
+	 * {@value}
+	 *
+	 * @see #withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
+	 */
+	String DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY = LoadBalancingStrategy.ROUND_ROBIN_REF;
 	/**
 	 * Default port is <code>{@value}</code>.
 	 */
@@ -299,6 +306,15 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withConnectionPoolExpireAfterMillis(@Nonnull Integer connectionPoolExpireAfterMillis);
 
 	/**
+	 * Defines the various types of load balancing modes supported by the connection pool ion the <a href="http://http://www.simplejavamail.org/configuration.html#section-batch-and-clustering">batch-module</a>.
+	 * <p>
+	 * This is only relevant if you have multiple mail servers in one or more clusters. Currently it is impossible to define different load balancing strategies for different clusters.
+	 * <p>
+	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 */
+	T withConnectionPoolLoadBalancingStrategy(@Nonnull LoadBalancingStrategy loadBalancingStrategy);
+
+	/**
 	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
 	 *
 	 * @param transportModeLoggingOnly Flag {@code true} or {@code false} that enables or disables logging only mode when sending emails.
@@ -457,6 +473,15 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetConnectionPoolExpireAfterMillis();
 
 	/**
+	 * Resets connection pool load balancing strategy to its default ({@value #DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY}).
+	 * <p>
+	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 *
+	 * @see #withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
+	 */
+	T resetConnectionPoolLoadBalancingStrategy();
+
+	/**
 	 * Resets transportModeLoggingOnly to {@value #DEFAULT_TRANSPORT_MODE_LOGGING_ONLY}.
 	 *
 	 * @see #withTransportModeLoggingOnly(Boolean)
@@ -586,6 +611,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nonnull
 	Integer getConnectionPoolExpireAfterMillis();
+
+	/**
+	 * @see #withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
+	 */
+	@Nonnull
+	LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy();
 
 	/**
 	 * @see #trustingSSLHosts(String...)

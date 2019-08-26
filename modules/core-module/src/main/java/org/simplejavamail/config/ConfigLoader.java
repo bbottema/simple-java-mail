@@ -56,6 +56,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.defaults.connectionpool.coresize</li>
  * <li>simplejavamail.defaults.connectionpool.maxsize</li>
  * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.transport.mode.logging.only</li>
  * <li>simplejavamail.opportunistic.tls</li>
@@ -123,6 +124,7 @@ public final class ConfigLoader {
 		DEFAULT_CONNECTIONPOOL_CORE_SIZE("simplejavamail.defaults.connectionpool.coresize"),
 		DEFAULT_CONNECTIONPOOL_MAX_SIZE("simplejavamail.defaults.connectionpool.maxsize"),
 		DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS("simplejavamail.defaults.connectionpool.expireafter.millis"),
+		DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY("simplejavamail.defaults.connectionpool.loadbalancing.strategy"),
 		DEFAULT_POOL_KEEP_ALIVE_TIME("simplejavamail.defaults.poolsize.keepalivetime"),
 		DEFAULT_SESSION_TIMEOUT_MILLIS("simplejavamail.defaults.sessiontimeoutmillis"),
 		TRANSPORT_MODE_LOGGING_ONLY("simplejavamail.transport.mode.logging.only"),
@@ -188,7 +190,7 @@ public final class ConfigLoader {
 	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
 	 */
 	@Nullable
-	private static <T> T valueOrProperty(@Nullable final T value, @Nonnull final Property property, @Nullable final T defaultValue) {
+	public static <T> T valueOrProperty(@Nullable final T value, @Nonnull final Property property, @Nullable final T defaultValue) {
 		if (!valueNullOrEmpty(value)) {
 			LOGGER.trace("using provided argument value {} for property {}", value, property);
 			return value;
