@@ -1,15 +1,12 @@
 package org.simplejavamail.internal.batchsupport;
 
-import org.bbottema.clusteredobjectpool.core.ClusterConfig;
 import org.bbottema.clusteredobjectpool.core.api.ResourceKey.ResourceClusterAndPoolKey;
 import org.bbottema.genericobjectpool.PoolableObject;
-import org.bbottema.genericobjectpool.expirypolicies.TimeoutSinceLastAllocationExpirationPolicy;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.simplejavamail.internal.modules.BatchModule;
-import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,8 +21,9 @@ import java.util.concurrent.Future;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.simplejavamail.internal.batchsupport.BatchException.ERROR_ACQUIRING_KEYED_POOLABLE;
+import static org.simplejavamail.internal.batchsupport.ClusterHelper.compareClusterConfig;
+import static org.simplejavamail.internal.batchsupport.ClusterHelper.configureSmtpClusterConfig;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 
 /**
@@ -80,19 +78,9 @@ public class BatchSupport implements BatchModule {
 
 	private void ensureClusterInitialized(@Nonnull OperationalConfig operationalConfig) {
 		if (smtpConnectionPool == null) {
-			SmtpClusterConfig smtpClusterConfig = new SmtpClusterConfig();
-			smtpClusterConfig.getConfigBuilder()
-					.defaultCorePoolSize(operationalConfig.getConnectionPoolCoreSize())
-					.defaultMaxPoolSize(operationalConfig.getConnectionPoolMaxSize())
-					.defaultExpirationPolicy(new TimeoutSinceLastAllocationExpirationPolicy<Transport>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
-			smtpConnectionPool = new SmtpConnectionPoolClustered(smtpClusterConfig);
-		} else {
-			final ClusterConfig config = smtpConnectionPool.getClusterConfig();
-			if (config.getDefaultCorePoolSize() != operationalConfig.getConnectionPoolCoreSize()||
-					config.getDefaultMaxPoolSize() != operationalConfig.getConnectionPoolCoreSize()||
-					!config.getDefaultExpirationPolicy().equals(new TimeoutSinceLastAllocationExpirationPolicy<Transport>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS))) {
-				LOGGER.warn("Global SMTP Connection pool is already configured with pool defaults from the first Mailer instance, ignoring {}", operationalConfig);
-			}
+			smtpConnectionPool = new SmtpConnectionPoolClustered(configureSmtpClusterConfig(operationalConfig));
+		} else if (compareClusterConfig(operationalConfig, smtpConnectionPool.getClusterConfig())) {
+			LOGGER.warn("Global SMTP Connection pool is already configured with pool defaults from the first Mailer instance, ignoring {}", operationalConfig);
 		}
 	}
 

@@ -67,6 +67,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.smime.encryption.certificate</li>
  * </ul>
  */
+// FIXME converting LoadBalancingStrategy values
 public final class ConfigLoader {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);

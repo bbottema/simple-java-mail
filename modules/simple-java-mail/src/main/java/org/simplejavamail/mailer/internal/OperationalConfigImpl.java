@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 import javax.annotation.Nonnull;
@@ -62,6 +63,12 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final int connectionPoolExpireAfterMillis;
 
 	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
+	 */
+	@Nonnull
+	private final LoadBalancingStrategy connectionPoolLoadBalancingStrategy;
+
+	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
 	private final boolean transportModeLoggingOnly;
@@ -93,8 +100,22 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Nonnull
 	private final ExecutorService executorService;
 	
-	OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, @Nonnull  UUID clusterKey, int connectionPoolCoreSize,
-			int connectionPoolMaxSize, int connectionPoolExpireAfterMillis, boolean transportModeLoggingOnly, boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, boolean verifyingServerIdentity, @Nonnull final ExecutorService executorService) {
+	OperationalConfigImpl(final boolean async,
+			final Properties properties,
+			final int sessionTimeout,
+			final int threadPoolSize,
+			final int threadPoolKeepAliveTime,
+			@Nonnull final UUID clusterKey,
+			final int connectionPoolCoreSize,
+			final int connectionPoolMaxSize,
+			final int connectionPoolExpireAfterMillis,
+			@Nonnull final LoadBalancingStrategy connectionPoolLoadBalancingStrategy,
+			final boolean transportModeLoggingOnly,
+			final boolean debugLogging,
+			@Nonnull final List<String> sslHostsToTrust,
+			final boolean trustAllSSLHost,
+			final boolean verifyingServerIdentity,
+			@Nonnull final ExecutorService executorService) {
 		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
@@ -104,6 +125,7 @@ class OperationalConfigImpl implements OperationalConfig {
 		this.connectionPoolCoreSize = connectionPoolCoreSize;
 		this.connectionPoolMaxSize = connectionPoolMaxSize;
 		this.connectionPoolExpireAfterMillis = connectionPoolExpireAfterMillis;
+		this.connectionPoolLoadBalancingStrategy = connectionPoolLoadBalancingStrategy;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
@@ -166,6 +188,15 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Override
 	public int getConnectionPoolExpireAfterMillis() {
 		return connectionPoolExpireAfterMillis;
+	}
+
+	/**
+	 * @see OperationalConfig#getConnectionPoolLoadBalancingStrategy()
+	 */
+	@Nonnull
+	@Override
+	public LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy() {
+		return connectionPoolLoadBalancingStrategy;
 	}
 
 	/**

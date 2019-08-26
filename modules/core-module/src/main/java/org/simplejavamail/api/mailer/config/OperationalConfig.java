@@ -51,6 +51,12 @@ public interface OperationalConfig {
 	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	int getConnectionPoolExpireAfterMillis();
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
+	 */
+	@Nonnull
+	LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy();
 	
 	/**
 	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
