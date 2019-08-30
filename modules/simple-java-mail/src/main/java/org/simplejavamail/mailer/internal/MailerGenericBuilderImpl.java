@@ -238,6 +238,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getConnectionPoolCoreSize(),
 				getConnectionPoolMaxSize(),
 				getConnectionPoolExpireAfterMillis(),
+				getConnectionPoolLoadBalancingStrategy(),
 				isTransportModeLoggingOnly(),
 				isDebugLogging(),
 				getSslHostsToTrust(),

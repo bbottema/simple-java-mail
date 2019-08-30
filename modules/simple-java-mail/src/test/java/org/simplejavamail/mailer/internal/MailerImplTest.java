@@ -3,6 +3,7 @@ package org.simplejavamail.mailer.internal;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 
@@ -19,6 +20,7 @@ import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_ROBIN;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
@@ -105,6 +107,8 @@ public class MailerImplTest {
 	@Nonnull
 	@SuppressWarnings("SameParameterValue")
 	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost, boolean verifyServerIdentity) {
-		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, randomUUID(), 0, 1, 5000, false, false, hostsToTrust, trustAllSSLHost, verifyServerIdentity, newSingleThreadExecutor());
+		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, randomUUID(), 0, 1, 5000, ROUND_ROBIN, false, false, hostsToTrust, trustAllSSLHost,
+				verifyServerIdentity,
+				newSingleThreadExecutor());
 	}
 }
