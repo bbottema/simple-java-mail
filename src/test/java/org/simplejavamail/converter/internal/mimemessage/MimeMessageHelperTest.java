@@ -1,5 +1,10 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import javax.mail.BodyPart;
+import javax.mail.MessagingException;
+import javax.mail.internet.ContentType;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -130,5 +135,18 @@ public class MimeMessageHelperTest {
 			}
 		})
 				.hasMessage(MimeMessageParseException.ERROR_SIGNING_DKIM_INVALID_DOMAINKEY);
+	}
+
+	@Test
+	public void filenameWithSpaceEncoding() throws IOException, MessagingException {
+		final String fileName = "file name.txt";
+		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false)
+				.clearAttachments().withAttachment(fileName, "abc".getBytes(),
+						"text/plain").buildEmail();
+		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(email);
+		final BodyPart bodyPart = ((MimeMultipart) mimeMessage.getContent()).getBodyPart(1);
+		ContentType ct = new ContentType(bodyPart.getHeader("Content-Type")[0]);
+		assertThat(ct.getParameter("filename")).isEqualTo(fileName);
+		assertThat(bodyPart.getFileName()).isEqualTo(fileName);
 	}
 }
