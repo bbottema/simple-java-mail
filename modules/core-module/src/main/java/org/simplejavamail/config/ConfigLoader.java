@@ -1,5 +1,6 @@
 package org.simplejavamail.config;
 
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.util.SimpleConversions;
 import org.slf4j.Logger;
@@ -67,7 +68,6 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.smime.encryption.certificate</li>
  * </ul>
  */
-// FIXME converting LoadBalancingStrategy values
 public final class ConfigLoader {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
@@ -371,6 +371,12 @@ public final class ConfigLoader {
 		// read TransportStrategy value
 		try {
 			return TransportStrategy.valueOf(propertyValue);
+		} catch (final IllegalArgumentException nfe) {
+			// ok, so not a TransportStrategy either
+		}
+		// read LoadBalancingStrategy value
+		try {
+			return LoadBalancingStrategy.valueOf(propertyValue);
 		} catch (final IllegalArgumentException nfe) {
 			// ok, so not a TransportStrategy either
 		}
