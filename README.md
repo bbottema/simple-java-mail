@@ -75,6 +75,12 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 
 ### Latest Progress ###
 
+[v5.4.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.4.0%7Cjar) (27?-August-2019)
+
+- [#221](https://github.com/bbottema/simple-java-mail/issues/221) API bugfix: server identity verification should not be tied to host trusting
+- [#227](https://github.com/bbottema/simple-java-mail/issues/227) Enhancement: Make parsing recipients from EML file more lenient
+
+
 [v5.3.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.3.0%7Cjar) (16-August-2019)
 
 - [#215](https://github.com/bbottema/simple-java-mail/issues/215) Bug: Current DKIM header canonicalization can lead to invalid DKIM
