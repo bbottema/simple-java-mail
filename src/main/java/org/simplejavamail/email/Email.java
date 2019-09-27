@@ -5,6 +5,7 @@ import javax.annotation.Nonnull;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -17,7 +18,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * Email message with all necessary data for an effective mailing action, including attachments etc. Exclusively created using {@link EmailBuilder}.
  */
 @SuppressWarnings("SameParameterValue")
-public class Email {
+public class Email implements Serializable {
 	
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)

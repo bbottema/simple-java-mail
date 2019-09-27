@@ -3,6 +3,7 @@ package org.simplejavamail.email;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.mail.Message.RecipientType;
+import java.io.Serializable;
 import java.util.Objects;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -10,7 +11,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 /**
  * An immutable recipient object, with a name, emailaddress and recipient type (eg {@link RecipientType#BCC}).
  */
-public final class Recipient {
+public final class Recipient implements Serializable {
 
 	@Nullable
 	private final String name;

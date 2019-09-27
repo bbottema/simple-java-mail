@@ -6,6 +6,7 @@ import javax.activation.DataSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.charset.Charset;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -17,7 +18,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  *
  * @see DataSource
  */
-public class AttachmentResource {
+public class AttachmentResource implements Serializable {
 
 	/**
 	 * @see #AttachmentResource(String, DataSource)
