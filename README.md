@@ -78,6 +78,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 [v5.4.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.4.0%7Cjar) (27?-August-2019)
 
 - [#221](https://github.com/bbottema/simple-java-mail/issues/221) API bugfix: server identity verification should not be tied to host trusting
+- [#226](https://github.com/bbottema/simple-java-mail/issues/226) Bug fix: Attachments with spaces in name are not handled properly
 - [#218](https://github.com/bbottema/simple-java-mail/issues/218) Enhancement: make Email serializable
 - [#227](https://github.com/bbottema/simple-java-mail/issues/227) Enhancement: Make parsing recipients from EML file more lenient
 - [#225](https://github.com/bbottema/simple-java-mail/issues/225) Enhancement: Clarify dependency on Jakarta Activation: DataSources no longer work on Java 9+
