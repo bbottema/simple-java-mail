@@ -1,5 +1,6 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import javax.mail.internet.ParameterList;
 import net.markenwerk.utils.mail.dkim.DkimMessage;
 import net.markenwerk.utils.mail.dkim.DkimSigner;
 import org.simplejavamail.email.AttachmentResource;
@@ -260,7 +261,10 @@ public final class MimeMessageHelper {
 		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(fileName, attachmentResource.getDataSource())));
 		attachmentPart.setFileName(fileName);
 		final String contentType = attachmentResource.getDataSource().getContentType();
-		attachmentPart.setHeader("Content-Type", contentType + "; filename=" + fileName + "; name=" + resourceName);
+		ParameterList pl = new ParameterList();
+		pl.set("filename", fileName);
+		pl.set("name", resourceName);
+		attachmentPart.setHeader("Content-Type", contentType + pl.toString());
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
 		attachmentPart.setDisposition(dispositionType);
 		return attachmentPart;
