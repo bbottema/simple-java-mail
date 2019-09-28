@@ -10,6 +10,7 @@ import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
 import java.security.cert.X509Certificate;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +24,9 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * Exclusively created using <em>EmailBuilder</em>.
  */
 @SuppressWarnings("SameParameterValue")
-public class Email {
+public class Email implements Serializable {
+
+	private static final long serialVersionUID = 1234567L;
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
 	 */
@@ -58,12 +61,12 @@ public class Email {
 	 * @see EmailPopulatingBuilder#withCalendarText(CalendarMethod, String)
 	 */
 	private final CalendarMethod calendarMethod;
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withCalendarText(CalendarMethod, String)
 	 */
 	private final String textCalendar;
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withSubject(String)
 	 */
@@ -95,7 +98,7 @@ public class Email {
 	 */
 	@Nonnull
 	private final List<AttachmentResource> decryptedAttachments;
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
@@ -130,12 +133,14 @@ public class Email {
 	/**
 	 * @see EmailStartingBuilder#forwarding(MimeMessage)
 	 */
-	private final MimeMessage emailToForward;
+	// mime message is not serializable, so transient
+	private transient final MimeMessage emailToForward;
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 */
-	private final InputStream dkimPrivateKeyInputStream;
+	// mime message is not serializable, so transient
+	private final transient InputStream dkimPrivateKeyInputStream;
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
@@ -287,7 +292,7 @@ public class Email {
 	public boolean wasMergedWithSmimeSignedMessage() {
 		return wasMergedWithSmimeSignedMessage;
 	}
-	
+
 	@SuppressWarnings("SameReturnValue")
 	@Override
 	public int hashCode() {

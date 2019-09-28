@@ -3,8 +3,17 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.3.0</version>
+    <version>5.4.0</version>
 </dependency>
+
+v5.4.0 (28-August-2019)
+
+- #221: API bugfix: server identity verification should not be tied to host trusting
+- #226: Bug fix: Attachments with spaces in name are not handled properly
+- #218: Enhancement: make Email serializable
+- #227: Enhancement: Make parsing recipients from EML file more lenient
+- #225: Enhancement: Clarify dependency on Jakarta Activation: DataSources no longer work on Java 9+
+
 
 v5.3.0 (16-August-2019)
 

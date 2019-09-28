@@ -6,6 +6,7 @@ import org.simplejavamail.internal.util.Preconditions;
 import javax.activation.ActivationDataFlavor;
 import javax.activation.CommandMap;
 import org.simplejavamail.internal.util.NaturalEntryKeyComparator;
+import org.simplejavamail.internal.util.Preconditions;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -429,9 +430,23 @@ public final class MimeMessageParser {
 	@Nullable
 	public static Address[] retrieveRecipients(@Nonnull final MimeMessage mimeMessage, final RecipientType recipientType) {
 		try {
-			return mimeMessage.getRecipients(recipientType);
+			// return mimeMessage.getRecipients(recipientType); // can fail in strict mode, see https://github.com/bbottema/simple-java-mail/issues/227
+			// workaround following (copied and modified from JavaMail internal code):
+			String s = mimeMessage.getHeader(getHeaderName(mimeMessage, recipientType), ",");
+			return (s == null) ? null : InternetAddress.parseHeader(s, false);
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_GETTING_RECIPIENTS, recipientType), e);
+		}
+	}
+
+	private static String getHeaderName(@Nonnull MimeMessage mimeMessage, RecipientType recipientType) throws MessagingException {
+		if (recipientType == RecipientType.TO) {
+			return "To";
+		} else if (recipientType == RecipientType.CC) {
+			return "Cc";
+		} else {
+			Preconditions.assumeTrue(recipientType == RecipientType.BCC, "invalid recipient type: " + recipientType);
+			return "Bcc";
 		}
 	}
 
