@@ -8,6 +8,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.nio.charset.Charset;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -19,7 +20,9 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  *
  * @see DataSource
  */
-public class AttachmentResource {
+public class AttachmentResource implements Serializable {
+
+	private static final long serialVersionUID = 1234567L;
 
 	/**
 	 * @see #AttachmentResource(String, DataSource)
@@ -29,7 +32,8 @@ public class AttachmentResource {
 	/**
 	 * @see #AttachmentResource(String, DataSource)
 	 */
-	private final DataSource dataSource;
+	// data source is not serializable, so transient
+	private transient final DataSource dataSource;
 
 	/**
 	 * Constructor; initializes the attachment resource with a name and data.

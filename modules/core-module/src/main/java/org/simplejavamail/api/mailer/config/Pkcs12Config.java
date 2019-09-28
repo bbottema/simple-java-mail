@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -14,6 +15,9 @@ import static org.simplejavamail.internal.util.MiscUtil.inputStreamEqual;
  * Config holder for PKCS12 store+key info used for S/MIME encrypting / decrypting.
  */
 public final class Pkcs12Config {
+
+	private static final long serialVersionUID = 1234567L;
+
 	@Nonnull private final InputStream pkcs12StoreStream;
 	@Nonnull private final char[] storePassword;
 	@Nonnull private final String keyAlias;

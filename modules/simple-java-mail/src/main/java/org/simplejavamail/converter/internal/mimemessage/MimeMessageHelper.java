@@ -18,6 +18,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimePart;
 import javax.mail.internet.MimeUtility;
+import javax.mail.internet.ParameterList;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -31,7 +32,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * Helper class that produces and populates a mime messages. Deals with javax.mail RFC MimeMessage stuff, as well as DKIM signing.
  */
 public class MimeMessageHelper {
-	
+
 	/**
 	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@link StandardCharsets#UTF_8}).
 	 */
@@ -40,11 +41,11 @@ public class MimeMessageHelper {
 	private MimeMessageHelper() {
 
 	}
-	
+
 	static void setSubject(Email email, MimeMessage message) throws MessagingException {
 		message.setSubject(email.getSubject(), CHARACTER_ENCODING);
 	}
-	
+
 	static void setFrom(Email email, MimeMessage message) throws UnsupportedEncodingException, MessagingException {
 		if (email.getFromRecipient() != null) {
 			message.setFrom(new InternetAddress(email.getFromRecipient().getAddress(), email.getFromRecipient().getName(), CHARACTER_ENCODING));
@@ -66,7 +67,7 @@ public class MimeMessageHelper {
 			message.addRecipient(recipient.getType(), address);
 		}
 	}
-	
+
 	/**
 	 * Fills the {@link Message} instance with reply-to address.
 	 *
@@ -84,7 +85,7 @@ public class MimeMessageHelper {
 			message.setReplyTo(new Address[] { replyToAddress });
 		}
 	}
-	
+
 	/**
 	 * Fills the {@link Message} instance with the content bodies (text, html and calendar).
 	 *
@@ -111,7 +112,7 @@ public class MimeMessageHelper {
 			multipartAlternativeMessages.addBodyPart(messagePartCalendar);
 		}
 	}
-	
+
 	/**
 	 * Fills the {@link MimeBodyPart} instance with the content body content (text, html and calendar).
 	 *
@@ -146,7 +147,7 @@ public class MimeMessageHelper {
 			multipartRootMixed.addBodyPart(fordwardedMessage);
 		}
 	}
-	
+
 	/**
 	 * Fills the {@link Message} instance with the embedded images from the {@link Email}.
 	 *
@@ -160,7 +161,7 @@ public class MimeMessageHelper {
 			multipartRelated.addBodyPart(getBodyPartFromDatasource(embeddedImage, Part.INLINE));
 		}
 	}
-	
+
 	/**
 	 * Fills the {@link Message} instance with the attachments from the {@link Email}.
 	 *
@@ -174,7 +175,7 @@ public class MimeMessageHelper {
 			multipartRoot.addBodyPart(getBodyPartFromDatasource(resource, Part.ATTACHMENT));
 		}
 	}
-	
+
 	/**
 	 * Sets all headers on the {@link Message} instance. Since we're not using a high-level JavaMail method, the JavaMail library says we need to do
 	 * some encoding and 'folding' manually, to get the value right for the headers (see {@link MimeUtility}.
@@ -233,7 +234,10 @@ public class MimeMessageHelper {
 		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(fileName, attachmentResource.getDataSource())));
 		attachmentPart.setFileName(fileName);
 		final String contentType = attachmentResource.getDataSource().getContentType();
-		attachmentPart.setHeader("Content-Type", contentType + "; filename=" + fileName + "; name=" + resourceName);
+		ParameterList pl = new ParameterList();
+		pl.set("filename", fileName);
+		pl.set("name", resourceName);
+		attachmentPart.setHeader("Content-Type", contentType + pl.toString());
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
 		attachmentPart.setDisposition(dispositionType);
 		return attachmentPart;

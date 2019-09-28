@@ -7,6 +7,8 @@ import javax.annotation.Nullable;
 
 public class PlainSmimeDetails implements OriginalSmimeDetails {
 
+	private static final long serialVersionUID = 1234567L;
+
 	@Nonnull
 	@Override
 	public SmimeMode getSmimeMode() {
