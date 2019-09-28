@@ -20,6 +20,8 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 @SuppressWarnings("SameParameterValue")
 public class Email implements Serializable {
 	
+	private static final long serialVersionUID = 1234567L;
+	
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
 	 */
@@ -105,12 +107,14 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailBuilder#forwarding(MimeMessage)
 	 */
-	private final MimeMessage emailToForward;
+	// mime message is not serializable, so transient
+	private transient final MimeMessage emailToForward;
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 */
-	private InputStream dkimPrivateKeyInputStream;
+	// mime message is not serializable, so transient
+	private transient InputStream dkimPrivateKeyInputStream;
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)

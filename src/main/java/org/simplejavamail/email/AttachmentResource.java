@@ -19,7 +19,9 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * @see DataSource
  */
 public class AttachmentResource implements Serializable {
-
+	
+	private static final long serialVersionUID = 1234567L;
+	
 	/**
 	 * @see #AttachmentResource(String, DataSource)
 	 */
@@ -28,7 +30,8 @@ public class AttachmentResource implements Serializable {
 	/**
 	 * @see #AttachmentResource(String, DataSource)
 	 */
-	private final DataSource dataSource;
+	// data source is not serializable, so transient
+	private transient final DataSource dataSource;
 
 	/**
 	 * Constructor; initializes the attachment resource with a name and data.

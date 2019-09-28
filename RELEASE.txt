@@ -3,10 +3,10 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.3.0</version>
+    <version>5.4.0</version>
 </dependency>
 
-v5.4.0 (27?-August-2019)
+v5.4.0 (28-August-2019)
 
 - #221: API bugfix: server identity verification should not be tied to host trusting
 - #226: Bug fix: Attachments with spaces in name are not handled properly
