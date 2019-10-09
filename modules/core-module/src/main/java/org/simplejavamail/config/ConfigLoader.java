@@ -73,7 +73,7 @@ public final class ConfigLoader {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
 	
 	/**
-	 * By default this optional file will be loaded from classpath to load initial defaults.
+	 * By default the optional file {@value} will be loaded from classpath to load initial defaults.
 	 */
 	private static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
 
@@ -94,6 +94,8 @@ public final class ConfigLoader {
 	
 	/**
 	 * List of all the properties recognized by Simple Java Mail. Can be used to programmatically get, set or remove default values.
+	 *
+	 * @see <a href="http://www.simplejavamail.org">simplejavamail.org</a>
 	 */
 	public enum Property {
 		JAVAXMAIL_DEBUG("simplejavamail.javaxmail.debug"),
