@@ -1,97 +1,137 @@
 package org.simplejavamail.mailer.internal;
 
-import org.simplejavamail.api.mailer.MailerRegularBuilder;
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.mailer.internal.mailsender.concurrent.NonJvmBlockingThreadPoolExecutor;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 /**
  * @see OperationalConfig
  */
-// FIXME Lombok
-public class OperationalConfigImpl implements OperationalConfig {
+// FIXME Lombok, especially builder pattern
+class OperationalConfigImpl implements OperationalConfig {
 	/**
-	 * @see MailerRegularBuilder#withSessionTimeout(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
 	private final int sessionTimeout;
 	
 	/**
-	 * @see MailerRegularBuilder#async()
+	 * Can be overridden when calling {@code mailer.send(async = true)}.
+	 *
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#async()
 	 */
 	private final boolean async;
 	/**
-	 * @see MailerRegularBuilder#withProperties(Properties)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Properties)
 	 */
 	private final Properties properties;
 
 	/**
-	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	private final int threadPoolSize;
 
 	/**
-	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTime(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
 	 */
 	private final int threadPoolKeepAliveTime;
-	
+
 	/**
-	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withClusterKey(UUID)
+	 */
+	@Nonnull
+	private final UUID clusterKey;
+
+	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
+	 */
+	private final int connectionPoolCoreSize;
+
+	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
+	 */
+	private final int connectionPoolMaxSize;
+
+	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 */
+	private final int connectionPoolExpireAfterMillis;
+
+	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
+	 */
+	@Nonnull
+	private final LoadBalancingStrategy connectionPoolLoadBalancingStrategy;
+
+	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
 	private final boolean transportModeLoggingOnly;
 	
 	/**
-	 * @see MailerRegularBuilder#withDebugLogging(Boolean)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	private final boolean debugLogging;
 	
 	/**
-	 * @see MailerRegularBuilder#trustingSSLHosts(String...)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
 	@Nonnull
 	private final List<String> sslHostsToTrust;
 
 	/**
-	 * @see MailerRegularBuilder#trustingAllHosts(boolean)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#trustingAllHosts(boolean)
 	 */
 	private final boolean trustAllSSLHost;
 
 	/**
-	 * @see MailerRegularBuilder#verifyingServerIdentity(boolean)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#verifyingServerIdentity(boolean)
 	 */
 	private final boolean verifyingServerIdentity;
 
 	/**
-	 * @see MailerRegularBuilder#withExecutorService(ExecutorService)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
 	@Nonnull
 	private final ExecutorService executorService;
 	
-	/**
-	 * @deprecated For internal use only.
-	 */
-	@Deprecated
-	@SuppressWarnings("DeprecatedIsStillUsed")
-	public OperationalConfigImpl(final boolean async, Properties properties, int sessionTimeout, int threadPoolSize, int threadPoolKeepAliveTime, boolean transportModeLoggingOnly,
-			boolean debugLogging, @Nonnull List<String> sslHostsToTrust, boolean trustAllSSLHost, boolean verifyingServerIdentity, @Nullable final ExecutorService executorService) {
-		this.async = async;
+	OperationalConfigImpl(final boolean async,
+			final Properties properties,
+			final int sessionTimeout,
+			final int threadPoolSize,
+			final int threadPoolKeepAliveTime,
+			@Nonnull final UUID clusterKey,
+			final int connectionPoolCoreSize,
+			final int connectionPoolMaxSize,
+			final int connectionPoolExpireAfterMillis,
+			@Nonnull final LoadBalancingStrategy connectionPoolLoadBalancingStrategy,
+			final boolean transportModeLoggingOnly,
+			final boolean debugLogging,
+			@Nonnull final List<String> sslHostsToTrust,
+			final boolean trustAllSSLHost,
+			final boolean verifyingServerIdentity,
+			@Nonnull final ExecutorService executorService) {
+		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
 		this.threadPoolSize = threadPoolSize;
 		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
+		this.clusterKey = clusterKey;
+		this.connectionPoolCoreSize = connectionPoolCoreSize;
+		this.connectionPoolMaxSize = connectionPoolMaxSize;
+		this.connectionPoolExpireAfterMillis = connectionPoolExpireAfterMillis;
+		this.connectionPoolLoadBalancingStrategy = connectionPoolLoadBalancingStrategy;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.debugLogging = debugLogging;
 		this.sslHostsToTrust = Collections.unmodifiableList(sslHostsToTrust);
 		this.trustAllSSLHost = trustAllSSLHost;
 		this.verifyingServerIdentity = verifyingServerIdentity;
-		this.executorService = executorService != null
-				? executorService
-				: new NonJvmBlockingThreadPoolExecutor(getThreadPoolSize(), getThreadPoolKeepAliveTime());
+		this.executorService = executorService;
 	}
 
 	/**
@@ -125,7 +165,40 @@ public class OperationalConfigImpl implements OperationalConfig {
 	public int getThreadPoolKeepAliveTime() {
 		return threadPoolKeepAliveTime;
 	}
-	
+
+	/**
+	 * @see OperationalConfig#getConnectionPoolCoreSize()
+	 */
+	@Override
+	public int getConnectionPoolCoreSize() {
+		return connectionPoolCoreSize;
+	}
+
+	/**
+	 * @see OperationalConfig#getConnectionPoolMaxSize()
+	 */
+	@Override
+	public int getConnectionPoolMaxSize() {
+		return connectionPoolMaxSize;
+	}
+
+	/**
+	 * @see OperationalConfig#getConnectionPoolExpireAfterMillis()
+	 */
+	@Override
+	public int getConnectionPoolExpireAfterMillis() {
+		return connectionPoolExpireAfterMillis;
+	}
+
+	/**
+	 * @see OperationalConfig#getConnectionPoolLoadBalancingStrategy()
+	 */
+	@Nonnull
+	@Override
+	public LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy() {
+		return connectionPoolLoadBalancingStrategy;
+	}
+
 	/**
 	 * @see OperationalConfig#isTransportModeLoggingOnly()
 	 */
@@ -166,7 +239,7 @@ public class OperationalConfigImpl implements OperationalConfig {
 	public boolean isVerifyingServerIdentity() {
 		return verifyingServerIdentity;
 	}
-	
+
 	/**
 	 * @see OperationalConfig#getProperties()
 	 */
@@ -180,5 +253,11 @@ public class OperationalConfigImpl implements OperationalConfig {
 	@Override
 	public ExecutorService getExecutorService() {
 		return executorService;
+	}
+
+	@Nonnull
+	@Override
+	public UUID getClusterKey() {
+		return clusterKey;
 	}
 }

@@ -60,6 +60,7 @@
     <modules>
         <module>modules/core-module</module>
         <module>modules/core-test-module</module>
+        <module>modules/batch-module</module>
         <module>modules/authenticated-socks-module</module>
         <module>modules/outlook-module</module>
         <module>modules/dkim-module</module>
@@ -225,6 +226,9 @@
                 <configuration>
                     <archive>
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+                        <manifestEntries>
+                            <Automatic-Module-Name>${artifactId}</Automatic-Module-Name>
+                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>

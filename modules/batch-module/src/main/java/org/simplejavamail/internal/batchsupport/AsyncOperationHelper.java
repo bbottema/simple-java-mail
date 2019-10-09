@@ -1,7 +1,7 @@
-package org.simplejavamail.mailer.internal.mailsender;
+package org.simplejavamail.internal.batchsupport;
 
 import org.simplejavamail.api.mailer.AsyncResponse;
-import org.simplejavamail.mailer.internal.mailsender.concurrent.NamedRunnable;
+import org.simplejavamail.internal.batchsupport.concurrent.NamedRunnable;
 import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;

@@ -26,10 +26,9 @@ public class MailerBuilderProxyConfigTest {
 	}
 
 	@Test
-	@SuppressWarnings("deprecation")
 	public void NoArgconstructor_WithoutConfigFile_WithoutHost() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		ProxyConfig emptyProxyConfig = new ProxyConfig(null, null, null, null, null);
+		ProxyConfig emptyProxyConfig = new ProxyConfigImpl(null, null, null, null, null);
 		verifyProxyConfig(emptyProxyConfig, null, null, null, null, null);
 		assertThat(emptyProxyConfig.requiresProxy()).isFalse();
 		assertThat(emptyProxyConfig.requiresAuthentication()).isFalse();
@@ -85,6 +84,7 @@ public class MailerBuilderProxyConfigTest {
 		}
 	}
 
+	@SuppressWarnings("SameParameterValue")
 	private void verifyProxyConfig(ProxyConfig proxyConfig,
 								   @Nullable String host,
 								   @Nullable Integer port,

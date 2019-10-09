@@ -8,24 +8,27 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
-import org.simplejavamail.api.mailer.internal.mailsender.MailSender;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.mail.Message;
 import javax.mail.Session;
+import javax.mail.Transport;
 import java.util.EnumSet;
+import java.util.concurrent.Future;
 
 /**
  * Mailing tool created exclusively using {@link MailerRegularBuilder}. This class is the facade to most Simple Java Mail functionality
  * which is related to doing things with an email (server not always relevant, like with validation, S/MIME encryption etc.).
  * <p>
  * The e-mail message structure is built to work with all e-mail clients and has been tested with many different webclients as well as some desktop
- * applications.
+ * applications. You can <a href="http://www.simplejavamail.org/rfc-compliant.html#section-explore-multipart">experiment</a> with the various types of emails and resulting mime structure on the Simple Java Mail mail website.
  * <p>
- * <a href="http://www.simplejavamail.org">simplejavamail.org</a> <hr>
+ * <strong>Note: </strong>if the <a href="http://www.simplejavamail.org/modules.html#batch-module">batch-module</a>
+ * is loaded when building a mailer, it will also register itself with the cluster using the provided or random cluster key, so other mailers using the same cluster key immediately start having
+ * access to this new server.
  * <p>
- * On a technical note, the {@link Mailer} interface is the front facade for the public API. It limits itself to preparing for sending, but the actual
- * sending and proxy configuration is done by the internal {@link MailSender}.
+ * <a href="http://www.simplejavamail.org">simplejavamail.org</a>
  *
  * @see MailerRegularBuilder
  * @see Email
@@ -58,7 +61,27 @@ public interface Mailer {
 	void sendMail(Email email);
 	
 	/**
-	 * @see MailSender#send(Email, boolean)
+	 * Processes an {@link Email} instance into a completely configured {@link Message}.
+	 * <p>
+	 * Sends the JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all
+	 * connection details have been configured in the provided {@link Session} instance and finally {@link Transport#sendMessage(Message,
+	 * javax.mail.Address[])}.
+	 * <p>
+	 * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and providing
+	 * a message id.
+	 * <p>
+	 * If the email should be sent asynchrounously - perhaps as part of a batch, then a new thread is started using the <em>executor</em> for
+	 * thread pooling.
+	 * <p>
+	 * If the email should go through an authenticated proxy server, then the SOCKS proxy bridge is started if not already running. When the last
+	 * email in a batch has finished, the proxy bridging server is shut down.
+	 *
+	 * @param email The information for the email to be sent.
+	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
+	 *              send the email and this method returns immediately.
+	 * @return A {@link AsyncResponse} or null if not <em>async</em>.
+	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
+	 * @see java.util.concurrent.Executors#newFixedThreadPool(int)
 	 * @see #validate(Email)
 	 */
 	@Nullable
@@ -84,6 +107,16 @@ public interface Mailer {
 	 */
 	@SuppressWarnings({"SameReturnValue" })
 	boolean validate(Email email) throws MailException;
+
+	/**
+	 * Shuts down the connection pool associated with this {@link Mailer} instance and closes remaining open connections. Waits until all connections still in use become available again
+	 * to deallocate them as well.
+	 * <p>
+	 * In order to shut down the whole connection pool (in case of clustering), each individual {@link Mailer} instance should be shutdown.
+	 * <p>
+	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 */
+	Future<?> shutdownConnectionPool();
 
 	/**
 	 * @return The server connection details. Will be {@code null} in case a custom fixed {@link Session} instance is used.

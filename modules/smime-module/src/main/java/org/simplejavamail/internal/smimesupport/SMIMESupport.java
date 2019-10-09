@@ -68,7 +68,6 @@ import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTR
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_READING_PKCS12_KEYSTORE;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_READING_SMIME_CONTENT_TYPE;
 import static org.simplejavamail.internal.smimesupport.SmimeException.MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED;
-import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isSmimeContentType;
 

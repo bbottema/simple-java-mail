@@ -2,10 +2,11 @@ package org.simplejavamail.mailer.internal;
 
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
+import org.simplejavamail.internal.modules.ModuleLoader;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -15,12 +16,17 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
+import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
+import static org.simplejavamail.config.ConfigLoader.valueOrProperty;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsBoolean;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsInteger;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
@@ -31,7 +37,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
  * @see MailerGenericBuilder
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
-public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements MailerGenericBuilder<T> {
+abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements MailerGenericBuilder<T> {
 	
 	/**
 	 * @see MailerGenericBuilder#async()
@@ -84,7 +90,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	/**
 	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
-	@Nullable
+	@Nonnull
 	private ExecutorService executorService;
 
 	/**
@@ -98,7 +104,37 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	@Nonnull
 	private Integer threadPoolKeepAliveTime;
-	
+
+	/**
+	 * @see MailerGenericBuilder#withClusterKey(UUID)
+	 */
+	@Nonnull
+	private UUID clusterKey;
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
+	 */
+	@Nonnull
+	private Integer connectionPoolCoreSize;
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
+	 */
+	@Nonnull
+	private Integer connectionPoolMaxSize;
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 */
+	@Nonnull
+	private Integer connectionPoolExpireAfterMillis;
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy loadBalancingStrategy)
+	 */
+	@Nonnull
+	private LoadBalancingStrategy connectionPoolLoadBalancingStrategy;
+
 	/**
 	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
@@ -114,7 +150,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 * @see MailerGenericBuilder#verifyingServerIdentity(boolean)
 	 */
 	private boolean verifyingServerIdentity;
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProperties(Properties)
 	 */
@@ -133,35 +169,43 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	MailerGenericBuilderImpl() {
 		if (hasProperty(PROXY_HOST)) {
-			this.proxyHost = ConfigLoader.getStringProperty(PROXY_HOST);
+			this.proxyHost = getStringProperty(PROXY_HOST);
 		}
 		if (hasProperty(PROXY_USERNAME)) {
-			this.proxyUsername = ConfigLoader.getStringProperty(PROXY_USERNAME);
+			this.proxyUsername = getStringProperty(PROXY_USERNAME);
 		}
 		if (hasProperty(PROXY_PASSWORD)) {
-			this.proxyPassword = ConfigLoader.getStringProperty(PROXY_PASSWORD);
+			this.proxyPassword = getStringProperty(PROXY_PASSWORD);
 		}
+		this.clusterKey = hasProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)
+				? UUID.fromString(assumeNonNull(getStringProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))
+				: UUID.randomUUID(); // <-- this makes sure it won't form a cluster with another mailer
 
-		this.proxyPort 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
-		this.proxyBridgePort 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
-		this.debugLogging 				= assumeNonNull(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
-		this.sessionTimeout 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
-		this.threadPoolSize 			= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
-		this.threadPoolKeepAliveTime 	= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
-		this.transportModeLoggingOnly 	= assumeNonNull(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
-		
+		this.proxyPort 								= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
+		this.proxyBridgePort 						= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
+		this.debugLogging 							= assumeNonNull(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
+		this.sessionTimeout 						= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
+		this.threadPoolSize 						= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
+		this.threadPoolKeepAliveTime 				= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
+		this.connectionPoolCoreSize 				= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
+		this.connectionPoolMaxSize 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
+		this.connectionPoolExpireAfterMillis 		= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
+		this.connectionPoolLoadBalancingStrategy	= assumeNonNull(valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
+		this.transportModeLoggingOnly 				= assumeNonNull(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
+
 		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
 		this.trustAllSSLHost = true;
 		this.verifyingServerIdentity = true;
+
+		this.executorService = determineDefaultExecutorService();
 	}
 	
 	/**
 	 * For internal use.
 	 */
-	@SuppressWarnings("deprecation")
 	ProxyConfig buildProxyConfig() {
 		validateProxy();
-		return new ProxyConfig(getProxyHost(), getProxyPort(), getProxyUsername(), getProxyPassword(), getProxyBridgePort());
+		return new ProxyConfigImpl(getProxyHost(), getProxyPort(), getProxyUsername(), getProxyPassword(), getProxyBridgePort());
 	}
 	
 	private void validateProxy() {
@@ -183,7 +227,6 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	/**
 	 * For internal use.
 	 */
-	@SuppressWarnings("deprecation")
 	OperationalConfig buildOperationalConfig() {
 		return new OperationalConfigImpl(
 				isAsync(),
@@ -191,6 +234,11 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 				getSessionTimeout(),
 				getThreadPoolSize(),
 				getThreadPoolKeepAliveTime(),
+				getClusterKey(),
+				getConnectionPoolCoreSize(),
+				getConnectionPoolMaxSize(),
+				getConnectionPoolExpireAfterMillis(),
+				getConnectionPoolLoadBalancingStrategy(),
 				isTransportModeLoggingOnly(),
 				isDebugLogging(),
 				getSslHostsToTrust(),
@@ -326,7 +374,52 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
 		return (T) this;
 	}
-	
+
+	/**
+	 * @see MailerGenericBuilder#withClusterKey(UUID)
+	 */
+	@Override
+	public T withClusterKey(@Nonnull final UUID clusterKey) {
+		this.clusterKey = clusterKey;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
+	 */
+	@Override
+	public T withConnectionPoolCoreSize(@Nonnull final Integer connectionPoolCoreSize) {
+		this.connectionPoolCoreSize = connectionPoolCoreSize;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
+	 */
+	@Override
+	public T withConnectionPoolMaxSize(@Nonnull final Integer connectionPoolMaxSize) {
+		this.connectionPoolMaxSize = connectionPoolMaxSize;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 */
+	@Override
+	public T withConnectionPoolExpireAfterMillis(@Nonnull final Integer connectionPoolExpireAfterMillis) {
+		this.connectionPoolExpireAfterMillis = connectionPoolExpireAfterMillis;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
+	 */
+	@Override
+	public T withConnectionPoolLoadBalancingStrategy(@Nonnull final LoadBalancingStrategy loadBalancingStrategy) {
+		this.connectionPoolLoadBalancingStrategy = loadBalancingStrategy;
+		return (T) this;
+	}
+
 	/**
 	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
@@ -362,7 +455,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 		this.verifyingServerIdentity = verifyingServerIdentity;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProperties(Properties)
 	 */
@@ -419,26 +512,73 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 */
 	@Override
 	public T resetExecutorService() {
-		this.executorService = null;
+		this.executorService = determineDefaultExecutorService();
 		return (T) this;
 	}
 
+	@Nonnull
+	private ExecutorService determineDefaultExecutorService() {
+		return (ModuleLoader.batchModuleAvailable())
+				? ModuleLoader.loadBatchModule().createDefaultExecutorService(getThreadPoolSize(), getThreadPoolKeepAliveTime())
+				: Executors.newSingleThreadExecutor();
+	}
+
 	/**
-	 * @see MailerGenericBuilder#resetThreadpoolSize()
+	 * @see MailerGenericBuilder#resetThreadPoolSize()
 	 */
 	@Override
-	public T resetThreadpoolSize() {
+	public T resetThreadPoolSize() {
 		return this.withThreadPoolSize(DEFAULT_POOL_SIZE);
 	}
 
 	/**
-	 * @see MailerGenericBuilder#resetThreadpoolKeepAliveTime()
+	 * @see MailerGenericBuilder#resetThreadPoolKeepAliveTime()
 	 */
 	@Override
-	public T resetThreadpoolKeepAliveTime() {
+	public T resetThreadPoolKeepAliveTime() {
 		return withThreadPoolKeepAliveTime(DEFAULT_POOL_KEEP_ALIVE_TIME);
 	}
-	
+
+	/**
+	 * @see MailerGenericBuilder#resetClusterKey()
+	 */
+	@Override
+	public T resetClusterKey() {
+		return this.withClusterKey(UUID.randomUUID());
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetConnectionPoolCoreSize()
+	 */
+	@Override
+	public T resetConnectionPoolCoreSize() {
+		return this.withConnectionPoolCoreSize(DEFAULT_CONNECTIONPOOL_CORE_SIZE);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetConnectionPoolMaxSize()
+	 */
+	@Override
+	public T resetConnectionPoolMaxSize() {
+		return this.withConnectionPoolCoreSize(DEFAULT_CONNECTIONPOOL_MAX_SIZE);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetConnectionPoolExpireAfterMillis()
+	 */
+	@Override
+	public T resetConnectionPoolExpireAfterMillis() {
+		return this.withConnectionPoolExpireAfterMillis(DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetConnectionPoolLoadBalancingStrategy()
+	 */
+	@Override
+	public T resetConnectionPoolLoadBalancingStrategy() {
+		return this.withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY));
+	}
+
 	/**
 	 * @see MailerGenericBuilder#resetTransportModeLoggingOnly()
 	 */
@@ -564,7 +704,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	 * @see MailerGenericBuilder#getExecutorService()
 	 */
 	@Override
-	@Nullable
+	@Nonnull
 	public ExecutorService getExecutorService() {
 		return executorService;
 	}
@@ -586,7 +726,52 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	public Integer getThreadPoolKeepAliveTime() {
 		return threadPoolKeepAliveTime;
 	}
-	
+
+	/**
+	 * @see MailerGenericBuilder#getClusterKey()
+	 */
+	@Override
+	@Nonnull
+	public UUID getClusterKey() {
+		return clusterKey;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getConnectionPoolCoreSize()
+	 */
+	@Override
+	@Nonnull
+	public Integer getConnectionPoolCoreSize() {
+		return connectionPoolCoreSize;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getConnectionPoolMaxSize()
+	 */
+	@Override
+	@Nonnull
+	public Integer getConnectionPoolMaxSize() {
+		return connectionPoolMaxSize;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getConnectionPoolExpireAfterMillis()
+	 */
+	@Override
+	@Nonnull
+	public Integer getConnectionPoolExpireAfterMillis() {
+		return connectionPoolExpireAfterMillis;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getConnectionPoolLoadBalancingStrategy()
+	 */
+	@Override
+	@Nonnull
+	public LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy() {
+		return connectionPoolLoadBalancingStrategy;
+	}
+
 	/**
 	 * @see MailerGenericBuilder#getSslHostsToTrust()
 	 */
@@ -611,7 +796,7 @@ public abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImp
 	public boolean isVerifyingServerIdentity() {
 		return verifyingServerIdentity;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#isTransportModeLoggingOnly()
 	 */

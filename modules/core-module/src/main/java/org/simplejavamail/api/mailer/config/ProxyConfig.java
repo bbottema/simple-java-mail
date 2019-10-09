@@ -2,8 +2,6 @@ package org.simplejavamail.api.mailer.config;
 
 import javax.annotation.Nullable;
 
-import static java.lang.String.format;
-
 /**
  * The proxy configuration that indicates whether the connections should be routed through a proxy.
  * <p>
@@ -16,90 +14,47 @@ import static java.lang.String.format;
  * NOTE: Attempting to use a proxy and SSL SMTP authentication will result in an error, as the underlying JavaMail framework ignores any proxy
  * settings for SSL connections.
  */
-public class ProxyConfig {
-	
-	@Nullable private final String remoteProxyHost;
-	@Nullable private final Integer remoteProxyPort;
-	@Nullable private final String username;
-	@Nullable private final String password;
-	@Nullable private final Integer proxyBridgePort;
-	
-	/**
-	 * @deprecated For internal use only.
-	 */
-	@Deprecated
-	public ProxyConfig(@Nullable final String remoteProxyHost, @Nullable final Integer remoteProxyPort, @Nullable final String username, @Nullable final String password, @Nullable final Integer proxyBridgePort) {
-		this.remoteProxyHost = remoteProxyHost;
-		this.remoteProxyPort = remoteProxyPort;
-		this.username = username;
-		this.password = password;
-		this.proxyBridgePort = proxyBridgePort;
-	}
-	
+public interface ProxyConfig {
 	/**
 	 * @return {@code true} if remoteProxyHost isn't empty.
 	 */
-	public boolean requiresProxy() {
-		return remoteProxyHost != null;
-	}
-	
+	boolean requiresProxy();
+
 	/**
 	 * @return {@code true} if username isn't empty.
 	 */
-	public boolean requiresAuthentication() {
-		return username != null;
-	}
-	
+	boolean requiresAuthentication();
+
 	@Override
-	public String toString() {
-		if (!requiresProxy()) {
-			return "no-proxy";
-		}
-		String str = format("%s:%s", remoteProxyHost, remoteProxyPort);
-		if (requiresAuthentication()) {
-			str += format(", username: %s", username);
-			str += format(", proxy bridge @ localhost:%s", proxyBridgePort);
-		}
-		return str;
-	}
-	
+	String toString();
+
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyBridgePort(Integer)
 	 */
 	@Nullable
-	public Integer getProxyBridgePort() {
-		return proxyBridgePort;
-	}
-	
+	Integer getProxyBridgePort();
+
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyHost(String)
 	 */
 	@Nullable
-	public String getRemoteProxyHost() {
-		return remoteProxyHost;
-	}
-	
+	String getRemoteProxyHost();
+
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyPort(Integer)
 	 */
 	@Nullable
-	public Integer getRemoteProxyPort() {
-		return remoteProxyPort;
-	}
-	
+	Integer getRemoteProxyPort();
+
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyUsername(String)
 	 */
 	@Nullable
-	public String getUsername() {
-		return username;
-	}
-	
+	String getUsername();
+
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyPassword(String)
 	 */
 	@Nullable
-	public String getPassword() {
-		return password;
-	}
+	String getPassword();
 }

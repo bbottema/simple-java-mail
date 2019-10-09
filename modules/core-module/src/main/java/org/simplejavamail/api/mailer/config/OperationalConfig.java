@@ -7,6 +7,7 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -17,43 +18,64 @@ import java.util.concurrent.ExecutorService;
  */
 public interface OperationalConfig {
 	/**
-	 * @see MailerRegularBuilder#async()
+	 * @see MailerGenericBuilder#async()
 	 */
 	boolean isAsync();
 	
 	/**
-	 * @see MailerRegularBuilder#withSessionTimeout(Integer)
+	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
 	int getSessionTimeout();
 
 	/**
-	 * @see MailerRegularBuilder#withThreadPoolSize(Integer)
+	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	int getThreadPoolSize();
 
 	/**
-	 * @see MailerRegularBuilder#withThreadPoolKeepAliveTime(Integer)
+	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
 	 */
 	int getThreadPoolKeepAliveTime();
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
+	 */
+	int getConnectionPoolCoreSize();
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
+	 */
+	int getConnectionPoolMaxSize();
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 */
+	int getConnectionPoolExpireAfterMillis();
+
+	/**
+	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
+	 */
+	@Nonnull
+	LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy();
 	
 	/**
-	 * @see MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)
+	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
 	boolean isTransportModeLoggingOnly();
 	
 	/**
-	 * @see MailerRegularBuilder#withDebugLogging(Boolean)
+	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	boolean isDebugLogging();
 	
 	/**
-	 * @see MailerRegularBuilder#trustingSSLHosts(String...)
+	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
 	@Nonnull
 	List<String> getSslHostsToTrust();
 
 	/**
-	 * @see MailerRegularBuilder#trustingAllHosts(boolean)
+	 * @see MailerGenericBuilder#trustingAllHosts(boolean)
 	 */
 	boolean isTrustAllSSLHost();
 
@@ -63,14 +85,20 @@ public interface OperationalConfig {
 	boolean isVerifyingServerIdentity();
 	
 	/**
-	 * @see MailerRegularBuilder#withProperties(Properties)
+	 * @see MailerGenericBuilder#withProperties(Properties)
 	 */
 	@Nonnull
 	Properties getProperties();
 
 	/**
-	 * @see MailerRegularBuilder#withExecutorService(ExecutorService)
+	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
 	@Nonnull
 	ExecutorService getExecutorService();
+
+	/**
+	 * @see MailerGenericBuilder#withClusterKey(UUID)
+	 */
+	@Nonnull
+	UUID getClusterKey();
 }

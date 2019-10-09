@@ -26,6 +26,11 @@
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.bbottema</groupId>
+            <artifactId>java-reflection</artifactId>
+            <version>3.9.1</version>
+        </dependency>
 
         <!-- needed for cli support -->
         <dependency>
@@ -59,6 +64,13 @@
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>smime-module</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>batch-module</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>
             <optional>true</optional>

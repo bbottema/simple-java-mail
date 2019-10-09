@@ -44,7 +44,7 @@ class MimeMessageProducerMixedRelated extends MimeMessageProducer {
 				multipartRootMixed.addBodyPart(contentRelated);
 				contentRelated.setContent(multipartRelated);
 			} catch (final MessagingException e) {
-				throw new MimeMessageParseException(e.getMessage(), e);
+				throw new MimeMessageProduceException(e.getMessage(), e);
 			}
 		}
 	}

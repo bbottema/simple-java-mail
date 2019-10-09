@@ -1,10 +1,11 @@
-package org.simplejavamail.mailer.internal.mailsender;
+package org.simplejavamail.mailer.internal;
 
+import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.mailer.internal.OperationalConfigImpl;
 
 import javax.annotation.Nonnull;
 import javax.mail.Session;
@@ -13,14 +14,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import static java.util.EnumSet.noneOf;
+import static java.util.UUID.randomUUID;
+import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_ROBIN;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
 
-public class MailSenderTest {
+public class MailerImplTest {
 	
 	private Session session;
 	
@@ -32,18 +37,17 @@ public class MailSenderTest {
 	}
 	
 	@Nonnull
-	@SuppressWarnings("deprecation")
 	private ProxyConfig createEmptyProxyConfig() {
-		return new ProxyConfig(null, null, null, null, null);
+		return new ProxyConfigImpl(null, null, null, null, null);
 	}
 	
 	@Test
 	public void trustAllHosts_PLAIN() {
-		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, true, false), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, true, false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
-		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, false, true), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, false, true));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
@@ -53,11 +57,11 @@ public class MailSenderTest {
 	public void trustAllHosts_SMTPS() {
 		ProxyConfig proxyBypassingMock = mock(ProxyConfig.class);
 		when(proxyBypassingMock.requiresProxy()).thenReturn(false);
-		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, true, false), proxyBypassingMock, SMTPS);
+		new MailerImpl(null, SMTPS, noneOf(EmailAddressCriteria.class), proxyBypassingMock, session, createDummyOperationalConfig(EMPTY_LIST, true, false));
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isEqualTo("*");
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isEqualTo("false");
-		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, false, true), proxyBypassingMock, SMTPS);
+		new MailerImpl(null, SMTPS, noneOf(EmailAddressCriteria.class), proxyBypassingMock, session, createDummyOperationalConfig(EMPTY_LIST, false, true));
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isEqualTo("true");
@@ -65,13 +69,11 @@ public class MailSenderTest {
 
 	@Test
 	public void trustAllHosts_SMTP_TLS() {
-		ProxyConfig proxyBypassingMock = mock(ProxyConfig.class);
-		when(proxyBypassingMock.requiresProxy()).thenReturn(false);
-		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, true, false), proxyBypassingMock, SMTP_TLS);
+		new MailerImpl(null, SMTP_TLS, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, true, false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("false");
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
-		new MailSenderImpl(session, createDummyOperationalConfig(EMPTY_LIST, false, true), proxyBypassingMock, SMTP_TLS);
+		new MailerImpl(null, SMTP_TLS, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, false, true));
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
@@ -79,19 +81,19 @@ public class MailSenderTest {
 	
 	@Test
 	public void trustHosts() {
-		new MailSenderImpl(session, createDummyOperationalConfig(asList(), false, false), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList(), false, false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
-		new MailSenderImpl(session, createDummyOperationalConfig(asList("a"), false, false), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList("a"), false, false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a");
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
-		new MailSenderImpl(session, createDummyOperationalConfig(asList("a", "b"), false, false), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList("a", "b"), false, false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b");
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
-		new MailSenderImpl(session, createDummyOperationalConfig(asList("a", "b", "c"), false, true), createEmptyProxyConfig(), SMTP);
+		new MailerImpl(null, SMTP, noneOf(EmailAddressCriteria.class), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList("a", "b", "c"), false, true));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b c");
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
@@ -103,8 +105,10 @@ public class MailSenderTest {
 	}
 
 	@Nonnull
-	@SuppressWarnings({ "SameParameterValue", "deprecation" })
+	@SuppressWarnings("SameParameterValue")
 	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost, boolean verifyServerIdentity) {
-		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, false, false, hostsToTrust, trustAllSSLHost, verifyServerIdentity, null);
+		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, randomUUID(), 0, 1, 5000, ROUND_ROBIN, false, false, hostsToTrust, trustAllSSLHost,
+				verifyServerIdentity,
+				newSingleThreadExecutor());
 	}
 }

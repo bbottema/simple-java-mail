@@ -1,12 +1,12 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import org.junit.Test;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailAssert;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
-import org.simplejavamail.email.Email;
-import org.simplejavamail.email.EmailAssert;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.email.Recipient;
 import testutil.ConfigLoaderTestHelper;
 
 import javax.mail.util.ByteArrayDataSource;

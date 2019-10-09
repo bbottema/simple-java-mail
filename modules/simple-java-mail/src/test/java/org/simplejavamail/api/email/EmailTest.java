@@ -1,6 +1,7 @@
-package org.simplejavamail.email;
+package org.simplejavamail.api.email;
 
 import org.junit.Test;
+import org.simplejavamail.email.EmailBuilder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

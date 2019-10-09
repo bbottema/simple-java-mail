@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.simplejavamail</groupId>
+        <artifactId>maven-master-project</artifactId>
+        <!--suppress MavenPropertyInParent -->
+        <version>6.0.0.beta-SNAPSHOT.2</version>
+        <relativePath>../../</relativePath>
+    </parent>
+
+    <artifactId>batch-module</artifactId>
+    <packaging>jar</packaging>
+    <name>Simple Java Mail - Batch module</name>
+    <description>Simple API, Complex Emails. High performance.</description>
+
+    <dependencies>
+
+        <!-- core dependencies -->
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>core-module</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- needed for pooling SMTP (JavaMail Transport) connections -->
+        <dependency>
+          <groupId>org.simplejavamail</groupId>
+          <artifactId>smtp-connection-pool</artifactId>
+          <version>1.0.7</version>
+        </dependency>
+    </dependencies>
+
+</project>

@@ -47,6 +47,11 @@ import java.util.Properties;
  * <li>simplejavamail.defaults.bcc.address</li>
  * <li>simplejavamail.defaults.poolsize</li>
  * <li>simplejavamail.defaults.poolsize.keepalivetime</li>
+ * <li>simplejavamail.defaults.connectionpool.clusterkey.uuid</li>
+ * <li>simplejavamail.defaults.connectionpool.coresize</li>
+ * <li>simplejavamail.defaults.connectionpool.maxsize</li>
+ * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.transport.mode.logging.only</li>
  * <li>simplejavamail.opportunistic.tls</li>
@@ -96,6 +101,11 @@ public class SimpleJavaMailSpringSupport {
 			@Value("${simplejavamail.defaults.bcc.address:#{null}}") final String defaultBccAddress,
 			@Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
 			@Value("${simplejavamail.defaults.poolsize.keepalive:#{null}}") final String defaultPoolKeepAlivetime,
+			@Value("${simplejavamail.defaults.connectionpool.clusterkey.uuid:#{null}}") final String defaultConnectionPoolCluterKey,
+			@Value("${simplejavamail.defaults.connectionpool.coresize:#{null}}") final String defaultConnectionPoolCoreSize,
+			@Value("${simplejavamail.defaults.connectionpool.maxsize:#{null}}") final String defaultConnectionPoolMaxSize,
+			@Value("${simplejavamail.defaults.connectionpool.expireafter.millis:#{null}}") final String defaultConnectionPoolExpireAfterMillis,
+			@Value("${simplejavamail.defaults.connectionpool.loadbalancing.strategy:#{null}}") final String defaultConnectionPoolLoadBalancingStrategy,
 			@Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
 			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly,
 			@Value("${simplejavamail.opportunistic.tls:#{null}}") final String defaultOpportunisticTls,
@@ -131,6 +141,11 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_BCC_ADDRESS.key(), defaultBccAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_POOL_SIZE.key(), defaultPoolsize);
 		setNullableProperty(emailProperties, Property.DEFAULT_POOL_KEEP_ALIVE_TIME.key(), defaultPoolKeepAlivetime);
+		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY.key(), defaultConnectionPoolCluterKey);
+		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE.key(), defaultConnectionPoolCoreSize);
+		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE.key(), defaultConnectionPoolMaxSize);
+		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS.key(), defaultConnectionPoolExpireAfterMillis);
+		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY.key(), defaultConnectionPoolLoadBalancingStrategy);
 		setNullableProperty(emailProperties, Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key(), defaultSessionTimeoutMillis);
 		setNullableProperty(emailProperties, Property.TRANSPORT_MODE_LOGGING_ONLY.key(), defaultTransportModeLoggingOnly);
 		setNullableProperty(emailProperties, Property.OPPORTUNISTIC_TLS.key(), defaultOpportunisticTls);

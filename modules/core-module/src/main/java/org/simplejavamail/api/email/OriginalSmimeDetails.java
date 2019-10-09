@@ -2,6 +2,7 @@ package org.simplejavamail.api.email;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.Serializable;
 
 /**
  * Indicates S/MIME details about an email. Used to show how a converted message was signed / encrypted and by whom.
@@ -12,7 +13,7 @@ import javax.annotation.Nullable;
  *
  * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
  */
-public interface OriginalSmimeDetails {
+public interface OriginalSmimeDetails extends Serializable {
 
 	enum SmimeMode {
 		PLAIN, SIGNED, ENCRYPTED, SIGNED_ENCRYPTED

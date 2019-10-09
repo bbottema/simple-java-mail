@@ -3,7 +3,6 @@ package org.simplejavamail.internal.smimesupport;
 import org.simplejavamail.MailException;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 

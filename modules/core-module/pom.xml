@@ -35,25 +35,11 @@
             <artifactId>emailaddress-rfc2822</artifactId>
             <version>2.1.3</version>
         </dependency>
-        <dependency>
-            <groupId>com.github.bbottema</groupId>
-            <artifactId>java-reflection</artifactId>
-            <version>3.9.1</version>
-        </dependency>
         <dependency><!-- Annotation processor -->
             <groupId>com.github.therapi</groupId>
             <artifactId>therapi-runtime-javadoc-scribe</artifactId>
             <version>0.9.0</version>
             <scope>provided</scope><!-- makes library mandatory if we should support CLI (even optionally) -->
-        </dependency>
-
-        <!-- optional support modules -->
-        <!-- FIXME why is this here?? -->
-        <dependency>
-            <groupId>net.markenwerk</groupId>
-            <artifactId>utils-mail-dkim</artifactId>
-            <version>1.2.0</version>
-            <optional>true</optional>
         </dependency>
     </dependencies>
 

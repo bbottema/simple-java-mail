@@ -85,7 +85,7 @@ final class SocksCommandSender {
 	}
 
 	public static void send(final Socket socket, final String host, final int port)
-			throws IOException {
+			throws IOException, SocksException {
 		final InputStream inputStream = socket.getInputStream();
 		final OutputStream outputStream = socket.getOutputStream();
 		final int lengthOfHost = host.getBytes(UTF_8).length;
@@ -109,7 +109,7 @@ final class SocksCommandSender {
 	}
 
 	private static void checkServerReply(final InputStream inputStream)
-			throws IOException {
+			throws IOException, SocksException {
 		final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 		int temp = 0;
 		for (int i = 0; i < 4; i++) {

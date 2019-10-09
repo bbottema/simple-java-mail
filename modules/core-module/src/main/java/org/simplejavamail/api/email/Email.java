@@ -169,7 +169,8 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#encryptWithSmime(X509Certificate)
 	 * @see EmailPopulatingBuilder#encryptWithSmime(InputStream)
 	 */
-	private final Pkcs12Config pkcs12ConfigForSmimeSigning;
+	// data source is not serializable, so transient
+	private final transient Pkcs12Config pkcs12ConfigForSmimeSigning;
 
 	/**
 	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
@@ -185,6 +186,7 @@ public class Email implements Serializable {
 	/**
 	 * @see Email#wasMergedWithSmimeSignedMessage()
 	 */
+	@SuppressWarnings("deprecation")
 	private final boolean wasMergedWithSmimeSignedMessage;
 
 	/**

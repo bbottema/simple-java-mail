@@ -3,13 +3,6 @@ package org.simplejavamail.converter.internal.mimemessage;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.internal.modules.ModuleLoader;
-import javax.mail.internet.ParameterList;
-import net.markenwerk.utils.mail.dkim.DkimMessage;
-import net.markenwerk.utils.mail.dkim.DkimSigner;
-import org.simplejavamail.email.AttachmentResource;
-import org.simplejavamail.email.Email;
-import org.simplejavamail.email.Recipient;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -25,6 +18,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimePart;
 import javax.mail.internet.MimeUtility;
+import javax.mail.internet.ParameterList;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -278,12 +272,5 @@ public class MimeMessageHelper {
 			resourceName = resourceName.replace(extension, "");
 		}
 		return resourceName;
-	}
-	
-	/**
-	 * @see org.simplejavamail.internal.modules.DKIMModule#signMessageWithDKIM(MimeMessage, Email)
-	 */
-	public static MimeMessage signMessageWithDKIM(final MimeMessage messageToSign, final Email emailContainingSigningDetails) {
-		return ModuleLoader.loadDKIMModule().signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
 	}
 }

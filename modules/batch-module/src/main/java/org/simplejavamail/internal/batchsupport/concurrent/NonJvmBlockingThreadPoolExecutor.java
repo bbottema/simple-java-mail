@@ -1,4 +1,4 @@
-package org.simplejavamail.mailer.internal.mailsender.concurrent;
+package org.simplejavamail.internal.batchsupport.concurrent;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;

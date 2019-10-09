@@ -3,13 +3,14 @@ package org.simplejavamail.mailer;
 import net.markenwerk.utils.mail.dkim.DkimMessage;
 import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.api.mailer.Mailer;
-import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
-import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.converter.internal.mimemessage.ImmutableDelegatingSMTPMessage;
+import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -17,9 +18,12 @@ import testutil.EmailHelper;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.UUID;
 
+import static demo.ResourceFolderHelper.determineResourceFolder;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
@@ -28,7 +32,9 @@ import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 
 @SuppressWarnings("unused")
 public class MailerTest {
-	
+
+	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
+
 	@Before
 	public void restoreOriginalStaticProperties() {
 		String s = "simplejavamail.javaxmail.debug=true\n"
@@ -49,8 +55,9 @@ public class MailerTest {
 	@Test
 	public void createMailSession_MinimalConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		
-		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).buildMailer();
+
+		final UUID clusterKey = UUID.randomUUID();
+		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).withClusterKey(clusterKey).buildMailer();
 		Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isFalse();
@@ -67,10 +74,12 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.auth")).isNull();
 		assertThat(session.getProperty("mail.smtp.socks.host")).isNull();
 		assertThat(session.getProperty("mail.smtp.socks.port")).isNull();
+
+		assertThat(mailer.getOperationalConfig().getClusterKey()).isEqualTo(clusterKey);
 		
 		// all constructors, providing the same minimal information
-		Mailer alternative1 = MailerBuilder.withSMTPServer("host", 25).buildMailer();
-		Mailer alternative2 = MailerBuilder.usingSession(session).buildMailer();
+		Mailer alternative1 = MailerBuilder.withSMTPServer("host", 25).withClusterKey(clusterKey).buildMailer();
+		Mailer alternative2 = MailerBuilder.usingSession(session).withClusterKey(clusterKey).buildMailer();
 		
 		assertThat(session.getProperties()).isEqualTo(alternative1.getSession().getProperties());
 		assertThat(session.getProperties()).isEqualTo(alternative2.getSession().getProperties());
@@ -235,12 +244,12 @@ public class MailerTest {
 		assertThat(session.getProperty("extra1")).isEqualTo("overridden value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("overridden value2");
 	}
-	
+
 	@Test
 	public void testDKIMPriming()
 			throws IOException {
 		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false, true);
-		
+
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
 		String privateDERkeyBase64 =
 				"MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAMYuC7ZjFBSWJtP6JH8w1deJE+5sLwkUacZcW4MTVQXTM33BzN8Ec64KO1Hk2B9oxkpdunKt"
@@ -250,11 +259,37 @@ public class MailerTest {
 						+ "pYpqAWJbbR+8scBgVxS+9NLLeHhlx/EvkaZRdLhwRyHAkEAtr1ThkqrFIXHxt9Wczd20HCG+qlgF5gv3WHYx4bSTx2/pBCHgWjzyxtqst1HN7+l5nicdrxsDJVVv+vYJ7FtlQJAWPgG"
 						+ "Zwgvs3Rvv7k5NwifQOEbhbZAigAGCF5Jk/Ijpi6zaUn7754GSn2FOzWgxDguUKe/fcgdHBLai/1jIRVZQQJAXF2xzWMwP+TmX44QxK52QHVI8mhNzcnH7A311gWns6AbLcuLA9quwjU"
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
-		
+
 		emailPopulatingBuilder.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
 		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, signing did not produce an error
-		assertThat(mimeMessage).isInstanceOf(DkimMessage.class);
+		assertThat(mimeMessage).isInstanceOf(ImmutableDelegatingSMTPMessage.class);
+		assertThat(((ImmutableDelegatingSMTPMessage) mimeMessage).getDelegate()).isInstanceOf(DkimMessage.class);
+	}
+
+	@Test
+	public void testDKIMPrimingAndSmimeCombo()
+			throws IOException {
+		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false, true);
+
+		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
+		String privateDERkeyBase64 =
+				"MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAMYuC7ZjFBSWJtP6JH8w1deJE+5sLwkUacZcW4MTVQXTM33BzN8Ec64KO1Hk2B9oxkpdunKt"
+						+ "BggwbWMlGU5gGu4PpQ20cdPcfBIkUMlQKaakHPPGNYaF9dQaZIRy8XON6g1sOJGALXtUYX1r5hdDH13kC/YBw9f1Dsi2smrB0qabAgMBAAECgYAdWbBuYJoWum4hssg49hiVhT2ob+k"
+						+ "/ZQCNWhxLe096P18+3rbiyJwBSI6kgEnpzPChDuSQG0PrbpCkwFfRHbafDIPiMi5b6YZkJoFmmOmBHsewS1VdR/phk+aPQV2SoJ0S0FAGZkOnOkagHfmEMSgjZzTpJouu5NU8mwqz8z"
+						+ "/s0QJBAOUnELTMG/Se3Pw4FQ49K49lA81QaMoL63lYIEvc6uSVoJSEcrBFxv5sfJW2LFWs8VIDyTvYzsCjLwZj6nwA3k0CQQDdZgVHX7crlpUxO/cjKtTa/Nq9S6XLv3S6XX3YJJ9/Z"
+						+ "pYpqAWJbbR+8scBgVxS+9NLLeHhlx/EvkaZRdLhwRyHAkEAtr1ThkqrFIXHxt9Wczd20HCG+qlgF5gv3WHYx4bSTx2/pBCHgWjzyxtqst1HN7+l5nicdrxsDJVVv+vYJ7FtlQJAWPgG"
+						+ "Zwgvs3Rvv7k5NwifQOEbhbZAigAGCF5Jk/Ijpi6zaUn7754GSn2FOzWgxDguUKe/fcgdHBLai/1jIRVZQQJAXF2xzWMwP+TmX44QxK52QHVI8mhNzcnH7A311gWns6AbLcuLA9quwjU"
+						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
+
+		emailPopulatingBuilder.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
+		emailPopulatingBuilder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
+		emailPopulatingBuilder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
+
+		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
+		// success, signing did not produce an error
+		assertThat(mimeMessage).isInstanceOf(ImmutableDelegatingSMTPMessage.class);
+		assertThat(((ImmutableDelegatingSMTPMessage) mimeMessage).getDelegate()).isInstanceOf(DkimMessage.class);
 	}
 	
 	@Test
@@ -263,7 +298,7 @@ public class MailerTest {
 		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailHelper.createDummyEmailBuilder(true, false, false, true);
 		
 		// let's try producing and then consuming a MimeMessage ->
-		// (bounce recipient is not part of the Mimemessage but the Envelope and is configured on the Session, so just ignore this)
+		// (bounce recipient is not part of the Mimemessage but the Envelope and is not received back on the MimeMessage
 		emailPopulatingBuilderNormal.clearBounceTo();
 		final Email emailNormal = emailPopulatingBuilderNormal.buildEmail();
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);

@@ -1,5 +1,6 @@
 package org.simplejavamail.config;
 
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.util.SimpleConversions;
 import org.slf4j.Logger;
@@ -52,6 +53,11 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.defaults.bcc.address</li>
  * <li>simplejavamail.defaults.poolsize</li>
  * <li>simplejavamail.defaults.poolsize.keepalivetime</li>
+ * <li>simplejavamail.defaults.connectionpool.clusterkey.uuid</li>
+ * <li>simplejavamail.defaults.connectionpool.coresize</li>
+ * <li>simplejavamail.defaults.connectionpool.maxsize</li>
+ * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.transport.mode.logging.only</li>
  * <li>simplejavamail.opportunistic.tls</li>
@@ -67,7 +73,7 @@ public final class ConfigLoader {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
 	
 	/**
-	 * By default this optional file will be loaded from classpath to load initial defaults.
+	 * By default the optional file {@value} will be loaded from classpath to load initial defaults.
 	 */
 	private static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
 
@@ -88,6 +94,8 @@ public final class ConfigLoader {
 	
 	/**
 	 * List of all the properties recognized by Simple Java Mail. Can be used to programmatically get, set or remove default values.
+	 *
+	 * @see <a href="http://www.simplejavamail.org">simplejavamail.org</a>
 	 */
 	public enum Property {
 		JAVAXMAIL_DEBUG("simplejavamail.javaxmail.debug"),
@@ -115,6 +123,11 @@ public final class ConfigLoader {
 		DEFAULT_BCC_NAME("simplejavamail.defaults.bcc.name"),
 		DEFAULT_BCC_ADDRESS("simplejavamail.defaults.bcc.address"),
 		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize"),
+		DEFAULT_CONNECTIONPOOL_CLUSTER_KEY("simplejavamail.defaults.connectionpool.clusterkey.uuid"),
+		DEFAULT_CONNECTIONPOOL_CORE_SIZE("simplejavamail.defaults.connectionpool.coresize"),
+		DEFAULT_CONNECTIONPOOL_MAX_SIZE("simplejavamail.defaults.connectionpool.maxsize"),
+		DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS("simplejavamail.defaults.connectionpool.expireafter.millis"),
+		DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY("simplejavamail.defaults.connectionpool.loadbalancing.strategy"),
 		DEFAULT_POOL_KEEP_ALIVE_TIME("simplejavamail.defaults.poolsize.keepalivetime"),
 		DEFAULT_SESSION_TIMEOUT_MILLIS("simplejavamail.defaults.sessiontimeoutmillis"),
 		TRANSPORT_MODE_LOGGING_ONLY("simplejavamail.transport.mode.logging.only"),
@@ -146,7 +159,7 @@ public final class ConfigLoader {
 	public static <T> T valueOrProperty(final @Nullable T value, final Property property) {
 		return valueOrProperty(value, property, null);
 	}
-	
+
 	/**
 	 * See {@link #valueOrProperty(Object, Property, Object)}.
 	 */
@@ -180,7 +193,7 @@ public final class ConfigLoader {
 	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
 	 */
 	@Nullable
-	private static <T> T valueOrProperty(@Nullable final T value, @Nonnull final Property property, @Nullable final T defaultValue) {
+	public static <T> T valueOrProperty(@Nullable final T value, @Nonnull final Property property, @Nullable final T defaultValue) {
 		if (!valueNullOrEmpty(value)) {
 			LOGGER.trace("using provided argument value {} for property {}", value, property);
 			return value;
@@ -360,6 +373,12 @@ public final class ConfigLoader {
 		// read TransportStrategy value
 		try {
 			return TransportStrategy.valueOf(propertyValue);
+		} catch (final IllegalArgumentException nfe) {
+			// ok, so not a TransportStrategy either
+		}
+		// read LoadBalancingStrategy value
+		try {
+			return LoadBalancingStrategy.valueOf(propertyValue);
 		} catch (final IllegalArgumentException nfe) {
 			// ok, so not a TransportStrategy either
 		}

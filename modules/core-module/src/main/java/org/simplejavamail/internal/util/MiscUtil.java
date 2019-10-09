@@ -1,6 +1,5 @@
 package org.simplejavamail.internal.util;
 
-import org.bbottema.javareflection.TypeUtils;
 import org.simplejavamail.api.email.Recipient;
 
 import javax.annotation.Nonnull;
@@ -198,12 +197,21 @@ public final class MiscUtil {
 	
 	public static int countMandatoryParameters(final @Nonnull Method m) {
 		int mandatoryParameterCount = 0;
-		for (Annotation[] annotation : m.getParameterAnnotations()) {
-			mandatoryParameterCount += !TypeUtils.containsAnnotation(asList(annotation), Nullable.class) ? 1 : 0;
+		for (Annotation[] annotations : m.getParameterAnnotations()) {
+			mandatoryParameterCount += !containsNullableAnnotation(annotations) ? 1 : 0;
 		}
 		return mandatoryParameterCount;
 	}
-	
+
+	private static boolean containsNullableAnnotation(final Annotation[] annotations) {
+		for (Annotation annotation : annotations.clone()) {
+			if (annotation.annotationType() == Nullable.class) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static String readFileContent(@Nonnull final File file) throws IOException {
 		if (!file.exists()) {
 			throw new IllegalArgumentException(format("File not found: %s", file));

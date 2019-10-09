@@ -10,7 +10,6 @@ import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
-import static org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper.signMessageWithDKIM;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
@@ -36,14 +35,11 @@ public abstract class MimeMessageProducer {
 	 */
 	abstract boolean compatibleWithEmail(@Nonnull Email email);
 	
-	/**
-	 * Performs a standard population and then delegates multipart specifics to the subclass.
-	 */
 	final MimeMessage populateMimeMessage(@Nonnull final Email email, @Nonnull Session session)
 			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
-		
+
 		MimeMessage message = new MimeMessage(session) {
 			@Override
 			protected void updateMessageID() throws MessagingException {
@@ -75,17 +71,28 @@ public abstract class MimeMessageProducer {
 		MimeMessageHelper.setHeaders(email, message);
 		message.setSentDate(new Date());
 
-		if (!valueNullOrEmpty(email.getDkimSigningDomain())) {
-			message = signMessageWithDKIM(message, email);
-		}
-
+		/*
+			The following order is important:
+			1. S/MIME signing
+			2. S/MIME encryption
+			3. DKIM signing
+		 */
 		if (ModuleLoader.smimeModuleAvailable()) {
 			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email);
 		}
 
+		if (!valueNullOrEmpty(email.getDkimSigningDomain())) {
+			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, email);
+		}
+
+		if (email.getBounceToRecipient() != null) {
+			// display name not applicable: https://tools.ietf.org/html/rfc5321#section-4.1.2
+			message = new ImmutableDelegatingSMTPMessage(message, email.getBounceToRecipient().getAddress());
+		}
+
 		return message;
 	}
-	
+
 	abstract void populateMimeMessageMultipartStructure(@Nonnull MimeMessage  message, @Nonnull Email email) throws MessagingException;
 	
 	

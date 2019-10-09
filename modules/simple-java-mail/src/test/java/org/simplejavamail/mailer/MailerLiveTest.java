@@ -14,21 +14,19 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
-import org.simplejavamail.internal.util.MiscUtil;
-import org.simplejavamail.internal.util.Preconditions;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
+import testutil.testrules.MimeMessageAndEnvelope;
 import testutil.testrules.SmtpServerRule;
 import testutil.testrules.TestSmtpServer;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
-import java.io.File;
 import javax.mail.internet.MimeUtility;
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.lang.String.format;
@@ -43,7 +41,7 @@ import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.EmailHelper.readOutlookMessage;
 
 /*
- * This class name is referrenced in pom, so it is excluded from testing in Travis.
+ * This class name is referrenced in pom, so it is excluded from testing in CircleCI.
  */
 @SuppressWarnings("unused")
 public class MailerLiveTest {
@@ -181,10 +179,10 @@ public class MailerLiveTest {
 		EmailAssert.assertThat(email).hasReplyToRecipient(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", null));
 		assertThat(normalizeNewlines(email.getPlainText())).isEqualTo("We should meet up!\n");
 		// Outlook overrode this value too OR converted the original HTML to RTF, from which OutlookMessageParser derived this HTML
-		assertThat(normalizeNewlines(email.getHTMLText())).contains(
-				"<html><body style=\"font-family:'Courier',monospace;font-size:10pt;\">   <br/> \n" +
-						"     <br/> <b>   We should meet up! <br/>  </b>   <br/>  <img src=\"cid:thumbsup\">\n" +
-						" <br/> </body></html>");
+		assertThat(normalizeNewlines(email.getHTMLText())).isEqualTo(
+				"<html><body style=\"font-family:'Courier',monospace;font-size:10pt;\">        \n" +
+						"      <b>   We should meet up!  </b>    <img src=\"cid:thumbsup\">\n" +
+						" </body></html>");
 		// the RTF was probably created by Outlook based on the HTML when the message was saved
 
 		final AttachmentResource attachment1;
@@ -238,10 +236,16 @@ public class MailerLiveTest {
 		} else {
 			assumeNonNull(mailer.sendMail(originalEmail, async)).getFuture().get();
 		}
-		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		assertThat(receivedMimeMessage.getMessageID()).isEqualTo(originalEmail.getId());
-		
-		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage, loadPkcs12KeyStore());
+		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());
+
+		if (originalEmail.getBounceToRecipient() != null) {
+			assertThat(receivedMimeMessage.getEnvelopeSender()).isEqualTo(originalEmail.getBounceToRecipient().getAddress());
+		} else {
+			assertThat(receivedMimeMessage.getEnvelopeSender()).isEqualTo(originalEmail.getFromRecipient().getAddress());
+		}
+
+		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage.getMimeMessage(), loadPkcs12KeyStore());
 		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty
 		if (originalEmailPopulatingBuilder.getReplyToRecipient() == null) {
 			originalEmailPopulatingBuilder.withReplyTo(originalEmailPopulatingBuilder.getFromRecipient());
@@ -250,7 +254,7 @@ public class MailerLiveTest {
 		if (originalEmailPopulatingBuilder.getHeaders().get("Message-ID") == null) {
 			originalEmailPopulatingBuilder.withHeader("Message-ID", originalEmail.getId());
 		}
-		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session, so just ignore this
+		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session and is not received back on the MimeMessage
 		if (originalEmailPopulatingBuilder.getBounceToRecipient() != null) {
 			originalEmailPopulatingBuilder.clearBounceTo();
 		}
@@ -277,8 +281,8 @@ public class MailerLiveTest {
 			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
-		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
+		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder
@@ -309,8 +313,8 @@ public class MailerLiveTest {
 			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
-		MimeMessage receivedMimeMessage = smtpServerRule.getOnlyMessage();
-		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage);
+		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder

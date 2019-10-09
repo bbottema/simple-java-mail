@@ -6,5 +6,8 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import javax.annotation.Nonnull;
 
 public interface AuthenticatedSocksModule {
+
+	String NAME = "Authenticated socks module";
+
 	AnonymousSocks5Server createAnonymousSocks5Server(@Nonnull ProxyConfig socksProxyConfig);
 }
