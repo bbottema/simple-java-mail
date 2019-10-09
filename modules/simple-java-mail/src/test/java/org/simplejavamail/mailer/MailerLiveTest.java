@@ -14,8 +14,6 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
-import org.simplejavamail.internal.util.MiscUtil;
-import org.simplejavamail.internal.util.Preconditions;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -25,11 +23,10 @@ import testutil.testrules.TestSmtpServer;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
-import java.io.File;
 import javax.mail.internet.MimeUtility;
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.lang.String.format;
@@ -44,7 +41,7 @@ import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.EmailHelper.readOutlookMessage;
 
 /*
- * This class name is referrenced in pom, so it is excluded from testing in Travis.
+ * This class name is referrenced in pom, so it is excluded from testing in CircleCI.
  */
 @SuppressWarnings("unused")
 public class MailerLiveTest {
