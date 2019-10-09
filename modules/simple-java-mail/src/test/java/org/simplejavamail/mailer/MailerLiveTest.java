@@ -182,10 +182,10 @@ public class MailerLiveTest {
 		EmailAssert.assertThat(email).hasReplyToRecipient(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", null));
 		assertThat(normalizeNewlines(email.getPlainText())).isEqualTo("We should meet up!\n");
 		// Outlook overrode this value too OR converted the original HTML to RTF, from which OutlookMessageParser derived this HTML
-		assertThat(normalizeNewlines(email.getHTMLText())).contains(
-				"<html><body style=\"font-family:'Courier',monospace;font-size:10pt;\">   <br/> \n" +
-						"     <br/> <b>   We should meet up! <br/>  </b>   <br/>  <img src=\"cid:thumbsup\">\n" +
-						" <br/> </body></html>");
+		assertThat(normalizeNewlines(email.getHTMLText())).isEqualTo(
+				"<html><body style=\"font-family:'Courier',monospace;font-size:10pt;\">        \n" +
+						"      <b>   We should meet up!  </b>    <img src=\"cid:thumbsup\">\n" +
+						" </body></html>");
 		// the RTF was probably created by Outlook based on the HTML when the message was saved
 
 		final AttachmentResource attachment1;
