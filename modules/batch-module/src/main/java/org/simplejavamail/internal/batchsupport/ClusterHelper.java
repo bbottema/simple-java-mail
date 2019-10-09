@@ -9,6 +9,7 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
 
 import javax.annotation.Nonnull;
+import javax.mail.Session;
 import javax.mail.Transport;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -26,23 +27,24 @@ final class ClusterHelper {
 				.defaultCorePoolSize(operationalConfig.getConnectionPoolCoreSize())
 				.defaultMaxPoolSize(operationalConfig.getConnectionPoolMaxSize())
 				.loadBalancingStrategy(operationalConfig.getConnectionPoolLoadBalancingStrategy() == ROUND_ROBIN
-						? new RoundRobinLoadBalancing()
-						: new RandomAccessLoadBalancing())
+						? new RoundRobinLoadBalancing<>()
+						: new RandomAccessLoadBalancing<>())
 				.defaultExpirationPolicy(new TimeoutSinceLastAllocationExpirationPolicy<Transport>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
 		return smtpClusterConfig;
 	}
 
-	static boolean compareClusterConfig(@Nonnull final OperationalConfig operationalConfig, final ClusterConfig config) {
+	static boolean compareClusterConfig(@Nonnull final OperationalConfig operationalConfig, final ClusterConfig<Session, Transport> config) {
 		return config.getDefaultCorePoolSize() != operationalConfig.getConnectionPoolCoreSize() ||
 				config.getDefaultMaxPoolSize() != operationalConfig.getConnectionPoolCoreSize() ||
 				config.getLoadBalancingStrategy().getClass() != determineLoadBalancingStrategy(operationalConfig).getClass() ||
 				!config.getDefaultExpirationPolicy().equals(new TimeoutSinceLastAllocationExpirationPolicy<Transport>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
 	}
 
+	@SuppressWarnings("rawtypes")
 	@Nonnull
 	private static LoadBalancingStrategy determineLoadBalancingStrategy(@Nonnull final OperationalConfig operationalConfig) {
 		return operationalConfig.getConnectionPoolLoadBalancingStrategy() == ROUND_ROBIN
-				? new RoundRobinLoadBalancing()
-				: new RandomAccessLoadBalancing();
+				? new RoundRobinLoadBalancing<>()
+				: new RandomAccessLoadBalancing<>();
 	}
 }
