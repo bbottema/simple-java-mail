@@ -316,6 +316,7 @@
                             <show>public</show>
                             <nohelp>true</nohelp>
                             <excludePackageNames>*.internal.*</excludePackageNames>
+                            <quiet>true</quiet>
                         </configuration>
                     </execution>
                 </executions>
