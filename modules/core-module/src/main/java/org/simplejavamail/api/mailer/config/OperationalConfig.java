@@ -48,6 +48,11 @@ public interface OperationalConfig {
 	int getConnectionPoolMaxSize();
 
 	/**
+	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)
+	 */
+	int getConnectionPoolClaimTimeoutMillis();
+
+	/**
 	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	int getConnectionPoolExpireAfterMillis();

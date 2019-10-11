@@ -107,7 +107,7 @@ public class MailerImplTest {
 	@Nonnull
 	@SuppressWarnings("SameParameterValue")
 	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost, boolean verifyServerIdentity) {
-		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, randomUUID(), 0, 1, 5000, ROUND_ROBIN, false, false, hostsToTrust, trustAllSSLHost,
+		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, randomUUID(), 0, 1, 5000, 10000, ROUND_ROBIN, false, false, hostsToTrust, trustAllSSLHost,
 				verifyServerIdentity,
 				newSingleThreadExecutor());
 	}

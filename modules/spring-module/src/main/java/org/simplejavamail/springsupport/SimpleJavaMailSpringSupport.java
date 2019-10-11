@@ -50,6 +50,7 @@ import java.util.Properties;
  * <li>simplejavamail.defaults.connectionpool.clusterkey.uuid</li>
  * <li>simplejavamail.defaults.connectionpool.coresize</li>
  * <li>simplejavamail.defaults.connectionpool.maxsize</li>
+ * <li>simplejavamail.defaults.connectionpool.claimtimeout.millis</li>
  * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
  * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
@@ -104,6 +105,7 @@ public class SimpleJavaMailSpringSupport {
 			@Value("${simplejavamail.defaults.connectionpool.clusterkey.uuid:#{null}}") final String defaultConnectionPoolCluterKey,
 			@Value("${simplejavamail.defaults.connectionpool.coresize:#{null}}") final String defaultConnectionPoolCoreSize,
 			@Value("${simplejavamail.defaults.connectionpool.maxsize:#{null}}") final String defaultConnectionPoolMaxSize,
+			@Value("${simplejavamail.defaults.connectionpool.claimtimeout.millis:#{null}}") final String defaultConnectionPoolClaimTimeoutMillis,
 			@Value("${simplejavamail.defaults.connectionpool.expireafter.millis:#{null}}") final String defaultConnectionPoolExpireAfterMillis,
 			@Value("${simplejavamail.defaults.connectionpool.loadbalancing.strategy:#{null}}") final String defaultConnectionPoolLoadBalancingStrategy,
 			@Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
@@ -144,6 +146,7 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY.key(), defaultConnectionPoolCluterKey);
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE.key(), defaultConnectionPoolCoreSize);
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE.key(), defaultConnectionPoolMaxSize);
+		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS.key(), defaultConnectionPoolClaimTimeoutMillis);
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS.key(), defaultConnectionPoolExpireAfterMillis);
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY.key(), defaultConnectionPoolLoadBalancingStrategy);
 		setNullableProperty(emailProperties, Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key(), defaultSessionTimeoutMillis);

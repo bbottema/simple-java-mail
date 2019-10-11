@@ -124,6 +124,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private Integer connectionPoolMaxSize;
 
 	/**
+	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)
+	 */
+	@Nonnull
+	private Integer connectionPoolClaimTimeoutMillis;
+
+	/**
 	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	@Nonnull
@@ -189,6 +195,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.threadPoolKeepAliveTime 				= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
 		this.connectionPoolCoreSize 				= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
 		this.connectionPoolMaxSize 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
+		this.connectionPoolClaimTimeoutMillis 		= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS));
 		this.connectionPoolExpireAfterMillis 		= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
 		this.connectionPoolLoadBalancingStrategy	= assumeNonNull(valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
 		this.transportModeLoggingOnly 				= assumeNonNull(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
@@ -237,6 +244,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getClusterKey(),
 				getConnectionPoolCoreSize(),
 				getConnectionPoolMaxSize(),
+				getConnectionPoolClaimTimeoutMillis(),
 				getConnectionPoolExpireAfterMillis(),
 				getConnectionPoolLoadBalancingStrategy(),
 				isTransportModeLoggingOnly(),
@@ -403,6 +411,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	/**
+	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)
+	 */
+	@Override
+	public T withConnectionPoolClaimTimeoutMillis(@Nonnull final Integer connectionPoolClaimTimeoutMillis) {
+		this.connectionPoolClaimTimeoutMillis = connectionPoolClaimTimeoutMillis;
+		return (T) this;
+	}
+
+	/**
 	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	@Override
@@ -561,6 +578,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T resetConnectionPoolMaxSize() {
 		return this.withConnectionPoolCoreSize(DEFAULT_CONNECTIONPOOL_MAX_SIZE);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetConnectionPoolClaimTimeoutMillis()
+	 */
+	@Override
+	public T resetConnectionPoolClaimTimeoutMillis() {
+		return this.withConnectionPoolExpireAfterMillis(DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS);
 	}
 
 	/**
@@ -752,6 +777,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nonnull
 	public Integer getConnectionPoolMaxSize() {
 		return connectionPoolMaxSize;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getConnectionPoolClaimTimeoutMillis()
+	 */
+	@Override
+	@Nonnull
+	public Integer getConnectionPoolClaimTimeoutMillis() {
+		return connectionPoolClaimTimeoutMillis;
 	}
 
 	/**

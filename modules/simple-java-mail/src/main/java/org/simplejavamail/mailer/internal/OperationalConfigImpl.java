@@ -58,6 +58,11 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final int connectionPoolMaxSize;
 
 	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)
+	 */
+	private final int connectionPoolClaimTimeoutMillis;
+
+	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	private final int connectionPoolExpireAfterMillis;
@@ -108,6 +113,7 @@ class OperationalConfigImpl implements OperationalConfig {
 			@Nonnull final UUID clusterKey,
 			final int connectionPoolCoreSize,
 			final int connectionPoolMaxSize,
+			final int connectionPoolClaimTimeoutMillis,
 			final int connectionPoolExpireAfterMillis,
 			@Nonnull final LoadBalancingStrategy connectionPoolLoadBalancingStrategy,
 			final boolean transportModeLoggingOnly,
@@ -124,6 +130,7 @@ class OperationalConfigImpl implements OperationalConfig {
 		this.clusterKey = clusterKey;
 		this.connectionPoolCoreSize = connectionPoolCoreSize;
 		this.connectionPoolMaxSize = connectionPoolMaxSize;
+		this.connectionPoolClaimTimeoutMillis = connectionPoolClaimTimeoutMillis;
 		this.connectionPoolExpireAfterMillis = connectionPoolExpireAfterMillis;
 		this.connectionPoolLoadBalancingStrategy = connectionPoolLoadBalancingStrategy;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
@@ -180,6 +187,14 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Override
 	public int getConnectionPoolMaxSize() {
 		return connectionPoolMaxSize;
+	}
+
+	/**
+	 * @see OperationalConfig#getConnectionPoolClaimTimeoutMillis()
+	 */
+	@Override
+	public int getConnectionPoolClaimTimeoutMillis() {
+		return connectionPoolClaimTimeoutMillis;
 	}
 
 	/**

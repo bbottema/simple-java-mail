@@ -56,6 +56,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.defaults.connectionpool.clusterkey.uuid</li>
  * <li>simplejavamail.defaults.connectionpool.coresize</li>
  * <li>simplejavamail.defaults.connectionpool.maxsize</li>
+ * <li>simplejavamail.defaults.connectionpool.claimtimeout.millis</li>
  * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
  * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
@@ -126,6 +127,7 @@ public final class ConfigLoader {
 		DEFAULT_CONNECTIONPOOL_CLUSTER_KEY("simplejavamail.defaults.connectionpool.clusterkey.uuid"),
 		DEFAULT_CONNECTIONPOOL_CORE_SIZE("simplejavamail.defaults.connectionpool.coresize"),
 		DEFAULT_CONNECTIONPOOL_MAX_SIZE("simplejavamail.defaults.connectionpool.maxsize"),
+		DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS("simplejavamail.defaults.connectionpool.claimtimeout.millis"),
 		DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS("simplejavamail.defaults.connectionpool.expireafter.millis"),
 		DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY("simplejavamail.defaults.connectionpool.loadbalancing.strategy"),
 		DEFAULT_POOL_KEEP_ALIVE_TIME("simplejavamail.defaults.poolsize.keepalivetime"),

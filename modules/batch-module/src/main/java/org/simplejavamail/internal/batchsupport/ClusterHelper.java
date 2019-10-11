@@ -5,6 +5,7 @@ import org.bbottema.clusteredobjectpool.core.api.LoadBalancingStrategy;
 import org.bbottema.clusteredobjectpool.cyclingstrategies.RandomAccessLoadBalancing;
 import org.bbottema.clusteredobjectpool.cyclingstrategies.RoundRobinLoadBalancing;
 import org.bbottema.genericobjectpool.expirypolicies.TimeoutSinceLastAllocationExpirationPolicy;
+import org.bbottema.genericobjectpool.util.Timeout;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
 
@@ -26,6 +27,7 @@ final class ClusterHelper {
 		smtpClusterConfig.getConfigBuilder()
 				.defaultCorePoolSize(operationalConfig.getConnectionPoolCoreSize())
 				.defaultMaxPoolSize(operationalConfig.getConnectionPoolMaxSize())
+				.claimTimeout(new Timeout(operationalConfig.getConnectionPoolClaimTimeoutMillis(), MILLISECONDS))
 				.loadBalancingStrategy(operationalConfig.getConnectionPoolLoadBalancingStrategy() == ROUND_ROBIN
 						? new RoundRobinLoadBalancing<>()
 						: new RandomAccessLoadBalancing<>())
