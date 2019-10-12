@@ -47,7 +47,8 @@ public class MailerTest {
 				+ "simplejavamail.proxy.port=1080\n"
 				+ "simplejavamail.proxy.username=username proxy\n"
 				+ "simplejavamail.proxy.password=password proxy\n"
-				+ "simplejavamail.proxy.socks5bridge.port=1081";
+				+ "simplejavamail.proxy.socks5bridge.port=1081\n"
+				+ "simplejavamail.defaults.trustedhosts=192.168.1.122;mymailserver.com;ix55432y";
 		
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 	}
@@ -58,6 +59,8 @@ public class MailerTest {
 
 		final UUID clusterKey = UUID.randomUUID();
 		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).withClusterKey(clusterKey).buildMailer();
+		assertThat(mailer.getOperationalConfig().getSslHostsToTrust()).isEmpty();
+
 		Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isFalse();
@@ -138,6 +141,9 @@ public class MailerTest {
 	public void createMailSession_MinimalConstructor_WithConfig() {
 		Mailer mailer = MailerBuilder.buildMailer();
 		Session session = mailer.getSession();
+
+		assertThat(mailer.getOperationalConfig().getSslHostsToTrust()).containsExactlyInAnyOrder(
+				"192.168.1.122", "mymailserver.com", "ix55432y");
 		
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp.default.com");

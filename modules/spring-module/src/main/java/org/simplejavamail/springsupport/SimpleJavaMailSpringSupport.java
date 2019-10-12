@@ -54,6 +54,9 @@ import java.util.Properties;
  * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
  * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
+ * <li>simplejavamail.defaults.trustallhosts</li>
+ * <li>simplejavamail.defaults.trustedhosts</li>
+ * <li>simplejavamail.defaults.verifyserveridentity</li>
  * <li>simplejavamail.transport.mode.logging.only</li>
  * <li>simplejavamail.opportunistic.tls</li>
  * <li>simplejavamail.smime.signing.keystore</li>
@@ -109,6 +112,9 @@ public class SimpleJavaMailSpringSupport {
 			@Value("${simplejavamail.defaults.connectionpool.expireafter.millis:#{null}}") final String defaultConnectionPoolExpireAfterMillis,
 			@Value("${simplejavamail.defaults.connectionpool.loadbalancing.strategy:#{null}}") final String defaultConnectionPoolLoadBalancingStrategy,
 			@Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
+			@Value("${simplejavamail.defaults.trustallhosts:#{null}}") final String defaultTrustAllHosts,
+			@Value("${simplejavamail.defaults.trustedhosts:#{null}}") final String defaultTrustedHosts,
+			@Value("${simplejavamail.defaults.verifyserveridentity:#{null}}") final String defaultVerifyServerIdentity,
 			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly,
 			@Value("${simplejavamail.opportunistic.tls:#{null}}") final String defaultOpportunisticTls,
 			@Value("${simplejavamail.smime.signing.keystore:#{null}}") final String smimeSigningKeyStore,
@@ -150,6 +156,9 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS.key(), defaultConnectionPoolExpireAfterMillis);
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY.key(), defaultConnectionPoolLoadBalancingStrategy);
 		setNullableProperty(emailProperties, Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key(), defaultSessionTimeoutMillis);
+		setNullableProperty(emailProperties, Property.DEFAULT_TRUST_ALL_HOSTS.key(), defaultTrustAllHosts);
+		setNullableProperty(emailProperties, Property.DEFAULT_TRUSTED_HOSTS.key(), defaultTrustedHosts);
+		setNullableProperty(emailProperties, Property.DEFAULT_VERIFY_SERVER_IDENTITY.key(), defaultVerifyServerIdentity);
 		setNullableProperty(emailProperties, Property.TRANSPORT_MODE_LOGGING_ONLY.key(), defaultTransportModeLoggingOnly);
 		setNullableProperty(emailProperties, Property.OPPORTUNISTIC_TLS.key(), defaultOpportunisticTls);
 		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEYSTORE.key(), smimeSigningKeyStore);

@@ -60,6 +60,9 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
  * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
+ * <li>simplejavamail.defaults.trustallhosts</li>
+ * <li>simplejavamail.defaults.trustedhosts</li>
+ * <li>simplejavamail.defaults.verifyserveridentity</li>
  * <li>simplejavamail.transport.mode.logging.only</li>
  * <li>simplejavamail.opportunistic.tls</li>
  * <li>simplejavamail.smime.signing.keystore</li>
@@ -132,6 +135,9 @@ public final class ConfigLoader {
 		DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY("simplejavamail.defaults.connectionpool.loadbalancing.strategy"),
 		DEFAULT_POOL_KEEP_ALIVE_TIME("simplejavamail.defaults.poolsize.keepalivetime"),
 		DEFAULT_SESSION_TIMEOUT_MILLIS("simplejavamail.defaults.sessiontimeoutmillis"),
+		DEFAULT_TRUST_ALL_HOSTS("simplejavamail.defaults.trustallhosts"),
+		DEFAULT_TRUSTED_HOSTS("simplejavamail.defaults.trustedhosts"),
+		DEFAULT_VERIFY_SERVER_IDENTITY("simplejavamail.defaults.verifyserveridentity"),
 		TRANSPORT_MODE_LOGGING_ONLY("simplejavamail.transport.mode.logging.only"),
 		OPPORTUNISTIC_TLS("simplejavamail.opportunistic.tls"),
 		SMIME_SIGNING_KEYSTORE("simplejavamail.smime.signing.keystore"),

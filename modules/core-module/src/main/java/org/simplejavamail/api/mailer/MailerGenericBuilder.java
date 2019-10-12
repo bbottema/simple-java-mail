@@ -27,6 +27,18 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
+	 * {@value}
+	 *
+	 * @see #trustingAllHosts(boolean)
+	 */
+	boolean DEFAULT_TRUST_ALL_HOSTS = true;
+	/**
+	 * {@value}
+	 *
+	 * @see #verifyingServerIdentity(boolean)
+	 */
+	boolean DEFAULT_VERIFY_SERVER_IDENTITY = true;
+	/**
 	 * The default maximum timeout value for the transport socket is <code>{@value}</code> milliseconds (affects socket connect-,
 	 * read- and write timeouts). Can be overridden from a config file or through System variable.
 	 */
@@ -453,6 +465,24 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetThreadPoolKeepAliveTime();
 
 	/**
+	 * Reset trusting any host; trust all hosts is set to {@value #DEFAULT_TRUST_ALL_HOSTS}.
+	 *
+	 * @see #trustingAllHosts(boolean)
+	 * @see #trustingSSLHosts(String...)
+	 * @see #verifyingServerIdentity(boolean)
+	 */
+	T resetTrustingAllHosts();
+
+	/**
+	 * Reset verifying the server's identity to {@value #DEFAULT_VERIFY_SERVER_IDENTITY}.
+	 *
+	 * @see #verifyingServerIdentity(boolean)
+	 * @see #trustingSSLHosts(String...)
+	 * @see #trustingAllHosts(boolean)
+	 */
+	T resetVerifyingServerIdentity();
+
+	/**
 	 * Reset the cluster key to empty, so it will be generated uniquely, avoiding clustering with any other {@link Mailer}.
 	 *
 	 * @see #withClusterKey(UUID)
@@ -528,6 +558,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Removes all trusted hosts from the list.
 	 *
 	 * @see #trustingSSLHosts(String...)
+	 * @see #trustingAllHosts(boolean)
+	 * @see #verifyingServerIdentity(boolean)
 	 */
 	T clearTrustedSSLHosts();
 

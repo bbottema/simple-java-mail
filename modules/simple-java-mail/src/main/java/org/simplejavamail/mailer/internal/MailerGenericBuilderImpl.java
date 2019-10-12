@@ -7,6 +7,7 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.util.SimpleOptional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,6 +30,7 @@ import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.config.ConfigLoader.valueOrProperty;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsBoolean;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsInteger;
+import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsString;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
@@ -191,6 +193,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.proxyBridgePort 						= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
 		this.debugLogging 							= assumeNonNull(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
 		this.sessionTimeout 						= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
+		this.trustAllSSLHost 						= assumeNonNull(valueOrPropertyAsBoolean(null, Property.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
+		this.verifyingServerIdentity 				= assumeNonNull(valueOrPropertyAsBoolean(null, Property.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY));
 		this.threadPoolSize 						= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
 		this.threadPoolKeepAliveTime 				= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
 		this.connectionPoolCoreSize 				= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
@@ -200,9 +204,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.connectionPoolLoadBalancingStrategy	= assumeNonNull(valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
 		this.transportModeLoggingOnly 				= assumeNonNull(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
 
+		final String trustedHosts = valueOrPropertyAsString(null, Property.DEFAULT_TRUSTED_HOSTS, null);
+		if (trustedHosts != null) {
+			this.sslHostsToTrust = Arrays.asList(trustedHosts.split(";"));
+		}
+
 		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
-		this.trustAllSSLHost = true;
-		this.verifyingServerIdentity = true;
 
 		this.executorService = determineDefaultExecutorService();
 	}
@@ -507,13 +514,29 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		}
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#resetSessionTimeout()
 	 */
 	@Override
 	public T resetSessionTimeout() {
 		return withSessionTimeout(DEFAULT_SESSION_TIMEOUT_MILLIS);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetTrustingAllHosts()
+	 */
+	@Override
+	public T resetTrustingAllHosts() {
+		return trustingAllHosts(DEFAULT_TRUST_ALL_HOSTS);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetVerifyingServerIdentity()
+	 */
+	@Override
+	public T resetVerifyingServerIdentity() {
+		return verifyingServerIdentity(DEFAULT_VERIFY_SERVER_IDENTITY);
 	}
 	
 	/**
