@@ -101,7 +101,7 @@ public class SimpleJavaMailSpringSupport {
 			@Value("${simplejavamail.defaults.bcc.name:#{null}}") final String defaultBccName,
 			@Value("${simplejavamail.defaults.bcc.address:#{null}}") final String defaultBccAddress,
 			@Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
-			@Value("${simplejavamail.defaults.poolsize.keepalive:#{null}}") final String defaultPoolKeepAlivetime,
+			@Value("${simplejavamail.defaults.poolsize.keepalivetime:#{null}}") final String defaultPoolKeepAlivetime,
 			@Value("${simplejavamail.defaults.connectionpool.clusterkey.uuid:#{null}}") final String defaultConnectionPoolCluterKey,
 			@Value("${simplejavamail.defaults.connectionpool.coresize:#{null}}") final String defaultConnectionPoolCoreSize,
 			@Value("${simplejavamail.defaults.connectionpool.maxsize:#{null}}") final String defaultConnectionPoolMaxSize,
