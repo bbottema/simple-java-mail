@@ -67,13 +67,13 @@ import java.util.Properties;
 public class SimpleJavaMailSpringSupport {
 
 	@Bean
-	public Mailer defaultMailer(MailerGenericBuilder defaultMailerBuilder) {
+	public Mailer defaultMailer(MailerGenericBuilder<?> defaultMailerBuilder) {
 		return defaultMailerBuilder.buildMailer();
 	}
 
 	@SuppressWarnings("deprecation")
 	@Bean("defaultMailerBuilder")
-	public MailerGenericBuilder loadGlobalConfigAndCreateDefaultMailer(
+	public MailerGenericBuilder<?> loadGlobalConfigAndCreateDefaultMailer(
 			// now obviously there are easier ways to do this, but this is the only way
 			// I can think of that actually works across Spring versions
 			@Value("${simplejavamail.javaxmail.debug:#{null}}") final String javaxmailDebug,
