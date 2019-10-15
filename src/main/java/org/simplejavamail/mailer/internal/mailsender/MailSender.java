@@ -190,6 +190,8 @@ public class MailSender {
 	 * @see Executors#newFixedThreadPool(int)
 	 */
 	public final synchronized void send(final Email email, final boolean async) {
+		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
+		
 		/*
             we need to track even non-async emails to prevent async emails from shutting down
             the proxy bridge server (or connection pool in async mode) while a non-async email is still being processed
@@ -204,7 +206,6 @@ public class MailSender {
 			if (executor == null || executor.isShutdown()) {
 				executor = Executors.newFixedThreadPool(operationalConfig.getThreadPoolSize());
 			}
-			configureSessionWithTimeout(session, operationalConfig.getSessionTimeout());
 			executor.execute(new NamedRunnable("sendMail process") {
 				@Override
 				public void run() {
