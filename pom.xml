@@ -12,7 +12,7 @@
     <description>Simple Java Mail - Maven master project</description>
     <url>http://www.simplejavamail.org/</url>
 
-    <!-- to skip some steps: -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -->
+    <!-- to skip some steps: -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -Denforcer.skip=true -->
 
     <properties>
         <java.version>1.7</java.version>
