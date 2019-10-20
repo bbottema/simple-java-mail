@@ -14,7 +14,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 class MimeMessageParseException extends MailException {
 
 	static final String ERROR_PARSING_FROMADDRESS = "Error parsing from-address";
-	static final String ERROR_PARSING_ADDRESS = "Error parsing [%s] address";
+	static final String ERROR_PARSING_ADDRESS = "Error parsing [%s] address [%s]";
 	static final String ERROR_PARSING_DISPOSITION = "Error parsing MimeMessage disposition";
 	static final String ERROR_PARSING_CONTENT = "Error parsing MimeMessage Content";
 	static final String ERROR_PARSING_MULTIPART_COUNT = "Error parsing MimeMessage multipart count";

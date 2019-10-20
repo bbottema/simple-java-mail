@@ -1,13 +1,11 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import com.sun.mail.handlers.text_plain;
+import org.simplejavamail.internal.util.NaturalEntryKeyComparator;
 import org.simplejavamail.internal.util.Preconditions;
 
 import javax.activation.ActivationDataFlavor;
 import javax.activation.CommandMap;
-import org.simplejavamail.internal.util.NaturalEntryKeyComparator;
-import org.simplejavamail.internal.util.Preconditions;
-
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.MailcapCommandMap;
@@ -34,8 +32,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.*;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -163,11 +170,11 @@ public final class MimeMessageParser {
 	@SuppressWarnings("StatementWithEmptyBody")
 	private static void parseHeader(final Header header, @Nonnull final ParsedMimeMessageComponents parsedComponents) {
 		if (isEmailHeader(header, "Disposition-Notification-To")) {
-			parsedComponents.dispositionNotificationTo = createAddress(header, "Disposition-Notification-To");
+			parsedComponents.dispositionNotificationTo = createAddress(header.getValue(), "Disposition-Notification-To");
 		} else if (isEmailHeader(header, "Return-Receipt-To")) {
-			parsedComponents.returnReceiptTo = createAddress(header, "Return-Receipt-To");
+			parsedComponents.returnReceiptTo = createAddress(header.getValue(), "Return-Receipt-To");
 		} else if (isEmailHeader(header, "Return-Path")) {
-			parsedComponents.bounceToAddress = createAddress(header, "Return-Path");
+			parsedComponents.bounceToAddress = createAddress(header.getValue(), "Return-Path");
 		} else if (!HEADERS_TO_IGNORE.contains(header.getName())) {
 			parsedComponents.headers.put(header.getName(), header.getValue());
 		} else {
@@ -284,12 +291,15 @@ public final class MimeMessageParser {
 		}
 	}
 
-	@Nonnull
-	private static InternetAddress createAddress(final Header header, final String typeOfAddress) {
+	@Nullable
+	static InternetAddress createAddress(final String address, final String typeOfAddress) {
 		try {
-			return new InternetAddress(header.getValue());
+			return new InternetAddress(address);
 		} catch (final AddressException e) {
-			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_PARSING_ADDRESS, typeOfAddress), e);
+			if (e.getMessage().equals("Empty address")) {
+				return null;
+			}
+			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_PARSING_ADDRESS, typeOfAddress, address), e);
 		}
 	}
 

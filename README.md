@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
 [![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-5.5.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) 
+[![Javadocs](https://img.shields.io/badge/javadoc-5.5.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.7+-lightgray.svg)
 [![Paypal Donate](https://img.shields.io/badge/donate%20with-paypal-blue.svg?style=flat)](https://paypal.me/bennybottema)
@@ -69,17 +69,18 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/#searc
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.5.0</version>
+    <version>5.5.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-[v5.5.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.5.0%7Cjar) (15-October-2019)
+v5.5.0 - [v5.5.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.5.1%7Cjar)
 
-- [#229](https://github.com/bbottema/simple-java-mail/issues/229) Bugfix: Timeouts not working for synchronous sendMail calls.
+- v5.5.1 (20-October-2019): [#230](https://github.com/bbottema/simple-java-mail/issues/230) Bugfix: Missing address value in address headers (ie. Return-Path) not handled properly, resulting in Exception
+- v5.5.0 (15-October-2019): [#229](https://github.com/bbottema/simple-java-mail/issues/229) Bugfix: Timeouts not working for synchronous sendMail calls.
 
-If you had connection properties configured for non-async send jobs, only now they will actually start to take effect.
+ If you had connection properties configured for non-async send jobs, only now they will actually start to take effect.
 
 
 [v5.4.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.4.0%7Cjar) (28-August-2019)
