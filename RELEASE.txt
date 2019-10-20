@@ -3,14 +3,15 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.5.0</version>
+    <version>5.5.1</version>
 </dependency>
 
-v5.5.0 (15-October-2019)
+v5.5.0 - [v5.5.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.5.1%7Cjar)
 
-- 229: Bugfix: Timeouts not working for synchronous sendMail calls.
+- v5.5.1 (20-October-2019): #230: Bugfix: Missing address value in address headers (ie. Return-Path) not handled properly, resulting in Exception
+- v5.5.0 (15-October-2019): #229: Bugfix: Timeouts not working for synchronous sendMail calls.
 
-If you had connection properties configured for non-async send jobs, only now they will actually start to take effect.
+ If you had connection properties configured for non-async send jobs, only now they will actually start to take effect.
 
 
 v5.4.0 (28-August-2019)
