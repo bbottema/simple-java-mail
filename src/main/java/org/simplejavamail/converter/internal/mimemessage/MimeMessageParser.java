@@ -143,15 +143,15 @@ public final class MimeMessageParser {
 			}
 		}
 	}
-
+	
 	@SuppressWarnings("StatementWithEmptyBody")
 	private static void parseHeader(final Header header, @Nonnull final ParsedMimeMessageComponents parsedComponents) {
 		if (header.getName().equals("Disposition-Notification-To")) {
-			parsedComponents.dispositionNotificationTo = createAddress(header, "Disposition-Notification-To");
+			parsedComponents.dispositionNotificationTo = createAddress(header.getValue(), "Disposition-Notification-To");
 		} else if (header.getName().equals("Return-Receipt-To")) {
-			parsedComponents.returnReceiptTo = createAddress(header, "Return-Receipt-To");
+			parsedComponents.returnReceiptTo = createAddress(header.getValue(), "Return-Receipt-To");
 		} else if (header.getName().equals("Return-Path")) {
-			parsedComponents.bounceToAddress = createAddress(header, "Return-Path");
+			parsedComponents.bounceToAddress = createAddress(header.getValue(), "Return-Path");
 		} else if (!HEADERS_TO_IGNORE.contains(header.getName())) {
 			parsedComponents.headers.put(header.getName(), header.getValue());
 		} else {
@@ -245,12 +245,15 @@ public final class MimeMessageParser {
 		}
 	}
 
-	@Nonnull
-	private static InternetAddress createAddress(final Header header, final String typeOfAddress) {
+	@Nullable
+	static InternetAddress createAddress(final String address, final String typeOfAddress) {
 		try {
-			return new InternetAddress(header.getValue());
+			return new InternetAddress(address);
 		} catch (final AddressException e) {
-			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_PARSING_ADDRESS, typeOfAddress), e);
+			if (e.getMessage().equals("Empty address")) {
+				return null;
+			}
+			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_PARSING_ADDRESS, typeOfAddress, address), e);
 		}
 	}
 
