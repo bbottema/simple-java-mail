@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 
+import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.inputStreamEqual;
 
 /**
@@ -106,7 +107,7 @@ public final class Pkcs12Config {
 			try {
 				return pkcs12Store(new FileInputStream(pkcs12StorePath));
 			} catch (FileNotFoundException e) {
-				throw new IllegalStateException("error reading PKCS12 store from File", e);
+				throw new IllegalStateException(format("error reading PKCS12 store from File [%s]", pkcs12StorePath), e);
 			}
 		}
 
