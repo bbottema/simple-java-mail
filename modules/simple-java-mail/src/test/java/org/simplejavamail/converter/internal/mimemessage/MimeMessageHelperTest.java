@@ -28,6 +28,7 @@ import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.anyString;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(MiscUtil.class)
@@ -137,7 +138,8 @@ public class MimeMessageHelperTest {
 		
 		PowerMockito.mockStatic(MiscUtil.class);
 		BDDMockito.given(MiscUtil.classAvailable("oorg.simplejavamail.internal.dkimsupport.DKIMSigner")).willReturn(false);
-		
+		BDDMockito.given(MiscUtil.encodeText(anyString())).willCallRealMethod();
+
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
 			@Override
 			public void call() {
@@ -148,6 +150,7 @@ public class MimeMessageHelperTest {
 		
 		PowerMockito.mockStatic(MiscUtil.class);
 		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner")).willCallRealMethod();
+		BDDMockito.given(MiscUtil.encodeText(anyString())).willCallRealMethod();
 		
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
 			@Override

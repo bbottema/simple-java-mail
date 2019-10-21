@@ -3,6 +3,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -244,7 +245,7 @@ public class MimeMessageHelper {
 	}
 
 	/**
-	 * Determines the right resource name and optionally attaches the correct extension to the name.
+	 * Determines the right resource name and optionally attaches the correct extension to the name. The result is mime encoded.
 	 */
 	static String determineResourceName(final AttachmentResource attachmentResource, final boolean includeExtension) {
 		final String datasourceName = attachmentResource.getDataSource().getName();
@@ -271,6 +272,6 @@ public class MimeMessageHelper {
 			final String extension = resourceName.substring(resourceName.lastIndexOf("."));
 			resourceName = resourceName.replace(extension, "");
 		}
-		return resourceName;
+		return MiscUtil.encodeText(resourceName);
 	}
 }

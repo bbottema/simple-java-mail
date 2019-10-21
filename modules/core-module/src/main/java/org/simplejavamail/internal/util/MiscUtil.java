@@ -84,7 +84,7 @@ public final class MiscUtil {
 			return null;
 		}
 		try {
-			return MimeUtility.encodeText(name);
+			return MimeUtility.encodeText(name, UTF_8.name(), "B");
 		} catch (final UnsupportedEncodingException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}

@@ -1405,7 +1405,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		checkNonEmptyArgument(data, "data");
 		checkNonEmptyArgument(mimetype, "mimetype");
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
-		dataSource.setName(MiscUtil.encodeText(name));
+		dataSource.setName(name);
 		withAttachment(name, dataSource);
 		return this;
 	}
@@ -1416,7 +1416,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @Nonnull final DataSource filedata) {
 		checkNonEmptyArgument(filedata, "filedata");
-		attachments.add(new AttachmentResource(MiscUtil.encodeText(name), filedata));
+		attachments.add(new AttachmentResource(name, filedata));
 		return this;
 	}
 
