@@ -108,7 +108,7 @@ public class MailerHelper {
 	 * @param value      Value checked for suspicious newline characters "\n", "\r" and "%0A" (as acknowledged by SMTP servers).
 	 * @param valueLabel The name of the field being checked, used for reporting exceptions.
 	 *
-	 * @see <a href="http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security">http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security</a>
+	 * @see <a href="https://web.archive.org/web/20160331233647/http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security">https://web.archive.org/web/20160331233647/http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security</a>
 	 * @see <a href="https://security.stackexchange.com/a/54100/110048">https://security.stackexchange.com/a/54100/110048</a>
 	 * @see <a href="https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)">https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)</a>
 	 * @see <a href="http://cwe.mitre.org/data/definitions/93.html">http://cwe.mitre.org/data/definitions/93.html</a>
