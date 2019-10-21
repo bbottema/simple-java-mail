@@ -60,7 +60,7 @@ public class MimeMessageParserTest {
 	}
 	
 	@Test
-	public void testCreateAddress() throws AddressException, UnsupportedEncodingException {
+	public void testCreateAddress() throws UnsupportedEncodingException {
 		assertThat(interpretRecipient("a@b.com")).isEqualTo(new InternetAddress("a@b.com", null));
 		assertThat(interpretRecipient(" a@b.com ")).isEqualTo(new InternetAddress("a@b.com", null));
 		assertThat(interpretRecipient(" <a@b.com> ")).isEqualTo(new InternetAddress("a@b.com", null));
@@ -73,7 +73,9 @@ public class MimeMessageParserTest {
 		assertThat(interpretRecipient(" \"moo\"< a@b.com   > ")).isEqualTo(new InternetAddress("a@b.com", "moo"));
 		assertThat(interpretRecipient(" \"  m oo  \"< a@b.com   > ")).isEqualTo(new InternetAddress("a@b.com", "  m oo  "));
 		assertThat(interpretRecipient("< >")).isNull();
-		
+		assertThat(interpretRecipient("")).isNull();
+		assertThat(interpretRecipient(" ")).isNull();
+
 		// next one is unparsable by InternetAddress#parse(), so it should be taken as is
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
 			@Override

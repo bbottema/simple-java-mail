@@ -185,6 +185,7 @@ public final class MimeMessageParser {
 	private static boolean isEmailHeader(Header header, String emailHeaderName) {
 		return header.getName().equals(emailHeaderName) &&
 				!valueNullOrEmpty(header.getValue()) &&
+				!valueNullOrEmpty(header.getValue().trim()) &&
 				!header.getValue().equals("<>");
 	}
 
@@ -294,7 +295,7 @@ public final class MimeMessageParser {
 	@Nullable
 	static InternetAddress createAddress(final String address, final String typeOfAddress) {
 		try {
-			return new InternetAddress(address);
+			return address.trim().isEmpty() ? null : new InternetAddress(address);
 		} catch (final AddressException e) {
 			if (e.getMessage().equals("Empty address")) {
 				return null;
