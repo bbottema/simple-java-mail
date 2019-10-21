@@ -1,7 +1,10 @@
 package org.simplejavamail.api.email;
 
 import org.junit.Test;
+import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.util.TestDataHelper;
+import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -12,6 +15,8 @@ public class EmailTest {
 
 	@Test
 	public void testSerialization() throws IOException {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
 		Email e = EmailBuilder.startingBlank()
 				.from("lollypop", "lol.pop@somemail.com")
 				.withReplyTo("lollypop-reply", "lol.pop.reply@somemail.com")
