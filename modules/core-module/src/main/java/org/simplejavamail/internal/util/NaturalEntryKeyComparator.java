@@ -5,6 +5,7 @@ import java.util.Map;
 
 public class NaturalEntryKeyComparator<T extends Comparable<T>> implements Comparator<Map.Entry<T, Object>> {
 	
+	@SuppressWarnings("rawtypes")
 	public static final NaturalEntryKeyComparator INSTANCE = new NaturalEntryKeyComparator();
 	
 	// TODO Lombok
