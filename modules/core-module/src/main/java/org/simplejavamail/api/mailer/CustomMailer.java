@@ -13,6 +13,8 @@ import javax.mail.internet.MimeMessage;
  * <p>
  * The benefit of this is that Simple Java Mail acts as an accelarator, providing thread pool, applying email content-validation, address validations,
  * configuring a {@code Session} instance, producing a {@code MimeMessage}, all with full S/MIME, DKIM support and everything else.
+ * <p>
+ * <strong>Note:</strong> in this mode, proxy support is turned off assuming it is handled by the custom mailer as well.
  *
  * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
  */
