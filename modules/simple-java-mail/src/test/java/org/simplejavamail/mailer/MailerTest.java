@@ -5,7 +5,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
@@ -15,6 +17,7 @@ import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
+import javax.annotation.Nullable;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
@@ -26,6 +29,11 @@ import java.util.UUID;
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
@@ -91,8 +99,8 @@ public class MailerTest {
 	@Test
 	public void createMailSession_AnonymousProxyConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		
-		Mailer mailer = createFullyConfiguredMailer(false, "", SMTP_TLS);
+
+		Mailer mailer = createFullyConfiguredMailerBuilder(false, "", SMTP_TLS).buildMailer();
 		
 		Session session = mailer.getSession();
 		
@@ -116,8 +124,8 @@ public class MailerTest {
 	@Test
 	public void createMailSession_MaximumConstructor_WithoutConfig() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		
-		Mailer mailer = createFullyConfiguredMailer(true, "", SMTP_TLS);
+
+		Mailer mailer = createFullyConfiguredMailerBuilder(true, "", SMTP_TLS).buildMailer();
 		
 		Session session = mailer.getSession();
 		
@@ -214,7 +222,7 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_MaximumConstructor_WithConfig() {
-		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTP_TLS);
+		Mailer mailer = createFullyConfiguredMailerBuilder(false, "overridden ", SMTP_TLS).buildMailer();
 		
 		Session session = mailer.getSession();
 		
@@ -236,7 +244,7 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_MaximumConstructor_WithConfig_TLS() {
-		Mailer mailer = createFullyConfiguredMailer(false, "overridden ", SMTPS);
+		Mailer mailer = createFullyConfiguredMailerBuilder(false, "overridden ", SMTPS).buildMailer();
 		
 		Session session = mailer.getSession();
 		
@@ -314,14 +322,44 @@ public class MailerTest {
 		
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
 	}
-	
-	private Mailer createFullyConfiguredMailer(boolean authenticateProxy, String prefix, TransportStrategy transportStrategy) {
+
+	@Test
+	public void testCustomMailer_sendEmail() throws IOException {
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true).buildEmail();
+		final CustomMailer customMailerMock = mock(CustomMailer.class);
+
+		getMailerWithCustomMailer(customMailerMock).sendMail(email);
+
+		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), eq(email), any(MimeMessage.class));
+		verifyNoMoreInteractions(customMailerMock);
+	}
+
+	@Test
+	public void testCustomMailer_testConnection() {
+		final CustomMailer customMailerMock = mock(CustomMailer.class);
+
+		getMailerWithCustomMailer(customMailerMock).testConnection();
+
+		verify(customMailerMock).testConnection(any(OperationalConfig.class), any(Session.class));
+		verifyNoMoreInteractions(customMailerMock);
+	}
+
+	private Mailer getMailerWithCustomMailer(final CustomMailer customMailerMock) {
+		return createFullyConfiguredMailerBuilder(false, "", null)
+				.withCustomMailer(customMailerMock)
+				.buildMailer();
+	}
+
+	private MailerRegularBuilderImpl createFullyConfiguredMailerBuilder(final boolean authenticateProxy, final String prefix, @Nullable final TransportStrategy transportStrategy) {
 		MailerRegularBuilderImpl mailerBuilder = MailerBuilder
 				.withSMTPServer(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp")
-				.withTransportStrategy(transportStrategy)
 				.verifyingServerIdentity(true)
 				.withDebugLogging(true);
-		
+
+		if (transportStrategy != null) {
+			mailerBuilder.withTransportStrategy(transportStrategy);
+		}
+
 		if (transportStrategy == SMTP_TLS) {
 			if (authenticateProxy) {
 				mailerBuilder
@@ -333,10 +371,9 @@ public class MailerTest {
 		} else if (transportStrategy == SMTPS) {
 			mailerBuilder.clearProxy();
 		}
-		
+
 		return mailerBuilder
 				.withProperty("extra1", prefix + "value1")
-				.withProperty("extra2", prefix + "value2")
-				.buildMailer();
+				.withProperty("extra2", prefix + "value2");
 	}
 }

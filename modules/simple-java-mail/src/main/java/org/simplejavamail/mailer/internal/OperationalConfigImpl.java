@@ -1,9 +1,11 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -104,9 +106,15 @@ class OperationalConfigImpl implements OperationalConfig {
 	 */
 	@Nonnull
 	private final ExecutorService executorService;
+
+	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withCustomMailer(CustomMailer)
+	 */
+	@Nullable
+	private final CustomMailer customMailer;
 	
 	OperationalConfigImpl(final boolean async,
-			final Properties properties,
+			@Nullable final Properties properties,
 			final int sessionTimeout,
 			final int threadPoolSize,
 			final int threadPoolKeepAliveTime,
@@ -121,7 +129,8 @@ class OperationalConfigImpl implements OperationalConfig {
 			@Nonnull final List<String> sslHostsToTrust,
 			final boolean trustAllSSLHost,
 			final boolean verifyingServerIdentity,
-			@Nonnull final ExecutorService executorService) {
+			@Nonnull final ExecutorService executorService,
+			@Nullable final CustomMailer customMailer) {
 		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
 		this.sessionTimeout = sessionTimeout;
@@ -139,6 +148,30 @@ class OperationalConfigImpl implements OperationalConfig {
 		this.trustAllSSLHost = trustAllSSLHost;
 		this.verifyingServerIdentity = verifyingServerIdentity;
 		this.executorService = executorService;
+		this.customMailer = customMailer;
+	}
+
+	@Override
+	public String toString() {
+		return "OperationalConfigImpl{" + "async=" + async
+				+ ", properties=" + properties
+				+ ", sessionTimeout=" + sessionTimeout
+				+ ", threadPoolSize=" + threadPoolSize
+				+ ", threadPoolKeepAliveTime=" + threadPoolKeepAliveTime
+				+ ", clusterKey=" + clusterKey
+				+ ", connectionPoolCoreSize=" + connectionPoolCoreSize
+				+ ", connectionPoolMaxSize=" + connectionPoolMaxSize
+				+ ", connectionPoolClaimTimeoutMillis=" + connectionPoolClaimTimeoutMillis
+				+ ", connectionPoolExpireAfterMillis=" + connectionPoolExpireAfterMillis
+				+ ", connectionPoolLoadBalancingStrategy=" + connectionPoolLoadBalancingStrategy
+				+ ", transportModeLoggingOnly=" + transportModeLoggingOnly
+				+ ", debugLogging=" + debugLogging
+				+ ", sslHostsToTrust=" + sslHostsToTrust
+				+ ", trustAllSSLHost=" + trustAllSSLHost
+				+ ", verifyingServerIdentity=" + verifyingServerIdentity
+				+ ", executorService=" + executorService
+				+ ", customMailer=" + customMailer
+				+ '}';
 	}
 
 	/**
@@ -266,13 +299,19 @@ class OperationalConfigImpl implements OperationalConfig {
 
 	@Nonnull
 	@Override
-	public ExecutorService getExecutorService() {
-		return executorService;
+	public UUID getClusterKey() {
+		return clusterKey;
 	}
 
 	@Nonnull
 	@Override
-	public UUID getClusterKey() {
-		return clusterKey;
+	public ExecutorService getExecutorService() {
+		return executorService;
+	}
+
+	@Nullable
+	@Override
+	public CustomMailer getCustomMailer() {
+		return customMailer;
 	}
 }

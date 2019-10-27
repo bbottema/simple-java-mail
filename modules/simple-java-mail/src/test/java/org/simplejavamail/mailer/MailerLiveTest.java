@@ -41,7 +41,8 @@ import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.EmailHelper.readOutlookMessage;
 
 /*
- * This class name is referrenced in pom, so it is excluded from testing in CircleCI.
+ * This class name is referrenced in pom as an exclusion for a profile that is only active during
+ * remote builds (so excluded from tests in CircleCI).
  */
 @SuppressWarnings("unused")
 public class MailerLiveTest {

@@ -420,6 +420,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withProperty(@Nonnull String propertyName, @Nullable Object propertyValue);
 
 	/**
+	 * @see CustomMailer
+	 */
+	T withCustomMailer(@Nonnull CustomMailer customMailer);
+
+	/**
 	 * Resets session time to its default ({@value DEFAULT_SESSION_TIMEOUT_MILLIS}).
 	 *
 	 * @see #withSessionTimeout(Integer)
@@ -705,4 +710,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	Properties getProperties();
+
+	/**
+	 * @see #withCustomMailer(CustomMailer)
+	 */
+	@Nullable
+	CustomMailer getCustomMailer();
 }

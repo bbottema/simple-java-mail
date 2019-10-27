@@ -1,13 +1,13 @@
 package org.simplejavamail.mailer.internal;
 
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
+import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.internal.modules.ModuleLoader;
-import org.simplejavamail.internal.util.SimpleOptional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -169,6 +169,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
 	private boolean transportModeLoggingOnly;
+
+	/**
+	 * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
+	 */
+	@Nullable
+	private CustomMailer customMailer;
 	
 	/**
 	 * Sets defaults configured for proxy host, proxy port, proxy username, proxy password and proxy bridge port (used in authenticated proxy).
@@ -259,7 +265,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getSslHostsToTrust(),
 				isTrustAllSSLHost(),
 				isVerifyingServerIdentity(),
-				getExecutorService());
+				getExecutorService(),
+				getCustomMailer());
 	}
 	
 	/**
@@ -512,6 +519,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		} else {
 			this.properties.put(propertyName, propertyValue.toString());
 		}
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
+	 */
+	@Override
+	public T withCustomMailer(@Nonnull CustomMailer customMailer) {
+		this.customMailer = customMailer;
 		return (T) this;
 	}
 
@@ -869,5 +885,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nonnull
 	public Properties getProperties() {
 		return properties;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getCustomMailer()
+	 */
+	@Override
+	@Nullable
+	public CustomMailer getCustomMailer() {
+		return customMailer;
 	}
 }

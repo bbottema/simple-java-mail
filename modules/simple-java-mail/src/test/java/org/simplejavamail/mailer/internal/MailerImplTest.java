@@ -3,7 +3,6 @@ package org.simplejavamail.mailer.internal;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 
@@ -24,6 +23,7 @@ import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_R
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
+import static testutil.EmailHelper.createDummyOperationalConfig;
 
 public class MailerImplTest {
 	
@@ -102,13 +102,5 @@ public class MailerImplTest {
 	@Nonnull
 	private List<String> asList(String... args) {
 		return Arrays.asList(args);
-	}
-
-	@Nonnull
-	@SuppressWarnings("SameParameterValue")
-	private OperationalConfig createDummyOperationalConfig(List<String> hostsToTrust, boolean trustAllSSLHost, boolean verifyServerIdentity) {
-		return new OperationalConfigImpl(false, new Properties(), 0, 10, 1000, randomUUID(), 0, 1, 5000, 10000, ROUND_ROBIN, false, false, hostsToTrust, trustAllSSLHost,
-				verifyServerIdentity,
-				newSingleThreadExecutor());
 	}
 }

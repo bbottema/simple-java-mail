@@ -1,10 +1,12 @@
 package org.simplejavamail.api.mailer.config;
 
+import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -96,14 +98,20 @@ public interface OperationalConfig {
 	Properties getProperties();
 
 	/**
+	 * @see MailerGenericBuilder#withClusterKey(UUID)
+	 */
+	@Nonnull
+	UUID getClusterKey();
+
+	/**
 	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
 	@Nonnull
 	ExecutorService getExecutorService();
 
 	/**
-	 * @see MailerGenericBuilder#withClusterKey(UUID)
+	 * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
 	 */
-	@Nonnull
-	UUID getClusterKey();
+	@Nullable
+	CustomMailer getCustomMailer();
 }

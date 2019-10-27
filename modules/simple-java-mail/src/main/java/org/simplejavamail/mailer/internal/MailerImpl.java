@@ -118,7 +118,7 @@ public class MailerImpl implements Mailer {
 		this.session = session;
 		this.operationalConfig = operationalConfig;
 		final TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orMaybe(findStrategyForSession(session));
-		this.proxyServer = configureSessionWithProxy(proxyConfig, session, effectiveTransportStrategy);
+		this.proxyServer = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
 		initSession(session, operationalConfig, effectiveTransportStrategy);
 		initCluster(session, operationalConfig);
 	}
@@ -227,10 +227,14 @@ public class MailerImpl implements Mailer {
 	 * @return null in case of no proxy or anonymous proxy, or a AnonymousSocks5Server proxy bridging server instance in case of authenticated proxy.
 	 */
 	@Nullable
-	private static AnonymousSocks5Server configureSessionWithProxy(@Nonnull final ProxyConfig proxyConfig,
+	private static AnonymousSocks5Server configureSessionWithProxy(
+			@Nonnull final ProxyConfig proxyConfig,
+			@Nonnull final OperationalConfig operationalConfig,
 			@Nonnull final Session session,
 			@Nullable final TransportStrategy transportStrategy) {
-		if (!proxyConfig.requiresProxy()) {
+		if (operationalConfig.getCustomMailer() != null) {
+			LOGGER.trace("CustomMailer provided by user, skipping proxy.");
+		} else if (!proxyConfig.requiresProxy()) {
 			LOGGER.trace("No proxy set, skipping proxy.");
 		} else {
 			if (transportStrategy == TransportStrategy.SMTPS) {
@@ -260,7 +264,7 @@ public class MailerImpl implements Mailer {
 	}
 
 	private void initCluster(@Nonnull final Session session, @Nonnull final OperationalConfig operationalConfig) {
-		if (ModuleLoader.batchModuleAvailable()) {
+		if (operationalConfig.getCustomMailer() == null && ModuleLoader.batchModuleAvailable()) {
 			ModuleLoader.loadBatchModule().registerToCluster(operationalConfig, operationalConfig.getClusterKey(), session);
 		}
 	}
@@ -278,7 +282,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@Nullable
 	public synchronized AsyncResponse testConnection(boolean async) {
-		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig.getClusterKey(), session, proxyServer, async, smtpConnectionCounter);
+		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, async, smtpConnectionCounter);
 
 		if (!async) {
 			testConnectionClosure.run();
@@ -304,7 +308,7 @@ public class MailerImpl implements Mailer {
 	@Nullable
 	public final AsyncResponse sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (validate(email)) {
-			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig.getClusterKey(), session, email, proxyServer, async, operationalConfig.isTransportModeLoggingOnly(),
+			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, async, operationalConfig.isTransportModeLoggingOnly(),
 					smtpConnectionCounter);
 
 			if (!async) {
