@@ -11,6 +11,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
@@ -19,6 +20,7 @@ import org.simplejavamail.internal.clisupport.valueinterpreters.PemFilePathToX50
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToFileFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.MsgFilePathToMimeMessageFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToCalendarMethodFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToLoadBalancingStrategyFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToTransportStrategyFunction;
 import org.simplejavamail.internal.util.StringUtil;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
@@ -41,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -78,6 +81,8 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(InputStream.class, "FILE");
 		put(File.class, "FILE");
 		put(X509Certificate.class, "PEM FILE");
+		put(UUID.class, "UUID");
+		put(LoadBalancingStrategy.class, "NAME");
 	}};
 	
 	static {
@@ -86,6 +91,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		ValueConversionHelper.registerValueConverter(new MsgFilePathToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new PemFilePathToX509CertificateFunction());
 		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
+		ValueConversionHelper.registerValueConverter(new StringToLoadBalancingStrategyFunction());
 		ValueConversionHelper.registerValueConverter(new StringToCalendarMethodFunction());
 	}
 	
@@ -149,7 +155,10 @@ public final class BuilderApiToPicocliCommandsMapper {
 					generateOptionsFromBuilderApiChain(potentialNestedApiNode, processedApiNodes, cliOptionsFoundSoFar);
 				}
 			} else {
-				LOGGER.debug("Method not CLI compatible: {}.{}({})", apiNode.getSimpleName(), m.getName(), Arrays.toString(m.getParameterTypes()));
+				final String reason = (m.isAnnotationPresent(Cli.ExcludeApi.class))
+						? "Method excluded for CLI: {}.{}({})"
+						: "Method not CLI compatible: {}.{}({})";
+				LOGGER.debug(reason, apiNode.getSimpleName(), m.getName(), Arrays.toString(m.getParameterTypes()));
 			}
 		}
 	}

@@ -289,6 +289,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * thus effectively nothing is clustered.
 	 *
 	 * @see <a href="http://www.simplejavamail.org/configuration.html#section-batch-and-clustering">Clustering with Simple Java Mail</a>
+	 *
+	 * @param clusterKey See main description.
 	 */
 	T withClusterKey(@Nonnull UUID clusterKey);
 
@@ -297,6 +299,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Note that this also means that if you configure an auto-expiry timeout, these connections die off and new ones are created immediately to maintain core size.
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 *
+	 * @param connectionPoolCoreSize See main description.
 	 */
 	T withConnectionPoolCoreSize(@Nonnull Integer connectionPoolCoreSize);
 
@@ -310,6 +314,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * connection pool and wait on the Transport directly instead.
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 *
+	 * @param connectionPoolMaxSize See main description.
 	 */
 	T withConnectionPoolMaxSize(@Nonnull Integer connectionPoolMaxSize);
 
@@ -318,6 +324,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * The default is to wait indefinately until a connection becomes available in the pool.
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 *
+	 * @param connectionPoolClaimTimeoutMillis See main description.
 	 */
 	T withConnectionPoolClaimTimeoutMillis(@Nonnull Integer connectionPoolClaimTimeoutMillis);
 
@@ -328,6 +336,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * closing and openings to keep core pool populated until shut down.
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 *
+	 * @param connectionPoolExpireAfterMillis See main description.
 	 */
 	T withConnectionPoolExpireAfterMillis(@Nonnull Integer connectionPoolExpireAfterMillis);
 
@@ -337,6 +347,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * This is only relevant if you have multiple mail servers in one or more clusters. Currently it is impossible to define different load balancing strategies for different clusters.
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 *
+	 * @param loadBalancingStrategy See main description.
 	 */
 	T withConnectionPoolLoadBalancingStrategy(@Nonnull LoadBalancingStrategy loadBalancingStrategy);
 
@@ -365,6 +377,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
 	 * @see #trustingAllHosts(boolean)
 	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
+	 *
+	 * @param sslHostsToTrust See main description.
 	 */
 	T trustingSSLHosts(String... sslHostsToTrust);
 
@@ -377,6 +391,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
 	 * @see #trustingSSLHosts(String...)
 	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
+	 *
+	 * @param trustAllHosts See main description.
 	 */
 	T trustingAllHosts(boolean trustAllHosts);
 
@@ -390,6 +406,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #trustingAllHosts(boolean)
 	 * @see #trustingSSLHosts(String...)
 	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
+	 *
+	 * @param verifyingServerIdentity See main description.
 	 */
 	T verifyingServerIdentity(boolean verifyingServerIdentity);
 
