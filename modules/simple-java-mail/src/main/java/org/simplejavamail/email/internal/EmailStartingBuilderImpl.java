@@ -7,7 +7,7 @@ import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.email.EmailBuilder;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
@@ -56,7 +56,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#replyingTo(Email)
 	 */
 	@Override
-	public EmailPopulatingBuilder replyingTo(@Nonnull final Email email) {
+	public EmailPopulatingBuilder replyingTo(@NotNull final Email email) {
 		return replyingTo(EmailConverter.emailToMimeMessage(email), false, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
 	}
 	
@@ -64,7 +64,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#replyingToAll(Email)
 	 */
 	@Override
-	public EmailPopulatingBuilder replyingToAll(@Nonnull final Email email) {
+	public EmailPopulatingBuilder replyingToAll(@NotNull final Email email) {
 		return replyingTo(EmailConverter.emailToMimeMessage(email), true, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
 	}
 	
@@ -72,7 +72,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#replyingToAll(Email, String)
 	 */
 	@Override
-	public EmailPopulatingBuilder replyingToAll(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
+	public EmailPopulatingBuilder replyingToAll(@NotNull final Email email, @NotNull final String customQuotingTemplate) {
 		return replyingTo(EmailConverter.emailToMimeMessage(email), true, customQuotingTemplate);
 	}
 	
@@ -80,7 +80,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#replyingTo(Email, String)
 	 */
 	@Override
-	public EmailPopulatingBuilder replyingTo(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
+	public EmailPopulatingBuilder replyingTo(@NotNull final Email email, @NotNull final String customQuotingTemplate) {
 		return replyingTo(EmailConverter.emailToMimeMessage(email), false, customQuotingTemplate);
 	}
 	
@@ -88,7 +88,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage)
 	 */
 	@Override
-	public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage message) {
+	public EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage message) {
 		return replyingTo(message, false, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
 	}
 	
@@ -96,7 +96,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, String)
 	 */
 	@Override
-	public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage message, @Nonnull final String customQuotingTemplate) {
+	public EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage message, @NotNull final String customQuotingTemplate) {
 		return replyingTo(message, false, customQuotingTemplate);
 	}
 	
@@ -104,7 +104,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#replyingToAll(MimeMessage, String)
 	 */
 	@Override
-	public EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage message, @Nonnull final String customQuotingTemplate) {
+	public EmailPopulatingBuilder replyingToAll(@NotNull final MimeMessage message, @NotNull final String customQuotingTemplate) {
 		return replyingTo(message, true, customQuotingTemplate);
 	}
 	
@@ -112,7 +112,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#replyingToAll(MimeMessage)
 	 */
 	@Override
-	public EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage message) {
+	public EmailPopulatingBuilder replyingToAll(@NotNull final MimeMessage message) {
 		return replyingTo(message, true, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
 	}
 	
@@ -120,7 +120,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	@Override
-	public EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage emailMessage, final boolean repyToAll, @Nonnull final String htmlTemplate) {
+	public EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage emailMessage, final boolean repyToAll, @NotNull final String htmlTemplate) {
 		final MimeMessage replyMessage;
 		try {
 			replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
@@ -146,7 +146,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#forwarding(Email)
 	 */
 	@Override
-	public EmailPopulatingBuilder forwarding(@Nonnull final Email email) {
+	public EmailPopulatingBuilder forwarding(@NotNull final Email email) {
 		return forwarding(EmailConverter.emailToMimeMessage(email));
 	}
 	
@@ -154,7 +154,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#forwarding(MimeMessage)
 	 */
 	@Override
-	public EmailPopulatingBuilder forwarding(@Nonnull final MimeMessage message) {
+	public EmailPopulatingBuilder forwarding(@NotNull final MimeMessage message) {
 		return ((InternalEmailPopulatingBuilder) startingBlank())
 				.withForward(message)
 				.withSubject("Fwd: " + MimeMessageParser.parseSubject(message));
@@ -164,7 +164,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#copying(MimeMessage)
 	 */
 	@Override
-	public EmailPopulatingBuilder copying(@Nonnull final MimeMessage message) {
+	public EmailPopulatingBuilder copying(@NotNull final MimeMessage message) {
 		return copying(EmailConverter.mimeMessageToEmail(message));
 	}
 	
@@ -172,7 +172,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 * @see EmailStartingBuilder#copying(EmailPopulatingBuilder)
 	 */
 	@Override
-	public EmailPopulatingBuilder copying(@Nonnull final EmailPopulatingBuilder emailBuilder) {
+	public EmailPopulatingBuilder copying(@NotNull final EmailPopulatingBuilder emailBuilder) {
 		return copying(emailBuilder.buildEmail());
 	}
 	
@@ -181,7 +181,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@SuppressWarnings({ "CastCanBeRemovedNarrowingVariableType", "deprecation" })
 	@Override
-	public EmailPopulatingBuilder copying(@Nonnull final Email email) {
+	public EmailPopulatingBuilder copying(@NotNull final Email email) {
 		EmailPopulatingBuilder builder = new EmailPopulatingBuilderImpl(applyDefaults);
 		if (email.getId() != null) {
 			builder.fixingMessageId(email.getId());

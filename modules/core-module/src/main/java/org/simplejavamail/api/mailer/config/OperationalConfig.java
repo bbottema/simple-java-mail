@@ -5,8 +5,8 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -62,7 +62,7 @@ public interface OperationalConfig {
 	/**
 	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
 	 */
-	@Nonnull
+	@NotNull
 	LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy();
 	
 	/**
@@ -78,7 +78,7 @@ public interface OperationalConfig {
 	/**
 	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
-	@Nonnull
+	@NotNull
 	List<String> getSslHostsToTrust();
 
 	/**
@@ -94,19 +94,19 @@ public interface OperationalConfig {
 	/**
 	 * @see MailerGenericBuilder#withProperties(Properties)
 	 */
-	@Nonnull
+	@NotNull
 	Properties getProperties();
 
 	/**
 	 * @see MailerGenericBuilder#withClusterKey(UUID)
 	 */
-	@Nonnull
+	@NotNull
 	UUID getClusterKey();
 
 	/**
 	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
-	@Nonnull
+	@NotNull
 	ExecutorService getExecutorService();
 
 	/**

@@ -2,8 +2,8 @@ package org.simplejavamail.internal.batchsupport;
 
 import org.simplejavamail.api.mailer.AsyncResponse;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.Future;
 
 /**
@@ -11,11 +11,11 @@ import java.util.concurrent.Future;
  */
 public class AsyncResponseImpl implements AsyncResponse {
 	
-	@Nonnull private final Future<?> future;
+	@NotNull private final Future<?> future;
 	@Nullable private Runnable successHandler;
 	@Nullable private ExceptionConsumer errorHandler;
 	
-	AsyncResponseImpl(@Nonnull Future<?> future) {
+	AsyncResponseImpl(@NotNull Future<?> future) {
 		this.future = future;
 	}
 	
@@ -23,7 +23,7 @@ public class AsyncResponseImpl implements AsyncResponse {
 	 * @see AsyncResponse#onSuccess(Runnable)
 	 */
 	@Override
-	public void onSuccess(@Nonnull Runnable onSuccess) {
+	public void onSuccess(@NotNull Runnable onSuccess) {
 		this.successHandler = onSuccess;
 	}
 	
@@ -31,7 +31,7 @@ public class AsyncResponseImpl implements AsyncResponse {
 	 * @see AsyncResponse#onException(ExceptionConsumer)
 	 */
 	@Override
-	public void onException(@Nonnull ExceptionConsumer errorHandler) {
+	public void onException(@NotNull ExceptionConsumer errorHandler) {
 		this.errorHandler = errorHandler;
 	}
 	
@@ -52,7 +52,7 @@ public class AsyncResponseImpl implements AsyncResponse {
 	 * @see AsyncResponse#getFuture()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public Future<?> getFuture() {
 		return future;
 	}

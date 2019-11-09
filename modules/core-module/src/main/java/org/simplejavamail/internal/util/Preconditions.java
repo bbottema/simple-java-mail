@@ -1,7 +1,7 @@
 package org.simplejavamail.internal.util;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static java.lang.String.format;
 
@@ -10,18 +10,18 @@ public final class Preconditions {
 		// util / helper class
 	}
 	
-	@Nonnull
-	public static <T> T checkNonEmptyArgument(@Nullable final T arg, @Nonnull final String parameterName) {
+	@NotNull
+	public static <T> T checkNonEmptyArgument(@Nullable final T arg, @NotNull final String parameterName) {
 		return verifyNonnull(arg, format("%s is required", parameterName));
 	}
 	
-	@Nonnull
+	@NotNull
 	public static <T> T assumeNonNull(@Nullable final T arg) {
 		return verifyNonnull(arg, "argument was assumed nonNull, but was null");
 	}
 	
-	@Nonnull
-	private static <T> T verifyNonnull(@Nullable final T arg, @Nonnull final String message) {
+	@NotNull
+	private static <T> T verifyNonnull(@Nullable final T arg, @NotNull final String message) {
 		if (MiscUtil.valueNullOrEmpty(arg)) {
 			throw new IllegalArgumentException(message);
 		}
@@ -29,7 +29,7 @@ public final class Preconditions {
 	}
 	
 	@SuppressWarnings({"UnusedReturnValue", "SameReturnValue"})
-	public static boolean assumeTrue(boolean state, @Nonnull final String msg) {
+	public static boolean assumeTrue(boolean state, @NotNull final String msg) {
 		if (!state) {
 			throw new IllegalArgumentException(msg);
 		}

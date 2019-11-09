@@ -3,7 +3,7 @@ package org.simplejavamail.api.email;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.internet.MimeMessage;
 import java.util.regex.Pattern;
 
@@ -52,25 +52,25 @@ public interface EmailStartingBuilder {
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
 	 * template.
 	 */
-	EmailPopulatingBuilder replyingTo(@Nonnull Email email);
+	EmailPopulatingBuilder replyingTo(@NotNull Email email);
 	
 	/**
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code> and a default HTML quoting
 	 * template.
 	 */
-	EmailPopulatingBuilder replyingToAll(@Nonnull Email email);
+	EmailPopulatingBuilder replyingToAll(@NotNull Email email);
 	
 	/**
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code>.
 	 *
 	 * @see #DEFAULT_QUOTING_MARKUP
 	 */
-	EmailPopulatingBuilder replyingToAll(@Nonnull Email email, @Nonnull String customQuotingTemplate);
+	EmailPopulatingBuilder replyingToAll(@NotNull Email email, @NotNull String customQuotingTemplate);
 	
 	/**
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
 	 */
-	EmailPopulatingBuilder replyingTo(@Nonnull Email email, @Nonnull String customQuotingTemplate);
+	EmailPopulatingBuilder replyingTo(@NotNull Email email, @NotNull String customQuotingTemplate);
 	
 	/**
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
@@ -79,7 +79,7 @@ public interface EmailStartingBuilder {
 	 * @param message MimeMessage to reply to with new email.
 	 */
 	@Cli.OptionNameOverride("replyingToSenderWithDefaultQuoteMarkup")
-	EmailPopulatingBuilder replyingTo(@Nonnull MimeMessage message);
+	EmailPopulatingBuilder replyingTo(@NotNull MimeMessage message);
 	
 	/**
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
@@ -89,7 +89,7 @@ public interface EmailStartingBuilder {
 	 *                                    or else the original email is not embedded in the reply.
 	 */
 	@Cli.OptionNameOverride("replyingToSender")
-	EmailPopulatingBuilder replyingTo(@Nonnull MimeMessage message, @Nonnull String customQuotingTemplate);
+	EmailPopulatingBuilder replyingTo(@NotNull MimeMessage message, @NotNull String customQuotingTemplate);
 	
 	/**
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code>.
@@ -100,7 +100,7 @@ public interface EmailStartingBuilder {
 	 *
 	 * @see #DEFAULT_QUOTING_MARKUP
 	 */
-	EmailPopulatingBuilder replyingToAll(@Nonnull MimeMessage message, @Nonnull String customQuotingTemplate);
+	EmailPopulatingBuilder replyingToAll(@NotNull MimeMessage message, @NotNull String customQuotingTemplate);
 	
 	/**
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code> and a default HTML quoting
@@ -111,7 +111,7 @@ public interface EmailStartingBuilder {
 	 * @see #DEFAULT_QUOTING_MARKUP
 	 */
 	@Cli.OptionNameOverride("replyingToAllWithDefaultQuoteMarkup")
-	EmailPopulatingBuilder replyingToAll(@Nonnull MimeMessage message);
+	EmailPopulatingBuilder replyingToAll(@NotNull MimeMessage message);
 	
 	/**
 	 * Primes the email with subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply.
@@ -138,12 +138,12 @@ public interface EmailStartingBuilder {
 	 * @see <a href="https://javaee.github.io/javamail/FAQ#reply">Official JavaMail FAQ on replying</a>
 	 * @see MimeMessage#reply(boolean)
 	 */
-	EmailPopulatingBuilder replyingTo(@Nonnull MimeMessage emailMessage, boolean repyToAll, @Nonnull String htmlTemplate);
+	EmailPopulatingBuilder replyingTo(@NotNull MimeMessage emailMessage, boolean repyToAll, @NotNull String htmlTemplate);
 	
 	/**
 	 * Delegates to {@link #forwarding(MimeMessage)} with the provided {@link Email} converted to {@link MimeMessage}.
 	 */
-	EmailPopulatingBuilder forwarding(@Nonnull Email email);
+	EmailPopulatingBuilder forwarding(@NotNull Email email);
 	
 	/**
 	 * Primes the email to be build with proper subject and include the forwarded email as "message/rfc822" bodypart (valid RFC forward).
@@ -159,24 +159,24 @@ public interface EmailStartingBuilder {
 	 * material</a>
 	 * @see #forwarding(Email)
 	 */
-	EmailPopulatingBuilder forwarding(@Nonnull MimeMessage message);
+	EmailPopulatingBuilder forwarding(@NotNull MimeMessage message);
 	
 	/**
 	 * Delegates to {@link #copying(Email)}, by converting the provided message first.
 	 *
 	 * @param message The MimeMessage email to convert and copy to new {@link Email}.
 	 */
-	EmailPopulatingBuilder copying(@Nonnull MimeMessage message);
+	EmailPopulatingBuilder copying(@NotNull MimeMessage message);
 	
 	/**
 	 * Delegates to {@link #copying(Email)}, by building the email first.
 	 *
 	 * @see EmailPopulatingBuilder#buildEmail()
 	 */
-	EmailPopulatingBuilder copying(@Nonnull EmailPopulatingBuilder emailBuilder);
+	EmailPopulatingBuilder copying(@NotNull EmailPopulatingBuilder emailBuilder);
 	
 	/**
 	 * Preconfigures the builder with all the properties from the given email that are non-null.
 	 */
-	EmailPopulatingBuilder copying(@Nonnull Email email);
+	EmailPopulatingBuilder copying(@NotNull Email email);
 }

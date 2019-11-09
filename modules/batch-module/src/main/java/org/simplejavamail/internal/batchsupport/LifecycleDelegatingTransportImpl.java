@@ -3,7 +3,7 @@ package org.simplejavamail.internal.batchsupport;
 import org.bbottema.genericobjectpool.PoolableObject;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.Transport;
 
 /**
@@ -17,7 +17,7 @@ class LifecycleDelegatingTransportImpl implements LifecycleDelegatingTransport {
 		this.pooledTransport = pooledTransport;
 	}
 
-	@Nonnull
+	@NotNull
 	@Override
 	public Transport getTransport() {
 		return pooledTransport.getAllocatedObject();

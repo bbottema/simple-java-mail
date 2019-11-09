@@ -2,7 +2,7 @@ package org.simplejavamail.internal.clisupport.valueinterpreters;
 
 import org.simplejavamail.converter.EmailConverter;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
 
@@ -18,7 +18,7 @@ public class EmlFilePathToMimeMessageFunction extends FileBasedFunction<MimeMess
 		return MimeMessage.class;
 	}
 	
-	@Nonnull
+	@NotNull
 	@Override
 	protected MimeMessage convertFile(File emlFile) {
 		return EmailConverter.emlToMimeMessage(emlFile);

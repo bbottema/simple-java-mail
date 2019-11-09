@@ -4,7 +4,7 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.util.ByteArrayDataSource;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -30,7 +30,7 @@ public class TestDataHelper {
 		}
 	}
 
-	@Nonnull
+	@NotNull
 	public static Pkcs12Config loadPkcs12KeyStore() {
 		return Pkcs12Config.builder()
 				.pkcs12Store(RESOURCES_PKCS + "/smime_keystore.pkcs12")

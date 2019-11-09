@@ -2,8 +2,8 @@ package org.simplejavamail.internal.dkimsupport;
 
 import org.simplejavamail.MailException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -15,7 +15,7 @@ class DKIMSigningException extends MailException {
 
 	static final String ERROR_SIGNING_DKIM_INVALID_DOMAINKEY = "Error signing MimeMessage with DKIM";
 	
-	DKIMSigningException(@SuppressWarnings("SameParameterValue") @Nonnull final String message, @Nullable final Exception cause) {
+	DKIMSigningException(@SuppressWarnings("SameParameterValue") @NotNull final String message, @Nullable final Exception cause) {
 		super(checkNonEmptyArgument(message, "message"), cause);
 	}
 }

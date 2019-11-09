@@ -8,7 +8,7 @@ import org.simplejavamail.internal.authenticatedsockssupport.socks5client.SocksS
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -22,9 +22,9 @@ import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 public class AuthenticatingSocks5Bridge implements Socks5Bridge {
 	private static final Logger LOGGER = LoggerFactory.getLogger("socks5bridge");
 	
-	@Nonnull private final ProxyConfig proxyConfig;
-	@Nonnull private final String remoteProxyHost;
-	@Nonnull private final Integer remoteProxyPort;
+	@NotNull private final ProxyConfig proxyConfig;
+	@NotNull private final String remoteProxyHost;
+	@NotNull private final Integer remoteProxyPort;
 
 	AuthenticatingSocks5Bridge(final ProxyConfig proxyConfig) {
 		this.proxyConfig = proxyConfig;

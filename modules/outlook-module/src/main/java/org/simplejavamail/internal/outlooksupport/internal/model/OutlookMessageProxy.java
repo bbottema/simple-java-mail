@@ -9,8 +9,8 @@ import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeAp
 import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeApplicationSmime;
 import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeMultipartSigned;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -211,7 +211,7 @@ public class OutlookMessageProxy implements OutlookMessage {
 		return null;
 	}
 
-	@Nonnull
+	@NotNull
 	private static List<OutlookRecipient> wrapRecipients(List<org.simplejavamail.outlookmessageparser.model.OutlookRecipient> recipients) {
 		final List<OutlookRecipient> wrappedRecipient = new ArrayList<>();
 		for (org.simplejavamail.outlookmessageparser.model.OutlookRecipient recipient : recipients) {

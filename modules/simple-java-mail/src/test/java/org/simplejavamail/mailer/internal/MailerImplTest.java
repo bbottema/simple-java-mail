@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.Session;
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,7 +36,7 @@ public class MailerImplTest {
 		session = Session.getInstance(new Properties());
 	}
 	
-	@Nonnull
+	@NotNull
 	private ProxyConfig createEmptyProxyConfig() {
 		return new ProxyConfigImpl(null, null, null, null, null);
 	}
@@ -99,7 +99,7 @@ public class MailerImplTest {
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
 	}
 	
-	@Nonnull
+	@NotNull
 	private List<String> asList(String... args) {
 		return Arrays.asList(args);
 	}

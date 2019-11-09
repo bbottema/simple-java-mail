@@ -4,7 +4,7 @@ import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.internal.batchsupport.concurrent.NamedRunnable;
 import org.slf4j.Logger;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,8 +28,8 @@ class AsyncOperationHelper {
 	 *
 	 * @see Executors#newSingleThreadExecutor()
 	 */
-	static AsyncResponse executeAsync(final @Nonnull String processName,
-									  final @Nonnull Runnable operation) {
+	static AsyncResponse executeAsync(final @NotNull String processName,
+									  final @NotNull Runnable operation) {
 		return executeAsync(newSingleThreadExecutor(), processName, operation, true);
 	}
 	
@@ -38,15 +38,15 @@ class AsyncOperationHelper {
 	 *
 	 * @see Executors#newSingleThreadExecutor()
 	 */
-	static AsyncResponse executeAsync(final @Nonnull ExecutorService executorService,
-									  final @Nonnull String processName,
-									  final @Nonnull Runnable operation) {
+	static AsyncResponse executeAsync(final @NotNull ExecutorService executorService,
+									  final @NotNull String processName,
+									  final @NotNull Runnable operation) {
 		return executeAsync(executorService, processName, operation, false);
 	}
 	
-	private static AsyncResponse executeAsync(final @Nonnull ExecutorService executorService,
-											  final @Nonnull String processName,
-											  final @Nonnull Runnable operation,
+	private static AsyncResponse executeAsync(final @NotNull ExecutorService executorService,
+											  final @NotNull String processName,
+											  final @NotNull Runnable operation,
 											  final boolean shutDownExecutorService) {
 		// atomic reference is needed to be able to smuggle the asyncResponse
 		// into the Runnable which is passed itself to the asyncResponse.

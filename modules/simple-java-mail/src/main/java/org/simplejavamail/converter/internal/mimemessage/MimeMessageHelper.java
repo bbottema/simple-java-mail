@@ -7,7 +7,7 @@ import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.Address;
 import javax.mail.BodyPart;
 import javax.mail.Message;
@@ -141,7 +141,7 @@ public class MimeMessageHelper {
 	 * <strong>Note:</strong> this is done without setting {@code Content-Disposition} so email clients can choose
 	 * how to display embedded forwards. Most client will show the forward as inline, some may show it as attachment.
 	 */
-	static void configureForwarding(@Nonnull final Email email, @Nonnull final MimeMultipart multipartRootMixed) throws MessagingException {
+	static void configureForwarding(@NotNull final Email email, @NotNull final MimeMultipart multipartRootMixed) throws MessagingException {
 		if (email.getEmailToForward() != null) {
 			final BodyPart fordwardedMessage = new MimeBodyPart();
 			fordwardedMessage.setContent(email.getEmailToForward(), "message/rfc822");

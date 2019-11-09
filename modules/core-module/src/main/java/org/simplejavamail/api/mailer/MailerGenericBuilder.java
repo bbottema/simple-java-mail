@@ -6,8 +6,8 @@ import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 import java.util.EnumSet;
 import java.util.List;
@@ -190,7 +190,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @see #withProxyUsername(String)
 	 */
-	T withProxyBridgePort(@Nonnull Integer proxyBridgePort);
+	T withProxyBridgePort(@NotNull Integer proxyBridgePort);
 
 	/**
 	 * This flag is set on the Session instance through {@link Session#setDebug(boolean)} so that it generates debug information. To get more
@@ -198,7 +198,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @param debugLogging Enables or disables debug logging with {@code true} or {@code false}.
 	 */
-	T withDebugLogging(@Nonnull Boolean debugLogging);
+	T withDebugLogging(@NotNull Boolean debugLogging);
 
 	/**
 	 * Controls the timeout to use when sending emails (affects socket connect-, read- and write timeouts).
@@ -213,7 +213,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @param sessionTimeout Duration to use for session timeout.
 	 */
-	T withSessionTimeout(@Nonnull Integer sessionTimeout);
+	T withSessionTimeout(@NotNull Integer sessionTimeout);
 
 	/**
 	 * Sets the email address validation restrictions when validating and sending emails using the current <code>Mailer</code> instance.
@@ -224,7 +224,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #clearEmailAddressCriteria()
 	 * @see #resetEmailAddressCriteria()
 	 */
-	T withEmailAddressCriteria(@Nonnull EnumSet<EmailAddressCriteria> emailAddressCriteria);
+	T withEmailAddressCriteria(@NotNull EnumSet<EmailAddressCriteria> emailAddressCriteria);
 
 	/**
 	 * <strong>For advanced use cases.</strong>
@@ -247,7 +247,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @param executorService A custom executor service (ThreadPoolExecutor), replacing the {@code NonJvmBlockingThreadPoolExecutor}.
 	 */
-	T withExecutorService(@Nonnull ExecutorService executorService);
+	T withExecutorService(@NotNull ExecutorService executorService);
 
 	/**
 	 * Sets max thread pool size to the given size (default is {@value #DEFAULT_POOL_SIZE}).
@@ -259,7 +259,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #resetThreadPoolSize()
 	 * @see #withThreadPoolSize(Integer)
 	 */
-	T withThreadPoolSize(@Nonnull Integer threadPoolSize);
+	T withThreadPoolSize(@NotNull Integer threadPoolSize);
 
 	/**
 	 * When set to a non-zero value (milliseconds), this keepAlivetime is applied to <em>both</em> core and extra threads. This is so that
@@ -277,7 +277,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @see #resetThreadPoolKeepAliveTime()
 	 */
-	T withThreadPoolKeepAliveTime(@Nonnull Integer threadPoolKeepAliveTime);
+	T withThreadPoolKeepAliveTime(@NotNull Integer threadPoolKeepAliveTime);
 
 	/**
 	 * By defining a clusterKey, you can form clusters where other {@link Mailer} instances represent
@@ -292,7 +292,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @param clusterKey See main description.
 	 */
-	T withClusterKey(@Nonnull UUID clusterKey);
+	T withClusterKey(@NotNull UUID clusterKey);
 
 	/**
 	 * Configures the connection pool's core size (default {@value DEFAULT_CONNECTIONPOOL_CORE_SIZE}), which means the SMTP connection pool will keep X connections open at all times until shut down.
@@ -302,7 +302,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @param connectionPoolCoreSize See main description.
 	 */
-	T withConnectionPoolCoreSize(@Nonnull Integer connectionPoolCoreSize);
+	T withConnectionPoolCoreSize(@NotNull Integer connectionPoolCoreSize);
 
 	/**
 	 * Configured the connection pool's max size (default {@value DEFAULT_CONNECTIONPOOL_MAX_SIZE}) in case of high thread contention. Note that this determines how many connections can be open at
@@ -317,7 +317,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @param connectionPoolMaxSize See main description.
 	 */
-	T withConnectionPoolMaxSize(@Nonnull Integer connectionPoolMaxSize);
+	T withConnectionPoolMaxSize(@NotNull Integer connectionPoolMaxSize);
 
 	/**
 	 * If {@code >0}, configures the connection pool to wait for a limited time after which the attempt to claim a Transport connection errors out.
@@ -327,7 +327,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @param connectionPoolClaimTimeoutMillis See main description.
 	 */
-	T withConnectionPoolClaimTimeoutMillis(@Nonnull Integer connectionPoolClaimTimeoutMillis);
+	T withConnectionPoolClaimTimeoutMillis(@NotNull Integer connectionPoolClaimTimeoutMillis);
 
 	/**
 	 * If {@code >0}, configures the connection pool to automatically close connections after some milliseconds (default {@value DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS}) since last usage.
@@ -339,7 +339,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @param connectionPoolExpireAfterMillis See main description.
 	 */
-	T withConnectionPoolExpireAfterMillis(@Nonnull Integer connectionPoolExpireAfterMillis);
+	T withConnectionPoolExpireAfterMillis(@NotNull Integer connectionPoolExpireAfterMillis);
 
 	/**
 	 * Defines the various types of load balancing modes supported by the connection pool ion the <a href="http://http://www.simplejavamail.org/configuration.html#section-batch-and-clustering">batch-module</a>.
@@ -350,7 +350,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @param loadBalancingStrategy See main description.
 	 */
-	T withConnectionPoolLoadBalancingStrategy(@Nonnull LoadBalancingStrategy loadBalancingStrategy);
+	T withConnectionPoolLoadBalancingStrategy(@NotNull LoadBalancingStrategy loadBalancingStrategy);
 
 	/**
 	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
@@ -359,7 +359,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @see #resetTransportModeLoggingOnly()
 	 */
-	T withTransportModeLoggingOnly(@Nonnull Boolean transportModeLoggingOnly);
+	T withTransportModeLoggingOnly(@NotNull Boolean transportModeLoggingOnly);
 
 	/**
 	 * Configures the new session to only accept server certificates issued to one of the provided hostnames. Note that verifying server identity
@@ -418,13 +418,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withProperty(String, Object)
 	 * @see #clearProperties()
 	 */
-	T withProperties(@Nonnull Properties properties);
+	T withProperties(@NotNull Properties properties);
 
 	/**
 	 * @see #withProperties(Properties)
 	 * @see #clearProperties()
 	 */
-	T withProperties(@Nonnull Map<String, String> properties);
+	T withProperties(@NotNull Map<String, String> properties);
 
 	/**
 	 * Sets property or removes it if the provided value is <code>null</code>. If provided, the value is always converted <code>toString()</code>.
@@ -435,12 +435,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withProperties(Properties)
 	 * @see #clearProperties()
 	 */
-	T withProperty(@Nonnull String propertyName, @Nullable Object propertyValue);
+	T withProperty(@NotNull String propertyName, @Nullable Object propertyValue);
 
 	/**
 	 * @see CustomMailer
 	 */
-	T withCustomMailer(@Nonnull CustomMailer customMailer);
+	T withCustomMailer(@NotNull CustomMailer customMailer);
 
 	/**
 	 * Resets session time to its default ({@value DEFAULT_SESSION_TIMEOUT_MILLIS}).
@@ -657,13 +657,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * @see #withThreadPoolSize(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	Integer getThreadPoolSize();
 
 	/**
 	 * @see #withThreadPoolKeepAliveTime(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	Integer getThreadPoolKeepAliveTime();
 
 	/**
@@ -675,31 +675,31 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * @see #withConnectionPoolCoreSize(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	Integer getConnectionPoolCoreSize();
 
 	/**
 	 * @see #withConnectionPoolMaxSize(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	Integer getConnectionPoolMaxSize();
 
 	/**
 	 * @see #withConnectionPoolClaimTimeoutMillis(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	Integer getConnectionPoolClaimTimeoutMillis();
 
 	/**
 	 * @see #withConnectionPoolExpireAfterMillis(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	Integer getConnectionPoolExpireAfterMillis();
 
 	/**
 	 * @see #withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
 	 */
-	@Nonnull
+	@NotNull
 	LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy();
 
 	/**

@@ -4,8 +4,8 @@ import com.github.therapi.runtimejavadoc.Comment;
 import com.github.therapi.runtimejavadoc.CommentElement;
 import com.github.therapi.runtimejavadoc.CommentFormatter;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
@@ -27,12 +27,12 @@ abstract class ContextualCommentFormatter extends CommentFormatter {
 		return super.format(comment);
 	}
 	
-	@Nonnull
+	@NotNull
 	String indent() {
 		return indent(0);
 	}
 	
-	@Nonnull
+	@NotNull
 	String indent(int depthModifier) {
 		return nStrings(currentNestingDepth + depthModifier, "  ");
 	}

@@ -2,7 +2,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 
 import org.simplejavamail.api.email.Email;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
@@ -34,7 +34,7 @@ public final class MimeMessageProducerHelper {
 	private MimeMessageProducerHelper() {
 	}
 	
-	public static MimeMessage produceMimeMessage(@Nonnull Email email, @Nonnull Session session) throws UnsupportedEncodingException, MessagingException {
+	public static MimeMessage produceMimeMessage(@NotNull Email email, @NotNull Session session) throws UnsupportedEncodingException, MessagingException {
 		for (MimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
 			if (mimeMessageProducer.compatibleWithEmail(email)) {
 				return mimeMessageProducer.populateMimeMessage(email, session);

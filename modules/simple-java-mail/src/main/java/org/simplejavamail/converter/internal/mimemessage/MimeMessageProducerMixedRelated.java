@@ -2,7 +2,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 
 import org.simplejavamail.api.email.Email;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -10,13 +10,13 @@ import javax.mail.internet.MimeMultipart;
 
 class MimeMessageProducerMixedRelated extends MimeMessageProducer {
 	@Override
-	boolean compatibleWithEmail(@Nonnull Email email) {
+	boolean compatibleWithEmail(@NotNull Email email) {
 		return emailContainsMixedContent(email) && emailContainsRelatedContent(email) && !emailContainsAlternativeContent(email);
 	}
 	
 	@SuppressWarnings("Duplicates")
 	@Override
-	public void populateMimeMessageMultipartStructure(@Nonnull MimeMessage message, @Nonnull Email email) throws MessagingException {
+	public void populateMimeMessageMultipartStructure(@NotNull MimeMessage message, @NotNull Email email) throws MessagingException {
 		MultipartStructureWrapper multipartStructureWrapper = new MultipartStructureWrapper();
 		
 		MimeMessageHelper.setTexts(email, multipartStructureWrapper.multipartRelated);

@@ -9,8 +9,8 @@ import com.github.therapi.runtimejavadoc.Value;
 import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.MethodUtils;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,13 +56,13 @@ public final class TherapiJavadocHelper {
 		return aClass != null ? aClass : ClassUtils.locateClass(referencedClassName, null, null);
 	}
 
-	@Nonnull
+	@NotNull
 	static String getJavadocMainDescription(Method m, int nestingDepth) {
 		return new JavadocForCliFormatter(nestingDepth)
 				.format(RuntimeJavadoc.getJavadoc(m).getComment());
 	}
 	
-	@Nonnull
+	@NotNull
 	public static List<DocumentedMethodParam> getParamDescriptions(Method m) {
 		List<ParamJavadoc> params = RuntimeJavadoc.getJavadoc(m).getParams();
 		if (m.getParameterTypes().length != params.size()) {
@@ -75,7 +75,7 @@ public final class TherapiJavadocHelper {
 		return paramDescriptions;
 	}
 	
-	@Nonnull
+	@NotNull
 	public static List<String> getJavadocSeeAlsoReferences(Method m, boolean onlyIncludeClicompatibleJavadocLinks, int maxTextWidth) {
 		List<String> seeAlsoReferences = new ArrayList<>();
 		final JavadocForCliFormatter cliFormatter = new JavadocForCliFormatter();
@@ -127,7 +127,7 @@ public final class TherapiJavadocHelper {
 		return seeAlsoReferences;
 	}
 	
-	@Nonnull
+	@NotNull
 	public static List<String> determineCliOptionDescriptions(Method m) {
 		String javadoc = TherapiJavadocHelper.getJavadocMainDescription(m, 0);
 		// Picocli takes the first item for --help, but all items for full usage display
@@ -136,14 +136,14 @@ public final class TherapiJavadocHelper {
 	}
 	
 	public static class DocumentedMethodParam {
-		@Nonnull private final String name;
-		@Nonnull private final String javadoc;
+		@NotNull private final String name;
+		@NotNull private final String javadoc;
 		
-		DocumentedMethodParam(@Nonnull String name, @Nonnull String javadoc) {
+		DocumentedMethodParam(@NotNull String name, @NotNull String javadoc) {
 			this.name = name;
 			this.javadoc = javadoc;
 		}
-		@Nonnull public String getName() { return name; }
-		@Nonnull public String getJavadoc() { return javadoc; }
+		@NotNull public String getName() { return name; }
+		@NotNull public String getJavadoc() { return javadoc; }
 	}
 }

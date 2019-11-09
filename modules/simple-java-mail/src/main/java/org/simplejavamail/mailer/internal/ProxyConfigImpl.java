@@ -2,7 +2,7 @@ package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import static java.lang.String.format;
 

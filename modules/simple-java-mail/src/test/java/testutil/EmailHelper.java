@@ -10,8 +10,8 @@ import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.util.SimpleOptional;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.io.InputStream;
@@ -91,7 +91,7 @@ public class EmailHelper {
 		return outlookMsgToEmailBuilder(checkNonEmptyArgument(resourceAsStream, "resourceAsStream")).getEmailBuilder();
 	}
 
-	@Nonnull
+	@NotNull
 	@SuppressWarnings("SameParameterValue")
 	public static OperationalConfig createDummyOperationalConfig(@Nullable List<String> hostsToTrust, boolean trustAllSSLHost, boolean verifyServerIdentity) {
 		return createDummyOperationalConfig(
@@ -115,7 +115,7 @@ public class EmailHelper {
 				/*17*/null);
 	}
 
-	@Nonnull
+	@NotNull
 	@SuppressWarnings("SameParameterValue")
 	public static OperationalConfig createDummyOperationalConfig(
 			/*0*/final boolean async,
@@ -123,18 +123,18 @@ public class EmailHelper {
 			/*2*/final int sessionTimeout,
 			/*3*/final int threadPoolSize,
 			/*4*/final int threadPoolKeepAliveTime,
-			/*5*/@Nonnull final UUID clusterKey,
+			/*5*/@NotNull final UUID clusterKey,
 			/*6*/final int connectionPoolCoreSize,
 			/*7*/final int connectionPoolMaxSize,
 			/*8*/final int connectionPoolClaimTimeoutMillis,
 			/*9*/final int connectionPoolExpireAfterMillis,
-			/*10*/@Nonnull final LoadBalancingStrategy connectionPoolLoadBalancingStrategy,
+			/*10*/@NotNull final LoadBalancingStrategy connectionPoolLoadBalancingStrategy,
 			/*11*/final boolean transportModeLoggingOnly,
 			/*12*/final boolean debugLogging,
-			/*13*/@Nonnull final List<String> sslHostsToTrust,
+			/*13*/@NotNull final List<String> sslHostsToTrust,
 			/*14*/final boolean trustAllSSLHost,
 			/*15*/final boolean verifyingServerIdentity,
-			/*16*/@Nonnull final ExecutorService executorService,
+			/*16*/@NotNull final ExecutorService executorService,
 			/*17*/@Nullable final CustomMailer customMailer) {
 		try {
 			Constructor<?> constructor = Class.forName("org.simplejavamail.mailer.internal.OperationalConfigImpl").getDeclaredConstructors()[0];

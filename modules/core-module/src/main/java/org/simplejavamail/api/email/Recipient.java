@@ -1,7 +1,7 @@
 package org.simplejavamail.api.email;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Message.RecipientType;
 import java.io.Serializable;
 import java.util.Objects;
@@ -15,7 +15,7 @@ public final class Recipient implements Serializable {
 
 	@Nullable
 	private final String name;
-	@Nonnull
+	@NotNull
 	private final String address;
 	@Nullable
 	private final RecipientType type;
@@ -28,7 +28,7 @@ public final class Recipient implements Serializable {
 	 * @param type The recipient type (eg. {@link RecipientType#TO}), optional for {@code from} and {@code replyTo} fields.
 	 * @see RecipientType
 	 */
-	public Recipient(@Nullable final String name, @Nonnull final String address, @Nullable final RecipientType type) {
+	public Recipient(@Nullable final String name, @NotNull final String address, @Nullable final RecipientType type) {
 		this.name = name;
 		this.address = checkNonEmptyArgument(address, "address");
 		this.type = type;
@@ -53,7 +53,7 @@ public final class Recipient implements Serializable {
 		return Objects.hash(name, address, type);
 	}
 
-	@Nonnull
+	@NotNull
 	@Override public String toString() {
 		return "Recipient{" +
 				"name='" + name + '\'' +
@@ -73,7 +73,7 @@ public final class Recipient implements Serializable {
 	/**
 	 * Bean getter for {@link #address};
 	 */
-	@Nonnull
+	@NotNull
 	public String getAddress() {
 		return address;
 	}

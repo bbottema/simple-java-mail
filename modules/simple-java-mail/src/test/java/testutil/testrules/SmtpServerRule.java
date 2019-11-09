@@ -8,7 +8,7 @@ import org.subethamail.smtp.server.SMTPServer;
 import org.subethamail.wiser.Wiser;
 import org.subethamail.wiser.WiserMessage;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.io.IOException;
@@ -32,7 +32,7 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 	private final SmtpServerSupport SmtpServerSupport;
 	private Wiser wiser;
 
-	public SmtpServerRule(@Nonnull SmtpServerSupport SmtpServerSupport) {
+	public SmtpServerRule(@NotNull SmtpServerSupport SmtpServerSupport) {
 		this.SmtpServerSupport = Preconditions.checkNotNull(SmtpServerSupport);
 	}
 
@@ -49,19 +49,19 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 		this.wiser.stop();
 	}
 
-	@Nonnull
+	@NotNull
 	public Wiser getWiser() {
 		checkState("getWiser()");
 		return this.wiser;
 	}
 
-	@Nonnull
+	@NotNull
 	public List<WiserMessage> getMessages() {
 		checkState("getMessages()");
 		return wiser.getMessages();
 	}
 	
-	@Nonnull
+	@NotNull
 	public MimeMessage getOnlyMessage(String envelopeReceiver)
 			throws MessagingException {
 		checkState("getMessages()");
@@ -75,7 +75,7 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 		return mimeMessage;
 	}
 	
-	@Nonnull
+	@NotNull
 	public MimeMessageAndEnvelope getOnlyMessage()
 			throws MessagingException {
 		checkState("getMessages()");
@@ -87,7 +87,7 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 		return new MimeMessageAndEnvelope(wiserMessage.getMimeMessage(), wiserMessage.getEnvelopeSender());
 	}
 	
-	@Nonnull
+	@NotNull
 	public MimeMessage getMessage(String envelopeReceiver)
 			throws MessagingException {
 		checkState("getMessages()");
@@ -104,7 +104,7 @@ public class SmtpServerRule extends ExternalResource implements TestRule {
 		throw new AssertionError("message not found for recipient " + envelopeReceiver);
 	}
 
-	@Nonnull
+	@NotNull
 	public SMTPServer getServer() {
 		checkState("getServer()");
 		return wiser.getServer();

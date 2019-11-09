@@ -7,7 +7,7 @@ import org.simplejavamail.mailer.MailerBuilder;
 import org.simplejavamail.config.ConfigLoader;
 import testutil.ConfigLoaderTestHelper;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.ByteArrayInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;

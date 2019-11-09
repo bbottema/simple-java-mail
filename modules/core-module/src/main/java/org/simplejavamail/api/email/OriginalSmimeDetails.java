@@ -1,7 +1,7 @@
 package org.simplejavamail.api.email;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 
 /**
@@ -19,7 +19,7 @@ public interface OriginalSmimeDetails extends Serializable {
 		PLAIN, SIGNED, ENCRYPTED, SIGNED_ENCRYPTED
 	}
 
-	@Nonnull SmimeMode getSmimeMode();
+	@NotNull SmimeMode getSmimeMode();
 	@Nullable String getSmimeMime();
 	@Nullable String getSmimeType();
 	@Nullable String getSmimeName();

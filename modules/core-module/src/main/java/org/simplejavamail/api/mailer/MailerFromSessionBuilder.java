@@ -3,7 +3,7 @@ package org.simplejavamail.api.mailer;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.Message;
 import javax.mail.Session;
 
@@ -26,7 +26,7 @@ public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>>
 	 *
 	 * @param session A mostly preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 */
-	T usingSession(@Nonnull Session session);
+	T usingSession(@NotNull Session session);
 	
 	/**
 	 * Builds the actual {@link Mailer} instance with everything configured on this builder instance.

@@ -13,7 +13,7 @@ import org.simplejavamail.internal.util.CertificationUtil;
 import testutil.ConfigLoaderTestHelper;
 
 import javax.activation.DataSource;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Message;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;

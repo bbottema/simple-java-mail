@@ -1,6 +1,6 @@
 package org.simplejavamail.internal.clisupport.valueinterpreters;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.File;
 
 public class StringToFileFunction extends FileBasedFunction<File> {
@@ -15,7 +15,7 @@ public class StringToFileFunction extends FileBasedFunction<File> {
 		return File.class;
 	}
 	
-	@Nonnull
+	@NotNull
 	@Override
 	protected File convertFile(File textFile) {
 		return textFile;

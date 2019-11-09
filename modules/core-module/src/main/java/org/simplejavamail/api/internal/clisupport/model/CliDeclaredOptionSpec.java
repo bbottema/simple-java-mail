@@ -1,6 +1,6 @@
 package org.simplejavamail.api.internal.clisupport.model;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -8,20 +8,20 @@ import java.util.Collections;
 import java.util.List;
 
 public class CliDeclaredOptionSpec implements Comparable<CliDeclaredOptionSpec> {
-	@Nonnull
+	@NotNull
 	private final String name;
-	@Nonnull
+	@NotNull
 	private final List<String> description;
-	@Nonnull
+	@NotNull
 	private final CliBuilderApiType fromBuilderApiType;
-	@Nonnull
+	@NotNull
 	private final List<CliDeclaredOptionValue> possibleOptionValues;
-	@Nonnull
+	@NotNull
 	private final Method sourceMethod;
 	
-	public CliDeclaredOptionSpec(@Nonnull String name, @Nonnull List<String> description,
-								 @Nonnull List<CliDeclaredOptionValue> possibleArguments, @Nonnull CliBuilderApiType fromBuilderApiType,
-								 @Nonnull Method sourceMethod) {
+	public CliDeclaredOptionSpec(@NotNull String name, @NotNull List<String> description,
+								 @NotNull List<CliDeclaredOptionValue> possibleArguments, @NotNull CliBuilderApiType fromBuilderApiType,
+								 @NotNull Method sourceMethod) {
 		this.name = name;
 		this.description = Collections.unmodifiableList(description);
 		this.fromBuilderApiType = fromBuilderApiType;
@@ -49,7 +49,7 @@ public class CliDeclaredOptionSpec implements Comparable<CliDeclaredOptionSpec> 
 	}
 	
 	@Override
-	public int compareTo(@Nonnull CliDeclaredOptionSpec other) {
+	public int compareTo(@NotNull CliDeclaredOptionSpec other) {
 		int prefixOrder = getNamePrefix().compareTo(other.getNamePrefix());
 		return prefixOrder != 0 ? prefixOrder : getNameAfterPrefix().compareTo(other.getNameAfterPrefix());
 	}
@@ -62,22 +62,22 @@ public class CliDeclaredOptionSpec implements Comparable<CliDeclaredOptionSpec> 
 		return getName().substring(getName().indexOf(":"));
 	}
 	
-	@Nonnull
+	@NotNull
 	public String getName() {
 		return name;
 	}
 	
-	@Nonnull
+	@NotNull
 	public List<String> getDescription() {
 		return description;
 	}
 	
-	@Nonnull
+	@NotNull
 	public List<CliDeclaredOptionValue> getPossibleOptionValues() {
 		return possibleOptionValues;
 	}
 	
-	@Nonnull
+	@NotNull
 	public Method getSourceMethod() {
 		return sourceMethod;
 	}

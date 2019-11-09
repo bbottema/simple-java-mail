@@ -20,7 +20,7 @@ import net.fortuna.ical4j.util.FixedUidGenerator;
 import net.fortuna.ical4j.util.MapTimeZoneCache;
 import net.fortuna.ical4j.util.UidGenerator;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.SocketException;
@@ -54,7 +54,7 @@ public final class CalendarHelper {
 		return bout.toString("UTF-8");
 	}
 	
-	@Nonnull
+	@NotNull
 	private static Calendar createCalendar() throws SocketException {
 		// Create a TimeZone
 		TimeZoneRegistry registry = TimeZoneRegistryFactory.getInstance().createRegistry();

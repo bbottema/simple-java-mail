@@ -1,6 +1,6 @@
 package testutil.testrules;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * SmtpServerSupport - Interface usually implemented by the JUnit test class.
@@ -16,6 +16,6 @@ public interface SmtpServerSupport {
 	 *
 	 * @return a {@link String}
 	 */
-	@Nonnull
+	@NotNull
 	String getHostname();
 }

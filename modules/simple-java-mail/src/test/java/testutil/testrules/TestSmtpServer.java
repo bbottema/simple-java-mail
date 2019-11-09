@@ -1,6 +1,6 @@
 package testutil.testrules;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public class TestSmtpServer implements SmtpServerSupport {
 	
@@ -12,7 +12,7 @@ public class TestSmtpServer implements SmtpServerSupport {
 		this.port = port;
 	}
 	
-	@Nonnull
+	@NotNull
 	@Override
 	public String getHostname() {
 		return host;

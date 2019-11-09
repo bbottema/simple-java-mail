@@ -6,7 +6,7 @@ import org.bbottema.javareflection.valueconverter.ValueFunction;
 import org.simplejavamail.MailException;
 import org.slf4j.Logger;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.File;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -33,6 +33,6 @@ abstract class FileBasedFunction<T> implements ValueFunction<String, T> {
 		return file;
 	}
 	
-	@Nonnull
+	@NotNull
 	protected abstract T convertFile(File asFile);
 }

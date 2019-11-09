@@ -3,7 +3,7 @@ package org.simplejavamail.mailer.internal;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.Session;
 
 /**
@@ -30,7 +30,7 @@ public class MailerFromSessionBuilderImpl
 	 * @see MailerFromSessionBuilder#usingSession(Session)
 	 */
 	@Override
-	public MailerFromSessionBuilderImpl usingSession(@Nonnull final Session session) {
+	public MailerFromSessionBuilderImpl usingSession(@NotNull final Session session) {
 		this.session = session;
 		return this;
 	}

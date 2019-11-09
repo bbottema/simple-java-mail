@@ -1,6 +1,6 @@
 package org.simplejavamail.api.mailer.config;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -19,12 +19,12 @@ public final class Pkcs12Config {
 
 	private static final long serialVersionUID = 1234567L;
 
-	@Nonnull private final InputStream pkcs12StoreStream;
-	@Nonnull private final char[] storePassword;
-	@Nonnull private final String keyAlias;
-	@Nonnull private final char[] keyPassword;
+	@NotNull private final InputStream pkcs12StoreStream;
+	@NotNull private final char[] storePassword;
+	@NotNull private final String keyAlias;
+	@NotNull private final char[] keyPassword;
 
-	private Pkcs12Config(@Nonnull InputStream pkcs12StoreStream, @Nonnull char[] storePassword, @Nonnull String keyAlias, @Nonnull char[] keyPassword) {
+	private Pkcs12Config(@NotNull InputStream pkcs12StoreStream, @NotNull char[] storePassword, @NotNull String keyAlias, @NotNull char[] keyPassword) {
 		this.pkcs12StoreStream = pkcs12StoreStream;
 		this.storePassword = storePassword;
 		this.keyAlias = keyAlias;
@@ -35,22 +35,22 @@ public final class Pkcs12Config {
 		return new Pkcs12ConfigBuilder();
 	}
 
-	@Nonnull
+	@NotNull
 	public InputStream getPkcs12StoreStream() {
 		return this.pkcs12StoreStream;
 	}
 
-	@Nonnull
+	@NotNull
 	public char[] getStorePassword() {
 		return this.storePassword;
 	}
 
-	@Nonnull
+	@NotNull
 	public String getKeyAlias() {
 		return this.keyAlias;
 	}
 
-	@Nonnull
+	@NotNull
 	public char[] getKeyPassword() {
 		return this.keyPassword;
 	}

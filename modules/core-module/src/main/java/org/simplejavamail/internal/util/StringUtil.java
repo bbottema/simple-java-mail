@@ -1,6 +1,6 @@
 package org.simplejavamail.internal.util;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,7 +18,7 @@ public class StringUtil {
 		return new String(new char[n]).replace("\0", str);
 	}
 	
-	@Nonnull
+	@NotNull
 	public static String replaceNestedTokens(String lineWithTokens, int nestingDepth, final String tokenOpen, final String tokenClose, final String tokenRegexToReplace, StringFormatter tokenReplacer) {
 		final Pattern startsWithOpen = compile(quote(tokenOpen));
 		final Pattern startsWithClose = compile(quote(tokenClose));
@@ -61,7 +61,7 @@ public class StringUtil {
 	public static class StringFormatter {
 		private final String formatPattern;
 		
-		public static StringFormatter formatterForPattern(@Nonnull String pattern) {
+		public static StringFormatter formatterForPattern(@NotNull String pattern) {
 			return new StringFormatter(pattern);
 		}
 		

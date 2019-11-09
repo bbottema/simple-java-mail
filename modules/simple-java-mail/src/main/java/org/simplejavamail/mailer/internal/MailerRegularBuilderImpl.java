@@ -7,8 +7,8 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.util.SimpleOptional;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
@@ -47,7 +47,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	/**
 	 * @see #withTransportStrategy(TransportStrategy)
 	 */
-	@Nonnull
+	@NotNull
 	private TransportStrategy transportStrategy;
 	
 	/**
@@ -82,7 +82,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 * @see MailerRegularBuilder#withTransportStrategy(TransportStrategy)
 	 */
 	@Override
-	public MailerRegularBuilderImpl withTransportStrategy(@Nonnull final TransportStrategy transportStrategy) {
+	public MailerRegularBuilderImpl withTransportStrategy(@NotNull final TransportStrategy transportStrategy) {
 		this.transportStrategy = transportStrategy;
 		return this;
 	}
@@ -214,7 +214,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 * @see MailerRegularBuilder#getTransportStrategy()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public TransportStrategy getTransportStrategy() {
 		return transportStrategy;
 	}

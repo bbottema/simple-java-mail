@@ -8,8 +8,8 @@ import picocli.CommandLine.Help.ColorScheme;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Model.OptionSpec;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static java.lang.String.format;
 import static java.lang.System.err;
@@ -71,7 +71,7 @@ class CliCommandLineConsumerUsageHelper {
                 : format(stylesOptionWithParameters, OPTION_STYLE, optionName, OPTION_VALUE_STYLE, matchedOption.paramLabel());
     }
     
-    @Nonnull
+    @NotNull
     private static String determineOptionName(OptionSpec matchedOption) {
         // returns "moo" from "moo--help"
         return matchedOption.longestName().substring(0, matchedOption.longestName().indexOf(CliCommandLineProducer.OPTION_HELP_POSTFIX));

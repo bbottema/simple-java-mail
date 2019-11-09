@@ -11,8 +11,8 @@ import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 import javax.mail.Transport;
 import java.util.UUID;
@@ -40,25 +40,25 @@ public class BatchSupport implements BatchModule {
 	/**
 	 * @see BatchModule#executeAsync(String, Runnable)
 	 */
-	@Nonnull
+	@NotNull
 	@Override
-	public AsyncResponse executeAsync(@Nonnull final String processName, @Nonnull final Runnable operation) {
+	public AsyncResponse executeAsync(@NotNull final String processName, @NotNull final Runnable operation) {
 		return AsyncOperationHelper.executeAsync(processName, operation);
 	}
 
 	/**
 	 * @see BatchModule#executeAsync(ExecutorService, String, Runnable)
 	 */
-	@Nonnull
+	@NotNull
 	@Override
-	public AsyncResponse executeAsync(@Nonnull final ExecutorService executorService, @Nonnull final String processName, @Nonnull final Runnable operation) {
+	public AsyncResponse executeAsync(@NotNull final ExecutorService executorService, @NotNull final String processName, @NotNull final Runnable operation) {
 		return AsyncOperationHelper.executeAsync(executorService, processName, operation);
 	}
 
 	/**
 	 * @see BatchModule#createDefaultExecutorService(int, int)
 	 */
-	@Nonnull
+	@NotNull
 	@Override
 	public ExecutorService createDefaultExecutorService(final int threadPoolSize, final int keepAliveTime) {
 		return new NonJvmBlockingThreadPoolExecutor(threadPoolSize, keepAliveTime);
@@ -68,7 +68,7 @@ public class BatchSupport implements BatchModule {
 	 * @see BatchModule#registerToCluster(OperationalConfig, UUID, Session)
 	 */
 	@Override
-	public void registerToCluster(@Nonnull final OperationalConfig operationalConfig, @Nonnull final UUID clusterKey, @Nonnull final Session session) {
+	public void registerToCluster(@NotNull final OperationalConfig operationalConfig, @NotNull final UUID clusterKey, @NotNull final Session session) {
 		ensureClusterInitialized(operationalConfig);
 		final ResourceClusterAndPoolKey<UUID, Session> poolKey = new ResourceClusterAndPoolKey<>(clusterKey, session);
 		if (!requireNonNull(smtpConnectionPool).isPoolRegistered(poolKey)) {
@@ -76,7 +76,7 @@ public class BatchSupport implements BatchModule {
 		}
 	}
 
-	private void ensureClusterInitialized(@Nonnull OperationalConfig operationalConfig) {
+	private void ensureClusterInitialized(@NotNull OperationalConfig operationalConfig) {
 		if (smtpConnectionPool == null) {
 			smtpConnectionPool = new SmtpConnectionPoolClustered(configureSmtpClusterConfig(operationalConfig));
 		} else if (compareClusterConfig(operationalConfig, smtpConnectionPool.getClusterConfig())) {
@@ -87,9 +87,9 @@ public class BatchSupport implements BatchModule {
 	/**
 	 * @see BatchModule#acquireTransport(UUID, Session, boolean)
 	 */
-	@Nonnull
+	@NotNull
 	@Override
-	public LifecycleDelegatingTransport acquireTransport(@Nonnull final UUID clusterKey, @Nonnull final Session session, boolean stickySession) {
+	public LifecycleDelegatingTransport acquireTransport(@NotNull final UUID clusterKey, @NotNull final Session session, boolean stickySession) {
 		try {
 			requireNonNull(smtpConnectionPool, "Connection pool used before it was initialized. This shouldn't be possible.");
 			final PoolableObject<Transport> pooledTransport = stickySession
@@ -104,9 +104,9 @@ public class BatchSupport implements BatchModule {
 	/**
 	 * @see BatchModule#shutdownConnectionPools(Session)
 	 */
-	@Nonnull
+	@NotNull
 	@Override
-	public Future<?> shutdownConnectionPools(@Nonnull Session session) {
+	public Future<?> shutdownConnectionPools(@NotNull Session session) {
 		return assumeNonNull(smtpConnectionPool).shutdownPool(session);
 	}
 }

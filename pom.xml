@@ -98,11 +98,11 @@
         </dependency>
 
         <!-- utility -->
-        <dependency><!-- gives us @NonNull annotations-->
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
-            <version>3.0.1</version>
-            <scope>compile</scope>
+        <dependency><!-- gives us @NotNull annotations-->
+            <groupId>com.github.bbottema</groupId>
+            <artifactId>jetbrains-runtime-annotations</artifactId>
+            <version>1.0.0</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- testing -->
@@ -190,12 +190,12 @@
                 <configuration>
                     <implicit>true</implicit>
                     <nullable>
-                        <!--<param>org.jetbrains.annotations.Nullable</param>-->
-                        <param>javax.annotation.Nullable</param>
+                        <param>org.jetbrains.annotations.Nullable</param>
+                        <!--<param>javax.annotation.Nullable</param>-->
                     </nullable>
                     <notNull>
-                        <!--<param>org.jetbrains.annotations.NotNull</param>-->
-                        <param>javax.annotation.Nonnull</param>
+                        <param>org.jetbrains.annotations.NotNull</param>
+                        <!--<param>javax.annotation.Nonnull</param>-->
                     </notNull>
                 </configuration>
             </plugin>

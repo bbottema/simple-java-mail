@@ -17,7 +17,7 @@ import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;

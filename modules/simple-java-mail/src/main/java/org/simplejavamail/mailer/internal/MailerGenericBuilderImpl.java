@@ -9,8 +9,8 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.internal.modules.ModuleLoader;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -69,7 +69,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	/**
 	 * @see MailerGenericBuilder#withProxyBridgePort(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	private Integer proxyBridgePort;
 	
 	/**
@@ -80,73 +80,73 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	/**
 	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	private Integer sessionTimeout;
 	
 	/**
 	 * @see MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
 	 */
-	@Nonnull
+	@NotNull
 	private EnumSet<EmailAddressCriteria> emailAddressCriteria;
 
 	/**
 	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
-	@Nonnull
+	@NotNull
 	private ExecutorService executorService;
 
 	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	private Integer threadPoolSize;
 
 	/**
 	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	private Integer threadPoolKeepAliveTime;
 
 	/**
 	 * @see MailerGenericBuilder#withClusterKey(UUID)
 	 */
-	@Nonnull
+	@NotNull
 	private UUID clusterKey;
 
 	/**
 	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	private Integer connectionPoolCoreSize;
 
 	/**
 	 * @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	private Integer connectionPoolMaxSize;
 
 	/**
 	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	private Integer connectionPoolClaimTimeoutMillis;
 
 	/**
 	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
 	 */
-	@Nonnull
+	@NotNull
 	private Integer connectionPoolExpireAfterMillis;
 
 	/**
 	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy loadBalancingStrategy)
 	 */
-	@Nonnull
+	@NotNull
 	private LoadBalancingStrategy connectionPoolLoadBalancingStrategy;
 
 	/**
 	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
-	@Nonnull
+	@NotNull
 	private List<String> sslHostsToTrust = new ArrayList<>();
 
 	/**
@@ -162,7 +162,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	/**
 	 * @see MailerGenericBuilder#withProperties(Properties)
 	 */
-	@Nonnull
+	@NotNull
 	private final Properties properties = new Properties();
 	
 	/**
@@ -338,7 +338,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withProxyBridgePort(Integer)
 	 */
 	@Override
-	public T withProxyBridgePort(@Nonnull final Integer proxyBridgePort) {
+	public T withProxyBridgePort(@NotNull final Integer proxyBridgePort) {
 		this.proxyBridgePort = proxyBridgePort;
 		return (T) this;
 	}
@@ -347,7 +347,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	@Override
-	public T withDebugLogging(@Nonnull final Boolean debugLogging) {
+	public T withDebugLogging(@NotNull final Boolean debugLogging) {
 		this.debugLogging = debugLogging;
 		return (T) this;
 	}
@@ -356,7 +356,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
 	@Override
-	public T withSessionTimeout(@Nonnull final Integer sessionTimeout) {
+	public T withSessionTimeout(@NotNull final Integer sessionTimeout) {
 		this.sessionTimeout = sessionTimeout;
 		return (T) this;
 	}
@@ -365,7 +365,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
 	 */
 	@Override
-	public T withEmailAddressCriteria(@Nonnull final EnumSet<EmailAddressCriteria> emailAddressCriteria) {
+	public T withEmailAddressCriteria(@NotNull final EnumSet<EmailAddressCriteria> emailAddressCriteria) {
 		this.emailAddressCriteria = emailAddressCriteria.clone();
 		return (T) this;
 	}
@@ -374,7 +374,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
 	@Override
-	public T withExecutorService(@Nonnull final ExecutorService executorService) {
+	public T withExecutorService(@NotNull final ExecutorService executorService) {
 		this.executorService = executorService;
 		return (T) this;
 	}
@@ -383,7 +383,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	@Override
-	public T withThreadPoolSize(@Nonnull final Integer threadPoolSize) {
+	public T withThreadPoolSize(@NotNull final Integer threadPoolSize) {
 		this.threadPoolSize = threadPoolSize;
 		return (T) this;
 	}
@@ -392,7 +392,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
 	 */
 	@Override
-	public T withThreadPoolKeepAliveTime(@Nonnull final Integer threadPoolKeepAliveTime) {
+	public T withThreadPoolKeepAliveTime(@NotNull final Integer threadPoolKeepAliveTime) {
 		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
 		return (T) this;
 	}
@@ -401,7 +401,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withClusterKey(UUID)
 	 */
 	@Override
-	public T withClusterKey(@Nonnull final UUID clusterKey) {
+	public T withClusterKey(@NotNull final UUID clusterKey) {
 		this.clusterKey = clusterKey;
 		return (T) this;
 	}
@@ -410,7 +410,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
 	 */
 	@Override
-	public T withConnectionPoolCoreSize(@Nonnull final Integer connectionPoolCoreSize) {
+	public T withConnectionPoolCoreSize(@NotNull final Integer connectionPoolCoreSize) {
 		this.connectionPoolCoreSize = connectionPoolCoreSize;
 		return (T) this;
 	}
@@ -419,7 +419,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
 	 */
 	@Override
-	public T withConnectionPoolMaxSize(@Nonnull final Integer connectionPoolMaxSize) {
+	public T withConnectionPoolMaxSize(@NotNull final Integer connectionPoolMaxSize) {
 		this.connectionPoolMaxSize = connectionPoolMaxSize;
 		return (T) this;
 	}
@@ -428,7 +428,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)
 	 */
 	@Override
-	public T withConnectionPoolClaimTimeoutMillis(@Nonnull final Integer connectionPoolClaimTimeoutMillis) {
+	public T withConnectionPoolClaimTimeoutMillis(@NotNull final Integer connectionPoolClaimTimeoutMillis) {
 		this.connectionPoolClaimTimeoutMillis = connectionPoolClaimTimeoutMillis;
 		return (T) this;
 	}
@@ -437,7 +437,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	@Override
-	public T withConnectionPoolExpireAfterMillis(@Nonnull final Integer connectionPoolExpireAfterMillis) {
+	public T withConnectionPoolExpireAfterMillis(@NotNull final Integer connectionPoolExpireAfterMillis) {
 		this.connectionPoolExpireAfterMillis = connectionPoolExpireAfterMillis;
 		return (T) this;
 	}
@@ -446,7 +446,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
 	 */
 	@Override
-	public T withConnectionPoolLoadBalancingStrategy(@Nonnull final LoadBalancingStrategy loadBalancingStrategy) {
+	public T withConnectionPoolLoadBalancingStrategy(@NotNull final LoadBalancingStrategy loadBalancingStrategy) {
 		this.connectionPoolLoadBalancingStrategy = loadBalancingStrategy;
 		return (T) this;
 	}
@@ -455,7 +455,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
 	@Override
-	public T withTransportModeLoggingOnly(@Nonnull final Boolean transportModeLoggingOnly) {
+	public T withTransportModeLoggingOnly(@NotNull final Boolean transportModeLoggingOnly) {
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		return (T) this;
 	}
@@ -491,7 +491,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withProperties(Properties)
 	 */
 	@Override
-	public T withProperties(@Nonnull final Properties properties) {
+	public T withProperties(@NotNull final Properties properties) {
 		for (Map.Entry<Object, Object> property : properties.entrySet()) {
 			this.properties.put(property.getKey(), property.getValue());
 		}
@@ -502,7 +502,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withProperties(Map)
 	 */
 	@Override
-	public T withProperties(@Nonnull final Map<String, String> properties) {
+	public T withProperties(@NotNull final Map<String, String> properties) {
 		for (Map.Entry<String, String> property : properties.entrySet()) {
 			this.properties.put(property.getKey(), property.getValue());
 		}
@@ -513,7 +513,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withProperty(String, Object)
 	 */
 	@Override
-	public T withProperty(@Nonnull final String propertyName, @Nullable final Object propertyValue) {
+	public T withProperty(@NotNull final String propertyName, @Nullable final Object propertyValue) {
 		if (propertyValue == null) {
 			this.properties.remove(propertyName);
 		} else {
@@ -526,7 +526,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
 	 */
 	@Override
-	public T withCustomMailer(@Nonnull CustomMailer customMailer) {
+	public T withCustomMailer(@NotNull CustomMailer customMailer) {
 		this.customMailer = customMailer;
 		return (T) this;
 	}
@@ -572,7 +572,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		return (T) this;
 	}
 
-	@Nonnull
+	@NotNull
 	private ExecutorService determineDefaultExecutorService() {
 		return (ModuleLoader.batchModuleAvailable())
 				? ModuleLoader.loadBatchModule().createDefaultExecutorService(getThreadPoolSize(), getThreadPoolKeepAliveTime())
@@ -733,7 +733,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getProxyBridgePort()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public Integer getProxyBridgePort() {
 		return proxyBridgePort;
 	}
@@ -750,7 +750,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getSessionTimeout()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public Integer getSessionTimeout() {
 		return sessionTimeout;
 	}
@@ -759,7 +759,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getEmailAddressCriteria()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
 		return emailAddressCriteria;
 	}
@@ -768,7 +768,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getExecutorService()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public ExecutorService getExecutorService() {
 		return executorService;
 	}
@@ -777,7 +777,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getThreadPoolSize()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public Integer getThreadPoolSize() {
 		return threadPoolSize;
 	}
@@ -786,7 +786,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getThreadPoolKeepAliveTime()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public Integer getThreadPoolKeepAliveTime() {
 		return threadPoolKeepAliveTime;
 	}
@@ -795,7 +795,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getClusterKey()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public UUID getClusterKey() {
 		return clusterKey;
 	}
@@ -804,7 +804,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getConnectionPoolCoreSize()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public Integer getConnectionPoolCoreSize() {
 		return connectionPoolCoreSize;
 	}
@@ -813,7 +813,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getConnectionPoolMaxSize()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public Integer getConnectionPoolMaxSize() {
 		return connectionPoolMaxSize;
 	}
@@ -822,7 +822,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getConnectionPoolClaimTimeoutMillis()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public Integer getConnectionPoolClaimTimeoutMillis() {
 		return connectionPoolClaimTimeoutMillis;
 	}
@@ -831,7 +831,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getConnectionPoolExpireAfterMillis()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public Integer getConnectionPoolExpireAfterMillis() {
 		return connectionPoolExpireAfterMillis;
 	}
@@ -840,7 +840,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getConnectionPoolLoadBalancingStrategy()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy() {
 		return connectionPoolLoadBalancingStrategy;
 	}
@@ -849,7 +849,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getSslHostsToTrust()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public List<String> getSslHostsToTrust() {
 		return sslHostsToTrust;
 	}
@@ -882,7 +882,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getProperties()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public Properties getProperties() {
 		return properties;
 	}

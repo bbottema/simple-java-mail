@@ -1,7 +1,7 @@
 package org.simplejavamail.internal.util;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("WeakerAccess")
 public class SimpleOptional<T> {
@@ -16,8 +16,8 @@ public class SimpleOptional<T> {
 		return new SimpleOptional<>(value);
 	}
 
-	@Nonnull
-	public T orElse(@Nonnull T otherValue) {
+	@NotNull
+	public T orElse(@NotNull T otherValue) {
 		return value != null ? value : otherValue;
 	}
 

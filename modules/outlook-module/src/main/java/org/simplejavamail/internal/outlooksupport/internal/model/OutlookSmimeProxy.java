@@ -2,7 +2,7 @@ package org.simplejavamail.internal.outlooksupport.internal.model;
 
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class OutlookSmimeProxy<T extends org.simplejavamail.outlookmessageparser.model.OutlookSmime> implements OutlookSmime {
 

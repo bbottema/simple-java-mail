@@ -3,7 +3,7 @@ package org.simplejavamail.internal.clisupport.valueinterpreters;
 import org.bbottema.javareflection.valueconverter.IncompatibleTypeException;
 import org.simplejavamail.internal.util.CertificationUtil;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.security.NoSuchProviderException;
@@ -22,7 +22,7 @@ public class PemFilePathToX509CertificateFunction extends FileBasedFunction<X509
 		return X509Certificate.class;
 	}
 	
-	@Nonnull
+	@NotNull
 	@Override
 	protected X509Certificate convertFile(File msgFile) {
 		try {

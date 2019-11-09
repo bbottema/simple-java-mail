@@ -4,8 +4,8 @@ import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 import javax.mail.Transport;
 import java.util.UUID;
@@ -24,20 +24,20 @@ public interface BatchModule {
 	 *
 	 * @see java.util.concurrent.Executors#newSingleThreadExecutor()
 	 */
-	@Nonnull
-	AsyncResponse executeAsync(@Nonnull String processName, @Nonnull Runnable operation);
+	@NotNull
+	AsyncResponse executeAsync(@NotNull String processName, @NotNull Runnable operation);
 
 	/**
 	 * Executes using a the given ExecutorService, which is left running after the thread finishes running.
 	 */
-	@Nonnull
-	AsyncResponse executeAsync(@Nonnull ExecutorService executorService, @Nonnull String processName, @Nonnull Runnable operation);
+	@NotNull
+	AsyncResponse executeAsync(@NotNull ExecutorService executorService, @NotNull String processName, @NotNull Runnable operation);
 
 	/**
 	 * @return A NonJvmBlockingThreadPoolExecutor instance that by default doesn't block the JVM from exiting
 	 * and produces properly named thread.
 	 */
-	@Nonnull
+	@NotNull
 	ExecutorService createDefaultExecutorService(final int threadPoolSize, final int keepAliveTime);
 
 	/**
@@ -45,19 +45,19 @@ public interface BatchModule {
 	 * <p>
 	 * Creates connection pool for the cluster key and session combination if it doesn't exist yet.
 	 */
-	void registerToCluster(@Nonnull OperationalConfig operationalConfig, @Nonnull final UUID clusterKey, @Nonnull Session session);
+	void registerToCluster(@NotNull OperationalConfig operationalConfig, @NotNull final UUID clusterKey, @NotNull Session session);
 
 	/**
 	 * @param stickySession Indicates whether transport should be from this specific Session, or any session instance from the cluster. Useful when testing connections.
 	 *
 	 * @return A (new) {@link Transport} for the given session from the SMTP connection pool.
 	 */
-	@Nonnull
-	LifecycleDelegatingTransport acquireTransport(@Nonnull UUID clusterKey, @Nonnull Session session, boolean stickySession);
+	@NotNull
+	LifecycleDelegatingTransport acquireTransport(@NotNull UUID clusterKey, @NotNull Session session, boolean stickySession);
 
 	/**
 	 * Shuts down connection pool(s) and closes remaining open connections. Waits until all connections still in use become available again to deallocate them as well.
 	 */
-	@Nonnull
-	Future<?> shutdownConnectionPools(@Nonnull Session session);
+	@NotNull
+	Future<?> shutdownConnectionPools(@NotNull Session session);
 }

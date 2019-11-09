@@ -3,8 +3,8 @@ package org.simplejavamail.converter.internal.mimemessage;
 import com.sun.mail.smtp.SMTPMessage;
 
 import javax.activation.DataHandler;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Address;
 import javax.mail.Flags;
 import javax.mail.Folder;
@@ -37,16 +37,16 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 			+ "a way around");
 	private static final AssertionError MUTATION_NOT_SUPPORTED = new AssertionError("Further mutation is not allowed");
 
-	@Nonnull
+	@NotNull
 	private final MimeMessage delegate;
 
-	ImmutableDelegatingSMTPMessage(@Nonnull final MimeMessage delegate, @Nullable final String envelopeFrom) {
+	ImmutableDelegatingSMTPMessage(@NotNull final MimeMessage delegate, @Nullable final String envelopeFrom) {
 		super((Session) null);
 		this.delegate = delegate;
 		super.setEnvelopeFrom(envelopeFrom);
 	}
 
-	@Nonnull
+	@NotNull
 	public MimeMessage getDelegate() {
 		return delegate;
 	}

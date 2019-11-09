@@ -4,8 +4,8 @@ import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
@@ -77,33 +77,33 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#cc(Recipient...)
 	 * @see EmailPopulatingBuilder#bcc(Recipient...)
 	 */
-	@Nonnull
+	@NotNull
 	private final List<Recipient> recipients;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource)
 	 */
-	@Nonnull
+	@NotNull
 	private final List<AttachmentResource> embeddedImages;
 
 	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */
-	@Nonnull
+	@NotNull
 	private final List<AttachmentResource> attachments;
 
 	/**
 	 * If the S/MIME module is loaded, this list will contain the same attachments as {@link #attachments},
 	 * but with any S/MIME signed attachments decrypted.
 	 */
-	@Nonnull
+	@NotNull
 	private final List<AttachmentResource> decryptedAttachments;
 
 	/**
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
-	@Nonnull
+	@NotNull
 	private final Map<String, String> headers;
 	
 	/**
@@ -180,7 +180,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
-	@Nonnull
+	@NotNull
 	private final OriginalSmimeDetails originalSmimeDetails;
 
 	/**
@@ -194,7 +194,7 @@ public class Email implements Serializable {
 	 *
 	 * @see EmailPopulatingBuilder#buildEmail()
 	 */
-	public Email(@Nonnull final EmailPopulatingBuilder builder) {
+	public Email(@NotNull final EmailPopulatingBuilder builder) {
 		checkNonEmptyArgument(builder, "builder");
 
 		smimeSignedEmail = builder.getSmimeSignedEmail();
@@ -281,7 +281,7 @@ public class Email implements Serializable {
 	 * update the message id once a mail has been sent.
 	 */
 	@Deprecated
-	public void internalSetId(@Nonnull final String id) {
+	public void internalSetId(@NotNull final String id) {
 		this.id = id;
 	}
 
@@ -477,7 +477,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */
-	@Nonnull
+	@NotNull
 	public List<AttachmentResource> getAttachments() {
 		return attachments;
 	}
@@ -485,7 +485,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
 	 */
-	@Nonnull
+	@NotNull
 	public List<AttachmentResource> getDecryptedAttachments() {
 		return decryptedAttachments;
 	}
@@ -493,7 +493,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource)
 	 */
-	@Nonnull
+	@NotNull
 	public List<AttachmentResource> getEmbeddedImages() {
 		return embeddedImages;
 	}
@@ -503,7 +503,7 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#cc(Recipient...)
 	 * @see EmailPopulatingBuilder#bcc(Recipient...)
 	 */
-	@Nonnull
+	@NotNull
 	public List<Recipient> getRecipients() {
 		return recipients;
 	}
@@ -512,7 +512,7 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
-	@Nonnull
+	@NotNull
 	public Map<String, String> getHeaders() {
 		return headers;
 	}
@@ -580,7 +580,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
-	@Nonnull
+	@NotNull
 	public OriginalSmimeDetails getOriginalSmimeDetails() {
 		return originalSmimeDetails;
 	}

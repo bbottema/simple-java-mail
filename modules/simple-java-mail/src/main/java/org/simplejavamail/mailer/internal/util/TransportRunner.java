@@ -4,8 +4,8 @@ import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.slf4j.Logger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Address;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -27,7 +27,7 @@ public class TransportRunner {
 
 	private static final Logger LOGGER = getLogger(TransportRunner.class);
 
-	public static void sendMessage(@Nonnull final UUID clusterKey, final Session session, final MimeMessage message, final Address[] allRecipients)
+	public static void sendMessage(@NotNull final UUID clusterKey, final Session session, final MimeMessage message, final Address[] allRecipients)
 			throws MessagingException {
 		runOnSessionTransport(clusterKey, session, false, new TransportRunnable() {
 			@Override
@@ -39,7 +39,7 @@ public class TransportRunner {
 		});
 	}
 
-	public static void connect(@Nonnull UUID clusterKey, @Nullable final Session session)
+	public static void connect(@NotNull UUID clusterKey, @Nullable final Session session)
 			throws MessagingException {
 		runOnSessionTransport(clusterKey, session, true, new TransportRunnable() {
 			@Override
@@ -50,7 +50,7 @@ public class TransportRunner {
 		});
 	}
 
-	private static void runOnSessionTransport(@Nonnull UUID clusterKey, Session session, final boolean stickySession, TransportRunnable runnable)
+	private static void runOnSessionTransport(@NotNull UUID clusterKey, Session session, final boolean stickySession, TransportRunnable runnable)
 			throws MessagingException {
 		if (ModuleLoader.batchModuleAvailable()) {
 			LifecycleDelegatingTransport delegatingTransport = ModuleLoader.loadBatchModule().acquireTransport(clusterKey, session, stickySession);

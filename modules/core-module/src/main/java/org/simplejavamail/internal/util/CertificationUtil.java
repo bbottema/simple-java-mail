@@ -2,7 +2,7 @@ package org.simplejavamail.internal.util;
 
 import org.simplejavamail.MailException;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -46,7 +46,7 @@ public class CertificationUtil {
 				.generateCertificate(pemData);
 	}
 
-	@Nonnull
+	@NotNull
 	// copied from com.github.bbottema:java-reflection
 	private static Provider getProvider(final Class<Provider> bouncyCastleClass) {
 		try {

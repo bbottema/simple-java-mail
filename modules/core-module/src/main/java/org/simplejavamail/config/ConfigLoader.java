@@ -6,8 +6,8 @@ import org.simplejavamail.internal.util.SimpleConversions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -172,7 +172,7 @@ public final class ConfigLoader {
 	 * See {@link #valueOrProperty(Object, Property, Object)}.
 	 */
 	@Nullable
-	public static String valueOrPropertyAsString(@Nullable final String value, @Nonnull final Property property, @Nullable final String defaultValue) {
+	public static String valueOrPropertyAsString(@Nullable final String value, @NotNull final Property property, @Nullable final String defaultValue) {
 		return SimpleConversions.convertToString(valueOrProperty(value, property, defaultValue));
 	}
 	
@@ -180,7 +180,7 @@ public final class ConfigLoader {
 	 * See {@link #valueOrProperty(Object, Property, Object)}.
 	 */
 	@Nullable
-	public static Boolean valueOrPropertyAsBoolean(@Nullable final Boolean value, @Nonnull final Property property, @Nullable final Boolean defaultValue) {
+	public static Boolean valueOrPropertyAsBoolean(@Nullable final Boolean value, @NotNull final Property property, @Nullable final Boolean defaultValue) {
 		return SimpleConversions.convertToBoolean(valueOrProperty(value, property, defaultValue));
 	}
 	
@@ -188,7 +188,7 @@ public final class ConfigLoader {
 	 * See {@link #valueOrProperty(Object, Property, Object)}.
 	 */
 	@Nullable
-	public static Integer valueOrPropertyAsInteger(@Nullable final Integer value, @Nonnull final Property property, @Nullable final Integer defaultValue) {
+	public static Integer valueOrPropertyAsInteger(@Nullable final Integer value, @NotNull final Property property, @Nullable final Integer defaultValue) {
 		return SimpleConversions.convertToInteger(valueOrProperty(value, property, defaultValue));
 	}
 	
@@ -201,7 +201,7 @@ public final class ConfigLoader {
 	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
 	 */
 	@Nullable
-	public static <T> T valueOrProperty(@Nullable final T value, @Nonnull final Property property, @Nullable final T defaultValue) {
+	public static <T> T valueOrProperty(@Nullable final T value, @NotNull final Property property, @Nullable final T defaultValue) {
 		if (!valueNullOrEmpty(value)) {
 			LOGGER.trace("using provided argument value {} for property {}", value, property);
 			return value;
@@ -316,7 +316,7 @@ public final class ConfigLoader {
 	/**
 	 * @return All properties in priority of System property > File properties.
 	 */
-	private static Map<Property, Object> readProperties(final @Nonnull Properties fileProperties) {
+	private static Map<Property, Object> readProperties(final @NotNull Properties fileProperties) {
 		final Properties filePropertiesLeft = new Properties();
 		filePropertiesLeft.putAll(fileProperties);
 		final Map<Property, Object> resolvedProps = new HashMap<>();

@@ -2,8 +2,8 @@ package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.mailer.config.ServerConfig;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -12,12 +12,12 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * @see ServerConfig
  */
 class ServerConfigImpl implements ServerConfig {
-	@Nonnull private final String host;
-	@Nonnull private final Integer port;
+	@NotNull private final String host;
+	@NotNull private final Integer port;
 	@Nullable private final String username;
 	@Nullable private final String password;
 	
-	ServerConfigImpl(@Nonnull final String host, @Nonnull final Integer port, @Nullable final String username, @Nullable final String password) {
+	ServerConfigImpl(@NotNull final String host, @NotNull final Integer port, @Nullable final String username, @Nullable final String password) {
 		this.host = host;
 		this.port = port;
 		this.username = username;
@@ -43,7 +43,7 @@ class ServerConfigImpl implements ServerConfig {
 	/**
 	 * @see ServerConfig#getHost()
 	 */
-	@Nonnull
+	@NotNull
 	@Override
 	public String getHost() {
 		return host;
@@ -52,7 +52,7 @@ class ServerConfigImpl implements ServerConfig {
 	/**
 	 * @see ServerConfig#getPort()
 	 */
-	@Nonnull
+	@NotNull
 	@Override
 	public Integer getPort() {
 		return port;

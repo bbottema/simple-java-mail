@@ -3,8 +3,8 @@ package org.simplejavamail.mailer.internal;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.slf4j.Logger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -16,10 +16,10 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 
 	protected static final Logger LOGGER = getLogger(AbstractProxyServerSyncingClosure.class);
 
-	@Nonnull private final AtomicInteger smtpConnectionCounter;
+	@NotNull private final AtomicInteger smtpConnectionCounter;
 	@Nullable private final AnonymousSocks5Server proxyServer;
 
-	AbstractProxyServerSyncingClosure(@Nonnull final AtomicInteger smtpConnectionCounter, @Nullable final AnonymousSocks5Server proxyServer) {
+	AbstractProxyServerSyncingClosure(@NotNull final AtomicInteger smtpConnectionCounter, @Nullable final AnonymousSocks5Server proxyServer) {
 		this.smtpConnectionCounter = smtpConnectionCounter;
 		this.proxyServer = proxyServer;
 

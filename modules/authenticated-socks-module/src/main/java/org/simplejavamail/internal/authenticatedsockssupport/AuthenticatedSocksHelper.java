@@ -5,7 +5,7 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5server.AnonymousSocks5ServerImpl;
 import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -13,7 +13,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 public class AuthenticatedSocksHelper implements AuthenticatedSocksModule {
 	
 	@Override
-	public AnonymousSocks5Server createAnonymousSocks5Server(@Nonnull ProxyConfig socksProxyConfig) {
+	public AnonymousSocks5Server createAnonymousSocks5Server(@NotNull ProxyConfig socksProxyConfig) {
 		final Integer proxyBridgePort = checkNonEmptyArgument(socksProxyConfig.getProxyBridgePort(), "proxyBridgePort");
 		return new AnonymousSocks5ServerImpl(new AuthenticatingSocks5Bridge(socksProxyConfig), proxyBridgePort);
 	}

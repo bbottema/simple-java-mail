@@ -9,7 +9,7 @@ import com.github.therapi.runtimejavadoc.InlineValue;
 import org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +36,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	
 	@SuppressWarnings("StringConcatenationInLoop")
 	@Override
-	@Nonnull
+	@NotNull
 	public String format(Comment comment) {
 		final Pattern PATTERN_JAVADOC_TAG = compile("\\{@\\w+");
 		final Pattern PATTERN_HTML_TAG = compile("</?[A-Za-z]+>");
@@ -129,12 +129,12 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 		
 	}
 	
-	@Nonnull
-	private String formatMethodReference(@Nonnull String prefix, @Nonnull Method m, @Nonnull String postfix) {
+	@NotNull
+	private String formatMethodReference(@NotNull String prefix, @NotNull Method m, @NotNull String postfix) {
 		return String.format("%s%s(%s)%s", prefix, m.getName(), describeMethodParameterTypes(m), postfix);
 	}
 	
-	@Nonnull
+	@NotNull
 	private static String describeMethodParameterTypes(Method deferredMethod) {
 		final StringBuilder result = new StringBuilder();
 		for (Class<?> parameterType : deferredMethod.getParameterTypes()) {
@@ -161,7 +161,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	}
 	
 	@Override
-	@Nonnull
+	@NotNull
 	protected String renderValue(InlineValue e) {
 		Object obj = TherapiJavadocHelper.resolveFieldForValue(e.getValue());
 		if (obj != null) {
@@ -175,8 +175,8 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 		throw new AssertionError(String.format("Found unsupported tag: %s=%s", e.getName(), e.getValue()));
 	}
 	
-	@Nonnull
-	private String removeStructuralHTML(@Nonnull String textWithHtml) {
+	@NotNull
+	private String removeStructuralHTML(@NotNull String textWithHtml) {
 		return textWithHtml
 				.replaceAll("<li>", "\n  - " + indent())
 				.replaceAll("</li>", "")

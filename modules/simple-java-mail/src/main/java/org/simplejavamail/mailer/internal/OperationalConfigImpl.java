@@ -4,8 +4,8 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -46,7 +46,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withClusterKey(UUID)
 	 */
-	@Nonnull
+	@NotNull
 	private final UUID clusterKey;
 
 	/**
@@ -72,7 +72,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
 	 */
-	@Nonnull
+	@NotNull
 	private final LoadBalancingStrategy connectionPoolLoadBalancingStrategy;
 
 	/**
@@ -88,7 +88,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
-	@Nonnull
+	@NotNull
 	private final List<String> sslHostsToTrust;
 
 	/**
@@ -104,7 +104,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
-	@Nonnull
+	@NotNull
 	private final ExecutorService executorService;
 
 	/**
@@ -118,18 +118,18 @@ class OperationalConfigImpl implements OperationalConfig {
 			final int sessionTimeout,
 			final int threadPoolSize,
 			final int threadPoolKeepAliveTime,
-			@Nonnull final UUID clusterKey,
+			@NotNull final UUID clusterKey,
 			final int connectionPoolCoreSize,
 			final int connectionPoolMaxSize,
 			final int connectionPoolClaimTimeoutMillis,
 			final int connectionPoolExpireAfterMillis,
-			@Nonnull final LoadBalancingStrategy connectionPoolLoadBalancingStrategy,
+			@NotNull final LoadBalancingStrategy connectionPoolLoadBalancingStrategy,
 			final boolean transportModeLoggingOnly,
 			final boolean debugLogging,
-			@Nonnull final List<String> sslHostsToTrust,
+			@NotNull final List<String> sslHostsToTrust,
 			final boolean trustAllSSLHost,
 			final boolean verifyingServerIdentity,
-			@Nonnull final ExecutorService executorService,
+			@NotNull final ExecutorService executorService,
 			@Nullable final CustomMailer customMailer) {
 		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
@@ -241,7 +241,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see OperationalConfig#getConnectionPoolLoadBalancingStrategy()
 	 */
-	@Nonnull
+	@NotNull
 	@Override
 	public LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy() {
 		return connectionPoolLoadBalancingStrategy;
@@ -266,7 +266,7 @@ class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see OperationalConfig#getSslHostsToTrust()
 	 */
-	@Nonnull
+	@NotNull
 	@Override
 	public List<String> getSslHostsToTrust() {
 		return sslHostsToTrust;
@@ -291,19 +291,19 @@ class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see OperationalConfig#getProperties()
 	 */
-	@Nonnull
+	@NotNull
 	@Override
 	public Properties getProperties() {
 		return properties;
 	}
 
-	@Nonnull
+	@NotNull
 	@Override
 	public UUID getClusterKey() {
 		return clusterKey;
 	}
 
-	@Nonnull
+	@NotNull
 	@Override
 	public ExecutorService getExecutorService() {
 		return executorService;

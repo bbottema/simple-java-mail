@@ -6,8 +6,8 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.MailerFromSessionBuilderImpl;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 
 /**
@@ -29,7 +29,7 @@ public class MailerBuilder {
 	 * Delegates to {@link MailerFromSessionBuilderImpl#usingSession(Session)}.
 	 */
 	@SuppressWarnings("deprecation")
-	public static MailerFromSessionBuilderImpl usingSession(@Nonnull final Session session) {
+	public static MailerFromSessionBuilderImpl usingSession(@NotNull final Session session) {
 		return new MailerFromSessionBuilderImpl().usingSession(session);
 	}
 	
@@ -37,7 +37,7 @@ public class MailerBuilder {
 	 * Delegates to {@link MailerRegularBuilder#withTransportStrategy(TransportStrategy)}.
 	 */
 	@SuppressWarnings("deprecation")
-	public static MailerRegularBuilderImpl withTransportStrategy(@Nonnull final TransportStrategy transportStrategy) {
+	public static MailerRegularBuilderImpl withTransportStrategy(@NotNull final TransportStrategy transportStrategy) {
 		return new MailerRegularBuilderImpl().withTransportStrategy(transportStrategy);
 	}
 	

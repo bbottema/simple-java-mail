@@ -2,8 +2,8 @@ package org.simplejavamail.internal.smimesupport;
 
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.internet.ContentType;
 import java.util.List;
 import java.util.Map;
@@ -24,17 +24,17 @@ public final class SmimeRecognitionUtil {
 	/**
 	 * @return Whether the given attachment is S/MIME signed / encrypted.
 	 */
-	static boolean isSmimeContentType(@Nonnull final ContentType ct) {
+	static boolean isSmimeContentType(@NotNull final ContentType ct) {
 		return SMIME_MIMETYPES.contains(ct.getBaseType()) ||
 				isSmimeMultiPartSigned(ct.getBaseType(), ct.getParameter("protocol"));
 	}
 
-	public static boolean isGeneratedSmimeMessageId(@Nonnull final Map.Entry headerEntry) {
+	public static boolean isGeneratedSmimeMessageId(@NotNull final Map.Entry headerEntry) {
 		return headerEntry.getKey().equals("Message-ID") &&
 				headerEntry.getValue().equals(SMIME_ATTACHMENT_MESSAGE_ID);
 	}
 
-	@Nonnull
+	@NotNull
 	public static SmimeMode determineSmimeMode(final OriginalSmimeDetails d) {
 		boolean encrypted = SMIME_MIMETYPES.contains(d.getSmimeMime()) && "enveloped-data".equals(d.getSmimeType());
 		boolean signed = !encrypted &&

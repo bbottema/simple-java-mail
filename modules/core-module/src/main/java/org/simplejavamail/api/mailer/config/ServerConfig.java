@@ -1,11 +1,11 @@
 package org.simplejavamail.api.mailer.config;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface ServerConfig {
-	@Nonnull String getHost();
-	@Nonnull Integer getPort();
+	@NotNull String getHost();
+	@NotNull Integer getPort();
 	@Nullable String getUsername();
 	@Nullable String getPassword();
 }

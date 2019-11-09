@@ -9,8 +9,8 @@ import javax.activation.CommandMap;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.MailcapCommandMap;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Address;
 import javax.mail.Header;
 import javax.mail.Message.RecipientType;
@@ -116,7 +116,7 @@ public final class MimeMessageParser {
 	/**
 	 * Extracts the content of a MimeMessage recursively.
 	 */
-	public static ParsedMimeMessageComponents parseMimeMessage(@Nonnull final MimeMessage mimeMessage) {
+	public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage) {
 		final ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
 		parsedComponents.messageId = parseMessageId(mimeMessage);
 		parsedComponents.subject = parseSubject(mimeMessage);
@@ -130,7 +130,7 @@ public final class MimeMessageParser {
 		return parsedComponents;
 	}
 
-	private static void parseMimePartTree(@Nonnull final MimePart currentPart, @Nonnull final ParsedMimeMessageComponents parsedComponents) {
+	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents) {
 		for (final Header header : retrieveAllHeaders(currentPart)) {
 			parseHeader(header, parsedComponents);
 		}
@@ -168,7 +168,7 @@ public final class MimeMessageParser {
 	}
 
 	@SuppressWarnings("StatementWithEmptyBody")
-	private static void parseHeader(final Header header, @Nonnull final ParsedMimeMessageComponents parsedComponents) {
+	private static void parseHeader(final Header header, @NotNull final ParsedMimeMessageComponents parsedComponents) {
 		if (isEmailHeader(header, "Disposition-Notification-To")) {
 			parsedComponents.dispositionNotificationTo = createAddress(header.getValue(), "Disposition-Notification-To");
 		} else if (isEmailHeader(header, "Return-Receipt-To")) {
@@ -190,7 +190,7 @@ public final class MimeMessageParser {
 	}
 
 	@SuppressWarnings("WeakerAccess")
-	public static String parseFileName(@Nonnull final Part currentPart) {
+	public static String parseFileName(@NotNull final Part currentPart) {
 		try {
 			return currentPart.getFileName();
 		} catch (final MessagingException e) {
@@ -202,7 +202,7 @@ public final class MimeMessageParser {
 	 * @return Returns the "method" part from the Calendar content type (such as "{@code text/calendar; charset="UTF-8"; method="REQUEST"}").
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public static String parseCalendarMethod(@Nonnull MimePart currentPart) {
+	public static String parseCalendarMethod(@NotNull MimePart currentPart) {
 		Pattern compile = Pattern.compile("method=\"(.*?)\"");
 		final String contentType;
 		try {
@@ -217,7 +217,7 @@ public final class MimeMessageParser {
 
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
-	public static String parseContentID(@Nonnull final MimePart currentPart) {
+	public static String parseContentID(@NotNull final MimePart currentPart) {
 		try {
 			return currentPart.getContentID();
 		} catch (final MessagingException e) {
@@ -244,7 +244,7 @@ public final class MimeMessageParser {
 	}
 
 	@SuppressWarnings({"WeakerAccess", "unchecked"})
-	public static <T> T parseContent(@Nonnull final MimePart currentPart) {
+	public static <T> T parseContent(@NotNull final MimePart currentPart) {
 		try {
 			return (T) currentPart.getContent();
 		} catch (IOException | MessagingException e) {
@@ -254,7 +254,7 @@ public final class MimeMessageParser {
 
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
-	public static String parseDisposition(@Nonnull final MimePart currentPart) {
+	public static String parseDisposition(@NotNull final MimePart currentPart) {
 		try {
 			return currentPart.getDisposition();
 		} catch (final MessagingException e) {
@@ -262,14 +262,14 @@ public final class MimeMessageParser {
 		}
 	}
 
-	@Nonnull
-	private static String parseResourceNameOrUnnamed(@Nullable final String possibleWrappedContentID, @Nonnull final String fileName) {
+	@NotNull
+	private static String parseResourceNameOrUnnamed(@Nullable final String possibleWrappedContentID, @NotNull final String fileName) {
 		String resourceName = parseResourceName(possibleWrappedContentID, fileName);
 		return valueNullOrEmpty(resourceName) ? "unnamed" : resourceName;
 	}
 
-	@Nonnull
-	private static String parseResourceName(@Nullable String possibleWrappedContentID, @Nonnull String fileName) {
+	@NotNull
+	private static String parseResourceName(@Nullable String possibleWrappedContentID, @NotNull String fileName) {
 		if (!valueNullOrEmpty(possibleWrappedContentID)) {
 			// https://regex101.com/r/46ulb2/1
 			String unwrappedContentID = possibleWrappedContentID.replaceAll("^<?(.*?)>?$", "$1");
@@ -283,8 +283,8 @@ public final class MimeMessageParser {
 	}
 
 	@SuppressWarnings("WeakerAccess")
-	@Nonnull
-	public static List<Header> retrieveAllHeaders(@Nonnull final MimePart part) {
+	@NotNull
+	public static List<Header> retrieveAllHeaders(@NotNull final MimePart part) {
 		try {
 			return Collections.list(part.getAllHeaders());
 		} catch (final MessagingException e) {
@@ -312,7 +312,7 @@ public final class MimeMessageParser {
 	 * @return {@code true} if the MimePart matches the given mime type, {@code false} otherwise
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public static boolean isMimeType(@Nonnull final MimePart part, @Nonnull final String mimeType) {
+	public static boolean isMimeType(@NotNull final MimePart part, @NotNull final String mimeType) {
 		// Do not use part.isMimeType(String) as it is broken for MimeBodyPart
 		// and does not really check the actual content type.
 
@@ -325,7 +325,7 @@ public final class MimeMessageParser {
 	}
 
 	@SuppressWarnings("WeakerAccess")
-	public static String retrieveContentType(@Nonnull final MimePart part) {
+	public static String retrieveContentType(@NotNull final MimePart part) {
 		try {
 			return part.getContentType();
 		} catch (final MessagingException e) {
@@ -334,7 +334,7 @@ public final class MimeMessageParser {
 	}
 
 	@SuppressWarnings("WeakerAccess")
-	public static DataHandler retrieveDataHandler(@Nonnull final MimePart part) {
+	public static DataHandler retrieveDataHandler(@NotNull final MimePart part) {
 		try {
 			return part.getDataHandler();
 		} catch (final MessagingException e) {
@@ -348,8 +348,8 @@ public final class MimeMessageParser {
 	 * @param part the current part to be processed
 	 * @return the DataSource
 	 */
-	@Nonnull
-	private static DataSource createDataSource(@Nonnull final MimePart part) {
+	@NotNull
+	private static DataSource createDataSource(@NotNull final MimePart part) {
 		final DataHandler dataHandler = retrieveDataHandler(part);
 		final DataSource dataSource = dataHandler.getDataSource();
 		final String contentType = parseBaseMimeType(dataSource.getContentType());
@@ -371,13 +371,13 @@ public final class MimeMessageParser {
 	}
 
 	@Nullable
-	private static String parseDataSourceName(@Nonnull final Part part, @Nonnull final DataSource dataSource) {
+	private static String parseDataSourceName(@NotNull final Part part, @NotNull final DataSource dataSource) {
 		final String result = !valueNullOrEmpty(dataSource.getName()) ? dataSource.getName() : parseFileName(part);
 		return !valueNullOrEmpty(result) ? decodeText(result) : null;
 	}
 
-	@Nonnull
-	private static String decodeText(@Nonnull final String result) {
+	@NotNull
+	private static String decodeText(@NotNull final String result) {
 		try {
 			return MimeUtility.decodeText(result);
 		} catch (final UnsupportedEncodingException e) {
@@ -385,8 +385,8 @@ public final class MimeMessageParser {
 		}
 	}
 
-	@Nonnull
-	private static byte[] readContent(@Nonnull final InputStream is) {
+	@NotNull
+	private static byte[] readContent(@NotNull final InputStream is) {
 		final BufferedInputStream isReader = new BufferedInputStream(is);
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		final BufferedOutputStream osWriter = new BufferedOutputStream(os);
@@ -409,8 +409,8 @@ public final class MimeMessageParser {
 	 * @param fullMimeType the mime type from the mail api
 	 * @return The real mime type
 	 */
-	@Nonnull
-	private static String parseBaseMimeType(@Nonnull final String fullMimeType) {
+	@NotNull
+	private static String parseBaseMimeType(@NotNull final String fullMimeType) {
 		final int pos = fullMimeType.indexOf(';');
 		if (pos >= 0) {
 			return fullMimeType.substring(0, pos);
@@ -420,26 +420,26 @@ public final class MimeMessageParser {
 
 
 	@SuppressWarnings("WeakerAccess")
-	@Nonnull
-	public static List<InternetAddress> parseToAddresses(@Nonnull final MimeMessage mimeMessage) {
+	@NotNull
+	public static List<InternetAddress> parseToAddresses(@NotNull final MimeMessage mimeMessage) {
 		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.TO));
 	}
 
 	@SuppressWarnings("WeakerAccess")
-	@Nonnull
-	public static List<InternetAddress> parseCcAddresses(@Nonnull final MimeMessage mimeMessage) {
+	@NotNull
+	public static List<InternetAddress> parseCcAddresses(@NotNull final MimeMessage mimeMessage) {
 		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.CC));
 	}
 
 	@SuppressWarnings("WeakerAccess")
-	@Nonnull
-	public static List<InternetAddress> parseBccAddresses(@Nonnull final MimeMessage mimeMessage) {
+	@NotNull
+	public static List<InternetAddress> parseBccAddresses(@NotNull final MimeMessage mimeMessage) {
 		return parseInternetAddresses(retrieveRecipients(mimeMessage, RecipientType.BCC));
 	}
 
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
-	public static Address[] retrieveRecipients(@Nonnull final MimeMessage mimeMessage, final RecipientType recipientType) {
+	public static Address[] retrieveRecipients(@NotNull final MimeMessage mimeMessage, final RecipientType recipientType) {
 		try {
 			// return mimeMessage.getRecipients(recipientType); // can fail in strict mode, see https://github.com/bbottema/simple-java-mail/issues/227
 			// workaround following (copied and modified from JavaMail internal code):
@@ -450,7 +450,7 @@ public final class MimeMessageParser {
 		}
 	}
 
-	private static String getHeaderName(@Nonnull MimeMessage mimeMessage, RecipientType recipientType) throws MessagingException {
+	private static String getHeaderName(@NotNull MimeMessage mimeMessage, RecipientType recipientType) throws MessagingException {
 		if (recipientType == RecipientType.TO) {
 			return "To";
 		} else if (recipientType == RecipientType.CC) {
@@ -461,7 +461,7 @@ public final class MimeMessageParser {
 		}
 	}
 
-	@Nonnull
+	@NotNull
 	private static List<InternetAddress> parseInternetAddresses(@Nullable final Address[] recipients) {
 		final List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<Address>();
 		final List<InternetAddress> mailAddresses = new ArrayList<>();
@@ -475,7 +475,7 @@ public final class MimeMessageParser {
 
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
-	public static InternetAddress parseFromAddress(@Nonnull final MimeMessage mimeMessage) {
+	public static InternetAddress parseFromAddress(@NotNull final MimeMessage mimeMessage) {
 		try {
 			final Address[] addresses = mimeMessage.getFrom();
 			return (addresses == null || addresses.length == 0) ? null : (InternetAddress) addresses[0];
@@ -486,7 +486,7 @@ public final class MimeMessageParser {
 
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
-	public static InternetAddress parseReplyToAddresses(@Nonnull final MimeMessage mimeMessage) {
+	public static InternetAddress parseReplyToAddresses(@NotNull final MimeMessage mimeMessage) {
 		try {
 			final Address[] addresses = mimeMessage.getReplyTo();
 			return (addresses == null || addresses.length == 0) ? null : (InternetAddress) addresses[0];
@@ -495,8 +495,8 @@ public final class MimeMessageParser {
 		}
 	}
 
-	@Nonnull
-	public static String parseSubject(@Nonnull final MimeMessage mimeMessage) {
+	@NotNull
+	public static String parseSubject(@NotNull final MimeMessage mimeMessage) {
 		try {
 			return ofNullable(mimeMessage.getSubject()).orElse("");
 		} catch (final MessagingException e) {
@@ -507,7 +507,7 @@ public final class MimeMessageParser {
 
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
-	public static String parseMessageId(@Nonnull final MimeMessage mimeMessage) {
+	public static String parseMessageId(@NotNull final MimeMessage mimeMessage) {
 		try {
 			return mimeMessage.getMessageID();
 		} catch (final MessagingException e) {

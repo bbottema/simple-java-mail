@@ -22,7 +22,7 @@ import org.simplejavamail.internal.util.MiscUtil;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 

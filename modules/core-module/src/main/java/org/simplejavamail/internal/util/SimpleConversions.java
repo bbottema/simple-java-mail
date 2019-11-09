@@ -1,6 +1,6 @@
 package org.simplejavamail.internal.util;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 

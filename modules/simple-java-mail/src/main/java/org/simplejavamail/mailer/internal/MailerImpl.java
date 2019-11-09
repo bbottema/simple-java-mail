@@ -16,8 +16,8 @@ import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 import java.util.EnumSet;
 import java.util.List;
@@ -42,13 +42,13 @@ public class MailerImpl implements Mailer {
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
 	 */
-	@Nonnull
+	@NotNull
 	private final Session session;
 
 	/**
 	 * @see OperationalConfig
 	 */
-	@Nonnull
+	@NotNull
 	private final OperationalConfig operationalConfig;
 
 	/**
@@ -61,13 +61,13 @@ public class MailerImpl implements Mailer {
 	/**
 	 * Used to keep track of running SMTP requests, so that we know when to close down the proxy bridging server (if used).
 	 */
-	@Nonnull
+	@NotNull
 	private final AtomicInteger smtpConnectionCounter = new AtomicInteger();
 	
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
 	 */
-	@Nonnull
+	@NotNull
 	private final EnumSet<EmailAddressCriteria> emailAddressCriteria;
 	
 	/**
@@ -85,10 +85,10 @@ public class MailerImpl implements Mailer {
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxy(String, Integer, String, String)
 	 */
-	@Nonnull
+	@NotNull
 	private final ProxyConfig proxyConfig;
 
-	MailerImpl(@Nonnull final MailerFromSessionBuilderImpl fromSessionBuilder) {
+	MailerImpl(@NotNull final MailerFromSessionBuilderImpl fromSessionBuilder) {
 		this(null,
 				null,
 				fromSessionBuilder.getEmailAddressCriteria(),
@@ -97,7 +97,7 @@ public class MailerImpl implements Mailer {
 				fromSessionBuilder.buildOperationalConfig());
 	}
 	
-	MailerImpl(@Nonnull final MailerRegularBuilderImpl regularBuilder) {
+	MailerImpl(@NotNull final MailerRegularBuilderImpl regularBuilder) {
 		this(regularBuilder.buildServerConfig(),
 				regularBuilder.getTransportStrategy(),
 				regularBuilder.getEmailAddressCriteria(),
@@ -106,8 +106,8 @@ public class MailerImpl implements Mailer {
 				regularBuilder.buildOperationalConfig());
 	}
 
-	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @Nonnull EnumSet<EmailAddressCriteria> emailAddressCriteria, @Nonnull ProxyConfig proxyConfig,
-			@Nullable Session session, @Nonnull OperationalConfig operationalConfig) {
+	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EnumSet<EmailAddressCriteria> emailAddressCriteria, @NotNull ProxyConfig proxyConfig,
+			@Nullable Session session, @NotNull OperationalConfig operationalConfig) {
 		this.serverConfig = serverConfig;
 		this.transportStrategy = transportStrategy;
 		this.emailAddressCriteria = emailAddressCriteria;
@@ -143,8 +143,8 @@ public class MailerImpl implements Mailer {
 	 * @see TransportStrategy#propertyNameUsername()
 	 * @see TransportStrategy#propertyNameAuthenticate()
 	 */
-	@Nonnull
-	public static Session createMailSession(@Nonnull final ServerConfig serverConfig, @Nonnull final TransportStrategy transportStrategy) {
+	@NotNull
+	public static Session createMailSession(@NotNull final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy) {
 		final Properties props = transportStrategy.generateProperties();
 		props.put(transportStrategy.propertyNameHost(), serverConfig.getHost());
 		props.put(transportStrategy.propertyNamePort(), String.valueOf(serverConfig.getPort()));
@@ -161,7 +161,7 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	private void initSession(@Nonnull final Session session, @Nonnull OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
+	private void initSession(@NotNull final Session session, @NotNull OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
 		session.setDebug(operationalConfig.isDebugLogging());
 		session.getProperties().putAll(operationalConfig.getProperties());
 
@@ -173,7 +173,7 @@ public class MailerImpl implements Mailer {
 	/**
 	 * Configures the {@link Session} with the same timeout for socket connection timeout, read and write timeout.
 	 */
-	private void configureSessionWithTimeout(@Nonnull final Session session, final int sessionTimeout, @Nullable final TransportStrategy transportStrategy) {
+	private void configureSessionWithTimeout(@NotNull final Session session, final int sessionTimeout, @Nullable final TransportStrategy transportStrategy) {
 		if (transportStrategy != null) {
 			// socket timeouts handling
 			final Properties sessionProperties = session.getProperties();
@@ -185,7 +185,7 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	private void configureTrustedHosts(@Nonnull final Session session, @Nonnull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
+	private void configureTrustedHosts(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
 		if (transportStrategy != null) {
 			if (operationalConfig.isTrustAllSSLHost()) {
 				session.getProperties().setProperty(transportStrategy.propertyNameSSLTrust(), "*");
@@ -206,7 +206,7 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	private void configureServerIdentityVerification(@Nonnull final Session session, @Nonnull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
+	private void configureServerIdentityVerification(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
 		if (transportStrategy != null && transportStrategy != TransportStrategy.SMTP) {
 			session.getProperties().setProperty(transportStrategy.propertyNameCheckServerIdentity(),
 					Boolean.toString(operationalConfig.isVerifyingServerIdentity()));
@@ -228,9 +228,9 @@ public class MailerImpl implements Mailer {
 	 */
 	@Nullable
 	private static AnonymousSocks5Server configureSessionWithProxy(
-			@Nonnull final ProxyConfig proxyConfig,
-			@Nonnull final OperationalConfig operationalConfig,
-			@Nonnull final Session session,
+			@NotNull final ProxyConfig proxyConfig,
+			@NotNull final OperationalConfig operationalConfig,
+			@NotNull final Session session,
 			@Nullable final TransportStrategy transportStrategy) {
 		if (operationalConfig.getCustomMailer() != null) {
 			LOGGER.trace("CustomMailer provided by user, skipping proxy.");
@@ -263,7 +263,7 @@ public class MailerImpl implements Mailer {
 		return null;
 	}
 
-	private void initCluster(@Nonnull final Session session, @Nonnull final OperationalConfig operationalConfig) {
+	private void initCluster(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig) {
 		if (operationalConfig.getCustomMailer() == null && ModuleLoader.batchModuleAvailable()) {
 			ModuleLoader.loadBatchModule().registerToCluster(operationalConfig, operationalConfig.getClusterKey(), session);
 		}
@@ -327,7 +327,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@SuppressWarnings({"SameReturnValue"})
-	public boolean validate(@Nonnull final Email email)
+	public boolean validate(@NotNull final Email email)
 			throws MailException {
 		return MailerHelper.validate(email, emailAddressCriteria);
 	}
@@ -372,7 +372,7 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#getProxyConfig()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public ProxyConfig getProxyConfig() {
 		return this.proxyConfig;
 	}
@@ -381,7 +381,7 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#getOperationalConfig()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public OperationalConfig getOperationalConfig() {
 		return operationalConfig;
 	}
@@ -390,7 +390,7 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#getEmailAddressCriteria()
 	 */
 	@Override
-	@Nonnull
+	@NotNull
 	public EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
 		return emailAddressCriteria;
 	}

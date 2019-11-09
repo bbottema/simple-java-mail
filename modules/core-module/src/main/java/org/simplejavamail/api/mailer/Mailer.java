@@ -9,8 +9,8 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Message;
 import javax.mail.Session;
 import javax.mail.Transport;
@@ -136,13 +136,13 @@ public interface Mailer {
 	/**
 	 * @return The proxy connection details. Will be empty if no proxy is required.
 	 */
-	@Nonnull
+	@NotNull
 	ProxyConfig getProxyConfig();
 
 	/**
 	 * @return The operational parameters defined using a mailer builder. Includes general things like session timeouts, debug mode, SSL config etc.
 	 */
-	@Nonnull
+	@NotNull
 	OperationalConfig getOperationalConfig();
 
 	/**
@@ -150,6 +150,6 @@ public interface Mailer {
 	 * @see MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
 	 * @see EmailAddressCriteria
 	 */
-	@Nonnull
+	@NotNull
 	EnumSet<EmailAddressCriteria> getEmailAddressCriteria();
 }

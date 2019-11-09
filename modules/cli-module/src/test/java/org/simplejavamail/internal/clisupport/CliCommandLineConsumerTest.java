@@ -4,7 +4,7 @@ import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.model.MethodModifier;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 

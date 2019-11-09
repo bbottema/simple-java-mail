@@ -2,7 +2,7 @@ package org.simplejavamail.internal.smimesupport;
 
 import org.simplejavamail.MailException;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -20,11 +20,11 @@ class SmimeException extends MailException {
 	static final String ERROR_READING_SMIME_CONTENT_TYPE = "Error reading S/MIME Content-Type header from MimeMessage";
 	static final String ERROR_READING_PKCS12_KEYSTORE = "Unable to read PKCS12 key store";
 
-	SmimeException(@Nonnull final String message) {
+	SmimeException(@NotNull final String message) {
 		super(checkNonEmptyArgument(message, "message"));
 	}
 
-	SmimeException(@SuppressWarnings("SameParameterValue") @Nonnull final String message, @Nonnull final Exception cause) {
+	SmimeException(@SuppressWarnings("SameParameterValue") @NotNull final String message, @NotNull final Exception cause) {
 		super(checkNonEmptyArgument(message, "message"), cause);
 	}
 }

@@ -2,14 +2,14 @@ package org.simplejavamail.api.internal.smimesupport.model;
 
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class PlainSmimeDetails implements OriginalSmimeDetails {
 
 	private static final long serialVersionUID = 1234567L;
 
-	@Nonnull
+	@NotNull
 	@Override
 	public SmimeMode getSmimeMode() {
 		return SmimeMode.PLAIN;

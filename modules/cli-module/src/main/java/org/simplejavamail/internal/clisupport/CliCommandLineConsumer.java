@@ -11,8 +11,8 @@ import org.slf4j.Logger;
 import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.ParseResult;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -93,7 +93,7 @@ class CliCommandLineConsumer {
 		return providedValuesConverted;
 	}
     
-    private static Object parseStringInput(@Nonnull String stringValue, @Nonnull Class<?> targetType) {
+    private static Object parseStringInput(@NotNull String stringValue, @NotNull Class<?> targetType) {
 		try {
 			return ValueConversionHelper.convert(stringValue, targetType);
 		} catch (IncompatibleTypeException e) {

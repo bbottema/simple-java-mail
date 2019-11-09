@@ -9,11 +9,11 @@ import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.security.cert.X509Certificate;
 
 public class CertificationUtil {
-	@Nonnull
+	@NotNull
 	public static String extractSignedBy(final X509Certificate certificate)
 			throws OperatorCreationException {
 		JcaSimpleSignerInfoVerifierBuilder builder = new JcaSimpleSignerInfoVerifierBuilder();

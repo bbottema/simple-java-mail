@@ -4,8 +4,8 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 
 /**
@@ -32,7 +32,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @param transportStrategy The name of the transport strategy to use: {@link TransportStrategy#SMTP}, {@link TransportStrategy#SMTPS} or
 	 *                                {@link TransportStrategy#SMTP_TLS}. Defaults to {@link TransportStrategy#SMTP}.
 	 */
-	T withTransportStrategy(@Nonnull TransportStrategy transportStrategy);
+	T withTransportStrategy(@NotNull TransportStrategy transportStrategy);
 	
 	/**
 	 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)}, {@link #withSMTPServerUsername(String)} and {@link

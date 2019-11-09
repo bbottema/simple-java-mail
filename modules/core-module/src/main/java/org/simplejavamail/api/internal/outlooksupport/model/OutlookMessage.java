@@ -1,6 +1,6 @@
 package org.simplejavamail.api.internal.outlooksupport.model;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;

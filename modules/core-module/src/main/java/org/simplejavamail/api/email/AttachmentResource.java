@@ -4,8 +4,8 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
@@ -43,7 +43,7 @@ public class AttachmentResource implements Serializable {
 	 * @param dataSource The attachment data. If no name was provided, the name of this datasource is used if provided.
 	 * @see DataSource
 	 */
-	public AttachmentResource(@Nullable final String name, @Nonnull final DataSource dataSource) {
+	public AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource) {
 		this.name = name;
 		this.dataSource = checkNonEmptyArgument(dataSource, "dataSource");
 	}
@@ -52,7 +52,7 @@ public class AttachmentResource implements Serializable {
 	 * @return The content of the datasource as UTF-8 encoded String.
 	 * @throws IOException See {@link #readAllData(Charset)}
 	 */
-	@Nonnull
+	@NotNull
 	public String readAllData()
 			throws IOException {
 		return readAllData(UTF_8);
@@ -61,7 +61,7 @@ public class AttachmentResource implements Serializable {
 	/**
 	 * Delegates to {@link MiscUtil#readInputStreamToBytes(InputStream)} with data source input stream.
 	 */
-	@Nonnull
+	@NotNull
 	public byte[] readAllBytes()
 			throws IOException {
 		return MiscUtil.readInputStreamToBytes(getDataSourceInputStream());
@@ -71,8 +71,8 @@ public class AttachmentResource implements Serializable {
 	 * Delegates to {@link MiscUtil#readInputStreamToString(InputStream, Charset)} with data source input stream.
 	 */
 	@SuppressWarnings({"WeakerAccess" })
-	@Nonnull
-	public String readAllData(@SuppressWarnings("SameParameterValue") @Nonnull final Charset charset)
+	@NotNull
+	public String readAllData(@SuppressWarnings("SameParameterValue") @NotNull final Charset charset)
 			throws IOException {
 		checkNonEmptyArgument(charset, "charset");
 		return MiscUtil.readInputStreamToString(getDataSourceInputStream(), charset);
@@ -81,7 +81,7 @@ public class AttachmentResource implements Serializable {
 	/**
 	 * @return {@link #dataSource}
 	 */
-	@Nonnull
+	@NotNull
 	public DataSource getDataSource() {
 		return dataSource;
 	}
@@ -89,7 +89,7 @@ public class AttachmentResource implements Serializable {
 	/**
 	 * Delegates to {@link DataSource#getInputStream}
 	 */
-	@Nonnull
+	@NotNull
 	public InputStream getDataSourceInputStream() {
 		try {
 			return dataSource.getInputStream();
@@ -119,7 +119,7 @@ public class AttachmentResource implements Serializable {
 	}
 
 	@Override
-	@Nonnull
+	@NotNull
 	public String toString() {
 		return "AttachmentResource{" +
 				"\n\t\tname='" + name + '\'' +

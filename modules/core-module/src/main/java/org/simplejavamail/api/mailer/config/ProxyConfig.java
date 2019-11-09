@@ -1,6 +1,6 @@
 package org.simplejavamail.api.mailer.config;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The proxy configuration that indicates whether the connections should be routed through a proxy.

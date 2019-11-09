@@ -3,7 +3,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.modules.ModuleLoader;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
@@ -33,9 +33,9 @@ public abstract class MimeMessageProducer {
 	/**
 	 * @return Whether this mimemessage producer exactly matches the needs of the given email.
 	 */
-	abstract boolean compatibleWithEmail(@Nonnull Email email);
+	abstract boolean compatibleWithEmail(@NotNull Email email);
 	
-	final MimeMessage populateMimeMessage(@Nonnull final Email email, @Nonnull Session session)
+	final MimeMessage populateMimeMessage(@NotNull final Email email, @NotNull Session session)
 			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
@@ -93,18 +93,18 @@ public abstract class MimeMessageProducer {
 		return message;
 	}
 
-	abstract void populateMimeMessageMultipartStructure(@Nonnull MimeMessage  message, @Nonnull Email email) throws MessagingException;
+	abstract void populateMimeMessageMultipartStructure(@NotNull MimeMessage  message, @NotNull Email email) throws MessagingException;
 	
 	
-	static boolean emailContainsMixedContent(@Nonnull Email email) {
+	static boolean emailContainsMixedContent(@NotNull Email email) {
 		return !email.getAttachments().isEmpty() || email.getEmailToForward() != null;
 	}
 	
-	static boolean emailContainsRelatedContent(@Nonnull Email email) {
+	static boolean emailContainsRelatedContent(@NotNull Email email) {
 		return !email.getEmbeddedImages().isEmpty();
 	}
 	
-	static boolean emailContainsAlternativeContent(@Nonnull Email email) {
+	static boolean emailContainsAlternativeContent(@NotNull Email email) {
 		return (email.getPlainText() != null ? 1 : 0) +
 				(email.getHTMLText() != null ? 1 : 0) +
 				(email.getCalendarText() != null ? 1 : 0) > 1;

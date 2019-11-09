@@ -7,7 +7,7 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.EmailHelper;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -43,7 +43,7 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private void fixLoadedPropertyPath(@Nonnull final Property property) {
+	private void fixLoadedPropertyPath(@NotNull final Property property) {
 		final String originalProperty = ConfigLoader.getStringProperty(property);
 		final Properties properties = new Properties();
 		properties.put(property.key(), determineResourceFolder("simple-java-mail").replace("src", "") + originalProperty);

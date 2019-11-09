@@ -5,8 +5,8 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.internet.MimeMessage;
 import java.util.List;
 import java.util.Map;
@@ -16,9 +16,9 @@ import java.util.Map;
  */
 @SuppressWarnings("UnusedReturnValue")
 public interface InternalEmailPopulatingBuilder  extends EmailPopulatingBuilder {
-	@Nonnull InternalEmailPopulatingBuilder withForward(@Nullable MimeMessage emailMessageToForward);
-	@Nonnull <T> InternalEmailPopulatingBuilder withHeaders(@Nonnull Map<String, T> headers, boolean ignoreSmimeMessageId);
-	@Nonnull InternalEmailPopulatingBuilder withDecryptedAttachments(List<AttachmentResource> decryptedAttachments);
-	@Nonnull InternalEmailPopulatingBuilder  withSmimeSignedEmail(@Nonnull Email smimeSignedEmail);
-	@Nonnull InternalEmailPopulatingBuilder  withOriginalSmimeDetails(@Nonnull OriginalSmimeDetails originalSmimeDetails);
+	@NotNull InternalEmailPopulatingBuilder withForward(@Nullable MimeMessage emailMessageToForward);
+	@NotNull <T> InternalEmailPopulatingBuilder withHeaders(@NotNull Map<String, T> headers, boolean ignoreSmimeMessageId);
+	@NotNull InternalEmailPopulatingBuilder withDecryptedAttachments(List<AttachmentResource> decryptedAttachments);
+	@NotNull InternalEmailPopulatingBuilder  withSmimeSignedEmail(@NotNull Email smimeSignedEmail);
+	@NotNull InternalEmailPopulatingBuilder  withOriginalSmimeDetails(@NotNull OriginalSmimeDetails originalSmimeDetails);
 }

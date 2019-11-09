@@ -1,7 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import javax.activation.DataSource;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.EncodingAware;
 import java.io.IOException;
 import java.io.InputStream;

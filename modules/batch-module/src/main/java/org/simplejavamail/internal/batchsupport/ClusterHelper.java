@@ -9,7 +9,7 @@ import org.bbottema.genericobjectpool.util.Timeout;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.Session;
 import javax.mail.Transport;
 
@@ -21,8 +21,8 @@ final class ClusterHelper {
 		// utility class
 	}
 
-	@Nonnull
-	static SmtpClusterConfig configureSmtpClusterConfig(@Nonnull final OperationalConfig operationalConfig) {
+	@NotNull
+	static SmtpClusterConfig configureSmtpClusterConfig(@NotNull final OperationalConfig operationalConfig) {
 		SmtpClusterConfig smtpClusterConfig = new SmtpClusterConfig();
 		smtpClusterConfig.getConfigBuilder()
 				.defaultCorePoolSize(operationalConfig.getConnectionPoolCoreSize())
@@ -35,7 +35,7 @@ final class ClusterHelper {
 		return smtpClusterConfig;
 	}
 
-	static boolean compareClusterConfig(@Nonnull final OperationalConfig operationalConfig, final ClusterConfig<Session, Transport> config) {
+	static boolean compareClusterConfig(@NotNull final OperationalConfig operationalConfig, final ClusterConfig<Session, Transport> config) {
 		return config.getDefaultCorePoolSize() != operationalConfig.getConnectionPoolCoreSize() ||
 				config.getDefaultMaxPoolSize() != operationalConfig.getConnectionPoolCoreSize() ||
 				config.getLoadBalancingStrategy().getClass() != determineLoadBalancingStrategy(operationalConfig).getClass() ||
@@ -43,8 +43,8 @@ final class ClusterHelper {
 	}
 
 	@SuppressWarnings("rawtypes")
-	@Nonnull
-	private static LoadBalancingStrategy determineLoadBalancingStrategy(@Nonnull final OperationalConfig operationalConfig) {
+	@NotNull
+	private static LoadBalancingStrategy determineLoadBalancingStrategy(@NotNull final OperationalConfig operationalConfig) {
 		return operationalConfig.getConnectionPoolLoadBalancingStrategy() == ROUND_ROBIN
 				? new RoundRobinLoadBalancing<>()
 				: new RandomAccessLoadBalancing<>();

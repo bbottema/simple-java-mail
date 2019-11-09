@@ -27,8 +27,8 @@ import org.simplejavamail.internal.util.StringUtil.StringFormatter;
 import org.slf4j.Logger;
 
 import javax.activation.DataSource;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
@@ -98,7 +98,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	private BuilderApiToPicocliCommandsMapper() {
 	}
 	
-	@Nonnull
+	@NotNull
 	static List<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(@SuppressWarnings("SameParameterValue") Class<?>[] relevantBuilderRootApi) {
 		final List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
 		final Set<Class<?>> processedApiNodes = new HashSet<>();
@@ -176,7 +176,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		return MethodUtils.isMethodCompatible(m, allOf(LookupMode.class), stringParameters);
 	}
 	
-	@Nonnull
+	@NotNull
 	public static List<String> colorizeDescriptions(List<String> descriptions) {
 		List<String> colorizedDescriptions = new ArrayList<>();
 		for (String description : descriptions) {
@@ -185,14 +185,14 @@ public final class BuilderApiToPicocliCommandsMapper {
 		return colorizedDescriptions;
 	}
 	
-	@Nonnull
+	@NotNull
 	public static String colorizeOptionsInText(String text, String ansiStyles) {
 		final StringFormatter TOKEN_REPLACER = StringFormatter.formatterForPattern("@|" + ansiStyles + " %s|@");
 		final String optionRegex = "(?:--(?:help|version)|-(?:h|v)|(?:--?\\w+:\\w+))(?!\\w)"; // https://regex101.com/r/SOs17K/4
 		return StringUtil.replaceNestedTokens(text, 0, "@|", "|@", optionRegex, TOKEN_REPLACER);
 	}
 	
-	@Nonnull
+	@NotNull
 	public static String determineCliOptionName(Class<?> apiNode, Method m) {
 		String methodName = m.isAnnotationPresent(Cli.OptionNameOverride.class)
 				? m.getAnnotation(Cli.OptionNameOverride.class).value()
@@ -203,7 +203,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		return format("--%s:%s", cliCommandPrefix, methodName);
 	}
 	
-	@Nonnull
+	@NotNull
 	public static List<CliDeclaredOptionValue> getArgumentsForCliOption(Method m) {
 		final Annotation[][] annotations = m.getParameterAnnotations();
 		final Class<?>[] declaredParameters = m.getParameterTypes();
@@ -223,12 +223,12 @@ public final class BuilderApiToPicocliCommandsMapper {
 		return cliParams;
 	}
 	
-	@Nonnull
+	@NotNull
 	static String extractJavadocDescription(String javadoc) {
 		return javadoc.substring(0, determineJavadocLengthUntilExamples(javadoc, false));
 	}
 	
-	@Nonnull
+	@NotNull
 	static String[] extractJavadocExamples(String javadoc) {
 		final int javadocLengthIncludingExamples = determineJavadocLengthUntilExamples(javadoc, true);
 		if (javadocLengthIncludingExamples != javadoc.length()) {
@@ -248,7 +248,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 				: javadoc.length();
 	}
 
-	@Nonnull
+	@NotNull
 	private static String determineTypeLabel(Class<?> type) {
 		return checkNonEmptyArgument(TYPE_LABELS.get(type), "Missing type label for type " + type);
 	}

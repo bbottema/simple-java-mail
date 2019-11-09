@@ -9,8 +9,8 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.slf4j.Logger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeUtility;
@@ -27,7 +27,7 @@ public class MailerHelper {
 	private static final Logger LOGGER = getLogger(MailerHelper.class);
 
 	@SuppressWarnings({ "SameReturnValue" })
-	public static boolean validate(@Nonnull final Email email, @Nonnull final EnumSet<EmailAddressCriteria> emailAddressCriteria)
+	public static boolean validate(@NotNull final Email email, @NotNull final EnumSet<EmailAddressCriteria> emailAddressCriteria)
 			throws MailException {
 		LOGGER.debug("validating email...");
 
@@ -123,7 +123,7 @@ public class MailerHelper {
 	 * @see org.simplejavamail.internal.modules.DKIMModule#signMessageWithDKIM(MimeMessage, Email)
 	 */
 	@SuppressWarnings("unused")
-	public static MimeMessage signMessageWithDKIM(@Nonnull final MimeMessage messageToSign, @Nonnull final Email emailContainingSigningDetails) {
+	public static MimeMessage signMessageWithDKIM(@NotNull final MimeMessage messageToSign, @NotNull final Email emailContainingSigningDetails) {
 		return ModuleLoader.loadDKIMModule().signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
 	}
 
@@ -133,7 +133,7 @@ public class MailerHelper {
 	 * @see org.simplejavamail.internal.modules.SMIMEModule#signAndOrEncryptEmail(Session, MimeMessage, Email)
 	 */
 	@SuppressWarnings("unused")
-	public static MimeMessage signAndOrEncryptMessageWithSmime(@Nonnull final Session session, @Nonnull final MimeMessage messageToProtect, @Nonnull final Email emailContainingSmimeDetails) {
+	public static MimeMessage signAndOrEncryptMessageWithSmime(@NotNull final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails) {
 		return ModuleLoader.loadSmimeModule()
 				.signAndOrEncryptEmail(session, messageToProtect, emailContainingSmimeDetails);
 	}

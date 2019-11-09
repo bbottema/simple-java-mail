@@ -8,8 +8,8 @@ import picocli.CommandLine;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Model.OptionSpec;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -102,7 +102,7 @@ class CliCommandLineProducer {
         }
     }
     
-    @Nonnull
+    @NotNull
     private static List<String> formatOptionDescription(CliDeclaredOptionSpec cliOption, int maxTextWidth) {
         final List<String> fullDescription = new ArrayList<>(cliOption.getDescription());
         if (!cliOption.getPossibleOptionValues().isEmpty()) {
@@ -132,7 +132,7 @@ class CliCommandLineProducer {
         return declaredParamLabel.isEmpty() ? EMPTY_PARAM_LABEL : declaredParamLabel;
     }
     
-    private static CommandSpec createDefaultCommandSpec(@Nonnull String name, @Nullable String... descriptions) {
+    private static CommandSpec createDefaultCommandSpec(@NotNull String name, @Nullable String... descriptions) {
         final CommandSpec command = CommandSpec.create()
                 .name(name)
                 .mixinStandardHelpOptions(true);

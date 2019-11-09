@@ -1,6 +1,6 @@
 package org.simplejavamail.api.internal.clisupport.model;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -10,10 +10,10 @@ import static java.lang.String.format;
 public enum CliBuilderApiType {
     EMAIL("email"), MAILER("mailer");
 	
-	@Nonnull
+	@NotNull
     private final String paramPrefix;
     
-    CliBuilderApiType(@Nonnull String paramPrefix) {
+    CliBuilderApiType(@NotNull String paramPrefix) {
         this.paramPrefix = paramPrefix;
     }
 	
@@ -27,7 +27,7 @@ public enum CliBuilderApiType {
 		return foundForSynopsis;
 	}
 	
-	@Nonnull
+	@NotNull
 	public String getParamPrefix() {
 		return paramPrefix;
 	}

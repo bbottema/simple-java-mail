@@ -5,8 +5,8 @@ import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import javax.activation.DataSource;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Message;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
@@ -51,7 +51,7 @@ public interface EmailPopulatingBuilder {
 	 * @param fromAddress The sender address visible to receivers of the email.
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
-	EmailPopulatingBuilder from(@Nonnull String fromAddress);
+	EmailPopulatingBuilder from(@NotNull String fromAddress);
 	
 	/**
 	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
@@ -59,17 +59,17 @@ public interface EmailPopulatingBuilder {
 	 * @param name The name that will be visible to the receivers of this email.
 	 * @param fromAddress The address that will be visible to the receivers of this email.
 	 */
-	EmailPopulatingBuilder from(@Nullable String name, @Nonnull String fromAddress);
+	EmailPopulatingBuilder from(@Nullable String name, @NotNull String fromAddress);
 	
 	/**
 	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and email address.
 	 */
-	EmailPopulatingBuilder from(@Nullable String fixedName, @Nonnull InternetAddress fromAddress);
+	EmailPopulatingBuilder from(@Nullable String fixedName, @NotNull InternetAddress fromAddress);
 	
 	/**
 	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given email address.
 	 */
-	EmailPopulatingBuilder from(@Nonnull InternetAddress fromAddress);
+	EmailPopulatingBuilder from(@NotNull InternetAddress fromAddress);
 	
 	/**
 	 * Sets the address of the sender of this email with given {@link Recipient} (ignoring its {@link Message.RecipientType} if provided).
@@ -83,7 +83,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #from(String)
 	 * @see #withReplyTo(Recipient)
 	 */
-	EmailPopulatingBuilder from(@Nonnull Recipient recipient);
+	EmailPopulatingBuilder from(@NotNull Recipient recipient);
 	
 	/**
 	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given email address (or null if missing).
@@ -99,17 +99,17 @@ public interface EmailPopulatingBuilder {
 	 * @param fixedName Optional name that receivers will get when they reply to the email.
 	 * @param replyToAddress The address that receivers will get when they reply to the email. Any name included in the address will be ignored.
 	 */
-	EmailPopulatingBuilder withReplyTo(@Nullable String fixedName, @Nonnull String replyToAddress);
+	EmailPopulatingBuilder withReplyTo(@Nullable String fixedName, @NotNull String replyToAddress);
 	
 	/**
 	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given address.
 	 */
-	EmailPopulatingBuilder withReplyTo(@Nonnull InternetAddress replyToAddress);
+	EmailPopulatingBuilder withReplyTo(@NotNull InternetAddress replyToAddress);
 	
 	/**
 	 * Delegates to {@link #withReplyTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and address.
 	 */
-	EmailPopulatingBuilder withReplyTo(@Nullable String fixedName, @Nonnull InternetAddress replyToAddress);
+	EmailPopulatingBuilder withReplyTo(@Nullable String fixedName, @NotNull InternetAddress replyToAddress);
 	
 	/**
 	 * Sets the <em>replyTo</em> address of this email with given {@link Recipient} (ignoring its {@link Message.RecipientType} if provided).
@@ -137,20 +137,20 @@ public interface EmailPopulatingBuilder {
 	 * @param name Name of the receiver of the bounced email
 	 * @param bounceToAddress The address of the receiver of the bounced email
 	 */
-	EmailPopulatingBuilder withBounceTo(@Nullable String name, @Nonnull String bounceToAddress);
+	EmailPopulatingBuilder withBounceTo(@Nullable String name, @NotNull String bounceToAddress);
 	
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the given address.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
-	EmailPopulatingBuilder withBounceTo(@Nonnull InternetAddress bounceToAddress);
+	EmailPopulatingBuilder withBounceTo(@NotNull InternetAddress bounceToAddress);
 	
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and address.
 	 */
 	@Cli.ExcludeApi(reason = "Method is not detailed enough for CLI")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder withBounceTo(@Nullable String name, @Nonnull InternetAddress bounceToAddress);
+	EmailPopulatingBuilder withBounceTo(@Nullable String name, @NotNull InternetAddress bounceToAddress);
 	
 	/**
 	 * Sets the <em>bounceTo</em> address of this email with given {@link Recipient} (ignoring its {@link Message.RecipientType} if provided).
@@ -178,7 +178,7 @@ public interface EmailPopulatingBuilder {
 	 *                would be used instead by the email client.
 	 */
 	@Cli.OptionNameOverride("withPlainTextFromFile")
-	EmailPopulatingBuilder withPlainText(@Nonnull File textFile);
+	EmailPopulatingBuilder withPlainText(@NotNull File textFile);
 	
 	/**
 	 * Sets the optional email message body in plain text.
@@ -202,7 +202,7 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.OptionNameOverride("prependTextFromFile")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder prependText(@Nonnull File textFile);
+	EmailPopulatingBuilder prependText(@NotNull File textFile);
 	
 	/**
 	 * Prepends text to the current plain text body (or starts it if plain text body is missing).
@@ -213,7 +213,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #appendText(String)
 	 * @see #withPlainText(String)
 	 */
-	EmailPopulatingBuilder prependText(@Nonnull String text);
+	EmailPopulatingBuilder prependText(@NotNull String text);
 	
 	/**
 	 * Delegates to {@link #appendText(String)}.
@@ -222,7 +222,7 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.OptionNameOverride("appendTextFromFile")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder appendText(@Nonnull File textFile);
+	EmailPopulatingBuilder appendText(@NotNull File textFile);
 	
 	/**
 	 * Appends text to the current plain text body (or starts it if plain text body is missing).
@@ -233,7 +233,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #prependText(String)
 	 * @see #withPlainText(String)
 	 */
-	EmailPopulatingBuilder appendText(@Nonnull String text);
+	EmailPopulatingBuilder appendText(@NotNull String text);
 	
 	/**
 	 * Delegates to {@link #withHTMLText(String)}.
@@ -242,7 +242,7 @@ public interface EmailPopulatingBuilder {
 	 *                would be used instead by the email client if provided.
 	 */
 	@Cli.OptionNameOverride("withHTMLTextFromFile")
-	EmailPopulatingBuilder withHTMLText(@Nonnull File textHTMLFile);
+	EmailPopulatingBuilder withHTMLText(@NotNull File textHTMLFile);
 	
 	/**
 	 * Sets the optional email message body in HTML text.
@@ -266,7 +266,7 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.OptionNameOverride("prependTextHTMLFromFile")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder prependTextHTML(@Nonnull File textHTMLFile);
+	EmailPopulatingBuilder prependTextHTML(@NotNull File textHTMLFile);
 	
 	/**
 	 * Prepends HTML text to the current HTML text body (or starts it if HTML text body is missing).
@@ -277,7 +277,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #appendTextHTML(String)
 	 * @see #withHTMLText(String)
 	 */
-	EmailPopulatingBuilder prependTextHTML(@Nonnull String textHTML);
+	EmailPopulatingBuilder prependTextHTML(@NotNull String textHTML);
 	
 	/**
 	 * Delegates to {@link #appendTextHTML(String)}.
@@ -286,7 +286,7 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.OptionNameOverride("appendTextHTMLFromFile")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder appendTextHTML(@Nonnull File textHTMLFile);
+	EmailPopulatingBuilder appendTextHTML(@NotNull File textHTMLFile);
 	
 	/**
 	 * Appends HTML text to the current HTML text body (or starts it if HTML text body is missing).
@@ -297,7 +297,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #prependTextHTML(String)
 	 * @see #withHTMLText(String)
 	 */
-	EmailPopulatingBuilder appendTextHTML(@Nonnull String textHTML);
+	EmailPopulatingBuilder appendTextHTML(@NotNull String textHTML);
 	
 	/**
 	 * Sets the optional calendar details that clients such as Outlook might be able to handle. Will be set as alternative bodypart similar to
@@ -309,17 +309,17 @@ public interface EmailPopulatingBuilder {
 	 *
 	 * @see "The Test demo app in Simple Java Mail's source for a working example."
 	 */
-	EmailPopulatingBuilder withCalendarText(@Nonnull CalendarMethod calendarMethod, @Nonnull String textCalendar);
+	EmailPopulatingBuilder withCalendarText(@NotNull CalendarMethod calendarMethod, @NotNull String textCalendar);
 	
 	/**
 	 * Delegates to {@link #withRecipients(Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
-	EmailPopulatingBuilder to(@Nonnull Recipient... recipients);
+	EmailPopulatingBuilder to(@NotNull Recipient... recipients);
 	
 	/**
 	 * Delegates to {@link #withRecipients(Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
-	EmailPopulatingBuilder to(@Nonnull Collection<Recipient> recipients);
+	EmailPopulatingBuilder to(@NotNull Collection<Recipient> recipients);
 	
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, Message.RecipientType)}, with <code>recipientType=</code>{@link Message.RecipientType#TO} and
@@ -350,50 +350,50 @@ public interface EmailPopulatingBuilder {
 	 *                           </ul>
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API method")
-	EmailPopulatingBuilder to(@Nonnull String oneOrMoreAddresses);
+	EmailPopulatingBuilder to(@NotNull String oneOrMoreAddresses);
 	
 	/**
 	 * Alias for {@link #toWithFixedName(String, String...)}.
 	 */
-	EmailPopulatingBuilder to(@Nullable String name, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder to(@Nullable String name, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Alias for {@link #toWithFixedName(String, Collection)}.
 	 */
-	EmailPopulatingBuilder to(@Nullable String name, @Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder to(@Nullable String name, @NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder toMultiple(@Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toMultiple(@NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder toMultiple(@Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toMultiple(@NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
-	EmailPopulatingBuilder toWithFixedName(@Nullable String name, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toWithFixedName(@Nullable String name, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
-	EmailPopulatingBuilder toWithDefaultName(@Nonnull String name, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toWithDefaultName(@NotNull String name, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
-	EmailPopulatingBuilder toWithFixedName(@Nullable String name, @Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toWithFixedName(@Nullable String name, @NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder toWithDefaultName(@Nonnull String name, @Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toWithDefaultName(@NotNull String name, @NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Alias for {@link #toAddressesWithFixedName(String, InternetAddress...)}.
@@ -404,62 +404,62 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO} and empty default name.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
-	EmailPopulatingBuilder to(@Nonnull InternetAddress address);
+	EmailPopulatingBuilder to(@NotNull InternetAddress address);
 	
 	/**
 	 * Alias for {@link #toAddressesWithFixedName(String, InternetAddress...)}.
 	 */
-	EmailPopulatingBuilder to(@Nullable String name, @Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder to(@Nullable String name, @NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Alias for {@link #toAddressesWithFixedName(String, Collection)}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder toAddresses(@Nullable String name, @Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toAddresses(@Nullable String name, @NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder toMultiple(@Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toMultiple(@NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder toMultipleAddresses(@Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toMultipleAddresses(@NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
-	EmailPopulatingBuilder toAddressesWithFixedName(@Nullable String name, @Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toAddressesWithFixedName(@Nullable String name, @NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder toAddressesWithDefaultName(@Nonnull String name, @Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toAddressesWithDefaultName(@NotNull String name, @NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
-	EmailPopulatingBuilder toAddressesWithFixedName(@Nullable String name, @Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toAddressesWithFixedName(@Nullable String name, @NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder toAddressesWithDefaultName(@Nonnull String name, @Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder toAddressesWithDefaultName(@NotNull String name, @NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipients(Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC}.
 	 */
-	EmailPopulatingBuilder cc(@Nonnull Recipient... recipients);
+	EmailPopulatingBuilder cc(@NotNull Recipient... recipients);
 	
 	/**
 	 * Delegates to {@link #withRecipients(Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC}.
 	 */
-	EmailPopulatingBuilder cc(@Nonnull Collection<Recipient> recipients);
+	EmailPopulatingBuilder cc(@NotNull Collection<Recipient> recipients);
 	
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, Message.RecipientType)}, with <code>recipientType=</code>{@link Message.RecipientType#CC}
@@ -490,50 +490,50 @@ public interface EmailPopulatingBuilder {
 	 *                           </ul>
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API method")
-	EmailPopulatingBuilder cc(@Nonnull String oneOrMoreAddresses);
+	EmailPopulatingBuilder cc(@NotNull String oneOrMoreAddresses);
 	
 	/**
 	 * Alias for {@link #ccWithFixedName(String, String...)}.
 	 */
-	EmailPopulatingBuilder cc(@Nullable String name, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder cc(@Nullable String name, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Alias for {@link #ccWithFixedName(String, Collection)}.
 	 */
-	EmailPopulatingBuilder cc(@Nullable String name, @Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder cc(@Nullable String name, @NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC} and empty default name.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
-	EmailPopulatingBuilder ccMultiple(@Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccMultiple(@NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder ccAddresses(@Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccAddresses(@NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC}.
 	 */
-	EmailPopulatingBuilder ccWithFixedName(@Nullable String name, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccWithFixedName(@Nullable String name, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC}.
 	 */
-	EmailPopulatingBuilder ccWithDefaultName(@Nonnull String name, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccWithDefaultName(@NotNull String name, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC}.
 	 */
-	EmailPopulatingBuilder ccWithFixedName(@Nullable String name, @Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccWithFixedName(@Nullable String name, @NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder ccWithDefaultName(@Nonnull String name, @Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccWithDefaultName(@NotNull String name, @NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Alias for {@link #ccAddressesWithFixedName(String, InternetAddress...)}.
@@ -544,62 +544,62 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC} and empty default name.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
-	EmailPopulatingBuilder cc(@Nonnull InternetAddress address);
+	EmailPopulatingBuilder cc(@NotNull InternetAddress address);
 	
 	/**
 	 * Alias for {@link #ccAddressesWithFixedName(String, InternetAddress...)}.
 	 */
-	EmailPopulatingBuilder cc(@Nullable String name, @Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder cc(@Nullable String name, @NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Alias for {@link #ccAddressesWithFixedName(String, Collection)}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder ccAddresses(@Nullable String name, @Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccAddresses(@Nullable String name, @NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder ccMultiple(@Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccMultiple(@NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder ccMultipleAddresses(@Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccMultipleAddresses(@NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC}.
 	 */
-	EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable String name, @Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable String name, @NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder ccAddressesWithDefaultName(@Nonnull String name, @Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccAddressesWithDefaultName(@NotNull String name, @NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC}.
 	 */
-	EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable String name, @Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable String name, @NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#CC}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder ccAddressesWithDefaultName(@Nonnull String name, @Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder ccAddressesWithDefaultName(@NotNull String name, @NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipients(Collection, Message.RecipientType)} with <code>fixedRecipientType=</code>{@link Message.RecipientType#BCC}.
 	 **/
-	EmailPopulatingBuilder bcc(@Nonnull Recipient... recipients);
+	EmailPopulatingBuilder bcc(@NotNull Recipient... recipients);
 	
 	/**
 	 * Delegates to {@link #withRecipients(Collection, Message.RecipientType)} with <code>fixedRecipientType=</code>{@link Message.RecipientType#BCC}.
 	 **/
-	EmailPopulatingBuilder bcc(@Nonnull Collection<Recipient> recipients);
+	EmailPopulatingBuilder bcc(@NotNull Collection<Recipient> recipients);
 	
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, Message.RecipientType)}, with <code>recipientType=</code>{@link Message.RecipientType#BCC}
@@ -630,50 +630,50 @@ public interface EmailPopulatingBuilder {
 	 *                           </ul>
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
-	EmailPopulatingBuilder bcc(@Nonnull String oneOrMoreAddresses);
+	EmailPopulatingBuilder bcc(@NotNull String oneOrMoreAddresses);
 	
 	/**
 	 * Alias for {@link #bccWithFixedName(String, String...)}.
 	 */
-	EmailPopulatingBuilder bcc(@Nullable String name, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bcc(@Nullable String name, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Alias for {@link #bccWithFixedName(String, Collection)}.
 	 */
-	EmailPopulatingBuilder bcc(@Nullable String name, @Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bcc(@Nullable String name, @NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder bccMultiple(@Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccMultiple(@NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder bccAddresses(@Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccAddresses(@NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC}.
 	 */
-	EmailPopulatingBuilder bccWithFixedName(@Nullable String name, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccWithFixedName(@Nullable String name, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC}.
 	 */
-	EmailPopulatingBuilder bccWithDefaultName(@Nonnull String name, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccWithDefaultName(@NotNull String name, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC}.
 	 */
-	EmailPopulatingBuilder bccWithFixedName(@Nullable String name, @Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccWithFixedName(@Nullable String name, @NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipientsWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder bccWithDefaultName(@Nonnull String name, @Nonnull Collection<String> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccWithDefaultName(@NotNull String name, @NotNull Collection<String> oneOrMoreAddressesEach);
 	
 	/**
 	 * Alias for {@link #bccAddressesWithFixedName(String, InternetAddress...)}.
@@ -684,86 +684,86 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC} and empty default name.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
-	EmailPopulatingBuilder bcc(@Nonnull InternetAddress address);
+	EmailPopulatingBuilder bcc(@NotNull InternetAddress address);
 	
 	/**
 	 * Alias for {@link #bccAddressesWithFixedName(String, InternetAddress...)}.
 	 */
-	EmailPopulatingBuilder bcc(@Nullable String name, @Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bcc(@Nullable String name, @NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Alias for {@link #bccAddressesWithFixedName(String, Collection)}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder bccAddresses(@Nullable String name, @Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccAddresses(@Nullable String name, @NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder bccMultiple(@Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccMultiple(@NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC} and empty default name.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder bccMultipleAddresses(@Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccMultipleAddresses(@NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC}.
 	 */
-	EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable String name, @Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable String name, @NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder bccAddressesWithDefaultName(@Nonnull String name, @Nonnull InternetAddress... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccAddressesWithDefaultName(@NotNull String name, @NotNull InternetAddress... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithFixedName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC}.
 	 */
-	EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable String name, @Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable String name, @NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withAddressesWithDefaultName(String, Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#BCC}.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder bccAddressesWithDefaultName(@Nonnull String name, @Nonnull Collection<InternetAddress> oneOrMoreAddressesEach);
+	EmailPopulatingBuilder bccAddressesWithDefaultName(@NotNull String name, @NotNull Collection<InternetAddress> oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, Message.RecipientType)}, leaving existing names in tact and defaulting when missing.
 	 */
-	@Nonnull
-	EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable String defaultName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable Message.RecipientType recipientType);
+	@NotNull
+	EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable String defaultName, @NotNull Collection<String> oneOrMoreAddressesEach, @Nullable Message.RecipientType recipientType);
 	
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, Message.RecipientType)}, with <code>fixedName=true</code>
 	 * assigning or overwriting existing names with the provided name.
 	 */
-	@Nonnull
-	EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable String fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable Message.RecipientType recipientType);
+	@NotNull
+	EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable String fixedName, @NotNull Collection<String> oneOrMoreAddressesEach, @Nullable Message.RecipientType recipientType);
 	
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, Message.RecipientType)}.
 	 */
-	@Nonnull
+	@NotNull
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable String name, @Nullable Message.RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable String name, @Nullable Message.RecipientType recipientType, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, Message.RecipientType)}.
 	 */
-	@Nonnull
+	@NotNull
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable String name, @Nullable Message.RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder withRecipientsWithFixedName(@Nullable String name, @Nullable Message.RecipientType recipientType, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipients(String, boolean, Collection, Message.RecipientType)}.
 	 */
-	@Nonnull
+	@NotNull
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nullable Message.RecipientType recipientType, @Nonnull String... oneOrMoreAddressesEach);
+	EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nullable Message.RecipientType recipientType, @NotNull String... oneOrMoreAddressesEach);
 	
 	/**
 	 * Delegates to {@link #withRecipient(Recipient)} for each address found in not just the collection, but also in every individual address string
@@ -778,41 +778,41 @@ public interface EmailPopulatingBuilder {
 	 *                               <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
 	 *                               </ul>
 	 */
-	@Nonnull
-	EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nonnull Collection<String> oneOrMoreAddressesEach, @Nullable Message.RecipientType recipientType);
+	@NotNull
+	EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @NotNull Collection<String> oneOrMoreAddressesEach, @Nullable Message.RecipientType recipientType);
 	
 	/**
 	 * Delegates to {@link #withAddresses(String, boolean, Collection, Message.RecipientType)}, leaving existing names in tact and defaulting when missing.
 	 */
-	@Nonnull
-	EmailPopulatingBuilder withAddressesWithDefaultName(@Nullable String defaultName, @Nonnull Collection<InternetAddress> addresses, @Nullable Message.RecipientType recipientType);
+	@NotNull
+	EmailPopulatingBuilder withAddressesWithDefaultName(@Nullable String defaultName, @NotNull Collection<InternetAddress> addresses, @Nullable Message.RecipientType recipientType);
 	
 	/**
 	 * Delegates to {@link #withAddresses(String, boolean, Collection, Message.RecipientType)}, with <code>fixedName=true</code>
 	 * assigning or overwriting existing names with the provided name.
 	 */
-	@Nonnull
-	EmailPopulatingBuilder withAddressesWithFixedName(@Nullable String fixedName, @Nonnull Collection<InternetAddress> addresses, @Nullable Message.RecipientType recipientType);
+	@NotNull
+	EmailPopulatingBuilder withAddressesWithFixedName(@Nullable String fixedName, @NotNull Collection<InternetAddress> addresses, @Nullable Message.RecipientType recipientType);
 	
 	/**
 	 * Delegates to {@link #withRecipient(String, String, Message.RecipientType)} for each address in the provided collection.
 	 *
 	 * @param fixedName Indicates whether the provided name should be applied to all addresses, or only to those where a name is missing.
 	 */
-	@Nonnull
-	EmailPopulatingBuilder withAddresses(@Nullable String name, boolean fixedName, @Nonnull Collection<InternetAddress> addresses, @Nullable Message.RecipientType recipientType);
+	@NotNull
+	EmailPopulatingBuilder withAddresses(@Nullable String name, boolean fixedName, @NotNull Collection<InternetAddress> addresses, @Nullable Message.RecipientType recipientType);
 	
 	/**
 	 * Delegates to {@link #withRecipients(Collection, Message.RecipientType)} with {@link Message.RecipientType} left empty (so it will use the original values).
 	 */
 	@SuppressWarnings("UnusedReturnValue")
-	EmailPopulatingBuilder withRecipients(@Nonnull Collection<Recipient> recipients);
+	EmailPopulatingBuilder withRecipients(@NotNull Collection<Recipient> recipients);
 	
 	/**
 	 * Delegates to {@link #withRecipients(Collection, Message.RecipientType)} with {@link Message.RecipientType} left empty (so it will use the original values).
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder withRecipients(@Nonnull Recipient... recipients);
+	EmailPopulatingBuilder withRecipients(@NotNull Recipient... recipients);
 	
 	/**
 	 * Delegates to {@link #withRecipient(String, String, Message.RecipientType)} for each recipient in the provided collection, optionally fixing the
@@ -820,14 +820,14 @@ public interface EmailPopulatingBuilder {
 	 *
 	 * @param fixedRecipientType Optional. Fixes all recipients to the given type. If omitted, the types are not removed, but kept as-is.
 	 */
-	@Nonnull
-	EmailPopulatingBuilder withRecipients(@Nonnull Collection<Recipient> recipients, @Nullable Message.RecipientType fixedRecipientType);
+	@NotNull
+	EmailPopulatingBuilder withRecipients(@NotNull Collection<Recipient> recipients, @Nullable Message.RecipientType fixedRecipientType);
 	
 	/**
 	 * Delegates to {@link #withRecipient(String, String, Message.RecipientType)} with the name omitted.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder withRecipient(@Nonnull String singleAddress, @Nullable Message.RecipientType recipientType);
+	EmailPopulatingBuilder withRecipient(@NotNull String singleAddress, @Nullable Message.RecipientType recipientType);
 	
 	/**
 	 * Adds a new {@link Recipient} instance with the given name, address and {@link Message.RecipientType}.
@@ -841,7 +841,7 @@ public interface EmailPopulatingBuilder {
 	 * @param recipientType Optional type of recipient. This is needed for TO, CC and BCC, but not for <em>bounceTo</em>, <em>returnReceiptTo</em>,
 	 *                      <em>replyTo</em>, <em>from</em> etc.
 	 */
-	EmailPopulatingBuilder withRecipient(@Nullable String name, @Nonnull String singleAddress, @Nullable Message.RecipientType recipientType);
+	EmailPopulatingBuilder withRecipient(@Nullable String name, @NotNull String singleAddress, @Nullable Message.RecipientType recipientType);
 	
 	/**
 	 * Adds a new {@link Recipient} instance as copy of the provided recipient (copying name, address and {@link Message.RecipientType}).
@@ -849,7 +849,7 @@ public interface EmailPopulatingBuilder {
 	 * Note that the email address must be a single address according to RFC2822 format. Name can be provided explicitly or as part of the RFC2822 email
 	 * address or omitted completely.
 	 */
-	EmailPopulatingBuilder withRecipient(@Nonnull Recipient recipient);
+	EmailPopulatingBuilder withRecipient(@NotNull Recipient recipient);
 	
 	/**
 	 * Delegates to {@link #withEmbeddedImage(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and
@@ -859,7 +859,7 @@ public interface EmailPopulatingBuilder {
 	 * @param data     The byte data of the image to be embedded.
 	 * @param mimetype The content type of the given data (eg. "image/gif" or "image/jpeg").
 	 */
-	EmailPopulatingBuilder withEmbeddedImage(@Nonnull String name, @Nonnull byte[] data, @Nonnull String mimetype);
+	EmailPopulatingBuilder withEmbeddedImage(@NotNull String name, @NotNull byte[] data, @NotNull String mimetype);
 	
 	/**
 	 * Adds image data to this email that can be referred to from the email HTML body. For adding images as attachment, refer to {@link
@@ -875,17 +875,17 @@ public interface EmailPopulatingBuilder {
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, byte[], String)
 	 * @see EmailPopulatingBuilder#withEmbeddedImages(List)
 	 */
-	EmailPopulatingBuilder withEmbeddedImage(@Nullable String name, @Nonnull DataSource imagedata);
+	EmailPopulatingBuilder withEmbeddedImage(@Nullable String name, @NotNull DataSource imagedata);
 	
 	/**
 	 * Delegates to {@link #withEmbeddedImage(String, DataSource)} for each embedded image.
 	 */
-	EmailPopulatingBuilder withEmbeddedImages(@Nonnull List<AttachmentResource> embeddedImages);
+	EmailPopulatingBuilder withEmbeddedImages(@NotNull List<AttachmentResource> embeddedImages);
 	
 	/**
 	 * Delegates to {@link #withHeader(String, Object)} for each header in the provided {@code Map}.
 	 */
-	<T> EmailPopulatingBuilder withHeaders(@Nonnull Map<String, T> headers);
+	<T> EmailPopulatingBuilder withHeaders(@NotNull Map<String, T> headers);
 	
 	/**
 	 * Adds a header which will be included in the email. The value is stored as a <code>String</code>.
@@ -895,7 +895,7 @@ public interface EmailPopulatingBuilder {
 	 *
 	 * @see #withHeaders(Map)
 	 */
-	EmailPopulatingBuilder withHeader(@Nonnull String name, @Nullable Object value);
+	EmailPopulatingBuilder withHeader(@NotNull String name, @Nullable Object value);
 	
 	/**
 	 * Delegates to {@link #withAttachment(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and
@@ -909,7 +909,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #withAttachment(String, DataSource)
 	 * @see #withAttachments(List)
 	 */
-	EmailPopulatingBuilder withAttachment(@Nullable String name, @Nonnull byte[] data, @Nonnull String mimetype);
+	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull byte[] data, @NotNull String mimetype);
 	
 	/**
 	 * Adds an attachment to the email message, which will be shown in the email client as seperate files available for download or inline display if
@@ -924,12 +924,12 @@ public interface EmailPopulatingBuilder {
 	 * @see #withAttachment(String, byte[], String)
 	 * @see #withAttachments(List)
 	 */
-	EmailPopulatingBuilder withAttachment(@Nullable String name, @Nonnull DataSource filedata);
+	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata);
 	
 	/**
 	 * Delegates to {@link #withAttachment(String, DataSource)} for each attachment.
 	 */
-	EmailPopulatingBuilder withAttachments(@Nonnull List<AttachmentResource> attachments);
+	EmailPopulatingBuilder withAttachments(@NotNull List<AttachmentResource> attachments);
 	
 	/**
 	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
@@ -939,7 +939,7 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder signWithDomainKey(@Nonnull byte[] dkimPrivateKey, @Nonnull String signingDomain, @Nonnull String dkimSelector);
+	EmailPopulatingBuilder signWithDomainKey(@NotNull byte[] dkimPrivateKey, @NotNull String signingDomain, @NotNull String dkimSelector);
 	
 	/**
 	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
@@ -949,7 +949,7 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder signWithDomainKey(@Nonnull String dkimPrivateKey, @Nonnull String signingDomain, @Nonnull String dkimSelector);
+	EmailPopulatingBuilder signWithDomainKey(@NotNull String dkimPrivateKey, @NotNull String signingDomain, @NotNull String dkimSelector);
 	
 	/**
 	 * Primes this email for signing with a DKIM domain key. Actual signing is done when sending using a <code>Mailer</code>.
@@ -968,8 +968,8 @@ public interface EmailPopulatingBuilder {
 	 * @see #signWithDomainKey(String, String, String)
 	 * @see #signWithDomainKey(File, String, String)
 	 */
-	EmailPopulatingBuilder signWithDomainKey(@Nonnull InputStream dkimPrivateKeyInputStream, @Nonnull String signingDomain,
-											 @Nonnull String dkimSelector);
+	EmailPopulatingBuilder signWithDomainKey(@NotNull InputStream dkimPrivateKeyInputStream, @NotNull String signingDomain,
+											 @NotNull String dkimSelector);
 	
 	/**
 	 * As {@link #signWithDomainKey(InputStream, String, String)}, but with a File reference that is later read as {@code InputStream}.
@@ -977,7 +977,7 @@ public interface EmailPopulatingBuilder {
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
 	 */
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	EmailPopulatingBuilder signWithDomainKey(@Nonnull File dkimPrivateKeyFile, @Nonnull String signingDomain, @Nonnull String dkimSelector);
+	EmailPopulatingBuilder signWithDomainKey(@NotNull File dkimPrivateKeyFile, @NotNull String signingDomain, @NotNull String dkimSelector);
 
 	/**
 	 * Signs this email with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
@@ -990,7 +990,7 @@ public interface EmailPopulatingBuilder {
 	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
 	 */
 	@Cli.ExcludeApi(reason = "delegated method contains CLI compatible arguments")
-	EmailPopulatingBuilder signWithSmime(@Nonnull Pkcs12Config pkcs12Config);
+	EmailPopulatingBuilder signWithSmime(@NotNull Pkcs12Config pkcs12Config);
 
 	/**
 	 * Delegates to {@link #signWithSmime(InputStream, String, String, String)}.
@@ -1002,7 +1002,7 @@ public interface EmailPopulatingBuilder {
 	 * @param keyAlias The name of the certificate in the key store to use
 	 * @param keyPassword The password of the certificate
 	 */
-	EmailPopulatingBuilder signWithSmime(@Nonnull File pkcs12StoreFile, @Nonnull String storePassword, @Nonnull String keyAlias, @Nonnull String keyPassword);
+	EmailPopulatingBuilder signWithSmime(@NotNull File pkcs12StoreFile, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword);
 
 	/**
 	 * Delegates to {@link #signWithSmime(Pkcs12Config)}.
@@ -1015,7 +1015,7 @@ public interface EmailPopulatingBuilder {
 	 * @param keyPassword The password of the certificate
 	 */
 	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
-	EmailPopulatingBuilder signWithSmime(@Nonnull InputStream pkcs12StoreStream, @Nonnull String storePassword, @Nonnull String keyAlias, @Nonnull String keyPassword);
+	EmailPopulatingBuilder signWithSmime(@NotNull InputStream pkcs12StoreStream, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword);
 
 	/**
 	 * Delegates to {@link #encryptWithSmime(X509Certificate)} using the provided PEM file.
@@ -1025,7 +1025,7 @@ public interface EmailPopulatingBuilder {
 	 * @param pemStream A PEM encoded file that will be read as X509Certificate.
 	 */
 	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
-	EmailPopulatingBuilder encryptWithSmime(@Nonnull InputStream pemStream);
+	EmailPopulatingBuilder encryptWithSmime(@NotNull InputStream pemStream);
 
 	/**
 	 * Delegates to {@link #encryptWithSmime(InputStream)} using the provided PEM file.
@@ -1035,7 +1035,7 @@ public interface EmailPopulatingBuilder {
 	 * @param pemFile A PEM encoded file that will be read as X509Certificate.
 	 */
 	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
-	EmailPopulatingBuilder encryptWithSmime(@Nonnull String pemFile);
+	EmailPopulatingBuilder encryptWithSmime(@NotNull String pemFile);
 
 	/**
 	 * Delegates to {@link #encryptWithSmime(InputStream)} using the provided PEM file.
@@ -1045,7 +1045,7 @@ public interface EmailPopulatingBuilder {
 	 * @param pemFile A PEM encoded file that will be read as X509Certificate.
 	 */
 	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
-	EmailPopulatingBuilder encryptWithSmime(@Nonnull File pemFile);
+	EmailPopulatingBuilder encryptWithSmime(@NotNull File pemFile);
 
 	/**
 	 * Encrypts this email with a X509 certificate according to the <a href="https://tools.ietf.org/html/rfc5751">S/MIME spec</a>
@@ -1063,7 +1063,7 @@ public interface EmailPopulatingBuilder {
 	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
 	 * @see <a href="https://github.com/markenwerk/java-utils-mail-smime">Underlying library's documentation</a>
 	 */
-	EmailPopulatingBuilder encryptWithSmime(@Nonnull X509Certificate x509Certificate);
+	EmailPopulatingBuilder encryptWithSmime(@NotNull X509Certificate x509Certificate);
 
 	/**
 	 * When the S/MIME module is loaded, S/MIME signed / encrypted attachments are decrypted and kept in a separate list. However
@@ -1091,7 +1091,7 @@ public interface EmailPopulatingBuilder {
 	 * @param address The address of the receiver of the notification
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
-	EmailPopulatingBuilder withDispositionNotificationTo(@Nonnull String address);
+	EmailPopulatingBuilder withDispositionNotificationTo(@NotNull String address);
 	
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided name and address.
@@ -1100,19 +1100,19 @@ public interface EmailPopulatingBuilder {
 	 * @param address The address of the receiver of the notification
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder withDispositionNotificationTo(@Nullable String name, @Nonnull String address);
+	EmailPopulatingBuilder withDispositionNotificationTo(@Nullable String name, @NotNull String address);
 	
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
-	EmailPopulatingBuilder withDispositionNotificationTo(@Nonnull InternetAddress address);
+	EmailPopulatingBuilder withDispositionNotificationTo(@NotNull InternetAddress address);
 	
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided fixed name and address.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder withDispositionNotificationTo(@Nullable String fixedName, @Nonnull InternetAddress address);
+	EmailPopulatingBuilder withDispositionNotificationTo(@Nullable String fixedName, @NotNull InternetAddress address);
 	
 	/**
 	 * Indicates the this email should use the <a href="https://tools.ietf.org/html/rfc8098">NPM flag "Disposition-Notification-To"</a> with the given
@@ -1125,7 +1125,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #withDispositionNotificationTo(String)
 	 * @see #withDispositionNotificationTo(String, String)
 	 */
-	EmailPopulatingBuilder withDispositionNotificationTo(@Nonnull Recipient recipient);
+	EmailPopulatingBuilder withDispositionNotificationTo(@NotNull Recipient recipient);
 	
 	/**
 	 * Indicates that we want to use the flag {@code returnReceiptTo}. The actual address will default to the {@code replyToRecipient} first if set
@@ -1142,7 +1142,7 @@ public interface EmailPopulatingBuilder {
 	 * @param address The address of the receiver of the bounced email
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
-	EmailPopulatingBuilder withReturnReceiptTo(@Nonnull String address);
+	EmailPopulatingBuilder withReturnReceiptTo(@NotNull String address);
 	
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided name and address.
@@ -1150,19 +1150,19 @@ public interface EmailPopulatingBuilder {
 	 * @param name Name of the receiver of the receipt notification
 	 * @param address The address of the receiver of the receipt notification
 	 */
-	EmailPopulatingBuilder withReturnReceiptTo(@Nullable String name, @Nonnull String address);
+	EmailPopulatingBuilder withReturnReceiptTo(@Nullable String name, @NotNull String address);
 	
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
-	EmailPopulatingBuilder withReturnReceiptTo(@Nonnull InternetAddress address);
+	EmailPopulatingBuilder withReturnReceiptTo(@NotNull InternetAddress address);
 	
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided fixed name and address.
 	 */
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder withReturnReceiptTo(@Nullable String fixedName, @Nonnull InternetAddress address);
+	EmailPopulatingBuilder withReturnReceiptTo(@Nullable String fixedName, @NotNull InternetAddress address);
 	
 	/**
 	 * Indicates that this email should use the <a href="https://en.wikipedia.org/wiki/Return_receipt">RRT flag "Return-Receipt-To"</a> with the
@@ -1172,7 +1172,7 @@ public interface EmailPopulatingBuilder {
 	 * This flag is rarely used, but your mail server / client might implement this flag to automatically send back a notification that the email was
 	 * received on the mail server or opened in the client, depending on the chosen implementation.
 	 */
-	EmailPopulatingBuilder withReturnReceiptTo(@Nonnull Recipient recipient);
+	EmailPopulatingBuilder withReturnReceiptTo(@NotNull Recipient recipient);
 
 	/**
 	 * Resets <em>id</em> to empty.
@@ -1335,19 +1335,19 @@ public interface EmailPopulatingBuilder {
 	 * @see #cc(Recipient...)
 	 * @see #bcc(Recipient...)
 	 */
-	@Nonnull
+	@NotNull
 	List<Recipient> getRecipients();
 	
 	/**
 	 * @see #withEmbeddedImage(String, DataSource)
 	 */
-	@Nonnull
+	@NotNull
 	List<AttachmentResource> getEmbeddedImages();
 	
 	/**
 	 * @see #withAttachment(String, DataSource)
 	 */
-	@Nonnull
+	@NotNull
 	List<AttachmentResource> getAttachments();
 
 
@@ -1357,14 +1357,14 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
-	@Nonnull
+	@NotNull
 	List<AttachmentResource> getDecryptedAttachments();
 
 	/**
 	 * @see #withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
-	@Nonnull
+	@NotNull
 	Map<String, String> getHeaders();
 	
 	/**
@@ -1433,7 +1433,7 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
-	@Nonnull
+	@NotNull
 	OriginalSmimeDetails getOriginalSmimeDetails();
 
 	/**

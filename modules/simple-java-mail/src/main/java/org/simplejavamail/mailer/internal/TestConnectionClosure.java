@@ -5,8 +5,8 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,11 +16,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class TestConnectionClosure extends AbstractProxyServerSyncingClosure {
 
-	@Nonnull private final OperationalConfig operationalConfig;
-	@Nonnull private final Session session;
+	@NotNull private final OperationalConfig operationalConfig;
+	@NotNull private final Session session;
 	private final boolean async;
 
-	TestConnectionClosure(@Nonnull OperationalConfig operationalConfig, @Nonnull Session session, @Nullable final AnonymousSocks5Server proxyServer, final boolean async, @Nonnull AtomicInteger smtpConnectionCounter) {
+	TestConnectionClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @Nullable final AnonymousSocks5Server proxyServer, final boolean async, @NotNull AtomicInteger smtpConnectionCounter) {
 		super(smtpConnectionCounter, proxyServer);
 		this.operationalConfig = operationalConfig;
 		this.session = session;

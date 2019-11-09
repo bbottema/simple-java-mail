@@ -4,7 +4,7 @@ import org.junit.Test;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,7 +35,7 @@ public class CliDeclaredOptionSpecTest {
 		}
 	}
 	
-	@Nonnull
+	@NotNull
 	private CliDeclaredOptionSpec createDummyCommand(List<CliDeclaredOptionSpec> unsortedSet, String prefix, String name) {
 		Method dummyMethod = getClass().getMethods()[0];
 		@SuppressWarnings("ConstantConditions")

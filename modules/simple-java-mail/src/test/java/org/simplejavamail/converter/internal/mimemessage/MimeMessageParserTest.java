@@ -10,7 +10,7 @@ import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.Parse
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.util.ByteArrayDataSource;

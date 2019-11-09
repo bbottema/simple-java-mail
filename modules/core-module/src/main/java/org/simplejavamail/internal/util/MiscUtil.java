@@ -2,8 +2,8 @@ package org.simplejavamail.internal.util;
 
 import org.simplejavamail.api.email.Recipient;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
@@ -98,8 +98,8 @@ public final class MiscUtil {
 	/**
 	 * Uses standard JDK java to read an inputstream to String using the given encoding (in {@link ByteArrayOutputStream#toString(String)}).
 	 */
-	@Nonnull
-	public static String readInputStreamToString(@Nonnull final InputStream inputStream, @Nonnull final Charset charset)
+	@NotNull
+	public static String readInputStreamToString(@NotNull final InputStream inputStream, @NotNull final Charset charset)
 			throws IOException {
 		final BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
 		final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -114,8 +114,8 @@ public final class MiscUtil {
 	/**
 	 * Uses standard JDK java to read an inputstream to byte[].
 	 */
-	@Nonnull
-	public static byte[] readInputStreamToBytes(@Nonnull final InputStream inputStream)
+	@NotNull
+	public static byte[] readInputStreamToBytes(@NotNull final InputStream inputStream)
 			throws IOException {
 		byte[] targetArray = new byte[inputStream.available()];
 		//noinspection ResultOfMethodCallIgnored
@@ -130,8 +130,8 @@ public final class MiscUtil {
 	 * @param emailAddressList The delimited list of addresses (or single address) optionally including the name.
 	 * @return Array of address entries optionally including the names, trimmed for spaces or trailing delimiters.
 	 */
-	@Nonnull
-	public static String[] extractEmailAddresses(@Nonnull final String emailAddressList) {
+	@NotNull
+	public static String[] extractEmailAddresses(@NotNull final String emailAddressList) {
 		checkNonEmptyArgument(emailAddressList, "emailAddressList");
 		// recognize value tails and replace the delimiters there, disambiguating delimiters
 		final String unambiguousDelimitedList = COMMA_DELIMITER_PATTERN.matcher(emailAddressList).replaceAll("$1<|>");
@@ -145,8 +145,8 @@ public final class MiscUtil {
 	 * @param fixedName    Determines if the given name should be used as override.
 	 * @param emailAddress An RFC2822 compliant email address, which can contain a name inside as well.
 	 */
-	@Nonnull
-	public static Recipient interpretRecipient(@Nullable final String name, boolean fixedName, @Nonnull final String emailAddress, @Nullable final RecipientType type) {
+	@NotNull
+	public static Recipient interpretRecipient(@Nullable final String name, boolean fixedName, @NotNull final String emailAddress, @Nullable final RecipientType type) {
 		try {
 			final InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
 			final String relevantName = (fixedName || parsedAddress.getPersonal() == null)
@@ -166,7 +166,7 @@ public final class MiscUtil {
 		return value != null ? value : defaultValue;
 	}
 	
-	public static boolean classAvailable(@Nonnull String className) {
+	public static boolean classAvailable(@NotNull String className) {
 		try {
 			Class.forName(className);
 			return true;
@@ -195,7 +195,7 @@ public final class MiscUtil {
 		return text == null ? null : text.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
 	}
 	
-	public static int countMandatoryParameters(final @Nonnull Method m) {
+	public static int countMandatoryParameters(final @NotNull Method m) {
 		int mandatoryParameterCount = 0;
 		for (Annotation[] annotations : m.getParameterAnnotations()) {
 			mandatoryParameterCount += !containsNullableAnnotation(annotations) ? 1 : 0;
@@ -212,7 +212,7 @@ public final class MiscUtil {
 		return false;
 	}
 
-	public static String readFileContent(@Nonnull final File file) throws IOException {
+	public static String readFileContent(@NotNull final File file) throws IOException {
 		if (!file.exists()) {
 			throw new IllegalArgumentException(format("File not found: %s", file));
 		}

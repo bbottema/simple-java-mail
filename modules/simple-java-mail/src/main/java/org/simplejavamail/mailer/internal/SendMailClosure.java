@@ -7,8 +7,8 @@ import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelp
 import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
@@ -25,14 +25,14 @@ import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
  */
 class SendMailClosure extends AbstractProxyServerSyncingClosure {
 
-	@Nonnull private final OperationalConfig operationalConfig;
-	@Nonnull private final Session session;
-	@Nonnull private final Email email;
+	@NotNull private final OperationalConfig operationalConfig;
+	@NotNull private final Session session;
+	@NotNull private final Email email;
 	private final boolean asyncForLoggingPurpose;
 	private final boolean transportModeLoggingOnly;
 
-	SendMailClosure(@Nonnull OperationalConfig operationalConfig, @Nonnull Session session, @Nonnull Email email, @Nullable AnonymousSocks5Server proxyServer, boolean asyncForLoggingPurpose,
-			boolean transportModeLoggingOnly, @Nonnull AtomicInteger smtpConnectionCounter) {
+	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @Nullable AnonymousSocks5Server proxyServer, boolean asyncForLoggingPurpose,
+			boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
 		super(smtpConnectionCounter, proxyServer);
 		this.operationalConfig = operationalConfig;
 		this.session = session;

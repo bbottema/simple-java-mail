@@ -6,7 +6,7 @@ import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.email.internal.EmailPopulatingBuilderImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.mail.internet.MimeMessage;
 
 /**
@@ -35,7 +35,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#replyingTo(Email)}.
 	 */
 	@SuppressWarnings("deprecation")
-	public static EmailPopulatingBuilder replyingTo(@Nonnull final Email email) {
+	public static EmailPopulatingBuilder replyingTo(@NotNull final Email email) {
 		return new EmailStartingBuilderImpl().replyingTo(email);
 	}
 	
@@ -43,7 +43,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#replyingToAll(Email)}.
 	 */
 	@SuppressWarnings("deprecation")
-	public static EmailPopulatingBuilder replyingToAll(@Nonnull final Email email) {
+	public static EmailPopulatingBuilder replyingToAll(@NotNull final Email email) {
 		return new EmailStartingBuilderImpl().replyingToAll(email);
 	}
 	
@@ -51,7 +51,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#replyingToAll(Email, String)}.
 	 */
 	@SuppressWarnings({"deprecation", "unused"})
-	public static EmailPopulatingBuilder replyingToAll(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
+	public static EmailPopulatingBuilder replyingToAll(@NotNull final Email email, @NotNull final String customQuotingTemplate) {
 		return new EmailStartingBuilderImpl().replyingToAll(email, customQuotingTemplate);
 	}
 	
@@ -59,7 +59,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#replyingTo(Email, String)}.
 	 */
 	@SuppressWarnings({"deprecation", "unused"})
-	public static EmailPopulatingBuilder replyingTo(@Nonnull final Email email, @Nonnull final String customQuotingTemplate) {
+	public static EmailPopulatingBuilder replyingTo(@NotNull final Email email, @NotNull final String customQuotingTemplate) {
 		return new EmailStartingBuilderImpl().replyingTo(email, customQuotingTemplate);
 	}
 	
@@ -67,7 +67,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#replyingTo(MimeMessage)}.
 	 */
 	@SuppressWarnings({"deprecation", "unused"})
-	public static EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email) {
+	public static EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage email) {
 		return new EmailStartingBuilderImpl().replyingTo(email);
 	}
 	
@@ -75,7 +75,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#replyingToAll(MimeMessage, String)}.
 	 */
 	@SuppressWarnings({"deprecation", "unused"})
-	public static EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
+	public static EmailPopulatingBuilder replyingToAll(@NotNull final MimeMessage email, @NotNull final String customQuotingTemplate) {
 		return new EmailStartingBuilderImpl().replyingToAll(email, customQuotingTemplate);
 	}
 	
@@ -83,7 +83,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#replyingTo(MimeMessage, String)}.
 	 */
 	@SuppressWarnings({"deprecation", "unused"})
-	public static EmailPopulatingBuilder replyingTo(@Nonnull final MimeMessage email, @Nonnull final String customQuotingTemplate) {
+	public static EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage email, @NotNull final String customQuotingTemplate) {
 		return new EmailStartingBuilderImpl().replyingTo(email, customQuotingTemplate);
 	}
 	
@@ -91,7 +91,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#replyingToAll(MimeMessage)}.
 	 */
 	@SuppressWarnings({"deprecation", "unused"})
-	public static EmailPopulatingBuilder replyingToAll(@Nonnull final MimeMessage email) {
+	public static EmailPopulatingBuilder replyingToAll(@NotNull final MimeMessage email) {
 		return new EmailStartingBuilderImpl().replyingToAll(email);
 	}
 	
@@ -99,7 +99,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#forwarding(Email)}.
 	 */
 	@SuppressWarnings({"deprecation", "unused"})
-	public static EmailPopulatingBuilder forwarding(@Nonnull final Email email) {
+	public static EmailPopulatingBuilder forwarding(@NotNull final Email email) {
 		return new EmailStartingBuilderImpl().forwarding(email);
 	}
 	
@@ -107,7 +107,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#forwarding(MimeMessage)}.
 	 */
 	@SuppressWarnings("deprecation")
-	public static EmailPopulatingBuilder forwarding(@Nonnull final MimeMessage emailMessage) {
+	public static EmailPopulatingBuilder forwarding(@NotNull final MimeMessage emailMessage) {
 		return new EmailStartingBuilderImpl().forwarding(emailMessage);
 	}
 	
@@ -115,7 +115,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#copying(MimeMessage)}.
 	 */
 	@SuppressWarnings({"deprecation", "unused"})
-	public static EmailPopulatingBuilder copying(@Nonnull final MimeMessage message) {
+	public static EmailPopulatingBuilder copying(@NotNull final MimeMessage message) {
 		return new EmailStartingBuilderImpl().copying(message);
 	}
 	
@@ -123,7 +123,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#copying(EmailPopulatingBuilder)}.
 	 */
 	@SuppressWarnings({"deprecation", "unused"})
-	public static EmailPopulatingBuilder copying(@Nonnull final EmailPopulatingBuilder emailBuilder) {
+	public static EmailPopulatingBuilder copying(@NotNull final EmailPopulatingBuilder emailBuilder) {
 		return new EmailStartingBuilderImpl().copying(emailBuilder);
 	}
 	
@@ -131,7 +131,7 @@ public class EmailBuilder {
 	 * Delegates to {@link EmailStartingBuilder#copying(Email)}.
 	 */
 	@SuppressWarnings({"deprecation", "unused"})
-	public static EmailPopulatingBuilder copying(@Nonnull final Email email) {
+	public static EmailPopulatingBuilder copying(@NotNull final Email email) {
 		return new EmailStartingBuilderImpl().copying(email);
 	}
 	
