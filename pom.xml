@@ -227,7 +227,7 @@
                     <archive>
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
                         <manifestEntries>
-                            <Automatic-Module-Name>${artifactId}</Automatic-Module-Name>
+                            <Automatic-Module-Name>${project.artifactId}</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>
