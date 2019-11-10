@@ -4,6 +4,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import testutil.ConfigLoaderTestHelper;
 import testutil.ImplLoader;
+import testutil.ModuleLoaderTestHelper;
 
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
@@ -27,7 +28,9 @@ public class DemoAppBase {
 	static {
 		// make Simple Java Mail ignore the properties file completely: that's there for the junit tests, not this demo.
 		ConfigLoaderTestHelper.clearConfigProperties();
-		
+		// make Simple Java Mail ignore the batch module, so the JVM is never blocked from shutting down (because of the connection pool)
+		ModuleLoaderTestHelper._forceDisableBatchModule();
+
 		//noinspection ConstantConditions
 		if (YOUR_GMAIL_ADDRESS.equals("your_gmail_user@gmail.com")) {
 			throw new AssertionError("For these demo's to work, please provide your Gnail credentials in DemoAppBase.java first (or change the SMTP config)");
