@@ -44,8 +44,8 @@ public class TransportRunner {
 		runOnSessionTransport(clusterKey, session, true, new TransportRunnable() {
 			@Override
 			public void run(final Transport transport) {
-				// the fact that we reached here means a connection was made succesfully
-				LOGGER.debug("...connection succesful");
+				// the fact that we reached here means a connection was made successfully
+				LOGGER.debug("...connection successful");
 			}
 		});
 	}
