@@ -16,9 +16,11 @@ public class CliDemoApp extends DemoAppBase {
 	 */
 	public static void main(String[] args) {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		
+
+		LOGGER.info("\n\n--- IGNORE BELOW LOGGING: it is just to get the server config instance ---");
 		ServerConfig serverConfig = requireNonNull(DemoAppBase.mailerTLS.getServerConfig());
-		
+		LOGGER.info("\n--- IGNORE ABOVE LOGGING: it is just to get the server config instance ---\n");
+
 		demoTestConnection(serverConfig);
 		demoSend(serverConfig);
 		demoSendAsync(serverConfig);

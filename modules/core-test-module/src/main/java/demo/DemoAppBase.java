@@ -2,6 +2,8 @@ package demo;
 
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import testutil.ConfigLoaderTestHelper;
 import testutil.ImplLoader;
 import testutil.ModuleLoaderTestHelper;
@@ -9,6 +11,8 @@ import testutil.ModuleLoaderTestHelper;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 
 public class DemoAppBase {
+
+	static final Logger LOGGER = LoggerFactory.getLogger(DemoAppBase.class);
 	
 	static final String YOUR_GMAIL_ADDRESS = "yourname@gmail.com";
 	
