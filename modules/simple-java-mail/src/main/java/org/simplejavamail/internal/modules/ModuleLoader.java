@@ -2,6 +2,8 @@ package org.simplejavamail.internal.modules;
 
 import org.simplejavamail.internal.util.MiscUtil;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,6 +12,9 @@ import static java.lang.String.format;
 public class ModuleLoader {
 	
 	private static final Map<Class, Object> LOADED_MODULES = new HashMap<>();
+
+	// used from junit tests
+	private static final Collection<Class> FORCED_DISABLED_MODULES = new ArrayList<>();
 	
 	public static void clearLoadedModules() {
 		LOADED_MODULES.clear();
@@ -69,16 +74,19 @@ public class ModuleLoader {
 	}
 
 	public static boolean batchModuleAvailable() {
-		return MiscUtil.classAvailable("org.simplejavamail.internal.batchsupport.BatchSupport");
+		return !FORCED_DISABLED_MODULES.contains(BatchModule.class) && MiscUtil.classAvailable("org.simplejavamail.internal.batchsupport.BatchSupport");
 	}
 
 	public static boolean smimeModuleAvailable() {
-		return MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
+		return !FORCED_DISABLED_MODULES.contains(SMIMEModule.class) && MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
 	}
 
 	@SuppressWarnings("unchecked")
 	private static <T> T loadModule(String moduleName, String moduleClass, String moduleHome) {
 		try {
+			if (FORCED_DISABLED_MODULES.contains(moduleClass)) {
+				throw new IllegalAccessException("Module is focrfully disabled");
+			}
 			if (!MiscUtil.classAvailable(moduleClass)) {
 				throw new org.simplejavamail.internal.modules.ModuleLoaderException(format(org.simplejavamail.internal.modules.ModuleLoaderException.ERROR_MODULE_MISSING, moduleName, moduleHome));
 			}
@@ -86,5 +94,11 @@ public class ModuleLoader {
 		} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 			throw new org.simplejavamail.internal.modules.ModuleLoaderException(format(org.simplejavamail.internal.modules.ModuleLoaderException.ERROR_LOADING_MODULE, moduleName), e);
 		}
+	}
+
+	// used from junit tests (using reflection, because it's invisible in the core-module)
+	@SuppressWarnings("unused")
+	public static void _forceDisableBatchModule() {
+		FORCED_DISABLED_MODULES.add(BatchModule.class);
 	}
 }
