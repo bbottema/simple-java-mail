@@ -2,7 +2,6 @@ package demo;
 
 import org.simplejavamail.internal.clisupport.CliSupport;
 import org.simplejavamail.api.mailer.config.ServerConfig;
-import testutil.ConfigLoaderTestHelper;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.util.Objects.requireNonNull;
@@ -15,8 +14,6 @@ public class CliDemoApp extends DemoAppBase {
 	 * For more detailed logging open log4j2.xml and change "org.simplejavamail.internal.clisupport" to debug.
 	 */
 	public static void main(String[] args) {
-		ConfigLoaderTestHelper.clearConfigProperties();
-
 		LOGGER.info("\n\n--- IGNORE BELOW LOGGING: it is just to get the server config instance ---");
 		ServerConfig serverConfig = requireNonNull(DemoAppBase.mailerTLS.getServerConfig());
 		LOGGER.info("\n--- IGNORE ABOVE LOGGING: it is just to get the server config instance ---\n");
