@@ -80,7 +80,7 @@ public class BatchSupport implements BatchModule {
 		if (smtpConnectionPool == null) {
 			smtpConnectionPool = new SmtpConnectionPoolClustered(configureSmtpClusterConfig(operationalConfig));
 		} else if (compareClusterConfig(operationalConfig, smtpConnectionPool.getClusterConfig())) {
-			LOGGER.warn("Global SMTP Connection pool is already configured with pool defaults from the first Mailer instance, ignoring {}", operationalConfig);
+			LOGGER.warn("Global SMTP Connection pool is already configured with pool defaults from the first Mailer instance, ignoring relevant properties from {}", operationalConfig);
 		}
 	}
 
