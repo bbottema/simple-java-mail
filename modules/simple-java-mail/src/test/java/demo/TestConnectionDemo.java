@@ -2,32 +2,33 @@ package demo;
 
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.AsyncResponse.ExceptionConsumer;
+import org.simplejavamail.api.mailer.Mailer;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-
-import static demo.DemoAppBase.mailerTLS;
 
 /**
  * Demonstrates how to test connections normally as well as asynchronously
  */
 public class TestConnectionDemo {
 	public static void main(String[] args) throws InterruptedException {
+		Mailer mailerTLS = DemoAppBase.mailerTLSBuilder.buildMailer();
+
 		long now = System.currentTimeMillis();
 		
-		normalConnectionTest();
-		asyncConnectionTestUsingFuture();
-		asyncConnectionTestUsingHandlers();
+		normalConnectionTest(mailerTLS);
+		asyncConnectionTestUsingFuture(mailerTLS);
+		asyncConnectionTestUsingHandlers(mailerTLS);
 		
 		System.out.println("Finished in " + (System.currentTimeMillis() - now) + "ms");
 	}
 	
-	private static void normalConnectionTest() {
+	private static void normalConnectionTest(Mailer mailerTLS) {
 		mailerTLS.testConnection();
 		mailerTLS.testConnection(false);
 	}
 	
-	private static void asyncConnectionTestUsingFuture() throws InterruptedException {
+	private static void asyncConnectionTestUsingFuture(Mailer mailerTLS) throws InterruptedException {
 		AsyncResponse asyncResponse = mailerTLS.testConnection(true);
 		
 		Future<?> f = asyncResponse.getFuture();
@@ -47,7 +48,7 @@ public class TestConnectionDemo {
 		}
 	}
 	
-	private static void asyncConnectionTestUsingHandlers() {
+	private static void asyncConnectionTestUsingHandlers(Mailer mailerTLS) {
 		AsyncResponse asyncResponse = mailerTLS.testConnection(true);
 		
 		// java 8

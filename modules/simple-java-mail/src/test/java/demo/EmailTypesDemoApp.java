@@ -1,5 +1,6 @@
 package demo;
 
+import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
 
 import javax.mail.util.ByteArrayDataSource;
@@ -8,22 +9,24 @@ import java.io.IOException;
 /**
  * Demonstration program for the Simple Java Mail framework. Just fill your gmail, password and press GO.
  */
-@SuppressWarnings({"WeakerAccess", "UnusedAssignment"})
+@SuppressWarnings({ "WeakerAccess" })
 public class EmailTypesDemoApp extends DemoAppBase {
-	
+
 	public static void main(final String[] args) throws IOException {
-		testSimplePlainText();
-		testSimpleHTMLText();
-		testMixed();
-		testRelated();
-		testAlternative();
-		testMixedRelated();
-		testMixedAlternative();
-		testRelatedAlternative();
-		testMixedRelatedAlternative();
+		Mailer mailerTLS = DemoAppBase.mailerTLSBuilder.buildMailer();
+
+		testSimplePlainText(mailerTLS);
+		testSimpleHTMLText(mailerTLS);
+		testMixed(mailerTLS);
+		testRelated(mailerTLS);
+		testAlternative(mailerTLS);
+		testMixedRelated(mailerTLS);
+		testMixedAlternative(mailerTLS);
+		testRelatedAlternative(mailerTLS);
+		testMixedRelatedAlternative(mailerTLS);
 	}
-	
-	private static void testSimplePlainText() {
+
+	private static void testSimplePlainText(Mailer mailerTLS) {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
@@ -37,8 +40,8 @@ public class EmailTypesDemoApp extends DemoAppBase {
 				.clearHTMLText()
 				.buildEmail());
 	}
-	
-	private static void testSimpleHTMLText() {
+
+	private static void testSimpleHTMLText(Mailer mailerTLS) {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
@@ -52,8 +55,8 @@ public class EmailTypesDemoApp extends DemoAppBase {
 				.clearPlainText()
 				.buildEmail());
 	}
-	
-	private static void testMixed() throws IOException {
+
+	private static void testMixed(Mailer mailerTLS) throws IOException {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
@@ -67,8 +70,8 @@ public class EmailTypesDemoApp extends DemoAppBase {
 				.withAttachment("dresscode.txt", new ByteArrayDataSource("Black Tie Optional", "text/plain")) // makes it mixed
 				.buildEmail());
 	}
-	
-	private static void testRelated() {
+
+	private static void testRelated(Mailer mailerTLS) {
 		// makes it related
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
@@ -87,8 +90,8 @@ public class EmailTypesDemoApp extends DemoAppBase {
 				.clearPlainText()
 				.buildEmail());
 	}
-	
-	private static void testAlternative() {
+
+	private static void testAlternative(Mailer mailerTLS) {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
@@ -105,8 +108,8 @@ public class EmailTypesDemoApp extends DemoAppBase {
 						"</ul></p>") // makes it alternative
 				.buildEmail());
 	}
-	
-	private static void testMixedRelated() throws IOException {
+
+	private static void testMixedRelated(Mailer mailerTLS) throws IOException {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
@@ -128,8 +131,8 @@ public class EmailTypesDemoApp extends DemoAppBase {
 				.clearPlainText()
 				.buildEmail());
 	}
-	
-	private static void testMixedAlternative() throws IOException {
+
+	private static void testMixedAlternative(Mailer mailerTLS) throws IOException {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
@@ -151,8 +154,8 @@ public class EmailTypesDemoApp extends DemoAppBase {
 						"</ul></p>") // makes it alternative
 				.buildEmail());
 	}
-	
-	private static void testRelatedAlternative() {
+
+	private static void testRelatedAlternative(Mailer mailerTLS) {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
@@ -174,8 +177,8 @@ public class EmailTypesDemoApp extends DemoAppBase {
 						"</ul></p>") // makes it alternative
 				.buildEmail());
 	}
-	
-	private static void testMixedRelatedAlternative() throws IOException {
+
+	private static void testMixedRelatedAlternative(Mailer mailerTLS) throws IOException {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")

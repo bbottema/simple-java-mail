@@ -58,9 +58,9 @@ public class FullEmailDemoApp extends DemoAppBase {
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 
-		mailerSMTP.sendMail(emailNormal);
-		mailerTLS.sendMail(emailNormal);
-		mailerSSL.sendMail(emailNormal);
-		mailerTLS.sendMail(emailFromMimeMessage); // should produce the exact same result as emailPopulatingBuilderNormal!
+		mailerSMTPBuilder.buildMailer().sendMail(emailNormal);
+		mailerTLSBuilder.buildMailer().sendMail(emailNormal);
+		mailerSSLBuilder.buildMailer().sendMail(emailNormal);
+		mailerTLSBuilder.buildMailer().sendMail(emailFromMimeMessage); // should produce the exact same result as emailPopulatingBuilderNormal!
 	}
 }

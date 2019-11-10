@@ -1,6 +1,6 @@
 package demo;
 
-import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,9 +20,9 @@ public class DemoAppBase {
 	// https://security.google.com/settings/security/apppasswords
 	private static final String YOUR_GMAIL_PASSWORD = "<your password>";
 	
-	static final Mailer mailerSMTP = buildMailer("smtp.gmail.com", 25, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP);
-	static final Mailer mailerTLS = buildMailer("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP_TLS);
-	static final Mailer mailerSSL = buildMailer("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTPS);
+	static final MailerRegularBuilder<?> mailerSMTPBuilder = buildMailer("smtp.gmail.com", 25, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP);
+	static final MailerRegularBuilder<?> mailerTLSBuilder = buildMailer("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP_TLS);
+	static final MailerRegularBuilder<?> mailerSSLBuilder = buildMailer("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTPS);
 	
 	/**
 	 * If you just want to see what email is being sent, just set this to true. It won't actually connect to an SMTP server then.
@@ -42,13 +42,12 @@ public class DemoAppBase {
 	}
 	
 	@SuppressWarnings("SameParameterValue")
-	private static Mailer buildMailer(String host, int port, String gMailAddress, String gMailPassword, TransportStrategy strategy) {
+	private static MailerRegularBuilder<?> buildMailer(String host, int port, String gMailAddress, String gMailPassword, TransportStrategy strategy) {
 		return ImplLoader.loadMailerBuilder()
 				.withSMTPServer(host, port, gMailAddress, gMailPassword)
 				.withTransportStrategy(strategy)
 				.withTransportModeLoggingOnly(LOGGING_MODE)
-				.clearProxy()
-				.buildMailer();
+				.clearProxy();
 	}
 	
 	static byte[] produceThumbsUpImage() {

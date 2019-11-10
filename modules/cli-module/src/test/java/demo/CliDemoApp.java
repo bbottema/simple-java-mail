@@ -15,7 +15,7 @@ public class CliDemoApp extends DemoAppBase {
 	 */
 	public static void main(String[] args) {
 		LOGGER.info("\n\n--- IGNORE BELOW LOGGING: it is just to get the server config instance ---");
-		ServerConfig serverConfig = requireNonNull(DemoAppBase.mailerTLS.getServerConfig());
+		ServerConfig serverConfig = requireNonNull(DemoAppBase.mailerTLSBuilder.buildMailer().getServerConfig());
 		LOGGER.info("\n--- IGNORE ABOVE LOGGING: it is just to get the server config instance ---\n");
 
 		demoTestConnection(serverConfig);
