@@ -1,5 +1,3 @@
-
-
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
 import org.simplejavamail.internal.util.MiscUtil;

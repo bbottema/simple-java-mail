@@ -1,5 +1,3 @@
-
-
 package org.simplejavamail.internal.authenticatedsockssupport.common;
 
 @SuppressWarnings("serial")
