@@ -108,7 +108,7 @@ class CliCommandLineProducer {
         if (!cliOption.getPossibleOptionValues().isEmpty()) {
             fullDescription.add("%n@|bold,underline Parameters|@:");
             for (CliDeclaredOptionValue possibleValue : cliOption.getPossibleOptionValues()) {
-				String optionalInfix = !possibleValue.isRequired() ? " (optional)" : "";
+				String optionalInfix = !possibleValue.isRequired() ? " (optional->null)" : "";
 				fullDescription.add(format("@|%s %s%s|@: %s", OPTION_VALUE_STYLE, possibleValue.getName(), optionalInfix, possibleValue.formatDescription()));
             }
         }
