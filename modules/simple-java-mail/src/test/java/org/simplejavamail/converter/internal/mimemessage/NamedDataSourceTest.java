@@ -23,7 +23,6 @@ public class NamedDataSourceTest {
 
     @Before
     public void setUp() throws IOException {
-        when(dataSource.getName()).thenReturn("testName");
         when(dataSource.getInputStream()).thenReturn(new ByteArrayInputStream("".getBytes()));
         when(dataSource.getOutputStream()).thenReturn(new ByteArrayOutputStream());
         when(dataSource.getContentType()).thenReturn("");
