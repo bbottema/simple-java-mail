@@ -3,17 +3,10 @@ package org.simplejavamail.cli;
 import static org.simplejavamail.internal.clisupport.CliSupport.*;
 
 /**
- * Wires all the args into the CLI support, which is dynamically class-loaded as it is an optional dependency.
+ * Entry class when using the command line interface. Wires all the args into the CLI support.
  * <p>
- * A note on the Javadoc-to-CLI-usage conversion: Everything is converted generically with the following exception:
- * <ul>
- * <li>[<strong>{@code (?i)Alias for:?}</strong>]:<br>Javadoc with an "Alias for: {@code {@link}}" occurrence (or variation) are processed
- * specially</li>
- * <li>[<strong>{@code (?i)(?:delegates|delegating) to:?}</strong>]:<br>Javadoc with an "Delegates to: {@code {@link}}" occurrence (or variation) are
- * processed specially</li>
- * <li>[<strong>{@code (?i)(?s).*(?<examples> examples?:\s*)}</strong>]:<br>Javadoc with an "Examples: HTML list of examples" occurrence (or
- * variation) are processed specially</li>
- * </ul>
+ * For CLI usage help, simply add the {@code --help} flag or add it to any available option,
+ * like so: {@code sjm send --mailer:async--help}.
  */
 public class SimpleJavaMail {
 	public static void main(String[] args) {

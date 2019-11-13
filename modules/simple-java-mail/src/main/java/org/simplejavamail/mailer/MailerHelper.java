@@ -22,6 +22,10 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * If you don't need to actually connect to a server and/or send anything, then this class still provides you with some of the functionality
+ * otherwise triggered only by a {@link org.simplejavamail.api.mailer.Mailer}.
+ */
 public class MailerHelper {
 
 	private static final Logger LOGGER = getLogger(MailerHelper.class);
