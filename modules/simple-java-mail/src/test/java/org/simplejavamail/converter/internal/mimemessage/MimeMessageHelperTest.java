@@ -28,7 +28,7 @@ import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(MiscUtil.class)

@@ -11,21 +11,21 @@
 	<fileSets>
 		<fileSet>
 			<directory>${project.build.directory}/appassembler</directory>
-			<outputDirectory>/</outputDirectory>
+			<outputDirectory>./</outputDirectory>
 			<includes>
 				<include>**/**</include>
 			</includes>
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}</directory>
-			<outputDirectory>/</outputDirectory>
+			<outputDirectory>./</outputDirectory>
 			<includes>
 				<include>NOTICE.txt</include>
 			</includes>
 		</fileSet>
 		<fileSet>
 			<directory>${maven.multiModuleProjectDirectory}</directory>
-			<outputDirectory>/</outputDirectory>
+			<outputDirectory>./</outputDirectory>
 			<includes>
 				<include>LICENSE-2.0.txt</include>
 				<include>RELEASE.txt</include>
