@@ -28,6 +28,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 public class Email implements Serializable {
 
 	private static final long serialVersionUID = 1234567L;
+
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
 	 */
@@ -187,7 +188,6 @@ public class Email implements Serializable {
 	/**
 	 * @see Email#wasMergedWithSmimeSignedMessage()
 	 */
-	@SuppressWarnings("deprecation")
 	private final boolean wasMergedWithSmimeSignedMessage;
 
 	/**

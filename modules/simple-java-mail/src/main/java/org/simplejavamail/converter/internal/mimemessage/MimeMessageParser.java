@@ -506,7 +506,6 @@ public final class MimeMessageParser {
 		}
 	}
 
-
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
 	public static String parseMessageId(@NotNull final MimeMessage mimeMessage) {

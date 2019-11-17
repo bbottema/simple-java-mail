@@ -82,7 +82,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  */
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilder {
-	
+
 	/**
 	 * @see #fixingMessageId(String)
 	 */
@@ -1749,6 +1749,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment()
 	 */
+	@Override
 	public EmailPopulatingBuilder notMergingSingleSMIMESignedAttachment() {
 		this.mergeSingleSMIMESignedAttachment = false;
 		return this;
