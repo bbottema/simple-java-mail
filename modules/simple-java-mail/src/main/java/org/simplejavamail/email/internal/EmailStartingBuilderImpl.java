@@ -204,18 +204,10 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getSubject() != null) {
 			builder.withSubject(email.getSubject());
 		}
-		if (email.getRecipients() != null) {
-			builder.withRecipients(email.getRecipients());
-		}
-		if (email.getEmbeddedImages() != null) {
-			builder.withEmbeddedImages(email.getEmbeddedImages());
-		}
-		if (email.getAttachments() != null) {
-			builder.withAttachments(email.getAttachments());
-		}
-		if (email.getHeaders() != null) {
-			((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
-		}
+		builder.withRecipients(email.getRecipients());
+		builder.withEmbeddedImages(email.getEmbeddedImages());
+		builder.withAttachments(email.getAttachments());
+		((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
 		if (email.getDkimPrivateKeyFile() != null) {
 			builder.signWithDomainKey(email.getDkimPrivateKeyFile(), assumeNonNull(email.getDkimSigningDomain()), assumeNonNull(email.getDkimSelector()));
 		}
@@ -231,15 +223,11 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getEmailToForward() != null) {
 			((InternalEmailPopulatingBuilder) builder).withForward(email.getEmailToForward());
 		}
-		if (email.getDecryptedAttachments() != null) {
-			((InternalEmailPopulatingBuilder) builder).withDecryptedAttachments(email.getDecryptedAttachments());
-		}
+		((InternalEmailPopulatingBuilder) builder).withDecryptedAttachments(email.getDecryptedAttachments());
 		if (email.getSmimeSignedEmail() != null) {
 			((InternalEmailPopulatingBuilder) builder).withSmimeSignedEmail(email.getSmimeSignedEmail());
 		}
-		if (email.getOriginalSmimeDetails() != null) {
-			((InternalEmailPopulatingBuilder) builder).withOriginalSmimeDetails(email.getOriginalSmimeDetails());
-		}
+		((InternalEmailPopulatingBuilder) builder).withOriginalSmimeDetails(email.getOriginalSmimeDetails());
 		if (!email.wasMergedWithSmimeSignedMessage()) {
 			builder.notMergingSingleSMIMESignedAttachment();
 		}
