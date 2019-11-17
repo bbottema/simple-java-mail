@@ -18,11 +18,14 @@ import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
+import static java.util.Calendar.SEPTEMBER;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
@@ -32,13 +35,15 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 
 public class EmailHelper {
 
+	public static final Date CUSTOM_SENT_DATE = new GregorianCalendar(2011, SEPTEMBER, 15, 12, 5, 43).getTime();
+
 	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean basicFields, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule)
 			throws IOException {
-		return createDummyEmailBuilder(null, includeSubjectAndBody, basicFields, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule);
+		return createDummyEmailBuilder(null, includeSubjectAndBody, basicFields, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule, false);
 	}
 
 	public static EmailPopulatingBuilder createDummyEmailBuilder(@Nullable String id, boolean includeSubjectAndBody, boolean basicFields, boolean includeCustomHeaders,
-			boolean useSmimeDetailsImplFromSmimeModule)
+			boolean useSmimeDetailsImplFromSmimeModule, final boolean fixSentDate)
 			throws IOException {
 		EmailPopulatingBuilder builder = EmailBuilder.startingBlank()
 				.fixingMessageId(id)
@@ -66,6 +71,10 @@ public class EmailHelper {
 					.withHeader("anotherDummyHeader", "anotherDummyHeaderValue")
 					.withDispositionNotificationTo("simple@address.com")
 					.withReturnReceiptTo("Complex Email", "simple@address.com");
+		}
+
+		if (fixSentDate) {
+			builder = builder.fixingSentDate(CUSTOM_SENT_DATE);
 		}
 
 		// add two text files in different ways and a black thumbs up embedded image ->

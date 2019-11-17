@@ -38,6 +38,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -83,6 +84,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(X509Certificate.class, "PEM FILE");
 		put(UUID.class, "UUID");
 		put(LoadBalancingStrategy.class, "NAME");
+		put(Date.class, "yyyy-[M]M-[d]d[ HH:mm]");
 	}};
 	
 	static {
@@ -139,8 +141,11 @@ public final class BuilderApiToPicocliCommandsMapper {
 				// assertion check
 				for (CliDeclaredOptionSpec knownOption : cliOptionsFoundSoFar) {
 					if (knownOption.getName().equals(optionName)) {
-						String msg = "@CliOptionNameOverride needed one of the following two methods:\n\t%s\n\t%s\n\t----------";
-						throw new AssertionError(format(msg, knownOption.getSourceMethod(), m));
+						final boolean methodIsActuallyTheSame = knownOption.getSourceMethod().equals(m);
+						if (!methodIsActuallyTheSame) {
+							String msg = "@CliOptionNameOverride needed one of the following two methods:\n\t%s\n\t%s\n\t----------";
+							throw new AssertionError(format(msg, knownOption.getSourceMethod(), m));
+						}
 					}
 				}
 				

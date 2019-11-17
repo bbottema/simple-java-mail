@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -1163,7 +1164,7 @@ public interface EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder withReturnReceiptTo(@Nullable String fixedName, @NotNull InternetAddress address);
-	
+
 	/**
 	 * Indicates that this email should use the <a href="https://en.wikipedia.org/wiki/Return_receipt">RRT flag "Return-Receipt-To"</a> with the
 	 * preconfigured {@link Recipient}. This flag can be used to request a notification from the SMTP server recipient to signal that the recipient
@@ -1173,6 +1174,16 @@ public interface EmailPopulatingBuilder {
 	 * received on the mail server or opened in the client, depending on the chosen implementation.
 	 */
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull Recipient recipient);
+
+	/**
+	 * When the an email is sent it is converted to a MimeMessage at which time the sent-date is filled with the current date. With this method
+	 * this can be fixed to a date of choice.
+	 * <p>
+	 * Note that the sent date is never filled by Simple Java Mail, for example when converting from an Outlook or MimeMessage to Email.
+	 *
+	 * @param sentDate The date to use as sent date.
+	 */
+	EmailPopulatingBuilder fixingSentDate(@NotNull Date sentDate);
 
 	/**
 	 * Resets <em>id</em> to empty.
@@ -1268,6 +1279,12 @@ public interface EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearReturnReceiptTo();
+
+	/**
+	 * Clears the fixed <em>sent-date</em> so that the current date is used again at the time of sending.
+	 */
+	@SuppressWarnings("unused")
+	EmailPopulatingBuilder clearSentDate();
 
 	/**
 	 * When readig and converting an email, this flag makes the behavior revert back to the default merging
@@ -1466,5 +1483,16 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Nullable
 	X509Certificate getX509CertificateForSmimeEncryption();
-}
 
+	/**
+	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
+	 */
+	@Nullable
+	Date getSentDate();
+
+	/**
+	 * Contains the original sent-date when converting an existing message to Email. Not used when creating new mails.
+	 */
+	@Nullable
+	Date getOriginalSentDate();
+}

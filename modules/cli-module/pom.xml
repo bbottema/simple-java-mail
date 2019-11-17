@@ -29,7 +29,7 @@
         <dependency>
             <groupId>com.github.bbottema</groupId>
             <artifactId>java-reflection</artifactId>
-            <version>3.11.0</version>
+            <version>3.13.0</version>
         </dependency>
 
         <!-- needed for cli support -->

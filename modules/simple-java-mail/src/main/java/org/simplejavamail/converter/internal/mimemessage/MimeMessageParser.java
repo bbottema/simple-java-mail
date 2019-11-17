@@ -36,6 +36,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -119,6 +120,7 @@ public final class MimeMessageParser {
 	public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage) {
 		final ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
 		parsedComponents.messageId = parseMessageId(mimeMessage);
+		parsedComponents.sentDate = parseSentDate(mimeMessage);
 		parsedComponents.subject = parseSubject(mimeMessage);
 		parsedComponents.toAddresses.addAll(parseToAddresses(mimeMessage));
 		parsedComponents.ccAddresses.addAll(parseCcAddresses(mimeMessage));
@@ -515,6 +517,16 @@ public final class MimeMessageParser {
 		}
 	}
 
+	@SuppressWarnings("WeakerAccess")
+	@Nullable
+	public static Date parseSentDate(@NotNull final MimeMessage mimeMessage) {
+		try {
+			return mimeMessage.getSentDate();
+		} catch (final MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_SEND_DATE, e);
+		}
+	}
+
 	static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
 		final String htmlContent = parsedComponents.htmlContent.toString();
 		for(Iterator<Map.Entry<String, DataSource>> it = parsedComponents.cidMap.entrySet().iterator(); it.hasNext(); ) {
@@ -546,6 +558,7 @@ public final class MimeMessageParser {
 		final StringBuilder htmlContent = new StringBuilder();
 		private String calendarMethod;
 		private String calendarContent;
+		private Date sentDate;
 
 		@Nullable
 		public String getMessageId() {
@@ -624,6 +637,11 @@ public final class MimeMessageParser {
 		@Nullable
 		public String getCalendarMethod() {
 			return calendarMethod;
+		}
+
+		@Nullable
+		public Date getSentDate() {
+			return sentDate;
 		}
 	}
 

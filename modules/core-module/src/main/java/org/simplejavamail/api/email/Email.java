@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.security.cert.X509Certificate;
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -190,6 +191,18 @@ public class Email implements Serializable {
 	private final boolean wasMergedWithSmimeSignedMessage;
 
 	/**
+	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
+	 */
+	@Nullable
+	private final Date sentDate;
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSentDate()
+	 */
+	@Nullable
+	private final Date originalSentDate;
+
+	/**
 	 * Simply transfers everything from {@link EmailPopulatingBuilder} to this Email instance.
 	 *
 	 * @see EmailPopulatingBuilder#buildEmail()
@@ -232,6 +245,9 @@ public class Email implements Serializable {
 		emailToForward = builder.getEmailToForward();
 
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
+
+		sentDate = builder.getSentDate();
+		originalSentDate = builder.getOriginalSentDate();
 
 		x509CertificateForSmimeEncryption = builder.getX509CertificateForSmimeEncryption();
 		pkcs12ConfigForSmimeSigning = builder.getPkcs12ConfigForSmimeSigning();
@@ -310,7 +326,11 @@ public class Email implements Serializable {
 	@Override
 	public String toString() {
 		String s = "Email{" +
-				"\n\tid=" + id +
+				"\n\tid=" + id;
+		if (originalSentDate != null) {
+			s += "\n\toriginalSentDate=" + originalSentDate;
+		}
+		s += "\n\tsentDate=" + sentDate +
 				"\n\tfromRecipient=" + fromRecipient +
 				",\n\treplyToRecipient=" + replyToRecipient +
 				",\n\tbounceToRecipient=" + bounceToRecipient +
@@ -583,5 +603,21 @@ public class Email implements Serializable {
 	@NotNull
 	public OriginalSmimeDetails getOriginalSmimeDetails() {
 		return originalSmimeDetails;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
+	 */
+	@Nullable
+	public Date getSentDate() {
+		return sentDate;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSentDate()
+	 */
+	@Nullable
+	public Date getOriginalSentDate() {
+		return originalSentDate;
 	}
 }

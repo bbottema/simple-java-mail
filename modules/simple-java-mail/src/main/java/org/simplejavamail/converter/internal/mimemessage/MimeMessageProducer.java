@@ -4,6 +4,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.modules.ModuleLoader;
 
 import org.jetbrains.annotations.NotNull;
+
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
@@ -12,6 +13,7 @@ import java.util.Date;
 
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 /**
  * Helper class that produces and populates a mime messages. Deals with javax.mail RFC MimeMessage stuff, as well as
@@ -69,7 +71,7 @@ public abstract class MimeMessageProducer {
 		populateMimeMessageMultipartStructure(message, email);
 		
 		MimeMessageHelper.setHeaders(email, message);
-		message.setSentDate(new Date());
+		message.setSentDate(ofNullable(email.getSentDate()).orElse(new Date()));
 
 		/*
 			The following order is important:

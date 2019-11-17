@@ -8,6 +8,7 @@ import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import javax.mail.internet.MimeMessage;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -21,4 +22,5 @@ public interface InternalEmailPopulatingBuilder  extends EmailPopulatingBuilder 
 	@NotNull InternalEmailPopulatingBuilder withDecryptedAttachments(List<AttachmentResource> decryptedAttachments);
 	@NotNull InternalEmailPopulatingBuilder  withSmimeSignedEmail(@NotNull Email smimeSignedEmail);
 	@NotNull InternalEmailPopulatingBuilder  withOriginalSmimeDetails(@NotNull OriginalSmimeDetails originalSmimeDetails);
+	@NotNull InternalEmailPopulatingBuilder  withOriginalSentDate(@NotNull Date originalSentDate);
 }

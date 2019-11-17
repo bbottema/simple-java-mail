@@ -32,6 +32,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -238,6 +239,18 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private boolean mergeSingleSMIMESignedAttachment = true;
 
 	/**
+	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
+	 */
+	@Nullable
+	private Date sentDate;
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSentDate()
+	 */
+	@Nullable
+	private Date originalSentDate;
+
+	/**
 	 * @see EmailStartingBuilder#startingBlank()
 	 */
 	EmailPopulatingBuilderImpl(final boolean applyDefaults) {
@@ -313,7 +326,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			checkNonEmptyArgument(getFromRecipient(), "fromRecipient required when signing DKIM");
 		}
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
 	 */
@@ -1715,6 +1728,25 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
+	 */
+	@Override
+	public EmailPopulatingBuilder fixingSentDate(@NotNull final Date sentDate) {
+		this.sentDate = sentDate;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSentDate()
+	 */
+	@Override
+	@NotNull
+	public InternalEmailPopulatingBuilder withOriginalSentDate(@NotNull final Date originalSentDate) {
+		this.originalSentDate = originalSentDate;
+		return this;
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment()
 	 */
 	public EmailPopulatingBuilder notMergingSingleSMIMESignedAttachment() {
@@ -1860,6 +1892,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder clearReturnReceiptTo() {
 		this.useReturnReceiptTo = false;
 		this.returnReceiptTo = null;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
+	 */
+	@Override
+	public EmailPopulatingBuilder clearSentDate() {
+		this.sentDate = null;
 		return this;
 	}
 
@@ -2123,5 +2164,23 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public X509Certificate getX509CertificateForSmimeEncryption() {
 		return x509CertificateForSmimeEncryption;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
+	 */
+	@Override
+	@Nullable
+	public Date getSentDate() {
+		return sentDate;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getOriginalSentDate()
+	 */
+	@Override
+	@Nullable
+	public Date getOriginalSentDate() {
+		return originalSentDate;
 	}
 }

@@ -38,6 +38,7 @@ public class CliDemoApp extends DemoAppBase {
 				"--email:forwarding", SOURCE_FOLDER + "/test/resources/test-messages/HTML mail with replyto and attachment and embedded image.msg",
 				"--email:from", "Test sender", DemoAppBase.YOUR_GMAIL_ADDRESS,
 				"--email:to", "Test Receiver", DemoAppBase.YOUR_GMAIL_ADDRESS,
+				"--email:fixingSentDate", "2011-5-10 11:15",
 				"--mailer:withSMTPServer", "smtp.gmail.com", "587", serverConfig.getUsername(), serverConfig.getPassword(),
 				"--mailer:withTransportStrategy", "SMTP_TLS"
 		});

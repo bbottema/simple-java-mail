@@ -1,5 +1,6 @@
 package org.simplejavamail.email.internal;
 
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
@@ -7,7 +8,6 @@ import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.email.EmailBuilder;
 
-import org.jetbrains.annotations.NotNull;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
@@ -208,6 +208,12 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		builder.withEmbeddedImages(email.getEmbeddedImages());
 		builder.withAttachments(email.getAttachments());
 		((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
+		if (email.getOriginalSentDate() != null) {
+			((InternalEmailPopulatingBuilder) builder).withOriginalSentDate(email.getOriginalSentDate());
+		}
+		if (email.getSentDate() != null) {
+			builder.fixingSentDate(email.getSentDate());
+		}
 		if (email.getDkimPrivateKeyFile() != null) {
 			builder.signWithDomainKey(email.getDkimPrivateKeyFile(), assumeNonNull(email.getDkimSigningDomain()), assumeNonNull(email.getDkimSelector()));
 		}
