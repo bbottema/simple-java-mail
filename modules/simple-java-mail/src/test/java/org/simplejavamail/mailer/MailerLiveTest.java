@@ -253,9 +253,19 @@ public class MailerLiveTest {
 		if (!fixedSentDate) {
 			GregorianCalendar receiveWindowStart = new GregorianCalendar();
 			receiveWindowStart.add(Calendar.SECOND, -5);
-			assertThat(receivedEmail.getOriginalSentDate()).isBetween(receiveWindowStart.getTime(), new Date());
+			assertThat(receivedEmail.getSentDate()).isBetween(receiveWindowStart.getTime(), new Date());
 		} else {
-			assertThat(receivedEmail.getOriginalSentDate()).isEqualTo(CUSTOM_SENT_DATE);
+			assertThat(receivedEmail.getSentDate()).isEqualTo(CUSTOM_SENT_DATE);
+		}
+
+		// ID will always be generated when sending: if set to a specific value, just assume the generated one
+		if (originalEmailPopulatingBuilder.getId() == null) {
+			originalEmailPopulatingBuilder.fixingMessageId(receivedEmail.getId());
+		}
+
+		// sent-date will always be generated when sending: if not set to a specific value, just assume the generated one
+		if (originalEmailPopulatingBuilder.getSentDate() == null) {
+			originalEmailPopulatingBuilder.fixingSentDate(assumeNonNull(receivedEmail.getSentDate()));
 		}
 
 		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty

@@ -23,10 +23,12 @@ import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.GregorianCalendar;
 import java.util.Properties;
 import java.util.UUID;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static java.util.Calendar.APRIL;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -314,12 +316,13 @@ public class MailerTest {
 		// let's try producing and then consuming a MimeMessage ->
 		// (bounce recipient is not part of the Mimemessage but the Envelope and is not received back on the MimeMessage
 		emailPopulatingBuilderNormal.clearBounceTo();
+		emailPopulatingBuilderNormal.fixingSentDate(new GregorianCalendar(2011, APRIL, 1, 3, 51).getTime()); // always generated when producing mime message
 		final Email emailNormal = emailPopulatingBuilderNormal.buildEmail();
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 		
 		TestDataHelper.fixDresscodeAttachment(emailFromMimeMessage);
-		
+
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
 	}
 

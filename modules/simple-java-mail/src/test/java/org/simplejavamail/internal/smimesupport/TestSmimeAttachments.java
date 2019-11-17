@@ -72,6 +72,7 @@ public class TestSmimeAttachments {
 		EmailPopulatingBuilder fromEmlBuilder = EmailConverter.emlToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
 		Email emailExpectedFromEml = fromEmlBuilder
 				.clearId() // set by Outlook when sending, so is missing in the saved .msg from before sending
+				.clearSentDate() // same
 				.clearHeaders() // same
 				.clearReplyTo() // same
 				.clearBounceTo() // same
@@ -156,6 +157,7 @@ public class TestSmimeAttachments {
 		EmailPopulatingBuilder fromEmlBuilder = EmailConverter.emlToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
 		Email emailExpectedFromEml = fromEmlBuilder
 				.clearId() // set by Outlook when sending, so is missing in the saved .msg from before sending
+				.clearSentDate() // same
 				.clearHeaders() // same
 				.clearReplyTo() // same
 				.clearBounceTo() // same

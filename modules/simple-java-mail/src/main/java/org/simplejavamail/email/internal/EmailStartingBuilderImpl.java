@@ -208,9 +208,6 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		builder.withEmbeddedImages(email.getEmbeddedImages());
 		builder.withAttachments(email.getAttachments());
 		((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
-		if (email.getOriginalSentDate() != null) {
-			((InternalEmailPopulatingBuilder) builder).withOriginalSentDate(email.getOriginalSentDate());
-		}
 		if (email.getSentDate() != null) {
 			builder.fixingSentDate(email.getSentDate());
 		}

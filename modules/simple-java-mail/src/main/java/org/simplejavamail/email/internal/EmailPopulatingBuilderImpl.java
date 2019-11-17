@@ -245,12 +245,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private Date sentDate;
 
 	/**
-	 * @see EmailPopulatingBuilder#getOriginalSentDate()
-	 */
-	@Nullable
-	private Date originalSentDate;
-
-	/**
 	 * @see EmailStartingBuilder#startingBlank()
 	 */
 	EmailPopulatingBuilderImpl(final boolean applyDefaults) {
@@ -1737,16 +1731,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getOriginalSentDate()
-	 */
-	@Override
-	@NotNull
-	public InternalEmailPopulatingBuilder withOriginalSentDate(@NotNull final Date originalSentDate) {
-		this.originalSentDate = originalSentDate;
-		return this;
-	}
-
-	/**
 	 * @see EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment()
 	 */
 	@Override
@@ -2174,14 +2158,5 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public Date getSentDate() {
 		return sentDate;
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#getOriginalSentDate()
-	 */
-	@Override
-	@Nullable
-	public Date getOriginalSentDate() {
-		return originalSentDate;
 	}
 }

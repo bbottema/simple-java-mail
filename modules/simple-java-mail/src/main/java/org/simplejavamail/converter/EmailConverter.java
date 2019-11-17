@@ -582,7 +582,7 @@ public final class EmailConverter {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(parsed, "parsedMimeMessageComponents");
 		if (parsed.getSentDate() != null) {
-			((InternalEmailPopulatingBuilder) builder).withOriginalSentDate(parsed.getSentDate());
+			builder.fixingSentDate(parsed.getSentDate());
 		}
 		if (parsed.getFromAddress() != null) {
 			builder.from(parsed.getFromAddress().getPersonal(), parsed.getFromAddress().getAddress());

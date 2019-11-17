@@ -197,12 +197,6 @@ public class Email implements Serializable {
 	private final Date sentDate;
 
 	/**
-	 * @see EmailPopulatingBuilder#getOriginalSentDate()
-	 */
-	@Nullable
-	private final Date originalSentDate;
-
-	/**
 	 * Simply transfers everything from {@link EmailPopulatingBuilder} to this Email instance.
 	 *
 	 * @see EmailPopulatingBuilder#buildEmail()
@@ -247,7 +241,6 @@ public class Email implements Serializable {
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
 
 		sentDate = builder.getSentDate();
-		originalSentDate = builder.getOriginalSentDate();
 
 		x509CertificateForSmimeEncryption = builder.getX509CertificateForSmimeEncryption();
 		pkcs12ConfigForSmimeSigning = builder.getPkcs12ConfigForSmimeSigning();
@@ -326,11 +319,7 @@ public class Email implements Serializable {
 	@Override
 	public String toString() {
 		String s = "Email{" +
-				"\n\tid=" + id;
-		if (originalSentDate != null) {
-			s += "\n\toriginalSentDate=" + originalSentDate;
-		}
-		s += "\n\tsentDate=" + sentDate +
+				"\n\tid=" + id + ("\n\tsentDate=" + sentDate +
 				"\n\tfromRecipient=" + fromRecipient +
 				",\n\treplyToRecipient=" + replyToRecipient +
 				",\n\tbounceToRecipient=" + bounceToRecipient +
@@ -338,7 +327,7 @@ public class Email implements Serializable {
 				",\n\ttextHTML='" + textHTML + '\'' +
 				",\n\ttextCalendar='" + textCalendar + '\'' +
 				",\n\tsubject='" + subject + '\'' +
-				",\n\trecipients=" + recipients;
+				",\n\trecipients=" + recipients);
 		if (!MiscUtil.valueNullOrEmpty(dkimSigningDomain)) {
 			s += ",\n\tapplyDKIMSignature=" + true +
 					",\n\t\tdkimSelector=" + dkimSelector +
@@ -611,13 +600,5 @@ public class Email implements Serializable {
 	@Nullable
 	public Date getSentDate() {
 		return sentDate;
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#getOriginalSentDate()
-	 */
-	@Nullable
-	public Date getOriginalSentDate() {
-		return originalSentDate;
 	}
 }
