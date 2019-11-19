@@ -5,7 +5,7 @@ import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
 import javax.mail.Session;
 import javax.mail.Transport;
 import java.util.UUID;

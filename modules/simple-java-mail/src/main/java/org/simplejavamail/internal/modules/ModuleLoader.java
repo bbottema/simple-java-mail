@@ -23,6 +23,7 @@ public class ModuleLoader {
 	public static AuthenticatedSocksModule loadAuthenticatedSocksModule() {
 		if (!LOADED_MODULES.containsKey(AuthenticatedSocksModule.class)) {
 			LOADED_MODULES.put(AuthenticatedSocksModule.class, loadModule(
+					AuthenticatedSocksModule.class,
 					"Authenticated Socks",
 					"org.simplejavamail.internal.authenticatedsockssupport.AuthenticatedSocksHelper",
 					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/authenticated-socks-module"));
@@ -33,6 +34,7 @@ public class ModuleLoader {
 	public static DKIMModule loadDKIMModule() {
 		if (!LOADED_MODULES.containsKey(DKIMModule.class)) {
 			LOADED_MODULES.put(DKIMModule.class, loadModule(
+					DKIMModule.class,
 					"DKIM",
 					"org.simplejavamail.internal.dkimsupport.DKIMSigner",
 					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/dkim-module"));
@@ -43,6 +45,7 @@ public class ModuleLoader {
 	public static OutlookModule loadOutlookModule() {
 		if (!LOADED_MODULES.containsKey(OutlookModule.class)) {
 			LOADED_MODULES.put(OutlookModule.class, loadModule(
+					OutlookModule.class,
 					"Outlook",
 					"org.simplejavamail.internal.outlooksupport.converter.OutlookEmailConverter",
 					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/outlook-module"
@@ -54,6 +57,7 @@ public class ModuleLoader {
 	public static SMIMEModule loadSmimeModule() {
 		if (!LOADED_MODULES.containsKey(SMIMEModule.class)) {
 			LOADED_MODULES.put(SMIMEModule.class, loadModule(
+					SMIMEModule.class,
 					"S/MIME",
 					"org.simplejavamail.internal.smimesupport.SMIMESupport",
 					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/smime-module"
@@ -65,6 +69,7 @@ public class ModuleLoader {
 	public static BatchModule loadBatchModule() {
 		if (!LOADED_MODULES.containsKey(BatchModule.class)) {
 			LOADED_MODULES.put(BatchModule.class, loadModule(
+					BatchModule.class,
 					"Batch",
 					"org.simplejavamail.internal.batchsupport.BatchSupport",
 					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/batch-module"
@@ -82,15 +87,15 @@ public class ModuleLoader {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <T> T loadModule(String moduleName, String moduleClass, String moduleHome) {
+	private static <T> T loadModule(Class moduleClass,String moduleName, String moduleImplClassName, String moduleHome) {
 		try {
 			if (FORCED_DISABLED_MODULES.contains(moduleClass)) {
 				throw new IllegalAccessException("Module is focrfully disabled");
 			}
-			if (!MiscUtil.classAvailable(moduleClass)) {
+			if (!MiscUtil.classAvailable(moduleImplClassName)) {
 				throw new org.simplejavamail.internal.modules.ModuleLoaderException(format(org.simplejavamail.internal.modules.ModuleLoaderException.ERROR_MODULE_MISSING, moduleName, moduleHome));
 			}
-			return (T) Class.forName(moduleClass).newInstance();
+			return (T) Class.forName(moduleImplClassName).newInstance();
 		} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 			throw new org.simplejavamail.internal.modules.ModuleLoaderException(format(org.simplejavamail.internal.modules.ModuleLoaderException.ERROR_LOADING_MODULE, moduleName), e);
 		}

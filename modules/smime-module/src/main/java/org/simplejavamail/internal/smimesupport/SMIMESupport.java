@@ -339,7 +339,6 @@ public class SMIMESupport implements SMIMEModule {
 	 * @see SMIMEModule#getSignedByAddress(MimePart)
 	 */
 	@Nullable
-	@SuppressWarnings("deprecation")
 	public String getSignedByAddress(@NotNull MimePart mimePart) {
 		try {
 			return getSignedByAddress(determineSMIMESigned(mimePart));

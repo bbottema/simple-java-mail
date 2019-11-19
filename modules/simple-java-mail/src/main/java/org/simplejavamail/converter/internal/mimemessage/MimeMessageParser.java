@@ -445,14 +445,14 @@ public final class MimeMessageParser {
 		try {
 			// return mimeMessage.getRecipients(recipientType); // can fail in strict mode, see https://github.com/bbottema/simple-java-mail/issues/227
 			// workaround following (copied and modified from JavaMail internal code):
-			String s = mimeMessage.getHeader(getHeaderName(mimeMessage, recipientType), ",");
+			String s = mimeMessage.getHeader(getHeaderName(recipientType), ",");
 			return (s == null) ? null : InternetAddress.parseHeader(s, false);
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_GETTING_RECIPIENTS, recipientType), e);
 		}
 	}
 
-	private static String getHeaderName(@NotNull MimeMessage mimeMessage, RecipientType recipientType) throws MessagingException {
+	private static String getHeaderName(RecipientType recipientType) {
 		if (recipientType == RecipientType.TO) {
 			return "To";
 		} else if (recipientType == RecipientType.CC) {
