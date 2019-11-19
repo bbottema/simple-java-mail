@@ -71,9 +71,7 @@ public class TestSmimeAttachments {
 		// verify msg that was sent with Outlook against eml that was received in Thunderbird
 		EmailPopulatingBuilder fromEmlBuilder = EmailConverter.emlToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
 		Email emailExpectedFromEml = fromEmlBuilder
-				.clearId() // set by Outlook when sending, so is missing in the saved .msg from before sending
-				.clearSentDate() // same
-				.clearHeaders() // same
+				.clearHeaders() // set by Outlook when sending, so is missing in the saved .msg from before sending
 				.clearReplyTo() // same
 				.clearBounceTo() // same
 				.from(assumeNonNull(fromEmlBuilder.getFromRecipient()).getName(), "donotreply@unknown-from-address.net")
@@ -156,9 +154,7 @@ public class TestSmimeAttachments {
 		// verify msg that was sent with Outlook against eml that was received in Thunderbird
 		EmailPopulatingBuilder fromEmlBuilder = EmailConverter.emlToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).eml"));
 		Email emailExpectedFromEml = fromEmlBuilder
-				.clearId() // set by Outlook when sending, so is missing in the saved .msg from before sending
-				.clearSentDate() // same
-				.clearHeaders() // same
+				.clearHeaders() // set by Outlook when sending, so is missing in the saved .msg from before sending
 				.clearReplyTo() // same
 				.clearBounceTo() // same
 				.from(assumeNonNull(fromEmlBuilder.getFromRecipient()).getName(), "donotreply@unknown-from-address.net")

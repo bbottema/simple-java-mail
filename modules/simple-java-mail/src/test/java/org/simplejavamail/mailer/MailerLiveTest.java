@@ -106,7 +106,7 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_OutlookMessageTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
-		Email email = assertSendingEmail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"), false, false, false, false);
+		Email email = assertSendingEmail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg"), false, false, false, true);
 		verifyReceivedOutlookEmail(email, false, false);
 	}
 
@@ -115,7 +115,7 @@ public class MailerLiveTest {
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
 		builder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
-		Email email = assertSendingEmail(builder, false, true, false, false);
+		Email email = assertSendingEmail(builder, false, true, false, true);
 		verifyReceivedOutlookEmail(email, true, false);
 
 		EmailAssert.assertThat(email).wasNotMergedWithSmimeSignedMessage();
@@ -135,7 +135,7 @@ public class MailerLiveTest {
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
 		builder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
-		Email email = assertSendingEmail(builder, false, true, false, false);
+		Email email = assertSendingEmail(builder, false, true, false, true);
 		verifyReceivedOutlookEmail(email, false, true);
 
 		EmailAssert.assertThat(email).wasMergedWithSmimeSignedMessage();
@@ -154,7 +154,7 @@ public class MailerLiveTest {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
 		builder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
 		builder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
-		Email email = assertSendingEmail(builder, false, true, false, false);
+		Email email = assertSendingEmail(builder, false, true, false, true);
 		verifyReceivedOutlookEmail(email, true, true);
 
 		EmailAssert.assertThat(email).wasMergedWithSmimeSignedMessage();
@@ -230,7 +230,7 @@ public class MailerLiveTest {
 	}
 
 	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean compensateForDresscodeAttachmentNameOverrideErasure, boolean skipChecksDueToSmime,
-			boolean async, final boolean fixedSentDate)
+			boolean async, final boolean sentDateWasFixed)
 			throws MessagingException, ExecutionException, InterruptedException {
 		Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
 
@@ -250,12 +250,12 @@ public class MailerLiveTest {
 
 		Email receivedEmail = mimeMessageToEmail(receivedMimeMessage.getMimeMessage(), loadPkcs12KeyStore());
 
-		if (!fixedSentDate) {
+		if (!sentDateWasFixed) {
 			GregorianCalendar receiveWindowStart = new GregorianCalendar();
 			receiveWindowStart.add(Calendar.SECOND, -5);
 			assertThat(receivedEmail.getSentDate()).isBetween(receiveWindowStart.getTime(), new Date());
 		} else {
-			assertThat(receivedEmail.getSentDate()).isEqualTo(CUSTOM_SENT_DATE);
+			assertThat(receivedEmail.getSentDate()).isEqualTo(originalEmailPopulatingBuilder.getSentDate());
 		}
 
 		// ID will always be generated when sending: if set to a specific value, just assume the generated one
@@ -308,7 +308,7 @@ public class MailerLiveTest {
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder
-				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, false))
+				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, true))
 				.from("dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
@@ -340,7 +340,7 @@ public class MailerLiveTest {
 		
 		// send reply to initial mail
 		Email reply = EmailBuilder
-				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, false))
+				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, true))
 				.from("Moo Shmoo", "dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
