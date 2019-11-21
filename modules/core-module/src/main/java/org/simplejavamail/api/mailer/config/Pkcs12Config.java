@@ -1,6 +1,8 @@
 package org.simplejavamail.api.mailer.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -102,6 +104,10 @@ public final class Pkcs12Config {
 			return pkcs12Store(new File(pkcs12StorePath));
 		}
 
+		/**
+		 * Note that this method creates a new {@code FileInputStream} without closing it.
+		 */
+		@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream is meant to travel outside method")
 		public Pkcs12ConfigBuilder pkcs12Store(File pkcs12StorePath) {
 			try {
 				return pkcs12Store(new FileInputStream(pkcs12StorePath));
@@ -116,7 +122,7 @@ public final class Pkcs12Config {
 		}
 
 		public Pkcs12ConfigBuilder storePassword(char[] storePassword) {
-			this.storePassword = storePassword;
+			this.storePassword = storePassword.clone();
 			return this;
 		}
 
@@ -131,7 +137,7 @@ public final class Pkcs12Config {
 		}
 
 		public Pkcs12ConfigBuilder keyPassword(char[] keyPassword) {
-			this.keyPassword = keyPassword;
+			this.keyPassword = keyPassword.clone();
 			return this;
 		}
 

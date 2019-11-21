@@ -1,16 +1,16 @@
 package org.simplejavamail.api.email;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
-import java.security.cert.X509Certificate;
 import java.io.Serializable;
+import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -599,6 +599,6 @@ public class Email implements Serializable {
 	 */
 	@Nullable
 	public Date getSentDate() {
-		return sentDate;
+		return sentDate != null ? new Date(sentDate.getTime()) : null;
 	}
 }

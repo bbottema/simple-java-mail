@@ -18,7 +18,7 @@ public class CliDeclaredOptionValue {
 		this.helpLabel = helpLabel;
 		this.description = description;
 		this.required = required;
-		this.examples = examples;
+		this.examples = examples.clone();
 	}
 	
 	public String formatDescription() {

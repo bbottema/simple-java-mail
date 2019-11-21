@@ -1,6 +1,8 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import com.sun.mail.handlers.text_plain;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.NaturalEntryKeyComparator;
 import org.simplejavamail.internal.util.Preconditions;
 
@@ -9,8 +11,6 @@ import javax.activation.CommandMap;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.MailcapCommandMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.Address;
 import javax.mail.Header;
 import javax.mail.Message.RecipientType;
@@ -640,7 +640,7 @@ public final class MimeMessageParser {
 
 		@Nullable
 		public Date getSentDate() {
-			return sentDate;
+			return sentDate != null ? new Date(sentDate.getTime()) : null;
 		}
 	}
 

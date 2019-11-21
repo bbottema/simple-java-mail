@@ -6,10 +6,10 @@ import com.github.therapi.runtimejavadoc.CommentText;
 import com.github.therapi.runtimejavadoc.InlineLink;
 import com.github.therapi.runtimejavadoc.InlineTag;
 import com.github.therapi.runtimejavadoc.InlineValue;
-import org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper;
-import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
-
 import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
+import org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,10 +49,11 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 						!PATTERN_TODO_FIXME.matcher(result).find(),
 				"Output not properly formatted for CLI usage: \n\t" + result + "\n\t-----------");
 
+		StringBuilder completeResult = new StringBuilder(result);
 		for (String includedDocumentation : includedReferredDocumentation) {
-			result += "\n\n" + indent(1) + includedDocumentation;
+			completeResult.append("\n\n").append(indent(1)).append(includedDocumentation);
 		}
-		return result;
+		return completeResult.toString();
 	}
 	
 	@Override

@@ -1,5 +1,8 @@
 package org.simplejavamail.email.internal;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
@@ -15,8 +18,6 @@ import org.simplejavamail.internal.util.CertificationUtil;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
@@ -1501,6 +1502,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String)
 	 */
 	@Override
+	@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
 	public EmailPopulatingBuilder signWithSmime(@NotNull final File pkcs12StoreFile, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword) {
 		try {
 			return signWithSmime(new FileInputStream(pkcs12StoreFile), storePassword, keyAlias, keyPassword);
@@ -1540,6 +1542,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#encryptWithSmime(String)
 	 */
 	@Override
+	@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
 	public EmailPopulatingBuilder encryptWithSmime(@NotNull final String pemFile) {
 		try {
 			return encryptWithSmime(new FileInputStream(new File(pemFile)));
@@ -1552,6 +1555,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#encryptWithSmime(File)
 	 */
 	@Override
+	@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
 	public EmailPopulatingBuilder encryptWithSmime(@NotNull final File pemFile) {
 		try {
 			return encryptWithSmime(new FileInputStream(pemFile));
@@ -1726,7 +1730,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder fixingSentDate(@NotNull final Date sentDate) {
-		this.sentDate = sentDate;
+		this.sentDate = new Date(sentDate.getTime());
 		return this;
 	}
 
@@ -2157,6 +2161,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Nullable
 	public Date getSentDate() {
-		return sentDate;
+		return sentDate != null ? new Date(sentDate.getTime()) : null;
 	}
 }

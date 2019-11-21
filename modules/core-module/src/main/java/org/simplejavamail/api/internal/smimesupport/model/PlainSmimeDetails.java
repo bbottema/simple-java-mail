@@ -1,9 +1,8 @@
 package org.simplejavamail.api.internal.smimesupport.model;
 
-import org.simplejavamail.api.email.OriginalSmimeDetails;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
 
 public class PlainSmimeDetails implements OriginalSmimeDetails {
 
@@ -27,7 +26,7 @@ public class PlainSmimeDetails implements OriginalSmimeDetails {
 
 	@Override
 	public boolean equals(final Object obj) {
-		return obj.getClass() == PlainSmimeDetails.class;
+		return obj.getClass() == getClass();
 	}
 
 	@Nullable

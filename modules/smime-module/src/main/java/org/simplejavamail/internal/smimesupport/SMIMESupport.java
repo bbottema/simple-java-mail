@@ -20,6 +20,8 @@ import org.bouncycastle.mail.smime.SMIMEException;
 import org.bouncycastle.mail.smime.SMIMESigned;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.util.Store;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
@@ -36,8 +38,6 @@ import org.simplejavamail.internal.smimesupport.model.SmimeDetailsImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Session;
@@ -245,23 +245,21 @@ public class SMIMESupport implements SMIMEModule {
 
 			AttachmentResource liberatedContent = null;
 
-			switch (determineStatus(mimeBodyPart, messageSmimeDetails)) {
-				case SIGNED:
-					if (SmimeUtil.checkSignature(mimeBodyPart)) {
-						MimeBodyPart liberatedBodyPart = SmimeUtil.getSignedContent(mimeBodyPart);
-						liberatedContent = handleLiberatedContent(liberatedBodyPart.getContent());
-					} else {
-						LOGGER.warn("Content is S/MIME signed, but signature is not valid; skipping S/MIME interpeter...");
-					}
-					break;
-				case ENCRYPTED:
-					if (pkcs12Config != null) {
-						LOGGER.warn("Message was encrypted, but no Pkcs12Config was given to decrypt it with, skipping attachment...");
-						SmimeKey smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
-						MimeBodyPart liberatedBodyPart = SmimeUtil.decrypt(mimeBodyPart, smimeKey);
-						liberatedContent = handleLiberatedContent(liberatedBodyPart.getContent());
-					}
-					break;
+			SmimeState smimeState = determineStatus(mimeBodyPart, messageSmimeDetails);
+			if (smimeState == SIGNED) {
+				if (SmimeUtil.checkSignature(mimeBodyPart)) {
+					MimeBodyPart liberatedBodyPart = SmimeUtil.getSignedContent(mimeBodyPart);
+					liberatedContent = handleLiberatedContent(liberatedBodyPart.getContent());
+				} else {
+					LOGGER.warn("Content is S/MIME signed, but signature is not valid; skipping S/MIME interpeter...");
+				}
+			} else if (smimeState == ENCRYPTED) {
+				if (pkcs12Config != null) {
+					LOGGER.warn("Message was encrypted, but no Pkcs12Config was given to decrypt it with, skipping attachment...");
+					SmimeKey smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
+					MimeBodyPart liberatedBodyPart = SmimeUtil.decrypt(mimeBodyPart, smimeKey);
+					liberatedContent = handleLiberatedContent(liberatedBodyPart.getContent());
+				}
 			}
 
 			return liberatedContent != null

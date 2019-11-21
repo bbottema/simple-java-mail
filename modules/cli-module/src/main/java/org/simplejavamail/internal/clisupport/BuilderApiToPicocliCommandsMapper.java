@@ -7,6 +7,8 @@ import org.bbottema.javareflection.MethodUtils;
 import org.bbottema.javareflection.model.LookupMode;
 import org.bbottema.javareflection.model.MethodModifier;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
@@ -16,10 +18,10 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
 import org.simplejavamail.internal.clisupport.valueinterpreters.EmlFilePathToMimeMessageFunction;
-import org.simplejavamail.internal.clisupport.valueinterpreters.PemFilePathToX509CertificateFunction;
-import org.simplejavamail.internal.clisupport.valueinterpreters.StringToFileFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.MsgFilePathToMimeMessageFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.PemFilePathToX509CertificateFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToCalendarMethodFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToFileFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToLoadBalancingStrategyFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToTransportStrategyFunction;
 import org.simplejavamail.internal.util.StringUtil;
@@ -27,8 +29,6 @@ import org.simplejavamail.internal.util.StringUtil.StringFormatter;
 import org.slf4j.Logger;
 
 import javax.activation.DataSource;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
@@ -143,7 +143,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 					if (knownOption.getName().equals(optionName)) {
 						final boolean methodIsActuallyTheSame = knownOption.getSourceMethod().equals(m);
 						if (!methodIsActuallyTheSame) {
-							String msg = "@CliOptionNameOverride needed one of the following two methods:\n\t%s\n\t%s\n\t----------";
+							String msg = "@CliOptionNameOverride needed one of the following two methods:%n\t%s%n\t%s%n\t----------";
 							throw new AssertionError(format(msg, knownOption.getSourceMethod(), m));
 						}
 					}

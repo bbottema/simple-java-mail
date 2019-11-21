@@ -1,9 +1,10 @@
 package org.simplejavamail.internal.util;
 
-import org.simplejavamail.api.email.Recipient;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.Recipient;
+
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
@@ -41,6 +42,7 @@ public final class MiscUtil {
 	private static final Pattern TRAILING_TOKEN_DELIMITER_PATTERN = compile("<\\|>$");
 	private static final Pattern TOKEN_DELIMITER_PATTERN = compile("\\s*<\\|>\\s*");
 
+	@SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE")
 	public static <T> T checkNotNull(final @Nullable T value, final @Nullable String msg) {
 		if (value == null) {
 			throw new NullPointerException(msg);

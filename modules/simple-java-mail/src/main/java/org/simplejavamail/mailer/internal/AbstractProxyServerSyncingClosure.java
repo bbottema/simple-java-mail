@@ -1,10 +1,11 @@
 package org.simplejavamail.mailer.internal;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.slf4j.Logger;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -26,6 +27,7 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 		increaseSmtpConnectionCounter();
 	}
 
+	@SuppressFBWarnings(value = "JLM_JSR166_UTILCONCURRENT_MONITORENTER", justification = "Not sure why we needed this anymore, but it doesn't do any harm either")
 	private void increaseSmtpConnectionCounter() {
 		synchronized (smtpConnectionCounter) {
 			smtpConnectionCounter.incrementAndGet();
@@ -55,6 +57,7 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 		}
 	}
 
+	@SuppressFBWarnings(value = "JLM_JSR166_UTILCONCURRENT_MONITORENTER", justification = "Not sure why we needed this anymore, but it doesn't do any harm either")
 	private void shutDownProxyServerIfRunningAndCurrentBatchCompleted() {
 		synchronized (smtpConnectionCounter) {
 			if (smtpConnectionCounter.decrementAndGet() == 0) {

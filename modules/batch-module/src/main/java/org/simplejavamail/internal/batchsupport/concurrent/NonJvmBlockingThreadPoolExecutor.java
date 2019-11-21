@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.batchsupport.concurrent;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -18,6 +20,7 @@ public class NonJvmBlockingThreadPoolExecutor extends ThreadPoolExecutor {
 
 	private static int counter = 1;
 
+	@SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
 	public NonJvmBlockingThreadPoolExecutor(int threadPoolSize, int threadPoolKeepAliveTime) {
 		super(threadPoolSize,
 				threadPoolSize,
