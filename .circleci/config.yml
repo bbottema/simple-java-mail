@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  github-maven-deploy: github-maven-deploy/github-maven-deploy@dev:22
+  github-maven-deploy: github-maven-deploy/github-maven-deploy@dev:23
 
 mvn-build-test-command: &mvn-build-test-command
   mvn-build-test-command: mvn verify -DexcludeLiveServerTests=true
@@ -27,7 +27,7 @@ workflows:
           <<: *mvn-collect-artifacts-command
           filters:
             branches:
-              only: master
+              only: develop
 
       - github-maven-deploy/approve-deploy-patch-version:
           type: approval
@@ -38,6 +38,10 @@ workflows:
           requires:
             - github-maven-deploy/build-and-test
       - github-maven-deploy/approve-deploy-major-version:
+          type: approval
+          requires:
+            - github-maven-deploy/build-and-test
+      - github-maven-deploy/approve-deploy-as-is-version:
           type: approval
           requires:
             - github-maven-deploy/build-and-test
@@ -53,4 +57,8 @@ workflows:
       - github-maven-deploy/deploy-major-version:
           requires:
             - github-maven-deploy/approve-deploy-major-version
+          <<: *mvn-deploy-command
+      - github-maven-deploy/deploy-as-is-version:
+          requires:
+            - github-maven-deploy/approve-deploy-as-is-version
           <<: *mvn-deploy-command
