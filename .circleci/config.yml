@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  github-maven-deploy: github-maven-deploy/github-maven-deploy@dev:23
+  github-maven-deploy: github-maven-deploy/github-maven-deploy@dev:24
 
 mvn-build-test-command: &mvn-build-test-command
   mvn-build-test-command: mvn verify -DexcludeLiveServerTests=true
