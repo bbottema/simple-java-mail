@@ -18,31 +18,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.simplejavamail</groupId>
-			<artifactId>core-module</artifactId>
-			<version>${project.version}</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.simplejavamail</groupId>
-			<artifactId>core-test-module</artifactId>
-			<version>${project.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.simplejavamail</groupId>
 			<artifactId>authenticated-socks-module</artifactId>
-			<version>${project.version}</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.simplejavamail</groupId>
-			<artifactId>dkim-module</artifactId>
-			<version>${project.version}</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.simplejavamail</groupId>
-			<artifactId>smime-module</artifactId>
 			<version>${project.version}</version>
 			<scope>compile</scope>
 		</dependency>
@@ -60,6 +36,24 @@
 		</dependency>
 		<dependency>
 			<groupId>org.simplejavamail</groupId>
+			<artifactId>core-module</artifactId>
+			<version>${project.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.simplejavamail</groupId>
+			<artifactId>core-test-module</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.simplejavamail</groupId>
+			<artifactId>dkim-module</artifactId>
+			<version>${project.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.simplejavamail</groupId>
 			<artifactId>outlook-module</artifactId>
 			<version>${project.version}</version>
 			<scope>compile</scope>
@@ -67,6 +61,12 @@
 		<dependency>
 			<groupId>org.simplejavamail</groupId>
 			<artifactId>simple-java-mail</artifactId>
+			<version>${project.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.simplejavamail</groupId>
+			<artifactId>smime-module</artifactId>
 			<version>${project.version}</version>
 			<scope>compile</scope>
 		</dependency>
@@ -83,7 +83,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.1</version>
+				<version>0.8.5</version>
 				<executions>
 					<execution>
 						<id>report-aggregate</id>

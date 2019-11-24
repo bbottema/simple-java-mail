@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.bbottema</groupId>
         <artifactId>modular-project-parent</artifactId>
-        <version>1.0.3</version>
+        <version>1.0.6</version>
     </parent>
 
     <groupId>org.simplejavamail</groupId>
@@ -19,7 +19,7 @@
     <description>Simple Java Mail - Maven master project</description>
     <url>http://www.simplejavamail.org/</url>
 
-    <!-- to skip some steps: -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -Denforcer.skip=true -->
+    <!-- to skip some steps: -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -Denforcer.skip=true -Djacoco.skip=true -->
 
     <issueManagement>
         <system>GitHub Issues</system>
@@ -46,67 +46,14 @@
         <module>modules/jacoco-aggregator-module</module>
     </modules>
 
-    <dependencies>
-        <!-- utility -->
-        <dependency><!-- gives us @NotNull annotations-->
-            <groupId>com.github.bbottema</groupId>
-            <artifactId>jetbrains-runtime-annotations</artifactId>
-            <version>1.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- testing -->
-        <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-module-junit4</artifactId>
-            <version>2.0.4</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-api-mockito2</artifactId>
-            <version>2.0.4</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
             <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <configuration>
-                    <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
-                </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <!-- don't let the aggregate javadoc be inherited, as it blocks javadoc:jar from executing at module-level -->
+                <inherited>false</inherited>
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>travis-verify-skip-unsupported-tests</id>
-            <activation>
-                <property>
-                    <name>excludeLiveServerTests</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <pluginManagement>
-                    <plugins>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-surefire-plugin</artifactId>
-                            <version>2.19.1</version>
-                            <configuration>
-                                <excludes>
-                                    <exclude>**/*LiveTest.java</exclude>
-                                </excludes>
-                            </configuration>
-                        </plugin>
-                    </plugins>
-                </pluginManagement>
-            </build>
-        </profile>
-    </profiles>
 </project>
