@@ -314,7 +314,7 @@ public final class ConfigLoader {
 	}
 
 	/**
-	 * @return All properties in priority of System property > File properties.
+	 * @return All properties in priority of System property {@code >} File properties.
 	 */
 	private static Map<Property, Object> readProperties(final @NotNull Properties fileProperties) {
 		final Properties filePropertiesLeft = new Properties();

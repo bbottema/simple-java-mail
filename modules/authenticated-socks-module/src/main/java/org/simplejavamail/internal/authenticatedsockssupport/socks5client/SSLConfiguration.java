@@ -10,8 +10,14 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 
 class SSLConfiguration {
 
@@ -55,9 +61,8 @@ class SSLConfiguration {
 			}
 			LOGGER.info("SSL: Trust key store:{}", trustKeyStoreInfo.getKeyStorePath());
 			return context.getSocketFactory();
-		} catch (final Exception e) {
-			LOGGER.error(e.getMessage(), e);
-			throw new SocksException(e.getMessage());
+		} catch (IOException | KeyManagementException | KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException | CertificateException e) {
+			throw new SocksException(e.getMessage(), e);
 		} finally {
 			tryCloseStream(s1);
 			tryCloseStream(s2);

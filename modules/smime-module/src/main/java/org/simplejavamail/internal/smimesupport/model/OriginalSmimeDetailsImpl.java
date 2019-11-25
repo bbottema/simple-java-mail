@@ -16,6 +16,8 @@ import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
  */
 public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 
+	private static final long serialVersionUID = 1234567L;
+
 	@NotNull private SmimeMode smimeMode;
 	@Nullable private String smimeMime;
 	@Nullable private String smimeType;

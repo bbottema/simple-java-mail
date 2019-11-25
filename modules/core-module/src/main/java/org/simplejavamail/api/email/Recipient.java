@@ -13,6 +13,8 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  */
 public final class Recipient implements Serializable {
 
+	private static final long serialVersionUID = 1234567L;
+
 	@Nullable
 	private final String name;
 	@NotNull

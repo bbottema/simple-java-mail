@@ -19,9 +19,8 @@ public interface Socks5Bridge {
 	 * @param remoteServerPort    The target server's port that is behind the proxy.
 	 *
 	 * @return A socket that channels through an already authenticated SOCKS5 proxy.
-	 * @throws IOException
+	 * @throws IOException Thrown by the underlying Socket in case of connection issues.
 	 */
-	@SuppressWarnings("JavaDoc")
 	Socket connect(String sessionId, InetAddress remoteServerAddress, int remoteServerPort)
 			throws IOException;
 }
