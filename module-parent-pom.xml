@@ -64,6 +64,9 @@
                         </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <failOnError>false</failOnError>
+                </configuration>
             </plugin>
 
             <plugin>
