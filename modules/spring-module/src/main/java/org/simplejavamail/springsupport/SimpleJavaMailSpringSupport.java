@@ -13,8 +13,9 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Properties;
 
 /**
- * Provides a {@link MailerImpl} bean completely configured from property defaults. For this to work, you need to include default properties in your
- * Spring config.
+ * Provides a {@link Mailer} bean completely configured from property defaults as well as a {@link MailerGenericBuilder}
+ * for your convenience in case you wish to further configure it in Java code. For this to work, you need to include
+ * default properties in your Spring config.
  * <p>
  * Using profiles, you can have environment specific configurations that way. See
  * <a href="http://www.simplejavamail.org/#/configuration">simplejavamail.org</a> for example configuration.
