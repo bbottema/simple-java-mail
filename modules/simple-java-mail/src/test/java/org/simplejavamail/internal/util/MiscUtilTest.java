@@ -3,6 +3,8 @@ package org.simplejavamail.internal.util;
 import org.junit.Test;
 import org.simplejavamail.api.email.Recipient;
 
+import java.util.ArrayList;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MiscUtilTest {
@@ -37,12 +39,39 @@ public class MiscUtilTest {
 	
 	@Test
 	public void valueNullOrEmpty() {
-		assertThat(MiscUtil.valueNullOrEmpty("")).isEqualTo(true);
-		assertThat(MiscUtil.valueNullOrEmpty(null)).isEqualTo(true);
-		assertThat(MiscUtil.valueNullOrEmpty("blah")).isEqualTo(false);
-		assertThat(MiscUtil.valueNullOrEmpty(2534)).isEqualTo(false);
+		assertThat(MiscUtil.valueNullOrEmpty("")).isTrue();
+		assertThat(MiscUtil.valueNullOrEmpty(null)).isTrue();
+		assertThat(MiscUtil.valueNullOrEmpty("blah")).isFalse();
+		assertThat(MiscUtil.valueNullOrEmpty(2534)).isFalse();
+		assertThat(MiscUtil.valueNullOrEmpty(new ArrayList<>())).isTrue();
 	}
-	
+
+	@Test
+	public void testBuildLogString() {
+		assertThat(MiscUtil.buildLogStringForSOCKSCommunication(new byte[] { 1, 2, 3 }, true)).isEqualTo("Received: 1 2 3 ");
+		assertThat(MiscUtil.buildLogStringForSOCKSCommunication(new byte[] { 32, 121, 101 }, false)).isEqualTo("Sent: 20 79 65 ");
+	}
+
+	@Test
+	public void testToInt() {
+		assertThat(MiscUtil.toInt((byte) -1)).isEqualTo(255);
+		assertThat(MiscUtil.toInt((byte) 0)).isEqualTo(0);
+		assertThat(MiscUtil.toInt((byte) 1)).isEqualTo(1);
+		assertThat(MiscUtil.toInt((byte) 10)).isEqualTo(10);
+		assertThat(MiscUtil.toInt((byte) 100)).isEqualTo(100);
+		assertThat(MiscUtil.toInt((byte) -100)).isEqualTo(156);
+		assertThat(MiscUtil.toInt((byte) -10)).isEqualTo(246);
+	}
+
+	@Test
+	public void testEncodeText() {
+		assertThat(MiscUtil.encodeText(null)).isNull();
+		assertThat(MiscUtil.encodeText("moo moo")).isEqualTo("moo moo");
+		assertThat(MiscUtil.encodeText("<html><body>moo</body></html>")).isEqualTo("<html><body>moo</body></html>");
+		assertThat(MiscUtil.encodeText("moo moo\u0207")).isEqualTo("=?UTF-8?B?bW9vIG1vb8iH?=");
+		assertThat(MiscUtil.encodeText("<html><body>\u0207</body></html>")).isEqualTo("=?UTF-8?B?PGh0bWw+PGJvZHk+yIc8L2JvZHk+PC9odG1sPg==?=");
+	}
+
 	@Test(expected = IllegalArgumentException.class)
 	public void testExtractEmailAddresses_MissingAddress() {
 		MiscUtil.extractEmailAddresses(null);
