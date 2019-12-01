@@ -64,7 +64,7 @@ public final class MiscUtil {
 				(value instanceof byte[] && ((byte[]) value).length == 0);
 	}
 
-	public static String buildLogString(final byte[] bytes, final boolean isReceived) {
+	public static String buildLogStringForSOCKSCommunication(final byte[] bytes, final boolean isReceived) {
 		final StringBuilder debugMsg = new StringBuilder();
 		debugMsg.append(isReceived ? "Received: " : "Sent: ");
 		for (final byte aByte : bytes) {

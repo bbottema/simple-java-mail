@@ -38,12 +38,12 @@ final class SocksAuthenticationHelper {
 		outputStream.write(bufferSent);
 		outputStream.flush();
 
-		LOGGER.trace("{}", MiscUtil.buildLogString(bufferSent, false));
+		LOGGER.trace("{}", MiscUtil.buildLogStringForSOCKSCommunication(bufferSent, false));
 
 		// Received data.
 		final InputStream inputStream = socket.getInputStream();
 		final byte[] receivedData = read2Bytes(inputStream);
-		LOGGER.trace("{}", MiscUtil.buildLogString(receivedData, true));
+		LOGGER.trace("{}", MiscUtil.buildLogStringForSOCKSCommunication(receivedData, true));
 		if (receivedData[0] != (int) SOCKS_VERSION) {
 			throw new SocksException("Remote server don't support SOCKS5");
 		}
@@ -81,12 +81,12 @@ final class SocksAuthenticationHelper {
 		outputStream.write(bufferSent);
 		outputStream.flush();
 		// logger send bytes
-		LOGGER.trace("{}", MiscUtil.buildLogString(bufferSent, false));
+		LOGGER.trace("{}", MiscUtil.buildLogStringForSOCKSCommunication(bufferSent, false));
 
 		final byte[] authenticationResult = new byte[2];
 		checkEnd(inputStream.read(authenticationResult));
 		// logger
-		LOGGER.trace("{}", MiscUtil.buildLogString(authenticationResult, true));
+		LOGGER.trace("{}", MiscUtil.buildLogStringForSOCKSCommunication(authenticationResult, true));
 
 		if (authenticationResult[1] != Socks5.AUTHENTICATION_SUCCEEDED) {
 			// Close connection if authentication is failed.
