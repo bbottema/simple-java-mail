@@ -1,11 +1,23 @@
 package org.simplejavamail.internal.util;
 
+import org.assertj.core.api.ThrowableAssert;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.simplejavamail.api.email.Recipient;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Map;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class MiscUtilTest {
 	@Test
@@ -76,19 +88,120 @@ public class MiscUtilTest {
 	public void testExtractEmailAddresses_MissingAddress() {
 		MiscUtil.extractEmailAddresses(null);
 	}
-	
+
 	@Test(expected = IllegalArgumentException.class)
 	public void testExtractEmailAddresses_EmptyAddress() {
 		MiscUtil.extractEmailAddresses("");
 	}
-	
+
+	@Test
+	public void testExtractCID() {
+		assertThat(MiscUtil.extractCID(null)).isNull();
+		assertThat(MiscUtil.extractCID("")).isEqualTo("");
+		assertThat(MiscUtil.extractCID("moo")).isEqualTo("moo");
+		assertThat(MiscUtil.extractCID("<moo>")).isEqualTo("moo");
+	}
+
+	@Test
+	public void testReadInputStreamToString()
+			throws IOException {
+		ByteArrayInputStream i = new ByteArrayInputStream(new byte[] { 'm', 'o', 'o', 'm', 'o', 'o', '1', '2', '3' });
+		assertThat(MiscUtil.readInputStreamToString(i, UTF_8)).isEqualTo("moomoo123");
+	}
+
+	@Test
+	public void testReadInputStreamToBytes()
+			throws IOException {
+		final byte[] input = { 'm', 'o', 'o', 'm', 'o', 'o', '1', '2', '3' };
+		ByteArrayInputStream i = new ByteArrayInputStream(input);
+		assertThat(MiscUtil.readInputStreamToBytes(i)).isEqualTo(input);
+	}
+
 	@Test
 	public void testExtractEmailAddresses_SingleAddress() {
 		String[] singleAddressList = MiscUtil.extractEmailAddresses("a@b.com");
 		assertThat(singleAddressList).hasSize(1);
 		assertThat(singleAddressList).contains("a@b.com");
 	}
-	
+
+	@Test
+	public void testClassAvailable() {
+		assertThat(MiscUtil.classAvailable("moomoo.MooMoo")).isFalse();
+		assertThat(MiscUtil.classAvailable("java.util.AbstractList")).isTrue();
+	}
+
+	@Test
+	public void testZip() {
+		final Map.Entry<Integer, Float>[] zip = MiscUtil.zip(new Integer[] { 1, 2, 3 }, new Float[] { 1.2f, 2.3f, 3.4f });
+		assertThat(zip).containsExactly(
+				new AbstractMap.SimpleEntry<>(1, 1.2f),
+				new AbstractMap.SimpleEntry<>(2, 2.3f),
+				new AbstractMap.SimpleEntry<>(3, 3.4f)
+		);
+	}
+
+	@Test
+	public void testNormalizeNewlines() {
+		assertThat(MiscUtil.normalizeNewlines(null)).isNull();
+		assertThat(MiscUtil.normalizeNewlines("123")).isEqualTo("123");
+		assertThat(MiscUtil.normalizeNewlines("123\n")).isEqualTo("123\n");
+		assertThat(MiscUtil.normalizeNewlines("123\r\n")).isEqualTo("123\n");
+		assertThat(MiscUtil.normalizeNewlines("123\r")).isEqualTo("123\n");
+	}
+
+	@Test
+	public void testCountMandatoryParameters() {
+		Method methodWithZeroParameters = new Object() {public void methodWithZeroParameters() {}}.getClass().getDeclaredMethods()[0];
+		Method methodWithZeroMandatoryParameters = new Object() {public void methodWithZeroMandatoryParameters(@Nullable Integer optionalInt) {}}.getClass().getDeclaredMethods()[0];
+		Method methodWithOnlyMandatoryParameters = new Object() {public void methodWithOnlyMandatoryParameters(Integer mandatoryInt) {}}.getClass().getDeclaredMethods()[0];
+		Method methodWithMixedMandatoryParameters = new Object() {public void methodWithMixedMandatoryParameters(@Nullable Integer optionalInt, Integer mandatoryInt) {}}.getClass().getDeclaredMethods()[0];
+
+		assertThat(MiscUtil.countMandatoryParameters(methodWithZeroParameters)).isEqualTo(0);
+		assertThat(MiscUtil.countMandatoryParameters(methodWithZeroMandatoryParameters)).isEqualTo(0);
+		assertThat(MiscUtil.countMandatoryParameters(methodWithOnlyMandatoryParameters)).isEqualTo(1);
+		assertThat(MiscUtil.countMandatoryParameters(methodWithMixedMandatoryParameters)).isEqualTo(1);
+	}
+
+	@Test
+	public void testReadFileContent()
+			throws IOException {
+		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+			@Override
+			public void call()
+					throws Throwable {
+				MiscUtil.readFileContent(new File("moo"));
+			}
+		})
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("File not found: moo");
+
+		assertThat(MiscUtil.readFileContent(new File("src/test/resources/ignore.properties"))).contains("simplejavamail.defaults.bcc.address=moo");
+	}
+
+	@Test
+	public void testInputStreamEqual()
+			throws FileNotFoundException {
+		final FileInputStream fis1 = new FileInputStream("src/test/resources/ignore.properties");
+		final FileInputStream fis2 = new FileInputStream("src/test/resources/ignore.properties");
+		final FileInputStream fis3 = new FileInputStream("src/test/resources/ical4j.properties");
+
+		ByteArrayInputStream bais1 = new ByteArrayInputStream(new byte[] { 'm', 'o', 'o', 'm', 'o', 'o', '1', '2', '3' });
+		ByteArrayInputStream bais2 = new ByteArrayInputStream(new byte[] { 'm', 'o', 'o', 'm', 'o', 'o', '1', '2', '3' });
+		ByteArrayInputStream bais3 = new ByteArrayInputStream(new byte[] { 1,2,3 });
+
+		assertThat(MiscUtil.inputStreamEqual(fis1, fis1)).isTrue();
+		assertThat(MiscUtil.inputStreamEqual(fis1, fis2)).isTrue();
+		assertThat(MiscUtil.inputStreamEqual(fis3, fis3)).isTrue();
+		assertThat(MiscUtil.inputStreamEqual(bais1, bais2)).isTrue();
+		assertThat(MiscUtil.inputStreamEqual(bais3, bais3)).isTrue();
+
+		assertThat(MiscUtil.inputStreamEqual(fis1, fis3)).isFalse();
+		assertThat(MiscUtil.inputStreamEqual(fis2, fis3)).isFalse();
+		assertThat(MiscUtil.inputStreamEqual(fis1, bais1)).isFalse();
+		assertThat(MiscUtil.inputStreamEqual(bais1, bais3)).isFalse();
+		assertThat(MiscUtil.inputStreamEqual(bais3, bais2)).isFalse();
+	}
+
 	@Test
 	public void testExtractEmailAddresses_MultipleAddressesWithCommas() {
 		String[] singleAddressList = MiscUtil.extractEmailAddresses("a1@b.com,a2@b.com,a3@b.com");
