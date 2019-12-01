@@ -2,6 +2,7 @@ package org.simplejavamail.api.email;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.util.MiscUtil;
 
@@ -15,6 +16,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 import static org.simplejavamail.internal.util.ListUtil.merge;
@@ -325,7 +327,7 @@ public class Email implements Serializable {
 				",\n\tbounceToRecipient=" + bounceToRecipient +
 				",\n\ttext='" + text + '\'' +
 				",\n\ttextHTML='" + textHTML + '\'' +
-				",\n\ttextCalendar='" + textCalendar + '\'' +
+				",\n\ttextCalendar='" + format("%s (method: %s)", textCalendar, calendarMethod) + '\'' +
 				",\n\tsubject='" + subject + '\'' +
 				",\n\trecipients=" + recipients);
 		if (!MiscUtil.valueNullOrEmpty(dkimSigningDomain)) {
@@ -356,16 +358,24 @@ public class Email implements Serializable {
 		if (emailToForward != null) {
 			s += ",\n\tforwardingEmail=true";
 		}
-		if (smimeSignedEmail != null) {
-			s += ",\n\t\tsmimeSignedEmail=" + smimeSignedEmail;
+
+		if (smimeSignedEmail != null || pkcs12ConfigForSmimeSigning != null
+				|| x509CertificateForSmimeEncryption != null || !(originalSmimeDetails instanceof PlainSmimeDetails)) {
+			s += ",\n\tsmime details: {\n";
+			s += "\t----------------------\n";
+			if (smimeSignedEmail != null) {
+				s += "\t\tsmimeSignedEmail=" + smimeSignedEmail + ",\n";
+			}
+			if (pkcs12ConfigForSmimeSigning != null) {
+				s += "\t\tpkcs12ConfigForSmimeSigning=" + pkcs12ConfigForSmimeSigning + ",\n";
+			}
+			if (x509CertificateForSmimeEncryption != null) {
+				s += "\t\tx509CertificateForSmimeEncryption=" + x509CertificateForSmimeEncryption;
+			}
+			s += "\t\toriginalSmimeDetails=" + originalSmimeDetails + "\n";
+			s += "\t----------------------\n\t}";
 		}
-		if (pkcs12ConfigForSmimeSigning != null) {
-			s += ",\n\t\tpkcs12ConfigForSmimeSigning=" + pkcs12ConfigForSmimeSigning;
-		}
-		if (x509CertificateForSmimeEncryption != null) {
-			s += ",\n\t\tx509CertificateForSmimeEncryption=" + x509CertificateForSmimeEncryption;
-		}
-		s += ",\n\t\toriginalSmimeDetails=" + originalSmimeDetails + "\n}";
+		s +=  "\n}";
 		return s;
 	}
 	
