@@ -1,10 +1,10 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import com.sun.mail.smtp.SMTPMessage;
-
-import javax.activation.DataHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.activation.DataHandler;
 import javax.mail.Address;
 import javax.mail.Flags;
 import javax.mail.Folder;
@@ -95,6 +95,7 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 	}
 
 	@Override
+	@Nullable
 	public Address getSender()
 			throws MessagingException {
 		return delegate.getSender();
@@ -131,6 +132,7 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 	}
 
 	@Override
+	@Nullable
 	public Date getReceivedDate()
 			throws MessagingException {
 		return delegate.getReceivedDate();
@@ -173,12 +175,14 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 	}
 
 	@Override
+	@Nullable
 	public String getContentID()
 			throws MessagingException {
 		return delegate.getContentID();
 	}
 
 	@Override
+	@Nullable
 	public String getContentMD5()
 			throws MessagingException {
 		return delegate.getContentMD5();
@@ -191,12 +195,14 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 	}
 
 	@Override
+	@Nullable
 	public String[] getContentLanguage()
 			throws MessagingException {
 		return delegate.getContentLanguage();
 	}
 
 	@Override
+	@Nullable
 	public String getMessageID()
 			throws MessagingException {
 		return delegate.getMessageID();
@@ -257,12 +263,14 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 	}
 
 	@Override
+	@Nullable
 	public String[] getHeader(final String name)
 			throws MessagingException {
 		return delegate.getHeader(name);
 	}
 
 	@Override
+	@Nullable
 	public String getHeader(final String name, final String delimiter)
 			throws MessagingException {
 		return delegate.getHeader(name, delimiter);
@@ -333,6 +341,7 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 	}
 
 	@Override
+	@Nullable
 	public Folder getFolder() {
 		return delegate.getFolder();
 	}

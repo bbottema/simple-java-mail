@@ -37,13 +37,13 @@ public class EmailHelper {
 
 	public static final Date CUSTOM_SENT_DATE = new GregorianCalendar(2011, SEPTEMBER, 15, 12, 5, 43).getTime();
 
-	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean basicFields, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule)
+	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean onlyBasicFields, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule)
 			throws IOException {
-		return createDummyEmailBuilder(null, includeSubjectAndBody, basicFields, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule, false);
+		return createDummyEmailBuilder(null, includeSubjectAndBody, onlyBasicFields, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule, false);
 	}
 
-	public static EmailPopulatingBuilder createDummyEmailBuilder(@Nullable String id, boolean includeSubjectAndBody, boolean basicFields, boolean includeCustomHeaders,
-			boolean useSmimeDetailsImplFromSmimeModule, final boolean fixSentDate)
+	public static EmailPopulatingBuilder createDummyEmailBuilder(@Nullable String id, boolean includeSubjectAndBody, boolean onlyBasicFields, boolean includeCustomHeaders,
+	                                                             boolean useSmimeDetailsImplFromSmimeModule, final boolean fixSentDate)
 			throws IOException {
 		EmailPopulatingBuilder builder = EmailBuilder.startingBlank()
 				.fixingMessageId(id)
@@ -51,7 +51,7 @@ public class EmailHelper {
 				// don't forget to add your own address here ->
 				.to("C.Cane", "candycane@candyshop.org");
 
-		if (!basicFields) {
+		if (!onlyBasicFields) {
 			// normally not needed, but for the test it is because the MimeMessage will
 			// have it added automatically as well, so the parsed Email will also have it then
 			builder = builder

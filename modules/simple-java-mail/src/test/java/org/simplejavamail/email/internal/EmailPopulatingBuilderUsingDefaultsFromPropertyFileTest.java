@@ -1,10 +1,12 @@
 package org.simplejavamail.email.internal;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.email.EmailBuilder;
+import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
 import org.jetbrains.annotations.NotNull;
@@ -18,6 +20,12 @@ import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
+
+	@Before
+	// normally not needed, but IntelliJ test coverage doesn't work with JVM forking (which normally solves static mutation issues)
+	public void setup() {
+		ConfigLoaderTestHelper.restoreOriginalConfigProperties();
+	}
 
 	@Test
 	public void testBuilderSimpleBuildWithStandardEmail()

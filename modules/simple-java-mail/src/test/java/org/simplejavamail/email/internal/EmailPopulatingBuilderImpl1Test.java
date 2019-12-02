@@ -2,6 +2,7 @@ package org.simplejavamail.email.internal;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
@@ -13,7 +14,6 @@ import org.simplejavamail.internal.util.CertificationUtil;
 import testutil.ConfigLoaderTestHelper;
 
 import javax.activation.DataSource;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.Message;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.CertificationUtil.extractSignedBy;
 
-public class EmailPopulatingBuilderImplTest {
+public class EmailPopulatingBuilderImpl1Test {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 

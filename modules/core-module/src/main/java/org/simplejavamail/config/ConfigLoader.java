@@ -79,7 +79,7 @@ public final class ConfigLoader {
 	/**
 	 * By default the optional file {@value} will be loaded from classpath to load initial defaults.
 	 */
-	private static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
+	public static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
 
 	/**
 	 * Initially try to load properties from "{@value #DEFAULT_CONFIG_FILENAME}".

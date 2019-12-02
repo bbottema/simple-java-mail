@@ -34,4 +34,8 @@ public class ConfigLoaderTestHelper {
 			throw new AssertionError(e.getMessage(), e);
 		}
 	}
+
+	public static void restoreOriginalConfigProperties() {
+		ConfigLoader.loadProperties(ConfigLoader.DEFAULT_CONFIG_FILENAME, false);
+	}
 }

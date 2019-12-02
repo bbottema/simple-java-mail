@@ -64,6 +64,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_C
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
@@ -295,7 +296,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 						.pkcs12Store(assumeNonNull(getStringProperty(SMIME_SIGNING_KEYSTORE)))
 						.storePassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEYSTORE_PASSWORD), "Keystore password property"))
 						.keyAlias(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_ALIAS), "Key alias property"))
-						.keyPassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEYSTORE_PASSWORD), "Key password property"))
+						.keyPassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_PASSWORD), "Key password property"))
 						.build());
 			}
 			if (hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
