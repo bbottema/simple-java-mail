@@ -76,6 +76,16 @@
                     <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
                 </configuration>
             </plugin>
+
+            <plugin><!-- this plugin must come after jacoco instrument -->
+                <groupId>se.eris</groupId>
+                <artifactId>notnull-instrumenter-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <classes>**Assert</classes><!-- AssertJ generated -->
+                    </excludes>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
