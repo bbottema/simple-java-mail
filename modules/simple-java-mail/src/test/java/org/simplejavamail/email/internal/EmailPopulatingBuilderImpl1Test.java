@@ -12,11 +12,14 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.CertificationUtil;
 import testutil.ConfigLoaderTestHelper;
+import testutil.EmailHelper;
 
 import javax.activation.DataSource;
 import javax.mail.Message;
 import javax.mail.util.ByteArrayDataSource;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.Security;
@@ -28,6 +31,7 @@ import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import static org.mockito.Mockito.mock;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.CertificationUtil.extractSignedBy;
 
@@ -89,6 +93,17 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
+	public void testBuilderReturnReceiptToAddress() {
+		final Email email = builder
+				.withReturnReceiptTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
+				.buildEmail();
+
+		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop");
+		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo("lol.pop@somemail.com");
+		assertThat(email.getReturnReceiptTo().getType()).isNull();
+	}
+
+	@Test
 	public void testBuilderReplyToAddressOverwriteWithAlternativeBuilderMethod() {
 		final Email email = builder
 				.withReplyTo("lollypop", "lol.pop@somemail.com") // should be overwritted
@@ -110,6 +125,18 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(email.getBounceToRecipient().getName()).isEqualTo("lollypop2");
 		assertThat(email.getBounceToRecipient().getAddress()).isEqualTo("lol.pop2@somemail.com");
 		assertThat(email.getBounceToRecipient().getType()).isNull();
+	}
+
+	@Test
+	public void testBuilderReturnReceiptToAddressOverwriteWithAlternativeBuilderMethod() {
+		final Email email = builder
+				.withReturnReceiptTo("lollypop", "lol.pop@somemail.com") // should be overwritted
+				.withReturnReceiptTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
+				.buildEmail();
+
+		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop2");
+		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo("lol.pop2@somemail.com");
+		assertThat(email.getReturnReceiptTo().getType()).isNull();
 	}
 
 	@Test
@@ -703,6 +730,108 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		assertThat(certificateOut).isNotNull();
 		assertSignedBy(certificateOut, "Benny Bottema");
+	}
+
+	@Test
+	public void testClearingValues() throws IOException {
+		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true)
+				.notMergingSingleSMIMESignedAttachment()
+				.signWithDomainKey("dkim_key", "dkim_domain", "dkim_selector")
+				.signWithDomainKey(new File("dkim_key"), "dkim_domain", "dkim_selector")
+				.signWithSmime(new ByteArrayInputStream(new byte[]{}), "storePassword", "keyAlias", "keyPassword")
+				.encryptWithSmime(mock(X509Certificate.class));
+
+		assertThat(emailBuilder.isMergeSingleSMIMESignedAttachment()).isFalse();
+
+		Email emailNormal = emailBuilder.buildEmail();
+
+		assertThat(emailNormal.getId()).isNotNull();
+		assertThat(emailNormal.getSubject()).isNotNull();
+		assertThat(emailNormal.getBounceToRecipient()).isNotNull();
+		assertThat(emailNormal.getDispositionNotificationTo()).isNotNull();
+		assertThat(emailNormal.getDkimPrivateKeyFile()).isNotNull();
+		assertThat(emailNormal.getDkimPrivateKeyInputStream()).isNull();
+		assertThat(emailNormal.getDkimSelector()).isNotNull();
+		assertThat(emailNormal.getDkimSigningDomain()).isNotNull();
+		assertThat(emailNormal.getAttachments()).isNotEmpty();
+		assertThat(emailNormal.getEmbeddedImages()).isNotEmpty();
+		assertThat(emailNormal.getFromRecipient()).isNotNull();
+		assertThat(emailNormal.getHeaders()).isNotEmpty();
+		assertThat(emailNormal.getHTMLText()).isNotNull();
+		assertThat(emailNormal.getPlainText()).isNotNull();
+		assertThat(emailNormal.getRecipients()).isNotEmpty();
+		assertThat(emailNormal.getReplyToRecipient()).isNotNull();
+		assertThat(emailNormal.getReturnReceiptTo()).isNotNull();
+		assertThat(emailNormal.getSentDate()).isNotNull();
+		assertThat(emailNormal.getPkcs12ConfigForSmimeSigning()).isNotNull();
+		assertThat(emailNormal.getX509CertificateForSmimeEncryption()).isNotNull();
+
+		emailBuilder
+				.clearId()
+				.clearSubject()
+				.clearBounceTo()
+				.clearDispositionNotificationTo()
+				.clearDkim()
+				.clearAttachments()
+				.clearEmbeddedImages()
+				.clearFromRecipient()
+				.clearHeaders()
+				.clearHTMLText()
+				.clearPlainText()
+				.clearRecipients()
+				.clearReplyTo()
+				.clearReturnReceiptTo()
+				.clearSentDate()
+				.clearSmime()
+				.clearSMIMESignedAttachmentMergingBehavior();
+
+		assertThat(emailBuilder.isMergeSingleSMIMESignedAttachment()).isTrue();
+
+		Email emailCleared = emailBuilder.buildEmail();
+
+		assertThat(emailCleared.getId()).isNull();
+		assertThat(emailCleared.getSubject()).isNull();
+		assertThat(emailCleared.getBounceToRecipient()).isNull();
+		assertThat(emailCleared.getDispositionNotificationTo()).isNull();
+		assertThat(emailCleared.getDkimPrivateKeyFile()).isNull();
+		assertThat(emailCleared.getDkimPrivateKeyInputStream()).isNull();
+		assertThat(emailCleared.getDkimSelector()).isNull();
+		assertThat(emailCleared.getDkimSigningDomain()).isNull();
+		assertThat(emailCleared.getAttachments()).isEmpty();
+		assertThat(emailCleared.getEmbeddedImages()).isEmpty();
+		assertThat(emailCleared.getFromRecipient()).isNull();
+		assertThat(emailCleared.getHeaders()).isEmpty();
+		assertThat(emailCleared.getHTMLText()).isNull();
+		assertThat(emailCleared.getPlainText()).isNull();
+		assertThat(emailCleared.getRecipients()).isEmpty();
+		assertThat(emailCleared.getReplyToRecipient()).isNull();
+		assertThat(emailCleared.getReturnReceiptTo()).isNull();
+		assertThat(emailCleared.getSentDate()).isNull();
+		assertThat(emailCleared.getPkcs12ConfigForSmimeSigning()).isNull();
+		assertThat(emailCleared.getX509CertificateForSmimeEncryption()).isNull();
+	}
+
+	@Test
+	public void testClearingValuesAlternativeFlows() throws IOException {
+		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true)
+				.signWithDomainKey(new ByteArrayInputStream(new byte[]{}), "dkim_domain", "dkim_selector");
+
+		Email emailNormal = emailBuilder.buildEmail();
+
+		assertThat(emailNormal.getDkimPrivateKeyFile()).isNull();
+		assertThat(emailNormal.getDkimPrivateKeyInputStream()).isNotNull();
+		assertThat(emailNormal.getDkimSelector()).isNotNull();
+		assertThat(emailNormal.getDkimSigningDomain()).isNotNull();
+
+		emailBuilder
+				.clearDkim();
+
+		Email emailCleared = emailBuilder.buildEmail();
+
+		assertThat(emailCleared.getDkimPrivateKeyFile()).isNull();
+		assertThat(emailCleared.getDkimPrivateKeyInputStream()).isNull();
+		assertThat(emailCleared.getDkimSelector()).isNull();
+		assertThat(emailCleared.getDkimSigningDomain()).isNull();
 	}
 
 	@Test
