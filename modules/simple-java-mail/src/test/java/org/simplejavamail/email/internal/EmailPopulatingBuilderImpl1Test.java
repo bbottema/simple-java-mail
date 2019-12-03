@@ -5,25 +5,31 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.CertificationUtil;
+import org.simplejavamail.internal.util.MiscUtil;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
 import javax.activation.DataSource;
 import javax.mail.Message;
+import javax.mail.internet.InternetAddress;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.security.Security;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static javax.mail.Message.RecipientType.BCC;
@@ -93,9 +99,42 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
+	public void testBuilderReturnReceiptToAddressNative() throws UnsupportedEncodingException {
+		final Email email = builder
+				.withReturnReceiptTo(new InternetAddress("lol.pop@somemail.com", "moo"))
+				.buildEmail();
+
+		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("moo");
+		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo("lol.pop@somemail.com");
+		assertThat(email.getReturnReceiptTo().getType()).isNull();
+	}
+
+	@Test
 	public void testBuilderReturnReceiptToAddress() {
 		final Email email = builder
 				.withReturnReceiptTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
+				.buildEmail();
+
+		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop");
+		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo("lol.pop@somemail.com");
+		assertThat(email.getReturnReceiptTo().getType()).isNull();
+	}
+
+	@Test
+	public void testBuilderReturnReceiptToAddressWithFixedName() {
+		final Email email = builder
+				.withReturnReceiptTo("lollypop", "lol.pop@somemail.com")
+				.buildEmail();
+
+		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop");
+		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo("lol.pop@somemail.com");
+		assertThat(email.getReturnReceiptTo().getType()).isNull();
+	}
+
+	@Test
+	public void testBuilderReturnReceiptToAddressWithFixedNameOverridingTheOneFromAddress() throws UnsupportedEncodingException {
+		final Email email = builder
+				.withReturnReceiptTo("lollypop", new InternetAddress("lol.pop@somemail.com", "moo"))
 				.buildEmail();
 
 		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop");
@@ -730,6 +769,100 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		assertThat(certificateOut).isNotNull();
 		assertSignedBy(certificateOut, "Benny Bottema");
+	}
+
+	@Test
+	public void testEncryptWithSmime_FromFilePath() throws Exception {
+		Security.addProvider(new BouncyCastleProvider());
+
+		builder.encryptWithSmime(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt");
+
+		final X509Certificate certificateOut = builder.buildEmail().getX509CertificateForSmimeEncryption();
+
+		assertThat(certificateOut).isNotNull();
+		assertSignedBy(certificateOut, "Benny Bottema");
+	}
+
+	@Test
+	public void testWithEmbeddedImages() throws IOException {
+		List<AttachmentResource> embeddedImages = new ArrayList<>();
+		embeddedImages.add(new AttachmentResource("attachment1", getDataSource("blahblah.txt")));
+		embeddedImages.add(new AttachmentResource(null, getDataSource("blahblah.txt")));
+		embeddedImages.add(new AttachmentResource("attachment1", new ByteArrayDataSource("", "text/text")));
+
+		Email email = builder.withEmbeddedImages(embeddedImages).buildEmail();
+
+		EmailAssert.assertThat(email).hasOnlyEmbeddedImages(embeddedImages);
+	}
+
+	@Test
+	public void testContentMutation_Text() {
+		Email email = setPlainText(builder).buildEmail();
+
+		EmailAssert.assertThat(email).hasPlainText("<prepended2><main2><appended3>");
+		EmailAssert.assertThat(email).hasHTMLText(null);
+	}
+
+	@Test
+	public void testContentMutation_HTML() {
+		Email email = setHTMLText(builder).buildEmail();
+
+		EmailAssert.assertThat(email).hasPlainText(null);
+		EmailAssert.assertThat(email).hasHTMLText("<prepended2><main2><appended3>");
+	}
+
+	@Test
+	public void testContentMutation_BothTextAndHTML() {
+		setPlainText(builder);
+		setHTMLText(builder);
+
+		Email email = builder.buildEmail();
+
+		EmailAssert.assertThat(email).hasPlainText("<prepended2><main2><appended3>");
+		EmailAssert.assertThat(email).hasHTMLText("<prepended2><main2><appended3>");
+	}
+
+	private EmailPopulatingBuilder setPlainText(EmailPopulatingBuilder builder) {
+		return builder
+				.appendText("<appended1>")
+				.withPlainText("<main1>")
+				.prependText("<prepended1>")
+				.appendText("<appended2>")
+				.withPlainText("<main2>")
+				.prependText("<prepended2>")
+				.appendText("<appended3>");
+	}
+
+	private EmailPopulatingBuilder setHTMLText(EmailPopulatingBuilder builder) {
+		return builder
+				.appendTextHTML("<appended1>")
+				.withHTMLText("<main1>")
+				.prependTextHTML("<prepended1>")
+				.appendTextHTML("<appended2>")
+				.withHTMLText("<main2>")
+				.prependTextHTML("<prepended2>")
+				.appendTextHTML("<appended3>");
+	}
+
+	private ByteArrayDataSource getDataSource(@Nullable String name)
+			throws IOException {
+		ByteArrayDataSource ds = new ByteArrayDataSource("", "text/text");
+		ds.setName(name);
+		return ds;
+	}
+
+	@Test
+	public void testSignWithDomainKey() {
+		final byte[] buf = {'1', '2', '3'};
+
+		final Email email = builder
+				.from("a.b.com")
+				.signWithDomainKey(buf, "domain", "selector")
+				.buildEmail();
+
+		assertThat(MiscUtil.inputStreamEqual(email.getDkimPrivateKeyInputStream(), new ByteArrayInputStream(buf))).isTrue();
+		EmailAssert.assertThat(email).hasDkimSelector("selector");
+		EmailAssert.assertThat(email).hasDkimSigningDomain("domain");
 	}
 
 	@Test
