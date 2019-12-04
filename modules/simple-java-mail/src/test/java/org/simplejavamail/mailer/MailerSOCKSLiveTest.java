@@ -25,7 +25,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 public class MailerSOCKSLiveTest {
 	private static final String SERVER_HOST = "localhost";
 	private static final Integer SMTP_SERVER_PORT = 252;
-	private static final Integer PROXY_SERVER_PORT = 253;
+		private static final Integer PROXY_SERVER_PORT = 253;
 
 	private static final SocksServer SOCKS_SERVER = new SocksServer();
 

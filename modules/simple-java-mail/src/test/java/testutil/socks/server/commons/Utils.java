@@ -35,7 +35,7 @@ public final class Utils {
 			return null;
 		}
 
-		return IA; // IP Address
+		return IA;
 	}
 
 	public static int byte2int(byte b) {
@@ -46,19 +46,16 @@ public final class Utils {
 		return ((byte2int(Hi) << 8) | byte2int(Lo));
 	}
 
-
 	public static String iP2Str(InetAddress IP) {
 		return IP == null
 				? "NA/NA"
 				: format("%s/%s", IP.getHostName(), IP.getHostAddress());
-
 	}
 
 	public static String getSocketInfo(Socket sock) {
 		return sock == null
 				? "<NA/NA:0>"
 				: format("<%s:%d>", Utils.iP2Str(sock.getInetAddress()), sock.getPort());
-
 	}
 
 	public static String getSocketInfo(DatagramPacket DGP) {

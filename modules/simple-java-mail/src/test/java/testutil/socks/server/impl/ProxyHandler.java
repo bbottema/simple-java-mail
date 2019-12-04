@@ -3,7 +3,6 @@ package testutil.socks.server.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import testutil.socks.server.commons.Constants;
-import testutil.socks.server.commons.Utils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,12 +11,13 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 
+import static testutil.socks.server.commons.Utils.getSocketInfo;
+
 public class ProxyHandler implements Runnable {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProxyHandler.class);
 
 	protected Object m_lock;
-
 
 	protected Thread m_TheThread = null;
 
@@ -44,7 +44,7 @@ public class ProxyHandler implements Runnable {
 
 		m_Buffer = new byte[Constants.DEFAULT_BUF_SIZE];
 
-		LOGGER.debug("Proxy Created." + "");
+		LOGGER.debug("Proxy Created.");
 	}
 
 	public void setLock(Object lock) {
@@ -54,11 +54,10 @@ public class ProxyHandler implements Runnable {
 	public void start() {
 		m_TheThread = new Thread(this);
 		m_TheThread.start();
-		LOGGER.debug("Proxy Started." + "");
+		LOGGER.debug("Proxy Started.");
 	}
 
 	public void stop() {
-
 		try {
 			if (m_ClientSocket != null) m_ClientSocket.close();
 			if (m_ServerSocket != null) m_ServerSocket.close();
@@ -69,7 +68,7 @@ public class ProxyHandler implements Runnable {
 		m_ClientSocket = null;
 		m_ServerSocket = null;
 
-		LOGGER.debug("Proxy Stopped." + "");
+		LOGGER.debug("Proxy Stopped.");
 
 		m_TheThread.interrupt();
 	}
@@ -124,7 +123,7 @@ public class ProxyHandler implements Runnable {
 		m_ServerSocket = null;
 		m_ClientSocket = null;
 
-		LOGGER.debug("Proxy Closed." + "");
+		LOGGER.debug("Proxy Closed.");
 	}
 
 	public void sendToClient(byte[] buffer) {
@@ -141,10 +140,6 @@ public class ProxyHandler implements Runnable {
 		} catch (IOException e) {
 			LOGGER.error("Sending data to client");
 		}
-	}
-
-	public void sendToServer(byte[] buffer) {
-		sendToServer(buffer, buffer.length);
 	}
 
 	public void sendToServer(byte[] buffer, int len) {
@@ -176,7 +171,7 @@ public class ProxyHandler implements Runnable {
 		m_ServerSocket = new Socket(server, port);
 		m_ServerSocket.setSoTimeout(Constants.DEFAULT_PROXY_TIMEOUT);
 
-		LOGGER.debug(("Connected to " + Utils.getSocketInfo(m_ServerSocket)) + "");
+		LOGGER.debug("Connected to " + getSocketInfo(m_ServerSocket));
 		prepareServer();
 	}
 
@@ -220,7 +215,7 @@ public class ProxyHandler implements Runnable {
 					LOGGER.error("Invalid SOKCS version : " + SOCKS_Version);
 					return;
 			}
-			LOGGER.debug(("Accepted SOCKS " + SOCKS_Version + " Request.") + "");
+			LOGGER.debug("Accepted SOCKS " + SOCKS_Version + " Request.");
 
 			comm.authenticate(SOCKS_Version);
 			comm.getClientCommand();
@@ -289,9 +284,8 @@ public class ProxyHandler implements Runnable {
 			}
 
 			Thread.yield();
-		}    // while
+		}
 	}
-
 
 	public int checkClientData() {
 		synchronized (m_lock) {
@@ -305,7 +299,7 @@ public class ProxyHandler implements Runnable {
 			} catch (InterruptedIOException e) {
 				return 0;
 			} catch (IOException e) {
-				LOGGER.debug("Client connection Closed!" + "");
+				LOGGER.debug("Client connection Closed!");
 				close();    //	Close the server on this exception
 				return -1;
 			}
@@ -328,7 +322,7 @@ public class ProxyHandler implements Runnable {
 			} catch (InterruptedIOException e) {
 				return 0;
 			} catch (IOException e) {
-				LOGGER.debug("Server connection Closed!" + "");
+				LOGGER.debug("Server connection Closed!");
 				close();    //	Close the server on this exception
 				return -1;
 			}
@@ -340,29 +334,27 @@ public class ProxyHandler implements Runnable {
 	}
 
 	public void logServerData(int traffic) {
-		LOGGER.debug(("Srv data : " +
-				Utils.getSocketInfo(m_ClientSocket) +
+		LOGGER.debug("Srv data : " +
+				getSocketInfo(m_ClientSocket) +
 				" << <" +
 				comm.m_ServerIP.getHostName() + "/" +
 				comm.m_ServerIP.getHostAddress() + ":" +
 				comm.m_nServerPort + "> : " +
-				traffic + " bytes.") + "");
+				traffic + " bytes.");
 	}
 
 
 	public void logClientData(int traffic) {
-		LOGGER.debug(("Cli data : " +
-				Utils.getSocketInfo(m_ClientSocket) +
+		LOGGER.debug("Cli data : " +
+				getSocketInfo(m_ClientSocket) +
 				" >> <" +
 				comm.m_ServerIP.getHostName() + "/" +
 				comm.m_ServerIP.getHostAddress() + ":" +
 				comm.m_nServerPort + "> : " +
-				traffic + " bytes.") + "");
+				traffic + " bytes.");
 	}
 
 	public Socket getSocksServer() {
 		return m_ServerSocket;
 	}
-
-
 }

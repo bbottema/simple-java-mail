@@ -11,7 +11,9 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class Socks4Impl implements SocksCommonInterface {
+import static testutil.socks.server.commons.Utils.getSocketInfo;
+
+public class Socks4Impl {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Socks4Impl.class);
 
@@ -26,8 +28,6 @@ public class Socks4Impl implements SocksCommonInterface {
 
 	public String UID = "";
 
-
-	//--- Reply Codes ---
 	public byte getSuccessCode() {
 		return 90;
 	}
@@ -35,29 +35,12 @@ public class Socks4Impl implements SocksCommonInterface {
 	public byte getFailCode() {
 		return 91;
 	}
-	//-------------------
 
 	protected InetAddress m_ServerIP = null;
 	protected int m_nServerPort = 0;
 
 	protected InetAddress m_ClientIP = null;
 	protected int m_nClientPort = 0;
-
-	public InetAddress getClientAddress() {
-		return m_ClientIP;
-	}
-
-	public InetAddress getServerAddress() {
-		return m_ServerIP;
-	}
-
-	public int getClientPort() {
-		return m_nClientPort;
-	}
-
-	public int getServerPort() {
-		return m_nServerPort;
-	}
 
 	public InetAddress m_ExtLocalIP = null;
 
@@ -75,7 +58,6 @@ public class Socks4Impl implements SocksCommonInterface {
 		}
 
 	}
-	/////////////////////////////////////////////////////////////////
 
 	public String replyName(byte code) {
 
@@ -114,7 +96,6 @@ public class Socks4Impl implements SocksCommonInterface {
 				return "Unknown Command";
 		}
 	}
-	/////////////////////////////////////////////////////////////////
 
 	public Socks4Impl(ProxyHandler Parent) {
 
@@ -124,8 +105,6 @@ public class Socks4Impl implements SocksCommonInterface {
 		DST_Port = new byte[2];
 	}
 
-	/////////////////////////////////////////////////////////////////
-
 	public void calculateUserID() {
 
 		String s = UID + " ";
@@ -133,9 +112,7 @@ public class Socks4Impl implements SocksCommonInterface {
 		UserID[UserID.length - 1] = 0x00;
 	}
 
-
-	public boolean calculateAddress() {
-
+	public boolean isInvalidAddress() {
 		// IP v4 Address Type
 		m_ServerIP = Utils.calcInetAddress(DST_Addr);
 		m_nServerPort = Utils.calcPort(DST_Port[0], DST_Port[1]);
@@ -143,28 +120,20 @@ public class Socks4Impl implements SocksCommonInterface {
 		m_ClientIP = m_Parent.m_ClientSocket.getInetAddress();
 		m_nClientPort = m_Parent.m_ClientSocket.getPort();
 
-		return ((m_ServerIP != null) && (m_nServerPort >= 0));
+		return !((m_ServerIP != null) && (m_nServerPort >= 0));
 	}
-	/////////////////////////////////////////////////////////////////	
 
 	protected byte getByte() {
-		byte b;
 		try {
-			b = m_Parent.getByteFromClient();
+			return m_Parent.getByteFromClient();
 		} catch (Exception e) {
-			b = 0;
+			return 0;
 		}
-		return b;
 	}
-	/////////////////////////////////////////////////////////////
 
-	public void authenticate(byte SOCKS_Ver)
-			throws Exception {
-
+	public void authenticate(byte SOCKS_Ver) throws Exception {
 		SOCKS_Version = SOCKS_Ver;
 	}
-
-	/////////////////////////////////////////////////////////////
 
 	public void getClientCommand() throws Exception {
 		byte b;
@@ -189,17 +158,16 @@ public class Socks4Impl implements SocksCommonInterface {
 			throw new Exception("Socks 4 - Unsupported Command : " + commName(socksCommand));
 		}
 
-		if (!calculateAddress()) {  // Gets the IP Address
+		if (isInvalidAddress()) {  // Gets the IP Address
 			refuseCommand((byte) 92);    // Host Not Exists...
 			throw new Exception("Socks 4 - Unknown Host/IP address '" + m_ServerIP.toString());
 		}
 
-		LOGGER.debug(("Accepted SOCKS 4 Command: \"" + commName(socksCommand) + "\"") + "");
-	}  // GetClientCommand()
-	/////////////////////////////////////////////////////////////
+		LOGGER.debug("Accepted SOCKS 4 Command: \"" + commName(socksCommand) + "\"");
+	}
 
 	public void replyCommand(byte ReplyCode) {
-		LOGGER.debug(("Socks 4 reply: \"" + replyName(ReplyCode) + "\"") + "");
+		LOGGER.debug("Socks 4 reply: \"" + replyName(ReplyCode) + "\"");
 
 		byte[] REPLY = new byte[8];
 		REPLY[0] = 0;
@@ -215,32 +183,30 @@ public class Socks4Impl implements SocksCommonInterface {
 	}
 
 	protected void refuseCommand(byte errorCode) {
-		LOGGER.debug(("Socks 4 - Refuse Command: \"" + replyName(errorCode) + "\"") + "");
+		LOGGER.debug("Socks 4 - Refuse Command: \"" + replyName(errorCode) + "\"");
 		replyCommand(errorCode);
-	}    // Refuse_Command()
-
-	/////////////////////////////////////////////////////////////
+	}
 
 	public void connect() throws Exception {
 
-		LOGGER.debug("Connecting..." + "");
+		LOGGER.debug("Connecting...");
 		//	Connect to the Remote Host
 		try {
 			m_Parent.connectToServer(m_ServerIP.getHostAddress(), m_nServerPort);
 		} catch (IOException e) {
 			refuseCommand(getFailCode()); // Connection Refused
 			throw new Exception("Socks 4 - Can't connect to " +
-					Utils.getSocketInfo(m_Parent.m_ServerSocket));
+					getSocketInfo(m_Parent.m_ServerSocket));
 		}
 
-		LOGGER.debug(("Connected to " + Utils.getSocketInfo(m_Parent.m_ServerSocket)) + "");
+		LOGGER.debug("Connected to " + getSocketInfo(m_Parent.m_ServerSocket));
 		replyCommand(getSuccessCode());
 	}
 
 	public void bindReply(byte ReplyCode, InetAddress IA, int PT) {
 		byte[] IP = {0, 0, 0, 0};
 
-		LOGGER.debug(("Reply to Client : \"" + replyName(ReplyCode) + "\"") + "");
+		LOGGER.debug("Reply to Client : \"" + replyName(ReplyCode) + "\"");
 
 		byte[] REPLY = new byte[8];
 		if (IA != null) IP = IA.getAddress();
@@ -257,15 +223,11 @@ public class Socks4Impl implements SocksCommonInterface {
 		if (m_Parent.isActive()) {
 			m_Parent.sendToClient(REPLY);
 		} else {
-			LOGGER.debug("Closed BIND Client Connection" + "");
+			LOGGER.debug("Closed BIND Client Connection");
 		}
-	} // Reply_Command()
+	}
 
-	/////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////
-	//	It is IMPOSSIBLE to resolve normally the External
-	//	IP address of yout machine )-: !!!
-	/////////////////////////////////////////////////////////////
+	@Deprecated
 	public InetAddress resolveExternalLocalIP() {
 
 		InetAddress IP = null;
@@ -278,13 +240,11 @@ public class Socks4Impl implements SocksCommonInterface {
 				sct.close();
 				return m_ExtLocalIP;
 			} catch (IOException e) {
-				LOGGER.debug("WARNING !!! THE LOCAL IP ADDRESS WAS CHANGED !" + "");
+				LOGGER.debug("WARNING !!! THE LOCAL IP ADDRESS WAS CHANGED !");
 			}
 		}
 
-		String[] hosts = {"www.sun.com", "www.microsoft.com",
-				"www.aol.com", "www.altavista.com",
-				"www.mirabilis.com", "www.yahoo.com"};
+		String[] hosts = {"www.sun.com", "www.microsoft.com", "www.aol.com", "www.altavista.com", "www.mirabilis.com", "www.yahoo.com"};
 
 		for (int i = 0; i < hosts.length; i++) {
 			try {
@@ -293,7 +253,7 @@ public class Socks4Impl implements SocksCommonInterface {
 				sct.close();
 				break;
 			} catch (Exception e) {  // IP == null
-				LOGGER.debug(("Error in BIND() - BIND reip Failed at " + i) + "");
+				LOGGER.debug("Error in BIND() - BIND reip Failed at " + i);
 			}
 		}
 
@@ -301,36 +261,34 @@ public class Socks4Impl implements SocksCommonInterface {
 		return IP;
 	}
 
-	/////////////////////////////////////////////////////////////
-
 	public void bind() throws IOException {
-		LOGGER.debug("Binding..." + "");
+		int MyPort = 0;
+
+		LOGGER.debug("Binding...");
 		// Resolve External IP
 		InetAddress MyIP = resolveExternalLocalIP();
 
-		LOGGER.debug(("Local IP : " + MyIP.toString()) + "");
+		LOGGER.debug("Local IP : " + MyIP.toString());
 
 		ServerSocket ssock = new ServerSocket(0);
-
-		int MyPort = 0;
 		try {
 			ssock.setSoTimeout(Constants.DEFAULT_PROXY_TIMEOUT);
 			MyPort = ssock.getLocalPort();
 		} catch (IOException e) {  // MyIP == null
-			LOGGER.debug("Error in BIND() - Can't BIND at any Port" + "");
+			LOGGER.debug("Error in BIND() - Can't BIND at any Port");
 			bindReply((byte) 92, MyIP, MyPort);
 			ssock.close();
 			return;
 		}
 
-		LOGGER.debug(("BIND at : <" + MyIP.toString() + ":" + MyPort + ">") + "");
+		LOGGER.debug("BIND at : <" + MyIP.toString() + ":" + MyPort + ">");
 		bindReply((byte) 90, MyIP, MyPort);
 
 		Socket socket = null;
 
 		while (socket == null) {
 			if (m_Parent.checkClientData() >= 0) {
-				LOGGER.debug("BIND - Client connection closed" + "");
+				LOGGER.debug("BIND - Client connection closed");
 				ssock.close();
 				return;
 			}
@@ -343,38 +301,22 @@ public class Socks4Impl implements SocksCommonInterface {
 			}
 			Thread.yield();
 		}
-		
-		
-/*		if( socket.getInetAddress() != m_m_ServerIP )	{
-			BIND_Reply( (byte)91,	socket.getInetAddress(), 
-									socket.getPort() );
-			Log.Warning( m_Server, "BIND Accepts different IP/P" );
-			m_Server.Close();
-			return;
-		}
-*/
 
 		m_ServerIP = socket.getInetAddress();
 		m_nServerPort = socket.getPort();
 
-		bindReply((byte) 90, socket.getInetAddress(),
-				socket.getPort());
+		bindReply((byte) 90, socket.getInetAddress(), socket.getPort());
 
 		m_Parent.m_ServerSocket = socket;
 		m_Parent.prepareServer();
 
-		LOGGER.debug(("BIND Connection from " + Utils.getSocketInfo(m_Parent.m_ServerSocket)) + "");
+		LOGGER.debug("BIND Connection from " + getSocketInfo(m_Parent.m_ServerSocket));
 		ssock.close();
-
-
-	}// BIND...
-	/////////////////////////////////////////////////////////////
+	}
 
 	public void udp() throws IOException {
-		LOGGER.debug("Error - Socks 4 don't support UDP Association!" + "");
-		LOGGER.debug("Check your Software please..." + "");
+		LOGGER.debug("Error - Socks 4 don't support UDP Association!");
+		LOGGER.debug("Check your Software please...");
 		refuseCommand((byte) 91);    // SOCKS4 don't support UDP
 	}
-	/////////////////////////////////////////////////////////////
 }
-/////////////////////////////////////////////////////////////////
