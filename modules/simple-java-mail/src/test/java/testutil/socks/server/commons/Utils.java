@@ -2,7 +2,6 @@ package testutil.socks.server.commons;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import testutil.socks.server.impl.SocksServer;
 
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -13,7 +12,7 @@ import static java.lang.String.format;
 
 public final class Utils {
 
-	private static Logger LOGGER = LoggerFactory.getLogger(Utils.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
 
 	public static InetAddress calcInetAddress(byte[] addr) {
 		InetAddress IA;

@@ -12,7 +12,7 @@ import java.net.Socket;
 
 public class SocksServer {
 
-	private static Logger LOGGER = LoggerFactory.getLogger(SocksServer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SocksServer.class);
 
 	protected int port;
 	protected boolean stopping = false;

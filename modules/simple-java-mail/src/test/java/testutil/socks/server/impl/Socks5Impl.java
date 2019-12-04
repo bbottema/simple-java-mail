@@ -41,7 +41,7 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 //	public			byte[]	DST_Port;		// Destination Port
 	// in Network order
 
-	static final int ADDR_Size[] = {
+	static final int[] ADDR_Size = {
 			-1, //'00' No such AType
 			4, //'01' IP v4 - 4Bytes
 			-1, //'02' No such AType
@@ -60,7 +60,7 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 	/////////////////////////////////////////////////////////////////	
 
 	public InetAddress calcInetAddress(byte AType, byte[] addr) {
-		InetAddress IA = null;
+		InetAddress IA;
 
 		switch (AType) {
 			// Version IP 4
@@ -73,12 +73,12 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 					LOGGER.error("SOCKS 5 - calcInetAddress() : BAD IP in command - size : " + addr[0]);
 					return null;
 				}
-				String sIA = "";
+				StringBuilder sIA = new StringBuilder();
 				for (int i = 1; i <= addr[0]; i++) {
-					sIA += (char) addr[i];
+					sIA.append((char) addr[i]);
 				}
 				try {
-					IA = InetAddress.getByName(sIA);
+					IA = InetAddress.getByName(sIA.toString());
 				} catch (UnknownHostException e) {
 					return null;
 				}
@@ -124,31 +124,29 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 
 	public void refuseAuthentication(String msg) {
 
-		LOGGER.debug(("SOCKS 5 - Refuse Authentication: '" + msg + "'") + Constants.EOL);
+		LOGGER.debug(("SOCKS 5 - Refuse Authentication: '" + msg + "'") + "");
 		m_Parent.sendToClient(Constants.SRE_Refuse);
 	}
 
 
 	public void acceptAuthentication() {
-		LOGGER.debug("SOCKS 5 - Accepts Auth. method 'NO_AUTH'" + Constants.EOL);
+		LOGGER.debug("SOCKS 5 - Accepts Auth. method 'NO_AUTH'" + "");
 		byte[] tSRE_Accept = Constants.SRE_Accept;
 		tSRE_Accept[0] = SOCKS_Version;
 		m_Parent.sendToClient(tSRE_Accept);
 	}
 
 
-	public boolean checkAuthentication()
-			throws Exception {
+	public boolean checkAuthentication() {
 		//boolean	Have_NoAuthentication = false;
 		byte Methods_Num = getByte();
-		String Methods = "";
+		StringBuilder Methods = new StringBuilder();
 
 		for (int i = 0; i < Methods_Num; i++) {
-			Methods += ",-" + getByte() + '-';
+			Methods.append(",-").append(getByte()).append('-');
 		}
 
-		return ((Methods.indexOf("-0-") != -1) ||
-				(Methods.indexOf("-00-") != -1));
+		return ((Methods.toString().contains("-0-")) || (Methods.toString().contains("-00-")));
 	}
 
 
@@ -175,7 +173,7 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 
 		if (SOCKS_Version != Constants.SOCKS5_Version) {
 			LOGGER.debug(("SOCKS 5 - Incorrect SOCKS Version of Command: " +
-					SOCKS_Version) + Constants.EOL);
+					SOCKS_Version) + "");
 			refuseCommand((byte) 0xFF);
 			throw new Exception("Incorrect SOCKS Version of Command: " +
 					SOCKS_Version);
@@ -204,17 +202,17 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 			throw new Exception("SOCKS 5 - Unknown Host/IP address '" + m_ServerIP.toString() + "'");
 		}
 
-		LOGGER.debug(("SOCKS 5 - Accepted SOCKS5 Command: \"" + commName(socksCommand) + "\"") + Constants.EOL);
+		LOGGER.debug(("SOCKS 5 - Accepted SOCKS5 Command: \"" + commName(socksCommand) + "\"") + "");
 	}
 
 	public void replyCommand(byte replyCode) {
-		LOGGER.debug(("SOCKS 5 - Reply to Client \"" + replyName(replyCode) + "\"") + Constants.EOL);
+		LOGGER.debug(("SOCKS 5 - Reply to Client \"" + replyName(replyCode) + "\"") + "");
 
-		int pt = 0;
+		int pt;
 
 
 		byte[] REPLY = new byte[10];
-		byte IP[] = new byte[4];
+		byte[] IP = new byte[4];
 
 		if (m_Parent.m_ServerSocket != null) {
 			//IA = m_Parent.m_ServerSocket.getInetAddress();
@@ -246,9 +244,9 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 	/////////////////////////////////////////////////////////////
 
 	public void bindReply(byte replyCode, InetAddress IA, int PT) {
-		byte IP[] = {0, 0, 0, 0};
+		byte[] IP = {0, 0, 0, 0};
 
-		LOGGER.debug(("BIND Reply to Client \"" + replyName(replyCode) + "\"") + Constants.EOL);
+		LOGGER.debug(("BIND Reply to Client \"" + replyName(replyCode) + "\"") + "");
 
 		byte[] REPLY = new byte[10];
 		if (IA != null) IP = IA.getAddress();
@@ -267,18 +265,17 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 		if (m_Parent.isActive()) {
 			m_Parent.sendToClient(REPLY);
 		} else {
-			LOGGER.debug("BIND - Closed Client Connection" + Constants.EOL);
+			LOGGER.debug("BIND - Closed Client Connection" + "");
 		}
 	}
 
 
-	public void udpReply(byte replyCode, InetAddress IA, int PT)
-			throws IOException {
+	public void udpReply(byte replyCode, InetAddress IA, int PT) {
 
-		LOGGER.debug(("Reply to Client \"" + replyName(replyCode) + "\"") + Constants.EOL);
+		LOGGER.debug(("Reply to Client \"" + replyName(replyCode) + "\"") + "");
 
 		if (m_Parent.m_ClientSocket == null) {
-			LOGGER.debug("Error in UDP_Reply() - Client socket is NULL" + Constants.EOL);
+			LOGGER.debug("Error in UDP_Reply() - Client socket is NULL" + "");
 		}
 		byte[] IP = IA.getAddress();
 
@@ -319,13 +316,13 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 		// IP/Port where Server will listen
 		udpReply((byte) 0, MyIP, MyPort);
 
-		LOGGER.debug(("UDP Listen at: <" + MyIP.toString() + ":" + MyPort + ">") + Constants.EOL);
+		LOGGER.debug(("UDP Listen at: <" + MyIP.toString() + ":" + MyPort + ">") + "");
 
 		while (m_Parent.checkClientData() >= 0) {
 			processUdp();
 			Thread.yield();
 		}
-		LOGGER.debug("UDP - Closed TCP Master of UDP Association" + Constants.EOL);
+		LOGGER.debug("UDP - Closed TCP Master of UDP Association" + "");
 	} // UDP ...
 	/////////////////////////////////////////////////////////////
 
@@ -342,13 +339,13 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 	private byte[] addDgpHead(byte[] buffer) {
 
 		//int		bl			= Buffer.length;
-		byte IABuf[] = DGPack.getAddress().getAddress();
+		byte[] IABuf = DGPack.getAddress().getAddress();
 		int DGport = DGPack.getPort();
 		int HeaderLen = 6 + IABuf.length;
 		int DataLen = DGPack.getLength();
 		int NewPackLen = HeaderLen + DataLen;
 
-		byte UB[] = new byte[NewPackLen];
+		byte[] UB = new byte[NewPackLen];
 
 		UB[0] = (byte) 0x00;    // Reserved 0x00
 		UB[1] = (byte) 0x00;    // Reserved 0x00
@@ -365,7 +362,7 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 	}
 
 	private byte[] clearDgpHead(byte[] buffer) {
-		int IAlen = 0;
+		int IAlen;
 		//int	bl	= Buffer.length;
 		int p = 4;    // First byte of IP Address
 
@@ -378,11 +375,11 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 				IAlen = buffer[p] + 1;
 				break; // One for Size Byte
 			default:
-				LOGGER.debug(("Error in ClearDGPhead() - Invalid Destination IP Addres type " + AType) + Constants.EOL);
+				LOGGER.debug(("Error in ClearDGPhead() - Invalid Destination IP Addres type " + AType) + "");
 				return null;
 		}
 
-		byte IABuf[] = new byte[IAlen];
+		byte[] IABuf = new byte[IAlen];
 		System.arraycopy(buffer, p, IABuf, 0, IAlen);
 		p += IAlen;
 
@@ -390,14 +387,14 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 		UDP_port = Utils.calcPort(buffer[p++], buffer[p++]);
 
 		if (UDP_IA == null) {
-			LOGGER.debug("Error in ClearDGPHead() - Invalid UDP dest IP address: NULL" + Constants.EOL);
+			LOGGER.debug("Error in ClearDGPHead() - Invalid UDP dest IP address: NULL" + "");
 			return null;
 		}
 
 		int DataLen = DGPack.getLength();
 		DataLen -= p; // <p> is length of UDP Header
 
-		byte UB[] = new byte[DataLen];
+		byte[] UB = new byte[DataLen];
 		System.arraycopy(buffer, p, UB, 0, DataLen);
 		System.arraycopy(UB, 0, buffer, 0, DataLen);
 
@@ -415,8 +412,7 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 		try {
 			DGSocket.send(DGP);
 		} catch (IOException e) {
-			LOGGER.debug(("Error in ProcessUDPClient() - Failed to Send DGP to " + LogString) + Constants.EOL);
-			return;
+			LOGGER.debug(("Error in ProcessUDPClient() - Failed to Send DGP to " + LogString) + "");
 		}
 	}
 
@@ -429,7 +425,7 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 		} catch (InterruptedIOException e) {
 			return;    // Time Out
 		} catch (IOException e) {
-			LOGGER.debug(("Error in ProcessUDP() - " + e.toString()) + Constants.EOL);
+			LOGGER.debug(("Error in ProcessUDP() - " + e.toString()) + "");
 			return;
 		}
 
@@ -444,7 +440,7 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 		try {
 			initUdpInOut();    // Clean DGPack & Buffer
 		} catch (IOException e) {
-			LOGGER.debug(("IOError in Init_UDP_IO() - " + e.toString()) + Constants.EOL);
+			LOGGER.debug(("IOError in Init_UDP_IO() - " + e.toString()) + "");
 			m_Parent.close();
 		}
 	}
@@ -464,11 +460,11 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 		if (Buf.length <= 0) return;
 
 		if (UDP_IA == null) {
-			LOGGER.debug("Error in ProcessUDPClient() - Invalid Destination IP - NULL" + Constants.EOL);
+			LOGGER.debug("Error in ProcessUDPClient() - Invalid Destination IP - NULL" + "");
 			return;
 		}
 		if (UDP_port == 0) {
-			LOGGER.debug("Error in ProcessUDPClient() - Invalid Destination Port - 0" + Constants.EOL);
+			LOGGER.debug("Error in ProcessUDPClient() - Invalid Destination Port - 0" + "");
 			return;
 		}
 
@@ -478,7 +474,7 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 		}
 
 		LOGGER.debug(("Datagram : " + Buf.length + " bytes : " + Utils.getSocketInfo(DGPack) +
-				" >> <" + Utils.iP2Str(m_ServerIP) + ":" + m_nServerPort + ">") + Constants.EOL);
+				" >> <" + Utils.iP2Str(m_ServerIP) + ":" + m_nServerPort + ">") + "");
 
 		DatagramPacket DGPSend = new DatagramPacket(Buf, Buf.length,
 				UDP_IA, UDP_port);
@@ -491,7 +487,7 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 
 		LOGGER.debug(("Datagram : " + DGPack.getLength() + " bytes : " +
 				"<" + Utils.iP2Str(m_ClientIP) + ":" + m_nClientPort + "> << " +
-				Utils.getSocketInfo(DGPack)) + Constants.EOL);
+				Utils.getSocketInfo(DGPack)) + "");
 
 		// This Method must be CALL only from <ProcessUDP()>
 		// ProcessUDP() Reads a Datagram packet <DGPack>
@@ -502,7 +498,6 @@ public class Socks5Impl extends Socks4Impl implements SocksCommonInterface {
 		byte[] Buf;
 
 		Buf = addDgpHead(m_Parent.m_Buffer);
-		if (Buf == null) return;
 
 		// SendTo Client
 		DatagramPacket DGPSend = new DatagramPacket(Buf, Buf.length,
