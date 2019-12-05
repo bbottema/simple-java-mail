@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 
+import static java.lang.String.format;
 import static testutil.socks.server.commons.Utils.getSocketInfo;
 
 public class ProxyHandler implements Runnable {
@@ -19,12 +20,10 @@ public class ProxyHandler implements Runnable {
 
 	protected Object m_lock;
 
-	protected Thread m_TheThread = null;
-
 	public Socket m_ClientSocket;
 	public Socket m_ServerSocket = null;
 
-	public byte[] m_Buffer;
+	public byte[] m_Buffer = new byte[Constants.DEFAULT_BUF_SIZE];
 
 	public InputStream m_ClientInput = null;
 	public OutputStream m_ClientOutput = null;
@@ -34,16 +33,11 @@ public class ProxyHandler implements Runnable {
 	public ProxyHandler(Socket clientSocket) {
 		m_lock = this;
 		m_ClientSocket = clientSocket;
-		if (m_ClientSocket != null) {
-			try {
-				m_ClientSocket.setSoTimeout(Constants.DEFAULT_PROXY_TIMEOUT);
-			} catch (SocketException e) {
-				LOGGER.error("Socket Exception during seting Timeout.");
-			}
+		try {
+			m_ClientSocket.setSoTimeout(Constants.DEFAULT_PROXY_TIMEOUT);
+		} catch (SocketException e) {
+			LOGGER.error("Socket Exception during seting Timeout.");
 		}
-
-		m_Buffer = new byte[Constants.DEFAULT_BUF_SIZE];
-
 		LOGGER.debug("Proxy Created.");
 	}
 
@@ -51,39 +45,16 @@ public class ProxyHandler implements Runnable {
 		this.m_lock = lock;
 	}
 
-	public void start() {
-		m_TheThread = new Thread(this);
-		m_TheThread.start();
-		LOGGER.debug("Proxy Started.");
-	}
-
-	public void stop() {
-		try {
-			if (m_ClientSocket != null) m_ClientSocket.close();
-			if (m_ServerSocket != null) m_ServerSocket.close();
-		} catch (IOException e) {
-			// ignore
-		}
-
-		m_ClientSocket = null;
-		m_ServerSocket = null;
-
-		LOGGER.debug("Proxy Stopped.");
-
-		m_TheThread.interrupt();
-	}
-
 	public void run() {
+		LOGGER.debug("Proxy Started.");
 		setLock(this);
 
-		if (!prepareClient()) {
+		if (prepareClient()) {
+			processRelay();
+			close();
+		} else {
 			LOGGER.error("Proxy - client socket is null !");
-			return;
 		}
-
-		processRelay();
-
-		close();
 	}
 
 	public void close() {
@@ -131,32 +102,30 @@ public class ProxyHandler implements Runnable {
 	}
 
 	public void sendToClient(byte[] buffer, int len) {
-		if (m_ClientOutput == null) return;
-		if (len <= 0 || len > buffer.length) return;
-
-		try {
-			m_ClientOutput.write(buffer, 0, len);
-			m_ClientOutput.flush();
-		} catch (IOException e) {
-			LOGGER.error("Sending data to client");
+		if (m_ClientOutput != null && len > 0 && len <= buffer.length) {
+			try {
+				m_ClientOutput.write(buffer, 0, len);
+				m_ClientOutput.flush();
+			} catch (IOException e) {
+				LOGGER.error("Sending data to client");
+			}
 		}
 	}
 
 	public void sendToServer(byte[] buffer, int len) {
-		if (m_ServerOutput == null) return;
-		if (len <= 0 || len > buffer.length) return;
-
-		try {
-			m_ServerOutput.write(buffer, 0, len);
-			m_ServerOutput.flush();
-		} catch (IOException e) {
-			LOGGER.error("Sending data to server");
+		if (m_ServerOutput != null && len > 0 && len <= buffer.length) {
+			try {
+				m_ServerOutput.write(buffer, 0, len);
+				m_ServerOutput.flush();
+			} catch (IOException e) {
+				LOGGER.error("Sending data to server");
+			}
 		}
 	}
 
 
 	public boolean isActive() {
-		return (m_ClientSocket != null && m_ServerSocket != null);
+		return m_ClientSocket != null && m_ServerSocket != null;
 	}
 
 
@@ -188,19 +157,18 @@ public class ProxyHandler implements Runnable {
 		try {
 			m_ClientInput = m_ClientSocket.getInputStream();
 			m_ClientOutput = m_ClientSocket.getOutputStream();
+			return true;
 		} catch (IOException e) {
 			LOGGER.error("Proxy - can't get I/O streams!");
 			LOGGER.error(e.getMessage(), e);
 			return false;
 		}
-		return true;
 	}
 
 
 	Socks4Impl comm = null;
 
 	public void processRelay() {
-
 		try {
 			byte SOCKS_Version = getByteFromClient();
 
@@ -241,36 +209,33 @@ public class ProxyHandler implements Runnable {
 	}
 
 	public byte getByteFromClient() throws Exception {
-		int b;
 		while (m_ClientSocket != null) {
-
+			int b;
 			try {
 				b = m_ClientInput.read();
 			} catch (InterruptedIOException e) {
 				Thread.yield();
 				continue;
 			}
-
 			return (byte) b; // return loaded byte
-
-		} // while...
+		}
 		throw new Exception("Interrupted Reading GetByteFromClient()");
-	} // GetByteFromClient()...
+	}
 
 	public void relay() {
-
 		boolean isActive = true;
-		int dlen;
 
 		while (isActive) {
 
 			//---> Check for client data <---
 
-			dlen = checkClientData();
+			int dlen = checkClientData();
 
-			if (dlen < 0) isActive = false;
+			if (dlen < 0) {
+				isActive = false;
+			}
 			if (dlen > 0) {
-				logClientData(dlen);
+				logData(dlen, "Cli data");
 				sendToServer(m_Buffer, dlen);
 			}
 
@@ -279,7 +244,7 @@ public class ProxyHandler implements Runnable {
 
 			if (dlen < 0) isActive = false;
 			if (dlen > 0) {
-				logServerData(dlen);
+				logData(dlen, "Srv data");
 				sendToClient(m_Buffer, dlen);
 			}
 
@@ -327,34 +292,24 @@ public class ProxyHandler implements Runnable {
 				return -1;
 			}
 
-			if (dlen < 0) close();
+			if (dlen < 0) {
+				close();
+			}
 
 			return dlen;
 		}
 	}
 
-	public void logServerData(int traffic) {
-		LOGGER.debug("Srv data : " +
-				getSocketInfo(m_ClientSocket) +
-				" << <" +
-				comm.m_ServerIP.getHostName() + "/" +
-				comm.m_ServerIP.getHostAddress() + ":" +
-				comm.m_nServerPort + "> : " +
-				traffic + " bytes.");
+	private void logData(final int traffic, final String dataSource) {
+		LOGGER.debug(format("%s : %s >> <%s/%s:%d> : %d bytes.",
+				dataSource,
+				getSocketInfo(m_ClientSocket),
+				comm.m_ServerIP.getHostName(),
+				comm.m_ServerIP.getHostAddress(),
+				comm.m_nServerPort, traffic));
 	}
 
-
-	public void logClientData(int traffic) {
-		LOGGER.debug("Cli data : " +
-				getSocketInfo(m_ClientSocket) +
-				" >> <" +
-				comm.m_ServerIP.getHostName() + "/" +
-				comm.m_ServerIP.getHostAddress() + ":" +
-				comm.m_nServerPort + "> : " +
-				traffic + " bytes.");
-	}
-
-	public Socket getSocksServer() {
-		return m_ServerSocket;
+	public int getPort() {
+		return m_ServerSocket.getPort();
 	}
 }

@@ -235,7 +235,7 @@ public class Socks4Impl {
 		if (m_ExtLocalIP != null) {
 			Socket sct;
 			try {
-				sct = new Socket(m_ExtLocalIP, m_Parent.getSocksServer().getPort());
+				sct = new Socket(m_ExtLocalIP, m_Parent.getPort());
 				IP = sct.getLocalAddress();
 				sct.close();
 				return m_ExtLocalIP;

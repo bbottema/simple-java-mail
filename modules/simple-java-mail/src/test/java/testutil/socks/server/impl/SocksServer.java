@@ -69,8 +69,7 @@ public class SocksServer {
 				final Socket clientSocket = listenSocket.accept();
 				clientSocket.setSoTimeout(Constants.DEFAULT_SERVER_TIMEOUT);
 				LOGGER.debug("Connection from : " + Utils.getSocketInfo(clientSocket));
-				ProxyHandler proxy = new ProxyHandler(clientSocket);
-				proxy.start();
+				new Thread(new ProxyHandler(clientSocket)).start();
 			} catch (InterruptedIOException e) {
 				//	This exception is thrown when accept timeout is expired
 			} catch (Exception e) {
