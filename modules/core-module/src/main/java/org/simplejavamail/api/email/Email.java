@@ -16,6 +16,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
@@ -322,7 +323,7 @@ public class Email implements Serializable {
 	@Override
 	public String toString() {
 		String s = "Email{" +
-				"\n\tid=" + id + ("\n\tsentDate=" + new SimpleDateFormat("MM-dd-yyyy HH:mm:ss Z").format(sentDate) +
+				"\n\tid=" + id + ("\n\tsentDate=" + formatDate(sentDate) +
 				"\n\tfromRecipient=" + fromRecipient +
 				",\n\treplyToRecipient=" + replyToRecipient +
 				",\n\tbounceToRecipient=" + bounceToRecipient +
@@ -379,7 +380,17 @@ public class Email implements Serializable {
 		s +=  "\n}";
 		return s;
 	}
-	
+
+	@Nullable
+	private String formatDate(@Nullable Date date) {
+		if (date == null) {
+			return null;
+		}
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+		sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+		return sdf.format(date);
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
 	 */

@@ -97,7 +97,7 @@ public class EmailTest {
 
 		assertThat(e.toString()).isEqualTo("Email{\n"
 				+ "	id=some_id\n"
-				+ "	sentDate=04-11-2011 02:00:00 +0200\n"
+				+ "	sentDate=2011-04-11 12:00:00\n"
 				+ "	fromRecipient=Recipient{name='lollypop', address='lol.pop@somemail.com', type=null},\n"
 				+ "	replyToRecipient=Recipient{name='lollypop-reply', address='lol.pop.reply@somemail.com', type=null},\n"
 				+ "	bounceToRecipient=Recipient{name='lollypop-bounce', address='lol.pop.bounce@somemail.com', type=null},\n"
