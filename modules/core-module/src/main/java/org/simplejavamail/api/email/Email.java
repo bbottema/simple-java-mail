@@ -31,7 +31,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 public class Email implements Serializable {
 
 	private static final long serialVersionUID = 1234567L;
-	private static final  SimpleDateFormat DATE_TOSTRING_FORMAT = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss Z");
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
@@ -323,7 +322,7 @@ public class Email implements Serializable {
 	@Override
 	public String toString() {
 		String s = "Email{" +
-				"\n\tid=" + id + ("\n\tsentDate=" + DATE_TOSTRING_FORMAT.format(sentDate) +
+				"\n\tid=" + id + ("\n\tsentDate=" + new SimpleDateFormat("MM-dd-yyyy HH:mm:ss Z").format(sentDate) +
 				"\n\tfromRecipient=" + fromRecipient +
 				",\n\treplyToRecipient=" + replyToRecipient +
 				",\n\tbounceToRecipient=" + bounceToRecipient +
