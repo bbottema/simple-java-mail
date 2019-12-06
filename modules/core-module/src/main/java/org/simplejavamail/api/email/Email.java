@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 public class Email implements Serializable {
 
 	private static final long serialVersionUID = 1234567L;
+	private static final  SimpleDateFormat DATE_TOSTRING_FORMAT = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss Z");
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
@@ -321,7 +323,7 @@ public class Email implements Serializable {
 	@Override
 	public String toString() {
 		String s = "Email{" +
-				"\n\tid=" + id + ("\n\tsentDate=" + sentDate +
+				"\n\tid=" + id + ("\n\tsentDate=" + DATE_TOSTRING_FORMAT.format(sentDate) +
 				"\n\tfromRecipient=" + fromRecipient +
 				",\n\treplyToRecipient=" + replyToRecipient +
 				",\n\tbounceToRecipient=" + bounceToRecipient +

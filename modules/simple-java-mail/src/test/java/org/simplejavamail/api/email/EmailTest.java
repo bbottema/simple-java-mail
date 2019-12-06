@@ -18,6 +18,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 
 import static java.util.Calendar.APRIL;
 import static java.util.Calendar.SEPTEMBER;
@@ -76,7 +77,7 @@ public class EmailTest {
 	public void testToStringFull() {
 		Email e = EmailBuilder.forwarding(EmailBuilder.startingBlank().buildEmail())
 				.fixingMessageId("some_id")
-				.fixingSentDate(new GregorianCalendar(2011, APRIL, 11).getTime())
+				.fixingSentDate(date(2011, APRIL, 11))
 				.from("lollypop", "lol.pop@somemail.com")
 				.withReplyTo("lollypop-reply", "lol.pop.reply@somemail.com")
 				.withBounceTo("lollypop-bounce", "lol.pop.bounce@somemail.com")
@@ -96,7 +97,7 @@ public class EmailTest {
 
 		assertThat(e.toString()).isEqualTo("Email{\n"
 				+ "	id=some_id\n"
-				+ "	sentDate=Mon Apr 11 00:00:00 CEST 2011\n"
+				+ "	sentDate=04-11-2011 02:00:00 +0200\n"
 				+ "	fromRecipient=Recipient{name='lollypop', address='lol.pop@somemail.com', type=null},\n"
 				+ "	replyToRecipient=Recipient{name='lollypop-reply', address='lol.pop.reply@somemail.com', type=null},\n"
 				+ "	bounceToRecipient=Recipient{name='lollypop-bounce', address='lol.pop.bounce@somemail.com', type=null},\n"
@@ -312,7 +313,9 @@ public class EmailTest {
 	@NotNull
 	@SuppressWarnings("SameParameterValue")
 	private Date date(int year, int month, int dayOfMonth) {
-		return new GregorianCalendar(year, month, dayOfMonth).getTime();
+		final GregorianCalendar cal = new GregorianCalendar(year, month, dayOfMonth);
+		cal.setTimeZone(TimeZone.getTimeZone("UTC"));
+		return cal.getTime();
 	}
 
 	@NotNull
@@ -331,4 +334,5 @@ public class EmailTest {
 		map.put(name1, value1);
 		return map;
 	}
+
 }
