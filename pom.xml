@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.bbottema</groupId>
         <artifactId>modular-project-parent</artifactId>
-        <version>1.0.8</version>
+        <version>1.0.10</version>
     </parent>
 
     <groupId>org.simplejavamail</groupId>
