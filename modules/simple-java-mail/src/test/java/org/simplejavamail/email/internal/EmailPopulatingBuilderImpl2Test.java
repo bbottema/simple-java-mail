@@ -34,6 +34,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYS
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
+import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 public class EmailPopulatingBuilderImpl2Test {
 
@@ -70,11 +71,7 @@ public class EmailPopulatingBuilderImpl2Test {
 						new Recipient("test BCC name", "test_bcc1@domain.com", BCC), new Recipient("test BCC name", "test_bcc2@domain.com", BCC)
 				)
 				.hasSubject("test subject")
-				.hasPkcs12ConfigForSmimeSigning(Pkcs12Config.builder()
-						.pkcs12Store("src/test/resources/pkcs12/smime_keystore.pkcs12")
-						.storePassword("letmein")
-						.keyAlias("smime_test_user_alias")
-						.keyPassword("letmein").build());
+				.hasPkcs12ConfigForSmimeSigning(loadPkcs12KeyStore());
 	}
 
 	@Test

@@ -18,30 +18,28 @@ public final class EqualsHelper {
 
 	@SuppressWarnings("WeakerAccess")
 	public static boolean equalsEmail(final Email email1, final Email email2) {
-		if (email1.getFromRecipient() != null ? !Objects.equals(email1.getFromRecipient(), email2.getFromRecipient()) : email2.getFromRecipient() != null) {
+		if (!Objects.equals(email1.getFromRecipient(), email2.getFromRecipient())) {
 			return false;
 		}
-		if (email1.getId() != null ? !email1.getId().equals(email2.getId()) : email2.getId() != null) {
+		if (!Objects.equals(email1.getId(), email2.getId())) {
 			return false;
 		}
-		if (email1.getSentDate() != null ? !email1.getSentDate().equals(email2.getSentDate()) : email2.getSentDate() != null) {
+		if (!Objects.equals(email1.getSentDate(), email2.getSentDate())) {
 			return false;
 		}
-		if (email1.getReplyToRecipient() != null ? !Objects.equals(email1.getReplyToRecipient(), email2.getReplyToRecipient()) :
-				email2.getReplyToRecipient() != null) {
+		if (!Objects.equals(email1.getReplyToRecipient(), email2.getReplyToRecipient())) {
 			return false;
 		}
-		if (email1.getBounceToRecipient() != null ? !Objects.equals(email1.getBounceToRecipient(), email2.getBounceToRecipient()) :
-				email2.getBounceToRecipient() != null) {
+		if (!Objects.equals(email1.getBounceToRecipient(), email2.getBounceToRecipient())) {
 			return false;
 		}
-		if (email1.getPlainText() != null ? !email1.getPlainText().equals(email2.getPlainText()) : email2.getPlainText() != null) {
+		if (!Objects.equals(email1.getPlainText(), email2.getPlainText())) {
 			return false;
 		}
-		if (email1.getCalendarText() != null ? !email1.getCalendarText().equals(email2.getCalendarText()) : email2.getCalendarText() != null) {
+		if (!Objects.equals(email1.getCalendarText(), email2.getCalendarText())) {
 			return false;
 		}
-		if (email1.getCalendarMethod() != null ? !email1.getCalendarMethod().equals(email2.getCalendarMethod()) : email2.getCalendarMethod() != null) {
+		if (!Objects.equals(email1.getCalendarMethod(), email2.getCalendarMethod())) {
 			return false;
 		}
 		//noinspection SimplifiableConditionalExpression
@@ -51,7 +49,7 @@ public final class EqualsHelper {
 		if (email1.getHTMLText() != null ? !normalizeNewlines(email1.getHTMLText()).equals(normalizeNewlines(email2.getHTMLText())) : email2.getHTMLText() != null) {
 			return false;
 		}
-		if (email1.getSubject() != null ? !email1.getSubject().equals(email2.getSubject()) : email2.getSubject() != null) {
+		if (!Objects.equals(email1.getSubject(), email2.getSubject())) {
 			return false;
 		}
 
@@ -73,21 +71,19 @@ public final class EqualsHelper {
 		if (email1.isUseReturnReceiptTo() != email2.isUseReturnReceiptTo()) {
 			return false;
 		}
-		if (email1.getDispositionNotificationTo() != null ? !email1.getDispositionNotificationTo().equals(email2.getDispositionNotificationTo()) : email2.getDispositionNotificationTo() != null) {
+		if (!Objects.equals(email1.getDispositionNotificationTo(), email2.getDispositionNotificationTo())) {
 			return false;
 		}
-		//noinspection ConstantConditions
-		if (email1.getOriginalSmimeDetails() != null ? !email1.getOriginalSmimeDetails().equals(email2.getOriginalSmimeDetails()) : email2.getOriginalSmimeDetails() != null) {
+		if (!Objects.equals(email1.getOriginalSmimeDetails(), email2.getOriginalSmimeDetails())) {
 			return false;
 		}
-		if (email1.getPkcs12ConfigForSmimeSigning() != null ? !email1.getPkcs12ConfigForSmimeSigning().equals(email2.getPkcs12ConfigForSmimeSigning()) : email2.getPkcs12ConfigForSmimeSigning() != null) {
+		if (!Objects.equals(email1.getPkcs12ConfigForSmimeSigning(), email2.getPkcs12ConfigForSmimeSigning())) {
 			return false;
 		}
-		if (email1.getX509CertificateForSmimeEncryption() != null ? !email1.getX509CertificateForSmimeEncryption().equals(email2.getX509CertificateForSmimeEncryption()) :
-				email2.getX509CertificateForSmimeEncryption() != null) {
+		if (!Objects.equals(email1.getX509CertificateForSmimeEncryption(), email2.getX509CertificateForSmimeEncryption())) {
 			return false;
 		}
-		return email1.getReturnReceiptTo() != null ? email1.getReturnReceiptTo().equals(email2.getReturnReceiptTo()) : email2.getReturnReceiptTo() == null;
+		return Objects.equals(email1.getReturnReceiptTo(), email2.getReturnReceiptTo());
 	}
 
 	private static boolean isEqualRecipientList(final List<Recipient> recipients, final List<Recipient> otherRecipients) {
