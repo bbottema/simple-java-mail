@@ -16,7 +16,7 @@ mvn-collect-artifacts-command: &mvn-collect-artifacts-command
     cp -a **/target/surefire-reports/. artifacts/junit
 
 mvn-deploy-command: &mvn-deploy-command
-  mvn-deploy-command: mvn -s .circleci/maven-release-settings.xml clean deploy -DdeployAtEnd=true -DperformRelease=true -DskipTests -Dspotbugs.skip=true
+  mvn-deploy-command: mvn -s .circleci/maven-release-settings.xml clean deploy -DdeployAtEnd=true -DperformRelease=true -DskipTests -Dspotbugs.skip=true -Djacoco.skip=true
   context: RELEASE_PROFILE_BBOTTEMA
 
 workflows:
