@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5server.msg;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * The enumeration <code>ServerReply</code> represents reply of servers will SOCKS client send a command request to the SOCKS server.
  */
@@ -21,9 +23,10 @@ public enum ServerReply {
 
 	private final byte value;
 
+	@Nullable
 	private final String errorMessage;
 
-	ServerReply(final int value, final String errorMessage) {
+	ServerReply(final int value, @Nullable final String errorMessage) {
 		this.value = (byte) value;
 		this.errorMessage = errorMessage;
 	}
@@ -32,6 +35,7 @@ public enum ServerReply {
 		return value;
 	}
 
+	@Nullable
 	public String getErrorMessage() {
 		return errorMessage;
 	}

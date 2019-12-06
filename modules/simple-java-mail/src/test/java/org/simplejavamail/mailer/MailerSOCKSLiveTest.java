@@ -1,8 +1,8 @@
 package org.simplejavamail.mailer;
 
-import org.junit.AfterClass;
+import org.bbottema.javasocksproxyserver.junit.SockServerRule;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
@@ -10,57 +10,49 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.Mailer;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
-import testutil.socks.server.impl.SocksServer;
 import testutil.testrules.MimeMessageAndEnvelope;
 import testutil.testrules.SmtpServerRule;
-import testutil.testrules.TestSmtpServer;
-
-import javax.mail.MessagingException;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 
 public class MailerSOCKSLiveTest {
-	private static final String SERVER_HOST = "localhost";
 	private static final Integer SMTP_SERVER_PORT = 252;
 	private static final Integer PROXY_SERVER_PORT = 253;
 
-	private static final SocksServer SOCKS_SERVER = new SocksServer();
-
-	private Mailer mailer;
-
 	@Rule
-	public final SmtpServerRule smtpServerRule = new SmtpServerRule(new TestSmtpServer(SERVER_HOST, SMTP_SERVER_PORT));
-
-	@BeforeClass
-	public static void startSocksServer() {
-		SOCKS_SERVER.start(PROXY_SERVER_PORT);
-	}
-
-	@AfterClass
-	public static void stopSocksServer() {
-		SOCKS_SERVER.stop();
-	}
+	public final SmtpServerRule smtpServerRule = new SmtpServerRule(SMTP_SERVER_PORT);
+	@ClassRule
+	public static final SockServerRule sockServerRule = new SockServerRule(PROXY_SERVER_PORT);
 
 	@Before
 	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		mailer = MailerBuilder
-				.withSMTPServer(SERVER_HOST, SMTP_SERVER_PORT)
-				.withProxy(SERVER_HOST, PROXY_SERVER_PORT, "moo", "letmein")
-				.buildMailer();
 	}
 
 	@Test
-	public void testSOCKSPassthrough()
-			throws IOException, InterruptedException, ExecutionException, MessagingException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, false), false);
+	public void testSOCKSPassthrough_Anonymous() throws Exception {
+		Mailer mailer = MailerBuilder
+				.withSMTPServer("localhost", SMTP_SERVER_PORT)
+				.withProxy("localhost", PROXY_SERVER_PORT)
+				.buildMailer();
+
+		assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false), false);
 	}
 
-	private void assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean async)
-			throws MessagingException, ExecutionException, InterruptedException {
+	@Test
+	// NOTE: this doesn't really trigger authentication because the embedded SOCKS server doesn't support it,
+	// but it triggers the code on the mailer side, which should not produce errors either
+	public void testSOCKSPassthrough_Authenticating() throws Exception {
+		Mailer mailer = MailerBuilder
+				.withSMTPServer("localhost", SMTP_SERVER_PORT)
+				.withProxy("localhost", PROXY_SERVER_PORT, "username", "password")
+				.buildMailer();
+
+		assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false), false);
+	}
+
+	private void assertSendingEmail(final Mailer mailer, final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean async) throws Exception {
 		Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
 
 		if (!async) {

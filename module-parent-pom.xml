@@ -39,6 +39,12 @@
             <version>2.0.4</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.bbottema</groupId>
+            <artifactId>java-socks-proxy-server</artifactId>
+            <version>1.0.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <!-- this solves the dependency clashes found with the enforcer plugin -->
@@ -75,6 +81,7 @@
                 <configuration>
                     <excludes>
                         <classes>**Assert</classes><!-- AssertJ generated -->
+                        <classes>**.ServerReply</classes><!-- somehow gets messed up -->
                     </excludes>
                 </configuration>
             </plugin>

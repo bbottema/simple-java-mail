@@ -21,26 +21,24 @@ import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * SmtpServerRule - a TestRule wrapping a Wiser instance (a SMTP server in Java) started and stoped right before and after each test.
+ * SmtpServerRule - a TestRule wrapping a Wiser instance (a SMTP server in Java), started and stopped right before and after each test.
  * <br>
  * SmtpServerRule exposes the same methods as the {@link Wiser} instance by delegating the implementation to the instance. These methods, however, can not be
- * used outside a JUnit statement (otherwise a {@link IllegalStateException} is raised).
+ * used outside a JUnit statement (otherwise an {@link IllegalStateException} is raised).
  * <br>
  * The {@link Wiser} instance can be directly retrieved but also only from inside a JUnit statement.
  */
-public class SmtpServerRule extends ExternalResource implements TestRule {
-	private final SmtpServerSupport SmtpServerSupport;
-	private Wiser wiser;
+public class SmtpServerRule extends ExternalResource {
+	private final Wiser wiser = new Wiser();
+	private final int port;
 
-	public SmtpServerRule(@NotNull SmtpServerSupport SmtpServerSupport) {
-		this.SmtpServerSupport = Preconditions.checkNotNull(SmtpServerSupport);
+	public SmtpServerRule(@NotNull Integer port) {
+		this.port = port;
 	}
 
 	@Override
 	protected void before() {
-		this.wiser = new Wiser();
-		this.wiser.setPort(SmtpServerSupport.getPort());
-		this.wiser.setHostname(SmtpServerSupport.getHostname());
+		this.wiser.setPort(port);
 		this.wiser.start();
 	}
 

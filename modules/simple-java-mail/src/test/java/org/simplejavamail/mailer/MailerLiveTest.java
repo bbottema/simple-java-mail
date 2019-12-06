@@ -19,7 +19,6 @@ import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 import testutil.testrules.MimeMessageAndEnvelope;
 import testutil.testrules.SmtpServerRule;
-import testutil.testrules.TestSmtpServer;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
@@ -41,7 +40,6 @@ import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuil
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
-import static testutil.EmailHelper.CUSTOM_SENT_DATE;
 import static testutil.EmailHelper.readOutlookMessage;
 
 /*
@@ -53,18 +51,17 @@ public class MailerLiveTest {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 
-	private static final String SERVER_HOST = "localhost";
 	private static final Integer SERVER_PORT = 251;
 
 	@Rule
-	public final SmtpServerRule smtpServerRule = new SmtpServerRule(new TestSmtpServer(SERVER_HOST, SERVER_PORT));
+	public final SmtpServerRule smtpServerRule = new SmtpServerRule(SERVER_PORT);
 
 	private Mailer mailer;
 
 	@Before
 	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		mailer = MailerBuilder.withSMTPServer(SERVER_HOST, SERVER_PORT).buildMailer();
+		mailer = MailerBuilder.withSMTPServer("localhost", SERVER_PORT).buildMailer();
 	}
 	
 	@Test

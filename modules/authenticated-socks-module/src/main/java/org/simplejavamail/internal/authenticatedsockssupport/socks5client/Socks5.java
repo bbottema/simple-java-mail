@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,6 +13,7 @@ public class Socks5 {
 
 	static final byte AUTHENTICATION_SUCCEEDED = 0x00;
 
+	@Nullable
 	private Socks5 chainProxy;
 
 	private ProxyCredentials credentials = new ProxyCredentials();
@@ -45,7 +48,7 @@ public class Socks5 {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private Socks5(final Socks5 chainProxy, final InetSocketAddress socketAddress) {
+	private Socks5(@Nullable final Socks5 chainProxy, final InetSocketAddress socketAddress) {
 		inetAddress = socketAddress.getAddress();
 		port = socketAddress.getPort();
 		this.setChainProxy(chainProxy);
@@ -149,11 +152,12 @@ public class Socks5 {
 		return socks5;
 	}
 
+	@Nullable
 	public Socks5 getChainProxy() {
 		return chainProxy;
 	}
 
-	Socks5 setChainProxy(final Socks5 chainProxy) {
+	Socks5 setChainProxy(@Nullable final Socks5 chainProxy) {
 		this.chainProxy = chainProxy;
 		return this;
 	}
