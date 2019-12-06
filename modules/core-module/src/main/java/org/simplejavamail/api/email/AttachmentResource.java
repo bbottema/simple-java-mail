@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.util.Objects;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -113,9 +114,12 @@ public class AttachmentResource implements Serializable {
 	}
 
 	@Override
-	public boolean equals(final Object o) {
-		return (this == o) || (o != null && getClass() == o.getClass() &&
-				EqualsHelper.equalsAttachmentResource(this, (AttachmentResource) o));
+	public boolean equals(@Nullable Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		AttachmentResource that = (AttachmentResource) o;
+		return Objects.equals(name, that.name) &&
+				EqualsHelper.isEqualDataSource(dataSource, that.dataSource);
 	}
 
 	@Override

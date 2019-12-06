@@ -313,7 +313,7 @@ public class Email implements Serializable {
 	}
 	
 	@Override
-	public boolean equals(final Object o) {
+	public boolean equals(@Nullable final Object o) {
 		return (this == o) || ((o != null) && (getClass() == o.getClass()) &&
 				EqualsHelper.equalsEmail(this, (Email) o));
 	}

@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
 import org.slf4j.Logger;
@@ -37,12 +39,12 @@ final class SocksCommandSender {
 	private static final byte ATYPE_IPV6 = 0x04;
 	private static final int REP_SUCCEEDED = 0x00;
 
-	public static void send(final Socket socket, final InetAddress address, final int port)
+	public static void send(@NotNull final Socket socket, final InetAddress address, final int port)
 			throws IOException {
 		send(socket, new InetSocketAddress(address, port));
 	}
 
-	public static void send(final Socket socket, final SocketAddress socketAddress)
+	public static void send(@NotNull final Socket socket, final SocketAddress socketAddress)
 			throws IOException {
 		if (!(socketAddress instanceof InetSocketAddress)) {
 			throw new IllegalArgumentException("Unsupported address type");
@@ -82,7 +84,7 @@ final class SocksCommandSender {
 		checkServerReply(inputStream);
 	}
 
-	public static void send(final Socket socket, final String host, final int port)
+	public static void send(@NotNull final Socket socket, final String host, final int port)
 			throws IOException, SocksException {
 		final InputStream inputStream = socket.getInputStream();
 		final OutputStream outputStream = socket.getOutputStream();

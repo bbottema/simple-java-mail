@@ -1,5 +1,7 @@
 package org.simplejavamail.api.email;
 
+import org.jetbrains.annotations.Nullable;
+
 import javax.activation.DataSource;
 import java.util.List;
 import java.util.Objects;
@@ -16,7 +18,7 @@ public final class EqualsHelper {
 
 	@SuppressWarnings("WeakerAccess")
 	public static boolean equalsEmail(final Email email1, final Email email2) {
-		if (email1.getFromRecipient() != null ? !isEqualRecipient(email1.getFromRecipient(), email2.getFromRecipient()) : email2.getFromRecipient() != null) {
+		if (email1.getFromRecipient() != null ? !Objects.equals(email1.getFromRecipient(), email2.getFromRecipient()) : email2.getFromRecipient() != null) {
 			return false;
 		}
 		if (email1.getId() != null ? !email1.getId().equals(email2.getId()) : email2.getId() != null) {
@@ -25,11 +27,11 @@ public final class EqualsHelper {
 		if (email1.getSentDate() != null ? !email1.getSentDate().equals(email2.getSentDate()) : email2.getSentDate() != null) {
 			return false;
 		}
-		if (email1.getReplyToRecipient() != null ? !isEqualRecipient(email1.getReplyToRecipient(), email2.getReplyToRecipient()) :
+		if (email1.getReplyToRecipient() != null ? !Objects.equals(email1.getReplyToRecipient(), email2.getReplyToRecipient()) :
 				email2.getReplyToRecipient() != null) {
 			return false;
 		}
-		if (email1.getBounceToRecipient() != null ? !isEqualRecipient(email1.getBounceToRecipient(), email2.getBounceToRecipient()) :
+		if (email1.getBounceToRecipient() != null ? !Objects.equals(email1.getBounceToRecipient(), email2.getBounceToRecipient()) :
 				email2.getBounceToRecipient() != null) {
 			return false;
 		}
@@ -56,10 +58,10 @@ public final class EqualsHelper {
 		if (!isEqualRecipientList(email1.getRecipients(), email2.getRecipients())) {
 			return false;
 		}
-		if (!email1.getEmbeddedImages().containsAll(email2.getEmbeddedImages())) {
+		if (!email1.getEmbeddedImages().containsAll(email2.getEmbeddedImages()) || !email2.getEmbeddedImages().containsAll(email1.getEmbeddedImages())) {
 			return false;
 		}
-		if (!email1.getAttachments().containsAll(email2.getAttachments())) {
+		if (!email1.getAttachments().containsAll(email2.getAttachments()) || !email2.getAttachments().containsAll(email1.getAttachments())) {
 			return false;
 		}
 		if (!email1.getHeaders().equals(email2.getHeaders())) {
@@ -100,41 +102,18 @@ public final class EqualsHelper {
 		return true;
 	}
 
-	private static boolean containsRecipient(final List<Recipient> recipients, final Recipient otherRecipient) {
+	private static boolean containsRecipient(final List<Recipient> recipients, @Nullable final Recipient otherRecipient) {
 		for (final Recipient recipient : recipients) {
-			if (isEqualRecipient(recipient, otherRecipient)) {
+			if (Objects.equals(recipient, otherRecipient)) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	private static boolean isEqualRecipient(final Recipient recipient, final Recipient otherRecipient) {
-		final String name = recipient != null ? recipient.getName() : null;
-		final String otherName = otherRecipient != null ? otherRecipient.getName() : null;
-		if (!Objects.equals(name, otherName)) {
-			return false;
-		}
-		assert otherRecipient != null;
-		assert recipient != null;
-		if (!recipient.getAddress().equals(otherRecipient.getAddress())) {
-			return false;
-		}
-		return recipient.getType() != null ? recipient.getType().equals(otherRecipient.getType()) : otherRecipient.getType() == null;
-	}
-
-	static boolean equalsAttachmentResource(final AttachmentResource resource1, final AttachmentResource resource2) {
-		if (resource1.getName() != null ? !resource1.getName().equals(resource2.getName()) : resource2.getName() != null) {
-			return false;
-		}
-		//noinspection ConstantConditions
-		return resource1.getDataSource() != null ? isEqualDataSource(resource1.getDataSource(), resource2.getDataSource()) : resource2.getDataSource() == null;
-	}
-
-	private static boolean isEqualDataSource(final DataSource resource1, final DataSource resource2) {
-		if (resource1.getName() != null ? !resource1.getName().equals(resource2.getName()) : resource2.getName() != null) {
-			return false;
-		}
-		return resource1.getContentType() != null ? resource1.getContentType().equals(resource2.getContentType()) : resource2.getContentType() == null;
+	static boolean isEqualDataSource(@Nullable final DataSource a, @Nullable final DataSource b) {
+		return (a == b) || (a != null && b != null &&
+				Objects.equals(a.getName(), b.getName()) &&
+				Objects.equals(a.getContentType(), b.getContentType()));
 	}
 }

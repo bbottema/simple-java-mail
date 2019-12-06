@@ -5,7 +5,12 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+
+import static java.util.Objects.requireNonNull;
 
 public class Socks5 {
 
@@ -23,21 +28,12 @@ public class Socks5 {
 	@SuppressWarnings("UnusedAssignment")
 	private int port = SOCKS_DEFAULT_PORT;
 
+	@Nullable
 	private Socket proxySocket;
 
 	private SocksAuthenticationHelper socksAuthenticationHelper = new SocksAuthenticationHelper();
 
 	private boolean alwaysResolveAddressLocally = false;
-
-//	public Socks5(final InetSocketAddress socketAddress, final String username, final String password) {
-//		this(socketAddress);
-//		setCredentials(new ProxyCredentials(username, password));
-//	}
-//
-//	public Socks5(final String host, final int port)
-//			throws UnknownHostException {
-//		this(InetAddress.getByName(host), port);
-//	}
 
 	Socks5(final InetAddress inetAddress, final int port) {
 		this(new InetSocketAddress(inetAddress, port));
@@ -81,23 +77,23 @@ public class Socks5 {
 			throws IOException {
 		if (!alwaysResolveAddressLocally) {
 			// resolve address in SOCKS server
-			SocksCommandSender.send(proxySocket, host, port);
+			SocksCommandSender.send(requireNonNull(proxySocket, "proxySocket"), host, port);
 
 		} else {
 			// resolve address in local.
 			final InetAddress address = InetAddress.getByName(host);
-			SocksCommandSender.send(proxySocket, address, port);
+			SocksCommandSender.send(requireNonNull(proxySocket, "proxySocket"), address, port);
 		}
 	}
 
 	public void requestConnect(final InetAddress address, final int port)
 			throws IOException {
-		SocksCommandSender.send(proxySocket, address, port);
+		SocksCommandSender.send(requireNonNull(proxySocket, "proxySocket"), address, port);
 	}
 
 	public void requestConnect(final SocketAddress address)
 			throws IOException {
-		SocksCommandSender.send(proxySocket, address);
+		SocksCommandSender.send(requireNonNull(proxySocket, "proxySocket"), address);
 	}
 
 	public int getPort() {
@@ -109,22 +105,23 @@ public class Socks5 {
 		return this;
 	}
 
+	@Nullable
 	public Socket getProxySocket() {
 		return proxySocket;
 	}
 
-	public void setProxySocket(final Socket proxySocket) {
+	public void setProxySocket(@Nullable final Socket proxySocket) {
 		this.proxySocket = proxySocket;
 	}
 
 	public InputStream getInputStream()
 			throws IOException {
-		return proxySocket.getInputStream();
+		return requireNonNull(proxySocket, "proxySocket").getInputStream();
 	}
 
 	public OutputStream getOutputStream()
 			throws IOException {
-		return proxySocket.getOutputStream();
+		return requireNonNull(proxySocket, "proxySocket").getOutputStream();
 	}
 
 	public ProxyCredentials getCredentials() {
