@@ -179,7 +179,7 @@
         </profile>
 
         <profile>
-            <id>travis-verify-skip-unsupported-tests</id>
+            <id>skip-unsupported-live-tests</id>
             <activation>
                 <property>
                     <name>excludeLiveServerTests</name>
