@@ -4,16 +4,12 @@ orbs:
   github-maven-deploy: github-maven-deploy/github-maven-deploy@dev:24
 
 mvn-build-test-command: &mvn-build-test-command
-  mvn-build-test-command: mvn verify -DexcludeLiveServerTests=true
+  mvn-build-test-command: mvn verify
 
 mvn-collect-artifacts-command: &mvn-collect-artifacts-command
   mvn-collect-artifacts-command: |
-    mkdir -p artifacts/cli artifacts/coverage artifacts/junit artifacts/javadoc
-    cp **/target/*.jar artifacts/
+    mkdir -p artifacts/cli
     cp modules/cli-module/target/*standalone* artifacts/cli/
-    cp -a target/apidocs/. artifacts/javadoc/
-    cp -a modules/jacoco-aggregator-module/target/site/jacoco-aggregate/. artifacts/coverage/
-    cp -a **/target/surefire-reports/. artifacts/junit
 
 mvn-deploy-command: &mvn-deploy-command
   mvn-deploy-command: mvn -s .circleci/maven-release-settings.xml clean deploy -DdeployAtEnd=true -DperformRelease=true -DskipTests -Dspotbugs.skip=true -Djacoco.skip=true
