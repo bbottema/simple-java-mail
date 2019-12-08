@@ -157,9 +157,10 @@ public class EmailTest {
 		assertEmailEqual(b().withSubject("moo").buildEmail(), b().withSubject("shmoo").buildEmail(), false);
 		assertEmailEqual(b().withSubject("moo").buildEmail(), b().buildEmail(), false);
 		// sentDate
-		assertEmailEqual(b().fixingSentDate(new Date()).buildEmail(), b().fixingSentDate(new Date()).buildEmail(), true);
-		assertEmailEqual(b().fixingSentDate(new Date()).buildEmail(), b().fixingSentDate(date(2011, SEPTEMBER, 15)).buildEmail(), false);
-		assertEmailEqual(b().fixingSentDate(new Date()).buildEmail(), b().buildEmail(), false);
+		final Date now = new Date();
+		assertEmailEqual(b().fixingSentDate(now).buildEmail(), b().fixingSentDate(now).buildEmail(), true);
+		assertEmailEqual(b().fixingSentDate(now).buildEmail(), b().fixingSentDate(date(2011, SEPTEMBER, 15)).buildEmail(), false);
+		assertEmailEqual(b().fixingSentDate(now).buildEmail(), b().buildEmail(), false);
 		// replyTo recipient
 		assertEmailEqual(b().withReplyTo("a@b.c").buildEmail(), b().withReplyTo("a@b.c").buildEmail(), true);
 		assertEmailEqual(b().withReplyTo("name", "a@b.c").buildEmail(), b().withReplyTo(new Recipient("name", "a@b.c", null)).buildEmail(), true);
