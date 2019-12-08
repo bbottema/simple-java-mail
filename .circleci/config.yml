@@ -4,7 +4,7 @@ orbs:
   github-maven-deploy: github-maven-deploy/github-maven-deploy@dev:24
 
 mvn-build-test-command: &mvn-build-test-command
-  mvn-build-test-command: mvn verify -Dlicense.skip=true -Dmaven.javadoc.skip=true
+  mvn-build-test-command: mvn verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true
 
 mvn-collect-artifacts-command: &mvn-collect-artifacts-command
   mvn-collect-artifacts-command: |
