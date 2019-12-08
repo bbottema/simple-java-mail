@@ -19,7 +19,7 @@
     <description>Simple Java Mail - Maven master project</description>
     <url>http://www.simplejavamail.org/</url>
 
-    <!-- to skip some steps: -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -Denforcer.skip=true -Djacoco.skip=true -->
+    <!-- to skip some steps: -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -Denforcer.skip=true -Djacoco.skip=true -Dlicense.skip=true -->
 
     <issueManagement>
         <system>GitHub Issues</system>
