@@ -39,7 +39,7 @@ public class TransportRunner {
 		});
 	}
 
-	public static void connect(@NotNull UUID clusterKey, @Nullable final Session session)
+	public static void connect(@NotNull UUID clusterKey, final Session session)
 			throws MessagingException {
 		runOnSessionTransport(clusterKey, session, true, new TransportRunnable() {
 			@Override

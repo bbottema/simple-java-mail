@@ -44,7 +44,7 @@ public final class Pkcs12Config {
 
 	@NotNull
 	public char[] getStorePassword() {
-		return this.storePassword;
+		return this.storePassword.clone();
 	}
 
 	@NotNull
@@ -54,7 +54,7 @@ public final class Pkcs12Config {
 
 	@NotNull
 	public char[] getKeyPassword() {
-		return this.keyPassword;
+		return this.keyPassword.clone();
 	}
 
 	@Override

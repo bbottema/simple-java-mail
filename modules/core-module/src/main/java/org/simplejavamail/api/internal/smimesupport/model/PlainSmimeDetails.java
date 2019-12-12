@@ -26,7 +26,7 @@ public class PlainSmimeDetails implements OriginalSmimeDetails {
 
 	@Override
 	public boolean equals(final Object obj) {
-		return obj.getClass() == getClass();
+		return obj != null && obj.getClass() == getClass();
 	}
 
 	@Nullable
