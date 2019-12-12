@@ -9,7 +9,7 @@
         <artifactId>simple-java-mail-module-parent</artifactId>
         <!--suppress MavenPropertyInParent -->
         <version>6.0.0.beta-SNAPSHOT.2</version>
-        <relativePath>../../module-parent-pom.xml</relativePath>
+        <relativePath>../</relativePath>
     </parent>
 
     <artifactId>spring-module</artifactId>
