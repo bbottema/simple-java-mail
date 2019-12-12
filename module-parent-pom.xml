@@ -125,27 +125,23 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <doclint>all,-missing</doclint>
+                            <show>public</show>
+                            <nohelp>true</nohelp>
+                            <detectOfflineLinks>false</detectOfflineLinks>
+                            <excludePackageNames>*.internal:*.internal.*:testutil:demo</excludePackageNames>
+                            <quiet>true</quiet>
+                            <failOnError>false</failOnError>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
                                 <goals>
                                     <goal>jar</goal>
                                 </goals>
-                                <phase>package</phase>
-                                <configuration>
-                                    <show>public</show>
-                                    <failOnError>false</failOnError>
-                                    <detectOfflineLinks>false</detectOfflineLinks>
-                                    <doclint>all,-missing</doclint>
-                                    <nohelp>true</nohelp>
-                                    <excludePackageNames>*.internal.*,testutil,demo</excludePackageNames>
-                                    <quiet>true</quiet>
-                                </configuration>
                             </execution>
                         </executions>
-                        <configuration>
-                            <failOnError>false</failOnError>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
