@@ -85,6 +85,32 @@
                     </excludes>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M3</version>
+                <executions>
+                    <execution>
+                        <id>enforce-versions</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <dependencyConvergence/>
+                                <requireReleaseDeps/>
+                                <requireUpperBoundDeps>
+                                    <excludes>
+                                        <!-- tests seem to work fine with the version Maven's dependency resolution defaults to -->
+                                        <exclude>org.objenesis:objenesis</exclude>
+                                    </excludes>
+                                </requireUpperBoundDeps>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -96,32 +122,6 @@
             </activation>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-enforcer-plugin</artifactId>
-                        <version>3.0.0-M3</version>
-                        <executions>
-                            <execution>
-                                <id>enforce-versions</id>
-                                <goals>
-                                    <goal>enforce</goal>
-                                </goals>
-                                <configuration>
-                                    <rules>
-                                        <dependencyConvergence/>
-                                        <requireReleaseDeps/>
-                                        <requireUpperBoundDeps>
-                                            <excludes>
-                                                <!-- tests seem to work fine with the version Maven's dependency resolution defaults to -->
-                                                <exclude>org.objenesis:objenesis</exclude>
-                                            </excludes>
-                                        </requireUpperBoundDeps>
-                                    </rules>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
