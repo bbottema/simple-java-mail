@@ -6,10 +6,10 @@
 
     <parent>
         <groupId>org.simplejavamail</groupId>
-        <artifactId>simple-java-mail-module-parent</artifactId>
+        <artifactId>maven-master-project</artifactId>
         <!--suppress MavenPropertyInParent -->
         <version>6.0.0.beta-SNAPSHOT.2</version>
-        <relativePath>../</relativePath>
+        <relativePath>../../</relativePath>
     </parent>
 
     <artifactId>smime-module</artifactId>
