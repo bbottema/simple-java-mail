@@ -12,7 +12,9 @@ mvn-collect-artifacts-command: &mvn-collect-artifacts-command
     cp modules/cli-module/target/*standalone* artifacts/cli/
 
 mvn-deploy-command: &mvn-deploy-command
-  mvn-deploy-command: mvn -s .circleci/maven-release-settings.xml clean deploy -DdeployAtEnd=true -DperformRelease=true -DskipTests -Dspotbugs.skip=true -Denforcer.skip=true -Djacoco.skip=true && mvn license:remove
+  mvn-deploy-command:  |
+    mvn -s .circleci/maven-release-settings.xml clean deploy -DdeployAtEnd=true -DperformRelease=true -DskipTests -Dspotbugs.skip=true -Denforcer.skip=true -Djacoco.skip=true
+    mvn license:remove
   context: RELEASE_PROFILE_BBOTTEMA
 
 workflows:
