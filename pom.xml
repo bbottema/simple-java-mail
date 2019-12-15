@@ -128,7 +128,9 @@
                         <configuration>
                             <rules>
                                 <dependencyConvergence/>
-                                <requireReleaseDeps/>
+                                <requireReleaseDeps>
+                                    <onlyWhenRelease>true</onlyWhenRelease>
+                                </requireReleaseDeps>
                                 <requireUpperBoundDeps>
                                     <excludes>
                                         <!-- tests seem to work fine with the version Maven's dependency resolution defaults to -->
