@@ -3,7 +3,7 @@
 [![Javadocs](https://img.shields.io/badge/javadoc-5.5.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.7+-lightgray.svg)
-[![Paypal Donate](https://img.shields.io/badge/donate%20with-paypal-blue.svg?style=flat)](https://paypal.me/bennybottema)
+[![Paypal Donate](https://img.shields.io/badge/buy%20me%20-a%20beer-blue.svg?style=flat)](https://paypal.me/bennybottema)
 
 # Simple Java Mail #
 
@@ -13,67 +13,68 @@ The Simple Java Mail library is a thin layer on top of the [JavaMail smtp mailin
 
 ### [simplejavamail.org](http://www.simplejavamail.org) ###
 
-```java
-EmailBuilder.startingBlank()
-EmailBuilder.replyingTo(email)
-EmailBuilder.forwarding(email)
-EmailBuilder.copying(email)
-```
-
-```java
-ConfigLoader.loadProperties("simplejavamail.properties"); // optional default
-ConfigLoader.loadProperties("overrides.properties"); // optional extra
-
-// almost everything is optional:
-Email email = EmailBuilder.startingBlank()
-          .to("lollypop", "lolly.pop@somemail.com")
-          .to("C. Cane", "candycane@candyshop.org")
-          .ccWithFixedName("C. Bo group", "chocobo1@candyshop.org", "chocobo2@candyshop.org")
-          .withRecipientsUsingFixedName("Tasting Group", BCC,
-                        "taster1@cgroup.org;taster2@cgroup.org;tester &lt;taster3@cgroup.org&gt;")
-          .bcc("Mr Sweetnose &lt;snose@candyshop.org&gt;")
-          .withReplyTo("lollypop", "lolly.pop@othermail.com")
-          .withSubject("hey")
-          .withHTMLText("&lt;img src=&#39;cid:wink1&#39;&gt;&lt;b&gt;We should meet up!&lt;/b&gt;&lt;img src=&#39;cid:wink2&#39;&gt;")
-          .withPlainText("Please view this email in a modern email client!")
-          .withEmbeddedImage("wink1", imageByteArray, "image/png")
-          .withEmbeddedImage("wink2", imageDatesource)
-          .withAttachment("invitation", pdfByteArray, "application/pdf")
-          .withAttachment("dresscode", odfDatasource)
-          .withHeader("X-Priority", 5)
-          .withReturnReceiptTo()
-          .withDispositionNotificationTo("notify-read-emails@candyshop.com")
-          .withBounceTo("tech@candyshop.com")
-          .signWithDomainKey(privateKeyData, "somemail.com", "selector")
-          .buildEmail();
-
-Mailer mailer = MailerBuilder
-          .withSMTPServer("smtp.host.com", 587, "user@host.com", "password")
-          .withTransportStrategy(TransportStrategy.SMTP_TLS)
-          .withProxy("socksproxy.host.com", 1080, "proxy user", "proxy password")
-          .withSessionTimeout(10 * 1000)
-          .clearEmailAddressCriteria() // turns off email validation
-          .withProperty("mail.smtp.sendpartial", true)
-          .withDebugLogging(true)
-          .buildMailer();
-
-mailer.sendMail(email);
-```
-
----
-
-
-Simple Java Mail is available in [Maven Central](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22):
+Simple Java Mail is also available in [Maven Central](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22):
 
 ```xml
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.5.1</version>
+    <version>6.0.0-rc1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+[v6.0.0-rc1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.0.0-rc1%7Cjar) (xx-December-2019, unreleased)
+
+After almost two years of development the next major release 6.0.0 is finally here! And what a doozy it is, with the following major new features:
+
+- [CLI support!!](https://github.com/bbottema/simple-java-mail/issues/156), 
+- major performance improvement with [advanced batch processing](https://github.com/bbottema/simple-java-mail/issues/214) including support for mail server clusters. 
+- You can now replace the final sending of emails with [your own logic](https://github.com/bbottema/simple-java-mail/issues/121), using a 3rd party service of your choice. 
+- 6.0.0 also includes support for [S/MIME signed and encrypted emails](https://github.com/bbottema/simple-java-mail/issues/187)! 
+- All 3rd party dependencies have been made optional by splitting up Simple Java Mail into easy to use [modules](https://github.com/bbottema/simple-java-mail/issues/183).
+- You can now monitor and [handle async processing](https://github.com/bbottema/simple-java-mail/issues/148) using Futures.
+- MimeMessage results are now [structurally matched](https://github.com/bbottema/simple-java-mail/issues/144) to specific needs (only using alternative/mixed etc. when needed) 
+
+Here's the complete list of changes:
+
+#### New features and enhancements ####
+- [#183](https://github.com/bbottema/simple-java-mail/issues/183) To manage all the optional dependencies and related code, Simple Java Mail should be split up into modules
+- [#156](https://github.com/bbottema/simple-java-mail/issues/156) Add CLI support
+- [#214](https://github.com/bbottema/simple-java-mail/issues/214) Support more advanced batch processing use cases
+- [#187](https://github.com/bbottema/simple-java-mail/issues/187) Simple Java Mail should have optional support for signed S/MIME attachments
+- [#121](https://github.com/bbottema/simple-java-mail/issues/121) Introduce interfaces for validation and sending, so these steps can be customized
+- [#144](https://github.com/bbottema/simple-java-mail/issues/144) Simple Java Mail should tailor the MimeMessage structure to specific needs
+- [#138](https://github.com/bbottema/simple-java-mail/issues/138) Add support for Calendar events (iCalendar vEvent)
+- [#235](https://github.com/bbottema/simple-java-mail/issues/235) Be able to fix the sent date for a new email
+- [#232](https://github.com/bbottema/simple-java-mail/issues/232) Improve encoding of attachment file names
+- [#222](https://github.com/bbottema/simple-java-mail/issues/222) Add config property support for trusting hosts and verifying server identity
+- [#212](https://github.com/bbottema/simple-java-mail/issues/212) Authenticated proxy server started even if already running, raising exception
+- [#207](https://github.com/bbottema/simple-java-mail/issues/207) Implement more comprehensive ThreadPoolExecutor and expose config options
+- [#211](https://github.com/bbottema/simple-java-mail/issues/211) SpringSupport should expose the intermediate builder for customization
+- [#193](https://github.com/bbottema/simple-java-mail/issues/193) Simple Java Mail should use default server ports when not provided by the user
+
+#### Bugs solved ####
+- [#236](https://github.com/bbottema/simple-java-mail/issues/236) Message ID should be mapped from Outlook messages as well
+- [#210](https://github.com/bbottema/simple-java-mail/issues/210) Connection/session timeout properties not set when not sending in batch mode
+- [#201](https://github.com/bbottema/simple-java-mail/issues/201) When parsing Outlook message, FROM address should default to a dummy address when missing
+- [#200](https://github.com/bbottema/simple-java-mail/issues/200) When parsing Outlook message, attachment name doesn't fallback on filename if proper name is empty
+- [#161](https://github.com/bbottema/simple-java-mail/issues/161) When reading (chinese) .msg files, HTML converted from RTF is completely garbled (encoding issue)
+- [#159](https://github.com/bbottema/simple-java-mail/issues/159) Can not parse email with blank email address headers
+- [#139](https://github.com/bbottema/simple-java-mail/issues/139) Multiple Bodyparts of same Content-Type not supported for text/html & text/plain within Multipart/mixed or Multipart/alternative
+- [#151](https://github.com/bbottema/simple-java-mail/issues/151) Attachment's file extension overwritten by resource's invalid extension
+
+#### Maintenance updates ####
+- [#165](https://github.com/bbottema/simple-java-mail/issues/165) Move away from Findbugs (unofficial JSR-305) annotations
+- [#164](https://github.com/bbottema/simple-java-mail/issues/164) The DKIM dependency has been updated to benefit from the newer Apache V2 license
+- [#164](https://github.com/bbottema/simple-java-mail/issues/164) The DKIM dependency has been updated to benefit from the newer Apache V2 license
+- [#184](https://github.com/bbottema/simple-java-mail/issues/184) Update JavaMail dependency to 1.6.2, adding support for UTF-8 charset
+- [#186](https://github.com/bbottema/simple-java-mail/issues/186) Update JavaMail dependency to 1.6.2, adding support for authenticated HTTP web proxy
+- [#146](https://github.com/bbottema/simple-java-mail/issues/146) Added OSGI manifest and switched to spotbugs
+
+**Aside from these all 3rd party libraries have been updated which solve a host of bugs, including better Outlook message parsing support.**
+
 
 v5.5.0 - [v5.5.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.5.1%7Cjar)
 

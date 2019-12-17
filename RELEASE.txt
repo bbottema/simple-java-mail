@@ -3,8 +3,59 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>5.5.1</version>
+    <version>6.0.0-rc1</version>
 </dependency>
+
+v6.0.0-rc1 (xx-December-2019, unreleased)
+
+After almost two years of development the next major release 6.0.0 is finally here! And what a doozy it is, with the following major new features:
+
+- [CLI support!!](https://github.com/bbottema/simple-java-mail/issues/156),
+- major performance improvement with [advanced batch processing](https://github.com/bbottema/simple-java-mail/issues/214) including support for mail server clusters.
+- You can now replace the final sending of emails with [your own logic](https://github.com/bbottema/simple-java-mail/issues/121), using a 3rd party service of your choice.
+- 6.0.0 also includes support for [S/MIME signed and encrypted emails](https://github.com/bbottema/simple-java-mail/issues/187)!
+- All 3rd party dependencies have been made optional by splitting up Simple Java Mail into easy to use [modules](https://github.com/bbottema/simple-java-mail/issues/183).
+- You can now monitor and [handle async processing](https://github.com/bbottema/simple-java-mail/issues/148) using Futures.
+- MimeMessage results are now [structurally matched](https://github.com/bbottema/simple-java-mail/issues/144) to specific needs (only using alternative/mixed etc. when needed)
+
+Here's the complete list of changes:
+
+#### New features and enhancements ####
+- #183: To manage all the optional dependencies and related code, Simple Java Mail should be split up into modules
+- #156: Add CLI support
+- #214: Support more advanced batch processing use cases
+- #187: Simple Java Mail should have optional support for signed S/MIME attachments
+- #121: Introduce interfaces for validation and sending, so these steps can be customized
+- #144: Simple Java Mail should tailor the MimeMessage structure to specific needs
+- #138: Add support for Calendar events (iCalendar vEvent)
+- #235: Be able to fix the sent date for a new email
+- #232: Improve encoding of attachment file names
+- #222: Add config property support for trusting hosts and verifying server identity
+- #212: Authenticated proxy server started even if already running, raising exception
+- #207: Implement more comprehensive ThreadPoolExecutor and expose config options
+- #211: SpringSupport should expose the intermediate builder for customization
+- #193: Simple Java Mail should use default server ports when not provided by the user
+
+#### Bugs solved ####
+- #236: Message ID should be mapped from Outlook messages as well
+- #210: Connection/session timeout properties not set when not sending in batch mode
+- #201: When parsing Outlook message, FROM address should default to a dummy address when missing
+- #200: When parsing Outlook message, attachment name doesn't fallback on filename if proper name is empty
+- #161: When reading (chinese) .msg files, HTML converted from RTF is completely garbled (encoding issue)
+- #159: Can not parse email with blank email address headers
+- #139: Multiple Bodyparts of same Content-Type not supported for text/html & text/plain within Multipart/mixed or Multipart/alternative
+- #151: Attachment's file extension overwritten by resource's invalid extension
+
+#### Maintenance updates ####
+- #165: Move away from Findbugs (unofficial JSR-305) annotations
+- #164: The DKIM dependency has been updated to benefit from the newer Apache V2 license
+- #164: The DKIM dependency has been updated to benefit from the newer Apache V2 license
+- #184: Update JavaMail dependency to 1.6.2, adding support for UTF-8 charset
+- #186: Update JavaMail dependency to 1.6.2, adding support for authenticated HTTP web proxy
+- #146: Added OSGI manifest and switched to spotbugs
+
+**Aside from these all 3rd party libraries have been updated which solve a host of bugs, including better Outlook message parsing support.**
+
 
 v5.5.0 - [v5.5.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.5.1%7Cjar)
 
