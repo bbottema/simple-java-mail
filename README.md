@@ -73,7 +73,22 @@ Here's the complete list of changes:
 - [#186](https://github.com/bbottema/simple-java-mail/issues/186) Update JavaMail dependency to 1.6.2, adding support for authenticated HTTP web proxy
 - [#146](https://github.com/bbottema/simple-java-mail/issues/146) Added OSGI manifest and switched to spotbugs
 
-**Aside from these all 3rd party libraries have been updated which solve a host of bugs, including better Outlook message parsing support.**
+#### Included changes from outlook-message-parser ####
+- v1.5.0: [#20](https://github.com/bbottema/outlook-message-parser/issues/20) CC and BCC recipients are not parsed properly
+- v1.5.0: [#19](https://github.com/bbottema/outlook-message-parser/issues/19) Use real Outlook ContentId Attribute to resolve CID Attachments
+- v1.4.1: [#17](https://github.com/bbottema/outlook-message-parser/issues/17) Fixed encoding error for UTF-8's Windows legacy name (cp)65001
+- v1.4.0: [#9](https://github.com/bbottema/outlook-message-parser/issues/9) Replaced the RFC to HTML converter with a brand new RFC-compliant convert! (thanks to @fadeyev!)
+- v1.3.0: [#14](https://github.com/bbottema/outlook-message-parser/issues/14) Dependency problem with Java9+, missing Jakarta Activation Framework
+- v1.3.0: [#13](https://github.com/bbottema/outlook-message-parser/issues/13) HTML start tags with extra space not handled correctly
+- v1.3.0: [#11](https://github.com/bbottema/outlook-message-parser/issues/11) SimpleRTF2HTMLConverter inserts too many <br/> tags
+- v1.3.0: [#10](https://github.com/bbottema/outlook-message-parser/issues/10) Embedded images with DOS-like names are classified as attachments
+- v1.3.0: [#9](https://github.com/bbottema/outlook-message-parser/issues/9) SimpleRTF2HTMLConverter removes some valid tags during conversion
+- v1.2.1: Ignore non S/MIME related content types when extracting S/MIME metadata
+- v1.2.1: Added toString and equals methods to the S/MIME data classes
+- v1.1.21: Upgraded mediatype recognition based on file extension for incomplete attachments
+- v1.1.21: Added / improved support for public S/MIME meta data
+- v1.1.20: [#7](https://github.com/bbottema/outlook-message-parser/issues/7) Fix missing S/MIME header details that are needed to determine the type of S/MIME application
+- v1.1.19: Log rtf compression error, but otherwise ignore it and keep going and extract what we can.
 
 
 v5.5.0 - [v5.5.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.5.1%7Cjar)
