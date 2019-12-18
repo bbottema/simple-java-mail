@@ -1,14 +1,9 @@
   =========================================================================
   ==  NOTICE file for use with the Apache License, Version 2.0           ==
   =========================================================================
-  
-  Simple Java Mail - Core module
+
+  Simple Java Mail - Master Project
   Copyright (C) 2009 Benny Bottema (benny@bennybottema.com)
   http://www.simplejavamail.org
-  
-  This product uses no commercial products.
-  
-  This product uses the following external (Open Source) libraries:
 
-    - Jakarta Mail (https://eclipse-ee4j.github.io/mail/)
-    - Jakarta Activation (https://eclipse-ee4j.github.io/jaf/)
+  This product uses no commercial products.
