@@ -25,7 +25,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 ### Latest Progress ###
 
-[v6.0.0-rc1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.0.0-rc1%7Cjar) (xx-December-2019, unreleased)
+[v6.0.0-rc1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.0.0-rc1%7Cjar) (18-December-2019)
 
 After almost two years of development the next major release 6.0.0 is finally here! And what a doozy it is, with the following major new features:
 

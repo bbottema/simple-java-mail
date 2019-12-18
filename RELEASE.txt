@@ -6,7 +6,7 @@ http://www.simplejavamail.org
     <version>6.0.0-rc1</version>
 </dependency>
 
-v6.0.0-rc1 (xx-December-2019, unreleased)
+v6.0.0-rc1 (18-December-2019)
 
 After almost two years of development the next major release 6.0.0 is finally here! And what a doozy it is, with the following major new features:
 
