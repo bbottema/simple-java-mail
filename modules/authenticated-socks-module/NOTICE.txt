@@ -2,7 +2,7 @@
   ==  NOTICE file for use with the Apache License, Version 2.0           ==
   =========================================================================
   
-  Simple Java Mail - DKIM module
+  Simple Java Mail - Authenticated SOCKS module
   Copyright (C) 2009 Benny Bottema (benny@bennybottema.com)
   http://www.simplejavamail.org
   
