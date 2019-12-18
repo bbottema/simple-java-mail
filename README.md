@@ -92,6 +92,11 @@ Here's the complete list of changes:
 - v1.1.20: [#7](https://github.com/bbottema/outlook-message-parser/issues/7) Fix missing S/MIME header details that are needed to determine the type of S/MIME application
 - v1.1.19: Log rtf compression error, but otherwise ignore it and keep going and extract what we can.
 
+**A big shout out to @dnault ([runtime javadoc](https://github.com/dnault/therapi-runtime-javadoc)), @remkop ([picocli](https://picocli.info/)) and @markenwerk
+([S/MIME](https://github.com/markenwerk/java-utils-mail-smime) and [DKIM](https://github.com/markenwerk/java-utils-mail-dkim)) for working with me to make the
+libraries work with JDK7+ and do what Simple Java Mail needed! Finally a great many thanks the numerous contributors on Simple Java Mail as well as
+[outlook-message-parser](https://github.com/bbottema/outlook-message-parser) - this release would not be there without you.**
+
 
 v5.5.0 - [v5.5.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.5.1%7Cjar)
 
