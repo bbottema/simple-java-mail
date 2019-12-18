@@ -29,6 +29,8 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 After almost two years of development the next major release 6.0.0 is finally here! And what a doozy it is, with the following major new features:
 
+The core library is now even smaller compared to the 5.x.x series going from 183kb to 134kb!
+
 - [CLI support!!](https://github.com/bbottema/simple-java-mail/issues/156), 
 - major performance improvement with [advanced batch processing](https://github.com/bbottema/simple-java-mail/issues/214) including support for mail server clusters. 
 - You can now replace the final sending of emails with [your own logic](https://github.com/bbottema/simple-java-mail/issues/121), using a 3rd party service of your choice. 
