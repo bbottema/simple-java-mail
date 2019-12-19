@@ -12,7 +12,7 @@
     <groupId>org.simplejavamail</groupId>
     <artifactId>maven-master-project</artifactId>
     <packaging>pom</packaging>
-    <version>6.0.0-rc1</version>
+    <version>6.0.0-rc2</version>
     <inceptionYear>2009</inceptionYear>
 
     <name>Simple Java Mail - Maven master project</name>
