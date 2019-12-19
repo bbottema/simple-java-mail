@@ -1,5 +1,6 @@
 package org.simplejavamail.springsupport;
 
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.config.ConfigLoader;
@@ -79,49 +80,49 @@ public class SimpleJavaMailSpringSupport {
 	public MailerGenericBuilder<?> loadGlobalConfigAndCreateDefaultMailer(
 			// now obviously there are easier ways to do this, but this is the only way
 			// I can think of that actually works across Spring versions
-			@Value("${simplejavamail.javaxmail.debug:#{null}}") final String javaxmailDebug,
-			@Value("${simplejavamail.transportstrategy:#{null}}") final String transportstrategy,
-			@Value("${simplejavamail.smtp.host:#{null}}") final String smtpHost,
-			@Value("${simplejavamail.smtp.port:#{null}}") final String smtpPort,
-			@Value("${simplejavamail.smtp.username:#{null}}") final String smtpUsername,
-			@Value("${simplejavamail.smtp.password:#{null}}") final String smtpPassword,
-			@Value("${simplejavamail.proxy.host:#{null}}") final String proxyHost,
-			@Value("${simplejavamail.proxy.port:#{null}}") final String proxyPort,
-			@Value("${simplejavamail.proxy.username:#{null}}") final String proxyUsername,
-			@Value("${simplejavamail.proxy.password:#{null}}") final String proxyPassword,
-			@Value("${simplejavamail.proxy.socks5bridge.port:#{null}}") final String proxySocks5bridgePort,
-			@Value("${simplejavamail.defaults.subject:#{null}}") final String defaultSubject,
-			@Value("${simplejavamail.defaults.from.name:#{null}}") final String defaultFromName,
-			@Value("${simplejavamail.defaults.from.address:#{null}}") final String defaultFromAddress,
-			@Value("${simplejavamail.defaults.replyto.name:#{null}}") final String defaultReplytoName,
-			@Value("${simplejavamail.defaults.replyto.address:#{null}}") final String defaultReplytoAddress,
-			@Value("${simplejavamail.defaults.bounceto.name:#{null}}") final String defaultBouncetoName,
-			@Value("${simplejavamail.defaults.bounceto.address:#{null}}") final String defaultBouncetoAddress,
-			@Value("${simplejavamail.defaults.to.name:#{null}}") final String defaultToName,
-			@Value("${simplejavamail.defaults.to.address:#{null}}") final String defaultToAddress,
-			@Value("${simplejavamail.defaults.cc.name:#{null}}") final String defaultCcName,
-			@Value("${simplejavamail.defaults.cc.address:#{null}}") final String defaultCcAddress,
-			@Value("${simplejavamail.defaults.bcc.name:#{null}}") final String defaultBccName,
-			@Value("${simplejavamail.defaults.bcc.address:#{null}}") final String defaultBccAddress,
-			@Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
-			@Value("${simplejavamail.defaults.poolsize.keepalivetime:#{null}}") final String defaultPoolKeepAlivetime,
-			@Value("${simplejavamail.defaults.connectionpool.clusterkey.uuid:#{null}}") final String defaultConnectionPoolCluterKey,
-			@Value("${simplejavamail.defaults.connectionpool.coresize:#{null}}") final String defaultConnectionPoolCoreSize,
-			@Value("${simplejavamail.defaults.connectionpool.maxsize:#{null}}") final String defaultConnectionPoolMaxSize,
-			@Value("${simplejavamail.defaults.connectionpool.claimtimeout.millis:#{null}}") final String defaultConnectionPoolClaimTimeoutMillis,
-			@Value("${simplejavamail.defaults.connectionpool.expireafter.millis:#{null}}") final String defaultConnectionPoolExpireAfterMillis,
-			@Value("${simplejavamail.defaults.connectionpool.loadbalancing.strategy:#{null}}") final String defaultConnectionPoolLoadBalancingStrategy,
-			@Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
-			@Value("${simplejavamail.defaults.trustallhosts:#{null}}") final String defaultTrustAllHosts,
-			@Value("${simplejavamail.defaults.trustedhosts:#{null}}") final String defaultTrustedHosts,
-			@Value("${simplejavamail.defaults.verifyserveridentity:#{null}}") final String defaultVerifyServerIdentity,
-			@Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly,
-			@Value("${simplejavamail.opportunistic.tls:#{null}}") final String defaultOpportunisticTls,
-			@Value("${simplejavamail.smime.signing.keystore:#{null}}") final String smimeSigningKeyStore,
-			@Value("${simplejavamail.smime.signing.keystore_password:#{null}}") final String smimeSigningKeyStorePassword,
-			@Value("${simplejavamail.smime.signing.key_alias:#{null}}") final String smimeSigningKeyAlias,
-			@Value("${simplejavamail.smime.signing.key_password:#{null}}") final String smimeSigningKeyPassword,
-			@Value("${simplejavamail.smime.encryption.certificate:#{null}}") final String smimeEncryptionCertificate) {
+			@Nullable @Value("${simplejavamail.javaxmail.debug:#{null}}") final String javaxmailDebug,
+			@Nullable @Value("${simplejavamail.transportstrategy:#{null}}") final String transportstrategy,
+			@Nullable @Value("${simplejavamail.smtp.host:#{null}}") final String smtpHost,
+			@Nullable @Value("${simplejavamail.smtp.port:#{null}}") final String smtpPort,
+			@Nullable @Value("${simplejavamail.smtp.username:#{null}}") final String smtpUsername,
+			@Nullable @Value("${simplejavamail.smtp.password:#{null}}") final String smtpPassword,
+			@Nullable @Value("${simplejavamail.proxy.host:#{null}}") final String proxyHost,
+			@Nullable @Value("${simplejavamail.proxy.port:#{null}}") final String proxyPort,
+			@Nullable @Value("${simplejavamail.proxy.username:#{null}}") final String proxyUsername,
+			@Nullable @Value("${simplejavamail.proxy.password:#{null}}") final String proxyPassword,
+			@Nullable @Value("${simplejavamail.proxy.socks5bridge.port:#{null}}") final String proxySocks5bridgePort,
+			@Nullable @Value("${simplejavamail.defaults.subject:#{null}}") final String defaultSubject,
+			@Nullable @Value("${simplejavamail.defaults.from.name:#{null}}") final String defaultFromName,
+			@Nullable @Value("${simplejavamail.defaults.from.address:#{null}}") final String defaultFromAddress,
+			@Nullable @Value("${simplejavamail.defaults.replyto.name:#{null}}") final String defaultReplytoName,
+			@Nullable @Value("${simplejavamail.defaults.replyto.address:#{null}}") final String defaultReplytoAddress,
+			@Nullable @Value("${simplejavamail.defaults.bounceto.name:#{null}}") final String defaultBouncetoName,
+			@Nullable @Value("${simplejavamail.defaults.bounceto.address:#{null}}") final String defaultBouncetoAddress,
+			@Nullable @Value("${simplejavamail.defaults.to.name:#{null}}") final String defaultToName,
+			@Nullable @Value("${simplejavamail.defaults.to.address:#{null}}") final String defaultToAddress,
+			@Nullable @Value("${simplejavamail.defaults.cc.name:#{null}}") final String defaultCcName,
+			@Nullable @Value("${simplejavamail.defaults.cc.address:#{null}}") final String defaultCcAddress,
+			@Nullable @Value("${simplejavamail.defaults.bcc.name:#{null}}") final String defaultBccName,
+			@Nullable @Value("${simplejavamail.defaults.bcc.address:#{null}}") final String defaultBccAddress,
+			@Nullable @Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
+			@Nullable @Value("${simplejavamail.defaults.poolsize.keepalivetime:#{null}}") final String defaultPoolKeepAlivetime,
+			@Nullable @Value("${simplejavamail.defaults.connectionpool.clusterkey.uuid:#{null}}") final String defaultConnectionPoolCluterKey,
+			@Nullable @Value("${simplejavamail.defaults.connectionpool.coresize:#{null}}") final String defaultConnectionPoolCoreSize,
+			@Nullable @Value("${simplejavamail.defaults.connectionpool.maxsize:#{null}}") final String defaultConnectionPoolMaxSize,
+			@Nullable @Value("${simplejavamail.defaults.connectionpool.claimtimeout.millis:#{null}}") final String defaultConnectionPoolClaimTimeoutMillis,
+			@Nullable @Value("${simplejavamail.defaults.connectionpool.expireafter.millis:#{null}}") final String defaultConnectionPoolExpireAfterMillis,
+			@Nullable @Value("${simplejavamail.defaults.connectionpool.loadbalancing.strategy:#{null}}") final String defaultConnectionPoolLoadBalancingStrategy,
+			@Nullable @Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
+			@Nullable @Value("${simplejavamail.defaults.trustallhosts:#{null}}") final String defaultTrustAllHosts,
+			@Nullable @Value("${simplejavamail.defaults.trustedhosts:#{null}}") final String defaultTrustedHosts,
+			@Nullable @Value("${simplejavamail.defaults.verifyserveridentity:#{null}}") final String defaultVerifyServerIdentity,
+			@Nullable @Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly,
+			@Nullable @Value("${simplejavamail.opportunistic.tls:#{null}}") final String defaultOpportunisticTls,
+			@Nullable @Value("${simplejavamail.smime.signing.keystore:#{null}}") final String smimeSigningKeyStore,
+			@Nullable @Value("${simplejavamail.smime.signing.keystore_password:#{null}}") final String smimeSigningKeyStorePassword,
+			@Nullable @Value("${simplejavamail.smime.signing.key_alias:#{null}}") final String smimeSigningKeyAlias,
+			@Nullable @Value("${simplejavamail.smime.signing.key_password:#{null}}") final String smimeSigningKeyPassword,
+			@Nullable @Value("${simplejavamail.smime.encryption.certificate:#{null}}") final String smimeEncryptionCertificate) {
 		final Properties emailProperties = new Properties();
 		setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG.key(), javaxmailDebug);
 		setNullableProperty(emailProperties, Property.TRANSPORT_STRATEGY.key(), transportstrategy);
@@ -174,7 +175,7 @@ public class SimpleJavaMailSpringSupport {
 		return new MailerRegularBuilderImpl();
 	}
 
-	private static void setNullableProperty(final Properties emailProperties, final String key, final String value) {
+	private static void setNullableProperty(final Properties emailProperties, final String key, @Nullable final String value) {
 		if (value != null) {
 			emailProperties.setProperty(key, value);
 		}
