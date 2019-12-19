@@ -4,7 +4,6 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
-import org.simplejavamail.mailer.internal.MailerImpl;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
