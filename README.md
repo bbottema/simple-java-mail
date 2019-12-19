@@ -31,13 +31,13 @@ After almost two years of development the next major release 6.0.0 is finally he
 
 The core library is now even smaller compared to the 5.x.x series going from 183kb to 134kb!
 
-- [CLI support!!](https://github.com/bbottema/simple-java-mail/issues/156), 
-- major performance improvement with [advanced batch processing](https://github.com/bbottema/simple-java-mail/issues/214) including support for mail server clusters. 
-- You can now replace the final sending of emails with [your own logic](https://github.com/bbottema/simple-java-mail/issues/121), using a 3rd party service of your choice. 
-- 6.0.0 also includes support for [S/MIME signed and encrypted emails](https://github.com/bbottema/simple-java-mail/issues/187)! 
-- All 3rd party dependencies have been made optional by splitting up Simple Java Mail into easy to use [modules](https://github.com/bbottema/simple-java-mail/issues/183).
-- You can now monitor and [handle async processing](https://github.com/bbottema/simple-java-mail/issues/148) using Futures.
-- MimeMessage results are now [structurally matched](https://github.com/bbottema/simple-java-mail/issues/144) to specific needs (only using alternative/mixed etc. when needed) 
+- [CLI support!!](http://www.simplejavamail.org/cli.html#navigation), 
+- major performance improvement with [advanced batch processing](http://www.simplejavamail.org/configuration.html#section-batch-and-clustering) including support for mail server clusters. 
+- You can now replace the final sending of emails with [your own logic](http://www.simplejavamail.org/features.html#section-custom-mailer), using a 3rd party service of your choice. 
+- 6.0.0 also includes support for [S/MIME signed and encrypted emails](http://www.simplejavamail.org/features.html#section-smime)! 
+- All 3rd party dependencies have been made optional by splitting up Simple Java Mail into easy to use [modules](http://www.simplejavamail.org/modules.html#navigation).
+- You can now monitor and [handle async processing](http://www.simplejavamail.org/features.html#section-handling-async-result) using Futures.
+- MimeMessage results are now [structurally matched](http://www.simplejavamail.org/rfc-compliant.html#section-explore-multipart) to specific needs (only using alternative/mixed etc. when needed) 
 
 Here's the complete list of changes:
 
