@@ -35,10 +35,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -130,7 +128,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #bcc(Recipient...)
 	 */
 	@NotNull
-	private final Set<Recipient> recipients;
+	private final List<Recipient> recipients;
 	
 	/**
 	 * @see #withEmbeddedImage(String, DataSource)
@@ -250,7 +248,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailStartingBuilder#startingBlank()
 	 */
 	EmailPopulatingBuilderImpl(final boolean applyDefaults) {
-		recipients = new HashSet<>();
+		recipients = new ArrayList<>();
 		embeddedImages = new ArrayList<>();
 		attachments = new ArrayList<>();
 		decryptedAttachments = new ArrayList<>();
