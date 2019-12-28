@@ -3,7 +3,6 @@
 [![Javadocs](https://img.shields.io/badge/javadoc-6.0.0_rc2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.7+-lightgray.svg)
-[![Paypal Donate](https://img.shields.io/badge/buy%20me%20-a%20beer-blue.svg?style=flat)](https://paypal.me/bennybottema)
 
 # Simple Java Mail #
 
