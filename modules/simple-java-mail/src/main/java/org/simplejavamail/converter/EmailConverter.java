@@ -107,24 +107,24 @@ public final class EmailConverter {
 	/**
 	 * Delegates to {@link #outlookMsgToEmail(String, Pkcs12Config)}.
 	 *
-	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("unused")
 	@NotNull
-	public static Email outlookMsgToEmail(@NotNull final String msgFile) {
-		return outlookMsgToEmail(msgFile, null);
+	public static Email outlookMsgToEmail(@NotNull final String msgData) {
+		return outlookMsgToEmail(msgData, null);
 	}
 
 	/**
-	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
 	 *                        (only needed when the message is encrypted rather than just signed).
 	 */
 	@SuppressWarnings("deprecation")
 	@NotNull
-	public static Email outlookMsgToEmail(@NotNull final String msgFile, @Nullable final Pkcs12Config pkcs12Config) {
-		checkNonEmptyArgument(msgFile, "msgFile");
-		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
+	public static Email outlookMsgToEmail(@NotNull final String msgData, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(msgData, "msgFile");
+		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl());
 		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config)
 				.buildEmail();
 	}
@@ -372,9 +372,9 @@ public final class EmailConverter {
 	 * @return Result of {@link #outlookMsgToEmail(String, Pkcs12Config)} and {@link #emailToMimeMessage(Email)}.
 	 */
 	@NotNull
-	public static MimeMessage outlookMsgToMimeMessage(@NotNull final String msgFile, @Nullable final Pkcs12Config pkcs12Config) {
-		checkNonEmptyArgument(msgFile, "outlookMsgData");
-		return emailToMimeMessage(outlookMsgToEmail(msgFile, pkcs12Config));
+	public static MimeMessage outlookMsgToMimeMessage(@NotNull final String msgData, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(msgData, "outlookMsgData");
+		return emailToMimeMessage(outlookMsgToEmail(msgData, pkcs12Config));
 	}
 
 	/**
@@ -535,9 +535,9 @@ public final class EmailConverter {
 	 * @return Result of {@link #outlookMsgToEmail(String, Pkcs12Config)} and {@link #emailToEML(Email)}
 	 */
 	@NotNull
-	public static String outlookMsgToEML(@NotNull final String msgFile, @Nullable final Pkcs12Config pkcs12Config) {
-		checkNonEmptyArgument(msgFile, "outlookMsgData");
-		return emailToEML(outlookMsgToEmail(msgFile, pkcs12Config));
+	public static String outlookMsgToEML(@NotNull final String msgData, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(msgData, "outlookMsgData");
+		return emailToEML(outlookMsgToEmail(msgData, pkcs12Config));
 	}
 
 	/**

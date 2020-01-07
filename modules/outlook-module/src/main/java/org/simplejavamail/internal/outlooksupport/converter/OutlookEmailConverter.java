@@ -2,6 +2,7 @@ package org.simplejavamail.internal.outlooksupport.converter;
 
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.internal.outlooksupport.internal.model.OutlookMessageProxy;
@@ -15,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
@@ -75,15 +77,23 @@ public class OutlookEmailConverter implements OutlookModule {
 	}
 	
 	private static void copyReceiversFromOutlookMessage(@NotNull EmailPopulatingBuilder builder, @NotNull OutlookMessage outlookMessage) {
-		for (final OutlookRecipient to : outlookMessage.getRecipients()) {
-			builder.to(to.getName(), to.getAddress());
-		}
 		//noinspection QuestionableName
 		for (final OutlookRecipient cc : outlookMessage.getCcRecipients()) {
 			builder.cc(cc.getName(), cc.getAddress());
 		}
 		for (final OutlookRecipient bcc : outlookMessage.getBccRecipients()) {
 			builder.bcc(bcc.getName(), bcc.getAddress());
+		}
+		// only add remaining recipients...
+		outerloop:
+		for (final OutlookRecipient to : outlookMessage.getRecipients()) {
+			for (final Recipient recipient : builder.getRecipients()) {
+				if (Objects.equals(recipient.getName(), to.getName()) &&
+						Objects.equals(recipient.getAddress(), to.getAddress())) {
+					continue outerloop;
+				}
+			}
+			builder.to(to.getName(), to.getAddress());
 		}
 	}
 	
