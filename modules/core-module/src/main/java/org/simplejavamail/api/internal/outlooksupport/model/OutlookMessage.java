@@ -40,14 +40,10 @@ public interface OutlookMessage {
 	
 	String getSubject();
 	
-	String getToEmail();
-	
-	String getToName();
-	
-	OutlookRecipient getToRecipient();
-	
+	List<OutlookRecipient> getToRecipients();
+
 	List<OutlookRecipient> getCcRecipients();
-	
+
 	List<OutlookRecipient> getBccRecipients();
 	
 	@SuppressWarnings("ElementOnlyUsedFromTestCode")

@@ -78,22 +78,14 @@ public class OutlookEmailConverter implements OutlookModule {
 	
 	private static void copyReceiversFromOutlookMessage(@NotNull EmailPopulatingBuilder builder, @NotNull OutlookMessage outlookMessage) {
 		//noinspection QuestionableName
+		for (final OutlookRecipient to : outlookMessage.getToRecipients()) {
+			builder.to(to.getName(), to.getAddress());
+		}
 		for (final OutlookRecipient cc : outlookMessage.getCcRecipients()) {
 			builder.cc(cc.getName(), cc.getAddress());
 		}
 		for (final OutlookRecipient bcc : outlookMessage.getBccRecipients()) {
 			builder.bcc(bcc.getName(), bcc.getAddress());
-		}
-		// only add remaining recipients...
-		outerloop:
-		for (final OutlookRecipient to : outlookMessage.getRecipients()) {
-			for (final Recipient recipient : builder.getRecipients()) {
-				if (Objects.equals(recipient.getName(), to.getName()) &&
-						Objects.equals(recipient.getAddress(), to.getAddress())) {
-					continue outerloop;
-				}
-			}
-			builder.to(to.getName(), to.getAddress());
 		}
 	}
 	

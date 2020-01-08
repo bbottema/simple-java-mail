@@ -104,18 +104,8 @@ public class OutlookMessageProxy implements OutlookMessage {
 	}
 
 	@Override
-	public String getToEmail() {
-		return delegate.getToEmail();
-	}
-
-	@Override
-	public String getToName() {
-		return delegate.getToName();
-	}
-
-	@Override
-	public OutlookRecipient getToRecipient() {
-		return new OutlookRecipientProxy(delegate.getToRecipient());
+	public List<OutlookRecipient> getToRecipients() {
+		return wrapRecipients(delegate.getToRecipients());
 	}
 
 	@Override
