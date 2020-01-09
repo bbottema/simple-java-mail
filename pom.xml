@@ -135,6 +135,9 @@
                                     <excludes>
                                         <!-- tests seem to work fine with the version Maven's dependency resolution defaults to -->
                                         <exclude>org.objenesis:objenesis</exclude>
+                                        <!-- these are manually managed versions -->
+                                        <exclude>org.apache.poi:poi</exclude>
+                                        <exclude>org.apache.poi:poi-scratchpad</exclude>
                                     </excludes>
                                 </requireUpperBoundDeps>
                             </rules>
