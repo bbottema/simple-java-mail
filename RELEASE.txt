@@ -3,10 +3,10 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.0.0-rc3</version>
+    <version>6.0.0-rc4</version>
 </dependency>
 
-v6.0.0-rc1 - v6.0.0-rc3 (18-December-2019 - 8-January-2020)
+v6.0.0-rc1 - v6.0.0-rc4 (18-December-2019 - 9-January-2020)
 
 After almost two years of development the next major release 6.0.0 is finally here! And what a doozy it is, with the following major new features:
 
@@ -39,6 +39,9 @@ Here's the complete list of changes:
 - #193: Simple Java Mail should use default server ports when not provided by the user
 
 #### Bugs solved ####
+- #242: Renamed log4j2.xml to log4j2_example.xml so it doesn't clash with project config
+- #241: EmailConverter.outlookMsgToEmail duplicates recipients
+- #239: List of Recipients not ordered as added (insertion order not maintained)
 - #236: Message ID should be mapped from Outlook messages as well
 - #210: Connection/session timeout properties not set when not sending in batch mode
 - #201: When parsing Outlook message, FROM address should default to a dummy address when missing
