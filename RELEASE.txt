@@ -3,10 +3,10 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.0.0-rc4</version>
+    <version>6.0.0</version>
 </dependency>
 
-v6.0.0-rc1 - v6.0.0-rc4 (18-December-2019 - 9-January-2020)
+v6.0.0-rc1 - v6.0.0 (18-December-2019 - 24-January-2020)
 
 After almost two years of development the next major release 6.0.0 is finally here! And what a doozy it is, with the following major new features:
 
@@ -60,6 +60,10 @@ Here's the complete list of changes:
 - #146: Added OSGI manifest and switched to spotbugs
 
 #### Included changes from the outlook-message-parser dependency ####
+- v1.7.1: #25: NPE on ClientSubmitTime when original message has not been sent yet
+- v1.7.1: #23: Bug: __nameid_ directory should not be parsed (and causing invalid HTML body)
+- v1.7.0: #18: Upgrade Apache POI 3.9 -> 4.x (but managed back for Simple Java Mail due to incompatibility with Java 7)
+- v1.6.0: #21: Multiple TO recipients are not handles properly
 - v1.5.0: #20: CC and BCC recipients are not parsed properly
 - v1.5.0: #19: Use real Outlook ContentId Attribute to resolve CID Attachments
 - v1.4.1: #17: Fixed encoding error for UTF-8's Windows legacy name (cp)65001
