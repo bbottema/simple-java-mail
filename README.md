@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%226.0.0%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-6.0.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%226.0.1%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-6.0.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.7+-lightgray.svg)
 
@@ -18,13 +18,13 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.0.0</version>
+    <version>6.0.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v6.0.0-rc1 - [v6.0.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.0.0%7Cjar) (18-December-2019 - 24-January-2020)
+v6.0.0-rc1 - [v6.0.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.0.1%7Cjar) (18-December-2019 - 24-January-2020)
 
 After almost two years of development the next major release 6.0.0 is finally here! And what a doozy it is, with the following major new features:
 
@@ -78,25 +78,27 @@ Here's the complete list of changes:
 - [#146](https://github.com/bbottema/simple-java-mail/issues/146) Added OSGI manifest and switched to spotbugs
 
 #### Included changes from outlook-message-parser ####
-- v1.7.1: [#25](https://github.com/bbottema/outlook-message-parser/issues/25) NPE on ClientSubmitTime when original message has not been sent yet
-- v1.7.1: [#23](https://github.com/bbottema/outlook-message-parser/issues/23) Bug: __nameid_ directory should not be parsed (and causing invalid HTML body)
-- v1.7.0: [#18](https://github.com/bbottema/outlook-message-parser/issues/18) Upgrade Apache POI 3.9 -> 4.x (but managed back for Simple Java Mail due to incompatibility with Java 7)
-- v1.6.0: [#21](https://github.com/bbottema/outlook-message-parser/issues/21) Multiple TO recipients are not handles properly
-- v1.5.0: [#20](https://github.com/bbottema/outlook-message-parser/issues/20) CC and BCC recipients are not parsed properly
-- v1.5.0: [#19](https://github.com/bbottema/outlook-message-parser/issues/19) Use real Outlook ContentId Attribute to resolve CID Attachments
-- v1.4.1: [#17](https://github.com/bbottema/outlook-message-parser/issues/17) Fixed encoding error for UTF-8's Windows legacy name (cp)65001
-- v1.4.0: [#9](https://github.com/bbottema/outlook-message-parser/issues/9) Replaced the RFC to HTML converter with a brand new RFC-compliant convert! (thanks to @fadeyev!)
-- v1.3.0: [#14](https://github.com/bbottema/outlook-message-parser/issues/14) Dependency problem with Java9+, missing Jakarta Activation Framework
-- v1.3.0: [#13](https://github.com/bbottema/outlook-message-parser/issues/13) HTML start tags with extra space not handled correctly
-- v1.3.0: [#11](https://github.com/bbottema/outlook-message-parser/issues/11) SimpleRTF2HTMLConverter inserts too many <br/> tags
-- v1.3.0: [#10](https://github.com/bbottema/outlook-message-parser/issues/10) Embedded images with DOS-like names are classified as attachments
-- v1.3.0: [#9](https://github.com/bbottema/outlook-message-parser/issues/9) SimpleRTF2HTMLConverter removes some valid tags during conversion
-- v1.2.1: Ignore non S/MIME related content types when extracting S/MIME metadata
-- v1.2.1: Added toString and equals methods to the S/MIME data classes
-- v1.1.21: Upgraded mediatype recognition based on file extension for incomplete attachments
-- v1.1.21: Added / improved support for public S/MIME meta data
-- v1.1.20: [#7](https://github.com/bbottema/outlook-message-parser/issues/7) Fix missing S/MIME header details that are needed to determine the type of S/MIME application
-- v1.1.19: Log rtf compression error, but otherwise ignore it and keep going and extract what we can.
+- v6.0.1, v1.7.3: [#27](https://github.com/bbottema/outlook-message-parser/issues/27) When from name/address are not available (unsent emails), these fields are filled with binary garbage
+- v6.0.1, v1.7.2: [#26](https://github.com/bbottema/outlook-message-parser/issues/26) To email address is not handled properly when name is omitted
+- v6.0.0, v1.7.1: [#25](https://github.com/bbottema/outlook-message-parser/issues/25) NPE on ClientSubmitTime when original message has not been sent yet
+- v6.0.0, v1.7.1: [#23](https://github.com/bbottema/outlook-message-parser/issues/23) Bug: __nameid_ directory should not be parsed (and causing invalid HTML body)
+- v6.0.0, v1.7.0: [#18](https://github.com/bbottema/outlook-message-parser/issues/18) Upgrade Apache POI 3.9 -> 4.x (but managed back for Simple Java Mail due to incompatibility with Java 7)
+- v6.0.0, v1.6.0: [#21](https://github.com/bbottema/outlook-message-parser/issues/21) Multiple TO recipients are not handles properly
+- v6.0.0, v1.5.0: [#20](https://github.com/bbottema/outlook-message-parser/issues/20) CC and BCC recipients are not parsed properly
+- v6.0.0, v1.5.0: [#19](https://github.com/bbottema/outlook-message-parser/issues/19) Use real Outlook ContentId Attribute to resolve CID Attachments
+- v6.0.0, v1.4.1: [#17](https://github.com/bbottema/outlook-message-parser/issues/17) Fixed encoding error for UTF-8's Windows legacy name (cp)65001
+- v6.0.0, v1.4.0: [#9](https://github.com/bbottema/outlook-message-parser/issues/9) Replaced the RFC to HTML converter with a brand new RFC-compliant convert! (thanks to @fadeyev!)
+- v6.0.0, v1.3.0: [#14](https://github.com/bbottema/outlook-message-parser/issues/14) Dependency problem with Java9+, missing Jakarta Activation Framework
+- v6.0.0, v1.3.0: [#13](https://github.com/bbottema/outlook-message-parser/issues/13) HTML start tags with extra space not handled correctly
+- v6.0.0, v1.3.0: [#11](https://github.com/bbottema/outlook-message-parser/issues/11) SimpleRTF2HTMLConverter inserts too many <br/> tags
+- v6.0.0, v1.3.0: [#10](https://github.com/bbottema/outlook-message-parser/issues/10) Embedded images with DOS-like names are classified as attachments
+- v6.0.0, v1.3.0: [#9](https://github.com/bbottema/outlook-message-parser/issues/9) SimpleRTF2HTMLConverter removes some valid tags during conversion
+- v6.0.0, v1.2.1: Ignore non S/MIME related content types when extracting S/MIME metadata
+- v6.0.0, v1.2.1: Added toString and equals methods to the S/MIME data classes
+- v6.0.0, v1.1.21: Upgraded mediatype recognition based on file extension for incomplete attachments
+- v6.0.0, v1.1.21: Added / improved support for public S/MIME meta data
+- v6.0.0, v1.1.20: [#7](https://github.com/bbottema/outlook-message-parser/issues/7) Fix missing S/MIME header details that are needed to determine the type of S/MIME application
+- v6.0.0, v1.1.19: Log rtf compression error, but otherwise ignore it and keep going and extract what we can.
 
 **A big shout out to @dnault ([runtime javadoc](https://github.com/dnault/therapi-runtime-javadoc)), @remkop ([picocli](https://picocli.info/)) and @markenwerk
 ([S/MIME](https://github.com/markenwerk/java-utils-mail-smime) and [DKIM](https://github.com/markenwerk/java-utils-mail-dkim)) for working with me to make the

@@ -3,10 +3,10 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.0.0</version>
+    <version>6.0.1</version>
 </dependency>
 
-v6.0.0-rc1 - v6.0.0 (18-December-2019 - 24-January-2020)
+v6.0.0-rc1 - v6.0.1 (18-December-2019 - 24-January-2020)
 
 After almost two years of development the next major release 6.0.0 is finally here! And what a doozy it is, with the following major new features:
 
@@ -60,25 +60,27 @@ Here's the complete list of changes:
 - #146: Added OSGI manifest and switched to spotbugs
 
 #### Included changes from the outlook-message-parser dependency ####
-- v1.7.1: #25: NPE on ClientSubmitTime when original message has not been sent yet
-- v1.7.1: #23: Bug: __nameid_ directory should not be parsed (and causing invalid HTML body)
-- v1.7.0: #18: Upgrade Apache POI 3.9 -> 4.x (but managed back for Simple Java Mail due to incompatibility with Java 7)
-- v1.6.0: #21: Multiple TO recipients are not handles properly
-- v1.5.0: #20: CC and BCC recipients are not parsed properly
-- v1.5.0: #19: Use real Outlook ContentId Attribute to resolve CID Attachments
-- v1.4.1: #17: Fixed encoding error for UTF-8's Windows legacy name (cp)65001
-- v1.4.0: #9: Replaced the RFC to HTML converter with a brand new RFC-compliant convert! (thanks to @fadeyev!)
-- v1.3.0: #14: Dependency problem with Java9+, missing Jakarta Activation Framework
-- v1.3.0: #13: HTML start tags with extra space not handled correctly
-- v1.3.0: #11: SimpleRTF2HTMLConverter inserts too many <br/> tags
-- v1.3.0: #10: Embedded images with DOS-like names are classified as attachments
-- v1.3.0: #9: SimpleRTF2HTMLConverter removes some valid tags during conversion
-- v1.2.1: Ignore non S/MIME related content types when extracting S/MIME metadata
-- v1.2.1: Added toString and equals methods to the S/MIME data classes
-- v1.1.21: Upgraded mediatype recognition based on file extension for incomplete attachments
-- v1.1.21: Added / improved support for public S/MIME meta data
-- v1.1.20: #7: Fix missing S/MIME header details that are needed to determine the type of S/MIME application
-- v1.1.19: Log rtf compression error, but otherwise ignore it and keep going and extract what we can.
+- v6.0.1, v1.7.3: #27: When from name/address are not available (unsent emails), these fields are filled with binary garbage
+- v6.0.1, v1.7.2: #26: To email address is not handled properly when name is omitted
+- v6.0.0, v1.7.1: #25: NPE on ClientSubmitTime when original message has not been sent yet
+- v6.0.0, v1.7.1: #23: Bug: __nameid_ directory should not be parsed (and causing invalid HTML body)
+- v6.0.0, v1.7.0: #18: Upgrade Apache POI 3.9 -> 4.x (but managed back for Simple Java Mail due to incompatibility with Java 7)
+- v6.0.0, v1.6.0: #21: Multiple TO recipients are not handles properly
+- v6.0.0, v1.5.0: #20: CC and BCC recipients are not parsed properly
+- v6.0.0, v1.5.0: #19: Use real Outlook ContentId Attribute to resolve CID Attachments
+- v6.0.0, v1.4.1: #17: Fixed encoding error for UTF-8's Windows legacy name (cp)65001
+- v6.0.0, v1.4.0: #9: Replaced the RFC to HTML converter with a brand new RFC-compliant convert! (thanks to @fadeyev!)
+- v6.0.0, v1.3.0: #14: Dependency problem with Java9+, missing Jakarta Activation Framework
+- v6.0.0, v1.3.0: #13: HTML start tags with extra space not handled correctly
+- v6.0.0, v1.3.0: #11: SimpleRTF2HTMLConverter inserts too many <br/> tags
+- v6.0.0, v1.3.0: #10: Embedded images with DOS-like names are classified as attachments
+- v6.0.0, v1.3.0: #9: SimpleRTF2HTMLConverter removes some valid tags during conversion
+- v6.0.0, v1.2.1: Ignore non S/MIME related content types when extracting S/MIME metadata
+- v6.0.0, v1.2.1: Added toString and equals methods to the S/MIME data classes
+- v6.0.0, v1.1.21: Upgraded mediatype recognition based on file extension for incomplete attachments
+- v6.0.0, v1.1.21: Added / improved support for public S/MIME meta data
+- v6.0.0, v1.1.20: #7: Fix missing S/MIME header details that are needed to determine the type of S/MIME application
+- v6.0.0, v1.1.19: Log rtf compression error, but otherwise ignore it and keep going and extract what we can.
 
 **A big shout out to @dnault ([runtime javadoc](https://github.com/dnault/therapi-runtime-javadoc)), @remkop ([picocli](https://picocli.info/)) and @markenwerk
 ([S/MIME](https://github.com/markenwerk/java-utils-mail-smime) and [DKIM](https://github.com/markenwerk/java-utils-mail-dkim)) for working with me to make the
