@@ -33,4 +33,44 @@ public class EmailConverterTest {
 		assertThat(normalizeNewlines(msg.getHTMLText())).isEqualTo("<div dir=\"auto\">Just a test to get an email with one cc recipient.</div>\n");
 		assertThat(normalizeNewlines(msg.getPlainText())).isEqualTo("Just a test to get an email with one cc recipient.\n");
 	}
+
+	@Test
+	public void testOutlookUnicode() {
+		final Recipient kalejs = new Recipient("m.kalejs@outlook.com", "m.kalejs@outlook.com", null);
+		final Recipient dummy = new Recipient("doesnotexist@doesnt.com", "doesnotexist@doesnt.com", TO);
+
+		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_FOLDER + "/tst_unicode.msg"));
+		EmailAssert.assertThat(msg).hasFromRecipient(kalejs);
+		EmailAssert.assertThat(msg).hasSubject("Testcase");
+		EmailAssert.assertThat(msg).hasOnlyRecipients(dummy);
+		EmailAssert.assertThat(msg).hasNoAttachments();
+		assertThat(msg.getPlainText()).isNotEmpty();
+		assertThat(normalizeNewlines(msg.getHTMLText())).isNotEmpty();
+		assertThat(normalizeNewlines(msg.getPlainText())).isEqualTo("-/-\n" +
+				"Char-å-Char\n" +
+				"-/-\n" +
+				"Char-Å-Char\n" +
+				"-/-\n" +
+				"Char-ø-Char\n" +
+				"-/-\n" +
+				"Char-Ø-Char\n" +
+				"-/-\n" +
+				"Char-æ-Char\n" +
+				"-/-\n" +
+				"Char-Æ-Char\n" +
+				" \n");
+	}
+
+	@Test
+	public void testOutlookUnsentDraft() {
+		final Recipient time2talk = new Recipient("time2talk@online-convert.com", "time2talk@online-convert.com", TO);
+
+		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_FOLDER + "/unsent draft.msg"));
+		EmailAssert.assertThat(msg).hasFromRecipient(new Recipient(null, "donotreply@unknown-from-address.net", null));
+		EmailAssert.assertThat(msg).hasSubject("MSG Test File");
+		EmailAssert.assertThat(msg).hasOnlyRecipients(time2talk);
+		EmailAssert.assertThat(msg).hasNoAttachments();
+		assertThat(msg.getPlainText()).isNotEmpty();
+		assertThat(normalizeNewlines(msg.getHTMLText())).isNotEmpty();
+	}
 }
