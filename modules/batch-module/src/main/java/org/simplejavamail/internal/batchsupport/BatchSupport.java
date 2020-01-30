@@ -18,6 +18,7 @@ import javax.mail.Transport;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -107,6 +108,13 @@ public class BatchSupport implements BatchModule {
 	@NotNull
 	@Override
 	public Future<?> shutdownConnectionPools(@NotNull Session session) {
-		return assumeNonNull(smtpConnectionPool).shutdownPool(session);
+		if (smtpConnectionPool != null) {
+			return assumeNonNull(smtpConnectionPool).shutdownPool(session);
+		} else {
+			LOGGER.warn("user requested connection pool shutdown, but there is no connection pool to shut down (yet)");
+			FutureTask<Void> voidFutureTask = new FutureTask<>(new Runnable() {public void run() { }}, null);
+			voidFutureTask.run();
+			return voidFutureTask;
+		}
 	}
 }
