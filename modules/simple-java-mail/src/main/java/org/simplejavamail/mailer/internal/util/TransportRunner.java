@@ -1,11 +1,12 @@
 package org.simplejavamail.mailer.internal.util;
 
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
+import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.slf4j.Logger;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
 import javax.mail.Address;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -53,14 +54,7 @@ public class TransportRunner {
 	private static void runOnSessionTransport(@NotNull UUID clusterKey, Session session, final boolean stickySession, TransportRunnable runnable)
 			throws MessagingException {
 		if (ModuleLoader.batchModuleAvailable()) {
-			LifecycleDelegatingTransport delegatingTransport = ModuleLoader.loadBatchModule().acquireTransport(clusterKey, session, stickySession);
-			try {
-				runnable.run(delegatingTransport.getTransport());
-			} catch (final MessagingException messagingException) {
-				delegatingTransport.signalTransportFailed();
-				throw messagingException;
-			}
-			delegatingTransport.signalTransportUsed();
+			sendUsingConnectionPool(ModuleLoader.loadBatchModule(), clusterKey, session, stickySession, runnable);
 		} else {
 			try (Transport transport = session.getTransport()) {
 				transport.connect();
@@ -69,6 +63,18 @@ public class TransportRunner {
 				LOGGER.trace("closing transport");
 			}
 		}
+	}
+
+	private static void sendUsingConnectionPool(@NotNull BatchModule batchModule, @NotNull UUID clusterKey, Session session, boolean stickySession, TransportRunnable runnable) throws MessagingException {
+		LifecycleDelegatingTransport delegatingTransport = batchModule.acquireTransport(clusterKey, session, stickySession);
+		try {
+			runnable.run(delegatingTransport.getTransport());
+		} catch (final Throwable t) {
+			// always make sure claimed resources are released
+			delegatingTransport.signalTransportFailed();
+			throw t;
+		}
+		delegatingTransport.signalTransportUsed();
 	}
 
 	public interface TransportRunnable {
