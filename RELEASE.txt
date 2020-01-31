@@ -3,8 +3,13 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.0.1</version>
+    <version>6.0.2</version>
 </dependency>
+
+v6.0.2 (21-Januari-2020)
+
+- #246: Bug: Sending async emails with and without the Batch module cause lingering threads
+
 
 v6.0.0-rc1 - v6.0.1 (18-December-2019 - 24-January-2020)
 
