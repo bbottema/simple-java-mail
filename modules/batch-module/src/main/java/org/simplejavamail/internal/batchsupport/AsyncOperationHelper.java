@@ -1,15 +1,16 @@
 package org.simplejavamail.internal.batchsupport;
 
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.internal.batchsupport.concurrent.NamedRunnable;
 import org.slf4j.Logger;
 
-import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -51,6 +52,7 @@ class AsyncOperationHelper {
 		// atomic reference is needed to be able to smuggle the asyncResponse
 		// into the Runnable which is passed itself to the asyncResponse.
 		final AtomicReference<AsyncResponseImpl> asyncResponseRef = new AtomicReference<>();
+		assumeTrue(!executorService.isShutdown(), "cannot send async email, executor service is already shut down!");
 		asyncResponseRef.set(new AsyncResponseImpl(executorService.submit(new NamedRunnable(processName) {
 			@Override
 			public void run() {
