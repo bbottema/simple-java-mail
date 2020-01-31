@@ -121,7 +121,8 @@ public class EmailHelper {
 				/*14*/trustAllSSLHost,
 				/*15*/verifyServerIdentity,
 				/*16*/newSingleThreadExecutor(),
-				/*17*/null);
+				/*17*/false,
+				/*18*/null);
 	}
 
 	@NotNull
@@ -144,7 +145,8 @@ public class EmailHelper {
 			/*14*/final boolean trustAllSSLHost,
 			/*15*/final boolean verifyingServerIdentity,
 			/*16*/@NotNull final ExecutorService executorService,
-			/*17*/@Nullable final CustomMailer customMailer) {
+			/*17*/final boolean isExecutorServiceUserProvided,
+			/*18*/@Nullable final CustomMailer customMailer) {
 		try {
 			Constructor<?> constructor = Class.forName("org.simplejavamail.mailer.internal.OperationalConfigImpl").getDeclaredConstructors()[0];
 			constructor.setAccessible(true);
@@ -166,7 +168,8 @@ public class EmailHelper {
 					/*14*/trustAllSSLHost,
 					/*15*/verifyingServerIdentity,
 					/*16*/executorService,
-					/*17*/customMailer);
+					/*17*/isExecutorServiceUserProvided,
+					/*18*/customMailer);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}
