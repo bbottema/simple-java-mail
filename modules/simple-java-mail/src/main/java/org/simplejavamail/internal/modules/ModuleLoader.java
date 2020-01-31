@@ -67,6 +67,9 @@ public class ModuleLoader {
 	}
 
 	public static BatchModule loadBatchModule() {
+		if (FORCED_DISABLED_MODULES.contains(BatchModule.class)) {
+			throw new AssertionError("BatchModule forcefully disabled");
+		}
 		if (!LOADED_MODULES.containsKey(BatchModule.class)) {
 			LOADED_MODULES.put(BatchModule.class, loadModule(
 					BatchModule.class,
@@ -93,11 +96,11 @@ public class ModuleLoader {
 				throw new IllegalAccessException("Module is focrfully disabled");
 			}
 			if (!MiscUtil.classAvailable(moduleImplClassName)) {
-				throw new org.simplejavamail.internal.modules.ModuleLoaderException(format(org.simplejavamail.internal.modules.ModuleLoaderException.ERROR_MODULE_MISSING, moduleName, moduleHome));
+				throw new ModuleLoaderException(format(ModuleLoaderException.ERROR_MODULE_MISSING, moduleName, moduleHome));
 			}
 			return (T) Class.forName(moduleImplClassName).newInstance();
 		} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
-			throw new org.simplejavamail.internal.modules.ModuleLoaderException(format(org.simplejavamail.internal.modules.ModuleLoaderException.ERROR_LOADING_MODULE, moduleName), e);
+			throw new ModuleLoaderException(format(ModuleLoaderException.ERROR_LOADING_MODULE, moduleName), e);
 		}
 	}
 
