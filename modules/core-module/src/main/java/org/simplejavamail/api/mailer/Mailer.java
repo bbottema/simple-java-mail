@@ -112,7 +112,9 @@ public interface Mailer {
 	 * Shuts down the connection pool associated with this {@link Mailer} instance and closes remaining open connections. Waits until all connections still in use become available again
 	 * to deallocate them as well.
 	 * <p>
-	 * In order to shut down the whole connection pool (in case of clustering), each individual {@link Mailer} instance should be shutdown.
+	 * <strong>Note:</strong> In order to shut down the whole connection pool (in case of clustering), each individual {@link Mailer} instance should be shutdown.
+	 * <p>
+	 * <strong>Note:</strong> This does *not* shut down the executor service if it was provided by the user.
 	 * <p>
 	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 */

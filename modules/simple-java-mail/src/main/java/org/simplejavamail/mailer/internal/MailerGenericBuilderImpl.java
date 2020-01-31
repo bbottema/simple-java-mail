@@ -39,7 +39,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
  * @see MailerGenericBuilder
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
-abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements MailerGenericBuilder<T> {
+abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements InternalMailerBuilder<T> {
 	
 	/**
 	 * @see MailerGenericBuilder#async()
@@ -94,6 +94,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@NotNull
 	private ExecutorService executorService;
+
+	/**
+	 * @see InternalMailerBuilder#isExecutorServiceUserProvided()
+	 */
+	private boolean executorServiceIsUserProvided = false;
 
 	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
@@ -266,6 +271,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				isTrustAllSSLHost(),
 				isVerifyingServerIdentity(),
 				getExecutorService(),
+				isExecutorServiceUserProvided(),
 				getCustomMailer());
 	}
 	
@@ -376,6 +382,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withExecutorService(@NotNull final ExecutorService executorService) {
 		this.executorService = executorService;
+		this.executorServiceIsUserProvided = true;
 		return (T) this;
 	}
 
@@ -569,6 +576,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T resetExecutorService() {
 		this.executorService = determineDefaultExecutorService();
+		this.executorServiceIsUserProvided = false;
 		return (T) this;
 	}
 
@@ -771,6 +779,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@NotNull
 	public ExecutorService getExecutorService() {
 		return executorService;
+	}
+
+	/**
+	 * @see InternalMailerBuilder#isExecutorServiceUserProvided()
+	 */
+	@Override
+	public boolean isExecutorServiceUserProvided() {
+		return executorServiceIsUserProvided;
 	}
 
 	/**

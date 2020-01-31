@@ -108,6 +108,11 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final ExecutorService executorService;
 
 	/**
+	 * @see InternalMailerBuilder#isExecutorServiceUserProvided()
+	 */
+	private final boolean executorServiceIsUserProvided;
+
+	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withCustomMailer(CustomMailer)
 	 */
 	@Nullable
@@ -130,6 +135,7 @@ class OperationalConfigImpl implements OperationalConfig {
 			final boolean trustAllSSLHost,
 			final boolean verifyingServerIdentity,
 			@NotNull final ExecutorService executorService,
+			final boolean executorServiceIsUserProvided,
 			@Nullable final CustomMailer customMailer) {
 		this.async = async; // can be overridden when calling {@code mailer.send(async = true)}
 		this.properties = properties;
@@ -148,6 +154,7 @@ class OperationalConfigImpl implements OperationalConfig {
 		this.trustAllSSLHost = trustAllSSLHost;
 		this.verifyingServerIdentity = verifyingServerIdentity;
 		this.executorService = executorService;
+		this.executorServiceIsUserProvided = executorServiceIsUserProvided;
 		this.customMailer = customMailer;
 	}
 
@@ -297,18 +304,35 @@ class OperationalConfigImpl implements OperationalConfig {
 		return properties;
 	}
 
+	/**
+	 * @see OperationalConfig#getClusterKey()
+	 */
 	@NotNull
 	@Override
 	public UUID getClusterKey() {
 		return clusterKey;
 	}
 
+	/**
+	 * @see OperationalConfig#getExecutorService()
+	 */
 	@NotNull
 	@Override
 	public ExecutorService getExecutorService() {
 		return executorService;
 	}
 
+	/**
+	 * @see OperationalConfig#executorServiceIsUserProvided()
+	 */
+	@Override
+	public boolean executorServiceIsUserProvided() {
+		return executorServiceIsUserProvided;
+	}
+
+	/**
+	 * @see OperationalConfig#getCustomMailer()
+	 */
 	@Nullable
 	@Override
 	public CustomMailer getCustomMailer() {
