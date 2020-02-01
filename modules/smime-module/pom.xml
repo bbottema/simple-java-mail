@@ -31,6 +31,12 @@
 			<groupId>net.markenwerk</groupId>
 			<artifactId>utils-mail-smime</artifactId>
 			<version>1.0.8</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.sun.mail</groupId>
+                    <artifactId>javax.mail</artifactId>
+                </exclusion>
+            </exclusions>
 		</dependency>
     </dependencies>
 </project>
