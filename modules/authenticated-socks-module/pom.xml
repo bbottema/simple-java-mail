@@ -17,8 +17,11 @@
     <name>Simple Java Mail - Authenticated SOCKS module</name>
     <description>Simple API, Complex Emails. Now with SOCKS5 support</description>
 
-    <dependencies>
+    <properties>
+        <automaticModuleName>org.simplejavamail.authenticatedsocks</automaticModuleName>
+    </properties>
 
+    <dependencies>
         <!-- core dependencies -->
         <dependency>
             <groupId>org.simplejavamail</groupId>

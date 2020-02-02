@@ -17,6 +17,10 @@
     <name>Simple Java Mail - Core Test module</name>
     <description>Simple API, Complex Emails. Core module test support</description>
 
+    <properties>
+        <automaticModuleName>org.simplejavamail.test</automaticModuleName>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.simplejavamail</groupId>

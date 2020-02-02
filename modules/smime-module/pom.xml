@@ -17,6 +17,10 @@
     <name>Simple Java Mail - S/MIME module</name>
     <description>Simple API, Complex Emails. Now with S/MIME support</description>
 
+    <properties>
+        <automaticModuleName>org.simplejavamail.smime</automaticModuleName>
+    </properties>
+
     <dependencies>
 
         <!-- core dependencies -->
