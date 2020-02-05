@@ -21,6 +21,7 @@
 
     <properties>
         <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
+        <automaticModuleName>org.simplejavamail.undefined</automaticModuleName> <!-- update in individual modules -->
     </properties>
 
     <!-- to skip some steps: -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -Denforcer.skip=true -Djacoco.skip=true -Dlicense.skip=true -->
@@ -111,6 +112,17 @@
                         <classes>**Assert</classes><!-- AssertJ generated -->
                         <classes>**.ServerReply</classes><!-- somehow gets messed up -->
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Automatic-Module-Name>${automaticModuleName}</Automatic-Module-Name>
+                        </manifestEntries>
+                    </archive>
                 </configuration>
             </plugin>
 

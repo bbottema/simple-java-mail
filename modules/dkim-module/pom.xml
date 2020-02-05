@@ -17,6 +17,10 @@
     <name>Simple Java Mail - DKIM module</name>
     <description>Simple API, Complex Emails. Now with DKIM support</description>
 
+    <properties>
+        <automaticModuleName>org.simplejavamail.dkim</automaticModuleName>
+    </properties>
+
     <dependencies>
 
         <!-- core dependencies -->

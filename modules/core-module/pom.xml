@@ -17,6 +17,10 @@
     <name>Simple Java Mail - Core module</name>
     <description>Simple API, Complex Emails. Core module support</description>
 
+    <properties>
+        <automaticModuleName>org.simplejavamail.core</automaticModuleName>
+    </properties>
+
     <dependencies>
 
         <!-- core dependencies -->

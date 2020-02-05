@@ -17,6 +17,10 @@
     <name>Simple Java Mail - Batch module</name>
     <description>Simple API, Complex Emails. High performance.</description>
 
+    <properties>
+        <automaticModuleName>org.simplejavamail.batch</automaticModuleName>
+    </properties>
+
     <dependencies>
 
         <!-- core dependencies -->

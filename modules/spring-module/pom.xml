@@ -18,6 +18,7 @@
     <description>Simple API, Complex Emails. Now with Spring support</description>
 
     <properties>
+        <automaticModuleName>org.simplejavamail.spring</automaticModuleName>
         <spring.version>[4.3.18.RELEASE,)</spring.version>
     </properties>
 

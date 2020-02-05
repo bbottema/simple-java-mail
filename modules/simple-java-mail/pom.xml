@@ -18,6 +18,7 @@
     <description>Simple API, Complex Emails. A light weight wrapper for the JavaMail SMTP API</description>
 
     <properties>
+        <automaticModuleName>org.simplejavamail</automaticModuleName>
         <spring.version>[4.3.18.RELEASE,)</spring.version>
     </properties>
 

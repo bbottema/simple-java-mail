@@ -17,6 +17,10 @@
     <name>Simple Java Mail - CLI module</name>
     <description>Simple API, Complex Emails. Now with CLI support</description>
 
+    <properties>
+        <automaticModuleName>org.simplejavamail.cli</automaticModuleName>
+    </properties>
+
     <dependencies>
 
         <!-- core dependencies -->

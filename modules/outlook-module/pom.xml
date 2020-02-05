@@ -17,6 +17,10 @@
     <name>Simple Java Mail - Outlook module</name>
     <description>Simple API, Complex Emails. Now with Outlook support</description>
 
+    <properties>
+        <automaticModuleName>org.simplejavamail.outlook</automaticModuleName>
+    </properties>
+
     <dependencies>
 
         <!-- core dependencies -->
