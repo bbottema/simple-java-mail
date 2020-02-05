@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.bbottema</groupId>
         <artifactId>modular-project-parent</artifactId>
-        <version>1.0.13</version>
+        <version>1.0.14</version>
     </parent>
 
     <groupId>org.simplejavamail</groupId>
@@ -112,17 +112,6 @@
                         <classes>**Assert</classes><!-- AssertJ generated -->
                         <classes>**.ServerReply</classes><!-- somehow gets messed up -->
                     </excludes>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Automatic-Module-Name>${automaticModuleName}</Automatic-Module-Name>
-                        </manifestEntries>
-                    </archive>
                 </configuration>
             </plugin>
 
