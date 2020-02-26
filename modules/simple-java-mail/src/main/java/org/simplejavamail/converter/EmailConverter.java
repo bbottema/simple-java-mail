@@ -626,7 +626,7 @@ public final class EmailConverter {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
 			builder.withEmbeddedImage(extractCID(cidName), cid.getValue());
 		}
-		for (final Map.Entry<String, DataSource> attachment : parsed.getAttachmentList()) {
+		for (final Map.Entry<String, DataSource> attachment : parsed.getAttachmentList().entrySet()) {
 			builder.withAttachment(extractCID(attachment.getKey()), attachment.getValue());
 		}
 		return builder;

@@ -32,7 +32,7 @@ public class MimeMessageParserTest {
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).isEmpty();
-		assertThat(parsedComponents.attachmentList).extracting("key").containsOnly("moo1", "moo2");
+		assertThat(parsedComponents.attachmentList).containsKeys("moo1", "moo2");
 	}
 
 	@Test
@@ -44,7 +44,7 @@ public class MimeMessageParserTest {
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).isEmpty();
-		assertThat(parsedComponents.attachmentList).extracting("key").containsOnly("moo1", "moo2");
+		assertThat(parsedComponents.attachmentList).containsOnlyKeys("moo1", "moo2");
 	}
 	
 	@Test
@@ -56,7 +56,7 @@ public class MimeMessageParserTest {
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).containsOnlyKeys("moo1");
-		assertThat(parsedComponents.attachmentList).extracting("key").containsOnly("moo2");
+		assertThat(parsedComponents.attachmentList).containsOnlyKeys("moo2");
 	}
 	
 	@Test
