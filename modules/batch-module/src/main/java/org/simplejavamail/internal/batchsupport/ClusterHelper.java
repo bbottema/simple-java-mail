@@ -37,7 +37,7 @@ final class ClusterHelper {
 
 	static boolean compareClusterConfig(@NotNull final OperationalConfig operationalConfig, final ClusterConfig<Session, Transport> config) {
 		return config.getDefaultCorePoolSize() != operationalConfig.getConnectionPoolCoreSize() ||
-				config.getDefaultMaxPoolSize() != operationalConfig.getConnectionPoolCoreSize() ||
+				config.getDefaultMaxPoolSize() != operationalConfig.getConnectionPoolMaxSize() ||
 				config.getLoadBalancingStrategy().getClass() != determineLoadBalancingStrategy(operationalConfig).getClass() ||
 				!config.getDefaultExpirationPolicy().equals(new TimeoutSinceLastAllocationExpirationPolicy<Transport>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
 	}
