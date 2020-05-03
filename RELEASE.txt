@@ -3,8 +3,14 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.0.3</version>
+    <version>6.0.4</version>
 </dependency>
+
+v6.0.4 (3-May-2020)
+
+- #262: Bug: Executor settings passed to the builder are ignored
+- #249: Bug: MimeMessageParser doesn't handle multiple attachments with the same name correctly
+
 
 v6.0.3 (5-Februari-2020)
 
