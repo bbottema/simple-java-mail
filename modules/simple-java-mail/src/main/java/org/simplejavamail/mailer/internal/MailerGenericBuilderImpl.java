@@ -92,13 +92,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	/**
 	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
 	 */
-	@NotNull
+	@Nullable
 	private ExecutorService executorService;
-
-	/**
-	 * @see InternalMailerBuilder#isExecutorServiceUserProvided()
-	 */
-	private boolean executorServiceIsUserProvided = false;
 
 	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
@@ -221,8 +216,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		}
 
 		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
-
-		this.executorService = determineDefaultExecutorService();
 	}
 	
 	/**
@@ -270,7 +263,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getSslHostsToTrust(),
 				isTrustAllSSLHost(),
 				isVerifyingServerIdentity(),
-				getExecutorService(),
+				getExecutorService() != null ? getExecutorService() : determineDefaultExecutorService(),
 				isExecutorServiceUserProvided(),
 				getCustomMailer());
 	}
@@ -382,7 +375,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withExecutorService(@NotNull final ExecutorService executorService) {
 		this.executorService = executorService;
-		this.executorServiceIsUserProvided = true;
 		return (T) this;
 	}
 
@@ -575,8 +567,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Override
 	public T resetExecutorService() {
-		this.executorService = determineDefaultExecutorService();
-		this.executorServiceIsUserProvided = false;
+		this.executorService = null;
 		return (T) this;
 	}
 
@@ -776,7 +767,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#getExecutorService()
 	 */
 	@Override
-	@NotNull
+	@Nullable
 	public ExecutorService getExecutorService() {
 		return executorService;
 	}
@@ -786,7 +777,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Override
 	public boolean isExecutorServiceUserProvided() {
-		return executorServiceIsUserProvided;
+		return executorService != null;
 	}
 
 	/**

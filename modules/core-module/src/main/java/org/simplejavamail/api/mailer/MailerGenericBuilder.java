@@ -653,6 +653,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	EnumSet<EmailAddressCriteria> getEmailAddressCriteria();
 
 	/**
+	 * Returns the user set ExecutorService or else null as the default ExecutorService is not created until the {@link org.simplejavamail.api.mailer.config.OperationalConfig} is created for the
+	 * new {@link Mailer} instance.
+	 *
 	 * @see #withExecutorService(ExecutorService)
 	 */
 	@Nullable
