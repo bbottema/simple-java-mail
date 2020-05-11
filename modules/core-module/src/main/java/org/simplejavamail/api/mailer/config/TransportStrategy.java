@@ -177,7 +177,12 @@ public enum TransportStrategy {
 		}
 
 		/**
-		 * Sets {@link #opportunisticTLS}. Setting <code>null</code> will revert to property value if available or default to {@value
+		 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
+		 * was provided, this value defaults to {@value DEFAULT_OPPORTUNISTIC_TLS}.
+		 * <p>
+		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
+		 * <p>
+		 * Setting <code>null</code> will revert to property value if available in config or default to {@value
 		 * DEFAULT_OPPORTUNISTIC_TLS}
 		 */
 		@Override
