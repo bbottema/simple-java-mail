@@ -57,7 +57,7 @@
             <groupId>com.github.bbottema</groupId>
             <artifactId>jetbrains-runtime-annotations</artifactId>
             <version>1.0.0</version>
-            <scope>provided</scope>
+            <scope>runtime</scope><!-- SimpleJavaMail uses the annotation using java reflection -->
         </dependency>
 
         <!-- testing -->
