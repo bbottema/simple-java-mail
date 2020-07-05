@@ -27,8 +27,11 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 [v6.1.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.1.0%7Cjar) (5-July-2020)
 
 - [#264](https://github.com/bbottema/simple-java-mail/issues/264) Switch from AssertionError to IllegalStateException
-- Bumped email-rfc2822-validator from 2.1.3 to 2.2.0
 - Bumped outlook-message-parser from 1.7.3 to 1.7.5
+    - bugfix for parsing chinese unsent Outlook messages
+    - bugfix Outlook attachments with special characters in the name
+- Bumped email-rfc2822-validator from 2.1.3 to 2.2.0
+    - bugfix properly handle brackets in email addresses when allowed
 - Bumped log4j-core from 2.6.1 to 2.13.2
 
 
