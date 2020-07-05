@@ -20,6 +20,9 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+
+import static java.util.regex.Pattern.compile;
 
 /**
  * Fluent interface Builder for populating {@link Email} instances. An instance of this builder can only be obtained through one of the builder
@@ -30,6 +33,13 @@ import java.util.Map;
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 public interface EmailPopulatingBuilder {
+
+	/**
+	 * Regular Expression to find all {@code <img src="...">} entries in an HTML document.It needs to cater for various things, like more whitespaces including newlines on any place, HTML is not case
+	 * sensitive and there can be arbitrary text between "IMG" and "SRC" like IDs and other things.
+	 */
+	Pattern IMG_SRC_PATTERN = compile("(?<imageTagStart><[Ii][Mm][Gg]\\s*[^>]*?\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])(?<src>[^\"']+?)(?<imageSrcEnd>[\"'])");
+
 	/**
 	 * Validated DKIM values and then delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument.
 	 */
@@ -857,6 +867,8 @@ public interface EmailPopulatingBuilder {
 	 * Sets the base folder used when resolving images sources in HTML text. Without this, the folder needs to be an absolute path (or a classpath/url resource).
 	 * <p>
 	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 *
+	 * @param embeddedImageBaseDir The base folder used when resolving images sources in HTML text.
 	 */
 	EmailPopulatingBuilder withEmbeddedImageBaseDir(@NotNull final String embeddedImageBaseDir);
 
@@ -864,6 +876,8 @@ public interface EmailPopulatingBuilder {
 	 * Sets the classpath base used when resolving images sources in HTML text. Without this, the resource needs to be an absolute path (or a file/url resource).
 	 * <p>
 	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 *
+	 * @param embeddedImageBaseClassPath The classpath base used when resolving images sources in HTML text.
 	 */
 	EmailPopulatingBuilder withEmbeddedImageBaseClassPath(@NotNull final String embeddedImageBaseClassPath);
 
@@ -871,6 +885,8 @@ public interface EmailPopulatingBuilder {
 	 * Sets the base URL used when resolving images sources in HTML text. Without this, the resource needs to be an absolute URL (or a file/classpath resource).
 	 * <p>
 	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 *
+	 * @param embeddedImageBaseUrl The base URL used when resolving images sources in HTML text.
 	 */
 	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final URL embeddedImageBaseUrl);
 	

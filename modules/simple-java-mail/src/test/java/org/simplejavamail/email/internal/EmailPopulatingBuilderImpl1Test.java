@@ -1,5 +1,7 @@
 package org.simplejavamail.email.internal;
 
+import net.fortuna.ical4j.model.property.Url;
+import org.assertj.core.api.ThrowableAssert;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.jetbrains.annotations.Nullable;
@@ -26,24 +28,31 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.mockito.Mockito.mock;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.CertificationUtil.extractSignedBy;
 
 public class EmailPopulatingBuilderImpl1Test {
 
-	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
+	private static final String RESOURCES_PATH = determineResourceFolder("simple-java-mail") + "/test/resources";
+	private static final String RESOURCES_PKCS = RESOURCES_PATH + "/pkcs12";
 
 	private EmailPopulatingBuilder builder;
 
@@ -422,7 +431,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
-	public void testBuilderEmbeddingImages() {
+	public void testBuilderEmbeddingImages_UnhappyScenario() {
 		builder
 				.withEmbeddedImage("a", new ByteArrayDataSource(new byte[3], ""))
 				.withEmbeddedImage(null, new DataSourceWithDummyName())
@@ -863,6 +872,149 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(MiscUtil.inputStreamEqual(email.getDkimPrivateKeyInputStream(), new ByteArrayInputStream(buf))).isTrue();
 		EmailAssert.assertThat(email).hasDkimSelector("selector");
 		EmailAssert.assertThat(email).hasDkimSigningDomain("domain");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteFilePath()
+			throws IOException {
+		final File file = new File(RESOURCES_PATH + "/log4j2.xml");
+
+		final Email email = builder
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"" + file.getAbsolutePath() + "\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "<Console name=\"console\" target=\"SYSTEM_OUT\">");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeFilePathWithNoBasedir() {
+		final EmailPopulatingBuilder emailPopulatingBuilder = builder
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"log4j2.xml\"/>");
+
+		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+			public void call() {
+				emailPopulatingBuilder.buildEmail();
+			}
+		})
+				.isInstanceOf(EmailException.class)
+				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: log4j2.xml");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeFilePathWithBasedir()
+			throws IOException {
+		final Email email = builder
+				.withEmbeddedImageBaseDir(RESOURCES_PATH)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"log4j2.xml\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "<Console name=\"console\" target=\"SYSTEM_OUT\">");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteUrl()
+			throws IOException {
+		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+
+		final Email email = builder
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"http://www.simplejavamail.org/download.html\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Download Simple Java Mail");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlWithNoBaseUrl()
+			throws IOException {
+		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+
+		final EmailPopulatingBuilder emailPopulatingBuilder = builder
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"download.html\"/>");
+
+		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+			public void call() {
+				emailPopulatingBuilder.buildEmail();
+			}
+		})
+				.isInstanceOf(EmailException.class)
+				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: download.html");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlWithBaseUrl()
+			throws IOException {
+		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+
+		final Email email = builder
+				.withEmbeddedImageBaseUrl(new URL("http://www.simplejavamail.org"))
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"download.html\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Download Simple Java Mail");
+	}
+
+	private int getUrl(String urlStr) {
+		try {
+			return ((HttpURLConnection) new URL(urlStr).openConnection()).getResponseCode();
+		} catch (IOException e) {
+			return HttpURLConnection.HTTP_NOT_FOUND;
+		}
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_classPathPath()
+			throws IOException {
+		final Email email = builder
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"/pkcs12/how-to.html\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Create Self-Signed S/MIME Certificates");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeClassPathPathWithNoClassPathBase()
+			throws IOException {
+		final EmailPopulatingBuilder emailPopulatingBuilder = builder
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"/how-to.html\"/>");
+
+		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+			public void call() {
+				emailPopulatingBuilder.buildEmail();
+			}
+		})
+				.isInstanceOf(EmailException.class)
+				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: /how-to.html");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeClassPathPathWithClassPathBase()
+			throws IOException {
+		final Email email = builder
+				.withEmbeddedImageBaseClassPath("/pkcs12")
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"/how-to.html\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Create Self-Signed S/MIME Certificates");
+	}
+
+	private void verifyEmbeddedImage(final Email email, String expectedContainsWithContent)
+			throws IOException {
+		final String cidRegex = "<img src=\"cid:cid_name\"\\/><img src=\"cid:(?<cid>[a-z]{10})\"\\/>";
+		assertThat(email.getHTMLText()).matches(cidRegex);
+		final Matcher matcher = Pattern.compile(cidRegex).matcher(email.getHTMLText());
+		assertThat(matcher.find()).isTrue();
+		assertThat(email.getEmbeddedImages()).hasSize(1);
+		assertThat(email.getEmbeddedImages().get(0).getName()).isEqualTo(matcher.group("cid"));
+		assertThat(email.getEmbeddedImages().get(0).readAllData()).contains(expectedContainsWithContent);
 	}
 
 	@Test

@@ -38,11 +38,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.regex.Matcher.quoteReplacement;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
@@ -59,6 +61,9 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NA
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
@@ -70,10 +75,14 @@ import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.email.internal.EmailException.ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_FILE;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_PEM_INPUTSTREAM;
+import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_IMAGE_DATASOURCE;
 import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
+import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
+import static org.simplejavamail.internal.util.MiscUtil.resolveUrlDataSource;
+import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSource;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -322,6 +331,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			if (hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
 				encryptWithSmime(assumeNonNull(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));
 			}
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)) {
+				withEmbeddedImageBaseDir(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)));
+			}
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)) {
+				withEmbeddedImageBaseDir(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
+			}
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)) {
+				withEmbeddedImageBaseDir(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
+			}
 		}
 	}
 	
@@ -332,6 +350,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmail() {
 		validateDkim();
+		resolveDynamicEmbeddedImageDataSources();
 		return new Email(this);
 	}
 
@@ -340,6 +359,41 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			checkNonEmptyArgument(getDkimSelector(), "dkimSelector");
 			checkNonEmptyArgument(getDkimSigningDomain(), "dkimSigningDomain");
 			checkNonEmptyArgument(getFromRecipient(), "fromRecipient required when signing DKIM");
+		}
+	}
+
+	private void resolveDynamicEmbeddedImageDataSources() {
+		if (this.textHTML != null) {
+			final Map<String, String> generatedCids = new HashMap<>();
+			final StringBuffer stringBuffer = new StringBuffer();
+
+			final Matcher matcher = IMG_SRC_PATTERN.matcher(this.textHTML);
+			while (matcher.find()) {
+				final String srcLocation = matcher.group("src");
+				if (!srcLocation.startsWith("cid:")) {
+					if (!generatedCids.containsKey(srcLocation)) {
+						generatedCids.put(srcLocation, randomCid10());
+						withEmbeddedImage(generatedCids.get(srcLocation), resolveDynamicEmbeddedImageDataSource(srcLocation));
+					}
+					final String imgSrcReplacement = matcher.group("imageTagStart") + "cid:" + generatedCids.get(srcLocation) + matcher.group("imageSrcEnd");
+					matcher.appendReplacement(stringBuffer, quoteReplacement(imgSrcReplacement));
+				}
+			}
+			matcher.appendTail(stringBuffer);
+
+			this.textHTML = stringBuffer.toString();
+		}
+	}
+
+	private DataSource resolveDynamicEmbeddedImageDataSource(@NotNull final String srcLocation) {
+		try {
+			DataSource resolvedDataSource = tryResolveFileDataSource(embeddedImageBaseDir, embeddedImageBaseClassPath, srcLocation);
+			if (resolvedDataSource == null) {
+				resolvedDataSource = resolveUrlDataSource(embeddedImageBaseUrl, srcLocation);
+			}
+			return resolvedDataSource;
+		} catch (IOException e) {
+			throw new EmailException(format(ERROR_RESOLVING_IMAGE_DATASOURCE, srcLocation));
 		}
 	}
 

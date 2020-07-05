@@ -5,10 +5,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Recipient;
 
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
+import javax.activation.FileTypeMap;
+import javax.activation.URLDataSource;
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
+import javax.mail.util.ByteArrayDataSource;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -19,6 +24,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.AbstractMap;
@@ -26,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.toHexString;
@@ -33,8 +40,10 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.regex.Pattern.compile;
+import static java.util.regex.Pattern.quote;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 public final class MiscUtil {
 
@@ -43,6 +52,10 @@ public final class MiscUtil {
 	private static final Pattern COMMA_DELIMITER_PATTERN = compile("(@.*?>?)\\s*[,;]");
 	private static final Pattern TRAILING_TOKEN_DELIMITER_PATTERN = compile("<\\|>$");
 	private static final Pattern TOKEN_DELIMITER_PATTERN = compile("\\s*<\\|>\\s*");
+
+	private static final Pattern ABSOLUTE_URL_PATTERN = compile(format("^(%s|%s|%s).*", quote("http://"), quote("https://"), quote("file:/")));
+
+	private static final Random RANDOM = new Random();
 
 	@SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE")
 	public static <T> T checkNotNull(final @Nullable T value, final @Nullable String msg) {
@@ -262,5 +275,73 @@ public final class MiscUtil {
 		}
 
 		return new ByteArrayInputStream(baos.toByteArray());
+	}
+
+	@Nullable
+	public static  DataSource tryResolveFileDataSource(@Nullable final String baseDir, @Nullable final String baseClassPath, @NotNull final String srcLocation)
+			throws IOException {
+		DataSource fileSource = tryResolveFileDataSourceFromDisk(baseDir, srcLocation);
+		return (fileSource != null) ? fileSource : tryResolveFileDataSourceFromClassPath(baseClassPath, srcLocation);
+	}
+
+	@Nullable
+	private static DataSource tryResolveFileDataSourceFromDisk(final @Nullable String baseDir, final @NotNull String srcLocation) {
+		File file = new File(srcLocation);
+		if (!file.exists() && !file.isAbsolute()) {
+			file = new File(ofNullable(baseDir).orElse("."), srcLocation);
+		}
+		if (file.exists()) {
+			return new FileDataSource(file);
+		}
+		return null;
+	}
+
+	@Nullable
+	private static DataSource tryResolveFileDataSourceFromClassPath(final @Nullable String baseClassPath, final @NotNull String srcLocation)
+			throws IOException {
+		final String resourceName = (ofNullable(baseClassPath).orElse("") + srcLocation).replaceAll("//", "/");
+		final InputStream is = MiscUtil.class.getResourceAsStream(resourceName);
+
+		if (is != null) {
+			try {
+				final String mimeType = FileTypeMap.getDefaultFileTypeMap().getContentType(srcLocation);
+				final ByteArrayDataSource ds = new ByteArrayDataSource(is, mimeType);
+				// EMAIL-125: set the name of the DataSource to the normalized resource URL similar to other DataSource implementations, e.g. FileDataSource, URLDataSource
+				ds.setName(MiscUtil.class.getResource(resourceName).toString());
+				return ds;
+			} finally {
+				is.close();
+			}
+		}
+		return null;
+	}
+
+	@NotNull
+	public static DataSource resolveUrlDataSource(@Nullable final URL baseUrl, @NotNull final String srcLocation)
+			throws IOException {
+		final URL url = (valueNullOrEmpty(baseUrl) || ABSOLUTE_URL_PATTERN.matcher(srcLocation).matches())
+				? new URL(srcLocation)
+				: new URL(baseUrl, srcLocation.replaceAll("&amp;", "&"));
+
+		DataSource result = new URLDataSource(url);
+		result.getInputStream();
+		return result;
+	}
+
+	public static String randomCid10() {
+		final int start = ' ';
+		final int end = 'z' + 1;
+		final int gap = end - start;
+
+		final StringBuilder buffer = new StringBuilder();
+
+		while (buffer.length() < 10) {
+			final char ch = (char) (RANDOM.nextInt(gap) + start);
+			if (Character.isLetter(ch)) {
+				buffer.append(ch);
+			}
+		}
+
+		return buffer.toString().toLowerCase();
 	}
 }
