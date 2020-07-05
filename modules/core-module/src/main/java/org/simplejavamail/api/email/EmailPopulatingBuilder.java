@@ -14,6 +14,7 @@ import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.net.URL;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Date;
@@ -851,6 +852,27 @@ public interface EmailPopulatingBuilder {
 	 * address or omitted completely.
 	 */
 	EmailPopulatingBuilder withRecipient(@NotNull Recipient recipient);
+
+	/**
+	 * Sets the base folder used when resolving images sources in HTML text. Without this, the folder needs to be an absolute path (or a classpath/url resource).
+	 * <p>
+	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 */
+	EmailPopulatingBuilder withEmbeddedImageBaseDir(@NotNull final String embeddedImageBaseDir);
+
+	/**
+	 * Sets the classpath base used when resolving images sources in HTML text. Without this, the resource needs to be an absolute path (or a file/url resource).
+	 * <p>
+	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 */
+	EmailPopulatingBuilder withEmbeddedImageBaseClassPath(@NotNull final String embeddedImageBaseClassPath);
+
+	/**
+	 * Sets the base URL used when resolving images sources in HTML text. Without this, the resource needs to be an absolute URL (or a file/classpath resource).
+	 * <p>
+	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 */
+	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final URL embeddedImageBaseUrl);
 	
 	/**
 	 * Delegates to {@link #withEmbeddedImage(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and
@@ -1230,7 +1252,22 @@ public interface EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearRecipients();
-	
+
+	/**
+	 * Resets base dir for embedded images to {@code null}.
+	 */
+	EmailPopulatingBuilder clearEmbeddedImageBaseDir();
+
+	/**
+	 * Resets classpath base for embedded images to {@code null}.
+	 */
+	EmailPopulatingBuilder clearEmbeddedImageBaseClassPath();
+
+	/**
+	 * Resets base URL for embedded images to {@code null}.
+	 */
+	EmailPopulatingBuilder clearEmbeddedImageBaseUrl();
+
 	/**
 	 * Resets <em>embeddedImages</em> to empty.
 	 */

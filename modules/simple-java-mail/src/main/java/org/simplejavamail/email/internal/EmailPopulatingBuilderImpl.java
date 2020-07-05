@@ -28,6 +28,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -135,6 +136,21 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@NotNull
 	private final List<AttachmentResource> embeddedImages;
+
+	/**
+	 * @see #withEmbeddedImageBaseDir(String)
+	 */
+	private String embeddedImageBaseDir;
+
+	/**
+	 * @see #withEmbeddedImageBaseClassPath(String)
+	 */
+	private String embeddedImageBaseClassPath;
+
+	/**
+	 * @see #withEmbeddedImageBaseUrl(URL)
+	 */
+	private URL embeddedImageBaseUrl;
 	
 	/**
 	 * @see #withAttachment(String, DataSource)
@@ -1331,6 +1347,33 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType()));
 		return this;
 	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withEmbeddedImageBaseDir(String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withEmbeddedImageBaseDir(@NotNull final String embeddedImageBaseDir) {
+		this.embeddedImageBaseDir = checkNonEmptyArgument(embeddedImageBaseDir, "embeddedImageBaseDir");
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withEmbeddedImageBaseClassPath(String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withEmbeddedImageBaseClassPath(@NotNull final String embeddedImageBaseClassPath) {
+		this.embeddedImageBaseClassPath = checkNonEmptyArgument(embeddedImageBaseClassPath, "embeddedImageBaseClassPath");
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withEmbeddedImageBaseUrl(URL)
+	 */
+	@Override
+	public EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final URL embeddedImageBaseUrl) {
+		this.embeddedImageBaseUrl = checkNonEmptyArgument(embeddedImageBaseUrl, "embeddedImageBaseUrl");
+		return this;
+	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, byte[], String)
@@ -1811,6 +1854,30 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearRecipients() {
 		this.recipients.clear();
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearEmbeddedImageBaseDir()
+	 */
+	public EmailPopulatingBuilder clearEmbeddedImageBaseDir() {
+		this.embeddedImageBaseDir = null;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearEmbeddedImageBaseClassPath()
+	 */
+	public EmailPopulatingBuilder clearEmbeddedImageBaseClassPath() {
+		this.embeddedImageBaseClassPath = null;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearEmbeddedImageBaseUrl()
+	 */
+	public EmailPopulatingBuilder clearEmbeddedImageBaseUrl() {
+		this.embeddedImageBaseUrl = null;
 		return this;
 	}
 	
