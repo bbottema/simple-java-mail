@@ -119,8 +119,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	private String textHTML;
 
+	/**
+	 * @see #withCalendarText(CalendarMethod, String)
+	 */
 	private CalendarMethod calendarMethod;
 
+	/**
+	 * @see #withCalendarText(CalendarMethod, String)
+	 */
 	private String textCalendar;
 	
 	/**
