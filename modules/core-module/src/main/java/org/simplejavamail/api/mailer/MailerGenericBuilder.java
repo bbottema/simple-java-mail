@@ -243,7 +243,6 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <strong>Note:</strong> What makes it NonJvm is that the default keepAliveTime is set to the lowest non-zero value (so 1), so that
 	 * any threads will die off as soon as possible, as not to block the JVM from shutting down.
 	 * <p>
-	 * <p>
 	 * <strong>Note:</strong> Simple Java Mail will <strong>not</strong> shut down the provided executor service, even if the connection pool is being shut down.
 	 * <em>This will block the JVM from shutting down</em>. The user is responsible for managing the provided executor's life cycle.
 	 * <p>
