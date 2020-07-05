@@ -173,7 +173,7 @@ public enum TransportStrategy {
 		 */
 		@Override
 		public String propertyNameCheckServerIdentity() {
-			throw new AssertionError("This property is not relevant for plain SMTP");
+			throw new IllegalStateException("This property is not relevant for plain SMTP");
 		}
 
 		/**

@@ -428,7 +428,7 @@ public final class EmailConverter {
 			return MimeMessageProducerHelper.produceMimeMessage(checkNonEmptyArgument(email, "email"), checkNonEmptyArgument(session, "session"));
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new AssertionError(e.getMessage(), e);
+			throw new IllegalStateException(e.getMessage(), e);
 		}
 	}
 
@@ -510,7 +510,7 @@ public final class EmailConverter {
 			return os.toString(UTF_8.name());
 		} catch (IOException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new AssertionError("This should never happen", e);
+			throw new IllegalStateException("This should never happen", e);
 		}
 	}
 

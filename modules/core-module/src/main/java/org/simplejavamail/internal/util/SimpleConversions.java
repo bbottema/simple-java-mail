@@ -39,7 +39,7 @@ public class SimpleConversions {
 			} else if (strValue.equalsIgnoreCase("false") || strValue.equalsIgnoreCase("0")) {
 				return false;
 			}
-			throw new AssertionError("Wrong property must have been requested");
+			throw new IllegalArgumentException("Wrong property must have been requested");
 		}
 	}
 }

@@ -36,7 +36,7 @@ public class CertificationUtil {
 				Class<Provider> bouncyCastleClass = (Class<Provider>) forName(BOUNCY_CASTLE_PROVIDER_CLASS);
 				Security.addProvider(getProvider(bouncyCastleClass));
 			} catch (ClassNotFoundException e) {
-				throw new AssertionError(format("Class found but also not found??? (%s)", BOUNCY_CASTLE_PROVIDER_CLASS));
+				throw new IllegalStateException(format("Class found but also not found??? (%s)", BOUNCY_CASTLE_PROVIDER_CLASS));
 			}
 		} else {
 			throw new SmimeSupportMissingException();

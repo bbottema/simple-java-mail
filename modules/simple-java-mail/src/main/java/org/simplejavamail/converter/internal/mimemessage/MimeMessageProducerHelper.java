@@ -40,6 +40,6 @@ public final class MimeMessageProducerHelper {
 				return mimeMessageProducer.populateMimeMessage(email, session);
 			}
 		}
-		throw new AssertionError("no compatible MimeMessageProducer found for email");
+		throw new IllegalStateException("no compatible MimeMessageProducer found for email");
 	}
 }

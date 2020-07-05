@@ -319,7 +319,7 @@ public class MailerImpl implements Mailer {
 						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
 			}
 		}
-		throw new AssertionError("Email not valid, but no MailException was thrown for it");
+		throw new IllegalStateException("Email not valid, but no MailException was thrown for it");
 	}
 
 	/**

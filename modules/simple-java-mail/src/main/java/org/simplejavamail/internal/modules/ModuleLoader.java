@@ -68,7 +68,7 @@ public class ModuleLoader {
 
 	public static BatchModule loadBatchModule() {
 		if (FORCED_DISABLED_MODULES.contains(BatchModule.class)) {
-			throw new AssertionError("BatchModule forcefully disabled");
+			throw new IllegalStateException("BatchModule forcefully disabled");
 		}
 		if (!LOADED_MODULES.containsKey(BatchModule.class)) {
 			LOADED_MODULES.put(BatchModule.class, loadModule(

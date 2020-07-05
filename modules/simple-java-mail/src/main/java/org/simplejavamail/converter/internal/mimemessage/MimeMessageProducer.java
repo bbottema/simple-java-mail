@@ -57,7 +57,7 @@ public abstract class MimeMessageProducer {
 				try {
 					return "MimeMessage<id:" + super.getMessageID() + ", subject:" + super.getSubject() + ">";
 				} catch (MessagingException e) {
-					throw new AssertionError("should not reach here");
+					throw new IllegalStateException("should not reach here");
 				}
 			}
 		};
