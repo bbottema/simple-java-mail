@@ -9,18 +9,18 @@ class KeyStoreInfo {
 	private final String password;
 	private final String type /*= "JKS"*/;
 
-//	public KeyStoreInfo() {
-//	}
+	/**
+	 * Delegates to {@link #KeyStoreInfo(String, String, String)} using "JKS" as type.
+	 */
+	public KeyStoreInfo(final String keyStorePath, final String password) {
+		this(keyStorePath, password, "JKS");
+	}
 
 	public KeyStoreInfo(final String keyStorePath, final String password, final String type) {
 		this.keyStorePath = MiscUtil.checkNotNull(keyStorePath, "Argument [keyStorePath] may not be null");
 		this.password = MiscUtil.checkNotNull(password, "Argument [password] may not be null");
 		this.type = MiscUtil.checkNotNull(type, "Argument [type] may not be null");
 	}
-
-//	public KeyStoreInfo(final String keyStorePath, final String password) {
-//		this(keyStorePath, password, "JKS");
-//	}
 
 	public String getKeyStorePath() {
 		return keyStorePath;
@@ -36,7 +36,6 @@ class KeyStoreInfo {
 
 	@Override
 	public String toString() {
-		return "[KEY STORE] PATH:" + keyStorePath + " PASSWORD:" + password + " TYPE:" + type;
+		return "[KEY STORE] PATH:" + keyStorePath + " PASSWORD:xxx" + " TYPE:" + type;
 	}
-
 }
