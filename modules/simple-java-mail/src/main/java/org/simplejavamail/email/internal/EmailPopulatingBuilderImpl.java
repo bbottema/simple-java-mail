@@ -3,6 +3,7 @@ package org.simplejavamail.email.internal;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
@@ -28,6 +29,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
@@ -73,6 +75,7 @@ import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.email.internal.EmailException.ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT;
+import static org.simplejavamail.email.internal.EmailException.ERROR_PARSING_URL;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_FILE;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_PEM_INPUTSTREAM;
 import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_IMAGE_DATASOURCE;
@@ -335,10 +338,10 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 				withEmbeddedImageBaseDir(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)) {
-				withEmbeddedImageBaseDir(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
+				withEmbeddedImageBaseUrl(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)) {
-				withEmbeddedImageBaseDir(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
+				withEmbeddedImageBaseClassPath(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
 			}
 		}
 	}
@@ -1424,6 +1427,18 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withEmbeddedImageBaseClassPath(@NotNull final String embeddedImageBaseClassPath) {
 		this.embeddedImageBaseClassPath = checkNonEmptyArgument(embeddedImageBaseClassPath, "embeddedImageBaseClassPath");
 		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withEmbeddedImageBaseUrl(String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final String embeddedImageBaseUrl) {
+		try {
+			return withEmbeddedImageBaseUrl(new URL(embeddedImageBaseUrl));
+		} catch (MalformedURLException e) {
+			throw new EmailException(format(ERROR_PARSING_URL, embeddedImageBaseUrl), e);
+		}
 	}
 
 	/**

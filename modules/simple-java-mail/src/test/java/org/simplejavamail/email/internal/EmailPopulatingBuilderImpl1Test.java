@@ -46,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.mockito.Mockito.mock;
+import static org.simplejavamail.util.TestDataHelper.getUrl;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.CertificationUtil.extractSignedBy;
 
@@ -957,14 +958,6 @@ public class EmailPopulatingBuilderImpl1Test {
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "Download Simple Java Mail");
-	}
-
-	private int getUrl(String urlStr) {
-		try {
-			return ((HttpURLConnection) new URL(urlStr).openConnection()).getResponseCode();
-		} catch (IOException e) {
-			return HttpURLConnection.HTTP_NOT_FOUND;
-		}
 	}
 
 	@Test

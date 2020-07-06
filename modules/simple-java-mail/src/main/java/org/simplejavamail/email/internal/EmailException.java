@@ -13,6 +13,7 @@ class EmailException extends MailException {
 	static final String ERROR_READING_FROM_PEM_INPUTSTREAM = "Was unable to convert PEM data to X509 certificate";
 	static final String ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT = "Unable to load certificate (missing bouncy castle), is the S/MIME module on the class path?";
 	static final String ERROR_RESOLVING_IMAGE_DATASOURCE = "Unable to dynamically resolve data source for the following image src: %s";
+	static final String ERROR_PARSING_URL = "Unable to parse URL: %s";
 
 	EmailException(@SuppressWarnings("SameParameterValue") final String message) {
 		super(message);

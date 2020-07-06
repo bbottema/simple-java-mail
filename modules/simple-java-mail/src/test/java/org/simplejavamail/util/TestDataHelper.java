@@ -7,6 +7,10 @@ import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.jetbrains.annotations.NotNull;
 import javax.mail.util.ByteArrayDataSource;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.util.Objects.requireNonNull;
 
@@ -38,5 +42,13 @@ public class TestDataHelper {
 				.keyAlias("smime_test_user_alias")
 				.keyPassword("letmein")
 				.build();
+	}
+
+	public static int getUrl(String urlStr) {
+		try {
+			return ((HttpURLConnection) new URL(urlStr).openConnection()).getResponseCode();
+		} catch (IOException e) {
+			return HttpURLConnection.HTTP_NOT_FOUND;
+		}
 	}
 }

@@ -1,21 +1,26 @@
 package org.simplejavamail.email.internal;
 
 import org.apache.commons.collections4.map.HashedMap;
+import org.assertj.core.api.iterable.Extractor;
 import org.junit.Test;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.Map;
 
+import static demo.ResourceFolderHelper.determineResourceFolder;
 import static javax.mail.Message.RecipientType.BCC;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
@@ -29,14 +34,24 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NA
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
+import static org.simplejavamail.util.TestDataHelper.getUrl;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 public class EmailPopulatingBuilderImpl2Test {
+
+	private static final String RESOURCES_PATH = determineResourceFolder("simple-java-mail") + "/test/resources";
+
+	private static final String DOWNLOAD_SIMPLE_JAVA_MAIL = "Download Simple Java Mail";
+	private static final String CREATE_SELF_SIGNED_S_MIME_CERTIFICATES = "Create Self-Signed S/MIME Certificates";
+	private static final String CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT = "<Console name=\"console\" target=\"SYSTEM_OUT\">";
 
 	@Test
 	public void testConstructorApplyingPreconfiguredDefaults1() throws Exception {
@@ -99,5 +114,52 @@ public class EmailPopulatingBuilderImpl2Test {
 				);
 
 		assertThat(email.getX509CertificateForSmimeEncryption()).isNotNull();
+	}
+
+	@Test
+	public void testConstructorApplyingPreconfiguredDefaults_EmbeddedImageResolving() throws Exception {
+		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+
+		HashedMap<Property, Object> value = new HashedMap<>();
+
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR, RESOURCES_PATH);
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, "http://www.simplejavamail.org");
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/pkcs12");
+
+		ConfigLoaderTestHelper.setResolvedProperties(value);
+
+		Email email = EmailBuilder.startingBlank()
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"download.html\"/>") // comes from simplejavamail.org
+				.appendTextHTML("<img src=\"/how-to.html\"/>") // comes from classpath
+				.appendTextHTML("<img src=\"log4j2.xml\"/>") // comes from folder
+				.buildEmail();
+
+		assertThat(email.getEmbeddedImages())
+				.extracting(new DatasourceReadingExtractor())
+				.containsExactlyInAnyOrder(
+						DOWNLOAD_SIMPLE_JAVA_MAIL,
+						CREATE_SELF_SIGNED_S_MIME_CERTIFICATES,
+						CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT
+				);
+	}
+
+	private static class DatasourceReadingExtractor implements Extractor<AttachmentResource, String> {
+		@Override
+		public String extract(final AttachmentResource input) {
+			try {
+				final String sourceContent = input.readAllData();
+				if (sourceContent.contains(DOWNLOAD_SIMPLE_JAVA_MAIL)) {
+					return DOWNLOAD_SIMPLE_JAVA_MAIL;
+				} else if (sourceContent.contains(CREATE_SELF_SIGNED_S_MIME_CERTIFICATES)) {
+					return CREATE_SELF_SIGNED_S_MIME_CERTIFICATES;
+				} else if (sourceContent.contains(CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT)) {
+					return CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT;
+				}
+				return "";
+			} catch (IOException e) {
+				throw new AssertionError();
+			}
+		}
 	}
 }

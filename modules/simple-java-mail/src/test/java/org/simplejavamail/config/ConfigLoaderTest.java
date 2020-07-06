@@ -24,6 +24,9 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NA
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
 import static org.simplejavamail.config.ConfigLoader.Property.JAVAXMAIL_DEBUG;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
@@ -198,6 +201,10 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEY_ALIAS)).isEqualTo("smime_test_user_alias");
 		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("letmein");
 		assertThat(ConfigLoader.getProperty(SMIME_ENCRYPTION_CERTIFICATE)).isEqualTo("src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
+
+		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)).isEqualTo("unable to test this as the value is variable depending on junit working folder");
+		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)).isEqualTo("http://www.simplejavamail.org");
+		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)).isEqualTo("/pkcs12");
 	}
 
 	@Test
@@ -220,7 +227,6 @@ public class ConfigLoaderTest {
 
 	@Test
 	public void loadPropertiesFromInputStream() {
-
 		String s = "simplejavamail.javaxmail.debug=true\n"
 				+ "simplejavamail.transportstrategy=SMTPS\n"
 				+ "simplejavamail.smtp.host=smtp.default.com\n"

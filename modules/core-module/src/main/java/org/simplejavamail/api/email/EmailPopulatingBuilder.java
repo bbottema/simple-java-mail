@@ -882,6 +882,13 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImageBaseClassPath(@NotNull final String embeddedImageBaseClassPath);
 
 	/**
+	 * Delegates to {@link #withEmbeddedImageBaseUrl(URL)}.
+	 *
+	 * @param embeddedImageBaseUrl The base URL used when resolving images sources in HTML text.
+	 */
+	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final String embeddedImageBaseUrl);
+
+	/**
 	 * Sets the base URL used when resolving images sources in HTML text. Without this, the resource needs to be an absolute URL (or a file/classpath resource).
 	 * <p>
 	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
