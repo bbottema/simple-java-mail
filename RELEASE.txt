@@ -3,8 +3,13 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.1.0</version>
+    <version>6.2.0</version>
 </dependency>
+
+v6.2.0 (6-July-2020)
+
+- #260: Add support for dynamic datasource resolution (file/url/classpath) for embedded images in HTML body
+
 
 v6.1.0 (5-July-2020)
 
