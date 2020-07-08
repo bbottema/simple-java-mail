@@ -260,18 +260,29 @@ public class MimeMessageHelper {
 			resourceName = "resource" + UUID.randomUUID();
 		}
 		if (includeExtension && !valueNullOrEmpty(datasourceName)) {
-			@SuppressWarnings("UnnecessaryLocalVariable")
-			final String possibleFilename = datasourceName;
-			if (!resourceName.contains(".") && possibleFilename.contains(".")) {
-				final String extension = possibleFilename.substring(possibleFilename.lastIndexOf("."));
-				if (!resourceName.endsWith(extension)) {
-					resourceName += extension;
-				}
-			}
+			resourceName = possiblyAddExtension(datasourceName, resourceName);
 		} else if (!includeExtension && resourceName.contains(".") && resourceName.equals(datasourceName)) {
-			final String extension = resourceName.substring(resourceName.lastIndexOf("."));
-			resourceName = resourceName.replace(extension, "");
+			resourceName = removeExtension(resourceName);
 		}
 		return MiscUtil.encodeText(resourceName);
+	}
+
+	@NotNull
+	private static String removeExtension(String resourceName) {
+		final String extension = resourceName.substring(resourceName.lastIndexOf("."));
+		return resourceName.replace(extension, "");
+	}
+
+	@NotNull
+	private static String possiblyAddExtension(final String datasourceName, String resourceName) {
+		@SuppressWarnings("UnnecessaryLocalVariable")
+		final String possibleFilename = datasourceName;
+		if (!resourceName.contains(".") && possibleFilename.contains(".")) {
+			final String extension = possibleFilename.substring(possibleFilename.lastIndexOf("."));
+			if (!resourceName.endsWith(extension)) {
+				resourceName += extension;
+			}
+		}
+		return resourceName;
 	}
 }
