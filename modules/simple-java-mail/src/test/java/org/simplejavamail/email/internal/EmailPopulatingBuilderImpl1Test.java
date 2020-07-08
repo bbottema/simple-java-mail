@@ -1,6 +1,5 @@
 package org.simplejavamail.email.internal;
 
-import net.fortuna.ical4j.model.property.Url;
 import org.assertj.core.api.ThrowableAssert;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -1012,7 +1011,7 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testClearingValues() throws IOException {
-		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true)
+		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false)
 				.notMergingSingleSMIMESignedAttachment()
 				.signWithDomainKey("dkim_key", "dkim_domain", "dkim_selector")
 				.signWithDomainKey(new File("dkim_key"), "dkim_domain", "dkim_selector")
@@ -1091,7 +1090,7 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testClearingValuesAlternativeFlows() throws IOException {
-		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true)
+		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false)
 				.signWithDomainKey(new ByteArrayInputStream(new byte[]{}), "dkim_domain", "dkim_selector");
 
 		Email emailNormal = emailBuilder.buildEmail();

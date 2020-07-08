@@ -6,6 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.util.NamedDataSource;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -204,8 +205,8 @@ public class EmailTest {
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().withCalendarText(REPLY, "moo").buildEmail(), false);
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().buildEmail(), false);
 		// forWardEmail
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, true, true).buildEmail();
-		final Email emailOther = EmailHelper.createDummyEmailBuilder(false, true, false, false).buildEmail();
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, true, true, false).buildEmail();
+		final Email emailOther = EmailHelper.createDummyEmailBuilder(false, true, false, false, false).buildEmail();
 		assertEmailEqual(f(email).buildEmail(), f(email).buildEmail(), true);
 		assertEmailEqual(f(email).buildEmail(), b().buildEmail(), false);
 		assertEmailEqual(f(email).buildEmail(), f(emailOther).buildEmail(), false);

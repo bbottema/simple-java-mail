@@ -1,7 +1,8 @@
-package org.simplejavamail.converter.internal.mimemessage;
+package org.simplejavamail.internal.util;
+
+import org.jetbrains.annotations.Nullable;
 
 import javax.activation.DataSource;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.EncodingAware;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,7 +13,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 /**
  * Allows given datasource to be renamed (for {@code javax.activation.DataHandler} perspective).
  */
-class NamedDataSource implements DataSource, EncodingAware {
+public class NamedDataSource implements DataSource, EncodingAware {
 
 	/**
 	 * Original data source used for attachment.

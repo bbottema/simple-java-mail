@@ -1,13 +1,14 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.util.NamedDataSource;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
-import org.jetbrains.annotations.NotNull;
 import javax.mail.Address;
 import javax.mail.BodyPart;
 import javax.mail.Message;

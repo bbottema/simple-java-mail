@@ -1,11 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import javax.mail.BodyPart;
-import javax.mail.MessagingException;
-import javax.mail.internet.ContentType;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
 import org.assertj.core.api.ThrowableAssert;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,15 +10,19 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.internal.util.MiscUtil;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import org.jetbrains.annotations.Nullable;
+import javax.mail.BodyPart;
+import javax.mail.MessagingException;
+import javax.mail.internet.ContentType;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 
@@ -115,7 +115,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseItWillTryToSign()
 			throws IOException, ClassNotFoundException {
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true)
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
 		
@@ -132,7 +132,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseDKIMLibraryIsMissing()
 			throws IOException, ClassNotFoundException {
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true)
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
 		
@@ -165,7 +165,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void filenameWithSpaceEncoding() throws IOException, MessagingException {
 		final String fileName = "file name.txt";
-		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false)
+		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false)
 				.clearAttachments().withAttachment(fileName, "abc".getBytes(), "text/plain").buildEmail();
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(email);
 		final BodyPart bodyPart = ((MimeMultipart) mimeMessage.getContent()).getBodyPart(1);

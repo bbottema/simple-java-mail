@@ -7,7 +7,6 @@ import org.simplejavamail.api.email.Recipient;
 
 import javax.activation.DataSource;
 import javax.activation.FileDataSource;
-import javax.activation.FileTypeMap;
 import javax.activation.URLDataSource;
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.AddressException;
@@ -278,20 +277,22 @@ public final class MiscUtil {
 	}
 
 	@Nullable
-	public static  DataSource tryResolveFileDataSource(@Nullable final String baseDir, @Nullable final String baseClassPath, @NotNull final String srcLocation)
+	public static  DataSource tryResolveImageFileDataSource(@Nullable final String baseDir, @Nullable final String baseClassPath, @NotNull final String srcLocation)
 			throws IOException {
-		DataSource fileSource = tryResolveFileDataSourceFromDisk(baseDir, srcLocation);
+		DataSource fileSource = tryResolveImageFileDataSourceFromDisk(baseDir, srcLocation);
 		return (fileSource != null) ? fileSource : tryResolveFileDataSourceFromClassPath(baseClassPath, srcLocation);
 	}
 
 	@Nullable
-	private static DataSource tryResolveFileDataSourceFromDisk(final @Nullable String baseDir, final @NotNull String srcLocation) {
+	private static DataSource tryResolveImageFileDataSourceFromDisk(final @Nullable String baseDir, final @NotNull String srcLocation) {
 		File file = new File(srcLocation);
 		if (!file.exists() && !file.isAbsolute()) {
 			file = new File(ofNullable(baseDir).orElse("."), srcLocation);
 		}
 		if (file.exists()) {
-			return new FileDataSource(file);
+			final FileDataSource fileDataSource = new FileDataSource(file);
+			fileDataSource.setFileTypeMap(ImageMimeType.IMAGE_MIMETYPES_FILE_TYPE_MAP);
+			return fileDataSource;
 		}
 		return null;
 	}
@@ -304,7 +305,7 @@ public final class MiscUtil {
 
 		if (is != null) {
 			try {
-				final String mimeType = FileTypeMap.getDefaultFileTypeMap().getContentType(srcLocation);
+				final String mimeType = ImageMimeType.getContentType(srcLocation);
 				final ByteArrayDataSource ds = new ByteArrayDataSource(is, mimeType);
 				// EMAIL-125: set the name of the DataSource to the normalized resource URL similar to other DataSource implementations, e.g. FileDataSource, URLDataSource
 				ds.setName(MiscUtil.class.getResource(resourceName).toString());

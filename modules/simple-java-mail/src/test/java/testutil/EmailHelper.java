@@ -1,6 +1,8 @@
 package testutil;
 
 import org.assertj.core.util.Lists;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
@@ -10,8 +12,6 @@ import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.util.SimpleOptional;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,13 +37,13 @@ public class EmailHelper {
 
 	public static final Date CUSTOM_SENT_DATE = new GregorianCalendar(2011, SEPTEMBER, 15, 12, 5, 43).getTime();
 
-	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean onlyBasicFields, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule)
+	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean onlyBasicFields, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule, final boolean useDynamicImageEmbedding)
 			throws IOException {
-		return createDummyEmailBuilder(null, includeSubjectAndBody, onlyBasicFields, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule, false);
+		return createDummyEmailBuilder(null, includeSubjectAndBody, onlyBasicFields, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule, false, useDynamicImageEmbedding);
 	}
 
 	public static EmailPopulatingBuilder createDummyEmailBuilder(@Nullable String id, boolean includeSubjectAndBody, boolean onlyBasicFields, boolean includeCustomHeaders,
-	                                                             boolean useSmimeDetailsImplFromSmimeModule, final boolean fixSentDate)
+			boolean useSmimeDetailsImplFromSmimeModule, final boolean fixSentDate, final boolean useDynamicImageEmbedding)
 			throws IOException {
 		EmailPopulatingBuilder builder = EmailBuilder.startingBlank()
 				.fixingMessageId(id)
@@ -63,6 +63,10 @@ public class EmailHelper {
 					.withSubject("hey")
 					.withPlainText("We should meet up!")
 					.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'>");
+		}
+		if (useDynamicImageEmbedding) {
+			builder = builder
+					.appendTextHTML("<img src=\"/test-dynamicembedded-image/br2049.jpg\"/>");
 		}
 
 		if (includeCustomHeaders) {

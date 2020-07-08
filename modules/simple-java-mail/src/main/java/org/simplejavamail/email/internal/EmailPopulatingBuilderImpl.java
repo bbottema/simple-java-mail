@@ -3,7 +3,6 @@ package org.simplejavamail.email.internal;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
@@ -17,6 +16,7 @@ import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.CertificationUtil;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.util.NamedDataSource;
 
 import javax.activation.DataSource;
 import javax.mail.Message.RecipientType;
@@ -85,7 +85,7 @@ import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
 import static org.simplejavamail.internal.util.MiscUtil.resolveUrlDataSource;
-import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSource;
+import static org.simplejavamail.internal.util.MiscUtil.tryResolveImageFileDataSource;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -375,8 +375,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 				final String srcLocation = matcher.group("src");
 				if (!srcLocation.startsWith("cid:")) {
 					if (!generatedCids.containsKey(srcLocation)) {
-						generatedCids.put(srcLocation, randomCid10());
-						withEmbeddedImage(generatedCids.get(srcLocation), resolveDynamicEmbeddedImageDataSource(srcLocation));
+						final String cid = randomCid10();
+						generatedCids.put(srcLocation, cid);
+						withEmbeddedImage(cid, new NamedDataSource(cid, resolveDynamicEmbeddedImageDataSource(srcLocation)));
 					}
 					final String imgSrcReplacement = matcher.group("imageTagStart") + "cid:" + generatedCids.get(srcLocation) + matcher.group("imageSrcEnd");
 					matcher.appendReplacement(stringBuffer, quoteReplacement(imgSrcReplacement));
@@ -390,7 +391,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 
 	private DataSource resolveDynamicEmbeddedImageDataSource(@NotNull final String srcLocation) {
 		try {
-			DataSource resolvedDataSource = tryResolveFileDataSource(embeddedImageBaseDir, embeddedImageBaseClassPath, srcLocation);
+			DataSource resolvedDataSource = tryResolveImageFileDataSource(embeddedImageBaseDir, embeddedImageBaseClassPath, srcLocation);
 			if (resolvedDataSource == null) {
 				resolvedDataSource = resolveUrlDataSource(embeddedImageBaseUrl, srcLocation);
 			}

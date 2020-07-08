@@ -12,16 +12,20 @@ import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.nio.charset.Charset;
 
+import static demo.ResourceFolderHelper.determineResourceFolder;
+
 /**
  * Demonstration program for the Simple Java Mail framework. Just fill your gmail, password and press GO.
  */
 public class FullEmailDemoApp extends DemoAppBase {
-	
+
 	public static void main(final String[] args) throws IOException {
 		testMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailers();
 	}
 	
 	private static void testMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailers() throws IOException {
+		final String resourcesPathOnDisk = determineResourceFolder("simple-java-mail") + "/test/resources";
+
 		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailBuilder.startingBlank();
 		emailPopulatingBuilderNormal.from("Simple Java Mail demo", "simplejavamail@demo.app");
 		// don't forget to add your own address here ->
@@ -30,7 +34,13 @@ public class FullEmailDemoApp extends DemoAppBase {
 		emailPopulatingBuilderNormal.withHTMLText("<p>This is an email with \"mixed\", \"related\" and \"alternative\" content: it contains a plain " +
 				"text part (ignored in favor of HTML by modern clients), an HTML content part (this HTML text) which references a related " +
 				"content part (the embedded image) and a iCalendar content part. In addition this email contains a separate attachment as " +
-				"well.</p><img src='cid:thumbsup'>" +
+				"well.</p>" +
+				"<ol>" +
+				"   <li>Image embedded with fixed cid and hardcoded datasource: <img width=25 src='cid:thumbsup'></li>" +
+				"   <li>Image embedded with generated cid datasource resolved from classpath:<img src='/test-dynamicembedded-image/excellent.png' style='width:25px'></li>" +
+				"   <li>Image embedded with generated cid datasource resolved from disk:<img src='" + resourcesPathOnDisk + "/test-dynamicembedded-image/excellent.png' style='width:25px'></li>" +
+				"   <li>Image embedded with generated cid datasource resolved from URL!:<img src='http://www.simplejavamail.org/assets/github-ribbon-topright@2x.png' style='width:32px' title='Fork me on GitHub'></li>" +
+				"</ol>" +
 				"<p><b>Formal structure:</b><br>" +
 				"<ul>" +
 				"   <li>mixed (root)<ul>" +
@@ -39,7 +49,7 @@ public class FullEmailDemoApp extends DemoAppBase {
 				"   			<li>plain text</li>" +
 				"				<li>HTML text</li>" +
 				"			</ul></li>" +
-				"			<li>embeddable image (cid:thumbsup) </li>" +
+				"			<li>embeddable images (1x fixed: cid:thumbsup and 3x dynamically resolved)</li>" +
 				"		</ul></li>" +
 				"		<li>attachment</li>" +
 				"	</ul></li>" +
@@ -59,8 +69,8 @@ public class FullEmailDemoApp extends DemoAppBase {
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 
 		mailerSMTPBuilder.buildMailer().sendMail(emailNormal);
-		mailerTLSBuilder.buildMailer().sendMail(emailNormal);
-		mailerSSLBuilder.buildMailer().sendMail(emailNormal);
-		mailerTLSBuilder.buildMailer().sendMail(emailFromMimeMessage); // should produce the exact same result as emailPopulatingBuilderNormal!
+//		mailerTLSBuilder.buildMailer().sendMail(emailNormal);
+//		mailerSSLBuilder.buildMailer().sendMail(emailNormal);
+//		mailerTLSBuilder.buildMailer().sendMail(emailFromMimeMessage); // should produce the exact same result as emailPopulatingBuilderNormal!
 	}
 }

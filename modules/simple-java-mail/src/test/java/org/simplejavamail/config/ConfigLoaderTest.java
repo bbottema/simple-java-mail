@@ -202,9 +202,9 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("letmein");
 		assertThat(ConfigLoader.getProperty(SMIME_ENCRYPTION_CERTIFICATE)).isEqualTo("src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
 
-		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)).isEqualTo("unable to test this as the value is variable depending on junit working folder");
-		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)).isEqualTo("http://www.simplejavamail.org");
-		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)).isEqualTo("/pkcs12");
+		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)).isEqualTo("");
+		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)).isEqualTo("");
+		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)).isEqualTo("");
 	}
 
 	@Test
