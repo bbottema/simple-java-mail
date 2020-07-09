@@ -1031,7 +1031,6 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
-	 * @see #clearSmime()
 	 * @see <a href="https://en.wikipedia.org/wiki/S/MIME">S/MIME on Wikipedia</a>
 	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
 	 */
@@ -1104,7 +1103,6 @@ public interface EmailPopulatingBuilder {
 	 *
 	 * @param x509Certificate The recipient's public key to use for encryption.
 	 *
-	 * @see #clearSmime()
 	 * @see <a href="https://en.wikipedia.org/wiki/S/MIME">S/MIME on Wikipedia</a>
 	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
 	 * @see <a href="https://github.com/markenwerk/java-utils-mail-smime">Underlying library's documentation</a>
