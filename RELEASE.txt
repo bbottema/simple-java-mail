@@ -8,6 +8,8 @@ http://www.simplejavamail.org
 
 v6.2.0 (6-July-2020)
 
+This release adds the following major new feature:
+
 - #260: Add support for dynamic datasource resolution (file/url/classpath) for embedded images in HTML body
 
 

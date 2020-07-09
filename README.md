@@ -24,7 +24,9 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 ### Latest Progress ###
 
-[v6.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.2.0%7Cjar) (6-July-2020)
+[v6.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.2.0%7Cjar) (9-July-2020)
+
+This release adds the following major new feature:
 
 - [#260](https://github.com/bbottema/simple-java-mail/issues/260) Add support for dynamic datasource resolution (file/url/classpath) for embedded images in HTML body
 
