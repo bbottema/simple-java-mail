@@ -66,11 +66,19 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR;
+import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
+import static org.simplejavamail.config.ConfigLoader.getBooleanProperty;
 import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
@@ -84,8 +92,9 @@ import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGe
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
-import static org.simplejavamail.internal.util.MiscUtil.resolveUrlDataSource;
-import static org.simplejavamail.internal.util.MiscUtil.tryResolveImageFileDataSource;
+import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSourceFromClassPath;
+import static org.simplejavamail.internal.util.MiscUtil.tryResolveImageFileDataSourceFromDisk;
+import static org.simplejavamail.internal.util.MiscUtil.tryResolveUrlDataSource;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -148,12 +157,21 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@NotNull
 	private final List<Recipient> recipients;
-	
+
 	/**
-	 * @see #withEmbeddedImage(String, DataSource)
+	 * @see #withEmbeddedImageAutoResolutionForFiles(boolean)
 	 */
-	@NotNull
-	private final List<AttachmentResource> embeddedImages;
+	private boolean embeddedImageAutoResolutionForFiles;
+
+	/**
+	 * @see #withEmbeddedImageAutoResolutionForClassPathResources(boolean)
+	 */
+	private boolean embeddedImageAutoResolutionForClassPathResources;
+
+	/**
+	 * @see #withEmbeddedImageAutoResolutionForURLs(boolean)
+	 */
+	private boolean embeddedImageAutoResolutionForURLs;
 
 	/**
 	 * @see #withEmbeddedImageBaseDir(String)
@@ -169,6 +187,32 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #withEmbeddedImageBaseUrl(URL)
 	 */
 	private URL embeddedImageBaseUrl;
+
+	/**
+	 * @see #allowingEmbeddedImageOutsideBaseDir(boolean)
+	 */
+	private boolean allowEmbeddedImageOutsideBaseDir;
+
+	/**
+	 * @see #allowingEmbeddedImageOutsideBaseClassPath(boolean)
+	 */
+	private boolean allowEmbeddedImageOutsideBaseClassPath;
+
+	/**
+	 * @see #allowingEmbeddedImageOutsideBaseUrl(boolean)
+	 */
+	private boolean allowEmbeddedImageOutsideBaseUrl;
+
+	/**
+	 * @see #embeddedImageAutoResolutionMustBeSuccesful(boolean)
+	 */
+	private boolean embeddedImageAutoResolutionMustBeSuccesful;
+
+	/**
+	 * @see #withEmbeddedImage(String, DataSource)
+	 */
+	@NotNull
+	private final List<AttachmentResource> embeddedImages;
 	
 	/**
 	 * @see #withAttachment(String, DataSource)
@@ -334,14 +378,35 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			if (hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
 				encryptWithSmime(assumeNonNull(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));
 			}
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)) {
+				withEmbeddedImageAutoResolutionForFiles(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)));
+			}
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)) {
+				withEmbeddedImageAutoResolutionForClassPathResources(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)));
+			}
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)) {
+				withEmbeddedImageAutoResolutionForURLs(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)));
+			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)) {
 				withEmbeddedImageBaseDir(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)));
+			}
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)) {
+				withEmbeddedImageBaseClassPath(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)) {
 				withEmbeddedImageBaseUrl(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
 			}
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)) {
-				withEmbeddedImageBaseClassPath(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)) {
+				allowingEmbeddedImageOutsideBaseDir(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)));
+			}
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)) {
+				allowingEmbeddedImageOutsideBaseClassPath(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)));
+			}
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)) {
+				allowingEmbeddedImageOutsideBaseUrl(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)));
+			}
+			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)) {
+				embeddedImageAutoResolutionMustBeSuccesful(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)));
 			}
 		}
 	}
@@ -375,12 +440,17 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 				final String srcLocation = matcher.group("src");
 				if (!srcLocation.startsWith("cid:")) {
 					if (!generatedCids.containsKey(srcLocation)) {
-						final String cid = randomCid10();
-						generatedCids.put(srcLocation, cid);
-						withEmbeddedImage(cid, new NamedDataSource(cid, resolveDynamicEmbeddedImageDataSource(srcLocation)));
+						final DataSource dataSource = resolveDynamicEmbeddedImageDataSource(srcLocation);
+						if (dataSource != null) {
+							final String cid = randomCid10();
+							generatedCids.put(srcLocation, cid);
+							withEmbeddedImage(cid, new NamedDataSource(cid, dataSource));
+						}
 					}
-					final String imgSrcReplacement = matcher.group("imageTagStart") + "cid:" + generatedCids.get(srcLocation) + matcher.group("imageSrcEnd");
-					matcher.appendReplacement(stringBuffer, quoteReplacement(imgSrcReplacement));
+					if (generatedCids.containsKey(srcLocation)) {
+						final String imgSrcReplacement = matcher.group("imageTagStart") + "cid:" + generatedCids.get(srcLocation) + matcher.group("imageSrcEnd");
+						matcher.appendReplacement(stringBuffer, quoteReplacement(imgSrcReplacement));
+					}
 				}
 			}
 			matcher.appendTail(stringBuffer);
@@ -389,16 +459,31 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		}
 	}
 
+	@Nullable
 	private DataSource resolveDynamicEmbeddedImageDataSource(@NotNull final String srcLocation) {
 		try {
-			DataSource resolvedDataSource = tryResolveImageFileDataSource(embeddedImageBaseDir, embeddedImageBaseClassPath, srcLocation);
-			if (resolvedDataSource == null) {
-				resolvedDataSource = resolveUrlDataSource(embeddedImageBaseUrl, srcLocation);
+			DataSource resolvedDataSource = null;
+			if (embeddedImageAutoResolutionForFiles) {
+				resolvedDataSource = tryResolveImageFileDataSourceFromDisk(embeddedImageBaseDir, allowEmbeddedImageOutsideBaseDir, srcLocation);
 			}
-			return resolvedDataSource;
+			if (resolvedDataSource == null && embeddedImageAutoResolutionForClassPathResources) {
+				resolvedDataSource = tryResolveFileDataSourceFromClassPath(embeddedImageBaseClassPath, allowEmbeddedImageOutsideBaseClassPath, srcLocation);
+			}
+			if (resolvedDataSource == null && embeddedImageAutoResolutionForURLs) {
+				resolvedDataSource = tryResolveUrlDataSource(embeddedImageBaseUrl, allowEmbeddedImageOutsideBaseUrl, srcLocation);
+			}
+			if (resolvedDataSource == null) {
+				boolean autoresolutionWasAttempted = embeddedImageAutoResolutionForFiles || embeddedImageAutoResolutionForClassPathResources || embeddedImageAutoResolutionForURLs;
+				if (!autoresolutionWasAttempted || !embeddedImageAutoResolutionMustBeSuccesful) {
+					return null;
+				}
+			} else {
+				return resolvedDataSource;
+			}
 		} catch (IOException e) {
-			throw new EmailException(format(ERROR_RESOLVING_IMAGE_DATASOURCE, srcLocation));
+			// unable to load datasource
 		}
+		throw new EmailException(format(ERROR_RESOLVING_IMAGE_DATASOURCE, srcLocation));
 	}
 
 	/**
@@ -1422,6 +1507,33 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#withEmbeddedImageAutoResolutionForFiles(boolean)
+	 */
+	@Override
+	public EmailPopulatingBuilder withEmbeddedImageAutoResolutionForFiles(final boolean embeddedImageAutoResolutionForFiles) {
+		this.embeddedImageAutoResolutionForFiles = embeddedImageAutoResolutionForFiles;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withEmbeddedImageAutoResolutionForClassPathResources(boolean)
+	 */
+	@Override
+	public EmailPopulatingBuilder withEmbeddedImageAutoResolutionForClassPathResources(final boolean embeddedImageAutoResolutionForClassPathResources) {
+		this.embeddedImageAutoResolutionForClassPathResources = embeddedImageAutoResolutionForClassPathResources;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withEmbeddedImageAutoResolutionForURLs(boolean)
+	 */
+	@Override
+	public EmailPopulatingBuilder withEmbeddedImageAutoResolutionForURLs(final boolean embeddedImageAutoResolutionForURLs) {
+		this.embeddedImageAutoResolutionForURLs = embeddedImageAutoResolutionForURLs;
+		return this;
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#withEmbeddedImageBaseClassPath(String)
 	 */
 	@Override
@@ -1450,7 +1562,43 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		this.embeddedImageBaseUrl = checkNonEmptyArgument(embeddedImageBaseUrl, "embeddedImageBaseUrl");
 		return this;
 	}
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#allowingEmbeddedImageOutsideBaseDir(boolean)
+	 */
+	@Override
+	public EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseDir(final boolean allowEmbeddedImageOutsideBaseDir) {
+		this.allowEmbeddedImageOutsideBaseDir = allowEmbeddedImageOutsideBaseDir;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#allowingEmbeddedImageOutsideBaseClassPath(boolean)
+	 */
+	@Override
+	public EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseClassPath(final boolean allowEmbeddedImageOutsideBaseClassPath) {
+		this.allowEmbeddedImageOutsideBaseClassPath = allowEmbeddedImageOutsideBaseClassPath;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#allowingEmbeddedImageOutsideBaseUrl(boolean)
+	 */
+	@Override
+	public EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseUrl(final boolean allowEmbeddedImageOutsideBaseUrl) {
+		this.allowEmbeddedImageOutsideBaseUrl = allowEmbeddedImageOutsideBaseUrl;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#embeddedImageAutoResolutionMustBeSuccesful(boolean)
+	 */
+	@Override
+	public EmailPopulatingBuilder embeddedImageAutoResolutionMustBeSuccesful(final boolean embeddedImageAutoResolutionMustBeSuccesful) {
+		this.embeddedImageAutoResolutionMustBeSuccesful = embeddedImageAutoResolutionMustBeSuccesful;
+		return this;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, byte[], String)
 	 */

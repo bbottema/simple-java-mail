@@ -443,6 +443,7 @@ public class EmailPopulatingBuilderImpl1Test {
 			// ok
 		}
 		try {
+			//noinspection ConstantConditions
 			builder.withEmbeddedImage(null, new byte[3], "mimetype");
 			failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
 		} catch (IllegalArgumentException e) {
@@ -853,6 +854,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.appendTextHTML("<appended3>");
 	}
 
+	@SuppressWarnings("SameParameterValue")
 	private ByteArrayDataSource getDataSource(@Nullable String name)
 			throws IOException {
 		ByteArrayDataSource ds = new ByteArrayDataSource("", "text/text");
@@ -880,6 +882,9 @@ public class EmailPopulatingBuilderImpl1Test {
 		final File file = new File(RESOURCES_PATH + "/log4j2.xml");
 
 		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + file.getAbsolutePath() + "\"/>")
 				.buildEmail();
@@ -890,6 +895,10 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeFilePathWithNoBasedir() {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.embeddedImageAutoResolutionMustBeSuccesful(true)
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"log4j2.xml\"/>");
 
@@ -906,12 +915,84 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeFilePathWithBasedir()
 			throws IOException {
 		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
 				.withEmbeddedImageBaseDir(RESOURCES_PATH)
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"log4j2.xml\"/>")
+				.appendTextHTML("<img src=\"pkcs12/about all this.txt\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "to generate CA cert, private key and and S/MIME format");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteFilePathNestedUnderBasedir_AllowFlagTrue()
+			throws IOException {
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseDir(RESOURCES_PATH)
+				.allowingEmbeddedImageOutsideBaseDir(true)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/pkcs12/about all this.txt\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "to generate CA cert, private key and and S/MIME format");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteFilePathNestedUnderBasedir_AllowFlagFalseSameAsTrue()
+			throws IOException {
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseDir(RESOURCES_PATH)
+				.allowingEmbeddedImageOutsideBaseDir(false)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/pkcs12/about all this.txt\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "to generate CA cert, private key and and S/MIME format");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteFilePathOutsideBasedir_AllowedTrue()
+			throws IOException {
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseDir(RESOURCES_PATH + "/pkcs12")
+				.allowingEmbeddedImageOutsideBaseDir(true)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/log4j2.xml\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "<Console name=\"console\" target=\"SYSTEM_OUT\">");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteFilePathOutsideBasedir_AllowedFalse() {
+		final EmailPopulatingBuilder emailPopulatingBuilder = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseDir(RESOURCES_PATH + "/pkcs12")
+				.allowingEmbeddedImageOutsideBaseDir(false)
+				.embeddedImageAutoResolutionMustBeSuccesful(true)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/log4j2.xml\"/>");
+
+		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+			public void call() {
+				emailPopulatingBuilder.buildEmail();
+			}
+		})
+				.isInstanceOf(EmailException.class)
+				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: src/test/resources/log4j2.xml");
 	}
 
 	@Test
@@ -920,6 +1001,9 @@ public class EmailPopulatingBuilderImpl1Test {
 		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
 
 		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"http://www.simplejavamail.org/download.html\"/>")
 				.buildEmail();
@@ -928,11 +1012,14 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
-	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlWithNoBaseUrl()
-			throws IOException {
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlWithNoBaseUrl() {
 		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
 
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.embeddedImageAutoResolutionMustBeSuccesful(true)
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"download.html\"/>");
 
@@ -946,11 +1033,14 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
-	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlWithBaseUrl()
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlAWithBaseUrl()
 			throws IOException {
 		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
 
 		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
 				.withEmbeddedImageBaseUrl(new URL("http://www.simplejavamail.org"))
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"download.html\"/>")
@@ -960,9 +1050,124 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlBWithBaseUrl()
+			throws IOException {
+		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseUrl(new URL("http://www.simplejavamail.org"))
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"\\download.html\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Download Simple Java Mail");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlCWithBaseUrl()
+			throws IOException {
+		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseUrl(new URL("http://www.simplejavamail.org"))
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"/download.html\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Download Simple Java Mail");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteUrlNestedUnderBaseUrl_AllowFlagTrue()
+			throws IOException {
+		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseUrl(new URL("http://www.simplejavamail.org"))
+				.allowingEmbeddedImageOutsideBaseUrl(true)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"http://www.simplejavamail.org/download.html\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Download Simple Java Mail");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteUrlNestedUnderBaseUrl_AllowFlagFalseSameAsTrue()
+			throws IOException {
+		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseUrl(new URL("http://www.simplejavamail.org"))
+				.allowingEmbeddedImageOutsideBaseUrl(false)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"http://www.simplejavamail.org/download.html\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Download Simple Java Mail");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteUrlOutsideBaseUrl_AllowedTrue()
+			throws IOException {
+		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseUrl(new URL("http://www.simplejavamail.org/download.html"))
+				.allowingEmbeddedImageOutsideBaseUrl(true)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"http://www.simplejavamail.org\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Download Simple Java Mail");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteUrlOutsideBaseUrl_AllowedFalse()
+			throws IOException {
+		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+
+		final EmailPopulatingBuilder emailPopulatingBuilder = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseUrl(new URL("http://www.simplejavamail.org/download/"))
+				.allowingEmbeddedImageOutsideBaseUrl(false)
+				.embeddedImageAutoResolutionMustBeSuccesful(true)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"http://www.simplejavamail.org/download.html\"/>");
+
+		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+			public void call() {
+				emailPopulatingBuilder.buildEmail();
+			}
+		})
+				.isInstanceOf(EmailException.class)
+				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: http://www.simplejavamail.org/download.html");
+	}
+
+	@Test
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_classPathPath()
 			throws IOException {
 		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/pkcs12/how-to.html\"/>")
 				.buildEmail();
@@ -971,9 +1176,12 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
-	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeClassPathPathWithNoClassPathBase()
-			throws IOException {
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeClassPathWithNoClassPathBase() {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.embeddedImageAutoResolutionMustBeSuccesful(true)
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/how-to.html\"/>");
 
@@ -987,9 +1195,12 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
-	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeClassPathPathWithClassPathBase()
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeClassPathWithClassPathBase()
 			throws IOException {
 		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
 				.withEmbeddedImageBaseClassPath("/pkcs12")
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/how-to.html\"/>")
@@ -998,9 +1209,78 @@ public class EmailPopulatingBuilderImpl1Test {
 		verifyEmbeddedImage(email, "Create Self-Signed S/MIME Certificates");
 	}
 
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteClassPathNestedUnderBaseClassPath_AllowFlagTrue()
+			throws IOException {
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseClassPath("/pkcs12")
+				.allowingEmbeddedImageOutsideBaseClassPath(true)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"/pkcs12/how-to.html\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Create Self-Signed S/MIME Certificates");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteClassPathNestedUnderBaseClassPath_AllowFlagFalseSameAstrue()
+			throws IOException {
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseClassPath("/pkcs12")
+				.allowingEmbeddedImageOutsideBaseClassPath(false)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"/pkcs12/how-to.html\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "Create Self-Signed S/MIME Certificates");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteClassPathOutsideBaseClassPath_AllowFlagTrue()
+			throws IOException {
+		final Email email = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseClassPath("/pkcs12")
+				.allowingEmbeddedImageOutsideBaseClassPath(true)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"/log4j2.xml\"/>")
+				.buildEmail();
+
+		verifyEmbeddedImage(email, "<Console name=\"console\" target=\"SYSTEM_OUT\">");
+	}
+
+	@Test
+	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteClassPathOutsideBaseClassPath_AllowFlagFalse() {
+		final EmailPopulatingBuilder emailPopulatingBuilder = builder
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withEmbeddedImageBaseClassPath("/pkcs12")
+				.allowingEmbeddedImageOutsideBaseClassPath(false)
+				.embeddedImageAutoResolutionMustBeSuccesful(true)
+				.withHTMLText("<img src=\"cid:cid_name\"/>")
+				.appendTextHTML("<img src=\"/log4j2.xml\"/>");
+
+		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+			public void call() {
+				emailPopulatingBuilder.buildEmail();
+			}
+		})
+				.isInstanceOf(EmailException.class)
+				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: /log4j2.xml");
+	}
+
 	private void verifyEmbeddedImage(final Email email, String expectedContainsWithContent)
 			throws IOException {
-		final String cidRegex = "<img src=\"cid:cid_name\"\\/><img src=\"cid:(?<cid>[a-z]{10})\"\\/>";
+		final String cidRegex = "<img src=\"cid:cid_name\"/><img src=\"cid:(?<cid>[a-z]{10})\"/>";
 		assertThat(email.getHTMLText()).matches(cidRegex);
 		final Matcher matcher = Pattern.compile(cidRegex).matcher(email.getHTMLText());
 		assertThat(matcher.find()).isTrue();

@@ -864,11 +864,57 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withRecipient(@NotNull Recipient recipient);
 
 	/**
+	 * Enables auto resolution of file datasources for embedded images.
+	 * <p>
+	 * Normally, you would manually markup your HTML with images using {@code cid:<some_id>} and then add an embedded image
+	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-file-resolution, you can just
+	 * refer to the file instead and the data will be included dynamically with a generated <em>cid</em>.
+	 *
+	 * @param embeddedImageAutoResolutionForFiles Enables auto resolution of file datasources for embedded images.
+	 *
+	 * @see #withEmbeddedImageBaseDir(String)
+	 * @see #allowingEmbeddedImageOutsideBaseDir(boolean)
+	 */
+	EmailPopulatingBuilder withEmbeddedImageAutoResolutionForFiles(final boolean embeddedImageAutoResolutionForFiles);
+
+	/**
+	 * Enables auto resolution of classpath datasources for embedded images.
+	 * <p>
+	 * Normally, you would manually markup your HTML with images using {@code cid:<some_id>} and then add an embedded image
+	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-classpath-resolution, you can just
+	 * refer to the resource on the classpath instead and the data will be included dynamically with a generated <em>cid</em>.
+	 *
+	 * @param embeddedImageAutoResolutionForClassPathResources Enables auto resolution of classpath datasources for embedded images.
+	 *
+	 * @see #withEmbeddedImageBaseClassPath(String)
+	 * @see #allowingEmbeddedImageOutsideBaseClassPath(boolean)
+	 */
+	EmailPopulatingBuilder withEmbeddedImageAutoResolutionForClassPathResources(final boolean embeddedImageAutoResolutionForClassPathResources);
+
+	/**
+	 * Enables auto resolution of URL's for embedded images.
+	 * <p>
+	 * Normally, you would manually markup your HTML with images using {@code cid:<some_id>} and then add an embedded image
+	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-URL-resolution, you can just
+	 * refer to the hosted image instead and the data will be downloaded and included dynamically with a generated <em>cid</em>.
+	 *
+	 * @param embeddedImageAutoResolutionForURLs Enables auto resolution of URL's for embedded images.
+	 *
+	 * @see #withEmbeddedImageBaseUrl(String)
+	 * @see #withEmbeddedImageBaseUrl(URL)
+	 * @see #allowingEmbeddedImageOutsideBaseUrl(boolean)
+	 */
+	EmailPopulatingBuilder withEmbeddedImageAutoResolutionForURLs(final boolean embeddedImageAutoResolutionForURLs);
+
+	/**
 	 * Sets the base folder used when resolving images sources in HTML text. Without this, the folder needs to be an absolute path (or a classpath/url resource).
 	 * <p>
 	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
 	 *
 	 * @param embeddedImageBaseDir The base folder used when resolving images sources in HTML text.
+	 *
+	 * @see #withEmbeddedImageAutoResolutionForFiles(boolean)
+	 * @see #allowingEmbeddedImageOutsideBaseDir(boolean)
 	 */
 	EmailPopulatingBuilder withEmbeddedImageBaseDir(@NotNull final String embeddedImageBaseDir);
 
@@ -878,6 +924,9 @@ public interface EmailPopulatingBuilder {
 	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
 	 *
 	 * @param embeddedImageBaseClassPath The classpath base used when resolving images sources in HTML text.
+	 *
+	 * @see #withEmbeddedImageAutoResolutionForClassPathResources(boolean)
+	 * @see #allowingEmbeddedImageOutsideBaseClassPath(boolean)
 	 */
 	EmailPopulatingBuilder withEmbeddedImageBaseClassPath(@NotNull final String embeddedImageBaseClassPath);
 
@@ -885,6 +934,9 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withEmbeddedImageBaseUrl(URL)}.
 	 *
 	 * @param embeddedImageBaseUrl The base URL used when resolving images sources in HTML text.
+	 *
+	 * @see #withEmbeddedImageAutoResolutionForURLs(boolean)
+	 * @see #allowingEmbeddedImageOutsideBaseUrl(boolean)
 	 */
 	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final String embeddedImageBaseUrl);
 
@@ -894,8 +946,55 @@ public interface EmailPopulatingBuilder {
 	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
 	 *
 	 * @param embeddedImageBaseUrl The base URL used when resolving images sources in HTML text.
+	 *
+	 * @see #withEmbeddedImageAutoResolutionForURLs(boolean)
+	 * @see #allowingEmbeddedImageOutsideBaseUrl(boolean)
 	 */
+	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final URL embeddedImageBaseUrl);
+
+	/**
+	 * Dictates whether files will be resolved for embedded images when they are not nested under the baseDir (if baseDir is set).
+	 *
+	 * @param allowEmbeddedImageOutsideBaseDir Whether files should be resolved that reside outside of the baseDir (if set)
+	 *
+	 * @see #withEmbeddedImageAutoResolutionForFiles(boolean)
+	 * @see #withEmbeddedImageBaseDir(String)
+	 */
+	EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseDir(final boolean allowEmbeddedImageOutsideBaseDir);
+
+	/**
+	 * Dictates whether sources will be resolved for embedded images when they are not nested under the baseClassPath (if baseClassPath is set).
+	 *
+	 * @param allowEmbeddedImageOutsideBaseClassPath Whether image sources should be resolved that reside outside of the baseClassPath (if set)
+	 *
+	 * @see #withEmbeddedImageAutoResolutionForClassPathResources(boolean)
+	 * @see #withEmbeddedImageBaseClassPath(String)
+	 */
+	EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseClassPath(final boolean allowEmbeddedImageOutsideBaseClassPath);
+
+	/**
+	 * Dictates whether url's will be resolved for embedded images when they are not nested under the baseUrl (if baseUrl is set).
+	 *
+	 * @param allowEmbeddedImageOutsideBaseUrl Whether url's should be resolved that reside outside of the baseUrl (if set)
+	 *
+	 * @see #withEmbeddedImageAutoResolutionForURLs(boolean)
+	 * @see #withEmbeddedImageBaseUrl(String)
+	 * @see #withEmbeddedImageBaseUrl(URL)
+	 */
+	EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseUrl(final boolean allowEmbeddedImageOutsideBaseUrl);
+
+	/**
+	 * When embedded image auto resolution is enabled, this option will make sure unresolved images sources result in an exception.
+	 * <p>
+	 * Not using this option effectively means a more lenient approach to image sources.
+	 * <p>
+	 * Note: It also allows you to work with URL's as image sources that can't be resolved at time of sending, but that makes sense
+	 * when viewing the email in some client (eg. relative url's).
+	 *
+	 * @param embeddedImageAutoResolutionMustBeSuccesful Whether auto resolution is enforced and bubbles up failure to do so.
+	 */
+	EmailPopulatingBuilder embeddedImageAutoResolutionMustBeSuccesful(final boolean embeddedImageAutoResolutionMustBeSuccesful);
 	
 	/**
 	 * Delegates to {@link #withEmbeddedImage(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and

@@ -65,9 +65,16 @@ import java.util.Properties;
  * <li>simplejavamail.smime.signing.key_alias</li>
  * <li>simplejavamail.smime.signing.key_password</li>
  * <li>simplejavamail.smime.encryption.certificate</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.enable.dir</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.enable.url</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.enable.classpath</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.base.dir</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.base.url</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.base.classpath</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.dir</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.url</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful</li>
  * </ul>
  */
 @Configuration
@@ -126,9 +133,16 @@ public class SimpleJavaMailSpringSupport {
 			@Nullable @Value("${simplejavamail.smime.signing.key_alias:#{null}}") final String smimeSigningKeyAlias,
 			@Nullable @Value("${simplejavamail.smime.signing.key_password:#{null}}") final String smimeSigningKeyPassword,
 			@Nullable @Value("${simplejavamail.smime.encryption.certificate:#{null}}") final String smimeEncryptionCertificate,
+			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.dir:#{null}}") final String embeddedimagesDynamicresolutionEnableDir,
+			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.url:#{null}}") final String embeddedimagesDynamicresolutionEnableUrl,
+			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.classpath:#{null}}") final String embeddedimagesDynamicresolutionEnableClassPath,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.base.dir:#{null}}") final String embeddedimagesDynamicresolutionBaseDir,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.base.url:#{null}}") final String embeddedimagesDynamicresolutionBaseUrl,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.base.classpath:#{null}}") final String embeddedimagesDynamicresolutionBaseClassPath) {
+			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.base.classpath:#{null}}") final String embeddedimagesDynamicresolutionBaseClassPath,
+			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.outside.base.dir:#{null}}") final String embeddedimagesDynamicresolutionOutsideBaseDir,
+			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath:#{null}}") final String embeddedimagesDynamicresolutionOutsideBaseClassPath,
+			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.outside.base.url:#{null}}") final String embeddedimagesDynamicresolutionOutsideBaseUrl,
+			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful:#{null}}") final String embeddedimagesDynamicresolutionMustBeSuccesful) {
 		final Properties emailProperties = new Properties();
 		setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG.key(), javaxmailDebug);
 		setNullableProperty(emailProperties, Property.TRANSPORT_STRATEGY.key(), transportstrategy);
@@ -173,9 +187,16 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_ALIAS.key(), smimeSigningKeyAlias);
 		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_PASSWORD.key(), smimeSigningKeyPassword);
 		setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_CERTIFICATE.key(), smimeEncryptionCertificate);
+		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR.key(), embeddedimagesDynamicresolutionEnableDir);
+		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH.key(), embeddedimagesDynamicresolutionEnableClassPath);
+		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL.key(), embeddedimagesDynamicresolutionEnableUrl);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR.key(), embeddedimagesDynamicresolutionBaseDir);
-		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL.key(), embeddedimagesDynamicresolutionBaseUrl);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH.key(), embeddedimagesDynamicresolutionBaseClassPath);
+		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL.key(), embeddedimagesDynamicresolutionBaseUrl);
+		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR.key(), embeddedimagesDynamicresolutionOutsideBaseDir);
+		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH.key(), embeddedimagesDynamicresolutionOutsideBaseClassPath);
+		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL.key(), embeddedimagesDynamicresolutionOutsideBaseUrl);
+		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL.key(), embeddedimagesDynamicresolutionMustBeSuccesful);
 
 		ConfigLoader.loadProperties(emailProperties, true);
 

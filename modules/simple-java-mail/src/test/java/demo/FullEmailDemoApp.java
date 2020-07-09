@@ -26,7 +26,11 @@ public class FullEmailDemoApp extends DemoAppBase {
 	private static void testMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailers() throws IOException {
 		final String resourcesPathOnDisk = determineResourceFolder("simple-java-mail") + "/test/resources";
 
-		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailBuilder.startingBlank();
+		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailBuilder.startingBlank()
+				.withEmbeddedImageAutoResolutionForFiles(true)
+				.withEmbeddedImageAutoResolutionForClassPathResources(true)
+				.withEmbeddedImageAutoResolutionForURLs(true);
+
 		emailPopulatingBuilderNormal.from("Simple Java Mail demo", "simplejavamail@demo.app");
 		// don't forget to add your own address here ->
 		emailPopulatingBuilderNormal.to("C.Cane", YOUR_GMAIL_ADDRESS);
@@ -69,8 +73,8 @@ public class FullEmailDemoApp extends DemoAppBase {
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 
 		mailerSMTPBuilder.buildMailer().sendMail(emailNormal);
-//		mailerTLSBuilder.buildMailer().sendMail(emailNormal);
-//		mailerSSLBuilder.buildMailer().sendMail(emailNormal);
-//		mailerTLSBuilder.buildMailer().sendMail(emailFromMimeMessage); // should produce the exact same result as emailPopulatingBuilderNormal!
+		mailerTLSBuilder.buildMailer().sendMail(emailNormal);
+		mailerSSLBuilder.buildMailer().sendMail(emailNormal);
+		mailerTLSBuilder.buildMailer().sendMail(emailFromMimeMessage); // should produce the exact same result as emailPopulatingBuilderNormal!
 	}
 }

@@ -39,10 +39,8 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.regex.Pattern.compile;
-import static java.util.regex.Pattern.quote;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 public final class MiscUtil {
 
@@ -51,8 +49,6 @@ public final class MiscUtil {
 	private static final Pattern COMMA_DELIMITER_PATTERN = compile("(@.*?>?)\\s*[,;]");
 	private static final Pattern TRAILING_TOKEN_DELIMITER_PATTERN = compile("<\\|>$");
 	private static final Pattern TOKEN_DELIMITER_PATTERN = compile("\\s*<\\|>\\s*");
-
-	private static final Pattern ABSOLUTE_URL_PATTERN = compile(format("^(%s|%s|%s).*", quote("http://"), quote("https://"), quote("file:/")));
 
 	private static final Random RANDOM = new Random();
 
@@ -277,20 +273,79 @@ public final class MiscUtil {
 	}
 
 	@Nullable
-	public static  DataSource tryResolveImageFileDataSource(@Nullable final String baseDir, @Nullable final String baseClassPath, @NotNull final String srcLocation)
-			throws IOException {
-		DataSource fileSource = tryResolveImageFileDataSourceFromDisk(baseDir, srcLocation);
-		return (fileSource != null) ? fileSource : tryResolveFileDataSourceFromClassPath(baseClassPath, srcLocation);
+	public static DataSource tryResolveImageFileDataSourceFromDisk(final @Nullable String baseDir, final boolean allowOutsideBaseDir, final @NotNull String srcLocation) {
+		DataSource dataSource;
+
+		if (baseDir == null) {
+			dataSource =  tryLoadingFromDisk(new File(srcLocation));
+			if (dataSource == null) {
+				dataSource =  tryLoadingFromDisk(new File(".", srcLocation));
+			}
+		} else {
+			if (srcLocation.startsWith(baseDir)) {
+				dataSource = tryLoadingFromDisk(new File(srcLocation));
+			} else {
+				dataSource = tryLoadingFromDisk(new File(baseDir, srcLocation));
+				if (dataSource == null && allowOutsideBaseDir) {
+					dataSource = tryLoadingFromDisk(new File(".", srcLocation));
+					if (dataSource == null) {
+						dataSource = tryLoadingFromDisk(new File(srcLocation));
+					}
+				}
+			}
+		}
+		return dataSource;
 	}
 
 	@Nullable
-	private static DataSource tryResolveImageFileDataSourceFromDisk(final @Nullable String baseDir, final @NotNull String srcLocation) {
-		File file = new File(srcLocation);
-		if (!file.exists() && !file.isAbsolute()) {
-			file = new File(ofNullable(baseDir).orElse("."), srcLocation);
+	public static DataSource tryResolveFileDataSourceFromClassPath(final @Nullable String baseClassPath, final boolean allowOutsideBaseClassPath, final @NotNull String srcLocation)
+			throws IOException {
+		DataSource dataSource;
+
+		if (baseClassPath == null) {
+			dataSource = tryLoadingFromClassPath(srcLocation);
+		} else {
+			if (srcLocation.startsWith(baseClassPath)) {
+				dataSource = tryLoadingFromClassPath(srcLocation);
+			} else {
+				dataSource = tryLoadingFromClassPath(baseClassPath + srcLocation);
+				if (dataSource == null && allowOutsideBaseClassPath) {
+					dataSource = tryLoadingFromClassPath(srcLocation);
+				}
+			}
 		}
-		if (file.exists()) {
-			final FileDataSource fileDataSource = new FileDataSource(file);
+		return dataSource;
+	}
+
+	@Nullable
+	public static DataSource tryResolveUrlDataSource(@Nullable final URL baseUrl, final boolean allowOutsideBaseUrl, @NotNull final String srcLocation)
+			throws IOException {
+		DataSource dataSource;
+
+		if (baseUrl == null) {
+			dataSource = tryLoadingFromUrl(srcLocation);
+		} else {
+			if (isCorrectlyFormattedUrl(srcLocation) && new URL(srcLocation).getPath().startsWith(baseUrl.getPath())) {
+				dataSource = tryLoadingFromUrl(srcLocation);
+			} else {
+				final String urlPath = (baseUrl.getAuthority() + baseUrl.getPath() + "/" + srcLocation)
+						.replaceAll("/\\\\", "/")
+						.replaceAll("//", "/");
+				final String url = format("%s://%s", baseUrl.getProtocol(), urlPath);
+
+				dataSource = tryLoadingFromUrl(url);
+				if (dataSource == null && allowOutsideBaseUrl) {
+					dataSource = tryLoadingFromUrl(srcLocation);
+				}
+			}
+		}
+		return dataSource;
+	}
+
+	@Nullable
+	private static DataSource tryLoadingFromDisk(@NotNull final File srcLocation) {
+		if (srcLocation.exists()) {
+			final FileDataSource fileDataSource = new FileDataSource(srcLocation);
 			fileDataSource.setFileTypeMap(ImageMimeType.IMAGE_MIMETYPES_FILE_TYPE_MAP);
 			return fileDataSource;
 		}
@@ -298,17 +353,17 @@ public final class MiscUtil {
 	}
 
 	@Nullable
-	private static DataSource tryResolveFileDataSourceFromClassPath(final @Nullable String baseClassPath, final @NotNull String srcLocation)
+	private static DataSource tryLoadingFromClassPath(final @NotNull String resourceName)
 			throws IOException {
-		final String resourceName = (ofNullable(baseClassPath).orElse("") + srcLocation).replaceAll("//", "/");
-		final InputStream is = MiscUtil.class.getResourceAsStream(resourceName);
+		final String cleanResourceName = resourceName.replaceAll("//", "/");
+		final InputStream is = MiscUtil.class.getResourceAsStream(cleanResourceName);
 
 		if (is != null) {
 			try {
-				final String mimeType = ImageMimeType.getContentType(srcLocation);
+				final String mimeType = ImageMimeType.getContentType(resourceName);
 				final ByteArrayDataSource ds = new ByteArrayDataSource(is, mimeType);
 				// EMAIL-125: set the name of the DataSource to the normalized resource URL similar to other DataSource implementations, e.g. FileDataSource, URLDataSource
-				ds.setName(MiscUtil.class.getResource(resourceName).toString());
+				ds.setName(MiscUtil.class.getResource(cleanResourceName).toString());
 				return ds;
 			} finally {
 				is.close();
@@ -317,16 +372,24 @@ public final class MiscUtil {
 		return null;
 	}
 
-	@NotNull
-	public static DataSource resolveUrlDataSource(@Nullable final URL baseUrl, @NotNull final String srcLocation)
-			throws IOException {
-		final URL url = (valueNullOrEmpty(baseUrl) || ABSOLUTE_URL_PATTERN.matcher(srcLocation).matches())
-				? new URL(srcLocation)
-				: new URL(baseUrl, srcLocation.replaceAll("&amp;", "&"));
+	@Nullable
+	private static DataSource tryLoadingFromUrl(final String url) {
+		try {
+			final DataSource result = new URLDataSource(new URL(url));
+			result.getInputStream();
+			return result;
+		} catch (IOException e) {
+			return null;
+		}
+	}
 
-		DataSource result = new URLDataSource(url);
-		result.getInputStream();
-		return result;
+	public static boolean isCorrectlyFormattedUrl(final String srcLocation) {
+		try {
+			new URL(srcLocation);
+			return true;
+		} catch (IOException e) {
+			return false;
+		}
 	}
 
 	public static String randomCid10() {

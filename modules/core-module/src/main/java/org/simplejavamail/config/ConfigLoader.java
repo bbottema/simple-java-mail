@@ -70,9 +70,16 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.smime.signing.key_alias</li>
  * <li>simplejavamail.smime.signing.key_password</li>
  * <li>simplejavamail.smime.encryption.certificate</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.enable.dir</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.enable.url</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.enable.classpath</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.base.dir</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.base.url</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.base.classpath</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.dir</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.url</li>
+ * <li>simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful</li>
  * </ul>
  */
 public final class ConfigLoader {
@@ -148,9 +155,16 @@ public final class ConfigLoader {
 		SMIME_SIGNING_KEY_ALIAS("simplejavamail.smime.signing.key_alias"),
 		SMIME_SIGNING_KEY_PASSWORD("simplejavamail.smime.signing.key_password"),
 		SMIME_ENCRYPTION_CERTIFICATE("simplejavamail.smime.encryption.certificate"),
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR("simplejavamail.embeddedimages.dynamicresolution.enable.dir"),
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH("simplejavamail.embeddedimages.dynamicresolution.enable.classpath"),
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL("simplejavamail.embeddedimages.dynamicresolution.enable.url"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR("simplejavamail.embeddedimages.dynamicresolution.base.dir"),
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH("simplejavamail.embeddedimages.dynamicresolution.base.classpath"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL("simplejavamail.embeddedimages.dynamicresolution.base.url"),
-		EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH("simplejavamail.embeddedimages.dynamicresolution.base.classpath");
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR("simplejavamail.embeddedimages.dynamicresolution.outside.base.dir"),
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL("simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath"),
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH("simplejavamail.embeddedimages.dynamicresolution.outside.base.url"),
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL("simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful");
 
 		private final String key;
 
@@ -235,10 +249,15 @@ public final class ConfigLoader {
 	public static synchronized String getStringProperty(final Property property) {
 		return SimpleConversions.convertToString(RESOLVED_PROPERTIES.get(property));
 	}
-	
+
 	@Nullable
 	public static synchronized Integer getIntegerProperty(final Property property) {
 		return SimpleConversions.convertToInteger(RESOLVED_PROPERTIES.get(property));
+	}
+
+	@Nullable
+	public static synchronized Boolean getBooleanProperty(final Property property) {
+		return SimpleConversions.convertToBoolean(RESOLVED_PROPERTIES.get(property));
 	}
 
 	/**
