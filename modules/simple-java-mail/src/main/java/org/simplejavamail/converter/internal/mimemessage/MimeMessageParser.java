@@ -31,7 +31,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -137,9 +136,11 @@ public final class MimeMessageParser {
 		final String disposition = parseDisposition(currentPart);
 
 		if (isMimeType(currentPart, "text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			parsedComponents.plainContent.append(parseContent(currentPart));
+			//noinspection RedundantCast
+			parsedComponents.plainContent.append((Object) parseContent(currentPart));
 		} else if (isMimeType(currentPart, "text/html") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			parsedComponents.htmlContent.append(parseContent(currentPart));
+			//noinspection RedundantCast
+			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
 		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.calendarContent = parseContent(currentPart);
 			parsedComponents.calendarMethod = parseCalendarMethod(currentPart);
