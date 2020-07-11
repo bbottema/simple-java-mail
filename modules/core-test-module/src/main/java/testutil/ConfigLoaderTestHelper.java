@@ -7,6 +7,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Test helper that can empty any properties loaded by the ConfigLoader.
@@ -28,11 +29,7 @@ public class ConfigLoaderTestHelper {
 	}
 
 	public static void clearConfigProperties() {
-		try {
-			setResolvedProperties(new HashMap<Property, Object>());
-		} catch (Exception e) {
-			throw new AssertionError(e.getMessage(), e);
-		}
+		ConfigLoader.loadProperties(new Properties(), false);
 	}
 
 	public static void restoreOriginalConfigProperties() {
