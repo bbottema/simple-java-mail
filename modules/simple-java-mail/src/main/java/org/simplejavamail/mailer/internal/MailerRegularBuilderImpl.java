@@ -9,6 +9,8 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.util.SimpleOptional;
 
+import javax.net.ssl.SSLSocketFactory;
+
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
@@ -54,7 +56,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 * @see #withCustomSSLFactory(String)
 	 */
 	private String customSSLFactory;
-	
+
+	/**
+	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
+	 */
+	private SSLSocketFactory customSSLFactoryInstance;
+
 	/**
 	 * Sets defaults configured for SMTP host, SMTP port, SMTP username, SMTP password and transport strategy.
 	 * <p>
@@ -171,6 +178,15 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	}
 
 	/**
+	 * @see MailerRegularBuilder#withCustomSSLFactoryInstance(SSLSocketFactory)
+	 */
+	@Override
+	public MailerRegularBuilderImpl withCustomSSLFactoryInstance(@Nullable final SSLSocketFactory customSSLFactoryInstance) {
+		this.customSSLFactoryInstance = customSSLFactoryInstance;
+		return this;
+	}
+
+	/**
 	 * @see MailerRegularBuilder#buildMailer()
 	 */
 	@Override
@@ -184,7 +200,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	ServerConfig buildServerConfig() {
 		vallidateServerConfig();
 		final int serverPort = SimpleOptional.ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
-		return new ServerConfigImpl(assumeNonNull(getHost()), serverPort, getUsername(), getPassword(), customSSLFactory);
+		return new ServerConfigImpl(assumeNonNull(getHost()), serverPort, getUsername(), getPassword(), customSSLFactory, customSSLFactoryInstance);
 	}
 
 	private void vallidateServerConfig() {

@@ -20,9 +20,12 @@ import testutil.EmailHelper;
 
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.GregorianCalendar;
 import java.util.Properties;
 import java.util.UUID;
@@ -281,6 +284,50 @@ public class MailerTest {
 		// success, signing did not produce an error
 		assertThat(mimeMessage).isInstanceOf(ImmutableDelegatingSMTPMessage.class);
 		assertThat(((ImmutableDelegatingSMTPMessage) mimeMessage).getDelegate()).isInstanceOf(DkimMessage.class);
+	}
+
+	@Test
+	public void testSSLSocketFactoryClassConfig() {
+		final Mailer mailer = MailerBuilder
+				.withSMTPServer("host", 25, null, null)
+				.withCustomSSLFactory("teh_class")
+				.buildMailer();
+
+		final Session session = mailer.getSession();
+
+		assertThat(session.getProperties()).contains(new SimpleEntry<String, Object>("mail.smtp.ssl.socketFactory.class", "teh_class"));
+		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory");
+	}
+
+	@Test
+	public void testSSLSocketFactoryInstanceConfig() {
+		final SSLSocketFactory mockFactory = mock(SSLSocketFactory.class);
+
+		final Mailer mailer = MailerBuilder
+				.withSMTPServer("host", 25, null, null)
+				.withCustomSSLFactoryInstance(mockFactory)
+				.buildMailer();
+
+		final Session session = mailer.getSession();
+
+		assertThat(session.getProperties()).contains(new SimpleEntry<String, Object>("mail.smtp.ssl.socketFactory", mockFactory));
+		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory.class");
+	}
+
+	@Test
+	public void testSSLSocketFactoryCombinedConfig() {
+		final SSLSocketFactory mockFactory = mock(SSLSocketFactory.class);
+
+		final Mailer mailer = MailerBuilder
+				.withSMTPServer("host", 25, null, null)
+				.withCustomSSLFactoryInstance(mockFactory)
+				.withCustomSSLFactory("teh_class")
+				.buildMailer();
+
+		final Session session = mailer.getSession();
+
+		assertThat(session.getProperties()).contains(new SimpleEntry<String, Object>("mail.smtp.ssl.socketFactory", mockFactory));
+		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory.class");
 	}
 
 	@Test

@@ -5,6 +5,8 @@ import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.net.ssl.SSLSocketFactory;
+
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
@@ -17,13 +19,16 @@ class ServerConfigImpl implements ServerConfig {
 	@Nullable private final String username;
 	@Nullable private final String password;
 	@Nullable private final String customSSLFactoryClass;
+	@Nullable private final SSLSocketFactory customSSLFactoryInstance;
 
-	ServerConfigImpl(@NotNull final String host, @NotNull final Integer port, @Nullable final String username, @Nullable final String password, @Nullable final String customSSLFactoryClass) {
+	ServerConfigImpl(@NotNull final String host, @NotNull final Integer port, @Nullable final String username, @Nullable final String password, @Nullable final String customSSLFactoryClass,
+			final @Nullable SSLSocketFactory customSSLFactoryInstance) {
 		this.host = host;
 		this.port = port;
 		this.username = username;
 		this.password = password;
 		this.customSSLFactoryClass = customSSLFactoryClass;
+		this.customSSLFactoryInstance = customSSLFactoryInstance;
 
 		if (valueNullOrEmpty(this.username) && !valueNullOrEmpty(this.password)) {
 			throw new IllegalArgumentException("Password provided but not a username");
@@ -85,5 +90,14 @@ class ServerConfigImpl implements ServerConfig {
 	@Nullable
 	public String getCustomSSLFactoryClass() {
 		return customSSLFactoryClass;
+	}
+
+	/**
+	 * @see ServerConfig#getCustomSSLFactoryInstance()
+	 */
+	@Override
+	@Nullable
+	public SSLSocketFactory getCustomSSLFactoryInstance() {
+		return customSSLFactoryInstance;
 	}
 }

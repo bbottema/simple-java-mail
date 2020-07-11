@@ -7,6 +7,7 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  * Default builder for generating Mailer instances. Sets defaults configured for SMTP host, SMTP port, SMTP username, SMTP password and transport
@@ -100,15 +101,35 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	/**
 	 * Configures the session with the right property to use your own factory for obtaining SSL connections.
 	 * <p>
-	 * <strong>Note 1:</strong> Sets the property <code>mail.smtp.ssl.socketFactory.class</code> on the Session.
+	 * <strong>Note 1:</strong> Is overridden by custom factory instance if set.
+	 * <p>
+	 * <strong>Note 2:</strong> Sets the property <code>mail.smtp.ssl.socketFactory.class</code> on the Session.
 	 * <br>
-	 * <strong>Note 2:</strong> This breaks your setup if you also use authenticated proxy.
+	 * <strong>Note 3:</strong> This breaks your setup if you also use authenticated proxy.
 	 *
 	 * @param factoryClass The fully qualified name of the factory class. Example: <code>javax.net.ssl.SSLSocketFactory</code>
 	 *
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">Java / Jakarta Mail properties</a>
+	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
 	 */
 	T withCustomSSLFactory(@Nullable String factoryClass);
+
+	/**
+	 * Configures the session with the right property to use your own factory for obtaining SSL connections.
+	 * <p>
+	 * <strong>Note 1:</strong> Overrides custom factory class if set.
+	 * <p>
+	 * <strong>Note 2:</strong> Sets the property <code>mail.smtp.ssl.socketFactory</code> on the Session.
+	 * <br>
+	 * <strong>Note 3:</strong> This breaks your setup if you also use authenticated proxy.
+	 *
+	 * @param sslSocketFactoryInstance An instance of the {@link SSLSocketFactory} class.
+	 *
+	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">Java / Jakarta Mail properties</a>
+	 * @see #withCustomSSLFactory(String)
+	 */
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	T withCustomSSLFactoryInstance(@Nullable SSLSocketFactory sslSocketFactoryInstance);
 	
 	/**
 	 * Builds the actual {@link Mailer} instance with everything configured on this builder instance.

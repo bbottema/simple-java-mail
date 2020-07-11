@@ -17,7 +17,7 @@ public class ServerConfigTest {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		
 		try {
-			new ServerConfigImpl(null, null, null, null, null);
+			new ServerConfigImpl(null, null, null, null, null, null);
 			fail("IllegalArgumentException expected for host");
 		} catch (IllegalArgumentException e) {
 			// ok
@@ -29,7 +29,7 @@ public class ServerConfigTest {
 	public void NoArgconstructor_WithoutConfigFile_WithoutPort() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
-			new ServerConfigImpl("host", null, null, null, null);
+			new ServerConfigImpl("host", null, null, null, null, null);
 			fail("IllegalArgumentException expected for port");
 		} catch (IllegalArgumentException e) {
 			// ok
@@ -39,11 +39,11 @@ public class ServerConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, "username", null, null);
-		verifyServerConfig(serverConfig, "host", 1234, "username", null, null);
+		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, "username", null, null, null);
+		verifyServerConfig(serverConfig, "host", 1234, "username", null, null, null);
 
 		try {
-			new ServerConfigImpl("host", 1234, null, "password", null);
+			new ServerConfigImpl("host", 1234, null, "password", null, null);
 			fail("IllegalArgumentException expected for username");
 		} catch (IllegalArgumentException e) {
 			assertThat(e.getMessage()).containsIgnoringCase("username");
@@ -53,27 +53,29 @@ public class ServerConfigTest {
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_Authenticated() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, "username", "password", null);
-		verifyServerConfig(serverConfig, "host", 1234, "username", "password", null);
+		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, "username", "password", null, null);
+		verifyServerConfig(serverConfig, "host", 1234, "username", "password", null, null);
 	}
 
 	@Test
 	public void testToString() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, null, null, null);
+		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, null, null, null, null);
 		assertThat(serverConfig.toString()).isEqualTo("host:1234");
-		serverConfig = new ServerConfigImpl("host", 1234, "username", null, null);
+		serverConfig = new ServerConfigImpl("host", 1234, "username", null, null, null);
 		assertThat(serverConfig.toString()).isEqualTo("host:1234, username: username");
-		serverConfig = new ServerConfigImpl("host", 1234, "username", "password", null);
+		serverConfig = new ServerConfigImpl("host", 1234, "username", "password", null, null);
 		assertThat(serverConfig.toString()).isEqualTo("host:1234, username: username (authenticated)");
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private void verifyServerConfig(ServerConfig serverConfig, @Nullable String host, @Nullable Integer port, @Nullable String username, @Nullable String password, Object customSSLFactoryClass) {
+	private void verifyServerConfig(ServerConfig serverConfig, @Nullable String host, @Nullable Integer port, @Nullable String username, @Nullable String password, Object customSSLFactoryClass,
+			Object customSSLFactoryInstance) {
 		assertThat(serverConfig.getHost()).isEqualTo(host);
 		assertThat(serverConfig.getPort()).isEqualTo(port);
 		assertThat(serverConfig.getUsername()).isEqualTo(username);
 		assertThat(serverConfig.getPassword()).isEqualTo(password);
 		assertThat(serverConfig.getCustomSSLFactoryClass()).isEqualTo(customSSLFactoryClass);
+		assertThat(serverConfig.getCustomSSLFactoryInstance()).isEqualTo(customSSLFactoryInstance);
 	}
 }
