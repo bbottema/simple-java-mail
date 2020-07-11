@@ -20,7 +20,7 @@ import javax.mail.Session;
 public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>> extends MailerGenericBuilder<T> {
 	/**
 	 * Only use this API if you <em>must</em> use your own {@link Session} instance. Assumes that all properties (except session timeout) used to make
-	 * a connection are configured (host, port, authentication and transport protocol settings).
+	 * a connection are configured (host, port, authentication and transport protocol settings and custom ssl factory if used).
 	 * <p>
 	 * Only proxy can be configured optionally and general connection settings.
 	 *

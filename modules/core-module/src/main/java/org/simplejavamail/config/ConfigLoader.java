@@ -33,6 +33,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <li>simplejavamail.smtp.port</li>
  * <li>simplejavamail.smtp.username</li>
  * <li>simplejavamail.smtp.password</li>
+ * <li>simplejavamail.custom.sslfactory.class</li>
  * <li>simplejavamail.proxy.host</li>
  * <li>simplejavamail.proxy.port</li>
  * <li>simplejavamail.proxy.username</li>
@@ -118,6 +119,7 @@ public final class ConfigLoader {
 		SMTP_PORT("simplejavamail.smtp.port"),
 		SMTP_USERNAME("simplejavamail.smtp.username"),
 		SMTP_PASSWORD("simplejavamail.smtp.password"),
+		CUSTOM_SSLFACTORY_CLASS("simplejavamail.custom.sslfactory.class"),
 		PROXY_HOST("simplejavamail.proxy.host"),
 		PROXY_PORT("simplejavamail.proxy.port"),
 		PROXY_USERNAME("simplejavamail.proxy.username"),

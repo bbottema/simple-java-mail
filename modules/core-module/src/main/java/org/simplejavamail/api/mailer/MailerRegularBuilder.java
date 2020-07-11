@@ -88,7 +88,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
 	T withSMTPServerUsername(@Nullable String username);
-	
+
 	/**
 	 * Sets the optional SMTP password. Will default to pre-configured property if left empty.
 	 *
@@ -96,6 +96,19 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
 	T withSMTPServerPassword(@Nullable String password);
+
+	/**
+	 * Configures the session with the right property to use your own factory for obtaining SSL connections.
+	 * <p>
+	 * <strong>Note 1:</strong> Sets the property <code>mail.smtp.ssl.socketFactory.class</code> on the Session.
+	 * <br>
+	 * <strong>Note 2:</strong> This breaks your setup if you also use authenticated proxy.
+	 *
+	 * @param factoryClass The fully qualified name of the factory class. Example: <code>javax.net.ssl.SSLSocketFactory</code>
+	 *
+	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">Java / Jakarta Mail properties</a>
+	 */
+	T withCustomSSLFactory(@Nullable String factoryClass);
 	
 	/**
 	 * Builds the actual {@link Mailer} instance with everything configured on this builder instance.
@@ -128,10 +141,16 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 */
 	@Nullable
 	String getPassword();
-	
+
 	/**
 	 * @see #withTransportStrategy(TransportStrategy)
 	 */
 	@Nullable
 	TransportStrategy getTransportStrategy();
+
+	/**
+	 * @see #withCustomSSLFactory(String)
+	 */
+	@Nullable
+	String getCustomSSLFactory();
 }

@@ -16,13 +16,15 @@ class ServerConfigImpl implements ServerConfig {
 	@NotNull private final Integer port;
 	@Nullable private final String username;
 	@Nullable private final String password;
-	
-	ServerConfigImpl(@NotNull final String host, @NotNull final Integer port, @Nullable final String username, @Nullable final String password) {
+	@Nullable private final String customSSLFactoryClass;
+
+	ServerConfigImpl(@NotNull final String host, @NotNull final Integer port, @Nullable final String username, @Nullable final String password, @Nullable final String customSSLFactoryClass) {
 		this.host = host;
 		this.port = port;
 		this.username = username;
 		this.password = password;
-		
+		this.customSSLFactoryClass = customSSLFactoryClass;
+
 		if (valueNullOrEmpty(this.username) && !valueNullOrEmpty(this.password)) {
 			throw new IllegalArgumentException("Password provided but not a username");
 		}
@@ -74,5 +76,14 @@ class ServerConfigImpl implements ServerConfig {
 	@Nullable
 	public String getPassword() {
 		return password;
+	}
+
+	/**
+	 * @see ServerConfig#getCustomSSLFactoryClass()
+	 */
+	@Override
+	@Nullable
+	public String getCustomSSLFactoryClass() {
+		return customSSLFactoryClass;
 	}
 }

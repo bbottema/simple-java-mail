@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.ServerConfig;
@@ -7,17 +9,15 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.util.SimpleOptional;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_USERNAME;
 import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
+import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
+import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 
 /**
  * @see MailerRegularBuilder
@@ -49,6 +49,11 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 */
 	@NotNull
 	private TransportStrategy transportStrategy;
+
+	/**
+	 * @see #withCustomSSLFactory(String)
+	 */
+	private String customSSLFactory;
 	
 	/**
 	 * Sets defaults configured for SMTP host, SMTP port, SMTP username, SMTP password and transport strategy.
@@ -75,6 +80,9 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		this.transportStrategy = TransportStrategy.SMTP;
 		if (hasProperty(TRANSPORT_STRATEGY)) {
 			withTransportStrategy(assumeNonNull(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)));
+		}
+		if (hasProperty(CUSTOM_SSLFACTORY_CLASS)) {
+			withCustomSSLFactory(assumeNonNull(ConfigLoader.getStringProperty(CUSTOM_SSLFACTORY_CLASS)));
 		}
 	}
 	
@@ -152,7 +160,16 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		this.password = password;
 		return this;
 	}
-	
+
+	/**
+	 * @see MailerRegularBuilder#withCustomSSLFactory(String)
+	 */
+	@Override
+	public MailerRegularBuilderImpl withCustomSSLFactory(@Nullable final String customSSLFactory) {
+		this.customSSLFactory = customSSLFactory;
+		return this;
+	}
+
 	/**
 	 * @see MailerRegularBuilder#buildMailer()
 	 */
@@ -167,7 +184,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	ServerConfig buildServerConfig() {
 		vallidateServerConfig();
 		final int serverPort = SimpleOptional.ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
-		return new ServerConfigImpl(assumeNonNull(getHost()), serverPort, getUsername(), getPassword());
+		return new ServerConfigImpl(assumeNonNull(getHost()), serverPort, getUsername(), getPassword(), customSSLFactory);
 	}
 
 	private void vallidateServerConfig() {
@@ -209,7 +226,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	public String getPassword() {
 		return password;
 	}
-	
+
 	/**
 	 * @see MailerRegularBuilder#getTransportStrategy()
 	 */
@@ -217,5 +234,14 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@NotNull
 	public TransportStrategy getTransportStrategy() {
 		return transportStrategy;
+	}
+
+	/**
+	 * @see MailerRegularBuilder#getCustomSSLFactory()
+	 */
+	@Override
+	@Nullable
+	public String getCustomSSLFactory() {
+		return customSSLFactory;
 	}
 }

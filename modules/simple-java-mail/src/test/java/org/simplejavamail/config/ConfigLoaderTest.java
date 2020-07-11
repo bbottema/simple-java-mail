@@ -13,6 +13,7 @@ import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
+import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
@@ -232,7 +233,8 @@ public class ConfigLoaderTest {
 				+ "simplejavamail.smtp.host=smtp.default.com\n"
 				+ "simplejavamail.smtp.port=25\n"
 				+ "simplejavamail.smtp.username=username\n"
-				+ "simplejavamail.smtp.password=password\n";
+				+ "simplejavamail.smtp.password=password\n"
+				+ "simplejavamail.custom.sslfactory.class=teh_class\n";
 
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
@@ -241,6 +243,7 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
 		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 	}
 
 	@Test
@@ -252,6 +255,7 @@ public class ConfigLoaderTest {
 		source.put("simplejavamail.smtp.port", "25");
 		source.put("simplejavamail.smtp.username", "username");
 		source.put("simplejavamail.smtp.password", "password");
+		source.put("simplejavamail.custom.sslfactory.class", "teh_class");
 
 		ConfigLoader.loadProperties(source, false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
@@ -260,6 +264,7 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
 		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 	}
 
 	@Test
@@ -271,6 +276,7 @@ public class ConfigLoaderTest {
 		source.put("simplejavamail.smtp.port", 25);
 		source.put("simplejavamail.smtp.username", "username");
 		source.put("simplejavamail.smtp.password", "password");
+		source.put("simplejavamail.custom.sslfactory.class", "teh_class");
 
 		ConfigLoader.loadProperties(source, false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
@@ -279,6 +285,7 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
 		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 	}
 
 	@Test

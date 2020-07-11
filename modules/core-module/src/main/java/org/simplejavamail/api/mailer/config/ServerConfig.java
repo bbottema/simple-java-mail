@@ -8,4 +8,5 @@ public interface ServerConfig {
 	@NotNull Integer getPort();
 	@Nullable String getUsername();
 	@Nullable String getPassword();
+	@Nullable String getCustomSSLFactoryClass();
 }

@@ -152,7 +152,11 @@ public class MailerImpl implements Mailer {
 		if (serverConfig.getUsername() != null) {
 			props.put(transportStrategy.propertyNameUsername(), serverConfig.getUsername());
 		}
-		
+		if (serverConfig.getCustomSSLFactoryClass() != null) {
+			// https://www.tutorialspoint.com/javamail_api/javamail_api_smtp_servers.htm
+			props.put("mail.smtp.ssl.socketFactory.class", serverConfig.getCustomSSLFactoryClass());
+		}
+
 		if (serverConfig.getPassword() != null) {
 			props.put(transportStrategy.propertyNameAuthenticate(), "true");
 			return Session.getInstance(props, new SmtpAuthenticator(serverConfig));
