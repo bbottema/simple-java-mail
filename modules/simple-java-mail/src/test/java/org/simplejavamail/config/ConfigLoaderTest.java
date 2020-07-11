@@ -7,6 +7,8 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -28,6 +30,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
+import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.config.ConfigLoader.Property.JAVAXMAIL_DEBUG;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
@@ -256,6 +259,8 @@ public class ConfigLoaderTest {
 		source.put("simplejavamail.smtp.username", "username");
 		source.put("simplejavamail.smtp.password", "password");
 		source.put("simplejavamail.custom.sslfactory.class", "teh_class");
+		source.put("simplejavamail.extraproperties.a", "A");
+		source.put("simplejavamail.extraproperties.b", "B");
 
 		ConfigLoader.loadProperties(source, false);
 		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
@@ -265,6 +270,8 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
 		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
 		assertThat(ConfigLoader.getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
+		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
+				.containsExactly(new SimpleEntry<>("a", "A"), new SimpleEntry<>("b", "B"));
 	}
 
 	@Test
@@ -299,5 +306,4 @@ public class ConfigLoaderTest {
 		ConfigLoader.loadProperties("malformed.properties", false);
 		// error: unknown properties should cause an illegal argument exception
 	}
-
 }

@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
+import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 
 @SuppressWarnings("unused")
@@ -60,8 +62,10 @@ public class MailerTest {
 				+ "simplejavamail.proxy.username=username proxy\n"
 				+ "simplejavamail.proxy.password=password proxy\n"
 				+ "simplejavamail.proxy.socks5bridge.port=1081\n"
-				+ "simplejavamail.defaults.trustedhosts=192.168.1.122;mymailserver.com;ix55432y";
-		
+				+ "simplejavamail.defaults.trustedhosts=192.168.1.122;mymailserver.com;ix55432y\n"
+				+ "simplejavamail.extraproperties.extra-properties-property1=value1\n"
+				+ "simplejavamail.extraproperties.extra-properties-property2=value2";
+
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 	}
 	
@@ -89,6 +93,12 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.auth")).isNull();
 		assertThat(session.getProperty("mail.smtp.socks.host")).isNull();
 		assertThat(session.getProperty("mail.smtp.socks.port")).isNull();
+
+		assertThat(session.getProperty("extra1")).isNull();
+		assertThat(session.getProperty("extra2")).isNull();
+
+		assertThat(session.getProperty("extra-properties-property1")).isNull();
+		assertThat(session.getProperty("extra-properties-property2")).isNull();
 
 		assertThat(mailer.getOperationalConfig().getClusterKey()).isEqualTo(clusterKey);
 		
@@ -123,6 +133,8 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1080");
 		assertThat(session.getProperty("extra1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("value2");
+		assertThat(session.getProperty("extra-properties-property1")).isNull();
+		assertThat(session.getProperty("extra-properties-property2")).isNull();
 	}
 	
 	@Test
@@ -147,6 +159,8 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("999");
 		assertThat(session.getProperty("extra1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("value2");
+		assertThat(session.getProperty("extra-properties-property1")).isNull();
+		assertThat(session.getProperty("extra-properties-property2")).isNull();
 	}
 	
 	@Test
@@ -169,12 +183,17 @@ public class MailerTest {
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+		assertThat(session.getProperty("extra1")).isNull();
+		assertThat(session.getProperty("extra2")).isNull();
+		assertThat(session.getProperty("extra-properties-property1")).isEqualTo("value1");
+		assertThat(session.getProperty("extra-properties-property2")).isEqualTo("value2");
 	}
 	
 	@Test
 	public void createMailSession_MinimalConstructor_WithConfig_OPPORTUNISTIC_TLS() {
 		Properties properties = new Properties();
 		properties.setProperty(OPPORTUNISTIC_TLS.key(), "false");
+		properties.setProperty("simplejavamail.extraproperties.extra-properties-property2", "override");
 		ConfigLoader.loadProperties(properties, true);
 		
 		Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
@@ -194,6 +213,8 @@ public class MailerTest {
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+		assertThat(session.getProperty("extra-properties-property1")).isNull();
+		assertThat(session.getProperty("extra-properties-property2")).isEqualTo("override");
 	}
 	
 	@Test

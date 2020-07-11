@@ -10,6 +10,7 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.mailer.MailerHelper;
 import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
@@ -21,11 +22,13 @@ import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
+import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -130,6 +133,8 @@ public class MailerImpl implements Mailer {
 	 * <em>"mail.smtp.host"</em> for SMTP and <em>"mail.smtps.host"</em> for SMTPS)</li> </ol>
 	 * <p>
 	 * Furthermore adds proxy SOCKS properties if a proxy configuration was provided, overwriting any SOCKS properties already present.
+	 * <p>Finally, if there are extra properties in the properties file (ie. <em>simplejavamail.extraproperties.thisisextra=value</em>), then these
+	 * are loaded directly on the internal Session instance. This Java equivalent of this is: <code>mailer.getSession().getProperties().setProperty(..)</code>.
 	 *
 	 * @param serverConfig      Remote SMTP server details.
 	 * @param transportStrategy The transport protocol strategy enum that actually handles the session configuration. Session configuration meaning
@@ -157,6 +162,9 @@ public class MailerImpl implements Mailer {
 			props.put("mail.smtp.ssl.socketFactory", serverConfig.getCustomSSLFactoryInstance());
 		} else if (serverConfig.getCustomSSLFactoryClass() != null) {
 			props.put("mail.smtp.ssl.socketFactory.class", serverConfig.getCustomSSLFactoryClass());
+		}
+		if (ConfigLoader.hasProperty(EXTRA_PROPERTIES)) {
+			props.putAll(ConfigLoader.<Map<?, ?>>getProperty(EXTRA_PROPERTIES));
 		}
 
 		if (serverConfig.getPassword() != null) {

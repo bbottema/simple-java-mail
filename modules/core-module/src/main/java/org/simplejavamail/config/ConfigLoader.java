@@ -13,13 +13,20 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.Collections.unmodifiableMap;
+import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 /**
  * Contains list of possible properties names and can produce a map of property values, if provided as file {@value #DEFAULT_CONFIG_FILENAME} on the
@@ -91,6 +98,11 @@ public final class ConfigLoader {
 	 * By default the optional file {@value} will be loaded from classpath to load initial defaults.
 	 */
 	public static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
+
+	/**
+	 * This pattern recognizes extra property lines that should be loaded directly into JavaMail on the Session object.
+	 */
+	private static final Pattern EXTRA_PROPERTY_PATTERN = compile("^simplejavamail\\.extraproperties\\.(?<actualProperty>.*)");
 
 	/**
 	 * Initially try to load properties from "{@value #DEFAULT_CONFIG_FILENAME}".
@@ -166,7 +178,8 @@ public final class ConfigLoader {
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR("simplejavamail.embeddedimages.dynamicresolution.outside.base.dir"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL("simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH("simplejavamail.embeddedimages.dynamicresolution.outside.base.url"),
-		EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL("simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful");
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL("simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful"),
+		EXTRA_PROPERTIES("simplejavamail.extraproperties.*");
 
 		private final String key;
 
@@ -373,11 +386,35 @@ public final class ConfigLoader {
 			}
 		}
 
+		final Map<String, String> extraProperties = new HashMap<>();
+		extraProperties.putAll(filterExtraJavaMailProperties(null, System.getProperties().entrySet()));
+		//noinspection unchecked,rawtypes
+		extraProperties.putAll(filterExtraJavaMailProperties(null, (Set) System.getenv().entrySet()));
+		extraProperties.putAll(filterExtraJavaMailProperties(filePropertiesLeft, fileProperties.entrySet()));
+		resolvedProps.put(Property.EXTRA_PROPERTIES, extraProperties);
+
 		if (!filePropertiesLeft.isEmpty()) {
 			throw new IllegalArgumentException("unknown properties provided " + filePropertiesLeft);
 		}
 
 		return resolvedProps;
+	}
+
+	private static Map<String, String> filterExtraJavaMailProperties(@Nullable final Properties filePropertiesLeft, final Set<Map.Entry<Object, Object>> entries) {
+		final Map<String, String> extraProperties = new HashMap<>();
+		for (Map.Entry<Object, Object> propertyKey : entries) {
+			if (propertyKey.getKey() instanceof String) {
+				final Matcher matcher = EXTRA_PROPERTY_PATTERN.matcher((String) propertyKey.getKey());
+				if (matcher.matches()) {
+					assumeTrue(propertyKey.getValue() instanceof String, "Simple Java Mail property value can only be of type String");
+					extraProperties.put(matcher.group("actualProperty"), (String) propertyKey.getValue());
+					if (filePropertiesLeft != null) {
+						filePropertiesLeft.remove(propertyKey.getKey());
+					}
+				}
+			}
+		}
+		return extraProperties;
 	}
 
 	/**
