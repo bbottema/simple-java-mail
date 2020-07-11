@@ -3,8 +3,13 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.2.0</version>
+    <version>6.3.0</version>
 </dependency>
+
+v6.3.0 (11-July-2020)
+
+- #279: Allow extra Session properties configured through simplejavamail.properties
+
 
 v6.2.0 (6-July-2020)
 
