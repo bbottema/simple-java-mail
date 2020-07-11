@@ -27,6 +27,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 [v6.3.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.3.0%7Cjar) (11-July-2020)
 
 - [#279](https://github.com/bbottema/simple-java-mail/issues/279) Allow extra Session properties configured through simplejavamail.properties
+- [#277](https://github.com/bbottema/simple-java-mail/issues/277) Add API for using custom SSLSocketFactory
 
 
 [v6.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.2.0%7Cjar) (9-July-2020)

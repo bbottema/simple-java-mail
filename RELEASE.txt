@@ -9,6 +9,7 @@ http://www.simplejavamail.org
 v6.3.0 (11-July-2020)
 
 - #279: Allow extra Session properties configured through simplejavamail.properties
+- #277: Add API for using custom SSLSocketFactory
 
 
 v6.2.0 (6-July-2020)
