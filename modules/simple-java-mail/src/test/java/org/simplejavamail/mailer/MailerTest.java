@@ -24,7 +24,6 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.GregorianCalendar;
 import java.util.Properties;
@@ -290,7 +289,7 @@ public class MailerTest {
 	public void testSSLSocketFactoryClassConfig() {
 		final Mailer mailer = MailerBuilder
 				.withSMTPServer("host", 25, null, null)
-				.withCustomSSLFactory("teh_class")
+				.withCustomSSLFactoryClass("teh_class")
 				.buildMailer();
 
 		final Session session = mailer.getSession();
@@ -321,7 +320,7 @@ public class MailerTest {
 		final Mailer mailer = MailerBuilder
 				.withSMTPServer("host", 25, null, null)
 				.withCustomSSLFactoryInstance(mockFactory)
-				.withCustomSSLFactory("teh_class")
+				.withCustomSSLFactoryClass("teh_class")
 				.buildMailer();
 
 		final Session session = mailer.getSession();

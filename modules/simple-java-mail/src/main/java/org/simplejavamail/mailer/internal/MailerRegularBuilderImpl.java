@@ -53,7 +53,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	private TransportStrategy transportStrategy;
 
 	/**
-	 * @see #withCustomSSLFactory(String)
+	 * @see #withCustomSSLFactoryClass(String)
 	 */
 	private String customSSLFactory;
 
@@ -89,7 +89,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 			withTransportStrategy(assumeNonNull(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)));
 		}
 		if (hasProperty(CUSTOM_SSLFACTORY_CLASS)) {
-			withCustomSSLFactory(assumeNonNull(ConfigLoader.getStringProperty(CUSTOM_SSLFACTORY_CLASS)));
+			withCustomSSLFactoryClass(assumeNonNull(ConfigLoader.getStringProperty(CUSTOM_SSLFACTORY_CLASS)));
 		}
 	}
 	
@@ -169,10 +169,10 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	}
 
 	/**
-	 * @see MailerRegularBuilder#withCustomSSLFactory(String)
+	 * @see MailerRegularBuilder#withCustomSSLFactoryClass(String)
 	 */
 	@Override
-	public MailerRegularBuilderImpl withCustomSSLFactory(@Nullable final String customSSLFactory) {
+	public MailerRegularBuilderImpl withCustomSSLFactoryClass(@Nullable final String customSSLFactory) {
 		this.customSSLFactory = customSSLFactory;
 		return this;
 	}

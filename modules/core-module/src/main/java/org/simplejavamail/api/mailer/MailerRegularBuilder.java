@@ -112,7 +112,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">Java / Jakarta Mail properties</a>
 	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
 	 */
-	T withCustomSSLFactory(@Nullable String factoryClass);
+	T withCustomSSLFactoryClass(@Nullable String factoryClass);
 
 	/**
 	 * Configures the session with the right property to use your own factory for obtaining SSL connections.
@@ -126,7 +126,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @param sslSocketFactoryInstance An instance of the {@link SSLSocketFactory} class.
 	 *
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">Java / Jakarta Mail properties</a>
-	 * @see #withCustomSSLFactory(String)
+	 * @see #withCustomSSLFactoryClass(String)
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	T withCustomSSLFactoryInstance(@Nullable SSLSocketFactory sslSocketFactoryInstance);
@@ -170,7 +170,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	TransportStrategy getTransportStrategy();
 
 	/**
-	 * @see #withCustomSSLFactory(String)
+	 * @see #withCustomSSLFactoryClass(String)
 	 */
 	@Nullable
 	String getCustomSSLFactory();
