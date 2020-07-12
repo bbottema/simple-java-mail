@@ -30,7 +30,6 @@ v6.3.0 - [v6.3.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail
 - [#248](https://github.com/bbottema/simple-java-mail/issues/248) Bugfix: MimeMessageHelper: use complete filename as resource name
 - [#279](https://github.com/bbottema/simple-java-mail/issues/279) Allow extra Session properties configured through simplejavamail.properties
 - [#277](https://github.com/bbottema/simple-java-mail/issues/277) Add API for using custom SSLSocketFactory
-- [#248](https://github.com/bbottema/simple-java-mail/issues/248) Bugfix: MimeMessageHelper: use complete filename as resource name 
 
 
 [v6.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.2.0%7Cjar) (9-July-2020)
