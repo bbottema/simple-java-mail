@@ -231,8 +231,8 @@ public class MimeMessageHelper {
 			throws MessagingException {
 		final BodyPart attachmentPart = new MimeBodyPart();
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
-		final String resourceName = determineResourceName(attachmentResource, false);
-		final String fileName = determineResourceName(attachmentResource, true);
+		final String resourceName = determineResourceName(attachmentResource, false, true);
+		final String fileName = determineResourceName(attachmentResource, true, false);
 		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(fileName, attachmentResource.getDataSource())));
 		attachmentPart.setFileName(fileName);
 		final String contentType = attachmentResource.getDataSource().getContentType();
@@ -248,7 +248,7 @@ public class MimeMessageHelper {
 	/**
 	 * Determines the right resource name and optionally attaches the correct extension to the name. The result is mime encoded.
 	 */
-	static String determineResourceName(final AttachmentResource attachmentResource, final boolean includeExtension) {
+	static String determineResourceName(final AttachmentResource attachmentResource, final boolean includeExtension, final boolean encodeResourceName) {
 		final String datasourceName = attachmentResource.getDataSource().getName();
 
 		String resourceName;
@@ -265,7 +265,7 @@ public class MimeMessageHelper {
 		} else if (!includeExtension && resourceName.contains(".") && resourceName.equals(datasourceName)) {
 			resourceName = removeExtension(resourceName);
 		}
-		return MiscUtil.encodeText(resourceName);
+		return encodeResourceName ? MiscUtil.encodeText(resourceName) : resourceName;
 	}
 
 	@NotNull

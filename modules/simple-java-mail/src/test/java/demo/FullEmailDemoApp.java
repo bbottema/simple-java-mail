@@ -10,7 +10,7 @@ import testutil.CalendarHelper;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import static java.nio.charset.Charset.defaultCharset;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 
@@ -63,7 +63,8 @@ public class FullEmailDemoApp extends DemoAppBase {
 		
 		// add two text files in different ways and a black thumbs up embedded image ->
 		emailPopulatingBuilderNormal.withAttachment("dresscode.txt", new ByteArrayDataSource("Black Tie Optional", "text/plain"));
-		emailPopulatingBuilderNormal.withAttachment("location.txt", "On the moon!".getBytes(Charset.defaultCharset()), "text/plain");
+		emailPopulatingBuilderNormal.withAttachment("location.txt", "On the moon!".getBytes(defaultCharset()), "text/plain");
+		emailPopulatingBuilderNormal.withAttachment("special_łąąśćńółęĄŻŹĆŃÓŁĘ.txt", "doorcode: Ken sent me".getBytes(defaultCharset()), "text/plain");
 		emailPopulatingBuilderNormal.withEmbeddedImage("thumbsup", produceThumbsUpImage(), "image/png");
 		emailPopulatingBuilderNormal.withCalendarText(CalendarMethod.REQUEST, CalendarHelper.createCalendarEvent());
 		

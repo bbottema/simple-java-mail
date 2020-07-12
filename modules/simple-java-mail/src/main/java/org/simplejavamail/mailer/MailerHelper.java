@@ -84,9 +84,11 @@ public class MailerHelper {
 		}
 		for (final AttachmentResource attachment : email.getAttachments()) {
 			scanForInjectionAttack(attachment.getName(), "email.attachment.name");
+			scanForInjectionAttack(attachment.getDataSource().getName(), "email.attachment.datasource.name");
 		}
 		for (final AttachmentResource embeddedImage : email.getEmbeddedImages()) {
 			scanForInjectionAttack(embeddedImage.getName(), "email.embeddedImage.name");
+			scanForInjectionAttack(embeddedImage.getDataSource().getName(), "email.embeddedImage.datasource.name");
 		}
 		scanForInjectionAttack(email.getFromRecipient().getName(), "email.fromRecipient.name");
 		scanForInjectionAttack(email.getFromRecipient().getAddress(), "email.fromRecipient.address");
