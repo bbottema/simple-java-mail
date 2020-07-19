@@ -17,7 +17,6 @@ class SmimeException extends MailException {
 	static final String ERROR_EXTRACTING_SUBJECT_FROM_CERTIFICATE = "Error extracting subject from certificate to which it was issued";
 	static final String MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED = "MimePart that was assumed to be S/MIME signed / encrypted actually wasn't: %n\t%s";
 	static final String ERROR_READING_SMIME_CONTENT_TYPE = "Error reading S/MIME Content-Type header from MimeMessage";
-	static final String ERROR_READING_PKCS12_KEYSTORE = "Unable to read PKCS12 key store";
 
 	SmimeException(@NotNull final String message) {
 		super(checkNonEmptyArgument(message, "message"));

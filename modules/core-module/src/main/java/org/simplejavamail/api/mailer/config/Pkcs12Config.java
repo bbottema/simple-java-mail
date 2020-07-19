@@ -3,16 +3,17 @@ package org.simplejavamail.api.mailer.config;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Objects;
 
 import static java.lang.String.format;
-import static org.simplejavamail.internal.util.MiscUtil.inputStreamEqual;
+import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 
 /**
  * Config holder for PKCS12 store+key info used for S/MIME encrypting / decrypting.
@@ -20,27 +21,31 @@ import static org.simplejavamail.internal.util.MiscUtil.inputStreamEqual;
 // FIXME LOMBOK!!
 public final class Pkcs12Config {
 
-	private static final long serialVersionUID = 1234567L;
-
-	@NotNull private final InputStream pkcs12StoreStream;
+	@NotNull private final byte[] pkcs12StoreData;
 	@NotNull private final char[] storePassword;
 	@NotNull private final String keyAlias;
 	@NotNull private final char[] keyPassword;
 
-	private Pkcs12Config(@NotNull InputStream pkcs12StoreStream, @NotNull char[] storePassword, @NotNull String keyAlias, @NotNull char[] keyPassword) {
-		this.pkcs12StoreStream = pkcs12StoreStream;
+	private Pkcs12Config(@NotNull InputStream pkcs12StoreStream, @NotNull char[] storePassword, @NotNull String keyAlias, @NotNull char[] keyPassword)
+			throws IOException {
+		this(readInputStreamToBytes(pkcs12StoreStream), storePassword, keyAlias, keyPassword);
+	}
+
+	private Pkcs12Config(@NotNull byte[] pkcs12StoreData, @NotNull char[] storePassword, @NotNull String keyAlias, @NotNull char[] keyPassword) {
+		this.pkcs12StoreData = pkcs12StoreData;
 		this.storePassword = storePassword;
 		this.keyAlias = keyAlias;
 		this.keyPassword = keyPassword;
 	}
 
+	@NotNull
 	public static Pkcs12ConfigBuilder builder() {
 		return new Pkcs12ConfigBuilder();
 	}
 
 	@NotNull
-	public InputStream getPkcs12StoreStream() {
-		return this.pkcs12StoreStream;
+	public  byte[] getPkcs12StoreData() {
+		return this.pkcs12StoreData;
 	}
 
 	@NotNull
@@ -61,12 +66,11 @@ public final class Pkcs12Config {
 	@Override
 	public String toString() {
 		@SuppressWarnings("StringBufferReplaceableByString")
-		final StringBuilder sb = new StringBuilder("Pkcs12Config{");
-		sb.append("pkcs12StoreStream=").append(pkcs12StoreStream);
-		sb.append(", storePassword=***");
-		sb.append(", keyAlias='").append(keyAlias).append('\'');
-		sb.append(", keyPassword=***");
-		sb.append('}');
+		final StringBuilder sb = new StringBuilder("Pkcs12Config{")
+				.append("  storePassword=***")
+				.append(", keyAlias='").append(keyAlias).append('\'')
+				.append(", keyPassword=***")
+				.append('}');
 		return sb.toString();
 	}
 
@@ -79,7 +83,7 @@ public final class Pkcs12Config {
 			return false;
 		}
 		final Pkcs12Config that = (Pkcs12Config) o;
-		return inputStreamEqual(pkcs12StoreStream, that.pkcs12StoreStream) &&
+		return Arrays.equals(pkcs12StoreData, that.pkcs12StoreData) &&
 				Arrays.equals(storePassword, that.storePassword) &&
 				keyAlias.equals(that.keyAlias) &&
 				Arrays.equals(keyPassword, that.keyPassword);
@@ -87,14 +91,14 @@ public final class Pkcs12Config {
 
 	@Override
 	public int hashCode() {
-		int result = Objects.hash(pkcs12StoreStream, keyAlias);
+		int result = Objects.hash(pkcs12StoreData, keyAlias);
 		result = 31 * result + Arrays.hashCode(storePassword);
 		result = 31 * result + Arrays.hashCode(keyPassword);
 		return result;
 	}
 
 	public static class Pkcs12ConfigBuilder {
-		private InputStream pkcs12StoreStream;
+		private byte[] pkcs12StoreData;
 		private char[] storePassword;
 		private String keyAlias;
 		private char[] keyPassword;
@@ -113,13 +117,19 @@ public final class Pkcs12Config {
 		public Pkcs12ConfigBuilder pkcs12Store(File pkcs12StorePath) {
 			try {
 				return pkcs12Store(new FileInputStream(pkcs12StorePath));
-			} catch (FileNotFoundException e) {
+			} catch (IOException e) {
 				throw new IllegalStateException(format("error reading PKCS12 store from File [%s]", pkcs12StorePath), e);
 			}
 		}
 
-		public Pkcs12ConfigBuilder pkcs12Store(InputStream pkcs12StoreStream) {
-			this.pkcs12StoreStream = pkcs12StoreStream;
+		public Pkcs12ConfigBuilder pkcs12Store(InputStream pkcs12StoreStream)
+				throws IOException {
+			this.pkcs12StoreData = MiscUtil.readInputStreamToBytes(pkcs12StoreStream);
+			return this;
+		}
+
+		public Pkcs12ConfigBuilder pkcs12Store(byte[] pkcs12StoreData) {
+			this.pkcs12StoreData = pkcs12StoreData;
 			return this;
 		}
 
@@ -149,7 +159,7 @@ public final class Pkcs12Config {
 		}
 
 		public Pkcs12Config build() {
-			return new Pkcs12Config(pkcs12StoreStream, storePassword, keyAlias, keyPassword);
+			return new Pkcs12Config(pkcs12StoreData, storePassword, keyAlias, keyPassword);
 		}
 	}
 }

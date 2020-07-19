@@ -144,14 +144,10 @@ public class Email implements Serializable {
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
-	 */
-	// mime message is not serializable, so transient
-	private final transient InputStream dkimPrivateKeyInputStream;
-	
-	/**
+	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String)
 	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
-	private final File dkimPrivateKeyFile; // supported separately, so we don't have to do resource management ourselves for the InputStream
+	private final byte[] dkimPrivateKeyData;
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
@@ -271,19 +267,12 @@ public class Email implements Serializable {
 			returnReceiptTo = builder.getReturnReceiptTo();
 		}
 		
-		if (builder.getDkimPrivateKeyFile() != null) {
-			this.dkimPrivateKeyInputStream = null;
-			this.dkimPrivateKeyFile = builder.getDkimPrivateKeyFile();
-			this.dkimSigningDomain = builder.getDkimSigningDomain();
-			this.dkimSelector = builder.getDkimSelector();
-		} else if (builder.getDkimPrivateKeyInputStream() != null) {
-			this.dkimPrivateKeyFile = null;
-			this.dkimPrivateKeyInputStream = builder.getDkimPrivateKeyInputStream();
+		if (builder.getDkimPrivateKeyData() != null) {
+			this.dkimPrivateKeyData = builder.getDkimPrivateKeyData();
 			this.dkimSigningDomain = builder.getDkimSigningDomain();
 			this.dkimSelector = builder.getDkimSelector();
 		} else {
-			this.dkimPrivateKeyFile = null;
-			this.dkimPrivateKeyInputStream = null;
+			this.dkimPrivateKeyData = null;
 			this.dkimSigningDomain = null;
 			this.dkimSelector = null;
 		}
@@ -552,16 +541,8 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 */
 	@Nullable
-	public InputStream getDkimPrivateKeyInputStream() {
-		return dkimPrivateKeyInputStream;
-	}
-	
-	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
-	 */
-	@Nullable
-	public File getDkimPrivateKeyFile() {
-		return dkimPrivateKeyFile;
+	public byte[] getDkimPrivateKeyData() {
+		return dkimPrivateKeyData;
 	}
 	
 	/**

@@ -84,14 +84,17 @@ import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.email.internal.EmailException.ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT;
 import static org.simplejavamail.email.internal.EmailException.ERROR_PARSING_URL;
+import static org.simplejavamail.email.internal.EmailException.ERROR_READING_DKIM_FROM_INPUTSTREAM;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_FILE;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_PEM_INPUTSTREAM;
+import static org.simplejavamail.email.internal.EmailException.ERROR_READING_SMIME_FROM_INPUTSTREAM;
 import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_IMAGE_DATASOURCE;
 import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
+import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSourceFromClassPath;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveImageFileDataSourceFromDisk;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveUrlDataSource;
@@ -234,14 +237,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private final Map<String, String> headers;
 	
 	/**
+	 * @see #signWithDomainKey(InputStream, String, String)
+	 * @see #signWithDomainKey(byte[], String, String)
 	 * @see #signWithDomainKey(File, String, String)
 	 */
-	private File dkimPrivateKeyFile;
-	
-	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
-	 */
-	private InputStream dkimPrivateKeyInputStream;
+	private byte[] dkimPrivateKeyData;
 	
 	/**
 	 * @see #signWithDomainKey(InputStream, String, String)
@@ -423,7 +423,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	private void validateDkim() {
-		if (getDkimPrivateKeyFile() != null || getDkimPrivateKeyInputStream() != null) {
+		if (getDkimPrivateKeyData() != null) {
 			checkNonEmptyArgument(getDkimSelector(), "dkimSelector");
 			checkNonEmptyArgument(getDkimSigningDomain(), "dkimSigningDomain");
 			checkNonEmptyArgument(getFromRecipient(), "fromRecipient required when signing DKIM");
@@ -1734,6 +1734,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
 		return signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey.getBytes(UTF_8)), signingDomain, dkimSelector);
 	}
+
+	/**
+	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
+	public EmailPopulatingBuilder signWithDomainKey(@NotNull final File dkimPrivateKeyFile, @NotNull final String signingDomain, @NotNull final String dkimSelector) {
+		try {
+			return signWithDomainKey(new FileInputStream(checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile")), signingDomain, dkimSelector);
+		} catch (FileNotFoundException e) {
+			throw new EmailException(format(ERROR_READING_FROM_FILE, dkimPrivateKeyFile), e);
+		}
+	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
@@ -1741,19 +1754,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder signWithDomainKey(@NotNull final InputStream dkimPrivateKeyInputStream, @NotNull final String signingDomain,
 													@NotNull final String dkimSelector) {
-		this.dkimPrivateKeyInputStream = checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream");
-		this.dkimSigningDomain = checkNonEmptyArgument(signingDomain, "dkimSigningDomain");
-		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
-		return this;
-	}
-	
-	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
-	 */
-	@Override
-	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	public EmailPopulatingBuilder signWithDomainKey(@NotNull final File dkimPrivateKeyFile, @NotNull final String signingDomain, @NotNull final String dkimSelector) {
-		this.dkimPrivateKeyFile = checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile");
+		try {
+			this.dkimPrivateKeyData = readInputStreamToBytes(checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream"));
+		} catch (IOException e) {
+			throw new EmailException(ERROR_READING_DKIM_FROM_INPUTSTREAM, e);
+		}
 		this.dkimSigningDomain = checkNonEmptyArgument(signingDomain, "dkimSigningDomain");
 		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;
@@ -1772,7 +1777,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder signWithSmime(@NotNull final File pkcs12StoreFile, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword) {
 		try {
 			return signWithSmime(new FileInputStream(pkcs12StoreFile), storePassword, keyAlias, keyPassword);
-		} catch (FileNotFoundException e) {
+		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, pkcs12StoreFile), e);
 		}
 	}
@@ -1787,8 +1792,27 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder signWithSmime(@NotNull final InputStream pkcs12StoreStream, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword) {
+		final byte[] pkcs12StoreData;
+		try {
+			pkcs12StoreData = readInputStreamToBytes(pkcs12StoreStream);
+		} catch (IOException e) {
+			throw new EmailException(ERROR_READING_SMIME_FROM_INPUTSTREAM, e);
+		}
+		return signWithSmime(pkcs12StoreData, storePassword, keyAlias, keyPassword);
+	}
+
+	/**
+	 * @param pkcs12StoreData The data (file) input stream containing the keystore
+	 * @param storePassword  The password to get keys from the store
+	 * @param keyAlias The key we need for signing
+	 * @param keyPassword The password for the key
+	 *
+	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder signWithSmime(@NotNull final byte[] pkcs12StoreData, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword) {
 		return signWithSmime(Pkcs12Config.builder()
-				.pkcs12Store(pkcs12StoreStream)
+				.pkcs12Store(pkcs12StoreData)
 				.storePassword(storePassword)
 				.keyAlias(keyAlias)
 				.keyPassword(keyPassword)
@@ -2137,8 +2161,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder clearDkim() {
-		this.dkimPrivateKeyFile = null;
-		this.dkimPrivateKeyInputStream = null;
+		this.dkimPrivateKeyData = null;
 		this.dkimSigningDomain = null;
 		this.dkimSelector = null;
 		return this;
@@ -2323,21 +2346,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#getDkimPrivateKeyFile()
+	 * @see EmailPopulatingBuilder#getDkimPrivateKeyData()
 	 */
 	@Override
 	@Nullable
-	public File getDkimPrivateKeyFile() {
-		return dkimPrivateKeyFile;
-	}
-	
-	/**
-	 * @see EmailPopulatingBuilder#getDkimPrivateKeyInputStream()
-	 */
-	@Override
-	@Nullable
-	public InputStream getDkimPrivateKeyInputStream() {
-		return dkimPrivateKeyInputStream;
+	public byte[] getDkimPrivateKeyData() {
+		return dkimPrivateKeyData;
 	}
 	
 	/**

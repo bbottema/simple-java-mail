@@ -7,8 +7,6 @@ import org.simplejavamail.api.email.Recipient;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.AbstractMap;
@@ -176,30 +174,6 @@ public class MiscUtilTest {
 				.hasMessageContaining("File not found: moo");
 
 		assertThat(MiscUtil.readFileContent(new File("src/test/resources/ignore.properties"))).contains("simplejavamail.defaults.bcc.address=moo");
-	}
-
-	@Test
-	public void testInputStreamEqual()
-			throws FileNotFoundException {
-		final FileInputStream fis1 = new FileInputStream("src/test/resources/ignore.properties");
-		final FileInputStream fis2 = new FileInputStream("src/test/resources/ignore.properties");
-		final FileInputStream fis3 = new FileInputStream("src/test/resources/ical4j.properties");
-
-		ByteArrayInputStream bais1 = new ByteArrayInputStream(new byte[] { 'm', 'o', 'o', 'm', 'o', 'o', '1', '2', '3' });
-		ByteArrayInputStream bais2 = new ByteArrayInputStream(new byte[] { 'm', 'o', 'o', 'm', 'o', 'o', '1', '2', '3' });
-		ByteArrayInputStream bais3 = new ByteArrayInputStream(new byte[] { 1,2,3 });
-
-		assertThat(MiscUtil.inputStreamEqual(fis1, fis1)).isTrue();
-		assertThat(MiscUtil.inputStreamEqual(fis1, fis2)).isTrue();
-		assertThat(MiscUtil.inputStreamEqual(fis3, fis3)).isTrue();
-		assertThat(MiscUtil.inputStreamEqual(bais1, bais2)).isTrue();
-		assertThat(MiscUtil.inputStreamEqual(bais3, bais3)).isTrue();
-
-		assertThat(MiscUtil.inputStreamEqual(fis1, fis3)).isFalse();
-		assertThat(MiscUtil.inputStreamEqual(fis2, fis3)).isFalse();
-		assertThat(MiscUtil.inputStreamEqual(fis1, bais1)).isFalse();
-		assertThat(MiscUtil.inputStreamEqual(bais1, bais3)).isFalse();
-		assertThat(MiscUtil.inputStreamEqual(bais3, bais2)).isFalse();
 	}
 
 	@Test

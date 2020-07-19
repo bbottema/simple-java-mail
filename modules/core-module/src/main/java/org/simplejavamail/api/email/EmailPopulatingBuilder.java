@@ -1113,8 +1113,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #signWithDomainKey(String, String, String)
 	 * @see #signWithDomainKey(File, String, String)
 	 */
-	EmailPopulatingBuilder signWithDomainKey(@NotNull InputStream dkimPrivateKeyInputStream, @NotNull String signingDomain,
-											 @NotNull String dkimSelector);
+	EmailPopulatingBuilder signWithDomainKey(@NotNull InputStream dkimPrivateKeyInputStream, @NotNull String signingDomain, @NotNull String dkimSelector);
 	
 	/**
 	 * As {@link #signWithDomainKey(InputStream, String, String)}, but with a File reference that is later read as {@code InputStream}.
@@ -1149,17 +1148,25 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder signWithSmime(@NotNull File pkcs12StoreFile, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword);
 
 	/**
+	 * Delegates to {@link #signWithSmime(byte[], String, String, String)}.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 */
+	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
+	EmailPopulatingBuilder signWithSmime(@NotNull InputStream pkcs12StoreStream, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword);
+
+	/**
 	 * Delegates to {@link #signWithSmime(Pkcs12Config)}.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
-	 * @param pkcs12StoreStream The key store file to use to find the indicated key
+	 * @param pkcs12StoreData The key store file to use to find the indicated key
 	 * @param storePassword The store's password
 	 * @param keyAlias The name of the certificate in the key store to use
 	 * @param keyPassword The password of the certificate
 	 */
 	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
-	EmailPopulatingBuilder signWithSmime(@NotNull InputStream pkcs12StoreStream, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword);
+	EmailPopulatingBuilder signWithSmime(@NotNull byte[] pkcs12StoreData, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword);
 
 	/**
 	 * Delegates to {@link #encryptWithSmime(X509Certificate)} using the provided PEM file.
@@ -1542,16 +1549,12 @@ public interface EmailPopulatingBuilder {
 	Map<String, String> getHeaders();
 	
 	/**
+	 * @see #signWithDomainKey(InputStream, String, String)
+	 * @see #signWithDomainKey(byte[], String, String)
 	 * @see #signWithDomainKey(File, String, String)
 	 */
 	@Nullable
-	File getDkimPrivateKeyFile();
-	
-	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
-	 */
-	@Nullable
-	InputStream getDkimPrivateKeyInputStream();
+	byte[] getDkimPrivateKeyData();
 	
 	/**
 	 * @see #signWithDomainKey(InputStream, String, String)

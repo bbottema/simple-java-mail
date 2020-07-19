@@ -48,9 +48,9 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimePart;
 import javax.mail.util.ByteArrayDataSource;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -65,7 +65,6 @@ import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DECR
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DETERMINING_SMIME_SIGNER;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SUBJECT_FROM_CERTIFICATE;
-import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_READING_PKCS12_KEYSTORE;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_READING_SMIME_CONTENT_TYPE;
 import static org.simplejavamail.internal.smimesupport.SmimeException.MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
@@ -438,14 +437,8 @@ public class SMIMESupport implements SMIMEModule {
 		return SmimeUtil.encrypt(session, message, certificate);
 	}
 
-	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12Config) {
-		try {
-			try (InputStream pkcs12StoreStream = pkcs12Config.getPkcs12StoreStream()) {
-				return new SmimeKeyStore(pkcs12StoreStream, pkcs12Config.getStorePassword())
-						.getPrivateKey(pkcs12Config.getKeyAlias(), pkcs12Config.getKeyPassword());
-			}
-		} catch (IOException e) {
-			throw new SmimeException(ERROR_READING_PKCS12_KEYSTORE, e);
-		}
+	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12) {
+		SmimeKeyStore store = new SmimeKeyStore(new ByteArrayInputStream(pkcs12.getPkcs12StoreData()), pkcs12.getStorePassword());
+		return store.getPrivateKey(pkcs12.getKeyAlias(), pkcs12.getKeyPassword());
 	}
 }

@@ -13,7 +13,6 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.CertificationUtil;
-import org.simplejavamail.internal.util.MiscUtil;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -32,6 +31,7 @@ import java.net.URL;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -750,7 +750,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder.buildEmail();
 
 		assertThat(email.getPkcs12ConfigForSmimeSigning()).isNotNull();
-		assertThat(email.getPkcs12ConfigForSmimeSigning().getPkcs12StoreStream()).isNotNull();
+		assertThat(email.getPkcs12ConfigForSmimeSigning().getPkcs12StoreData()).isNotNull();
 		assertThat(email.getPkcs12ConfigForSmimeSigning().getStorePassword()).isEqualTo("letmein".toCharArray());
 		assertThat(email.getPkcs12ConfigForSmimeSigning().getKeyAlias()).isEqualTo("smime_test_user_alias");
 		assertThat(email.getPkcs12ConfigForSmimeSigning().getKeyPassword()).isEqualTo("letmein".toCharArray());
@@ -763,7 +763,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder.buildEmail();
 
 		assertThat(email.getPkcs12ConfigForSmimeSigning()).isNotNull();
-		assertThat(email.getPkcs12ConfigForSmimeSigning().getPkcs12StoreStream()).isNotNull();
+		assertThat(email.getPkcs12ConfigForSmimeSigning().getPkcs12StoreData()).isNotNull();
 		assertThat(email.getPkcs12ConfigForSmimeSigning().getStorePassword()).isEqualTo("letmein".toCharArray());
 		assertThat(email.getPkcs12ConfigForSmimeSigning().getKeyAlias()).isEqualTo("smime_test_user_alias");
 		assertThat(email.getPkcs12ConfigForSmimeSigning().getKeyPassword()).isEqualTo("letmein".toCharArray());
@@ -871,7 +871,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.signWithDomainKey(buf, "domain", "selector")
 				.buildEmail();
 
-		assertThat(MiscUtil.inputStreamEqual(email.getDkimPrivateKeyInputStream(), new ByteArrayInputStream(buf))).isTrue();
+		assertThat(Arrays.equals(email.getDkimPrivateKeyData(), buf)).isTrue();
 		EmailAssert.assertThat(email).hasDkimSelector("selector");
 		EmailAssert.assertThat(email).hasDkimSigningDomain("domain");
 	}
@@ -1294,7 +1294,6 @@ public class EmailPopulatingBuilderImpl1Test {
 		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false)
 				.notMergingSingleSMIMESignedAttachment()
 				.signWithDomainKey("dkim_key", "dkim_domain", "dkim_selector")
-				.signWithDomainKey(new File("dkim_key"), "dkim_domain", "dkim_selector")
 				.signWithSmime(new ByteArrayInputStream(new byte[]{}), "storePassword", "keyAlias", "keyPassword")
 				.encryptWithSmime(mock(X509Certificate.class));
 
@@ -1306,8 +1305,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailNormal.getSubject()).isNotNull();
 		assertThat(emailNormal.getBounceToRecipient()).isNotNull();
 		assertThat(emailNormal.getDispositionNotificationTo()).isNotNull();
-		assertThat(emailNormal.getDkimPrivateKeyFile()).isNotNull();
-		assertThat(emailNormal.getDkimPrivateKeyInputStream()).isNull();
+		assertThat(emailNormal.getDkimPrivateKeyData()).isNotNull();
 		assertThat(emailNormal.getDkimSelector()).isNotNull();
 		assertThat(emailNormal.getDkimSigningDomain()).isNotNull();
 		assertThat(emailNormal.getAttachments()).isNotEmpty();
@@ -1350,8 +1348,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailCleared.getSubject()).isNull();
 		assertThat(emailCleared.getBounceToRecipient()).isNull();
 		assertThat(emailCleared.getDispositionNotificationTo()).isNull();
-		assertThat(emailCleared.getDkimPrivateKeyFile()).isNull();
-		assertThat(emailCleared.getDkimPrivateKeyInputStream()).isNull();
+		assertThat(emailCleared.getDkimPrivateKeyData()).isNull();
 		assertThat(emailCleared.getDkimSelector()).isNull();
 		assertThat(emailCleared.getDkimSigningDomain()).isNull();
 		assertThat(emailCleared.getAttachments()).isEmpty();
@@ -1375,8 +1372,7 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		Email emailNormal = emailBuilder.buildEmail();
 
-		assertThat(emailNormal.getDkimPrivateKeyFile()).isNull();
-		assertThat(emailNormal.getDkimPrivateKeyInputStream()).isNotNull();
+		assertThat(emailNormal.getDkimPrivateKeyData()).isNotNull();
 		assertThat(emailNormal.getDkimSelector()).isNotNull();
 		assertThat(emailNormal.getDkimSigningDomain()).isNotNull();
 
@@ -1385,8 +1381,7 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		Email emailCleared = emailBuilder.buildEmail();
 
-		assertThat(emailCleared.getDkimPrivateKeyFile()).isNull();
-		assertThat(emailCleared.getDkimPrivateKeyInputStream()).isNull();
+		assertThat(emailCleared.getDkimPrivateKeyData()).isNull();
 		assertThat(emailCleared.getDkimSelector()).isNull();
 		assertThat(emailCleared.getDkimSigningDomain()).isNull();
 	}

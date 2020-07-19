@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -32,11 +33,9 @@ public class DKIMSigner implements DKIMModule {
 		LOGGER.debug("signing MimeMessage with DKIM...");
 		try {
 			final String dkimSelector = checkNonEmptyArgument(signingDetails.getDkimSelector(), "dkimSelector");
-			final DkimSigner dkimSigner = signingDetails.getDkimPrivateKeyFile() != null
-					// InputStream is managed by Dkim library
-					? new DkimSigner(signingDetails.getDkimSigningDomain(), dkimSelector, signingDetails.getDkimPrivateKeyFile())
-					// InputStream is managed by SimpleJavaMail user
-					: new DkimSigner(signingDetails.getDkimSigningDomain(), dkimSelector, signingDetails.getDkimPrivateKeyInputStream());
+			// InputStream is managed by Dkim library
+			// InputStream is managed by SimpleJavaMail user
+			final DkimSigner dkimSigner = new DkimSigner(signingDetails.getDkimSigningDomain(), dkimSelector, new ByteArrayInputStream(signingDetails.getDkimPrivateKeyData()));
 			dkimSigner.setIdentity(checkNonEmptyArgument(signingDetails.getFromRecipient(), "fromRecipient").getAddress());
 			dkimSigner.setHeaderCanonicalization(Canonicalization.RELAXED);
 			dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);

@@ -14,10 +14,8 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -229,47 +227,6 @@ public final class MiscUtil {
 			throw new IllegalArgumentException(format("File not found: %s", file));
 		}
 		return new String(Files.readAllBytes(file.toPath()), UTF_8);
-	}
-
-	public static boolean inputStreamEqual(InputStream inputOrg1, InputStream inputOrg2) {
-		ByteArrayInputStream input1 = copyInputstream(inputOrg1);
-		ByteArrayInputStream input2 = copyInputstream(inputOrg2);
-
-		int ch;
-		ch = input1.read();
-		while (ch != -1) {
-			int ch2 = input2.read();
-			if (ch != ch2) {
-				return false;
-			}
-			ch = input1.read();
-		}
-
-		int ch2 = input2.read();
-		return (ch2 == -1);
-	}
-
-	public static ByteArrayInputStream copyInputstream(InputStream input) {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-		byte[] buffer = new byte[1024];
-		int len;
-		try {
-			while ((len = input.read(buffer)) > -1 ) {
-				baos.write(buffer, 0, len);
-			}
-			baos.flush();
-
-			if (input instanceof FileInputStream) {
-				((FileInputStream) input).getChannel().position(0);
-			} else {
-				input.reset();
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-
-		return new ByteArrayInputStream(baos.toByteArray());
 	}
 
 	@Nullable

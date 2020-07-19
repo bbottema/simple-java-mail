@@ -211,11 +211,8 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getSentDate() != null) {
 			builder.fixingSentDate(email.getSentDate());
 		}
-		if (email.getDkimPrivateKeyFile() != null) {
-			builder.signWithDomainKey(email.getDkimPrivateKeyFile(), assumeNonNull(email.getDkimSigningDomain()), assumeNonNull(email.getDkimSelector()));
-		}
-		if (email.getDkimPrivateKeyInputStream() != null) {
-			builder.signWithDomainKey(email.getDkimPrivateKeyInputStream(), assumeNonNull(email.getDkimSigningDomain()), assumeNonNull(email.getDkimSelector()));
+		if (email.getDkimPrivateKeyData() != null) {
+			builder.signWithDomainKey(email.getDkimPrivateKeyData(), assumeNonNull(email.getDkimSigningDomain()), assumeNonNull(email.getDkimSelector()));
 		}
 		if (email.getDispositionNotificationTo() != null) {
 			builder.withDispositionNotificationTo(email.getDispositionNotificationTo());
