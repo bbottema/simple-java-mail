@@ -17,6 +17,7 @@ import static org.simplejavamail.internal.util.MiscUtil.inputStreamEqual;
 /**
  * Config holder for PKCS12 store+key info used for S/MIME encrypting / decrypting.
  */
+// FIXME LOMBOK!!
 public final class Pkcs12Config {
 
 	private static final long serialVersionUID = 1234567L;
