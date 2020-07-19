@@ -3,6 +3,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 import com.sun.mail.handlers.text_plain;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.Preconditions;
 
 import javax.activation.ActivationDataFlavor;
@@ -25,9 +26,6 @@ import javax.mail.internet.MimePart;
 import javax.mail.internet.MimeUtility;
 import javax.mail.internet.ParseException;
 import javax.mail.util.ByteArrayDataSource;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -387,19 +385,8 @@ public final class MimeMessageParser {
 
 	@NotNull
 	private static byte[] readContent(@NotNull final InputStream is) {
-		final BufferedInputStream isReader = new BufferedInputStream(is);
-		final ByteArrayOutputStream os = new ByteArrayOutputStream();
-		final BufferedOutputStream osWriter = new BufferedOutputStream(os);
-
-		int ch;
 		try {
-			while ((ch = isReader.read()) != -1) {
-				osWriter.write(ch);
-			}
-			osWriter.flush();
-			final byte[] result = os.toByteArray();
-			osWriter.close();
-			return result;
+			return MiscUtil.readInputStreamToBytes(is);
 		} catch (final IOException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_READING_CONTENT, e);
 		}
