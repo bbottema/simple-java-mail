@@ -28,6 +28,8 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 - [#268](https://github.com/bbottema/simple-java-mail/issues/268) Immediately resolve InputStreams when building emails, don't reuse
 
+This primarily affects the builder api for S/MIME and DKIM signing / encryption.
+
 
 v6.3.0 - [v6.3.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.3.2%7Cjar) (11-July-2020 - 12-July-2020)
 

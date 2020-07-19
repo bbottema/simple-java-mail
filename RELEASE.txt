@@ -10,6 +10,8 @@ v6.4.0 (19-July-2020)
 
 - #268: Immediately resolve InputStreams when building emails, don't reuse
 
+This primarily affects the builder api for S/MIME and DKIM signing / encryption.
+
 
 v6.3.0 - v6.3.2 (11-July-2020 - 12-July-2020)
 
