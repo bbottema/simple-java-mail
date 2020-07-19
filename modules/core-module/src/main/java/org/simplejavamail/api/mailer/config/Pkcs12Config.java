@@ -32,7 +32,7 @@ public final class Pkcs12Config {
 	}
 
 	private Pkcs12Config(@NotNull byte[] pkcs12StoreData, @NotNull char[] storePassword, @NotNull String keyAlias, @NotNull char[] keyPassword) {
-		this.pkcs12StoreData = pkcs12StoreData;
+		this.pkcs12StoreData = pkcs12StoreData.clone();
 		this.storePassword = storePassword;
 		this.keyAlias = keyAlias;
 		this.keyPassword = keyPassword;
@@ -129,7 +129,7 @@ public final class Pkcs12Config {
 		}
 
 		public Pkcs12ConfigBuilder pkcs12Store(byte[] pkcs12StoreData) {
-			this.pkcs12StoreData = pkcs12StoreData;
+			this.pkcs12StoreData = pkcs12StoreData.clone();
 			return this;
 		}
 

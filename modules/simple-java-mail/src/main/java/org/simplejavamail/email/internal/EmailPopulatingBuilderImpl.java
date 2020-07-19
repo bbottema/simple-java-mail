@@ -1722,7 +1722,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	public EmailPopulatingBuilder signWithDomainKey(@NotNull final byte[] dkimPrivateKey, @NotNull final String signingDomain, @NotNull final String dkimSelector) {
 		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
-		return signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey), signingDomain, dkimSelector);
+		return signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey.clone()), signingDomain, dkimSelector);
 	}
 	
 	/**
@@ -1741,9 +1741,10 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	public EmailPopulatingBuilder signWithDomainKey(@NotNull final File dkimPrivateKeyFile, @NotNull final String signingDomain, @NotNull final String dkimSelector) {
-		try {
-			return signWithDomainKey(new FileInputStream(checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile")), signingDomain, dkimSelector);
-		} catch (FileNotFoundException e) {
+		checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile");
+		try (FileInputStream dkimPrivateKeyInputStream = new FileInputStream(dkimPrivateKeyFile)) {
+			return signWithDomainKey(dkimPrivateKeyInputStream, signingDomain, dkimSelector);
+		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, dkimPrivateKeyFile), e);
 		}
 	}

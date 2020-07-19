@@ -127,10 +127,12 @@ public final class MiscUtil {
 	@NotNull
 	public static byte[] readInputStreamToBytes(@NotNull final InputStream inputStream)
 			throws IOException {
-		byte[] targetArray = new byte[inputStream.available()];
-		//noinspection ResultOfMethodCallIgnored
-		inputStream.read(targetArray);
-		return targetArray;
+		try (InputStream is = inputStream) {
+			byte[] targetArray = new byte[is.available()];
+			//noinspection ResultOfMethodCallIgnored
+			is.read(targetArray);
+			return targetArray;
+		}
 	}
 
 	/**
