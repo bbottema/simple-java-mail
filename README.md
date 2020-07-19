@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%226.3.2%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-6.3.2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%226.4.0%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-6.4.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://www.codacy.com/app/b-bottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.7+-lightgray.svg)
 
@@ -18,11 +18,16 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.3.2</version>
+    <version>6.4.0</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+[v6.4.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.4.0%7Cjar) (19-July-2020)
+
+- [#268](https://github.com/bbottema/simple-java-mail/issues/268) Immediately resolve InputStreams when building emails, don't reuse
+
 
 v6.3.0 - [v6.3.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.3.2%7Cjar) (11-July-2020 - 12-July-2020)
 
