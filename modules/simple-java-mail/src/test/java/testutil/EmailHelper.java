@@ -7,6 +7,7 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
@@ -30,6 +31,7 @@ import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_ROBIN;
+import static org.simplejavamail.converter.EmailConverter.emlToEmailBuilder;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilder;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -102,6 +104,11 @@ public class EmailHelper {
 	public static EmailPopulatingBuilder readOutlookMessage(final String filePath) {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream(filePath);
 		return outlookMsgToEmailBuilder(checkNonEmptyArgument(resourceAsStream, "resourceAsStream")).getEmailBuilder();
+	}
+
+	public static EmailPopulatingBuilder readEmlMessage(final String filePath) {
+		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream(filePath);
+		return emlToEmailBuilder(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
 	}
 
 	@NotNull
