@@ -1,5 +1,7 @@
 package org.simplejavamail.converter;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -19,8 +21,6 @@ import org.simplejavamail.internal.modules.ModuleLoader;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
 import javax.activation.DataSource;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
@@ -217,7 +217,7 @@ public final class EmailConverter {
 		if (ModuleLoader.smimeModuleAvailable()) {
 			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), outlookMessage, pkcs12Config);
 			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
-			updateEmailIfBothSignedAndEncrypted(emailBuilder);
+			updateEmailIfBothSignedAndEncrypted(emailBuilder, smimeParseResult);
 		}
 		return emailBuilder;
 	}
@@ -226,7 +226,7 @@ public final class EmailConverter {
 		if (ModuleLoader.smimeModuleAvailable()) {
 			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config);
 			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
-			updateEmailIfBothSignedAndEncrypted(emailBuilder);
+			updateEmailIfBothSignedAndEncrypted(emailBuilder, smimeParseResult);
 		}
 		return emailBuilder;
 	}
@@ -235,12 +235,15 @@ public final class EmailConverter {
 	 * if we have both an encrypted and signed part in the email, have the
 	 * top-level email reflect this as {@link SmimeMode#SIGNED_ENCRYPTED}.
 	 */
-	private static void updateEmailIfBothSignedAndEncrypted(final EmailPopulatingBuilder emailBuilder) {
+	private static void updateEmailIfBothSignedAndEncrypted(final EmailPopulatingBuilder emailBuilder, final SmimeParseResult smimeParseResult) {
 		if (emailBuilder.getSmimeSignedEmail() != null) {
 			OriginalSmimeDetails nestedSmime = emailBuilder.getSmimeSignedEmail().getOriginalSmimeDetails();
 			OriginalSmimeDetailsImpl originalSmimeDetails = (OriginalSmimeDetailsImpl) emailBuilder.getOriginalSmimeDetails();
 			if (nestedSmime.getSmimeMode() != PLAIN && nestedSmime.getSmimeMode() != originalSmimeDetails.getSmimeMode()) {
 				originalSmimeDetails.completeWithSmimeMode(SmimeMode.SIGNED_ENCRYPTED);
+			} else if (smimeParseResult.getDecryptedAttachmentResults().size() == 1) {
+				final SmimeMode smimeMode = smimeParseResult.getDecryptedAttachmentResults().get(0).getSmimeMode();
+				originalSmimeDetails.completeWithSmimeMode(smimeMode);
 			}
 		}
 	}

@@ -269,8 +269,7 @@ public final class MimeMessageParser {
 	@NotNull
 	private static String parseResourceName(@Nullable String possibleWrappedContentID, @NotNull String fileName) {
 		if (valueNullOrEmpty(fileName) && !valueNullOrEmpty(possibleWrappedContentID)) {
-			// https://regex101.com/r/46ulb2/1
-			return possibleWrappedContentID.replaceAll("^<?(.*?)>?$", "$1");
+			return possibleWrappedContentID.replaceAll("^<?(.*?)>?$", "$1"); // https://regex101.com/r/46ulb2/1
 		} else {
 			return fileName;
 		}
