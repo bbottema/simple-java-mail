@@ -26,7 +26,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 v6.4.0 - [v6.4.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.4.1%7Cjar) (19-July-2020 - 26-July-2020)
 
-- [#252](https://github.com/bbottema/simple-java-mail/issues/252) Bugfix: Added missing support for S/MIME envloped signing
+- [#252](https://github.com/bbottema/simple-java-mail/issues/252) Bugfix: Added missing support for S/MIME enveloped signing
 - [#268](https://github.com/bbottema/simple-java-mail/issues/268) Immediately resolve InputStreams when building emails, don't reuse
     * This primarily affects the builder api for S/MIME and DKIM signing / encryption.
 
@@ -57,7 +57,7 @@ This release adds the following major new feature:
 - Bumped log4j-core from 2.6.1 to 2.13.2
 
 
-v6.0.2 - [v6.0.5](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.0.5%7Cjar) (21-Januari-2020 - 13-June-2020)
+v6.0.2 - [v6.0.5](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.0.5%7Cjar) (21-January-2020 - 13-June-2020)
 
 - [#270](https://github.com/bbottema/simple-java-mail/issues/270) Bug: CLI module missing Jetbrains @Nullable annotation dependency needed in runtime
 - [#262](https://github.com/bbottema/simple-java-mail/issues/262) Bug: Executor settings passed to the builder are ignored
