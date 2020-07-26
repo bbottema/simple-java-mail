@@ -268,13 +268,9 @@ public final class MimeMessageParser {
 
 	@NotNull
 	private static String parseResourceName(@Nullable String possibleWrappedContentID, @NotNull String fileName) {
-		if (!valueNullOrEmpty(possibleWrappedContentID)) {
+		if (valueNullOrEmpty(fileName) && !valueNullOrEmpty(possibleWrappedContentID)) {
 			// https://regex101.com/r/46ulb2/1
-			String unwrappedContentID = possibleWrappedContentID.replaceAll("^<?(.*?)>?$", "$1");
-			String extension = (!valueNullOrEmpty(fileName) && fileName.contains("."))
-					? fileName.substring(fileName.lastIndexOf("."))
-					: "";
-			return (unwrappedContentID.endsWith(extension)) ? unwrappedContentID : unwrappedContentID + extension;
+			return possibleWrappedContentID.replaceAll("^<?(.*?)>?$", "$1");
 		} else {
 			return fileName;
 		}
@@ -513,7 +509,7 @@ public final class MimeMessageParser {
 
 	static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
 		final String htmlContent = parsedComponents.htmlContent.toString();
-		for(Iterator<Map.Entry<String, DataSource>> it = parsedComponents.cidMap.entrySet().iterator(); it.hasNext(); ) {
+		for (Iterator<Map.Entry<String, DataSource>> it = parsedComponents.cidMap.entrySet().iterator(); it.hasNext(); ) {
 			Map.Entry<String, DataSource> cidEntry = it.next();
 			String cid = extractCID(cidEntry.getKey());
 			if (!htmlContent.contains("cid:" + cid)) {
