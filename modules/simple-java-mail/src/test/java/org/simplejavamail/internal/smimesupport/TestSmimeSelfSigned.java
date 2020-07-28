@@ -1,26 +1,33 @@
 package org.simplejavamail.internal.smimesupport;
 
+import org.assertj.core.api.Assumptions;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
+import testutil.SecureTestDataHelper;
+import testutil.SecureTestDataHelper.PasswordsConsumer;
 
 import java.io.File;
+import java.util.Properties;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.lang.String.format;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 public class TestSmimeSelfSigned {
 
-	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
+	private static final String RESOURCES = determineResourceFolder("simple-java-mail") + "/test/resources";
+	private static final String RESOURCES_PKCS = RESOURCES + "/pkcs12";
 	private static final String RESOURCES_MESSAGES = RESOURCES_PKCS + "/test messages";
 
 	@Test
@@ -164,6 +171,49 @@ public class TestSmimeSelfSigned {
 	}
 
 	@Test
+	public void testEncryptedMessageEml_LegacySignedEnvelopedAttachment()
+			throws Exception {
+		SecureTestDataHelper.runTestWithSecureTestData(new PasswordsConsumer() {
+			@Override
+			public void accept(final Properties passwords) {
+				final Pkcs12Config pkcs12Config = Pkcs12Config.builder()
+						.pkcs12Store(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email/7acc30df-26dd-40b3-9d45-e31f681e755b.p12")
+						.storePassword(passwords.getProperty("legacy-signed-enveloped-email-zip-keystore-password"))
+						.keyAlias("sectigo limited id von ")
+						.keyPassword(passwords.getProperty("legacy-signed-enveloped-email-zip-key-password"))
+						.build();
+				Email emailParsedFromEml = EmailConverter.emlToEmail(new File(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email/email.eml"), pkcs12Config);
+
+				EmailAssert.assertThat(emailParsedFromEml).hasSubject("Ausarbeitung einer Schutzrechtsanmeldung : R.389390, Hr/Pv");
+
+				assertThat(normalizeNewlines(emailParsedFromEml.getPlainText())).doesNotStartWith("This is a multipart message in MIME format.");
+				assertThat(normalizeNewlines(emailParsedFromEml.getPlainText())).contains("Sehr geehrte Damen und Herren,");
+
+				assertThat(emailParsedFromEml.getEmbeddedImages()).isEmpty();
+
+				assertThat(emailParsedFromEml.getAttachments()).extracting("name")
+						.containsExactlyInAnyOrder("smime.p7m",
+								"PDmembran_m_Stuelement_pdf_3373833.pdf",
+								"IN_COVER_SHEET_3374652_pdf_3374715.pdf",
+								"389390_Pruefung_des_Entwurfs_3493097.doc"
+						);
+				assertThat(emailParsedFromEml.getDecryptedAttachments()).extracting("name")
+						.containsExactlyInAnyOrder("signed-email.eml",
+								"PDmembran_m_Stuelement_pdf_3373833.pdf",
+								"IN_COVER_SHEET_3374652_pdf_3374715.pdf",
+								"389390_Pruefung_des_Entwurfs_3493097.doc");
+
+				EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+						.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
+						.smimeMime("application/pkcs7-mime")
+						.smimeType("enveloped-data")
+						.smimeName("smime.p7m")
+						.build());
+			}
+		});
+	}
+
+	@Test
 	public void testSignedAndEncryptedMessageMsg() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message signed & encrypted.msg"), loadPkcs12KeyStore());
 
@@ -185,7 +235,8 @@ public class TestSmimeSelfSigned {
 		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getName()));
 
 		assertThat(emailParsedFromMsg.getAttachments()).hasSize(3);
-		assertThat(emailParsedFromMsg.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7m", "smime.p7s", "03-07-2005 errata SharnErrata.pdf");
+		assertThat(emailParsedFromMsg.getAttachments()).extracting("name")
+				.containsExactlyInAnyOrder("smime.p7m", "smime.p7s", "03-07-2005 errata SharnErrata.pdf");
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(3);
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
 
@@ -203,5 +254,11 @@ public class TestSmimeSelfSigned {
 				.smimeSignatureValid(true)
 				.smimeSignedBy("Benny Bottema")
 				.build());
+	}
+
+	private static String assumeSystemVariablePresent(String name) {
+		final String systemVariable = System.getenv(name);
+		assumeThat(systemVariable).as("system variable " + name).isNotNull();
+		return systemVariable;
 	}
 }
