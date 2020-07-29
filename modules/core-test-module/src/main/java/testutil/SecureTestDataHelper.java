@@ -39,12 +39,28 @@ public class SecureTestDataHelper {
 		final String secureDataPassword = passwords.getProperty("legacy-signed-enveloped-email-zip");
 		new ZipFile(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email.zip", secureDataPassword.toCharArray())
 				.extractAll(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email");
+		new ZipFile(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email/file-hider.zip", secureDataPassword.toCharArray())
+				.extractAll(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email");
 
 		return passwords;
 	}
 
 	private static void cleanupSecureTestData() {
-		FileUtils.deleteQuietly(new File(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email"));
+		final File file = new File(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email");
+
+		while (file.exists()) {
+			try {
+				FileUtils.deleteDirectory(file);
+			} catch (IOException e) {
+				try {
+					//noinspection BusyWait
+					Thread.sleep(100);
+				} catch (InterruptedException interruptedException) {
+					Thread.currentThread().interrupt();
+					return;
+				}
+			}
+		}
 	}
 
 	public interface PasswordsConsumer {
