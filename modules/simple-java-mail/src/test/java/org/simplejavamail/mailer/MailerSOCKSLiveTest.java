@@ -37,7 +37,7 @@ public class MailerSOCKSLiveTest {
 				.withProxy("localhost", PROXY_SERVER_PORT)
 				.buildMailer();
 
-		assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false, false), false);
+		assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false), false);
 	}
 
 	@Test
@@ -49,7 +49,7 @@ public class MailerSOCKSLiveTest {
 				.withProxy("localhost", PROXY_SERVER_PORT, "username", "password")
 				.buildMailer();
 
-		assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false, false), false);
+		assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false), false);
 	}
 
 	private void assertSendingEmail(final Mailer mailer, final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean async) throws Exception {

@@ -26,6 +26,7 @@ import javax.mail.internet.MimePart;
 import javax.mail.internet.MimeUtility;
 import javax.mail.internet.ParseException;
 import javax.mail.util.ByteArrayDataSource;
+import javax.mail.util.SharedByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -42,6 +43,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
@@ -140,7 +142,12 @@ public final class MimeMessageParser {
 			//noinspection RedundantCast
 			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
 		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			parsedComponents.calendarContent = parseContent(currentPart);
+			final SharedByteArrayInputStream calendarContent = parseContent(currentPart);
+			try {
+				parsedComponents.calendarContent = MiscUtil.readInputStreamToString(calendarContent, UTF_8);
+			} catch (IOException e) {
+				throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CALENDAR_CONTENT, e);
+			}
 			parsedComponents.calendarMethod = parseCalendarMethod(currentPart);
 		} else if (isMimeType(currentPart, "multipart/*")) {
 			final Multipart mp = parseContent(currentPart);

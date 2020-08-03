@@ -67,37 +67,37 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_EmptySubjectAndBody()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true, false), true, false, false, false, false);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true, false, false), true, false, false, false, false);
 	}
 
 	@Test
 	public void createMailSession_StandardDummyMailBasicFields()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true, false), true, false, false, false, false);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true, false, false), true, false, false, false, false);
 	}
 
 	@Test
 	public void createMailSession_StandardDummyMailBasicFields_Async()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true, false), true, false, true, false, false);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true, false, false), true, false, true, false, false);
 	}
 
 	@Test
 	public void createMailSession_StandardDummyMail_AllFields()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false, true, true), true, false, false, false, true);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false, true, true, true), true, false, false, false, true);
 	}
 	
 	@Test
 	public void createMailSession_StandardDummyMail_IncludingCustomHeaders()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true, true, false), true, false, false, false, false);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, true, true, false, false), true, false, false, false, false);
 	}
 
 	@Test
 	public void createMailSession_StandardDummyMailWithIdAndSendDate()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
-		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false, true, true, false), true, false, false, true, false);
+		assertSendingEmail(EmailHelper.createDummyEmailBuilder("<123@456>", true, false, false, true, true, false, false), true, false, false, true, false);
 	}
 
 	@Test

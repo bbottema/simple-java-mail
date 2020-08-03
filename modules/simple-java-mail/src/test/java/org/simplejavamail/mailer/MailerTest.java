@@ -26,7 +26,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.GregorianCalendar;
-import java.util.HashMap;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -41,7 +40,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
-import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 
 @SuppressWarnings("unused")
@@ -287,7 +285,7 @@ public class MailerTest {
 	@Test
 	public void testDKIMPriming()
 			throws IOException {
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false, true, false);
+		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false);
 
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
 		String privateDERkeyBase64 =
@@ -353,7 +351,7 @@ public class MailerTest {
 	@Test
 	public void testDKIMPrimingAndSmimeCombo()
 			throws IOException {
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false, true, false);
+		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false);
 
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
 		String privateDERkeyBase64 =
@@ -378,7 +376,7 @@ public class MailerTest {
 	@Test
 	public void testParser()
 			throws Exception {
-		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailHelper.createDummyEmailBuilder(true, false, false, true, false);
+		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false);
 		
 		// let's try producing and then consuming a MimeMessage ->
 		// (bounce recipient is not part of the Mimemessage but the Envelope and is not received back on the MimeMessage
@@ -395,7 +393,7 @@ public class MailerTest {
 
 	@Test
 	public void testCustomMailer_sendEmail() throws IOException {
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false).buildEmail();
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false).buildEmail();
 		final CustomMailer customMailerMock = mock(CustomMailer.class);
 
 		getMailerWithCustomMailer(customMailerMock).sendMail(email);

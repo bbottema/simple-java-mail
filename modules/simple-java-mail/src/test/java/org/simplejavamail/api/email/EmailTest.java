@@ -205,8 +205,8 @@ public class EmailTest {
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().withCalendarText(REPLY, "moo").buildEmail(), false);
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().buildEmail(), false);
 		// forWardEmail
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, true, true, false).buildEmail();
-		final Email emailOther = EmailHelper.createDummyEmailBuilder(false, true, false, false, false).buildEmail();
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, false).buildEmail();
+		final Email emailOther = EmailHelper.createDummyEmailBuilder(false, true, false, false, false, false).buildEmail();
 		assertEmailEqual(f(email).buildEmail(), f(email).buildEmail(), true);
 		assertEmailEqual(f(email).buildEmail(), b().buildEmail(), false);
 		assertEmailEqual(f(email).buildEmail(), f(emailOther).buildEmail(), false);

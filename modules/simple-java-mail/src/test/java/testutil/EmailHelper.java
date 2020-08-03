@@ -3,11 +3,11 @@ package testutil;
 import org.assertj.core.util.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
@@ -39,13 +39,13 @@ public class EmailHelper {
 
 	public static final Date CUSTOM_SENT_DATE = new GregorianCalendar(2011, SEPTEMBER, 15, 12, 5, 43).getTime();
 
-	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean onlyBasicFields, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule, final boolean useDynamicImageEmbedding)
+	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean onlyBasicFields, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule, boolean useDynamicImageEmbedding, final boolean includeCalendarText)
 			throws IOException {
-		return createDummyEmailBuilder(null, includeSubjectAndBody, onlyBasicFields, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule, false, useDynamicImageEmbedding);
+		return createDummyEmailBuilder(null, includeSubjectAndBody, onlyBasicFields, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule, false, useDynamicImageEmbedding, includeCalendarText);
 	}
 
 	public static EmailPopulatingBuilder createDummyEmailBuilder(@Nullable String id, boolean includeSubjectAndBody, boolean onlyBasicFields, boolean includeCustomHeaders,
-			boolean useSmimeDetailsImplFromSmimeModule, final boolean fixSentDate, final boolean useDynamicImageEmbedding)
+			boolean useSmimeDetailsImplFromSmimeModule, final boolean fixSentDate, final boolean useDynamicImageEmbedding, final boolean includeCalendarText)
 			throws IOException {
 		EmailPopulatingBuilder builder = EmailBuilder.startingBlank()
 				.fixingMessageId(id)
@@ -77,6 +77,10 @@ public class EmailHelper {
 					.withHeader("anotherDummyHeader", "anotherDummyHeaderValue")
 					.withDispositionNotificationTo("simple@address.com")
 					.withReturnReceiptTo("Complex Email", "simple@address.com");
+		}
+
+		if (includeCalendarText) {
+			builder = builder.withCalendarText(CalendarMethod.CANCEL, "Sorry, can't make it");
 		}
 
 		if (fixSentDate) {

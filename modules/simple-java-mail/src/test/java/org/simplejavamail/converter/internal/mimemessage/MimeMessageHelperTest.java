@@ -115,7 +115,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseItWillTryToSign()
 			throws IOException, ClassNotFoundException {
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false)
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
 		
@@ -132,7 +132,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseDKIMLibraryIsMissing()
 			throws IOException, ClassNotFoundException {
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false)
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
 		
@@ -165,7 +165,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void filenameWithSpaceEncoding() throws IOException, MessagingException {
 		final String fileName = "file name.txt";
-		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false)
+		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false)
 				.clearAttachments().withAttachment(fileName, "abc".getBytes(), "text/plain").buildEmail();
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(email);
 		final BodyPart bodyPart = ((MimeMultipart) mimeMessage.getContent()).getBodyPart(1);

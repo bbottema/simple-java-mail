@@ -64,7 +64,7 @@ public class ImmutableDelegatingSMTPMessageTest {
 
 	@Test
 	public void testSMTPMessageMethodsShouldReturnFalseInAbsenceOfAProperDelegate() throws IOException {
-		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false).buildEmail();
+		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false, false).buildEmail();
 		ImmutableDelegatingSMTPMessage subject = new ImmutableDelegatingSMTPMessage(emailToMimeMessage(email), "envelop@from.com");
 
 		assertThat(subject.getAllow8bitMIME()).isFalse();
@@ -77,7 +77,7 @@ public class ImmutableDelegatingSMTPMessageTest {
 
 	@Test
 	public void testGettersResultInEqualValues() throws MessagingException, IOException {
-		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false).clearBounceTo().buildEmail();
+		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false, false).clearBounceTo().buildEmail();
 		MimeMessage message = emailToMimeMessage(email);
 		message.setSender(new InternetAddress("a@b.com", "abcom"));
 
@@ -174,7 +174,7 @@ public class ImmutableDelegatingSMTPMessageTest {
 	
 	@Test
 	public void testImmutability() throws IOException {
-		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false).buildEmail();
+		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false, false).buildEmail();
 		final ImmutableDelegatingSMTPMessage subject = new ImmutableDelegatingSMTPMessage(emailToMimeMessage(email), "envelop@from.com");
 		
 		assertThatThrownBy(new ThrowingCallable() { public void call() { subject.setMessageNumber(5); }}).hasMessageContaining("protected in the delegate");

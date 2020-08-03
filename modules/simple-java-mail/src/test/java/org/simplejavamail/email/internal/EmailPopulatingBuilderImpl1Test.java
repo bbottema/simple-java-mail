@@ -1291,7 +1291,7 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testClearingValues() throws IOException {
-		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false)
+		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false, false)
 				.notMergingSingleSMIMESignedAttachment()
 				.signWithDomainKey("dkim_key", "dkim_domain", "dkim_selector")
 				.signWithSmime(new ByteArrayInputStream(new byte[]{}), "storePassword", "keyAlias", "keyPassword")
@@ -1367,7 +1367,7 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testClearingValuesAlternativeFlows() throws IOException {
-		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false)
+		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false, false)
 				.signWithDomainKey(new ByteArrayInputStream(new byte[]{}), "dkim_domain", "dkim_selector");
 
 		Email emailNormal = emailBuilder.buildEmail();

@@ -17,6 +17,7 @@ class MimeMessageParseException extends MailException {
 	static final String ERROR_PARSING_ADDRESS = "Error parsing [%s] address [%s]";
 	static final String ERROR_PARSING_DISPOSITION = "Error parsing MimeMessage disposition";
 	static final String ERROR_PARSING_CONTENT = "Error parsing MimeMessage Content";
+	static final String ERROR_PARSING_CALENDAR_CONTENT = "Error parsing MimeMessage Calendar content";
 	static final String ERROR_PARSING_MULTIPART_COUNT = "Error parsing MimeMessage multipart count";
 	static final String ERROR_GETTING_BODYPART_AT_INDEX = "Error getting bodypart at index %s";
 	static final String ERROR_GETTING_CONTENT_ID = "Error getting content ID";
