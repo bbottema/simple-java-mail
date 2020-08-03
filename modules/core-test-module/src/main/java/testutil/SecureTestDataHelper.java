@@ -48,7 +48,8 @@ public class SecureTestDataHelper {
 	private static void cleanupSecureTestData() {
 		final File file = new File(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email");
 
-		while (file.exists()) {
+		int tries = 0;
+		while (file.exists() && tries++ <= 10) {
 			try {
 				FileUtils.deleteDirectory(file);
 			} catch (IOException e) {
