@@ -208,7 +208,7 @@ public final class MimeMessageParser {
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public static String parseCalendarMethod(@NotNull MimePart currentPart) {
-		Pattern compile = Pattern.compile("method=\"(.*?)\"");
+		Pattern compile = Pattern.compile("method=\"?(\\w+)");
 		final String contentType;
 		try {
 			contentType = currentPart.getDataHandler().getContentType();
