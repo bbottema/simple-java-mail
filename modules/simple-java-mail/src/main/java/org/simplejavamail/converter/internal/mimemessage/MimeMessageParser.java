@@ -26,7 +26,6 @@ import javax.mail.internet.MimePart;
 import javax.mail.internet.MimeUtility;
 import javax.mail.internet.ParseException;
 import javax.mail.util.ByteArrayDataSource;
-import javax.mail.util.SharedByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -142,7 +141,7 @@ public final class MimeMessageParser {
 			//noinspection RedundantCast
 			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
 		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			final SharedByteArrayInputStream calendarContent = parseContent(currentPart);
+			final InputStream calendarContent = parseContent(currentPart);
 			try {
 				parsedComponents.calendarContent = MiscUtil.readInputStreamToString(calendarContent, UTF_8);
 			} catch (IOException e) {
