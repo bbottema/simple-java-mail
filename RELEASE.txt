@@ -8,6 +8,7 @@ http://www.simplejavamail.org
 
 v6.4.0 - v6.4.3 (19-July-2020 - 6-August-2020)
 
+- #284: Improved support for Calendar attachments created by gMail
 - #283: Bugfix: Fix support for reading Calendar attachments with quoted-printable transfer-type
 - #281: Bugfix: Fix support for reading Calendar attachments
 - #252: Bugfix: Added missing support for S/MIME envloped signing

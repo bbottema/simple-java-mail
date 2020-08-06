@@ -26,6 +26,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 v6.4.0 - [v6.4.3](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.4.3%7Cjar) (19-July-2020 - 6-August-2020)
 
+- [#284](https://github.com/bbottema/simple-java-mail/issues/284) Improved support for Calendar attachments created by gMail
 - [#283](https://github.com/bbottema/simple-java-mail/issues/283) Bugfix: Fix support for reading Calendar attachments with quoted-printable transfer-type
 - [#281](https://github.com/bbottema/simple-java-mail/issues/281) Bugfix: Fix support for reading Calendar attachments
 - [#252](https://github.com/bbottema/simple-java-mail/issues/252) Bugfix: Added missing support for S/MIME enveloped signing
