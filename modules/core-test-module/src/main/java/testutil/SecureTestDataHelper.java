@@ -32,21 +32,21 @@ public class SecureTestDataHelper {
 		final Properties passwords = new Properties();
 		passwords.load(checkArgumentNotEmpty(inputStream, "InputStream was null"));
 
-		assumeThat(passwords.getProperty("legacy-signed-enveloped-email-zip"))
+		assumeThat(passwords.getProperty("secure-testdata-zip"))
 				.as("secure-testdata-passwords.properties")
 				.isNotEmpty();
 
-		final String secureDataPassword = passwords.getProperty("legacy-signed-enveloped-email-zip");
-		new ZipFile(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email.zip", secureDataPassword.toCharArray())
-				.extractAll(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email");
-		new ZipFile(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email/file-hider.zip", secureDataPassword.toCharArray())
-				.extractAll(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email");
+		final String secureDataPassword = passwords.getProperty("secure-testdata-zip");
+		new ZipFile(RESOURCES + "/secure-testdata/secure-testdata.zip", secureDataPassword.toCharArray())
+				.extractAll(RESOURCES + "/secure-testdata/secure-testdata");
+		new ZipFile(RESOURCES + "/secure-testdata/secure-testdata/file-hider.zip", secureDataPassword.toCharArray())
+				.extractAll(RESOURCES + "/secure-testdata/secure-testdata");
 
 		return passwords;
 	}
 
 	private static void cleanupSecureTestData() {
-		final File file = new File(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email");
+		final File file = new File(RESOURCES + "/secure-testdata/secure-testdata");
 
 		int tries = 0;
 		while (file.exists() && tries++ <= 10) {
@@ -54,7 +54,6 @@ public class SecureTestDataHelper {
 				FileUtils.deleteDirectory(file);
 			} catch (IOException e) {
 				try {
-					//noinspection BusyWait
 					Thread.sleep(100);
 				} catch (InterruptedException interruptedException) {
 					Thread.currentThread().interrupt();

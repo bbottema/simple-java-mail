@@ -177,12 +177,12 @@ public class TestSmimeSelfSigned {
 			@Override
 			public void accept(final Properties passwords) {
 				final Pkcs12Config pkcs12Config = Pkcs12Config.builder()
-						.pkcs12Store(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email/7acc30df-26dd-40b3-9d45-e31f681e755b.p12")
+						.pkcs12Store(RESOURCES + "/secure-testdata/secure-testdata/legacy-signed-enveloped-email/7acc30df-26dd-40b3-9d45-e31f681e755b.p12")
 						.storePassword(passwords.getProperty("legacy-signed-enveloped-email-zip-keystore-password"))
 						.keyAlias("sectigo limited id von ")
 						.keyPassword(passwords.getProperty("legacy-signed-enveloped-email-zip-key-password"))
 						.build();
-				Email emailParsedFromEml = EmailConverter.emlToEmail(new File(RESOURCES + "/secure-testdata/legacy-signed-enveloped-email/email.eml"), pkcs12Config);
+				Email emailParsedFromEml = EmailConverter.emlToEmail(new File(RESOURCES + "/secure-testdata/secure-testdata/legacy-signed-enveloped-email/email.eml"), pkcs12Config);
 
 				EmailAssert.assertThat(emailParsedFromEml).hasSubject("Ausarbeitung einer Schutzrechtsanmeldung : R.389390, Hr/Pv");
 
