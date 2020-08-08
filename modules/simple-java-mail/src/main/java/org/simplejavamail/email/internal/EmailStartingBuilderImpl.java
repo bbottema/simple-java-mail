@@ -220,6 +220,9 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getReturnReceiptTo() != null) {
 			builder.withReturnReceiptTo(email.getReturnReceiptTo());
 		}
+		if (email.getCalendarMethod() != null) {
+			builder.withCalendarText(email.getCalendarMethod(), email.getCalendarText());
+		}
 		if (email.getEmailToForward() != null) {
 			((InternalEmailPopulatingBuilder) builder).withForward(email.getEmailToForward());
 		}
