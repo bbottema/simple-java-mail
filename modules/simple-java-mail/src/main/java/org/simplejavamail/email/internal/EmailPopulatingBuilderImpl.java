@@ -918,64 +918,64 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#to(String, InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder to(@Nullable final String name, @NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return toAddressesWithFixedName(name, oneOrMoreAddressesEach);
+	public EmailPopulatingBuilder to(@Nullable final String name, @NotNull final InternetAddress... adresses) {
+		return toAddressesWithFixedName(name, adresses);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#toAddresses(String, Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder toAddresses(@Nullable final String name, @NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return toAddressesWithFixedName(name, oneOrMoreAddressesEach);
+	public EmailPopulatingBuilder toAddresses(@Nullable final String name, @NotNull final Collection<InternetAddress> adresses) {
+		return toAddressesWithFixedName(name, adresses);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#toMultiple(InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder toMultiple(@NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(null, asList(oneOrMoreAddressesEach), TO);
+	public EmailPopulatingBuilder toMultiple(@NotNull final InternetAddress... adresses) {
+		return withAddressesWithDefaultName(null, asList(adresses), TO);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#toMultipleAddresses(Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder toMultipleAddresses(@NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(null, oneOrMoreAddressesEach, TO);
+	public EmailPopulatingBuilder toMultipleAddresses(@NotNull final Collection<InternetAddress> adresses) {
+		return withAddressesWithDefaultName(null, adresses, TO);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#toAddressesWithFixedName(String, InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder toAddressesWithFixedName(@Nullable final String name, @NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return withAddressesWithFixedName(name, asList(oneOrMoreAddressesEach), TO);
+	public EmailPopulatingBuilder toAddressesWithFixedName(@Nullable final String name, @NotNull final InternetAddress... adresses) {
+		return withAddressesWithFixedName(name, asList(adresses), TO);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#toAddressesWithDefaultName(String, InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder toAddressesWithDefaultName(@NotNull final String name, @NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(name, asList(oneOrMoreAddressesEach), TO);
+	public EmailPopulatingBuilder toAddressesWithDefaultName(@NotNull final String name, @NotNull final InternetAddress... adresses) {
+		return withAddressesWithDefaultName(name, asList(adresses), TO);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#toAddressesWithFixedName(String, Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder toAddressesWithFixedName(@Nullable final String name, @NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return withAddressesWithFixedName(name, oneOrMoreAddressesEach, TO);
+	public EmailPopulatingBuilder toAddressesWithFixedName(@Nullable final String name, @NotNull final Collection<InternetAddress> adresses) {
+		return withAddressesWithFixedName(name, adresses, TO);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#toAddressesWithDefaultName(String, Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder toAddressesWithDefaultName(@NotNull final String name, @NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(name, oneOrMoreAddressesEach, TO);
+	public EmailPopulatingBuilder toAddressesWithDefaultName(@NotNull final String name, @NotNull final Collection<InternetAddress> adresses) {
+		return withAddressesWithDefaultName(name, adresses, TO);
 	}
 	/*
 		CC: Recipient
@@ -1105,64 +1105,64 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#cc(String, InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder cc(@Nullable final String name, @NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return ccAddressesWithFixedName(name, oneOrMoreAddressesEach);
+	public EmailPopulatingBuilder cc(@Nullable final String name, @NotNull final InternetAddress... adresses) {
+		return ccAddressesWithFixedName(name, adresses);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#ccAddresses(String, Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder ccAddresses(@Nullable final String name, @NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return ccAddressesWithFixedName(name, oneOrMoreAddressesEach);
+	public EmailPopulatingBuilder ccAddresses(@Nullable final String name, @NotNull final Collection<InternetAddress> adresses) {
+		return ccAddressesWithFixedName(name, adresses);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#ccMultiple(InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder ccMultiple(@NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(null, asList(oneOrMoreAddressesEach), CC);
+	public EmailPopulatingBuilder ccMultiple(@NotNull final InternetAddress... adresses) {
+		return withAddressesWithDefaultName(null, asList(adresses), CC);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#ccMultipleAddresses(Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder ccMultipleAddresses(@NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(null, oneOrMoreAddressesEach, CC);
+	public EmailPopulatingBuilder ccMultipleAddresses(@NotNull final Collection<InternetAddress> adresses) {
+		return withAddressesWithDefaultName(null, adresses, CC);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#ccAddressesWithFixedName(String, InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable final String name, @NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return withAddressesWithFixedName(name, asList(oneOrMoreAddressesEach), CC);
+	public EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable final String name, @NotNull final InternetAddress... adresses) {
+		return withAddressesWithFixedName(name, asList(adresses), CC);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#ccAddressesWithDefaultName(String, InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder ccAddressesWithDefaultName(@NotNull final String name, @NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(name, asList(oneOrMoreAddressesEach), CC);
+	public EmailPopulatingBuilder ccAddressesWithDefaultName(@NotNull final String name, @NotNull final InternetAddress... adresses) {
+		return withAddressesWithDefaultName(name, asList(adresses), CC);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#ccAddressesWithFixedName(String, Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable final String name, @NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return withAddressesWithFixedName(name, oneOrMoreAddressesEach, CC);
+	public EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable final String name, @NotNull final Collection<InternetAddress> adresses) {
+		return withAddressesWithFixedName(name, adresses, CC);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#ccAddressesWithDefaultName(String, Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder ccAddressesWithDefaultName(@NotNull final String name, @NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(name, oneOrMoreAddressesEach, CC);
+	public EmailPopulatingBuilder ccAddressesWithDefaultName(@NotNull final String name, @NotNull final Collection<InternetAddress> adresses) {
+		return withAddressesWithDefaultName(name, adresses, CC);
 	}
 	/*
 		BCC: Recipient
@@ -1293,64 +1293,64 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#bcc(String, InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder bcc(@Nullable final String name, @NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return bccAddressesWithFixedName(name, oneOrMoreAddressesEach);
+	public EmailPopulatingBuilder bcc(@Nullable final String name, @NotNull final InternetAddress... adresses) {
+		return bccAddressesWithFixedName(name, adresses);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#bccAddresses(String, Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder bccAddresses(@Nullable final String name, @NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return bccAddressesWithFixedName(name, oneOrMoreAddressesEach);
+	public EmailPopulatingBuilder bccAddresses(@Nullable final String name, @NotNull final Collection<InternetAddress> adresses) {
+		return bccAddressesWithFixedName(name, adresses);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#bccMultiple(InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder bccMultiple(@NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(null, asList(oneOrMoreAddressesEach), BCC);
+	public EmailPopulatingBuilder bccMultiple(@NotNull final InternetAddress... adresses) {
+		return withAddressesWithDefaultName(null, asList(adresses), BCC);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#bccMultipleAddresses(Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder bccMultipleAddresses(@NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(null, oneOrMoreAddressesEach, BCC);
+	public EmailPopulatingBuilder bccMultipleAddresses(@NotNull final Collection<InternetAddress> adresses) {
+		return withAddressesWithDefaultName(null, adresses, BCC);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#bccAddressesWithFixedName(String, InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable final String name, @NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return withAddressesWithFixedName(name, asList(oneOrMoreAddressesEach), BCC);
+	public EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable final String name, @NotNull final InternetAddress... adresses) {
+		return withAddressesWithFixedName(name, asList(adresses), BCC);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#bccAddressesWithDefaultName(String, InternetAddress...)
 	 */
 	@Override
-	public EmailPopulatingBuilder bccAddressesWithDefaultName(@NotNull final String name, @NotNull final InternetAddress... oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(name, asList(oneOrMoreAddressesEach), BCC);
+	public EmailPopulatingBuilder bccAddressesWithDefaultName(@NotNull final String name, @NotNull final InternetAddress... adresses) {
+		return withAddressesWithDefaultName(name, asList(adresses), BCC);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#bccAddressesWithFixedName(String, Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable final String name, @NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return withAddressesWithFixedName(name, oneOrMoreAddressesEach, BCC);
+	public EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable final String name, @NotNull final Collection<InternetAddress> adresses) {
+		return withAddressesWithFixedName(name, adresses, BCC);
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#bccAddressesWithDefaultName(String, Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder bccAddressesWithDefaultName(@NotNull final String name, @NotNull final Collection<InternetAddress> oneOrMoreAddressesEach) {
-		return withAddressesWithDefaultName(name, oneOrMoreAddressesEach, BCC);
+	public EmailPopulatingBuilder bccAddressesWithDefaultName(@NotNull final String name, @NotNull final Collection<InternetAddress> adresses) {
+		return withAddressesWithDefaultName(name, adresses, BCC);
 	}
 	
 	/**
