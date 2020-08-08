@@ -23,7 +23,6 @@ import javax.mail.Message.RecipientType;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -1716,27 +1715,17 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String)
-	 */
-	@Override
-	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	public EmailPopulatingBuilder signWithDomainKey(@NotNull final byte[] dkimPrivateKey, @NotNull final String signingDomain, @NotNull final String dkimSelector) {
-		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
-		return signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey.clone()), signingDomain, dkimSelector);
-	}
-	
-	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(String, String, String)
+	 * Delegates to {@link EmailPopulatingBuilder#signWithDomainKey(byte[], String, String)}.
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
 	public EmailPopulatingBuilder signWithDomainKey(@NotNull final String dkimPrivateKey, @NotNull final String signingDomain, @NotNull final String dkimSelector) {
 		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
-		return signWithDomainKey(new ByteArrayInputStream(dkimPrivateKey.getBytes(UTF_8)), signingDomain, dkimSelector);
+		return signWithDomainKey(dkimPrivateKey.getBytes(UTF_8), signingDomain, dkimSelector);
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
+	 * Delegates to {@link EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)}.
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
@@ -1750,16 +1739,27 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
+	 * Delegates to {@link EmailPopulatingBuilder#signWithDomainKey(byte[], String, String)}.
 	 */
 	@Override
 	public EmailPopulatingBuilder signWithDomainKey(@NotNull final InputStream dkimPrivateKeyInputStream, @NotNull final String signingDomain,
 													@NotNull final String dkimSelector) {
+		checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream");
 		try {
-			this.dkimPrivateKeyData = readInputStreamToBytes(checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream"));
+			signWithDomainKey(readInputStreamToBytes(dkimPrivateKeyInputStream), signingDomain, dkimSelector);
 		} catch (IOException e) {
 			throw new EmailException(ERROR_READING_DKIM_FROM_INPUTSTREAM, e);
 		}
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
+	public EmailPopulatingBuilder signWithDomainKey(@NotNull final byte[] dkimPrivateKey, @NotNull final String signingDomain, @NotNull final String dkimSelector) {
+		this.dkimPrivateKeyData = checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
 		this.dkimSigningDomain = checkNonEmptyArgument(signingDomain, "dkimSigningDomain");
 		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
 		return this;

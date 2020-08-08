@@ -1368,7 +1368,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testClearingValuesAlternativeFlows() throws IOException {
 		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false, false)
-				.signWithDomainKey(new ByteArrayInputStream(new byte[]{}), "dkim_domain", "dkim_selector");
+				.signWithDomainKey(new ByteArrayInputStream(new byte[]{'a'}), "dkim_domain", "dkim_selector");
 
 		Email emailNormal = emailBuilder.buildEmail();
 
