@@ -79,11 +79,15 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 
 	private void logEmail(final MimeMessage message) {
 		if (transportModeLoggingOnly) {
-			LOGGER.info("\n\nEmail: {}\n", email);
-			LOGGER.info("\n\nMimeMessage: {}\n", mimeMessageToEML(message));
+			if (LOGGER.isInfoEnabled()) {
+				LOGGER.info("\n\nEmail: {}\n", email);
+				LOGGER.info("\n\nMimeMessage: {}\n", mimeMessageToEML(message));
+			}
 		} else {
-			LOGGER.trace("\t\nEmail: {}", email);
-			LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEML(message));
+			if (LOGGER.isTraceEnabled()) {
+				LOGGER.trace("\t\nEmail: {}", email);
+				LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEML(message));
+			}
 		}
 	}
 }
