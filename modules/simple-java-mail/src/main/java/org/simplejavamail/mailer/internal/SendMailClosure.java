@@ -63,13 +63,16 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 				TransportRunner.sendMessage(operationalConfig.getClusterKey(), session, message, message.getAllRecipients());
 			}
 		} catch (final UnsupportedEncodingException e) {
-			LOGGER.error("Failed to send email:\n{}", email);
+			LOGGER.error("Failed to send email:\n{}", email.getId());
+			LOGGER.trace("{}", email);
 			throw new MailerException(MailerException.INVALID_ENCODING, e);
 		} catch (final MessagingException e) {
-			LOGGER.error("Failed to send email:\n{}", email);
+			LOGGER.error("Failed to send email:\n{}", email.getId());
+			LOGGER.trace("{}", email);
 			throw new MailerException(MailerException.GENERIC_ERROR, e);
 		} catch (final Exception e) {
-			LOGGER.error("Failed to send email:\n{}", email);
+			LOGGER.error("Failed to send email:\n{}", email.getId());
+			LOGGER.trace("{}", email);
 			throw e;
 		}
 	}
