@@ -14,7 +14,9 @@ public class AsyncResponseImpl implements AsyncResponse {
 	@NotNull private final Future<?> future;
 	@Nullable private Runnable successHandler;
 	@Nullable private ExceptionConsumer errorHandler;
-	
+
+	@Nullable private Exception delegatedException;
+
 	AsyncResponseImpl(@NotNull Future<?> future) {
 		this.future = future;
 	}
@@ -25,6 +27,9 @@ public class AsyncResponseImpl implements AsyncResponse {
 	@Override
 	public void onSuccess(@NotNull Runnable onSuccess) {
 		this.successHandler = onSuccess;
+		if (future.isDone() && delegatedException == null) {
+			successHandler.run();
+		}
 	}
 	
 	/**
@@ -33,6 +38,9 @@ public class AsyncResponseImpl implements AsyncResponse {
 	@Override
 	public void onException(@NotNull ExceptionConsumer errorHandler) {
 		this.errorHandler = errorHandler;
+		if (future.isDone() && delegatedException != null) {
+			errorHandler.accept(delegatedException);
+		}
 	}
 	
 	
@@ -43,6 +51,7 @@ public class AsyncResponseImpl implements AsyncResponse {
 	}
 	
 	void delegateExceptionHandling(Exception e) {
+		this.delegatedException = e;
 		if (errorHandler != null) {
 			errorHandler.accept(e);
 		}
