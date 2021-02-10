@@ -249,7 +249,7 @@ public class MailerLiveTest {
 
 		if (!sentDateWasFixed) {
 			GregorianCalendar receiveWindowStart = new GregorianCalendar();
-			receiveWindowStart.add(Calendar.SECOND, -5);
+			receiveWindowStart.add(Calendar.SECOND, -10);
 			assertThat(receivedEmail.getSentDate()).isBetween(receiveWindowStart.getTime(), new Date());
 		} else {
 			assertThat(receivedEmail.getSentDate()).isEqualTo(originalEmailPopulatingBuilder.getSentDate());
