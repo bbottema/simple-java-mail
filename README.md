@@ -18,7 +18,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.4.4</version>
+    <version>6.4.5</version>
 </dependency>
 ```
 
