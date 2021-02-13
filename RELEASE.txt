@@ -3,11 +3,14 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.4.4</version>
+    <version>6.4.5</version>
 </dependency>
 
-v6.4.0 - v6.4.4
+v6.4.0 - v6.4.5
 
+- v6.4.5 (13-Februari-2021): #306: Maintenance: Update outlook-message-parser to 1.7.9
+- v6.4.5 (13-Februari-2021): #304: Regression bugfix: batch-module needed for sending mails async, basic version should work without
+- v6.4.5 (13-Februari-2021): #303: Bugfix: EML Attachments are modified/have the wrong size
 - v6.4.4 (25-October-2019): #294: Always invoke async success/exception handlers even if set after sending email (behaving more like promises/futures)
 - v6.4.4 (25-October-2019): #291: On Exception only log the email ID at error level and log the whole email at trace level
 - v6.4.4 (25-October-2019): #290: Only perform expensive logging logic if respective logging level is enabled
