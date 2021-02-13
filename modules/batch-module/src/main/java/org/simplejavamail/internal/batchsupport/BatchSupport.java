@@ -7,6 +7,7 @@ import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.simplejavamail.internal.modules.BatchModule;
+import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,6 @@ import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.internal.batchsupport.BatchException.ERROR_ACQUIRING_KEYED_POOLABLE;
 import static org.simplejavamail.internal.batchsupport.ClusterHelper.compareClusterConfig;
 import static org.simplejavamail.internal.batchsupport.ClusterHelper.configureSmtpClusterConfig;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 
 /**
  * This class only serves to hide the Batch implementation behind an easy-to-load-with-reflection class.

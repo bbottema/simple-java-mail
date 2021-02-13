@@ -1,6 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
@@ -12,13 +14,12 @@ import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
 import org.simplejavamail.mailer.MailerHelper;
 import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 import java.util.EnumSet;
 import java.util.List;
@@ -328,10 +329,12 @@ public class MailerImpl implements Mailer {
 			if (!async) {
 				sendMailClosure.run();
 				return null;
-			} else {
-				return ModuleLoader.loadBatchModule()
-						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
-			}
+			} else
+				return ModuleLoader.batchModuleAvailable()
+						? ModuleLoader.loadBatchModule()
+							.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
+						: AsyncOperationHelper
+							.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
 		}
 		throw new IllegalStateException("Email not valid, but no MailException was thrown for it");
 	}

@@ -1,4 +1,4 @@
-package org.simplejavamail.internal.batchsupport;
+package org.simplejavamail.internal.util.concurrent;
 
 import org.simplejavamail.api.mailer.AsyncResponse;
 

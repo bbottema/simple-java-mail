@@ -1,8 +1,7 @@
-package org.simplejavamail.internal.batchsupport;
+package org.simplejavamail.internal.util.concurrent;
 
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.AsyncResponse;
-import org.simplejavamail.internal.batchsupport.concurrent.NamedRunnable;
 import org.slf4j.Logger;
 
 import java.util.concurrent.ExecutorService;
@@ -17,7 +16,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * Util that facilitates running a concurrent operation while supporting {@link AsyncResponse}.
  */
 @SuppressWarnings("SameParameterValue")
-class AsyncOperationHelper {
+public class AsyncOperationHelper {
 
 	private static final Logger LOGGER = getLogger(AsyncOperationHelper.class);
 	
@@ -29,8 +28,8 @@ class AsyncOperationHelper {
 	 *
 	 * @see Executors#newSingleThreadExecutor()
 	 */
-	static AsyncResponse executeAsync(final @NotNull String processName,
-									  final @NotNull Runnable operation) {
+	public static AsyncResponse executeAsync(final @NotNull String processName,
+			final @NotNull Runnable operation) {
 		return executeAsync(newSingleThreadExecutor(), processName, operation, true);
 	}
 	
@@ -39,9 +38,9 @@ class AsyncOperationHelper {
 	 *
 	 * @see Executors#newSingleThreadExecutor()
 	 */
-	static AsyncResponse executeAsync(final @NotNull ExecutorService executorService,
-									  final @NotNull String processName,
-									  final @NotNull Runnable operation) {
+	public static AsyncResponse executeAsync(final @NotNull ExecutorService executorService,
+			final @NotNull String processName,
+			final @NotNull Runnable operation) {
 		return executeAsync(executorService, processName, operation, false);
 	}
 	

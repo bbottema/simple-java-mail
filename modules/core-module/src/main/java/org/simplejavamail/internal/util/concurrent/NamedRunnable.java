@@ -1,4 +1,4 @@
-package org.simplejavamail.internal.batchsupport.concurrent;
+package org.simplejavamail.internal.util.concurrent;
 
 public abstract class NamedRunnable implements Runnable {
 
