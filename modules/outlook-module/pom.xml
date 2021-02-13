@@ -35,7 +35,7 @@
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>outlook-message-parser</artifactId>
-            <version>1.7.5</version>
+            <version>1.7.9</version>
         </dependency>
     </dependencies>
 
