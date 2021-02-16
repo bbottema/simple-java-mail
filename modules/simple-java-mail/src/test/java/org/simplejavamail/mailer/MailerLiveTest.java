@@ -12,6 +12,7 @@ import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
@@ -35,12 +36,12 @@ import java.util.concurrent.ExecutionException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.lang.String.format;
+import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
-import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmail;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -135,7 +136,7 @@ public class MailerLiveTest {
 	@Test
 	public void testOutlookMessageWithNestedOutlookMessageAttachment() {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream("test-messages/#298 Email with nested msg.msg");
-		Email email = outlookMsgToEmail(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
+		Email email = EmailConverter.outlookMsgToEmail(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
 
 		assertThat(email.getAttachments()).hasSize(2);
 		assertThat(email.getAttachments().get(1).getName()).isEqualTo("attachment 0 as nested Outlook message (converted).sjm");
@@ -353,8 +354,8 @@ public class MailerLiveTest {
 				new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO),
 				new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO)
 		);
-		assertThat(receivedReply1.getHeaders()).contains(entry("In-Reply-To", receivedEmailPopulatingBuilder.getId()));
-		assertThat(receivedReply1.getHeaders()).contains(entry("References", receivedEmailPopulatingBuilder.getId()));
+		assertThat(receivedReply1.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailPopulatingBuilder.getId())));
+		assertThat(receivedReply1.getHeaders()).contains(entry("References", singletonList(receivedEmailPopulatingBuilder.getId())));
 	}
 	
 	@Test
@@ -379,8 +380,8 @@ public class MailerLiveTest {
 		
 		EmailAssert.assertThat(receivedReply).hasSubject("Re: hey");
 		EmailAssert.assertThat(receivedReply).hasOnlyRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO));
-		assertThat(receivedReply.getHeaders()).contains(entry("In-Reply-To", receivedEmailPopulatingBuilder.getId()));
-		assertThat(receivedReply.getHeaders()).contains(entry("References", receivedEmailPopulatingBuilder.getId()));
+		assertThat(receivedReply.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailPopulatingBuilder.getId())));
+		assertThat(receivedReply.getHeaders()).contains(entry("References", singletonList(receivedEmailPopulatingBuilder.getId())));
 
 		EmailPopulatingBuilder receivedEmailReplyPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessageReply);
 
@@ -397,12 +398,12 @@ public class MailerLiveTest {
 
 		EmailAssert.assertThat(receivedReplyToReply).hasSubject("Re: hey");
 		EmailAssert.assertThat(receivedReplyToReply).hasOnlyRecipients(new Recipient("Moo Shmoo", "dummy@domain.com", TO));
-		assertThat(receivedReplyToReply.getHeaders()).contains(entry("In-Reply-To", receivedEmailReplyPopulatingBuilder.getId()));
+		assertThat(receivedReplyToReply.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailReplyPopulatingBuilder.getId())));
 
 		assertThat(receivedReplyToReply.getHeaders()).contains(entry("References",
-				MimeUtility.fold("References: ".length(), format("%s\n%s",
+				singletonList(MimeUtility.fold("References: ".length(), format("%s\n%s",
 						receivedEmailPopulatingBuilder.getId(),
-						receivedEmailReplyPopulatingBuilder.getId()))
+						receivedEmailReplyPopulatingBuilder.getId())))
 		));
 	}
 	

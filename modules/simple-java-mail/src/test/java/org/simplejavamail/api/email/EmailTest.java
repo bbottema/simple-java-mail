@@ -15,6 +15,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -114,7 +116,7 @@ public class EmailTest {
 				+ "		dispositionNotificationTo=Recipient{name='dispo to', address='simple@address.com', type=null},\n"
 				+ "	useReturnReceiptTo=true,\n"
 				+ "		returnReceiptTo=Recipient{name='Complex Email', address='simple@address.com', type=null},\n"
-				+ "	headers={dummyHeader1=dummyHeaderValue1, dummyHeader2=dummyHeaderValue2},\n"
+				+ "	headers={dummyHeader1=[dummyHeaderValue1], dummyHeader2=[dummyHeaderValue2]},\n"
 				+ "	embeddedImages=[AttachmentResource{\n"
 				+ "		name='the_image',\n"
 				+ "		dataSource.name=the_image,\n"
@@ -322,18 +324,18 @@ public class EmailTest {
 
 	@NotNull
 	@SuppressWarnings("SameParameterValue")
-	private static Map<String, Object> map(String name1, int value1, String name2, String value2) {
-		Map<String, Object> map = new HashMap<>();
-		map.put(name1, value1);
-		map.put(name2, value2);
+	private static Map<String, Collection<Object>> map(String name1, int value1, String name2, String value2) {
+		Map<String, Collection<Object>> map = new HashMap<>();
+		map.put(name1, Collections.<Object>singletonList(value1));
+		map.put(name2, Collections.<Object>singletonList(value2));
 		return map;
 	}
 
 	@NotNull
 	@SuppressWarnings("SameParameterValue")
-	private static Map<String, Object> map(String name1, int value1) {
-		Map<String, Object> map = new HashMap<>();
-		map.put(name1, value1);
+	private static Map<String, Collection<Object>> map(String name1, int value1) {
+		Map<String, Collection<Object>> map = new HashMap<>();
+		map.put(name1, Collections.<Object>singletonList(value1));
 		return map;
 	}
 

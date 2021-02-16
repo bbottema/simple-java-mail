@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -110,7 +111,7 @@ public class Email implements Serializable {
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	@NotNull
-	private final Map<String, String> headers;
+	private final Map<String, Collection<String>> headers;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
@@ -533,7 +534,7 @@ public class Email implements Serializable {
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	@NotNull
-	public Map<String, String> getHeaders() {
+	public Map<String, Collection<String>> getHeaders() {
 		return headers;
 	}
 	

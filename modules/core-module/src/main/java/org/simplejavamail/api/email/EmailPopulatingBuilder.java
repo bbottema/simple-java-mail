@@ -1030,7 +1030,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withHeader(String, Object)} for each header in the provided {@code Map}.
 	 */
-	<T> EmailPopulatingBuilder withHeaders(@NotNull Map<String, T> headers);
+	<T> EmailPopulatingBuilder withHeaders(@NotNull Map<String, Collection<T>> headers);
 	
 	/**
 	 * Adds a header which will be included in the email. The value is stored as a <code>String</code>.
@@ -1546,7 +1546,7 @@ public interface EmailPopulatingBuilder {
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	@NotNull
-	Map<String, String> getHeaders();
+	Map<String, Collection<String>> getHeaders();
 	
 	/**
 	 * @see #signWithDomainKey(InputStream, String, String)

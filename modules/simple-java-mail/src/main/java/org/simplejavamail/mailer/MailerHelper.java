@@ -2,6 +2,8 @@ package org.simplejavamail.mailer;
 
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
@@ -9,11 +11,10 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.slf4j.Logger;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeUtility;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
 
@@ -74,12 +75,14 @@ public class MailerHelper {
 
 		// check for illegal values
 		scanForInjectionAttack(email.getSubject(), "email.subject");
-		for (final Map.Entry<String, String> headerEntry : email.getHeaders().entrySet()) {
-			scanForInjectionAttack(headerEntry.getKey(), "email.header.mapEntryKey");
-			if (headerEntry.getKey().equals("References")) {
-				scanForInjectionAttack(MimeUtility.unfold(headerEntry.getValue()), "email.header.References");
-			} else {
-				scanForInjectionAttack(headerEntry.getValue(), "email.header." + headerEntry.getKey());
+		for (final Map.Entry<String, Collection<String>> headerEntry : email.getHeaders().entrySet()) {
+			for (final String headerValue : headerEntry.getValue()) {
+				scanForInjectionAttack(headerEntry.getKey(), "email.header.mapEntryKey");
+				if (headerEntry.getKey().equals("References")) {
+					scanForInjectionAttack(MimeUtility.unfold(headerValue), "email.header.References");
+				} else {
+					scanForInjectionAttack(headerValue, "email.header." + headerEntry.getKey());
+				}
 			}
 		}
 		for (final AttachmentResource attachment : email.getAttachments()) {

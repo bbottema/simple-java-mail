@@ -79,6 +79,7 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 				.withDispositionNotificationTo("simple@address.com")
 				.withReturnReceiptTo("Complex Email", "simple@address.com")
 				.withHeader("dummyHeader", "dummyHeaderValue")
+				.withHeader("dummyHeader", "dummyHeaderValueSecond")
 				.withHeader("anotherDummyHeader", "anotherDummyHeaderValue")
 				.buildEmail();
 		

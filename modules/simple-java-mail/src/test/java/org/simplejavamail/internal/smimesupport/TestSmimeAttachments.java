@@ -14,11 +14,12 @@ import java.io.File;
 import java.util.AbstractMap.SimpleEntry;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
-import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
 
 public class TestSmimeAttachments {
 
@@ -50,7 +51,7 @@ public class TestSmimeAttachments {
 				+ "\n"
 				+ " \n"
 				+ "\n");
-		assertThat(emailParsedFromMsg.getHeaders()).contains(new SimpleEntry<>("Message-ID", SMIME_ATTACHMENT_MESSAGE_ID));
+		assertThat(emailParsedFromMsg.getHeaders()).contains(new SimpleEntry<>("Message-ID", singletonList(SMIME_ATTACHMENT_MESSAGE_ID)));
 		assertThat(emailParsedFromMsg.getHTMLText()).contains("<p class=MsoNormal><span lang=EN-US>Invio messaggio SMIME (signed and clear text)<o:p>");
 		assertThat(emailParsedFromMsg.getEmbeddedImages()).isEmpty();
 
@@ -115,7 +116,7 @@ public class TestSmimeAttachments {
 
 		final Email smimeSignedEmail = assumeNonNull(emailParsedFromMsg.getSmimeSignedEmail());
 
-		assertThat(smimeSignedEmail.getHeaders()).contains(new SimpleEntry<>("Message-ID", SMIME_ATTACHMENT_MESSAGE_ID));
+		assertThat(smimeSignedEmail.getHeaders()).contains(new SimpleEntry<>("Message-ID", singletonList(SMIME_ATTACHMENT_MESSAGE_ID)));
 		assertThat(normalizeNewlines(smimeSignedEmail.getPlainText())).isEqualTo("Invio messaggio SMIME (signed and clear text)\n"
 				+ "\n"
 				+ "-- \n"

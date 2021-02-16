@@ -1,16 +1,17 @@
 package org.simplejavamail.internal.smimesupport;
 
-import org.simplejavamail.api.email.OriginalSmimeDetails;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
+
 import javax.mail.internet.ContentType;
 import java.util.List;
-import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.*;
+import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.ENCRYPTED;
+import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
+import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.SIGNED;
 
 public final class SmimeRecognitionUtil {
 
@@ -29,9 +30,8 @@ public final class SmimeRecognitionUtil {
 				isSmimeMultiPartSigned(ct.getBaseType(), ct.getParameter("protocol"));
 	}
 
-	public static boolean isGeneratedSmimeMessageId(@NotNull final Map.Entry headerEntry) {
-		return headerEntry.getKey().equals("Message-ID") &&
-				headerEntry.getValue().equals(SMIME_ATTACHMENT_MESSAGE_ID);
+	public static <T> boolean isGeneratedSmimeMessageId(@NotNull String headerKey, @NotNull T headerValue) {
+		return headerKey.equals("Message-ID") && headerValue.equals(SMIME_ATTACHMENT_MESSAGE_ID);
 	}
 
 	@NotNull

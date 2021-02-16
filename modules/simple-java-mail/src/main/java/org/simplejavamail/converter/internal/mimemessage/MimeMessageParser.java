@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -180,7 +181,10 @@ public final class MimeMessageParser {
 		} else if (isEmailHeader(header, "Return-Path")) {
 			parsedComponents.bounceToAddress = createAddress(header.getValue(), "Return-Path");
 		} else if (!HEADERS_TO_IGNORE.contains(header.getName())) {
-			parsedComponents.headers.put(header.getName(), header.getValue());
+			if (!parsedComponents.headers.containsKey(header.getName())) {
+				parsedComponents.headers.put(header.getName(), new ArrayList<>());
+			}
+			parsedComponents.headers.get(header.getName()).add(header.getValue());
 		} else {
 			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}
@@ -527,7 +531,7 @@ public final class MimeMessageParser {
 	public static class ParsedMimeMessageComponents {
 		final Map<String, DataSource> attachmentList = new TreeMap<>();
 		final Map<String, DataSource> cidMap = new TreeMap<>();
-		private final Map<String, Object> headers = new HashMap<>();
+		private final Map<String, Collection<Object>> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
 		private final List<InternetAddress> ccAddresses = new ArrayList<>();
 		private final List<InternetAddress> bccAddresses = new ArrayList<>();
@@ -557,7 +561,7 @@ public final class MimeMessageParser {
 			return cidMap;
 		}
 
-		public Map<String, Object> getHeaders() {
+		public Map<String, Collection<Object>> getHeaders() {
 			return headers;
 		}
 

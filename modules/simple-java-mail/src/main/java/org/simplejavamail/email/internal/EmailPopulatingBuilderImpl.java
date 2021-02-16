@@ -233,7 +233,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	@NotNull
-	private final Map<String, String> headers;
+	private final Map<String, Collection<String>> headers;
 	
 	/**
 	 * @see #signWithDomainKey(InputStream, String, String)
@@ -1640,7 +1640,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#withHeaders(Map)
 	 */
 	@Override
-	public <T> EmailPopulatingBuilder withHeaders(@NotNull final Map<String, T> headers) {
+	public <T> EmailPopulatingBuilder withHeaders(@NotNull final Map<String, Collection<T>> headers) {
 		return withHeaders(headers, false);
 	}
 
@@ -1651,10 +1651,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#withHeaders(Map)
 	 */
 	@NotNull
-	public <T> InternalEmailPopulatingBuilder withHeaders(@NotNull final Map<String, T> headers, final boolean ignoreSmimeMessageId) {
-		for (Map.Entry<String, T> headerEntry : headers.entrySet()) {
-			if (!ignoreSmimeMessageId || !isGeneratedSmimeMessageId(headerEntry)) {
-				withHeader(headerEntry.getKey(), headerEntry.getValue());
+	public <T> InternalEmailPopulatingBuilder withHeaders(@NotNull final Map<String, Collection<T>> headers, final boolean ignoreSmimeMessageId) {
+		for (Map.Entry<String, Collection<T>> headerEntry : headers.entrySet()) {
+			for (final T headerValue : headerEntry.getValue()) {
+				if (!ignoreSmimeMessageId || !isGeneratedSmimeMessageId(headerEntry.getKey(), headerValue)) {
+					withHeader(headerEntry.getKey(), headerValue);
+				}
 			}
 		}
 		return this;
@@ -1666,7 +1668,10 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withHeader(@NotNull final String name, @Nullable final Object value) {
 		checkNonEmptyArgument(name, "name");
-		headers.put(name, value != null ? String.valueOf(value) : null);
+		if (!headers.containsKey(name)) {
+			headers.put(name, new ArrayList<String>());
+		}
+		headers.get(name).add(value != null ? String.valueOf(value) : null);
 		return this;
 	}
 	
@@ -2342,7 +2347,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@NotNull
 	@Override
-	public Map<String, String> getHeaders() {
+	public Map<String, Collection<String>> getHeaders() {
 		return new HashMap<>(headers);
 	}
 	

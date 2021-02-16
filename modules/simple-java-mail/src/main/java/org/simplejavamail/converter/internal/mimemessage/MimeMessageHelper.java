@@ -23,6 +23,7 @@ import javax.mail.internet.MimeUtility;
 import javax.mail.internet.ParameterList;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 
@@ -195,11 +196,13 @@ public class MimeMessageHelper {
 	static void setHeaders(final Email email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
 		// add headers (for raw message headers we need to 'fold' them using MimeUtility
-		for (final Map.Entry<String, String> header : email.getHeaders().entrySet()) {
-			final String headerName = header.getKey();
-			final String headerValue = MimeUtility.encodeText(header.getValue(), CHARACTER_ENCODING, null);
-			final String foldedHeaderValue = MimeUtility.fold(headerName.length() + 2, headerValue);
-			message.addHeader(header.getKey(), foldedHeaderValue);
+		for (final Map.Entry<String, Collection<String>> header : email.getHeaders().entrySet()) {
+			for (final String headerValue : header.getValue()) {
+				final String headerName = header.getKey();
+				final String headerValueEncoded = MimeUtility.encodeText(headerValue, CHARACTER_ENCODING, null);
+				final String foldedHeaderValue = MimeUtility.fold(headerName.length() + 2, headerValueEncoded);
+				message.addHeader(header.getKey(), foldedHeaderValue);
+			}
 		}
 		
 		if (email.isUseDispositionNotificationTo()) {
