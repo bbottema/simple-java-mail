@@ -8,7 +8,7 @@ http://www.simplejavamail.org
 
 v6.5.0 (16-February-2021)
 
-- #298: Enhancement: Nested Outlook messages are no to discarded anymore, but parsed to serialized Email objects
+- #298: Enhancement: Nested Outlook messages aren't discarded anymore, but parsed to serialized Email objects
 - #292: Bugfix: NullPointerException in SmimeUtilFixed when protocol is missing (which is valid)
 - #289: Bugfix: Support multiple headers with same key
 

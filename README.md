@@ -26,7 +26,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 [v6.5.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.5.0%7Cjar) (16-February-2021)
 
-- [#298](https://github.com/bbottema/simple-java-mail/issues/298) Enhancement: Nested Outlook messages are no to discarded anymore, but parsed to serialized Email objects
+- [#298](https://github.com/bbottema/simple-java-mail/issues/298) Enhancement: Nested Outlook messages aren't discarded anymore, but parsed to serialized Email objects
 - [#292](https://github.com/bbottema/simple-java-mail/issues/292) Bugfix: NullPointerException in SmimeUtilFixed when protocol is missing (which is valid)
 - [#289](https://github.com/bbottema/simple-java-mail/issues/289) Bugfix: Support multiple headers with same key
 
