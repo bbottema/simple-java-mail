@@ -3,8 +3,18 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.4.5</version>
+    <version>6.5.0</version>
 </dependency>
+
+v6.5.0 (16-February-2021)
+
+- #298: Enhancement: Nested Outlook messages are no to discarded anymore, but parsed to serialized Email objects
+- #292: Bugfix: NullPointerException in SmimeUtilFixed when protocol is missing (which is valid)
+- #289: Bugfix: Support multiple headers with same key
+
+This release breaks all GET/SET api regarding headers used as map (Map<String, T> -> Map<String, Collection<T>)
+This release might break api in the rare case you relied on the attachment list and you have nested Outlook .msg attachments (previously omitted in the results)
+
 
 v6.4.0 - v6.4.5
 
