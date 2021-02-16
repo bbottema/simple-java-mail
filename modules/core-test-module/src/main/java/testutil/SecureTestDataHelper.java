@@ -5,6 +5,7 @@ import org.apache.commons.io.FileUtils;
 import org.simplejavamail.config.ConfigLoader;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -64,6 +65,7 @@ public class SecureTestDataHelper {
 	}
 
 	public interface PasswordsConsumer {
-		void accept(Properties passwords);
+		void accept(Properties passwords)
+				throws FileNotFoundException;
 	}
 }

@@ -52,8 +52,9 @@ public final class SmimeUtilFixed {
 
 	private static boolean isSmimeSignatureContentType(ContentType contentType) {
 		String baseContentType = contentType.getBaseType();
+		String protocol = contentType.getParameter("protocol");
 		return baseContentType.equalsIgnoreCase("multipart/signed")
-				&& isSmimeSignatureProtocoll(contentType.getParameter("protocol"));
+				&& protocol != null && isSmimeSignatureProtocoll(protocol);
 	}
 
 	private static boolean isSmimeSignatureProtocoll(String protocol) {

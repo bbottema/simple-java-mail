@@ -1,6 +1,5 @@
 package org.simplejavamail.internal.smimesupport;
 
-import org.assertj.core.api.Assumptions;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
@@ -14,6 +13,8 @@ import testutil.SecureTestDataHelper;
 import testutil.SecureTestDataHelper.PasswordsConsumer;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.Properties;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -209,6 +210,21 @@ public class TestSmimeSelfSigned {
 						.smimeType("enveloped-data")
 						.smimeName("smime.p7m")
 						.build());
+			}
+		});
+	}
+
+	@Test
+	public void testNPE_InSmimeUtilFixed()
+			throws Exception {
+		SecureTestDataHelper.runTestWithSecureTestData(new PasswordsConsumer() {
+			@Override
+			public void accept(final Properties passwords)
+					throws FileNotFoundException {
+				String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/npe-SmimeUtilFixed-test-email/NPE_SmimeUtilFixed Test Mail.msg";
+				FileInputStream fileInputStream = new FileInputStream(fileNameMsg);
+				EmailConverter.outlookMsgToEmail(fileInputStream);
+				// ok, no NPE
 			}
 		});
 	}
