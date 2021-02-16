@@ -30,7 +30,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 - [#292](https://github.com/bbottema/simple-java-mail/issues/292) Bugfix: NullPointerException in SmimeUtilFixed when protocol is missing (which is valid)
 - [#289](https://github.com/bbottema/simple-java-mail/issues/289) Bugfix: Support multiple headers with same key
 
-This release breaks all GET/SET api regarding headers used as map (Map<String, T> -> Map<String, Collection<T>)
+This release breaks all GET/SET api regarding headers used as map (Map&lt;String, T&gt; -&gt; Map&lt;String, Collection&lt;T&gt;&gt;)
 This release might break api in the rare case you relied on the attachment list and you have nested Outlook .msg attachments (previously omitted in the results)
 
 
