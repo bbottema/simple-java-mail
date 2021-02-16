@@ -15,6 +15,7 @@ import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.email.internal.EmailPopulatingBuilderFactoryImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.modules.ModuleLoader;
@@ -124,7 +125,8 @@ public final class EmailConverter {
 	@NotNull
 	public static Email outlookMsgToEmail(@NotNull final String msgData, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgData, "msgFile");
-		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl());
+		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
+				.outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl());
 		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config)
 				.buildEmail();
 	}
@@ -173,7 +175,7 @@ public final class EmailConverter {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
-				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl());
+				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl());
 		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config);
 	}
 
@@ -208,7 +210,8 @@ public final class EmailConverter {
 	@SuppressWarnings("deprecation")
 	@NotNull
 	public static EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull final InputStream msgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
-		EmailFromOutlookMessage fromMsgBuilder = ModuleLoader.loadOutlookModule().outlookMsgToEmailBuilder(msgInputStream, new EmailStartingBuilderImpl());
+		EmailFromOutlookMessage fromMsgBuilder = ModuleLoader.loadOutlookModule()
+				.outlookMsgToEmailBuilder(msgInputStream, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl());
 		decryptAttachments(fromMsgBuilder.getEmailBuilder(), fromMsgBuilder.getOutlookMessage(), pkcs12Config);
 		return fromMsgBuilder;
 	}

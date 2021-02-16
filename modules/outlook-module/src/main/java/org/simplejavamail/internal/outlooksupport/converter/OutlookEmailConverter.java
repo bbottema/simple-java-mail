@@ -1,55 +1,75 @@
 package org.simplejavamail.internal.outlooksupport.converter;
 
+import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
-import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.internal.general.EmailPopulatingBuilderFactory;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.internal.outlooksupport.internal.model.OutlookMessageProxy;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.outlookmessageparser.model.OutlookAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookMessage;
+import org.simplejavamail.outlookmessageparser.model.OutlookMsgAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookRecipient;
+import org.slf4j.Logger;
 
-import org.jetbrains.annotations.NotNull;
+import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
+import static org.slf4j.LoggerFactory.getLogger;
 
 @SuppressWarnings("unused")
 public class OutlookEmailConverter implements OutlookModule {
 
+	private static final Logger LOGGER = getLogger(OutlookEmailConverter.class);
+
 	@Override
-	public EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull File msgFile, @NotNull EmailStartingBuilder emailStartingBuilder) {
+	public EmailFromOutlookMessage outlookMsgToEmailBuilder(
+			@NotNull final File msgFile,
+			@NotNull final EmailStartingBuilder emailStartingBuilder,
+			@NotNull final EmailPopulatingBuilderFactory builderFactory) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
-				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")));
+				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")),
+				builderFactory);
 	}
 
 	@Override
-	public EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull String msgFile, @NotNull EmailStartingBuilder emailStartingBuilder) {
+	public EmailFromOutlookMessage outlookMsgToEmailBuilder(
+			@NotNull final String msgFile,
+			@NotNull final EmailStartingBuilder emailStartingBuilder,
+			@NotNull final EmailPopulatingBuilderFactory builderFactory) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
-				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")));
+				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")),
+				builderFactory);
 	}
 	
 	@Override
-	public EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull InputStream msgInputStream, @NotNull EmailStartingBuilder emailStartingBuilder) {
+	public EmailFromOutlookMessage outlookMsgToEmailBuilder(
+			@NotNull final InputStream msgInputStream,
+			@NotNull final EmailStartingBuilder emailStartingBuilder,
+			@NotNull final EmailPopulatingBuilderFactory builderFactory) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
-				parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream")));
+				parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream")),
+				builderFactory);
 	}
 	
 	private static EmailFromOutlookMessage buildEmailFromOutlookMessage(
 			@NotNull final EmailPopulatingBuilder builder,
-			@NotNull final OutlookMessage outlookMessage) {
+			@NotNull final OutlookMessage outlookMessage,
+			@NotNull final EmailPopulatingBuilderFactory builderFactory) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(outlookMessage, "outlookMessage");
 		String fromEmail = ofNullable(outlookMessage.getFromEmail()).orElse("donotreply@unknown-from-address.net");
@@ -72,10 +92,25 @@ public class OutlookEmailConverter implements OutlookModule {
 			String attachmentName = ofNullable(attachment.getLongFilename()).orMaybe(attachment.getFilename());
 			builder.withAttachment(attachmentName, attachment.getData(), attachment.getMimeTag());
 		}
+		for (int i = 0; i < outlookMessage.getOutlookAttachments().size(); i++) {
+			final OutlookAttachment attachment = outlookMessage.getOutlookAttachments().get(i);
+			if (attachment instanceof OutlookMsgAttachment) {
+				final OutlookMessage nestedMsg = ((OutlookMsgAttachment) attachment).getOutlookMessage();
+				final Email email = buildEmailFromOutlookMessage(builderFactory.create(), nestedMsg, builderFactory).getEmailBuilder().buildEmail();
+
+				try {
+					builder.withAttachment("attachment " + i + " as nested Outlook message (converted).sjm",
+							new ByteArrayDataSource(MiscUtil.serialize(email), "application/octet-stream"));
+				} catch (IOException e) {
+					// don't crash on serialization errors: this is mostly a best effort supported feature
+					LOGGER.error("Was unable to serialize Email converted from nested Outlook message", e);
+				}
+			}
+		}
 
 		return new EmailFromOutlookMessage(builder, new OutlookMessageProxy(outlookMessage));
 	}
-	
+
 	private static void copyReceiversFromOutlookMessage(@NotNull EmailPopulatingBuilder builder, @NotNull OutlookMessage outlookMessage) {
 		//noinspection QuestionableName
 		for (final OutlookRecipient to : outlookMessage.getToRecipients()) {

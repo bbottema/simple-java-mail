@@ -18,6 +18,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -368,5 +369,14 @@ public final class MiscUtil {
 		}
 
 		return buffer.toString().toLowerCase();
+	}
+
+	public static byte[] serialize(final Object serializable)
+			throws IOException {
+		final ByteArrayOutputStream baos = new ByteArrayOutputStream(512);
+		try (ObjectOutputStream out = new ObjectOutputStream(baos)) {
+			out.writeObject(serializable);
+		}
+		return baos.toByteArray();
 	}
 }
