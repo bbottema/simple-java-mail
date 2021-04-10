@@ -234,15 +234,15 @@ public class MimeMessageHelper {
 			throws MessagingException {
 		final BodyPart attachmentPart = new MimeBodyPart();
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
-		final String resourceName = determineResourceName(attachmentResource, false, true);
-		final String fileName = determineResourceName(attachmentResource, true, false);
+		final String resourceName = determineResourceName(attachmentResource, true);
+		final String fileName = determineResourceName(attachmentResource, false);
 		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(fileName, attachmentResource.getDataSource())));
 		attachmentPart.setFileName(fileName);
 		final String contentType = attachmentResource.getDataSource().getContentType();
 		ParameterList pl = new ParameterList();
 		pl.set("filename", fileName);
 		pl.set("name", fileName);
-		attachmentPart.setHeader("Content-Type", contentType + pl.toString());
+		attachmentPart.setHeader("Content-Type", contentType + pl);
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
 		attachmentPart.setDisposition(dispositionType);
 		return attachmentPart;
@@ -251,7 +251,7 @@ public class MimeMessageHelper {
 	/**
 	 * Determines the right resource name and optionally attaches the correct extension to the name. The result is mime encoded.
 	 */
-	static String determineResourceName(final AttachmentResource attachmentResource, final boolean includeExtension, final boolean encodeResourceName) {
+	static String determineResourceName(final AttachmentResource attachmentResource, final boolean encodeResourceName) {
 		final String datasourceName = attachmentResource.getDataSource().getName();
 
 		String resourceName;
@@ -263,18 +263,10 @@ public class MimeMessageHelper {
 		} else {
 			resourceName = "resource" + UUID.randomUUID();
 		}
-		if (includeExtension && !valueNullOrEmpty(datasourceName)) {
+		if (!valueNullOrEmpty(datasourceName)) {
 			resourceName = possiblyAddExtension(datasourceName, resourceName);
-		} else if (!includeExtension && resourceName.contains(".") && resourceName.equals(datasourceName)) {
-			resourceName = removeExtension(resourceName);
 		}
 		return encodeResourceName ? MiscUtil.encodeText(resourceName) : resourceName;
-	}
-
-	@NotNull
-	private static String removeExtension(String resourceName) {
-		final String extension = resourceName.substring(resourceName.lastIndexOf("."));
-		return resourceName.replace(extension, "");
 	}
 
 	@NotNull
