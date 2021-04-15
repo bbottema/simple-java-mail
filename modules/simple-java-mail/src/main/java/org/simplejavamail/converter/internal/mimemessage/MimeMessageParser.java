@@ -142,12 +142,7 @@ public final class MimeMessageParser {
 			//noinspection RedundantCast
 			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
 		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			final InputStream calendarContent = parseContent(currentPart);
-			try {
-				parsedComponents.calendarContent = MiscUtil.readInputStreamToString(calendarContent, UTF_8);
-			} catch (IOException e) {
-				throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CALENDAR_CONTENT, e);
-			}
+			parsedComponents.calendarContent = parseCalendarContent(currentPart);
 			parsedComponents.calendarMethod = parseCalendarMethod(currentPart);
 		} else if (isMimeType(currentPart, "multipart/*")) {
 			final Multipart mp = parseContent(currentPart);
@@ -205,6 +200,22 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_FILENAME, e);
 		}
 	}
+	
+	/**
+     * @return Returns the "content" part as String from the Calendar content type
+     */
+    public static String parseCalendarContent(@NotNull MimePart currentPart) {
+        Object content = parseContent(currentPart);
+        if (content instanceof InputStream) {
+            final InputStream calendarContent = (InputStream) content;
+            try {
+                return MiscUtil.readInputStreamToString(calendarContent, UTF_8);
+            } catch (IOException e) {
+                throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CALENDAR_CONTENT, e);
+            }
+        }
+        return String.valueOf(content);
+    }
 
 	/**
 	 * @return Returns the "method" part from the Calendar content type (such as "{@code text/calendar; charset="UTF-8"; method="REQUEST"}").
