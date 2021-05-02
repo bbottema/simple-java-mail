@@ -1,11 +1,11 @@
 package org.simplejavamail.api.email;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import javax.activation.DataSource;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
@@ -33,7 +33,7 @@ public class AttachmentResource implements Serializable {
 	/**
 	 * @see #AttachmentResource(String, DataSource)
 	 */
-	// data source is not serializable, so transient
+	// data source is not serializable, so transient (Kryo can do it though, see SerializationUtil in the OutlookModule)
 	private transient final DataSource dataSource;
 
 	/**

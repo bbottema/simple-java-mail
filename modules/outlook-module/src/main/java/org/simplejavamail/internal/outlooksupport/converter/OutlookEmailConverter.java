@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
+import static org.simplejavamail.internal.outlooksupport.internal.util.SerializationUtil.serialize;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -100,7 +101,7 @@ public class OutlookEmailConverter implements OutlookModule {
 
 				try {
 					builder.withAttachment("attachment " + i + " as nested Outlook message (converted).sjm",
-							new ByteArrayDataSource(MiscUtil.serialize(email), "application/octet-stream"));
+							new ByteArrayDataSource(serialize(email), "application/octet-stream"));
 				} catch (IOException e) {
 					// don't crash on serialization errors: this is mostly a best effort supported feature
 					LOGGER.error("Was unable to serialize Email converted from nested Outlook message", e);

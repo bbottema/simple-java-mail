@@ -1,6 +1,5 @@
 package org.simplejavamail.mailer;
 
-import org.apache.commons.lang3.SerializationException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,7 +27,6 @@ import javax.mail.internet.MimeUtility;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -42,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
+import static org.simplejavamail.internal.outlooksupport.internal.util.SerializationUtil.deserialize;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -134,7 +133,8 @@ public class MailerLiveTest {
 	}
 
 	@Test
-	public void testOutlookMessageWithNestedOutlookMessageAttachment() {
+	public void testOutlookMessageWithNestedOutlookMessageAttachment()
+			throws IOException {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream("test-messages/#298 Email with nested msg.msg");
 		Email email = EmailConverter.outlookMsgToEmail(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
 
@@ -142,7 +142,7 @@ public class MailerLiveTest {
 		assertThat(email.getAttachments().get(1).getName()).isEqualTo("attachment 0 as nested Outlook message (converted).sjm");
 
 		final InputStream sjmInputstream = email.getAttachments().get(1).getDataSourceInputStream();
-		Email nestedEmail = deserializeEmail(sjmInputstream);
+		Email nestedEmail = deserialize(sjmInputstream);
 
 		EmailAssert.assertThat(nestedEmail).hasSubject("This msg file is an attachment");
 		assertThat(normalizeNewlines(nestedEmail.getPlainText()))
@@ -150,12 +150,25 @@ public class MailerLiveTest {
 		EmailAssert.assertThat(nestedEmail).hasOnlyRecipients(new Recipient("atmcquillen@gmail.com", "atmcquillen@gmail.com", TO));
 	}
 
-	private Email deserializeEmail(final InputStream sjmInputStream) {
-		try (ObjectInputStream in = new ObjectInputStream(sjmInputStream)) {
-			return (Email) in.readObject();
-		} catch (final ClassNotFoundException | IOException ex) {
-			throw new SerializationException(ex);
-		}
+	@Test
+	public void testOutlookMessageWithNestedOutlookMessageAttachmentThatHasItsOwnNestedAttachment()
+			throws IOException {
+		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream("test-messages/#298 Email with nested msg with own attachment.msg");
+		Email email = EmailConverter.outlookMsgToEmail(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
+
+		assertThat(email.getAttachments()).hasSize(2);
+		assertThat(email.getAttachments().get(1).getName()).isEqualTo("attachment 1 as nested Outlook message (converted).sjm");
+
+		final InputStream sjmInputstream = email.getAttachments().get(1).getDataSourceInputStream();
+		Email nestedEmail = deserialize(sjmInputstream);
+
+		EmailAssert.assertThat(nestedEmail).hasSubject("This msg file is an attachment");
+		assertThat(normalizeNewlines(nestedEmail.getPlainText()))
+				.isEqualTo("This is an email that will be attached to another email.\n");
+		EmailAssert.assertThat(nestedEmail).hasOnlyRecipients(new Recipient("atmcquillen@gmail.com", "atmcquillen@gmail.com", TO));
+		assertThat(nestedEmail.getAttachments()).hasSize(1);
+		assertThat(nestedEmail.getAttachments().get(0).getName()).isEqualTo("Something.docx");
+		assertThat(nestedEmail.getAttachments().get(0).getDataSource()).isNotNull();
 	}
 
 	@Test

@@ -370,13 +370,4 @@ public final class MiscUtil {
 
 		return buffer.toString().toLowerCase();
 	}
-
-	public static byte[] serialize(final Object serializable)
-			throws IOException {
-		final ByteArrayOutputStream baos = new ByteArrayOutputStream(512);
-		try (ObjectOutputStream out = new ObjectOutputStream(baos)) {
-			out.writeObject(serializable);
-		}
-		return baos.toByteArray();
-	}
 }
