@@ -22,7 +22,7 @@ import java.io.InputStream;
  * <br>
  * Then for users to obtain the Javastructure again, they must use this util to deserialize the relevant attachment.
  *
- * @see <a href="https://github.com/bbottema/simple-java-mail/issues/298">GitHub issue #298</a>
+ * @see <a href="https://github.com/bbottema/simple-java-mail/issues/298">GitHub issue #314</a>
  */
 public class SerializationUtil {
 
