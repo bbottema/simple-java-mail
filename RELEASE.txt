@@ -3,11 +3,13 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.5.2</version>
+    <version>6.5.3</version>
 </dependency>
 
-v6.5.0 - v6.5.2
+v6.5.0 - v6.5.3
 
+- v6.5.3 (4-May-2021): #298: Bugfix: Nested attachments of Outlook message attachments are now preserved, by utilizing Kryo
+  **NOTE:** This add Kryo as extra dependency to the outlook-module
 - v6.5.2 (15-April-2021): #307: Bugfix: text/calendar as string -> ClassCastException (if calendar type is not Inputstream)
 - v6.5.1 (10-April-2021): #307 / #310: Bugfix: embedded image name got mangled if they included an extension
 - v6.5.0 (16-February-2021): #298: Enhancement: Nested Outlook messages aren't discarded anymore, but parsed to serialized Email objects
