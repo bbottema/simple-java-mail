@@ -8,6 +8,7 @@ import org.simplejavamail.api.internal.general.EmailPopulatingBuilderFactory;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.internal.outlooksupport.internal.model.OutlookMessageProxy;
+import org.simplejavamail.internal.util.InternalEmailConverter;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.outlookmessageparser.model.OutlookAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment;
@@ -16,13 +17,13 @@ import org.simplejavamail.outlookmessageparser.model.OutlookMsgAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookRecipient;
 import org.slf4j.Logger;
 
+import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
-import static org.simplejavamail.internal.outlooksupport.internal.util.SerializationUtil.serialize;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -38,39 +39,46 @@ public class OutlookEmailConverter implements OutlookModule {
 	public EmailFromOutlookMessage outlookMsgToEmailBuilder(
 			@NotNull final File msgFile,
 			@NotNull final EmailStartingBuilder emailStartingBuilder,
-			@NotNull final EmailPopulatingBuilderFactory builderFactory) {
+			@NotNull final EmailPopulatingBuilderFactory builderFactory,
+			@NotNull final InternalEmailConverter internalEmailConverter) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
 				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")),
-				builderFactory);
+				builderFactory,
+				internalEmailConverter);
 	}
 
 	@Override
 	public EmailFromOutlookMessage outlookMsgToEmailBuilder(
 			@NotNull final String msgFile,
 			@NotNull final EmailStartingBuilder emailStartingBuilder,
-			@NotNull final EmailPopulatingBuilderFactory builderFactory) {
+			@NotNull final EmailPopulatingBuilderFactory builderFactory,
+			@NotNull final InternalEmailConverter internalEmailConverter) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
 				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")),
-				builderFactory);
+				builderFactory,
+				internalEmailConverter);
 	}
 	
 	@Override
 	public EmailFromOutlookMessage outlookMsgToEmailBuilder(
 			@NotNull final InputStream msgInputStream,
 			@NotNull final EmailStartingBuilder emailStartingBuilder,
-			@NotNull final EmailPopulatingBuilderFactory builderFactory) {
+			@NotNull final EmailPopulatingBuilderFactory builderFactory,
+			@NotNull final InternalEmailConverter internalEmailConverter) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
 				parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream")),
-				builderFactory);
+				builderFactory,
+				internalEmailConverter);
 	}
 	
 	private static EmailFromOutlookMessage buildEmailFromOutlookMessage(
 			@NotNull final EmailPopulatingBuilder builder,
 			@NotNull final OutlookMessage outlookMessage,
-			@NotNull final EmailPopulatingBuilderFactory builderFactory) {
+			@NotNull final EmailPopulatingBuilderFactory builderFactory,
+			@NotNull final InternalEmailConverter internalEmailConverter) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(outlookMessage, "outlookMessage");
 		String fromEmail = ofNullable(outlookMessage.getFromEmail()).orElse("donotreply@unknown-from-address.net");
@@ -97,15 +105,11 @@ public class OutlookEmailConverter implements OutlookModule {
 			final OutlookAttachment attachment = outlookMessage.getOutlookAttachments().get(i);
 			if (attachment instanceof OutlookMsgAttachment) {
 				final OutlookMessage nestedMsg = ((OutlookMsgAttachment) attachment).getOutlookMessage();
-				final Email email = buildEmailFromOutlookMessage(builderFactory.create(), nestedMsg, builderFactory).getEmailBuilder().buildEmail();
-
-				try {
-					builder.withAttachment("attachment " + i + " as nested Outlook message (converted).sjm",
-							new ByteArrayDataSource(serialize(email), "application/octet-stream"));
-				} catch (IOException e) {
-					// don't crash on serialization errors: this is mostly a best effort supported feature
-					LOGGER.error("Was unable to serialize Email converted from nested Outlook message", e);
-				}
+				final Email email = buildEmailFromOutlookMessage(builderFactory.create(), nestedMsg, builderFactory, internalEmailConverter)
+						.getEmailBuilder().buildEmail();
+				final MimeMessage message = internalEmailConverter.emailToMimeMessage(email);
+				final byte[] mimedata = internalEmailConverter.mimeMessageToEMLByteArray(message);
+				builder.withAttachment(nestedMsg.getSubject() + ".eml", new ByteArrayDataSource(mimedata, "message/rfc822"));
 			}
 		}
 

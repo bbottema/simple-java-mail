@@ -40,7 +40,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
-import static org.simplejavamail.internal.outlooksupport.internal.util.SerializationUtil.deserialize;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -139,10 +138,10 @@ public class MailerLiveTest {
 		Email email = EmailConverter.outlookMsgToEmail(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
 
 		assertThat(email.getAttachments()).hasSize(2);
-		assertThat(email.getAttachments().get(1).getName()).isEqualTo("attachment 0 as nested Outlook message (converted).sjm");
+		assertThat(email.getAttachments().get(1).getName()).isEqualTo("This msg file is an attachment.eml");
 
-		final InputStream sjmInputstream = email.getAttachments().get(1).getDataSourceInputStream();
-		Email nestedEmail = deserialize(sjmInputstream);
+		final InputStream emlInputstream = email.getAttachments().get(1).getDataSourceInputStream();
+		Email nestedEmail = EmailConverter.emlToEmail(emlInputstream);
 
 		EmailAssert.assertThat(nestedEmail).hasSubject("This msg file is an attachment");
 		assertThat(normalizeNewlines(nestedEmail.getPlainText()))
@@ -151,16 +150,15 @@ public class MailerLiveTest {
 	}
 
 	@Test
-	public void testOutlookMessageWithNestedOutlookMessageAttachmentThatHasItsOwnNestedAttachment()
-			throws IOException {
+	public void testOutlookMessageWithNestedOutlookMessageAttachmentThatHasItsOwnNestedAttachment() {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream("test-messages/#298 Email with nested msg with own attachment.msg");
 		Email email = EmailConverter.outlookMsgToEmail(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
 
 		assertThat(email.getAttachments()).hasSize(2);
-		assertThat(email.getAttachments().get(1).getName()).isEqualTo("attachment 1 as nested Outlook message (converted).sjm");
+		assertThat(email.getAttachments().get(1).getName()).isEqualTo("This msg file is an attachment.eml");
 
-		final InputStream sjmInputstream = email.getAttachments().get(1).getDataSourceInputStream();
-		Email nestedEmail = deserialize(sjmInputstream);
+		final InputStream emlInputstream = email.getAttachments().get(1).getDataSourceInputStream();
+		Email nestedEmail = EmailConverter.emlToEmail(emlInputstream);
 
 		EmailAssert.assertThat(nestedEmail).hasSubject("This msg file is an attachment");
 		assertThat(normalizeNewlines(nestedEmail.getPlainText()))

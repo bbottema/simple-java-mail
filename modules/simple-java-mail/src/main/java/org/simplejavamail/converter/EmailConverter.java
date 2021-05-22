@@ -11,6 +11,7 @@ import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMess
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.converter.internal.InternalEmailConverterImpl;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
@@ -126,7 +127,7 @@ public final class EmailConverter {
 	public static Email outlookMsgToEmail(@NotNull final String msgData, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgData, "msgFile");
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
-				.outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl());
+				.outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl(), InternalEmailConverterImpl.INSTANCE);
 		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config)
 				.buildEmail();
 	}
@@ -175,7 +176,7 @@ public final class EmailConverter {
 			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
 		}
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
-				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl());
+				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl(), InternalEmailConverterImpl.INSTANCE);
 		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config);
 	}
 
@@ -211,7 +212,7 @@ public final class EmailConverter {
 	@NotNull
 	public static EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull final InputStream msgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
 		EmailFromOutlookMessage fromMsgBuilder = ModuleLoader.loadOutlookModule()
-				.outlookMsgToEmailBuilder(msgInputStream, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl());
+				.outlookMsgToEmailBuilder(msgInputStream, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl(), InternalEmailConverterImpl.INSTANCE);
 		decryptAttachments(fromMsgBuilder.getEmailBuilder(), fromMsgBuilder.getOutlookMessage(), pkcs12Config);
 		return fromMsgBuilder;
 	}
@@ -508,6 +509,20 @@ public final class EmailConverter {
 
 	/**
 	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} which should be in the standard EML format.
+	 */
+	public static byte[] mimeMessageToEMLByteArray(@NotNull final MimeMessage mimeMessage) {
+		final ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			checkNonEmptyArgument(mimeMessage, "mimeMessage").writeTo(os);
+			return os.toByteArray();
+		} catch (IOException | MessagingException e) {
+			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
+			throw new IllegalStateException("This should never happen", e);
+		}
+	}
+
+	/**
+	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} with which should be in the standard EML format, to UTF8 string.
 	 */
 	public static String mimeMessageToEML(@NotNull final MimeMessage mimeMessage) {
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();

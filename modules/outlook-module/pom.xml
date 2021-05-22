@@ -38,19 +38,6 @@
             <version>1.7.9</version>
             <scope>compile</scope>
         </dependency>
-        <!-- needed for converting outlook messages to Email objects, including deeply nested attachments -->
-        <dependency>
-            <groupId>com.esotericsoftware</groupId>
-            <artifactId>kryo</artifactId>
-            <version>5.0.0-RC1</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency><!-- adds support for deserializing UnmodifiableCollection -->
-            <groupId>de.javakaffee</groupId>
-            <artifactId>kryo-serializers</artifactId>
-            <version>0.45</version>
-            <scope>compile</scope>
-        </dependency>
     </dependencies>
 
     <!-- Apache POI 4.x is Java 8, so we can't use that -->
