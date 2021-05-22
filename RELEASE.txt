@@ -9,6 +9,7 @@ http://www.simplejavamail.org
 v6.5.0 - v6.5.4
 
 - v6.5.4 (22-May-2021): #315: Enhancement: Nested attachments of Outlook message attachments are now preserved as standard EML MimeMessage attachments
+  **NOTE:** This _removes_ the Kryo dependency
 - v6.5.3 (4-May-2021): #314: Bugfix: Nested attachments of Outlook message attachments are now preserved, by utilizing Kryo
   **NOTE:** This add Kryo as extra dependency to the outlook-module (and is subsequently removed in 6.5.4)
 - v6.5.2 (15-April-2021): #307: Bugfix: text/calendar as string -> ClassCastException (if calendar type is not Inputstream)

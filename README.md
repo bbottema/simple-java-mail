@@ -27,6 +27,9 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 v6.5.0 - [v6.5.4](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.5.4%7Cjar)
 
 - v6.5.4 (22-May-2021): [#315](https://github.com/bbottema/simple-java-mail/issues/315) Enhancement: Nested attachments of Outlook message attachments are now preserved as standard EML MimeMessage attachments
+
+  **NOTE:** This _removes_ the Kryo dependency
+
 - v6.5.3 (4-May-2021): [#314](https://github.com/bbottema/simple-java-mail/issues/314) Bugfix: Nested attachments of Outlook message attachments are now preserved, by utilizing Kryo
 
   **NOTE:** This add Kryo as extra dependency to the outlook-module (and is subsequently removed in 6.5.4)
