@@ -1,14 +1,15 @@
 package org.simplejavamail.mailer.internal;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
@@ -26,15 +27,18 @@ import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
 class SendMailClosure extends AbstractProxyServerSyncingClosure {
 
 	@NotNull private final OperationalConfig operationalConfig;
+	@NotNull private final EmailGovernance emailGovernance;
 	@NotNull private final Session session;
 	@NotNull private final Email email;
 	private final boolean asyncForLoggingPurpose;
 	private final boolean transportModeLoggingOnly;
 
-	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @Nullable AnonymousSocks5Server proxyServer, boolean asyncForLoggingPurpose,
+	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull EmailGovernance emailGovernance, @NotNull Session session, @NotNull Email email, @Nullable AnonymousSocks5Server proxyServer,
+			boolean asyncForLoggingPurpose,
 			boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
 		super(smtpConnectionCounter, proxyServer);
 		this.operationalConfig = operationalConfig;
+		this.emailGovernance = emailGovernance;
 		this.session = session;
 		this.email = email;
 		this.asyncForLoggingPurpose = asyncForLoggingPurpose;
@@ -47,7 +51,7 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 		LOGGER.trace("sending email...");
 		try {
 			// fill and send wrapped mime message parts
-			final MimeMessage message = MimeMessageProducerHelper.produceMimeMessage(email, session);
+			final MimeMessage message = MimeMessageProducerHelper.produceMimeMessage(email, session, emailGovernance.getPkcs12ConfigForSmimeSigning());
 
 			SessionLogger.logSession(session, asyncForLoggingPurpose, "mail");
 			message.saveChanges(); // some headers and id's will be set for this specific message

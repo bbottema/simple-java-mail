@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.modules;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
@@ -9,8 +11,6 @@ import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionRe
 import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimePart;
@@ -70,7 +70,8 @@ public interface SMIMEModule {
 	boolean verifyValidSignature(@NotNull MimeMessage mimeMessage, @NotNull OriginalSmimeDetails messageSmimeDetails);
 
 	@NotNull
-	MimeMessage signAndOrEncryptEmail(@NotNull final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails);
+	MimeMessage signAndOrEncryptEmail(@NotNull final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails,
+			@Nullable final Pkcs12Config defaultSmimeSigningStore);
 
 	@NotNull
 	MimeMessage signMessage(@Nullable Session session, @NotNull MimeMessage message, @NotNull Pkcs12Config pkcs12Config);

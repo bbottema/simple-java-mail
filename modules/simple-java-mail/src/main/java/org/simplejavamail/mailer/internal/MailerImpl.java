@@ -1,6 +1,5 @@
 package org.simplejavamail.mailer.internal;
 
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -8,6 +7,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
@@ -72,7 +72,7 @@ public class MailerImpl implements Mailer {
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
 	 */
 	@NotNull
-	private final EnumSet<EmailAddressCriteria> emailAddressCriteria;
+	private final EmailGovernance emailGovernance;
 	
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withTransportStrategy(TransportStrategy)
@@ -95,7 +95,7 @@ public class MailerImpl implements Mailer {
 	MailerImpl(@NotNull final MailerFromSessionBuilderImpl fromSessionBuilder) {
 		this(null,
 				null,
-				fromSessionBuilder.getEmailAddressCriteria(),
+				fromSessionBuilder.buildEmailGovernance(),
 				fromSessionBuilder.buildProxyConfig(),
 				fromSessionBuilder.getSession(),
 				fromSessionBuilder.buildOperationalConfig());
@@ -104,17 +104,17 @@ public class MailerImpl implements Mailer {
 	MailerImpl(@NotNull final MailerRegularBuilderImpl regularBuilder) {
 		this(regularBuilder.buildServerConfig(),
 				regularBuilder.getTransportStrategy(),
-				regularBuilder.getEmailAddressCriteria(),
+				regularBuilder.buildEmailGovernance(),
 				regularBuilder.buildProxyConfig(),
 				null,
 				regularBuilder.buildOperationalConfig());
 	}
 
-	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EnumSet<EmailAddressCriteria> emailAddressCriteria, @NotNull ProxyConfig proxyConfig,
+	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance, @NotNull ProxyConfig proxyConfig,
 			@Nullable Session session, @NotNull OperationalConfig operationalConfig) {
 		this.serverConfig = serverConfig;
 		this.transportStrategy = transportStrategy;
-		this.emailAddressCriteria = emailAddressCriteria;
+		this.emailGovernance = emailGovernance;
 		this.proxyConfig = proxyConfig;
 		if (session == null) {
 			session = createMailSession(checkNonEmptyArgument(serverConfig, "serverConfig"), checkNonEmptyArgument(transportStrategy, "transportStrategy"));
@@ -323,7 +323,7 @@ public class MailerImpl implements Mailer {
 	@Nullable
 	public final AsyncResponse sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (validate(email)) {
-			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, async, operationalConfig.isTransportModeLoggingOnly(),
+			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, emailGovernance, session, email, proxyServer, async, operationalConfig.isTransportModeLoggingOnly(),
 					smtpConnectionCounter);
 
 			if (!async) {
@@ -346,7 +346,7 @@ public class MailerImpl implements Mailer {
 	@SuppressWarnings({"SameReturnValue"})
 	public boolean validate(@NotNull final Email email)
 			throws MailException {
-		return MailerHelper.validate(email, emailAddressCriteria);
+		return MailerHelper.validate(email, emailGovernance.getEmailAddressCriteria());
 	}
 
 	/**
@@ -407,11 +407,11 @@ public class MailerImpl implements Mailer {
 	}
 
 	/**
-	 * @see Mailer#getEmailAddressCriteria()
+	 * @see Mailer#getEmailGovernance()
 	 */
 	@Override
 	@NotNull
-	public EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
-		return emailAddressCriteria;
+	public EmailGovernance getEmailGovernance() {
+		return emailGovernance;
 	}
 }

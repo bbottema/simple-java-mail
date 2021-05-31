@@ -193,14 +193,14 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	public Mailer buildMailer() {
 		return new MailerImpl(this);
 	}
-	
+
 	/**
 	 * For internal use.
 	 */
 	ServerConfig buildServerConfig() {
 		vallidateServerConfig();
 		final int serverPort = SimpleOptional.ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
-		return new ServerConfigImpl(assumeNonNull(getHost()), serverPort, getUsername(), getPassword(), customSSLFactory, customSSLFactoryInstance);
+		return new ServerConfigImpl(assumeNonNull(getHost()), serverPort, username, password, customSSLFactory, customSSLFactoryInstance);
 	}
 
 	private void vallidateServerConfig() {

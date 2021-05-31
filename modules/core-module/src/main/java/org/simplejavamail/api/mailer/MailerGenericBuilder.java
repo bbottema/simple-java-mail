@@ -1,14 +1,17 @@
 package org.simplejavamail.api.mailer;
 
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.Session;
+import java.io.File;
+import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -225,6 +228,53 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #resetEmailAddressCriteria()
 	 */
 	T withEmailAddressCriteria(@NotNull EnumSet<EmailAddressCriteria> emailAddressCriteria);
+
+	/**
+	 * Signs this <em>all emails by default</em> with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
+	 * can verify whether the email content was tampered with.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 *
+	 * @see <a href="https://en.wikipedia.org/wiki/S/MIME">S/MIME on Wikipedia</a>
+	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
+	 * @see org.simplejavamail.api.email.EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
+	 * @see #clearSignByDefaultWithSmime()
+	 */
+	@Cli.ExcludeApi(reason = "delegated method contains CLI compatible arguments")
+	T signByDefaultWithSmime(@NotNull Pkcs12Config pkcs12Config);
+
+	/**
+	 * Delegates to {@link #signByDefaultWithSmime(InputStream, String, String, String)}.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 *
+	 * @param pkcs12StoreFile The key store file to use to find the indicated key
+	 * @param storePassword The store's password
+	 * @param keyAlias The name of the certificate in the key store to use
+	 * @param keyPassword The password of the certificate
+	 */
+	T signByDefaultWithSmime(@NotNull File pkcs12StoreFile, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword);
+
+	/**
+	 * Delegates to {@link #signByDefaultWithSmime(byte[], String, String, String)}.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 */
+	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
+	T signByDefaultWithSmime(@NotNull InputStream pkcs12StoreStream, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword);
+
+	/**
+	 * Delegates to {@link #signByDefaultWithSmime(Pkcs12Config)}.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 *
+	 * @param pkcs12StoreData The key store file to use to find the indicated key
+	 * @param storePassword The store's password
+	 * @param keyAlias The name of the certificate in the key store to use
+	 * @param keyPassword The password of the certificate
+	 */
+	@Cli.ExcludeApi(reason = "Is duplicate API from CLI point of view")
+	T signByDefaultWithSmime(@NotNull byte[] pkcs12StoreData, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword);
 
 	/**
 	 * <strong>For advanced use cases.</strong>
@@ -581,6 +631,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearEmailAddressCriteria();
 
 	/**
+	 * Removes S/MIME signing, so emails won't be signed by default.
+	 *
+	 * @see #signByDefaultWithSmime(Pkcs12Config)
+	 */
+	T clearSignByDefaultWithSmime();
+
+	/**
 	 * Removes all trusted hosts from the list.
 	 *
 	 * @see #trustingSSLHosts(String...)
@@ -650,6 +707,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	EnumSet<EmailAddressCriteria> getEmailAddressCriteria();
+
+	/**
+	 * @see #signByDefaultWithSmime(Pkcs12Config)
+	 * @see #signByDefaultWithSmime(InputStream, String, String, String)
+	 */
+	@Nullable
+	Pkcs12Config getPkcs12ConfigForSmimeSigning();
 
 	/**
 	 * Returns the user set ExecutorService or else null as the default ExecutorService is not created until the {@link org.simplejavamail.api.mailer.config.OperationalConfig} is created for the

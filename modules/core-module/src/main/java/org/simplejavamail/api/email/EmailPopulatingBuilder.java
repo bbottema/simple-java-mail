@@ -1,12 +1,12 @@
 package org.simplejavamail.api.email;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import javax.activation.DataSource;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.Message;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
@@ -1127,10 +1127,12 @@ public interface EmailPopulatingBuilder {
 	 * Signs this email with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
 	 * can verify whether the email content was tampered with.
 	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.<br>
+	 * <strong>Note:</strong> You can also configure your <code>Mailer</code> instance do sign all emails by default (also has better performance).
 	 *
 	 * @see <a href="https://en.wikipedia.org/wiki/S/MIME">S/MIME on Wikipedia</a>
 	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#signByDefaultWithSmime(Pkcs12Config)
 	 */
 	@Cli.ExcludeApi(reason = "delegated method contains CLI compatible arguments")
 	EmailPopulatingBuilder signWithSmime(@NotNull Pkcs12Config pkcs12Config);

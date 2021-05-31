@@ -1,8 +1,10 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import org.simplejavamail.api.email.Email;
-
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
+
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
@@ -34,10 +36,10 @@ public final class MimeMessageProducerHelper {
 	private MimeMessageProducerHelper() {
 	}
 	
-	public static MimeMessage produceMimeMessage(@NotNull Email email, @NotNull Session session) throws UnsupportedEncodingException, MessagingException {
+	public static MimeMessage produceMimeMessage(@NotNull Email email, @NotNull Session session, @Nullable final Pkcs12Config defaultSmimeSigningStore) throws UnsupportedEncodingException, MessagingException {
 		for (MimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
 			if (mimeMessageProducer.compatibleWithEmail(email)) {
-				return mimeMessageProducer.populateMimeMessage(email, session);
+				return mimeMessageProducer.populateMimeMessage(email, session, defaultSmimeSigningStore);
 			}
 		}
 		throw new IllegalStateException("no compatible MimeMessageProducer found for email");

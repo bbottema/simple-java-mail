@@ -36,6 +36,7 @@ import org.simplejavamail.internal.smimesupport.SmimeUtilFixed.SmimeStateFixed;
 import org.simplejavamail.internal.smimesupport.builder.SmimeParseResultBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.smimesupport.model.SmimeDetailsImpl;
+import org.simplejavamail.internal.util.SimpleOptional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -351,6 +352,7 @@ public class SMIMESupport implements SMIMEModule {
 			throw new SmimeException(format(ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT, smimeAttachment), e);
 		}
 	}
+
 	/**
 	 * Delegates to {@link #determineSMIMESigned(MimePart)} and {@link #getSignedByAddress(SMIMESigned)}.
 	 *
@@ -434,10 +436,15 @@ public class SMIMESupport implements SMIMEModule {
 
 	@NotNull
 	@Override
-	public MimeMessage signAndOrEncryptEmail(@Nullable final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails) {
+	public MimeMessage signAndOrEncryptEmail(@Nullable final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails,
+			@Nullable final Pkcs12Config defaultSmimeSigningStore) {
 		MimeMessage result = messageToProtect;
-		if (emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning() != null) {
-			result = signMessage(session, result, emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning());
+
+		final Pkcs12Config pkcs12Config = SimpleOptional
+				.ofNullable(emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning())
+				.orMaybe(defaultSmimeSigningStore);
+		if (pkcs12Config != null) {
+			result = signMessage(session, result, pkcs12Config);
 		}
 		if (emailContainingSmimeDetails.getX509CertificateForSmimeEncryption() != null) {
 			result = encryptMessage(session, result, emailContainingSmimeDetails.getX509CertificateForSmimeEncryption());

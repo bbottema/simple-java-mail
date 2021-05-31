@@ -428,11 +428,29 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Refer to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session)}.
+	 * Refer to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session, Pkcs12Config)}.
+	 */
+	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final Pkcs12Config defaultSmimeSigningStore) {
+		try {
+			return MimeMessageProducerHelper.produceMimeMessage(
+					checkNonEmptyArgument(email, "email"),
+					checkNonEmptyArgument(session, "session"),
+					checkNonEmptyArgument(defaultSmimeSigningStore, "defaultSmimeSigningStore"));
+		} catch (UnsupportedEncodingException | MessagingException e) {
+			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
+			throw new IllegalStateException(e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session, Pkcs12Config)} with empty S/MIME signing store.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session) {
 		try {
-			return MimeMessageProducerHelper.produceMimeMessage(checkNonEmptyArgument(email, "email"), checkNonEmptyArgument(session, "session"));
+			return MimeMessageProducerHelper.produceMimeMessage(
+					checkNonEmptyArgument(email, "email"),
+					checkNonEmptyArgument(session, "session"),
+					null);
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
 			throw new IllegalStateException(e.getMessage(), e);

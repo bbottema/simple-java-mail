@@ -2,19 +2,19 @@ package org.simplejavamail.api.mailer;
 
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.mail.Message;
 import javax.mail.Session;
 import javax.mail.Transport;
-import java.util.EnumSet;
 import java.util.concurrent.Future;
 
 /**
@@ -148,10 +148,8 @@ public interface Mailer {
 	OperationalConfig getOperationalConfig();
 
 	/**
-	 * @return The effective validation criteria used for email validation. Returns an empty set if no validation should be done.
-	 * @see MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
-	 * @see EmailAddressCriteria
+	 * @return The effective governance applied to each email (default S/MIME signing, email addresscriteria for validation etc.).
 	 */
 	@NotNull
-	EnumSet<EmailAddressCriteria> getEmailAddressCriteria();
+	EmailGovernance getEmailGovernance();
 }

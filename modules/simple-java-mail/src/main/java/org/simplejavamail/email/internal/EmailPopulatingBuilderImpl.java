@@ -73,10 +73,6 @@ import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYN
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.getBooleanProperty;
 import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.getStringProperty;
@@ -365,14 +361,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			}
 			if (hasProperty(DEFAULT_SUBJECT)) {
 				withSubject((String) getProperty(DEFAULT_SUBJECT));
-			}
-			if (hasProperty(SMIME_SIGNING_KEYSTORE)) {
-				signWithSmime(Pkcs12Config.builder()
-						.pkcs12Store(assumeNonNull(getStringProperty(SMIME_SIGNING_KEYSTORE)))
-						.storePassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEYSTORE_PASSWORD), "Keystore password property"))
-						.keyAlias(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_ALIAS), "Key alias property"))
-						.keyPassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_PASSWORD), "Key password property"))
-						.build());
 			}
 			if (hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
 				encryptWithSmime(assumeNonNull(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));

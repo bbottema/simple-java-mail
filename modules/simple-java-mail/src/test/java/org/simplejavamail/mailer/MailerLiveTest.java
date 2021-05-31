@@ -132,6 +132,37 @@ public class MailerLiveTest {
 	}
 
 	@Test
+	public void createMailSession_OutlookMessageDefaultSmimeSignTest()
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
+		// override the default from the @Before test
+		mailer = MailerBuilder
+				.withSMTPServer("localhost", SERVER_PORT)
+				.signByDefaultWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein")
+				.buildMailer();
+
+		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
+		Email email = assertSendingEmail(builder, false, true, false, true, false);
+
+		// verify that S/MIME was indeed only configured on the mailer instance
+		assertThat(mailer.getEmailGovernance().getPkcs12ConfigForSmimeSigning()).isNotNull();
+		assertThat(builder.getPkcs12ConfigForSmimeSigning()).isNull();
+		assertThat(email.getPkcs12ConfigForSmimeSigning()).isNull();
+
+		verifyReceivedOutlookEmail(email, true, false);
+
+		EmailAssert.assertThat(email).wasNotMergedWithSmimeSignedMessage();
+
+		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.SIGNED)
+				.smimeMime("multipart/signed")
+				.smimeProtocol("application/pkcs7-signature")
+				.smimeMicalg("sha-256")
+				.smimeSignedBy("Benny Bottema")
+				.smimeSignatureValid(true)
+				.build());
+	}
+
+	@Test
 	public void testOutlookMessageWithNestedOutlookMessageAttachment()
 			throws IOException {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream("test-messages/#298 Email with nested msg.msg");

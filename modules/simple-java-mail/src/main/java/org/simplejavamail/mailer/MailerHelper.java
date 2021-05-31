@@ -8,6 +8,7 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.slf4j.Logger;
 
@@ -139,11 +140,11 @@ public class MailerHelper {
 	/**
 	 * Depending on the Email configuration, signs and then encrypts message (both steps optional), using the S/MIME module.
 	 *
-	 * @see org.simplejavamail.internal.modules.SMIMEModule#signAndOrEncryptEmail(Session, MimeMessage, Email)
+	 * @see org.simplejavamail.internal.modules.SMIMEModule#signAndOrEncryptEmail(Session, MimeMessage, Email, Pkcs12Config)
 	 */
 	@SuppressWarnings("unused")
-	public static MimeMessage signAndOrEncryptMessageWithSmime(@NotNull final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails) {
+	public static MimeMessage signAndOrEncryptMessageWithSmime(@NotNull final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails, @Nullable final Pkcs12Config defaultSmimeSigningStore) {
 		return ModuleLoader.loadSmimeModule()
-				.signAndOrEncryptEmail(session, messageToProtect, emailContainingSmimeDetails);
+				.signAndOrEncryptEmail(session, messageToProtect, emailContainingSmimeDetails, defaultSmimeSigningStore);
 	}
 }

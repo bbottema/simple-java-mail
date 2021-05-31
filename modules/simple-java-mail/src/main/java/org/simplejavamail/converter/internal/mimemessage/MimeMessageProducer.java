@@ -1,9 +1,10 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import org.simplejavamail.api.email.Email;
-import org.simplejavamail.internal.modules.ModuleLoader;
-
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.internal.modules.ModuleLoader;
 
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -37,7 +38,7 @@ public abstract class MimeMessageProducer {
 	 */
 	abstract boolean compatibleWithEmail(@NotNull Email email);
 	
-	final MimeMessage populateMimeMessage(@NotNull final Email email, @NotNull Session session)
+	final MimeMessage populateMimeMessage(@NotNull final Email email, @NotNull Session session, @Nullable final Pkcs12Config defaultSmimeSigningStore)
 			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
@@ -80,7 +81,7 @@ public abstract class MimeMessageProducer {
 			3. DKIM signing
 		 */
 		if (ModuleLoader.smimeModuleAvailable()) {
-			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email);
+			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email, defaultSmimeSigningStore);
 		}
 
 		if (!valueNullOrEmpty(email.getDkimSigningDomain())) {
