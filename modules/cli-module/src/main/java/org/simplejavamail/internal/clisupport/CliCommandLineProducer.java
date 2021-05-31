@@ -145,7 +145,7 @@ class CliCommandLineProducer {
                 .optionListHeading("%n@|bold,underline Options|@:%n")
                 .parameterListHeading("%n@|bold,underline Parameters|@:%n")
                 .footerHeading("%n")
-                .footer("@|faint,italic http://www.simplejavamail.org/#/cli|@");
+                .footer("@|faint,italic https://www.simplejavamail.org/#/cli|@");
         return command;
     }
 }

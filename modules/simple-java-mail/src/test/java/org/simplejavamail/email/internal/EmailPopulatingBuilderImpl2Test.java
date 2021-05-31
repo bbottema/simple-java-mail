@@ -94,7 +94,7 @@ public class EmailPopulatingBuilderImpl2Test {
 						new Recipient("test BCC name", "test_bcc1@domain.com", BCC), new Recipient("test BCC name", "test_bcc2@domain.com", BCC)
 				)
 				.hasSubject("test subject")
-				.hasPkcs12ConfigForSmimeSigning(loadPkcs12KeyStore());
+				.hasPkcs12ConfigForSmimeSigning(null);
 	}
 
 	@Test
@@ -126,7 +126,7 @@ public class EmailPopulatingBuilderImpl2Test {
 
 	@Test
 	public void testConstructorApplyingPreconfiguredDefaults_EmbeddedImageResolving() throws Exception {
-		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+		assumeThat(getUrl("https://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
 
 		HashedMap<Property, Object> value = new HashedMap<>();
 
@@ -134,7 +134,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR, RESOURCES_PATH);
-		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, "http://www.simplejavamail.org");
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, "https://www.simplejavamail.org");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/pkcs12");
 
 		ConfigLoaderTestHelper.setResolvedProperties(value);
@@ -157,7 +157,7 @@ public class EmailPopulatingBuilderImpl2Test {
 
 	@Test
 	public void testConstructorApplyingPreconfiguredDefaults_EmbeddedImageResolving_BubbleFailure() throws Exception {
-		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+		assumeThat(getUrl("https://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
 
 		HashedMap<Property, Object> value = new HashedMap<>();
 
@@ -165,7 +165,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR, RESOURCES_PATH);
-		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, "http://www.simplejavamail.org");
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, "https://www.simplejavamail.org");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/pkcs12");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL, "true");
 
@@ -186,7 +186,7 @@ public class EmailPopulatingBuilderImpl2Test {
 
 	@Test
 	public void testConstructorApplyingPreconfiguredDefaults_EmbeddedImageResolving_IgnoreFailure() throws Exception {
-		assumeThat(getUrl("http://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+		assumeThat(getUrl("https://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
 
 		HashedMap<Property, Object> value = new HashedMap<>();
 
@@ -194,7 +194,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR, RESOURCES_PATH);
-		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, "http://www.simplejavamail.org");
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, "https://www.simplejavamail.org");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/pkcs12");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL, "false");
 

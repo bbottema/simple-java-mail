@@ -43,7 +43,7 @@ public class FullEmailDemoApp extends DemoAppBase {
 				"   <li>Image embedded with fixed cid and hardcoded datasource: <img width=25 src='cid:thumbsup'></li>" +
 				"   <li>Image embedded with generated cid datasource resolved from classpath:<img src='/test-dynamicembedded-image/excellent.png' style='width:25px'></li>" +
 				"   <li>Image embedded with generated cid datasource resolved from disk:<img src='" + resourcesPathOnDisk + "/test-dynamicembedded-image/excellent.png' style='width:25px'></li>" +
-				"   <li>Image embedded with generated cid datasource resolved from URL!:<img src='http://www.simplejavamail.org/assets/github-ribbon-topright@2x.png' style='width:32px' title='Fork me on GitHub'></li>" +
+				"   <li>Image embedded with generated cid datasource resolved from URL!:<img src='https://www.simplejavamail.org/assets/github-ribbon-topright@2x.png' style='width:32px' title='Fork me on GitHub'></li>" +
 				"</ol>" +
 				"<p><b>Formal structure:</b><br>" +
 				"<ul>" +
