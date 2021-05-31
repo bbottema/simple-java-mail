@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import static java.lang.String.format;
-import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 
 /**
  * Config holder for PKCS12 store+key info used for S/MIME encrypting / decrypting.
@@ -25,11 +24,6 @@ public final class Pkcs12Config {
 	@NotNull private final char[] storePassword;
 	@NotNull private final String keyAlias;
 	@NotNull private final char[] keyPassword;
-
-	private Pkcs12Config(@NotNull InputStream pkcs12StoreStream, @NotNull char[] storePassword, @NotNull String keyAlias, @NotNull char[] keyPassword)
-			throws IOException {
-		this(readInputStreamToBytes(pkcs12StoreStream), storePassword, keyAlias, keyPassword);
-	}
 
 	private Pkcs12Config(@NotNull byte[] pkcs12StoreData, @NotNull char[] storePassword, @NotNull String keyAlias, @NotNull char[] keyPassword) {
 		this.pkcs12StoreData = pkcs12StoreData.clone();
@@ -91,7 +85,7 @@ public final class Pkcs12Config {
 
 	@Override
 	public int hashCode() {
-		int result = Objects.hash(pkcs12StoreData, keyAlias);
+		int result = Objects.hash(Arrays.hashCode(pkcs12StoreData), keyAlias);
 		result = 31 * result + Arrays.hashCode(storePassword);
 		result = 31 * result + Arrays.hashCode(keyPassword);
 		return result;
