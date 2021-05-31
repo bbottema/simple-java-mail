@@ -56,7 +56,9 @@ import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -78,6 +80,7 @@ public class SMIMESupport implements SMIMEModule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMESupport.class);
 	private static final List<String> SMIME_MIMETYPES = asList("application/pkcs7-mime", "application/x-pkcs7-mime", "multipart/signed");
+	private static final Map<Pkcs12Config, SmimeKey> SIMPLE_SMIMESTORE_CACHE = new HashMap<>();
 
 	static {
 		Security.addProvider(new BouncyCastleProvider());
@@ -456,7 +459,14 @@ public class SMIMESupport implements SMIMEModule {
 	}
 
 	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12) {
-		SmimeKeyStore store = new SmimeKeyStore(new ByteArrayInputStream(pkcs12.getPkcs12StoreData()), pkcs12.getStorePassword());
-		return store.getPrivateKey(pkcs12.getKeyAlias(), pkcs12.getKeyPassword());
+		if (!SIMPLE_SMIMESTORE_CACHE.containsKey(pkcs12)) {
+			SIMPLE_SMIMESTORE_CACHE.put(pkcs12, produceSmimeKey(pkcs12));
+		}
+		return SIMPLE_SMIMESTORE_CACHE.get(pkcs12);
+	}
+
+	private SmimeKey produceSmimeKey(final @NotNull Pkcs12Config pkcs12) {
+		return new SmimeKeyStore(new ByteArrayInputStream(pkcs12.getPkcs12StoreData()), pkcs12.getStorePassword())
+				.getPrivateKey(pkcs12.getKeyAlias(), pkcs12.getKeyPassword());
 	}
 }
