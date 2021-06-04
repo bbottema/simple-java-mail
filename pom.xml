@@ -20,6 +20,7 @@
     <url>http://www.simplejavamail.org/</url>
 
     <properties>
+        <java.version>1.8</java.version>
         <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
         <automaticModuleName>org.simplejavamail.undefined</automaticModuleName> <!-- update in individual modules -->
     </properties>
