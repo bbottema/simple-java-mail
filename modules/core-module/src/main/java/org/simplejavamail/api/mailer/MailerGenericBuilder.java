@@ -1,6 +1,7 @@
 package org.simplejavamail.api.mailer;
 
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
+import com.sanctionco.jmail.EmailValidator;
+import com.sanctionco.jmail.JMail;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
@@ -12,7 +13,6 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import javax.mail.Session;
 import java.io.File;
 import java.io.InputStream;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -219,15 +219,15 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withSessionTimeout(@NotNull Integer sessionTimeout);
 
 	/**
-	 * Sets the email address validation restrictions when validating and sending emails using the current <code>Mailer</code> instance.
+	 * Sets the email address validator used when validating and sending emails using the current <code>Mailer</code> instance.
 	 * <p>
-	 * Defaults to {@link EmailAddressCriteria#RFC_COMPLIANT} if not overridden with a ({@code null}) value.
+	 * Defaults to {@link JMail#strictValidator()}.
 	 *
-	 * @see EmailAddressCriteria
-	 * @see #clearEmailAddressCriteria()
-	 * @see #resetEmailAddressCriteria()
+	 * @see EmailValidator
+	 * @see #clearEmailValidator()
+	 * @see #resetEmailValidator()
 	 */
-	T withEmailAddressCriteria(@NotNull EnumSet<EmailAddressCriteria> emailAddressCriteria);
+	T withEmailValidator(@NotNull EmailValidator emailValidator);
 
 	/**
 	 * Signs this <em>all emails by default</em> with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
@@ -503,12 +503,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetSessionTimeout();
 
 	/**
-	 * Resets emailAddressCriteria to {@link EmailAddressCriteria#RFC_COMPLIANT}.
+	 * Resets the email validator to {@link JMail#strictValidator()}.
 	 *
-	 * @see #withEmailAddressCriteria(EnumSet)
-	 * @see #clearEmailAddressCriteria()
+	 * @see #withEmailValidator(EmailValidator)
+	 * @see #clearEmailValidator()
 	 */
-	T resetEmailAddressCriteria();
+	T resetEmailValidator();
 
 	/**
 	 * Resets the executor services to be used back to the default, created by the Batch module if loaded, or else
@@ -623,12 +623,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearProxy();
 
 	/**
-	 * Removes all email address criteria, meaning validation won't take place.
+	 * Makes the email validator <code>null</code>, meaning validation won't take place.
 	 *
-	 * @see #withEmailAddressCriteria(EnumSet)
-	 * @see #resetEmailAddressCriteria()
+	 * @see #withEmailValidator(EmailValidator)
+	 * @see #resetEmailValidator()
 	 */
-	T clearEmailAddressCriteria();
+	T clearEmailValidator();
 
 	/**
 	 * Removes S/MIME signing, so emails won't be signed by default.
@@ -703,10 +703,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	Integer getSessionTimeout();
 
 	/**
-	 * @see #withEmailAddressCriteria(EnumSet)
+	 * @see #withEmailValidator(EmailValidator)
 	 */
 	@Nullable
-	EnumSet<EmailAddressCriteria> getEmailAddressCriteria();
+	EmailValidator getEmailValidator();
 
 	/**
 	 * @see #signByDefaultWithSmime(Pkcs12Config)

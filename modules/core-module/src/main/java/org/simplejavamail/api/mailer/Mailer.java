@@ -1,7 +1,5 @@
 package org.simplejavamail.api.mailer;
 
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -103,7 +101,7 @@ public interface Mailer {
 	 *
 	 * @return Always <code>true</code> (throws a {@link MailException} exception if validation fails).
 	 * @throws MailException Is being thrown in any of the above causes.
-	 * @see EmailAddressValidator
+	 * @see com.sanctionco.jmail.EmailValidator
 	 */
 	@SuppressWarnings({"SameReturnValue" })
 	boolean validate(Email email) throws MailException;
@@ -130,7 +128,7 @@ public interface Mailer {
 	/**
 	 * @return The transport strategy to be used. Will be {@code null} in case a custom fixed {@link Session} instance is used.
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withTransportStrategy(TransportStrategy)
-	 * @see EmailAddressCriteria
+	 * @see com.sanctionco.jmail.EmailValidator
 	 */
 	@Nullable
 	TransportStrategy getTransportStrategy();
@@ -148,7 +146,7 @@ public interface Mailer {
 	OperationalConfig getOperationalConfig();
 
 	/**
-	 * @return The effective governance applied to each email (default S/MIME signing, email addresscriteria for validation etc.).
+	 * @return The effective governance applied to each email (default S/MIME signing, email validator etc.).
 	 */
 	@NotNull
 	EmailGovernance getEmailGovernance();

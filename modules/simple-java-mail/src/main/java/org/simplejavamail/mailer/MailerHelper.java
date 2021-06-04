@@ -1,7 +1,6 @@
 package org.simplejavamail.mailer;
 
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
+import com.sanctionco.jmail.EmailValidator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -16,7 +15,6 @@ import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeUtility;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Map;
 
 import static java.lang.String.format;
@@ -33,7 +31,7 @@ public class MailerHelper {
 	private static final Logger LOGGER = getLogger(MailerHelper.class);
 
 	@SuppressWarnings({ "SameReturnValue" })
-	public static boolean validate(@NotNull final Email email, @NotNull final EnumSet<EmailAddressCriteria> emailAddressCriteria)
+	public static boolean validate(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
 			throws MailException {
 		LOGGER.debug("validating email...");
 
@@ -47,30 +45,30 @@ public class MailerHelper {
 		} else if (email.isUseReturnReceiptTo() && email.getReturnReceiptTo() == null) {
 			throw new MailValidationException(MailValidationException.MISSING_RETURNRECEIPTTO);
 		} else
-		if (!emailAddressCriteria.isEmpty()) {
-			if (!EmailAddressValidator.isValid(email.getFromRecipient().getAddress(), emailAddressCriteria)) {
+		if (emailValidator != null) {
+			if (!emailValidator.isValid(email.getFromRecipient().getAddress())) {
 				throw new MailValidationException(format(MailValidationException.INVALID_SENDER, email));
 			}
 			for (final Recipient recipient : email.getRecipients()) {
-				if (!EmailAddressValidator.isValid(recipient.getAddress(), emailAddressCriteria)) {
+				if (!emailValidator.isValid(recipient.getAddress())) {
 					throw new MailValidationException(format(MailValidationException.INVALID_RECIPIENT, email));
 				}
 			}
-			if (email.getReplyToRecipient() != null && !EmailAddressValidator
-					.isValid(email.getReplyToRecipient().getAddress(), emailAddressCriteria)) {
+			if (email.getReplyToRecipient() != null && !emailValidator.isValid(email.getReplyToRecipient().getAddress())) {
 				throw new MailValidationException(format(MailValidationException.INVALID_REPLYTO, email));
 			}
-			if (email.getBounceToRecipient() != null && !EmailAddressValidator
-					.isValid(email.getBounceToRecipient().getAddress(), emailAddressCriteria)) {
+			if (email.getBounceToRecipient() != null && !emailValidator.isValid(email.getBounceToRecipient().getAddress())) {
 				throw new MailValidationException(format(MailValidationException.INVALID_BOUNCETO, email));
 			}
-			if (email.isUseDispositionNotificationTo() && !EmailAddressValidator
-					.isValid(checkNonEmptyArgument(email.getDispositionNotificationTo(), "dispositionNotificationTo").getAddress(), emailAddressCriteria)) {
-				throw new MailValidationException(format(MailValidationException.INVALID_DISPOSITIONNOTIFICATIONTO, email));
+			if (email.isUseDispositionNotificationTo()) {
+				if (!emailValidator.isValid(checkNonEmptyArgument(email.getDispositionNotificationTo(), "dispositionNotificationTo").getAddress())) {
+					throw new MailValidationException(format(MailValidationException.INVALID_DISPOSITIONNOTIFICATIONTO, email));
+				}
 			}
-			if (email.isUseReturnReceiptTo() && !EmailAddressValidator
-					.isValid(checkNonEmptyArgument(email.getReturnReceiptTo(), "returnReceiptTo").getAddress(), emailAddressCriteria)) {
-				throw new MailValidationException(format(MailValidationException.INVALID_RETURNRECEIPTTO, email));
+			if (email.isUseReturnReceiptTo()) {
+				if (!emailValidator.isValid(checkNonEmptyArgument(email.getReturnReceiptTo(), "returnReceiptTo").getAddress())) {
+					throw new MailValidationException(format(MailValidationException.INVALID_RETURNRECEIPTTO, email));
+				}
 			}
 		}
 

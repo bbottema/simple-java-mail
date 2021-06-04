@@ -47,9 +47,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.github.bbottema</groupId>
-            <artifactId>emailaddress-rfc2822</artifactId>
-            <version>2.2.0</version>
+            <groupId>com.sanctionco.jmail</groupId>
+            <artifactId>jmail</artifactId>
+            <version>1.2.1</version>
         </dependency>
 
         <dependency><!-- Annotation processor -->

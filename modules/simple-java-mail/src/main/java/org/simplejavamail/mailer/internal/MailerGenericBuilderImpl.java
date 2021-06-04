@@ -1,7 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import com.sanctionco.jmail.EmailValidator;
+import com.sanctionco.jmail.JMail;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.CustomMailer;
@@ -20,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -100,10 +100,10 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private Integer sessionTimeout;
 
 	/**
-	 * @see MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
+	 * @see MailerGenericBuilder#withEmailValidator(EmailValidator)
 	 */
-	@NotNull
-	private EnumSet<EmailAddressCriteria> emailAddressCriteria;
+	@Nullable
+	private EmailValidator emailValidator;
 
 	/**
 	 * @see MailerGenericBuilder#signByDefaultWithSmime(Pkcs12Config)
@@ -237,7 +237,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 			this.sslHostsToTrust = Arrays.asList(trustedHosts.split(";"));
 		}
 
-		this.emailAddressCriteria = EmailAddressCriteria.RFC_COMPLIANT.clone();
+		this.emailValidator = JMail.strictValidator();
 
 		if (hasProperty(SMIME_SIGNING_KEYSTORE)) {
 			signByDefaultWithSmime(Pkcs12Config.builder()
@@ -277,7 +277,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * For internal use.
 	 */
 	EmailGovernance buildEmailGovernance() {
-		return new EmailGovernanceImpl(assumeNonNull(getEmailAddressCriteria()), getPkcs12ConfigForSmimeSigning());
+		return new EmailGovernanceImpl(getEmailValidator(), getPkcs12ConfigForSmimeSigning());
 	}
 	
 	/**
@@ -399,11 +399,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 	
 	/**
-	 * @see MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
+	 * @see MailerGenericBuilder#withEmailValidator(EmailValidator)
 	 */
 	@Override
-	public T withEmailAddressCriteria(@NotNull final EnumSet<EmailAddressCriteria> emailAddressCriteria) {
-		this.emailAddressCriteria = emailAddressCriteria.clone();
+	public T withEmailValidator(@NotNull final EmailValidator emailEmailValidator) {
+		this.emailValidator = emailEmailValidator;
 		return (T) this;
 	}
 
@@ -657,11 +657,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 	
 	/**
-	 * @see MailerGenericBuilder#resetEmailAddressCriteria()
+	 * @see MailerGenericBuilder#resetEmailValidator()
 	 */
 	@Override
-	public T resetEmailAddressCriteria() {
-		return withEmailAddressCriteria(EmailAddressCriteria.RFC_COMPLIANT);
+	public T resetEmailValidator() {
+		return withEmailValidator(JMail.strictValidator());
 	}
 
 	/**
@@ -762,11 +762,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	/**
-	 * @see MailerGenericBuilder#clearEmailAddressCriteria()
+	 * @see MailerGenericBuilder#clearEmailValidator()
 	 */
 	@Override
-	public T clearEmailAddressCriteria() {
-		return withEmailAddressCriteria(EnumSet.noneOf(EmailAddressCriteria.class));
+	public T clearEmailValidator() {
+		this.emailValidator = null;
+		return (T) this;
 	}
 
 	/**
@@ -866,12 +867,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 	
 	/**
-	 * @see MailerGenericBuilder#getEmailAddressCriteria()
+	 * @see MailerGenericBuilder#getEmailValidator()
 	 */
 	@Override
-	@NotNull
-	public EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
-		return emailAddressCriteria;
+	@Nullable
+	public EmailValidator getEmailValidator() {
+		return emailValidator;
 	}
 
 	/**

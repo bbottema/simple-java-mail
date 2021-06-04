@@ -1,6 +1,5 @@
 package org.simplejavamail.mailer.internal;
 
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import static java.util.EnumSet.noneOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -95,7 +93,7 @@ public class MailerImplTest {
 
 	@Test
 	public void testSignWithSmime_WithConfigObject() {
-		final EmailGovernanceImpl emailGovernance = new EmailGovernanceImpl(noneOf(EmailAddressCriteria.class), loadPkcs12KeyStore());
+		final EmailGovernanceImpl emailGovernance = new EmailGovernanceImpl(null, loadPkcs12KeyStore());
 		final Mailer mailer = new MailerImpl(null, SMTP, emailGovernance, createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, true, false));
 
 		assertThat(mailer.getEmailGovernance().getPkcs12ConfigForSmimeSigning()).isNotNull();
@@ -117,6 +115,6 @@ public class MailerImplTest {
 
 	@NotNull
 	private EmailGovernance createDummyEmailGovernance() {
-		return new EmailGovernanceImpl(noneOf(EmailAddressCriteria.class), null);
+		return new EmailGovernanceImpl(null, null);
 	}
 }

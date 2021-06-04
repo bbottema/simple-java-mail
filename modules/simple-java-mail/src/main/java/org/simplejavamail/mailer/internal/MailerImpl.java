@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import com.sanctionco.jmail.EmailValidator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -21,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.mail.Session;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -69,7 +69,7 @@ public class MailerImpl implements Mailer {
 	private final AtomicInteger smtpConnectionCounter = new AtomicInteger();
 	
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailValidator(EmailValidator)
 	 */
 	@NotNull
 	private final EmailGovernance emailGovernance;
@@ -346,7 +346,7 @@ public class MailerImpl implements Mailer {
 	@SuppressWarnings({"SameReturnValue"})
 	public boolean validate(@NotNull final Email email)
 			throws MailException {
-		return MailerHelper.validate(email, emailGovernance.getEmailAddressCriteria());
+		return MailerHelper.validate(email, emailGovernance.getEmailValidator());
 	}
 
 	/**

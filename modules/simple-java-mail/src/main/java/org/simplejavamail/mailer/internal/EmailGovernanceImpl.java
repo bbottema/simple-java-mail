@@ -1,40 +1,37 @@
 package org.simplejavamail.mailer.internal;
 
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
-import org.jetbrains.annotations.NotNull;
+import com.sanctionco.jmail.EmailValidator;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
-
-import java.util.EnumSet;
 
 /**
  * @see EmailGovernance
  */
 class EmailGovernanceImpl implements EmailGovernance {
-	@NotNull private final EnumSet<EmailAddressCriteria> emailAddressCriteria;
+	@Nullable private final EmailValidator emailValidator;
 	@Nullable private final Pkcs12Config pkcs12ConfigForSmimeSigning;
 
-	EmailGovernanceImpl(@NotNull final EnumSet<EmailAddressCriteria> emailAddressCriteria, @Nullable final Pkcs12Config pkcs12ConfigForSmimeSigning) {
-		this.emailAddressCriteria = emailAddressCriteria;
+	EmailGovernanceImpl(@Nullable final EmailValidator emailValidator, @Nullable final Pkcs12Config pkcs12ConfigForSmimeSigning) {
+		this.emailValidator = emailValidator;
 		this.pkcs12ConfigForSmimeSigning = pkcs12ConfigForSmimeSigning;
 	}
 
 	@Override
 	public String toString() {
 		final StringBuilder sb = new StringBuilder("EmailGovernanceImpl{");
-		sb.append("emailAddressCriteria=").append(emailAddressCriteria);
+		sb.append("emailValidator=").append(emailValidator);
 		sb.append(", pkcs12ConfigForSmimeSigning=").append(pkcs12ConfigForSmimeSigning);
 		sb.append('}');
 		return sb.toString();
 	}
 
 	/**
-	 * @see EmailGovernance#getEmailAddressCriteria()
+	 * @see EmailGovernance#getEmailValidator()
 	 */
 	@Override
-	public @NotNull EnumSet<EmailAddressCriteria> getEmailAddressCriteria() {
-		return emailAddressCriteria;
+	public @Nullable EmailValidator getEmailValidator() {
+		return emailValidator;
 	}
 
 	/**
