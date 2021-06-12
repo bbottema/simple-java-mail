@@ -842,6 +842,11 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withRecipient(@NotNull String singleAddress, @Nullable Message.RecipientType recipientType);
 	
 	/**
+	 * Delegates to {@link #withRecipient(String, boolean, String, Message.RecipientType)} with the name omitted and fixedName = true.
+	 */
+	EmailPopulatingBuilder withRecipient(@Nullable String name, @NotNull String singleAddress, @Nullable Message.RecipientType recipientType);
+	
+	/**
 	 * Adds a new {@link Recipient} instance with the given name, address and {@link Message.RecipientType}.
 	 * <p>
 	 * Note that the email address must be a single address according to RFC2822 format. Name can be provided explicitly or as part of the RFC2822 email
@@ -853,7 +858,7 @@ public interface EmailPopulatingBuilder {
 	 * @param recipientType Optional type of recipient. This is needed for TO, CC and BCC, but not for <em>bounceTo</em>, <em>returnReceiptTo</em>,
 	 *                      <em>replyTo</em>, <em>from</em> etc.
 	 */
-	EmailPopulatingBuilder withRecipient(@Nullable String name, @NotNull String singleAddress, @Nullable Message.RecipientType recipientType);
+	EmailPopulatingBuilder withRecipient(@Nullable String name, boolean fixedName, @NotNull String singleAddress, @Nullable Message.RecipientType recipientType);
 	
 	/**
 	 * Adds a new {@link Recipient} instance as copy of the provided recipient (copying name, address and {@link Message.RecipientType}).
