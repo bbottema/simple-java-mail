@@ -1393,7 +1393,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @NotNull Collection<String> oneOrMoreAddressesEach, @Nullable RecipientType recipientType) {
 		for (String oneOrMoreAddresses : oneOrMoreAddressesEach) {
 			for (String emailAddress : extractEmailAddresses(oneOrMoreAddresses)) {
-				withRecipient(MiscUtil.interpretRecipient(name, fixedName, emailAddress, recipientType));
+				withRecipient(name, fixedName, emailAddress, recipientType);
 			}
 		}
 		return this;
@@ -1471,7 +1471,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withRecipient(@Nullable final String name, @NotNull final String singleAddress, @Nullable final RecipientType recipientType) {
-		recipients.add(MiscUtil.interpretRecipient(name, true, singleAddress, recipientType));
+		return withRecipient(name, true, singleAddress, recipientType);
+	}
+	
+	/**
+	 * @see EmailPopulatingBuilder#withRecipient(String, boolean, String, RecipientType)
+	 */
+	@Override
+	public EmailPopulatingBuilder withRecipient(@Nullable final String name, boolean fixedName, @NotNull final String singleAddress, @Nullable final RecipientType recipientType) {
+		try {
+			recipients.add(MiscUtil.interpretRecipient(name, fixedName, singleAddress, recipientType));
+		} catch (Exception e){
+			// assume recipient was malformed and simply ignore it
+		}
 		return this;
 	}
 	
@@ -1829,7 +1841,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
 	public EmailPopulatingBuilder encryptWithSmime(@NotNull final String pemFile) {
 		try {
-			return encryptWithSmime(new FileInputStream(new File(pemFile)));
+			return encryptWithSmime(new FileInputStream(pemFile));
 		} catch (FileNotFoundException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, pemFile), e);
 		}
