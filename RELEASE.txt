@@ -3,12 +3,13 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.6.0</version>
+    <version>6.6.1</version>
 </dependency>
 
-v6.6.0 (1-June-2021)
+v6.6.0 - v6.6.1
 
-- #320: Added default S/MIME signing to Mailer lever and fixed crippling performance bug
+- v6.6.1 (12-June-2021): #321: Ignore malformed recipient addresses and continue parsing email data
+- v6.6.0 (1-June-2021): #320: Added default S/MIME signing to Mailer lever and fixed crippling performance bug
 
 
 v6.5.0 - v6.5.4
