@@ -12,10 +12,18 @@ import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.MethodUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.TestOnly;
+import org.simplejavamail.internal.clisupport.CliDataLocator;
+import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
+import org.simplejavamail.internal.util.MiscUtil;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,7 +39,33 @@ import static org.simplejavamail.internal.util.StringUtil.padRight;
 public final class TherapiJavadocHelper {
 
 	private static final Pattern LEGACY_PARAMETER_TYPE_PATTERN = compile("(?:.*:: )?([\\w.]+)\\)?");
-	
+
+	// using a pregenerated cache file shaves off 10% runtime
+	private static final File THERAPI_DATAFILE = new File(CliDataLocator.locateTherapiDataFile());
+	// this caches roughly halves runtime (doubles performance)
+	private static final Map<String, MethodJavadoc> THERAPI_CACHE = loadTherapiCache();
+
+	private static Map<String, MethodJavadoc> loadTherapiCache() {
+		if (THERAPI_DATAFILE.exists()) {
+			try {
+				return SerializationUtil.deserialize(MiscUtil.readFileBytes(THERAPI_DATAFILE));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			return new HashMap<>();
+		}
+	}
+
+	@TestOnly
+	public static void persistCache() {
+		try {
+			MiscUtil.writeFileBytes(THERAPI_DATAFILE, SerializationUtil.serialize(THERAPI_CACHE));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	private TherapiJavadocHelper() {
 	}
 	
@@ -65,12 +99,12 @@ public final class TherapiJavadocHelper {
 	@NotNull
 	static String getJavadocMainDescription(Method m, int nestingDepth) {
 		return new JavadocForCliFormatter(nestingDepth)
-				.format(getMethodJavadoc(m).getComment());
+				.format(getMethodJavadocCached(m).getComment());
 	}
 	
 	@NotNull
 	public static List<DocumentedMethodParam> getParamDescriptions(Method m) {
-		List<ParamJavadoc> params = getMethodJavadoc(m).getParams();
+		List<ParamJavadoc> params = getMethodJavadocCached(m).getParams();
 		if (m.getParameterTypes().length != params.size()) {
 			throw new AssertionError("Number of documented parameters doesn't match with Method's actual parameters: " + m);
 		}
@@ -90,7 +124,7 @@ public final class TherapiJavadocHelper {
 		int longestLink = 0;
 		boolean allDescriptionsOnNextLine = false;
 		
-		for (SeeAlsoJavadoc seeAlsoJavadoc : getMethodJavadoc(m).getSeeAlso()) {
+		for (SeeAlsoJavadoc seeAlsoJavadoc : getMethodJavadocCached(m).getSeeAlso()) {
 			switch (seeAlsoJavadoc.getSeeAlsoType()) {
 				case STRING_LITERAL:
 					seeAlsoReferences.add(seeAlsoJavadoc.getStringLiteral());
@@ -133,10 +167,20 @@ public final class TherapiJavadocHelper {
 		return seeAlsoReferences;
 	}
 
+	@NotNull
+	private static MethodJavadoc getMethodJavadocCached(final Method m) {
+		final String methodKey = m.toString();
+		if (!THERAPI_CACHE.containsKey(methodKey)) {
+			THERAPI_CACHE.put(methodKey, getMethodJavadoc(m));
+		}
+		return THERAPI_CACHE.get(methodKey);
+	}
+
 	/**
 	 * @deprecated this is a workaround for https://github.com/dnault/therapi-runtime-javadoc/issues/50
 	 */
 	@Deprecated
+	@NotNull
 	private static MethodJavadoc getMethodJavadoc(final Method m) {
 		ClassJavadoc javadoc = RuntimeJavadoc.getJavadoc(m.getDeclaringClass());
 		for (MethodJavadoc methodJavadoc : javadoc.getMethods()) {
@@ -174,7 +218,7 @@ public final class TherapiJavadocHelper {
 		List<String> basicExplanationPlusFurtherDetails = asList(javadoc.split("\n", 2));
 		return colorizeDescriptions(basicExplanationPlusFurtherDetails);
 	}
-	
+
 	public static class DocumentedMethodParam {
 		@NotNull private final String name;
 		@NotNull private final String javadoc;

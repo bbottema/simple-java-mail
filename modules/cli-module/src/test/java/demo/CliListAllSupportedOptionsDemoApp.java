@@ -1,7 +1,12 @@
 package demo;
 
 import org.simplejavamail.internal.clisupport.CliSupport;
+import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 
+/**
+ * This is a general smokescreen test as well as a deployment step to make sure cli.data and
+ * therapi.data are generated when packaging CLI artifacts.
+ */
 public class CliListAllSupportedOptionsDemoApp {
 	
 	/**
@@ -10,6 +15,7 @@ public class CliListAllSupportedOptionsDemoApp {
 	public static void main(String[] args) {
 		long startMs = System.currentTimeMillis();
 		CliSupport.listUsagesForAllOptions();
-		System.out.println(((System.currentTimeMillis() - startMs) / 1000d) + "ms");
+		System.out.println(((System.currentTimeMillis() - startMs) / 1000d) + "s");
+		TherapiJavadocHelper.persistCache();
 	}
 }

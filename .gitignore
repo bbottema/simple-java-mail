@@ -3,5 +3,7 @@
 /target
 /modules/jacoco-aggregator-module/target
 /modules/jacoco-aggregator-module/*.iml
+/modules/cli-module/src/main/resources/cli.data
+/modules/cli-module/src/main/resources/therapi.data
 *.iml
 *.log

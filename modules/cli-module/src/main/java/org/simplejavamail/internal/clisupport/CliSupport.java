@@ -27,7 +27,7 @@ public class CliSupport {
 
 	private static final int CONSOLE_TEXT_WIDTH = 150;
 
-	private static final File CLI_DATAFILE = new File(CliDataLocator.determinelocateCLIDataFile());
+	private static final File CLI_DATAFILE = new File(CliDataLocator.locateCLIDataFile());
 
 	private static final Class<?>[] RELEVANT_BUILDER_ROOT_API = new Class[] { EmailStartingBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class };
 	private static final List<CliDeclaredOptionSpec> DECLARED_OPTIONS = produceCliDeclaredOptionSpec();

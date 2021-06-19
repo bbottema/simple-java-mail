@@ -133,6 +133,25 @@
     <build>
         <plugins>
             <plugin>
+                <!-- always trigger CliListAllSupportedOptionsDemoApp when packaging CLI artifacts, generating cli data files -->
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>generateCliData</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>demo.CliListAllSupportedOptionsDemoApp</mainClass>
+                    <classpathScope>test</classpathScope>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>appassembler-maven-plugin</artifactId>
                 <version>1.8.1</version>
