@@ -18,12 +18,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -228,10 +228,23 @@ public final class MiscUtil {
 	}
 
 	public static String readFileContent(@NotNull final File file) throws IOException {
+		return new String(readFileBytes(file), UTF_8);
+	}
+
+	public static byte[] readFileBytes(@NotNull final File file) throws IOException {
 		if (!file.exists()) {
 			throw new IllegalArgumentException(format("File not found: %s", file));
 		}
-		return new String(Files.readAllBytes(file.toPath()), UTF_8);
+		return Files.readAllBytes(file.toPath());
+	}
+
+	public static void writeFileBytes(@NotNull final File file, final byte[] bytes) throws IOException {
+		try {
+			Files.createFile(file.toPath());
+		} catch (FileAlreadyExistsException e) {
+			// ignore
+		}
+		Files.write(file.toPath(), bytes);
 	}
 
 	@Nullable
