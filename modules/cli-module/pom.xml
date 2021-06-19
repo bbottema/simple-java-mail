@@ -87,6 +87,20 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- needed for converting the CLI options structure to binary format for quicker CLI startup -->
+        <dependency>
+            <groupId>com.esotericsoftware</groupId>
+            <artifactId>kryo</artifactId>
+            <version>5.0.0-RC1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency><!-- adds support for deserializing UnmodifiableCollection -->
+            <groupId>de.javakaffee</groupId>
+            <artifactId>kryo-serializers</artifactId>
+            <version>0.45</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
