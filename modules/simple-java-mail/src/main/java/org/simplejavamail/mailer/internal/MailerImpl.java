@@ -360,6 +360,19 @@ public class MailerImpl implements Mailer {
 		return ModuleLoader.loadBatchModule().shutdownConnectionPools(session);
 	}
 
+	@Override
+	public String toString() {
+		final StringBuilder sb = new StringBuilder("MailerImpl {");
+		sb.append("\n\tserverConfig=").append(serverConfig);
+		sb.append(",\n\ttransportStrategy=").append(transportStrategy);
+		sb.append(",\n\tproxyConfig=").append(proxyConfig);
+		sb.append(",\n\toperationalConfig=").append(operationalConfig);
+		sb.append(",\n\temailGovernance=").append(emailGovernance);
+		sb.append(",\n\tsession=").append(session.getProperties());
+		sb.append("\n}");
+		return sb.toString();
+	}
+
 	/**
 	 * @see Mailer#getSession()
 	 */
