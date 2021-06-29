@@ -2357,7 +2357,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Nullable
 	public byte[] getDkimPrivateKeyData() {
-		return dkimPrivateKeyData;
+		return dkimPrivateKeyData != null ? dkimPrivateKeyData.clone() : null;
 	}
 	
 	/**

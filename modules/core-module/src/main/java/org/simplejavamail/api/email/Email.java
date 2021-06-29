@@ -543,7 +543,7 @@ public class Email implements Serializable {
 	 */
 	@Nullable
 	public byte[] getDkimPrivateKeyData() {
-		return dkimPrivateKeyData;
+		return dkimPrivateKeyData != null ? dkimPrivateKeyData.clone() : null;
 	}
 	
 	/**
