@@ -50,9 +50,9 @@ class CliCommandLineConsumer {
 			final int mandatoryParameters = MiscUtil.countMandatoryParameters(sourceMethod);
 			final List<String> providedStringValues = cliOption.getValue().getValue();
             assumeTrue(providedStringValues.size() >= mandatoryParameters,
-                    format("provided %s arguments, but need at least %s", providedStringValues.size(), mandatoryParameters));
+                    format("provided %s arguments for '%s', but need at least %s", providedStringValues.size(), cliOption.getKey(), mandatoryParameters));
             assumeTrue(providedStringValues.size() <= sourceMethod.getParameterTypes().length,
-                    format("provided %s arguments, but need at most %s", providedStringValues.size(), sourceMethod.getParameterTypes().length));
+                    format("provided %s arguments for '%s', but need at most %s", providedStringValues.size(), cliOption.getKey(), sourceMethod.getParameterTypes().length));
 			receivedOptions.add(new CliReceivedOptionData(cliOption.getKey(), convertProvidedOptionValues(providedStringValues, sourceMethod)));
 			LOGGER.debug("\tconverted option values: {}", getLast(receivedOptions).getProvidedOptionValues());
         }

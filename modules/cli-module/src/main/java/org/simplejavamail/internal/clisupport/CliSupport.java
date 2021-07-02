@@ -37,8 +37,8 @@ public class CliSupport {
 		try {
 			if (!CLI_DATAFILE.exists()) {
 				LOGGER.info("Initial cli.data not found, writing to (one time action): {}", CLI_DATAFILE);
-				List<CliDeclaredOptionSpec> serializable = generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
-				MiscUtil.writeFileBytes(CLI_DATAFILE, SerializationUtil.serialize(serializable));
+				List<CliDeclaredOptionSpec> declaredOptions = generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
+				MiscUtil.writeFileBytes(CLI_DATAFILE, SerializationUtil.serialize(declaredOptions));
 			}
 			return SerializationUtil.deserialize(MiscUtil.readFileBytes(CLI_DATAFILE));
 		} catch (IOException e) {

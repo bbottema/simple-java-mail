@@ -37,13 +37,13 @@ import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -102,16 +102,15 @@ public final class BuilderApiToPicocliCommandsMapper {
 	
 	@NotNull
 	static List<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(@SuppressWarnings("SameParameterValue") Class<?>[] relevantBuilderRootApi) {
-		final List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
+		final Set<CliDeclaredOptionSpec> cliOptions = new TreeSet<>();
 		final Set<Class<?>> processedApiNodes = new HashSet<>();
 		for (Class<?> apiRoot : relevantBuilderRootApi) {
 			generateOptionsFromBuilderApiChain(apiRoot, processedApiNodes, cliOptions);
 		}
-		Collections.sort(cliOptions);
-		return cliOptions;
+		return new ArrayList<>(cliOptions);
 	}
 	
-	private static void generateOptionsFromBuilderApiChain(Class<?> apiNode, Set<Class<?>> processedApiNodes, List<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
+	private static void generateOptionsFromBuilderApiChain(Class<?> apiNode, Set<Class<?>> processedApiNodes, Set<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
 		Class<?> apiNodeChainClass = apiNode;
 		while (apiNodeChainClass != null && apiNodeChainClass.getPackage().getName().contains("org.simplejavamail")) {
 			for (Class<?> apiInterface : apiNodeChainClass.getInterfaces()) {
@@ -126,7 +125,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	 * Produces all the --option Picocli-based params for specific API class. <br>
 	 * Recursive for returned API class (since builders can return different builders.
 	 */
-	private static void generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes, List<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
+	private static void generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes, Set<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
 		if (processedApiNodes.contains(apiNode)) {
 			return;
 		}

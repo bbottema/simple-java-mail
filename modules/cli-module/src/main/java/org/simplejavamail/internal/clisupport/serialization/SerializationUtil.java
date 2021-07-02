@@ -3,8 +3,6 @@ package org.simplejavamail.internal.clisupport.serialization;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.jetbrains.annotations.NotNull;
@@ -29,18 +27,8 @@ public class SerializationUtil {
 		Kryo kryo = new Kryo();
 		kryo.setRegistrationRequired(false);
 		kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
-//		final FieldSerializer.FieldSerializerConfig config = new FieldSerializer.FieldSerializerConfig();
-//		config.setSerializeTransient(true);
 		UnmodifiableCollectionsSerializer.registerSerializers(kryo);
 		return kryo;
-	}
-
-	private static <T> void registerClassSerializer(final Kryo kryo, final FieldSerializer.FieldSerializerConfig config, Class<T> type) {
-		kryo.register(type, new FieldSerializer<T>(kryo, type, config));
-	}
-
-	private static <T> void registerClassJavaSerializer(final Kryo kryo, Class<T> type) {
-		kryo.register(type, new JavaSerializer());
 	}
 
 	@NotNull
