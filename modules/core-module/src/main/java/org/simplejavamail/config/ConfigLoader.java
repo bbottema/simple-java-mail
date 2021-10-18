@@ -102,7 +102,7 @@ public final class ConfigLoader {
 	/**
 	 * This pattern recognizes extra property lines that should be loaded directly into JavaMail on the Session object.
 	 */
-	private static final Pattern EXTRA_PROPERTY_PATTERN = compile("^simplejavamail\\.extraproperties\\.(?<actualProperty>.*)");
+	private static final Pattern EXTRA_PROPERTY_PATTERN = compile("^simplejavamail\\.extraproperties\\.(.*)");
 
 	/**
 	 * Initially try to load properties from "{@value #DEFAULT_CONFIG_FILENAME}".
@@ -407,7 +407,7 @@ public final class ConfigLoader {
 				final Matcher matcher = EXTRA_PROPERTY_PATTERN.matcher((String) propertyKey.getKey());
 				if (matcher.matches()) {
 					assumeTrue(propertyKey.getValue() instanceof String, "Simple Java Mail property value can only be of type String");
-					extraProperties.put(matcher.group("actualProperty"), (String) propertyKey.getValue());
+					extraProperties.put(matcher.group(1), (String) propertyKey.getValue());
 					if (filePropertiesLeft != null) {
 						filePropertiesLeft.remove(propertyKey.getKey());
 					}
