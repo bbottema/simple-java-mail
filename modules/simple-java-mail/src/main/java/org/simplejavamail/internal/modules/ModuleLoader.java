@@ -10,7 +10,9 @@ import java.util.Map;
 import static java.lang.String.format;
 
 public class ModuleLoader {
-	
+
+	private static final boolean BATCH_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.batchsupport.BatchSupport");
+	private static final boolean SMIME_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
 	private static final Map<Class, Object> LOADED_MODULES = new HashMap<>();
 
 	// used from junit tests
@@ -82,11 +84,11 @@ public class ModuleLoader {
 	}
 
 	public static boolean batchModuleAvailable() {
-		return !FORCED_DISABLED_MODULES.contains(BatchModule.class) && MiscUtil.classAvailable("org.simplejavamail.internal.batchsupport.BatchSupport");
+		return !FORCED_DISABLED_MODULES.contains(BatchModule.class) && BATCH_SUPPORT_CLASS_AVAILABLE;
 	}
 
 	public static boolean smimeModuleAvailable() {
-		return !FORCED_DISABLED_MODULES.contains(SMIMEModule.class) && MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
+		return !FORCED_DISABLED_MODULES.contains(SMIMEModule.class) && SMIME_SUPPORT_CLASS_AVAILABLE;
 	}
 
 	@SuppressWarnings("unchecked")
