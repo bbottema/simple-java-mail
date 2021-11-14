@@ -36,8 +36,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.file.FileSystems;
-import java.nio.file.PathMatcher;
 import java.util.Map;
 import java.util.Properties;
 
@@ -58,9 +56,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 @SuppressWarnings("WeakerAccess")
 public final class EmailConverter {
 	
-	private static final PathMatcher EML_PATH_MATCHER = FileSystems.getDefault().getPathMatcher("glob:**/*.eml");
-	private static final PathMatcher MSG_PATH_MATCHER = FileSystems.getDefault().getPathMatcher("glob:**/*.msg");
-
 	private EmailConverter() {
 		// util / helper class
 	}
@@ -172,9 +167,6 @@ public final class EmailConverter {
 	@NotNull
 	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@NotNull final File msgFile, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgFile, "msgFile");
-		if (!MSG_PATH_MATCHER.matches(msgFile.toPath())) {
-			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_OUTLOOK, msgFile));
-		}
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
 				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl(), InternalEmailConverterImpl.INSTANCE);
 		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config);
@@ -469,9 +461,6 @@ public final class EmailConverter {
 	 * Delegates to {@link #emlToMimeMessage(InputStream, Session)}.
 	 */
 	public static MimeMessage emlToMimeMessage(@NotNull final File emlFile, @NotNull final Session session) {
-		if (!EML_PATH_MATCHER.matches(emlFile.toPath())) {
-			throw new EmailConverterException(format(EmailConverterException.FILE_NOT_RECOGNIZED_AS_EML, emlFile));
-		}
 		try {
 			return emlToMimeMessage(new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile")), session);
 		} catch (final FileNotFoundException e) {
