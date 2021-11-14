@@ -92,4 +92,30 @@ public class EmailConverterTest {
 			}
 		});
 	}
+	
+	@Test
+	public void testMimeMessageWithNestedMessages()
+			throws Exception {
+		SecureTestDataHelper.runTestWithSecureTestData(new SecureTestDataHelper.PasswordsConsumer() {
+			@Override
+			public void accept(final Properties passwords) {
+				String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/nested-mimemessages-without-name-email/4990344.eml";
+				Email email = EmailConverter.emlToEmail(new File(fileNameMsg));
+				assertThat(email.getAttachments()).extracting("name").containsExactly("ForwardedMessage.eml", "ForwardedMessage.eml");
+			}
+		});
+	}
+	
+	@Test
+	public void testOutlookMessageWithNestedMessages()
+			throws Exception {
+		SecureTestDataHelper.runTestWithSecureTestData(new SecureTestDataHelper.PasswordsConsumer() {
+			@Override
+			public void accept(final Properties passwords) {
+				String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/nested-mimemessages-without-name-email/4990344.msg";
+				Email email = EmailConverter.outlookMsgToEmail(new File(fileNameMsg));
+				assertThat(email.getAttachments()).extracting("name").containsExactly("NDPB.eml", "Voicemail .eml");
+			}
+		});
+	}
 }
