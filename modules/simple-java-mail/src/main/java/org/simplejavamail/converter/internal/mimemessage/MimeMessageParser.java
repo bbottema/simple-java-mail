@@ -4,6 +4,7 @@ import com.sun.mail.handlers.text_plain;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.util.NaturalEntryKeyComparator;
 import org.simplejavamail.internal.util.Preconditions;
 
 import javax.activation.ActivationDataFlavor;
@@ -29,6 +30,7 @@ import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,7 +40,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -160,13 +164,13 @@ public final class MimeMessageParser {
 			final DataSource ds = createDataSource(currentPart, fetchAttachmentData);
 			// if the diposition is not provided, for now the part should be treated as inline (later non-embedded inline attachments are moved)
 			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-				parsedComponents.attachmentList.put(parseResourceNameOrUnnamed(parseContentID(currentPart), parseFileName(currentPart)), ds);
+				parsedComponents.attachmentList.add(new SimpleEntry<>(parseResourceNameOrUnnamed(parseContentID(currentPart), parseFileName(currentPart)), ds));
 			} else if (disposition == null || Part.INLINE.equalsIgnoreCase(disposition)) {
 				if (parseContentID(currentPart) != null) {
 					parsedComponents.cidMap.put(parseContentID(currentPart), ds);
 				} else {
 					// contentID missing -> treat as standard attachment
-					parsedComponents.attachmentList.put(parseResourceNameOrUnnamed(null, parseFileName(currentPart)), ds);
+					parsedComponents.attachmentList.add(new SimpleEntry<>(parseResourceNameOrUnnamed(null, parseFileName(currentPart)), ds));
 				}
 			} else {
 				throw new IllegalStateException("invalid attachment type");
@@ -549,14 +553,15 @@ public final class MimeMessageParser {
 			Map.Entry<String, DataSource> cidEntry = it.next();
 			String cid = extractCID(cidEntry.getKey());
 			if (!htmlContent.contains("cid:" + cid)) {
-				parsedComponents.attachmentList.put(cid, cidEntry.getValue());
+				parsedComponents.attachmentList.add(new SimpleEntry<>(cid, cidEntry.getValue()));
 				it.remove();
 			}
 		}
 	}
 
 	public static class ParsedMimeMessageComponents {
-		final Map<String, DataSource> attachmentList = new TreeMap<>();
+		@SuppressWarnings("unchecked")
+		final Set<Map.Entry<String, DataSource>> attachmentList = new TreeSet<>(NaturalEntryKeyComparator.INSTANCE);
 		final Map<String, DataSource> cidMap = new TreeMap<>();
 		private final Map<String, Collection<Object>> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
@@ -580,7 +585,7 @@ public final class MimeMessageParser {
 			return messageId;
 		}
 
-		public Map<String, DataSource> getAttachmentList() {
+		public Set<Map.Entry<String, DataSource>> getAttachmentList() {
 			return attachmentList;
 		}
 
