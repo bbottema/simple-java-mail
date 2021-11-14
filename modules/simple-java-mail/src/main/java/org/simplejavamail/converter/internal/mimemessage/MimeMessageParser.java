@@ -136,10 +136,8 @@ public final class MimeMessageParser {
 		final String disposition = parseDisposition(currentPart);
 
 		if (isMimeType(currentPart, "text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			//noinspection RedundantCast
 			parsedComponents.plainContent.append((Object) parseContent(currentPart));
 		} else if (isMimeType(currentPart, "text/html") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			//noinspection RedundantCast
 			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
 		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.calendarContent = parseCalendarContent(currentPart);
