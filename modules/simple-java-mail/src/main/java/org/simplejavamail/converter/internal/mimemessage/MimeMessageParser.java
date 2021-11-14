@@ -206,7 +206,15 @@ public final class MimeMessageParser {
 	@SuppressWarnings("WeakerAccess")
 	public static String parseFileName(@NotNull final Part currentPart) {
 		try {
-			return currentPart.getFileName();
+			if (currentPart.getFileName() != null) {
+				return currentPart.getFileName();
+			} else {
+				// replicate behavior from Thunderbird
+				if (Arrays.asList(currentPart.getHeader("Content-Type")).contains("message/rfc822")) {
+					return "ForwardedMessage.eml";
+				}
+			}
+			return "UnknownAttachment";
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_FILENAME, e);
 		}
