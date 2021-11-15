@@ -1,5 +1,6 @@
 package org.simplejavamail.api.email;
 
+import com.google.code.regexp.Pattern;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
@@ -20,9 +21,9 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
-import static java.util.regex.Pattern.compile;
+import static com.google.code.regexp.Pattern.compile;
+
 
 /**
  * Fluent interface Builder for populating {@link Email} instances. An instance of this builder can only be obtained through one of the builder

@@ -1,5 +1,6 @@
 package org.simplejavamail.email.internal;
 
+import com.google.code.regexp.Matcher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,7 +40,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
