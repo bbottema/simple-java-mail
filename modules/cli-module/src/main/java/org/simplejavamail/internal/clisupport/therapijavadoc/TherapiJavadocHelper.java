@@ -155,10 +155,10 @@ public final class TherapiJavadocHelper {
 		// add padding for readability
 		if (longestLink > 0) {
 			for (int i = 0; i < seeAlsoReferences.size(); i++) {
-				Matcher matcher = compile("\\[\\[(?<link>.+?)]](?<description>.*)").matcher(seeAlsoReferences.get(i));
+				Matcher matcher = compile("\\[\\[(.+?)]](.*)").matcher(seeAlsoReferences.get(i));
 				if (matcher.find()) {
 					String newlineFixer = seeAlsoReferences.size() > 1 && allDescriptionsOnNextLine ? "\n\t" : "";
-					String paddedReplacement = padRight(matcher.group("link"), longestLink) + newlineFixer + matcher.group("description");
+					String paddedReplacement = padRight(matcher.group(1), longestLink) + newlineFixer + matcher.group(2);
 					seeAlsoReferences.set(i, matcher.replaceFirst(paddedReplacement));
 				}
 			}

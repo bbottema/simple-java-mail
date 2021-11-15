@@ -38,7 +38,7 @@ public interface EmailPopulatingBuilder {
 	 * Regular Expression to find all {@code <img src="...">} entries in an HTML document.It needs to cater for various things, like more whitespaces including newlines on any place, HTML is not case
 	 * sensitive and there can be arbitrary text between "IMG" and "SRC" like IDs and other things.
 	 */
-	Pattern IMG_SRC_PATTERN = compile("(?<imageTagStart><[Ii][Mm][Gg]\\s*[^>]*?\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])(?<src>[^\"']+?)(?<imageSrcEnd>[\"'])");
+	Pattern IMG_SRC_PATTERN = compile("(<[Ii][Mm][Gg]\\s*[^>]*?\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])([^\"']+?)([\"'])");
 
 	/**
 	 * Validated DKIM values and then delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument.

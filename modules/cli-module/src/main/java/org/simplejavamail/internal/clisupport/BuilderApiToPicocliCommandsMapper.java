@@ -245,10 +245,10 @@ public final class BuilderApiToPicocliCommandsMapper {
 	}
 	
 	private static int determineJavadocLengthUntilExamples(String javadoc, boolean includeExamplesTextLength) {
-		final Pattern PATTERN_EXAMPLES_MARKER = compile("(?i)(?s).*(?<examples> examples?:\\s*)"); // https://regex101.com/r/UMMmlV/3
+		final Pattern PATTERN_EXAMPLES_MARKER = compile("(?i)(?s).*( examples?:\\s*)"); // https://regex101.com/r/UMMmlV/3
 		final Matcher matcher = PATTERN_EXAMPLES_MARKER.matcher(javadoc);
 		return (matcher.find())
-				? matcher.end() - (!includeExamplesTextLength ? matcher.group("examples").length() : 0)
+				? matcher.end() - (!includeExamplesTextLength ? matcher.group(3).length() : 0)
 				: javadoc.length();
 	}
 

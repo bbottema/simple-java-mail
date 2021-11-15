@@ -424,7 +424,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 
 			final Matcher matcher = IMG_SRC_PATTERN.matcher(this.textHTML);
 			while (matcher.find()) {
-				final String srcLocation = matcher.group("src");
+				final String srcLocation = matcher.group(2);
 				if (!srcLocation.startsWith("cid:")) {
 					if (!generatedCids.containsKey(srcLocation)) {
 						final DataSource dataSource = resolveDynamicEmbeddedImageDataSource(srcLocation);
@@ -435,7 +435,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 						}
 					}
 					if (generatedCids.containsKey(srcLocation)) {
-						final String imgSrcReplacement = matcher.group("imageTagStart") + "cid:" + generatedCids.get(srcLocation) + matcher.group("imageSrcEnd");
+						final String imgSrcReplacement = matcher.group(1) + "cid:" + generatedCids.get(srcLocation) + matcher.group(3);
 						matcher.appendReplacement(stringBuffer, quoteReplacement(imgSrcReplacement));
 					}
 				}

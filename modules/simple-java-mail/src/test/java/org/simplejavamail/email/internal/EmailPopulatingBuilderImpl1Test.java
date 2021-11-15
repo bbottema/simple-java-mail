@@ -1280,12 +1280,12 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	private void verifyEmbeddedImage(final Email email, String expectedContainsWithContent)
 			throws IOException {
-		final String cidRegex = "<img src=\"cid:cid_name\"/><img src=\"cid:(?<cid>[a-z]{10})\"/>";
+		final String cidRegex = "<img src=\"cid:cid_name\"/><img src=\"cid:([a-z]{10})\"/>";
 		assertThat(email.getHTMLText()).matches(cidRegex);
 		final Matcher matcher = Pattern.compile(cidRegex).matcher(email.getHTMLText());
 		assertThat(matcher.find()).isTrue();
 		assertThat(email.getEmbeddedImages()).hasSize(1);
-		assertThat(email.getEmbeddedImages().get(0).getName()).isEqualTo(matcher.group("cid"));
+		assertThat(email.getEmbeddedImages().get(0).getName()).isEqualTo(matcher.group(1));
 		assertThat(email.getEmbeddedImages().get(0).readAllData()).contains(expectedContainsWithContent);
 	}
 
