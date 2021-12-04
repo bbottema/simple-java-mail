@@ -1,12 +1,10 @@
 package org.simplejavamail.internal.util;
 
-import org.assertj.core.api.ThrowableAssert;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.simplejavamail.api.email.Recipient;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.AbstractMap;
@@ -15,7 +13,6 @@ import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class MiscUtilTest {
 	@Test
@@ -158,22 +155,6 @@ public class MiscUtilTest {
 		assertThat(MiscUtil.countMandatoryParameters(methodWithZeroMandatoryParameters)).isEqualTo(0);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithOnlyMandatoryParameters)).isEqualTo(1);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithMixedMandatoryParameters)).isEqualTo(1);
-	}
-
-	@Test
-	public void testReadFileContent()
-			throws IOException {
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			@Override
-			public void call()
-					throws Throwable {
-				MiscUtil.readFileContent(new File("moo"));
-			}
-		})
-				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("File not found: moo");
-
-		assertThat(MiscUtil.readFileContent(new File("src/test/resources/ignore.properties"))).contains("simplejavamail.defaults.bcc.address=moo");
 	}
 
 	@Test

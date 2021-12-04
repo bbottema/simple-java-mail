@@ -15,6 +15,7 @@ import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.CertificationUtil;
+import org.simplejavamail.internal.util.FileUtil;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 
@@ -642,7 +643,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.OptionNameOverride("withPlainTextFromFile")
 	public EmailPopulatingBuilder withPlainText(@NotNull final File textFile) {
 		try {
-			return withPlainText(MiscUtil.readFileContent(textFile));
+			return withPlainText(FileUtil.readFileContent(textFile));
 		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, textFile), e);
 		}
@@ -664,7 +665,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.OptionNameOverride("prependTextFromFile")
 	public EmailPopulatingBuilder prependText(@NotNull final File textFile) {
 		try {
-			return prependText(MiscUtil.readFileContent(textFile));
+			return prependText(FileUtil.readFileContent(textFile));
 		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, textFile), e);
 		}
@@ -686,7 +687,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.OptionNameOverride("appendTextFromFile")
 	public EmailPopulatingBuilder appendText(@NotNull final File textFile) {
 		try {
-			return appendText(MiscUtil.readFileContent(textFile));
+			return appendText(FileUtil.readFileContent(textFile));
 		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, textFile), e);
 		}
@@ -708,7 +709,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.OptionNameOverride("withHTMLTextFromFile")
 	public EmailPopulatingBuilder withHTMLText(@NotNull final File textHTMLFile) {
 		try {
-			return withHTMLText(MiscUtil.readFileContent(textHTMLFile));
+			return withHTMLText(FileUtil.readFileContent(textHTMLFile));
 		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLFile), e);
 		}
@@ -730,7 +731,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.OptionNameOverride("prependTextHTMLFromFile")
 	public EmailPopulatingBuilder prependTextHTML(@NotNull final File textHTMLFile) {
 		try {
-			return prependTextHTML(MiscUtil.readFileContent(textHTMLFile));
+			return prependTextHTML(FileUtil.readFileContent(textHTMLFile));
 		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLFile), e);
 		}
@@ -752,7 +753,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.OptionNameOverride("appendTextHTMLFromFile")
 	public EmailPopulatingBuilder appendTextHTML(@NotNull final File textHTMLFile) {
 		try {
-			return appendTextHTML(MiscUtil.readFileContent(textHTMLFile));
+			return appendTextHTML(FileUtil.readFileContent(textHTMLFile));
 		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLFile), e);
 		}
