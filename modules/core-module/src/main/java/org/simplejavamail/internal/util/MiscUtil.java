@@ -23,8 +23,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -225,26 +223,6 @@ public final class MiscUtil {
 			}
 		}
 		return false;
-	}
-
-	public static String readFileContent(@NotNull final File file) throws IOException {
-		return new String(readFileBytes(file), UTF_8);
-	}
-
-	public static byte[] readFileBytes(@NotNull final File file) throws IOException {
-		if (!file.exists()) {
-			throw new IllegalArgumentException(format("File not found: %s", file));
-		}
-		return Files.readAllBytes(file.toPath());
-	}
-
-	public static void writeFileBytes(@NotNull final File file, final byte[] bytes) throws IOException {
-		try {
-			Files.createFile(file.toPath());
-		} catch (FileAlreadyExistsException e) {
-			// ignore
-		}
-		Files.write(file.toPath(), bytes);
 	}
 
 	@Nullable

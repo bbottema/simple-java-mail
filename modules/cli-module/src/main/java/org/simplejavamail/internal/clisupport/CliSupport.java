@@ -7,7 +7,7 @@ import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
-import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -38,9 +38,9 @@ public class CliSupport {
 			if (!CLI_DATAFILE.exists()) {
 				LOGGER.info("Initial cli.data not found, writing to (one time action): {}", CLI_DATAFILE);
 				List<CliDeclaredOptionSpec> declaredOptions = generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
-				MiscUtil.writeFileBytes(CLI_DATAFILE, SerializationUtil.serialize(declaredOptions));
+				FileUtil.writeFileBytes(CLI_DATAFILE, SerializationUtil.serialize(declaredOptions));
 			}
-			return SerializationUtil.deserialize(MiscUtil.readFileBytes(CLI_DATAFILE));
+			return SerializationUtil.deserialize(FileUtil.readFileBytes(CLI_DATAFILE));
 		} catch (IOException e) {
 			throw new CliExecutionException(ERROR_INVOKING_BUILDER_API, e);
 		}

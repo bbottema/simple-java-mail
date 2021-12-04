@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
 import org.simplejavamail.internal.clisupport.CliDataLocator;
 import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
-import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.util.FileUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,7 +48,7 @@ public final class TherapiJavadocHelper {
 	private static Map<String, MethodJavadoc> loadTherapiCache() {
 		if (THERAPI_DATAFILE.exists()) {
 			try {
-				return SerializationUtil.deserialize(MiscUtil.readFileBytes(THERAPI_DATAFILE));
+				return SerializationUtil.deserialize(FileUtil.readFileBytes(THERAPI_DATAFILE));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -60,7 +60,7 @@ public final class TherapiJavadocHelper {
 	@TestOnly
 	public static void persistCache() {
 		try {
-			MiscUtil.writeFileBytes(THERAPI_DATAFILE, SerializationUtil.serialize(THERAPI_CACHE));
+			FileUtil.writeFileBytes(THERAPI_DATAFILE, SerializationUtil.serialize(THERAPI_CACHE));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
