@@ -8,7 +8,7 @@
         <groupId>org.simplejavamail</groupId>
         <artifactId>maven-master-project</artifactId>
         <!--suppress MavenPropertyInParent -->
-        <version>6.6.1</version>
+        <version>6.6.2</version>
         <relativePath>../../</relativePath>
     </parent>
 
@@ -85,6 +85,23 @@
             <version>${project.version}</version>
             <scope>runtime</scope>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- needed for converting the CLI options structure to binary format for quicker CLI startup -->
