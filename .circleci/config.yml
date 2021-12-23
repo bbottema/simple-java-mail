@@ -25,7 +25,7 @@ workflows:
           <<: *mvn-collect-artifacts-command
           filters:
             branches:
-              only: develop
+              only: master
 
       - github-maven-deploy/approve-deploy-patch-version:
           type: approval
