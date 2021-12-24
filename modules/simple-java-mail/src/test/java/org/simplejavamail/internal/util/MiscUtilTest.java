@@ -162,22 +162,22 @@ public class MiscUtilTest {
 	@Test
 	public void testReadFileContent()
 			throws IOException {
-		assertThatThrownBy(() -> MiscUtil.readFileContent(new File("moo")))
+		assertThatThrownBy(() -> FileUtil.readFileContent(new File("moo")))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("File not found: moo");
 
-		assertThat(MiscUtil.readFileContent(new File("src/test/resources/ignore.properties")))
+		assertThat(FileUtil.readFileContent(new File("src/test/resources/ignore.properties")))
 				.contains("simplejavamail.defaults.bcc.address=moo");
 	}
 
 	@Test
 	public void testWriteFileContent()
 			throws IOException {
-		MiscUtil.writeFileBytes(new File("target/test.file"), "This is a test".getBytes());
+		FileUtil.writeFileBytes(new File("target/test.file"), "This is a test".getBytes());
 
-		assertThat(MiscUtil.readFileBytes(new File("target/test.file")))
+		assertThat(FileUtil.readFileBytes(new File("target/test.file")))
 				.isEqualTo("This is a test".getBytes());
-		assertThat(MiscUtil.readFileContent(new File("target/test.file")))
+		assertThat(FileUtil.readFileContent(new File("target/test.file")))
 				.isEqualTo("This is a test");
 	}
 
