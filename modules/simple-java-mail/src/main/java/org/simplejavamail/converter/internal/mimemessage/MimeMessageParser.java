@@ -115,9 +115,16 @@ public final class MimeMessageParser {
 	}
 
 	/**
-	 * Extracts the content of a MimeMessage recursively.
+	 * Delegates to {@link #parseMimeMessage(MimeMessage, boolean)}.
 	 */
 	public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage) {
+		return parseMimeMessage(mimeMessage, true);
+	}
+
+	/**
+	 * Extracts the content of a MimeMessage recursively.
+	 */
+	public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage, boolean attachmentData) {
 		final ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
 		parsedComponents.messageId = parseMessageId(mimeMessage);
 		parsedComponents.sentDate = parseSentDate(mimeMessage);
@@ -127,12 +134,13 @@ public final class MimeMessageParser {
 		parsedComponents.bccAddresses.addAll(parseBccAddresses(mimeMessage));
 		parsedComponents.fromAddress = parseFromAddress(mimeMessage);
 		parsedComponents.replyToAddresses = parseReplyToAddresses(mimeMessage);
-		parseMimePartTree(mimeMessage, parsedComponents);
+		parseMimePartTree(mimeMessage, parsedComponents, attachmentData);
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		return parsedComponents;
 	}
 
-	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents) {
+	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents,
+			boolean attachmentData) {
 		for (final Header header : retrieveAllHeaders(currentPart)) {
 			parseHeader(header, parsedComponents);
 		}
@@ -149,10 +157,10 @@ public final class MimeMessageParser {
 		} else if (isMimeType(currentPart, "multipart/*")) {
 			final Multipart mp = parseContent(currentPart);
 			for (int i = 0, count = countBodyParts(mp); i < count; i++) {
-				parseMimePartTree(getBodyPartAtIndex(mp, i), parsedComponents);
+				parseMimePartTree(getBodyPartAtIndex(mp, i), parsedComponents, attachmentData);
 			}
 		} else {
-			final DataSource ds = createDataSource(currentPart);
+			final DataSource ds = createDataSource(currentPart, attachmentData);
 			// if the diposition is not provided, for now the part should be treated as inline (later non-embedded inline attachments are moved)
 			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 				parsedComponents.attachmentList.add(new SimpleEntry<>(parseResourceNameOrUnnamed(parseContentID(currentPart), parseFileName(currentPart)), ds));
@@ -373,16 +381,22 @@ public final class MimeMessageParser {
 	 * @return the DataSource
 	 */
 	@NotNull
-	private static DataSource createDataSource(@NotNull final MimePart part) {
+	private static DataSource createDataSource(@NotNull final MimePart part, boolean attachmentData) {
 		final DataHandler dataHandler = retrieveDataHandler(part);
 		final DataSource dataSource = dataHandler.getDataSource();
-		final String contentType = parseBaseMimeType(dataSource.getContentType());
-		final byte[] content = readContent(retrieveInputStream(dataSource));
-		final ByteArrayDataSource result = new ByteArrayDataSource(content, contentType);
-		final String dataSourceName = parseDataSourceName(part, dataSource);
 
-		result.setName(dataSourceName);
-		return result;
+		if (attachmentData) {
+			final String contentType = parseBaseMimeType(dataSource.getContentType());
+			final byte[] content = readContent(retrieveInputStream(dataSource));
+			final ByteArrayDataSource result = new ByteArrayDataSource(content, contentType);
+			final String dataSourceName = parseDataSourceName(part, dataSource);
+
+			result.setName(dataSourceName);
+			return result;
+		}
+		else {
+			return dataSource;
+		}
 	}
 
 	@SuppressWarnings("WeakerAccess")
