@@ -13,10 +13,12 @@ public class ModuleLoader {
 
 	private static final boolean BATCH_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.batchsupport.BatchSupport");
 	private static final boolean SMIME_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
+	
 	private static final Map<Class, Object> LOADED_MODULES = new HashMap<>();
 
 	// used from junit tests
 	private static final Collection<Class> FORCED_DISABLED_MODULES = new ArrayList<>();
+	private static final Collection<Class> FORCED_RECHECK_MODULES = new ArrayList<>();
 	
 	public static void clearLoadedModules() {
 		LOADED_MODULES.clear();
@@ -82,13 +84,19 @@ public class ModuleLoader {
 		}
 		return (BatchModule) LOADED_MODULES.get(BatchModule.class);
 	}
-
+	
 	public static boolean batchModuleAvailable() {
-		return !FORCED_DISABLED_MODULES.contains(BatchModule.class) && BATCH_SUPPORT_CLASS_AVAILABLE;
+		return !FORCED_DISABLED_MODULES.contains(BatchModule.class) &&
+				((FORCED_RECHECK_MODULES.contains(BatchModule.class) &&
+						MiscUtil.classAvailable("org.simplejavamail.internal.batchsupport.BatchSupport")) ||
+						BATCH_SUPPORT_CLASS_AVAILABLE);
 	}
-
+	
 	public static boolean smimeModuleAvailable() {
-		return !FORCED_DISABLED_MODULES.contains(SMIMEModule.class) && SMIME_SUPPORT_CLASS_AVAILABLE;
+		return !FORCED_DISABLED_MODULES.contains(SMIMEModule.class) &&
+				((FORCED_RECHECK_MODULES.contains(SMIMEModule.class) &&
+						MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport")) ||
+						SMIME_SUPPORT_CLASS_AVAILABLE);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -105,10 +113,17 @@ public class ModuleLoader {
 			throw new ModuleLoaderException(format(ModuleLoaderException.ERROR_LOADING_MODULE, moduleName), e);
 		}
 	}
-
+	
 	// used from junit tests (using reflection, because it's invisible in the core-module)
 	@SuppressWarnings("unused")
 	public static void _forceDisableBatchModule() {
 		FORCED_DISABLED_MODULES.add(BatchModule.class);
+	}
+	
+	// used from junit tests (using reflection, because it's invisible in the core-module)
+	@SuppressWarnings("unused")
+	public static void _forceRecheckModule() {
+		FORCED_DISABLED_MODULES.add(BatchModule.class);
+		FORCED_DISABLED_MODULES.add(SMIMEModule.class);
 	}
 }
