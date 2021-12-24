@@ -55,7 +55,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  */
 @SuppressWarnings("WeakerAccess")
 public final class EmailConverter {
-	
+
 	private EmailConverter() {
 		// util / helper class
 	}
@@ -84,8 +84,8 @@ public final class EmailConverter {
 	 * Delegates to {@link #mimeMessageToEmailBuilder(MimeMessage, Pkcs12Config, boolean)}.
 	 */
 	@NotNull
-	public static Email mimeMessageToEmail(@NotNull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config, boolean attachmentData) {
-		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, attachmentData).buildEmail();
+	public static Email mimeMessageToEmail(@NotNull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config, final boolean fetchAttachmentData) {
+		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, fetchAttachmentData).buildEmail();
 	}
 
 	/**
@@ -108,14 +108,13 @@ public final class EmailConverter {
 	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
 	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
 	 *                        (only needed when the message is encrypted rather than just signed).
-	 * @param attachmentData When false only the names of the attachments are retrieved but no data
+	 * @param fetchAttachmentData When false only the names of the attachments are retrieved but no data
 	 */
 	@NotNull
-	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@NotNull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config,
-			boolean attachmentData) {
+	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@NotNull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config, final boolean fetchAttachmentData) {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
 		final EmailPopulatingBuilder builder = EmailBuilder.ignoringDefaults().startingBlank();
-		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage, attachmentData);
+		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage, fetchAttachmentData);
 		return decryptAttachments(buildEmailFromMimeMessage(builder, parsed), mimeMessage, pkcs12Config);
 	}
 

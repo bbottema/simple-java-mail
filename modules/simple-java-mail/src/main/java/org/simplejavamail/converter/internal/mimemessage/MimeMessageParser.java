@@ -124,7 +124,7 @@ public final class MimeMessageParser {
 	/**
 	 * Extracts the content of a MimeMessage recursively.
 	 */
-	public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage, boolean attachmentData) {
+	public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage, boolean fetchAttachmentData) {
 		final ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
 		parsedComponents.messageId = parseMessageId(mimeMessage);
 		parsedComponents.sentDate = parseSentDate(mimeMessage);
@@ -134,13 +134,12 @@ public final class MimeMessageParser {
 		parsedComponents.bccAddresses.addAll(parseBccAddresses(mimeMessage));
 		parsedComponents.fromAddress = parseFromAddress(mimeMessage);
 		parsedComponents.replyToAddresses = parseReplyToAddresses(mimeMessage);
-		parseMimePartTree(mimeMessage, parsedComponents, attachmentData);
+		parseMimePartTree(mimeMessage, parsedComponents, fetchAttachmentData);
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		return parsedComponents;
 	}
 
-	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents,
-			boolean attachmentData) {
+	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents, final boolean fetchAttachmentData) {
 		for (final Header header : retrieveAllHeaders(currentPart)) {
 			parseHeader(header, parsedComponents);
 		}
@@ -157,10 +156,10 @@ public final class MimeMessageParser {
 		} else if (isMimeType(currentPart, "multipart/*")) {
 			final Multipart mp = parseContent(currentPart);
 			for (int i = 0, count = countBodyParts(mp); i < count; i++) {
-				parseMimePartTree(getBodyPartAtIndex(mp, i), parsedComponents, attachmentData);
+				parseMimePartTree(getBodyPartAtIndex(mp, i), parsedComponents, fetchAttachmentData);
 			}
 		} else {
-			final DataSource ds = createDataSource(currentPart, attachmentData);
+			final DataSource ds = createDataSource(currentPart, fetchAttachmentData);
 			// if the diposition is not provided, for now the part should be treated as inline (later non-embedded inline attachments are moved)
 			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 				parsedComponents.attachmentList.add(new SimpleEntry<>(parseResourceNameOrUnnamed(parseContentID(currentPart), parseFileName(currentPart)), ds));
@@ -381,21 +380,24 @@ public final class MimeMessageParser {
 	 * @return the DataSource
 	 */
 	@NotNull
-	private static DataSource createDataSource(@NotNull final MimePart part, boolean attachmentData) {
-		final DataHandler dataHandler = retrieveDataHandler(part);
-		final DataSource dataSource = dataHandler.getDataSource();
-
-		if (attachmentData) {
+	private static DataSource createDataSource(@NotNull final MimePart part, final boolean fetchAttachmentData) {
+		final DataSource dataSource = retrieveDataHandler(part).getDataSource();
+		final String dataSourceName = parseDataSourceName(part, dataSource);
 			final String contentType = parseBaseMimeType(dataSource.getContentType());
-			final byte[] content = readContent(retrieveInputStream(dataSource));
-			final ByteArrayDataSource result = new ByteArrayDataSource(content, contentType);
-			final String dataSourceName = parseDataSourceName(part, dataSource);
+		return createByteArrayDataSource(dataSource, dataSourceName, contentType, fetchAttachmentData);
+	}
 
+	@NotNull
+	private static ByteArrayDataSource createByteArrayDataSource(DataSource dataSource, String dataSourceName, String contentType, boolean fetchAttachmentData) {
+		final InputStream is = retrieveInputStream(dataSource);
+		try {
+			final ByteArrayDataSource result = fetchAttachmentData
+					? new ByteArrayDataSource(readContent(is), contentType)
+					: new ByteArrayDataSource(is, contentType);
 			result.setName(dataSourceName);
 			return result;
-		}
-		else {
-			return dataSource;
+		} catch (IOException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_INPUTSTREAM, e);
 		}
 	}
 
