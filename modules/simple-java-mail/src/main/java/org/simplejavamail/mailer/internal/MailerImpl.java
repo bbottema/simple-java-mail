@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
@@ -257,7 +257,7 @@ public class MailerImpl implements Mailer {
 			}
 			final Properties sessionProperties = session.getProperties();
 			if (transportStrategy != null) {
-				sessionProperties.put(transportStrategy.propertyNameSocksHost(), assumeNonNull(proxyConfig.getRemoteProxyHost()));
+				sessionProperties.put(transportStrategy.propertyNameSocksHost(), verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost()));
 				sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
 			} else {
 				LOGGER.debug("no transport strategy provided, expecting mail.smtp(s).socks.host and .port properties to be set to proxy " +

@@ -14,7 +14,7 @@ import testutil.testrules.MimeMessageAndEnvelope;
 import testutil.testrules.SmtpServerRule;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 public class MailerSOCKSLiveTest {
 	private static final Integer SMTP_SERVER_PORT = 252;
@@ -58,7 +58,7 @@ public class MailerSOCKSLiveTest {
 		if (!async) {
 			mailer.sendMail(originalEmail);
 		} else {
-			assumeNonNull(mailer.sendMail(originalEmail, async)).getFuture().get();
+			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, async)).getFuture().get();
 		}
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());

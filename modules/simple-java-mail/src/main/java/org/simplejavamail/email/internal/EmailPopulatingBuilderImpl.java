@@ -96,7 +96,7 @@ import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSource
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveImageFileDataSourceFromDisk;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveUrlDataSource;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
@@ -332,70 +332,70 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 
 		if (applyDefaults) {
 			if (hasProperty(DEFAULT_FROM_ADDRESS)) {
-				from(getStringProperty(DEFAULT_FROM_NAME), assumeNonNull(getStringProperty(DEFAULT_FROM_ADDRESS)));
+				from(getStringProperty(DEFAULT_FROM_NAME), verifyNonnullOrEmpty(getStringProperty(DEFAULT_FROM_ADDRESS)));
 			}
 			if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
-				withReplyTo(getStringProperty(DEFAULT_REPLYTO_NAME), assumeNonNull(getStringProperty(DEFAULT_REPLYTO_ADDRESS)));
+				withReplyTo(getStringProperty(DEFAULT_REPLYTO_NAME), verifyNonnullOrEmpty(getStringProperty(DEFAULT_REPLYTO_ADDRESS)));
 			}
 			if (hasProperty(DEFAULT_BOUNCETO_ADDRESS)) {
-				withBounceTo(getStringProperty(DEFAULT_BOUNCETO_NAME), assumeNonNull(getStringProperty(DEFAULT_BOUNCETO_ADDRESS)));
+				withBounceTo(getStringProperty(DEFAULT_BOUNCETO_NAME), verifyNonnullOrEmpty(getStringProperty(DEFAULT_BOUNCETO_ADDRESS)));
 			}
 			if (hasProperty(DEFAULT_TO_ADDRESS)) {
 				if (hasProperty(DEFAULT_TO_NAME)) {
 					to(getStringProperty(DEFAULT_TO_NAME), getStringProperty(DEFAULT_TO_ADDRESS));
 				} else {
-					to(assumeNonNull(getStringProperty(DEFAULT_TO_ADDRESS)));
+					to(verifyNonnullOrEmpty(getStringProperty(DEFAULT_TO_ADDRESS)));
 				}
 			}
 			if (hasProperty(DEFAULT_CC_ADDRESS)) {
 				if (hasProperty(DEFAULT_CC_NAME)) {
 					cc(getStringProperty(DEFAULT_CC_NAME), getStringProperty(DEFAULT_CC_ADDRESS));
 				} else {
-					cc(assumeNonNull(getStringProperty(DEFAULT_CC_ADDRESS)));
+					cc(verifyNonnullOrEmpty(getStringProperty(DEFAULT_CC_ADDRESS)));
 				}
 			}
 			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 				if (hasProperty(DEFAULT_BCC_NAME)) {
 					bcc(getStringProperty(DEFAULT_BCC_NAME), getStringProperty(DEFAULT_BCC_ADDRESS));
 				} else {
-					bcc(assumeNonNull(getStringProperty(DEFAULT_BCC_ADDRESS)));
+					bcc(verifyNonnullOrEmpty(getStringProperty(DEFAULT_BCC_ADDRESS)));
 				}
 			}
 			if (hasProperty(DEFAULT_SUBJECT)) {
 				withSubject((String) getProperty(DEFAULT_SUBJECT));
 			}
 			if (hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
-				encryptWithSmime(assumeNonNull(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));
+				encryptWithSmime(verifyNonnullOrEmpty(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)) {
-				withEmbeddedImageAutoResolutionForFiles(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)));
+				withEmbeddedImageAutoResolutionForFiles(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)) {
-				withEmbeddedImageAutoResolutionForClassPathResources(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)));
+				withEmbeddedImageAutoResolutionForClassPathResources(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)) {
-				withEmbeddedImageAutoResolutionForURLs(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)));
+				withEmbeddedImageAutoResolutionForURLs(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)) {
-				withEmbeddedImageBaseDir(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)));
+				withEmbeddedImageBaseDir(verifyNonnullOrEmpty(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)) {
-				withEmbeddedImageBaseClassPath(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
+				withEmbeddedImageBaseClassPath(verifyNonnullOrEmpty(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)) {
-				withEmbeddedImageBaseUrl(assumeNonNull(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
+				withEmbeddedImageBaseUrl(verifyNonnullOrEmpty(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)) {
-				allowingEmbeddedImageOutsideBaseDir(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)));
+				allowingEmbeddedImageOutsideBaseDir(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)) {
-				allowingEmbeddedImageOutsideBaseClassPath(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)));
+				allowingEmbeddedImageOutsideBaseClassPath(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)) {
-				allowingEmbeddedImageOutsideBaseUrl(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)));
+				allowingEmbeddedImageOutsideBaseUrl(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)));
 			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)) {
-				embeddedImageAutoResolutionMustBeSuccesful(assumeNonNull(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)));
+				embeddedImageAutoResolutionMustBeSuccesful(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)));
 			}
 		}
 	}

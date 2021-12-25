@@ -14,7 +14,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
  * Please refer to {@link Socks5Bridge}.
@@ -28,8 +28,8 @@ public class AuthenticatingSocks5Bridge implements Socks5Bridge {
 
 	AuthenticatingSocks5Bridge(final ProxyConfig proxyConfig) {
 		this.proxyConfig = proxyConfig;
-		this.remoteProxyHost = assumeNonNull(proxyConfig.getRemoteProxyHost());
-		this.remoteProxyPort = assumeNonNull(proxyConfig.getRemoteProxyPort());
+		this.remoteProxyHost = verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost());
+		this.remoteProxyPort = verifyNonnullOrEmpty(proxyConfig.getRemoteProxyPort());
 	}
 
 	/**

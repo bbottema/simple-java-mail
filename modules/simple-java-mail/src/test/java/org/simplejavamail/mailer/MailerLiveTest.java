@@ -41,7 +41,7 @@ import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.EmailHelper.readOutlookMessage;
@@ -307,7 +307,7 @@ public class MailerLiveTest {
 		if (!async) {
 			mailer.sendMail(originalEmail);
 		} else {
-			assumeNonNull(mailer.sendMail(originalEmail, async)).getFuture().get();
+			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, async)).getFuture().get();
 		}
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());
@@ -335,7 +335,7 @@ public class MailerLiveTest {
 
 		// sent-date will always be generated when sending: if not set to a specific value, just assume the generated one
 		if (originalEmailPopulatingBuilder.getSentDate() == null) {
-			originalEmailPopulatingBuilder.fixingSentDate(assumeNonNull(receivedEmail.getSentDate()));
+			originalEmailPopulatingBuilder.fixingSentDate(verifyNonnullOrEmpty(receivedEmail.getSentDate()));
 		}
 
 		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty

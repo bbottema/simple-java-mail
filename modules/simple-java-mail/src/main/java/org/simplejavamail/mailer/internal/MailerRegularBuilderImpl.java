@@ -19,7 +19,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMTP_USERNAME;
 import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
  * @see MailerRegularBuilder
@@ -73,23 +73,23 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@SuppressWarnings("DeprecatedIsStillUsed")
 	public MailerRegularBuilderImpl() {
 		if (hasProperty(SMTP_HOST)) {
-			withSMTPServerHost(assumeNonNull(ConfigLoader.getStringProperty(SMTP_HOST)));
+			withSMTPServerHost(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(SMTP_HOST)));
 		}
 		if (hasProperty(SMTP_PORT)) {
-			withSMTPServerPort(assumeNonNull(ConfigLoader.getIntegerProperty(SMTP_PORT)));
+			withSMTPServerPort(verifyNonnullOrEmpty(ConfigLoader.getIntegerProperty(SMTP_PORT)));
 		}
 		if (hasProperty(SMTP_USERNAME)) {
-			withSMTPServerUsername(assumeNonNull(ConfigLoader.getStringProperty(SMTP_USERNAME)));
+			withSMTPServerUsername(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(SMTP_USERNAME)));
 		}
 		if (hasProperty(SMTP_PASSWORD)) {
-			withSMTPServerPassword(assumeNonNull(ConfigLoader.getStringProperty(SMTP_PASSWORD)));
+			withSMTPServerPassword(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(SMTP_PASSWORD)));
 		}
 		this.transportStrategy = TransportStrategy.SMTP;
 		if (hasProperty(TRANSPORT_STRATEGY)) {
-			withTransportStrategy(assumeNonNull(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)));
+			withTransportStrategy(verifyNonnullOrEmpty(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)));
 		}
 		if (hasProperty(CUSTOM_SSLFACTORY_CLASS)) {
-			withCustomSSLFactoryClass(assumeNonNull(ConfigLoader.getStringProperty(CUSTOM_SSLFACTORY_CLASS)));
+			withCustomSSLFactoryClass(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(CUSTOM_SSLFACTORY_CLASS)));
 		}
 	}
 	
@@ -200,7 +200,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	ServerConfig buildServerConfig() {
 		vallidateServerConfig();
 		final int serverPort = SimpleOptional.ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
-		return new ServerConfigImpl(assumeNonNull(getHost()), serverPort, username, password, customSSLFactory, customSSLFactoryInstance);
+		return new ServerConfigImpl(verifyNonnullOrEmpty(getHost()), serverPort, username, password, customSSLFactory, customSSLFactoryInstance);
 	}
 
 	private void vallidateServerConfig() {

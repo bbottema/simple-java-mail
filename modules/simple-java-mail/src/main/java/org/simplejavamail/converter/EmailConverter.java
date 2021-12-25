@@ -47,7 +47,7 @@ import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
 import static org.simplejavamail.internal.modules.ModuleLoader.loadSmimeModule;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
@@ -675,7 +675,7 @@ public final class EmailConverter {
 		builder.withHTMLText(parsed.getHtmlContent());
 		
 		if (parsed.getCalendarMethod() != null) {
-			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), assumeNonNull(parsed.getCalendarContent()));
+			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), verifyNonnullOrEmpty(parsed.getCalendarContent()));
 		}
 		
 		for (final Map.Entry<String, DataSource> cid : parsed.getCidMap().entrySet()) {
