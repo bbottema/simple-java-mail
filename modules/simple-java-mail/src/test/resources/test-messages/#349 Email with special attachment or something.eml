@@ -1,0 +1,207 @@
+Received: from APC01-SG2-obe.outbound.protection.outlook.com (mail-sg2apc01on0618.outbound.protection.outlook.com [2a01:111:f400:febd::618])
+	by newxmmxszc57.qq.com (NewMX) with SMTP id 3799B8F3
+	for <441701328@qq.com>; Mon, 01 Nov 2021 15:13:57 +0800
+X-QQ-mid: xmmxszc57t1635750837tsrhgkaj0
+X-QQ-XMAILINFO: N7h1OCCDntuj9DzXpmHYDUMIdgx+HM2AMR55H1aXxtIipdSzVwbtc0jFAHMRQr
+	 1U1KffN+Fd3+MODy5V+G/doEHn8Of+sbzP3hZHi6yzQAFF4Rua0T19b2uFXyL2zLKT8bW+vxBfr4
+	 r75A7uGOIa2AWysb2TRn77YwodwaU5JgNY695NsAmBCX9wdQNiirNtr7hX7m2YmqxAOZuMUdgMVF
+	 i5R9Y5RR8W3t3VuR449t9uIvF3+8qjeM+L2TM9mFU5dk8nRQlDf6T/fRhxOLlNyy/6YVmpRbyOub
+	 LQL3xFc8Rk2lWFp4bV/fVXYECZliW3eIy/ySU454G3/+42O0svSRcmsBJ8rezWtSjQrIrhr2EIeA
+	 P00338N7f2CFhJjsa2ltUx1W0SAN0t59res1LCYZds33ewi6jptoyBeDzw+FokWWUL8zIupxejAH
+	 LUtsxv/ir52kd7rHtn43ZGZPqV89zZjuliL7R/NYcv7Wbpebl1TOaWLfkyyPgPF4pB/eet3Sky4g
+	 27ppgMDm5/iIEKtOq/XY656SiZNTPrh4z5CB78lfJTw+xhgQ33qn6dDd75+QRZ2mirEb15NLsX7o
+	 BsEm8tqmBNpAQGDi1amzYE4kLuUP25RlfMSN+idB4rw6JCSkQhByF67qbConSLvhlwLSRpjIwdaC
+	 NQBr7i2v9HbLrhlwppAXU7IZFLWc6OMTm7MZyiSJWQgV1pmFmv0b5d0tMpyJlKDGg6MjZ25GJ3TI
+	 Bze2wOfdLWoxia7eIFAUGUXp6aE4kCpleaM5hpnxg7oAnkyY9dbWQ+/SH1rLR93KZsyc3JyO5my7
+	 Rz6tiAcpGL+R5lDxAtj5Ox/fASDFY+ipndaZqWgP56mWWZd+auQBLkuzzvTu7HQ/QjDcCTfbldDJ
+	 pXPRFB5T4QILouDfoOC/PJ0umd+y1Q22E90uaiUrfAvLN6rdWCdWN8B2G3JabdyEOlonAka25r
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=FDy/egpjJLuaIuv5ff2ZauH4b05XEWt/g7NpK3x4tIpgeE5u3DXImXCFFvr7giTYjKfRgZ+v8v2TMXo9suJRQsO80zITnaDMOnSadLN7KussJ3CZcdmZiKVNyWK04uRnUuTA4sckArhjs6UoQInKgiwz2VtDGH7CAJFhA+Zvzsiuw1xQwx2g4nL1utcp5VnhzjqKVad3WxusecXaHCMAoy3vj+eRIpZU8O37Ix/DOLHtoaSrAXp9ta+NFD3kd+jujjVnv+HHedj6RYEpJSikDnZHl9NNTrHMBaeIwbwIWMby6/K7iQQfseNYUZRBBKHNgRwN7PQLnsMeZNBGgdRqjQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=RNsW1o5EQFkCnc9hzBQcXMPOvxtvPZgyWOC8FfPlmgM=;
+ b=NjA2ubK9MWK2/F8GmIx6aP4Y8796y+Ld6/+knh1gJDUEwzw6z0pGDBpz8Eg86d7Af8+9++EeyR6P2/u3BxNXxL1WsXwBsOqiistencZ7USrVSTYfn7c+uF9JV53sBVTjyIOB7IDW3v4DaiFvmACID0Qfp81j1eu8qtXANiUBRkPZOW2nCv7Dpgu4vS68tZ2yCcsDq06ufaLyx40+Sy59Opc60tPkUojew62XttRcwVzKC7hhpJ/nEZSZf9OREL6tx8iWA6vBO2Qf8/ShZ87t0QXS6iaqh9x3U5KYifGxYeY2MN7hJxQ6ddYCuF58IH5enaPuX/c+Ixc80EPS3swnSw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=cargosmart.com; dmarc=pass action=none
+ header.from=cargosmart.com; dkim=pass header.d=cargosmart.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=CargoSmart.com;
+ s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=RNsW1o5EQFkCnc9hzBQcXMPOvxtvPZgyWOC8FfPlmgM=;
+ b=XY2STOp/vyXIegkh2qITM4vjFeTNsjw0U5ObziWi1oVw6ask7UAfKARe9cbxYa9nsbnOuXnaLzMCaTXwWn+zRq8TLIfl8ZBo1TxWVu7SWXQZsQdhdj2+UVxuNg0+NwePNiVfU2swwoV3TZBnatosOxNfEx2ji8uS2WGZwl9833c=
+Received: from HK0PR02MB3314.apcprd02.prod.outlook.com (2603:1096:203:79::21)
+ by HK0PR02MB2562.apcprd02.prod.outlook.com (2603:1096:203:23::11) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.4649.15; Mon, 1 Nov
+ 2021 07:13:54 +0000
+Received: from HK0PR02MB3314.apcprd02.prod.outlook.com
+ ([fe80::7d73:c01b:9db2:bba8]) by HK0PR02MB3314.apcprd02.prod.outlook.com
+ ([fe80::7d73:c01b:9db2:bba8%3]) with mapi id 15.20.4649.019; Mon, 1 Nov 2021
+ 07:13:54 +0000
+From: <jacob.liu@cargosmart.com>
+To: <441701328@qq.com>
+Subject: Test for email attachment
+Thread-Topic: Test for email attachment
+Thread-Index: AdfO8AFwv0/+Y5/QTgKIaIBv6lkomg==
+Date: Mon, 1 Nov 2021 07:13:54 +0000
+Message-ID:
+ <HK0PR02MB3314C5AC50914E640201D35B8F8A9@HK0PR02MB3314.apcprd02.prod.outlook.com>
+Accept-Language: zh-CN, en-US
+Content-Language: en-US
+X-MS-Has-Attach: yes
+X-MS-TNEF-Correlator:
+authentication-results: qq.com; dkim=none (message not signed)
+ header.d=none;qq.com; dmarc=none action=none header.from=cargosmart.com;
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-correlation-id: 25d9c1db-4a83-4479-6467-08d99d072a09
+x-ms-traffictypediagnostic: HK0PR02MB2562:
+x-microsoft-antispam-prvs:
+ <HK0PR02MB25623554852D3D46AC566A378F8A9@HK0PR02MB2562.apcprd02.prod.outlook.com>
+x-ms-oob-tlc-oobclassifiers: OLM:1728;
+x-ms-exchange-senderadcheck: 1
+x-ms-exchange-antispam-relay: 0
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info:
+ 8Xa99pahZocWmfNpY3WGMY8lYaOFLUURdmAjwfdrCRmZBAsLnYBMmAyOrtwkw9oVmqRj78cv4CtJE7D7EyMJ3DiiPSaDRcUmmnZgBW4pBC4iY8tzUN8N9+rx4O8lq1i3XZIzFbVsokHFhFPordgrFT14FsGceBqMPicEKeNyVhx4VXFMco+J5W7G08qsBIZtWauZcIDm8SGvVLjRHOh964cUBxdMnh9kDaSTyQKrOOt72LEquMjeMIA7AmtY+YlIanspYMj322d/XyCFnvYGVZauaXxgKzEVrb8QiW99LWiBZKVl2WvwABfLyDzwvMRCE81vDAAMUQ1EzJsGf9roFG9kKwVSAO/cA4CqiXIyaIISmBlJaIeeixEefHsbcXyn/ePIhOBAdaXbedDDAlq7Ixs8ImaQMWphcyMEb1nXtPSYLcjdUAF0+CHkbUAMRe7ZOvsr+1H54jl+j9NjkxDSrei3Qmb4oUBDwK64s5UohCEZiOBUs+T8JdcQqpWZeGFSfJq595Gmw9WqT6Bcx2ZcMEqYq/mJFdkW+t2+fZT1Avki9g4nbv1tpHwEV3nu1zUtyYBXWyFVuYSI5T3RD29f0DjVNvvNfdLUWBSxTDY+Xo64Fl9zokYgtO+CoOjimf90qkjiq12TLRFnF33aDg4hYegK5taZPKDiBok3h3WBZtN3jlC6llcSx8KPjhOLbeLxQ/u7kEMMZkSau2YDxThXkA==
+x-forefront-antispam-report:
+ CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:HK0PR02MB3314.apcprd02.prod.outlook.com;PTR:;CAT:NONE;SFS:(4636009)(366004)(26005)(966005)(508600001)(186003)(316002)(7696005)(8936002)(2906002)(8676002)(38070700005)(99936003)(122000001)(86362001)(5660300002)(33656002)(66446008)(71200400001)(55016002)(52536014)(76116006)(6506007)(3480700007)(9686003)(66556008)(64756008)(38100700002)(66476007)(66946007)(6916009)(558084003);DIR:OUT;SFP:1101;
+x-ms-exchange-antispam-messagedata-chunkcount: 1
+x-ms-exchange-antispam-messagedata-0:
+ =?us-ascii?Q?IhC4f3ZIg928iBC2crqNytYOxezLsNiIKMD/TXhWnh+5pyB234bnGqLaAbWO?=
+ =?us-ascii?Q?HKCF+MMOOfDyKrjRIZATBRZA9lgnMWlOQkd+L0HQM8QHWLbu9BKaZ7N/Ispk?=
+ =?us-ascii?Q?Br59kmQdKX1MWM8goIgoX844t3+DZEJhCQuWbSQcwxMnjzJlYCgI4w+vKkLf?=
+ =?us-ascii?Q?68A0EkGP1+L1XYFyDbk39HFKqgCLB0i534D9OjgyX2nHphfNtmoQ5a/zBEWt?=
+ =?us-ascii?Q?8cFeuqqH9Tll8bDRbdslpkeAIQPwxdvzLrQXxdlsQesz5Hd2dH2DZiU2I8El?=
+ =?us-ascii?Q?C+LRoeuR+lxFb9nXxC17f+3kzeW1z6m/QRLNq6Xb6exAvq1HynE/o4fp52JR?=
+ =?us-ascii?Q?xlLdMWPOMgVLh/B4Ca/0scyCT1Qiyily38E/45EIfXXiQ5K5oP3aC5jiRW3v?=
+ =?us-ascii?Q?jM5xOleE1bImJpJfPwSk3v057WhIwK3UKJh+tCfkgffVZ4S15DVmHDutrU7n?=
+ =?us-ascii?Q?717PDLsqivWyB3DEhY80FNweXHr3ZFO4RHpNJ9sb8yyqitpWxsTCk4xTiA4P?=
+ =?us-ascii?Q?xE+LOO3xh/jxea3gq05rXQA6B1KNtMl41XJOVPBT3EjY+lsnY+8Lj6aQFv/8?=
+ =?us-ascii?Q?+1I8whhrwKeYJ5D3Vbq6Ifg5X8iQj6oKSy2zHCe4urV1JXHBR7F0l9vrxoV4?=
+ =?us-ascii?Q?iOEgtdidZ7fc1YWbT9q/EXHiHBXJgWtFnf3xB2NjAmcgARIq8zWTizORqiHQ?=
+ =?us-ascii?Q?jWz8EH2akfmi+7ymMTN/yV2lScLnX8AQ3ZXaVMDEHccZle0NYTOzsV4UsIo6?=
+ =?us-ascii?Q?XLzgstPUCedvD4gl1GFj4i0um4Y2dJsoNhpKsSEkkcuiqiHA2YKChgFZAYuu?=
+ =?us-ascii?Q?m9iUMJT+biIE0g+Bk9+RCJjhKbso21sNINLIQjWe2ifIcP2NeajBTC5eV4QB?=
+ =?us-ascii?Q?6iQY81lw9IC/TEaY2gXX47Yg9RTdQqeUZaONw1iXg1uK7/8qUx9T/W7rYqFG?=
+ =?us-ascii?Q?vBwe/h5qGWc7jRPmiESZyPyhfRA8GCjDni8mkjjGKXyzTIwDs5jqzUrE3RUy?=
+ =?us-ascii?Q?VDj3hFTz6xEpujkoyVZtmNZXLC02s98RPigEFIn8zXFVo0ld/Zd2TqbLTkje?=
+ =?us-ascii?Q?OxlWRPPzxMLOPP3+kr7WrXBAuZtT68iVwwJa1jeTFyvHRgbR7mWlOLDm8iEC?=
+ =?us-ascii?Q?ORk7/I62kzAejND5ZwF+/6PKqjs+GjG5kvUFiRoNyUey8IFJbt366BDO5MH3?=
+ =?us-ascii?Q?r2/wiRjOcFQfemUw/JuFRQG8tAjkBuyAYqaCQyID8zi5//xbS2CDedtdXLcK?=
+ =?us-ascii?Q?W94eHESjOpJ3oeumJwHTL9t43x3mrdwJjm9qdprCSVBQZRwuhuz2AQ5aBt+X?=
+ =?us-ascii?Q?7ZZadF2xJqbeoqCFp7TtgScBGOWtUFQNinMZ7LXrb67JW3g868XLvcZe1KO7?=
+ =?us-ascii?Q?EDaF6KBN3jWyIuOX9O37PFituP16yjTQBq0SrBpsAUVz+UnYdVxWBqbQvH4B?=
+ =?us-ascii?Q?S/MtABJGbH27Y8HHBi3ylss2CtMpDtt8tMAo4Fid8D3ZCV5LPBBhURU3hpIc?=
+ =?us-ascii?Q?KbNKl0LcnrSD74u3+RIyLcKSghXXJ+xSnUbMEJFA6FKkvPtSZJcLZox4cQ?=
+ =?us-ascii?Q?=3D=3D?=
+Content-Type: multipart/mixed;
+	boundary="_005_HK0PR02MB3314C5AC50914E640201D35B8F8A9HK0PR02MB3314apcp_"
+MIME-Version: 1.0
+X-OriginatorOrg: CargoSmart.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: HK0PR02MB3314.apcprd02.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 25d9c1db-4a83-4479-6467-08d99d072a09
+X-MS-Exchange-CrossTenant-originalarrivaltime: 01 Nov 2021 07:13:54.4436
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 7851b4cc-2c5c-459f-96d9-16731d6b4ca4
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: jG3xfOzRywBfQ7meWa6PS+tqK6VwBapLE475NNIivEkHovFgC76esbELyBvGYOsm
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: HK0PR02MB2562
+
+--_005_HK0PR02MB3314C5AC50914E640201D35B8F8A9HK0PR02MB3314apcp_
+Content-Type: multipart/alternative;
+	boundary="_000_HK0PR02MB3314C5AC50914E640201D35B8F8A9HK0PR02MB3314apcp_"
+
+--_000_HK0PR02MB3314C5AC50914E640201D35B8F8A9HK0PR02MB3314apcp_
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+
+Just test
+
+Best Regards
+Jacob
+
+Disclaimer : This email and all contents are subject to the following discl=
+aimer: http://www.cargosmart.com/email_disclaimer.html
+
+--_000_HK0PR02MB3314C5AC50914E640201D35B8F8A9HK0PR02MB3314apcp_
+Content-Type: text/html; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+
+<html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:schemas-micr=
+osoft-com:office:office" xmlns:w=3D"urn:schemas-microsoft-com:office:word" =
+xmlns:m=3D"http://schemas.microsoft.com/office/2004/12/omml" xmlns=3D"http:=
+//www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dus-ascii"=
+>
+<meta name=3D"Generator" content=3D"Microsoft Word 15 (filtered medium)">
+<style><!--
+/* Font Definitions */
+@font-face
+	{font-family:"Cambria Math";
+	panose-1:2 4 5 3 5 4 6 3 2 4;}
+@font-face
+	{font-family:DengXian;
+	panose-1:2 1 6 0 3 1 1 1 1 1;}
+@font-face
+	{font-family:Calibri;
+	panose-1:2 15 5 2 2 2 4 3 2 4;}
+@font-face
+	{font-family:"\@DengXian";
+	panose-1:2 1 6 0 3 1 1 1 1 1;}
+/* Style Definitions */
+p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0in;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif;}
+span.EmailStyle17
+	{mso-style-type:personal-compose;
+	font-family:"Calibri",sans-serif;
+	color:windowtext;}
+.MsoChpDefault
+	{mso-style-type:export-only;
+	font-family:"Calibri",sans-serif;}
+@page WordSection1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.0in 1.0in 1.0in;}
+div.WordSection1
+	{page:WordSection1;}
+--></style><!--[if gte mso 9]><xml>
+<o:shapedefaults v:ext=3D"edit" spidmax=3D"1026" />
+</xml><![endif]--><!--[if gte mso 9]><xml>
+<o:shapelayout v:ext=3D"edit">
+<o:idmap v:ext=3D"edit" data=3D"1" />
+</o:shapelayout></xml><![endif]-->
+</head>
+<body lang=3D"EN-US" link=3D"#0563C1" vlink=3D"#954F72" style=3D"word-wrap:=
+break-word">
+<div class=3D"WordSection1">
+<p class=3D"MsoNormal">Just test<o:p></o:p></p>
+<p class=3D"MsoNormal"><o:p>&nbsp;</o:p></p>
+<p class=3D"MsoNormal">Best Regards<o:p></o:p></p>
+<p class=3D"MsoNormal">Jacob<o:p></o:p></p>
+<p class=3D"MsoNormal"><o:p>&nbsp;</o:p></p>
+</div>
+Disclaimer : This email and all contents are subject to the following discl=
+aimer: http://www.cargosmart.com/email_disclaimer.html
+</body>
+</html>
+
+--_000_HK0PR02MB3314C5AC50914E640201D35B8F8A9HK0PR02MB3314apcp_--
+
+--_005_HK0PR02MB3314C5AC50914E640201D35B8F8A9HK0PR02MB3314apcp_
+Content-Type: message/rfc822
+Content-Disposition: attachment;
+	creation-date="Mon, 01 Nov 2021 07:13:53 GMT";
+	modification-date="Mon, 01 Nov 2021 07:13:53 GMT"
+
+--_005_HK0PR02MB3314C5AC50914E640201D35B8F8A9HK0PR02MB3314apcp_
+Content-Type: message/rfc822
+Content-Disposition: attachment;
+	creation-date="Mon, 01 Nov 2021 07:13:54 GMT";
+	modification-date="Mon, 01 Nov 2021 07:13:54 GMT"
+
+--_005_HK0PR02MB3314C5AC50914E640201D35B8F8A9HK0PR02MB3314apcp_--

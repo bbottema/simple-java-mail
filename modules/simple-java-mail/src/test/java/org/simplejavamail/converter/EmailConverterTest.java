@@ -2,6 +2,7 @@ package org.simplejavamail.converter;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
@@ -92,7 +93,7 @@ public class EmailConverterTest {
 			}
 		});
 	}
-	
+
 	@Test
 	public void testMimeMessageWithNestedMessages()
 			throws Exception {
@@ -105,7 +106,7 @@ public class EmailConverterTest {
 			}
 		});
 	}
-	
+
 	@Test
 	public void testOutlookMessageWithNestedMessages()
 			throws Exception {
@@ -117,5 +118,12 @@ public class EmailConverterTest {
 				assertThat(email.getAttachments()).extracting("name").containsExactly("NDPB.eml", "Voicemail .eml");
 			}
 		});
+	}
+
+	@Test
+	public void testAttachmentSize() {
+		Email email = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#349 Email with special attachment or something.eml"));
+		assertThat(email.getAttachments()).hasSize(2);
+		assertThat(email.getAttachments()).extracting("name").containsExactly("ForwardedMessage.eml", "ForwardedMessage.eml");
 	}
 }
