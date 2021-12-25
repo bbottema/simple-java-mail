@@ -87,6 +87,7 @@ import static org.simplejavamail.email.internal.EmailException.ERROR_READING_SMI
 import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_IMAGE_DATASOURCE;
 import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
+import static org.simplejavamail.internal.util.MiscUtil.checkNotNull;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
@@ -1681,7 +1682,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final byte[] data, @NotNull final String mimetype) {
-		checkNonEmptyArgument(data, "data");
+		checkNotNull(data, "data");
 		checkNonEmptyArgument(mimetype, "mimetype");
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 		dataSource.setName(name);
