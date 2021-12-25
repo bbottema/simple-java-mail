@@ -3,11 +3,15 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.6.2</version>
+    <version>6.6.3</version>
 </dependency>
 
-v6.6.0 - v6.6.2
+v6.6.0 - v6.6.3
 
+- v6.6.3 (25-December-2021): #356: Enhancement: Improve for support for Android < 8.0 (Fix NoClassDefFoundError)
+- v6.6.3 (25-December-2021): #351: Bugfix: emlToEmail() and mimeMessageToEmail() break on mesages with duplicate names and legacy empty nested messages
+- v6.6.3 (25-December-2021): #347: Maintenance: Reduce log-spam and prevent exception on every module availability check
+- v6.6.3 (25-December-2021): #346: Feature: Add option to parse MimeMessage without fetching attachment data from server
 - v6.6.2 (23-December-2021): #365: Resolve log4j vulnerability in Simple Java Mail
 - v6.6.1 (12-June-2021): #321: Ignore malformed recipient addresses and continue parsing email data
 - v6.6.0 (1-June-2021): #320: Added default S/MIME signing to Mailer lever and fixed crippling performance bug
