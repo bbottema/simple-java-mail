@@ -19,6 +19,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMTP_USERNAME;
 import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
+import static org.simplejavamail.internal.util.MiscUtil.emptyAsNull;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
@@ -109,8 +110,8 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	public MailerRegularBuilderImpl withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username, @Nullable final String password) {
 		return withSMTPServerHost(host)
 				.withSMTPServerPort(port)
-				.withSMTPServerUsername(username)
-				.withSMTPServerPassword(password);
+				.withSMTPServerUsername(emptyAsNull(username))
+				.withSMTPServerPassword(emptyAsNull(password));
 	}
 	
 	/**

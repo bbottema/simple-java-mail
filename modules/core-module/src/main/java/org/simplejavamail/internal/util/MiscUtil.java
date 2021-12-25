@@ -71,6 +71,11 @@ public final class MiscUtil {
 				(value instanceof byte[] && ((byte[]) value).length == 0);
 	}
 
+	@Nullable
+	public static <T> T emptyAsNull(final @Nullable T value) {
+		return valueNullOrEmpty(value) ? null : value;
+	}
+
 	public static String buildLogStringForSOCKSCommunication(final byte[] bytes, final boolean isReceived) {
 		final StringBuilder debugMsg = new StringBuilder();
 		debugMsg.append(isReceived ? "Received: " : "Sent: ");
