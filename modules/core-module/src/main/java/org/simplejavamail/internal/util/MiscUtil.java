@@ -361,4 +361,17 @@ public final class MiscUtil {
 
 		return buffer.toString().toLowerCase();
 	}
+	
+	/**
+	 * @param fullMimeType the mime type from the mail api
+	 * @return The real mime type
+	 */
+	@NotNull
+	public static String parseBaseMimeType(@NotNull final String fullMimeType) {
+		final int pos = fullMimeType.indexOf(';');
+		if (pos >= 0) {
+			return fullMimeType.substring(0, pos);
+		}
+		return fullMimeType;
+	}
 }

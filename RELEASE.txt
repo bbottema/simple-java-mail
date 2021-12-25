@@ -3,15 +3,16 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.7.0</version>
+    <version>6.7.1</version>
 </dependency>
 
-v6.7.0 (25-December-2021)
+v6.7.0 - v6.7.1
 
-- #356: Enhancement: Improve for support for Android < 8.0 (Fix NoClassDefFoundError)
-- #351: Bugfix: emlToEmail() and mimeMessageToEmail() break on mesages with duplicate names and legacy empty nested messages
-- #347: Maintenance: Reduce log-spam and prevent exception on every module availability check
-- #346: Feature: Add option to parse MimeMessage without fetching attachment data from server
+- v6.7.1 (25-December-2021): #346: Bugfix: Add option to parse MimeMessage without fetching attachment data from server - Properly return named datasource without fetching all the data if unwanted
+- v6.7.0 (25-December-2021): #356: Enhancement: Improve for support for Android < 8.0 (Fix NoClassDefFoundError)
+- v6.7.0 (25-December-2021): #351: Bugfix: emlToEmail() and mimeMessageToEmail() break on mesages with duplicate names and legacy empty nested messages
+- v6.7.0 (25-December-2021): #347: Maintenance: Reduce log-spam and prevent exception on every module availability check
+- v6.7.0 (25-December-2021): #346: Feature: Add option to parse MimeMessage without fetching attachment data from server
 
 
 v6.6.0 - v6.6.2
