@@ -4,6 +4,7 @@ import com.sun.mail.handlers.text_plain;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.util.NamedDataSource;
 import org.simplejavamail.internal.util.NaturalEntryKeyComparator;
 import org.simplejavamail.internal.util.Preconditions;
 
@@ -385,21 +386,14 @@ public final class MimeMessageParser {
 	private static DataSource createDataSource(@NotNull final MimePart part, final boolean fetchAttachmentData) {
 		final DataSource dataSource = retrieveDataHandler(part).getDataSource();
 		final String dataSourceName = parseDataSourceName(part, dataSource);
-		final String contentType = parseBaseMimeType(dataSource.getContentType());
-		return createByteArrayDataSource(dataSource, dataSourceName, contentType, fetchAttachmentData);
-	}
-	
-	@NotNull
-	private static ByteArrayDataSource createByteArrayDataSource(DataSource dataSource, String dataSourceName, String contentType, boolean fetchAttachmentData) {
-		final InputStream is = retrieveInputStream(dataSource);
-		try {
-			final ByteArrayDataSource result = fetchAttachmentData
-											   ? new ByteArrayDataSource(readContent(is), contentType)
-											   : new ByteArrayDataSource(is, contentType);
+		
+		if (fetchAttachmentData) {
+			final String contentType = MiscUtil.parseBaseMimeType(dataSource.getContentType());
+			final ByteArrayDataSource result = new ByteArrayDataSource(readContent(retrieveInputStream(dataSource)), contentType);
 			result.setName(dataSourceName);
 			return result;
-		} catch (IOException e) {
-			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_INPUTSTREAM, e);
+		} else {
+			return new NamedDataSource(dataSourceName, dataSource);
 		}
 	}
 	
@@ -435,20 +429,6 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_READING_CONTENT, e);
 		}
 	}
-
-	/**
-	 * @param fullMimeType the mime type from the mail api
-	 * @return The real mime type
-	 */
-	@NotNull
-	private static String parseBaseMimeType(@NotNull final String fullMimeType) {
-		final int pos = fullMimeType.indexOf(';');
-		if (pos >= 0) {
-			return fullMimeType.substring(0, pos);
-		}
-		return fullMimeType;
-	}
-
 
 	@SuppressWarnings("WeakerAccess")
 	@NotNull
