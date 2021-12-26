@@ -1,10 +1,9 @@
 package org.simplejavamail.internal.batchsupport;
 
+import jakarta.mail.Transport;
 import org.bbottema.genericobjectpool.PoolableObject;
-import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
-
 import org.jetbrains.annotations.NotNull;
-import javax.mail.Transport;
+import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 
 /**
  * Wraps {@link PoolableObject} to implement {@link LifecycleDelegatingTransport}, so transport resources

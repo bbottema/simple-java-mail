@@ -1,13 +1,12 @@
 package org.simplejavamail.email;
 
+import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.email.internal.EmailPopulatingBuilderImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
-
-import org.jetbrains.annotations.NotNull;
-import javax.mail.internet.MimeMessage;
 
 /**
  * Builder starter which offers initial starting places after which control is passed on to the {@link EmailPopulatingBuilderImpl} for filling in details.

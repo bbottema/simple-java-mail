@@ -1,8 +1,8 @@
 package org.simplejavamail.api.email;
 
+import jakarta.activation.DataSource;
 import org.jetbrains.annotations.Nullable;
 
-import javax.activation.DataSource;
 import java.util.List;
 import java.util.Objects;
 

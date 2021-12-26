@@ -1,5 +1,6 @@
 package org.simplejavamail.email.internal;
 
+import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -10,7 +11,6 @@ import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Properties;

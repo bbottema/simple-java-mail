@@ -1,10 +1,10 @@
 package demo;
 
+import jakarta.mail.util.ByteArrayDataSource;
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
 
-import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,7 +42,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 						"- plain text (root)")
 				.clearHTMLText()
 				.buildEmail());
-		
+
 		assertThat(result).isNull();
 	}
 

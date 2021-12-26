@@ -2,6 +2,10 @@ package org.simplejavamail.email.internal;
 
 import com.google.code.regexp.Matcher;
 import com.google.code.regexp.Pattern;
+import jakarta.activation.DataSource;
+import jakarta.mail.Message;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.assertj.core.api.ThrowableAssert;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -18,10 +22,6 @@ import org.simplejavamail.internal.util.CertificationUtil;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.activation.DataSource;
-import javax.mail.Message;
-import javax.mail.internet.InternetAddress;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;

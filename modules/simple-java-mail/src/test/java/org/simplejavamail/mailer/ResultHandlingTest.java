@@ -30,7 +30,7 @@ public class ResultHandlingTest {
 		emailSentSuccesfullyShouldInvokeOnSuccessHandler(sendAsyncMailUsingMailerAPI(true));
 		emailSentSuccesfullyShouldInvokeOnSuccessHandler(sendAsyncMailUsingMailerBuilderAPI(true));
 	}
-	
+
 	private void emailSentSuccesfullyShouldInvokeOnSuccessHandler(AsyncResponse asyncResponse) throws InterruptedException, ExecutionException {
 		// set handlers, then wait for result
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
@@ -48,17 +48,17 @@ public class ResultHandlingTest {
 			}
 		});
 		asyncResponse.getFuture().get();
-		
+
 		assertThat(successHandlerInvoked).hasValue(true);
 		assertThat(exceptionHandlerInvoked).hasValue(false);
 	}
-	
+
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay() throws Exception {
 		emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(sendAsyncMailUsingMailerAPI(true));
 		emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(sendAsyncMailUsingMailerBuilderAPI(true));
 	}
-	
+
 	private void emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(AsyncResponse asyncResponse) throws InterruptedException, ExecutionException {
 		// wait for result, then set handlers
 		asyncResponse.getFuture().get();
@@ -76,17 +76,17 @@ public class ResultHandlingTest {
 				exceptionHandlerInvoked.set(true);
 			}
 		});
-		
+
 		assertThat(successHandlerInvoked).hasValue(true);
 		assertThat(exceptionHandlerInvoked).hasValue(false);
 	}
-	
+
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnExceptionHandler() {
 		emailSentSuccesfullyShouldInvokeOnExceptionHandler(sendAsyncMailUsingMailerAPI(false));
 		emailSentSuccesfullyShouldInvokeOnExceptionHandler(sendAsyncMailUsingMailerBuilderAPI(false));
 	}
-	
+
 	private void emailSentSuccesfullyShouldInvokeOnExceptionHandler(AsyncResponse asyncResponse) {
 		// set handlers, then wait for result
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
@@ -103,17 +103,17 @@ public class ResultHandlingTest {
 				exceptionHandlerInvoked.set(true);
 			}
 		});
-		
+
 		try {
 			asyncResponse.getFuture().get();
 		} catch (Exception e) {
 			// good
 		}
-		
+
 		assertThat(successHandlerInvoked).hasValue(false);
 		assertThat(exceptionHandlerInvoked).hasValue(true);
 	}
-	
+
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnExceptionHandlerAfterDelay() throws Exception {
 		AsyncResponse asyncResponse = sendAsyncMailUsingMailerAPI(false);
@@ -142,7 +142,7 @@ public class ResultHandlingTest {
 		assertThat(successHandlerInvoked).hasValue(false);
 		assertThat(exceptionHandlerInvoked).hasValue(true);
 	}
-	
+
 	@Nullable
 	private AsyncResponse sendAsyncMailUsingMailerAPI(boolean sendSuccesfully) {
 		final boolean async = true;
@@ -155,7 +155,7 @@ public class ResultHandlingTest {
 						.withPlainText("")
 						.buildEmail(), async);
 	}
-	
+
 	@Nullable
 	private AsyncResponse sendAsyncMailUsingMailerBuilderAPI(boolean sendSuccesfully) {
 		return MailerBuilder

@@ -1,10 +1,10 @@
 package org.simplejavamail.api.email;
 
+import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
-import org.jetbrains.annotations.NotNull;
-import javax.mail.internet.MimeMessage;
 import java.util.regex.Pattern;
 
 import static java.util.regex.Pattern.compile;

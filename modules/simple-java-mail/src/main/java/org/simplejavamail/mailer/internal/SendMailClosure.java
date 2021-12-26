@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
@@ -10,9 +13,6 @@ import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelp
 import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.concurrent.atomic.AtomicInteger;
 

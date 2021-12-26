@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -7,7 +8,6 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 
-import javax.mail.Session;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

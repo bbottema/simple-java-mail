@@ -1,7 +1,6 @@
 package org.simplejavamail.api.internal.batchsupport;
 
-import javax.mail.Transport;
-
+import jakarta.mail.Transport;
 import org.jetbrains.annotations.NotNull;
 
 /**

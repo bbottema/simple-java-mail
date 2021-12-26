@@ -1,8 +1,9 @@
 package org.simplejavamail.api.email;
 
+import jakarta.mail.Message.RecipientType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import javax.mail.Message.RecipientType;
+
 import java.io.Serializable;
 import java.util.Objects;
 

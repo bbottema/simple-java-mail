@@ -1,5 +1,8 @@
 package org.simplejavamail.api.mailer;
 
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -10,9 +13,6 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import javax.mail.Message;
-import javax.mail.Session;
-import javax.mail.Transport;
 import java.util.concurrent.Future;
 
 /**

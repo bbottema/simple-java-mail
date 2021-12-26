@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
 import com.sanctionco.jmail.EmailValidator;
+import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -21,7 +22,6 @@ import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.mail.Session;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -31,8 +31,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 /**

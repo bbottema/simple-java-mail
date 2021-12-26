@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.bbottema</groupId>
         <artifactId>modular-project-parent</artifactId>
-        <version>1.0.17</version>
+        <version>1.0.18</version>
     </parent>
 
     <groupId>org.simplejavamail</groupId>
@@ -20,9 +20,9 @@
     <url>http://www.simplejavamail.org/</url>
 
     <properties>
-        <java.version>1.8</java.version>
-        <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
         <automaticModuleName>org.simplejavamail.undefined</automaticModuleName> <!-- update in individual modules -->
+        <license.owner.name>Benny Bottema</license.owner.name>
+        <license.owner.email>benny@bennybottema.com</license.owner.email>
     </properties>
 
     <!-- to skip some steps: -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -Denforcer.skip=true -Djacoco.skip=true -Dlicense.skip=true -->
@@ -77,7 +77,7 @@
         <dependency>
             <groupId>com.github.bbottema</groupId>
             <artifactId>java-socks-proxy-server</artifactId>
-            <version>1.0.2</version>
+            <version>2.0.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

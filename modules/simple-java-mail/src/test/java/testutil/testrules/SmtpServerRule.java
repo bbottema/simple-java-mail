@@ -1,16 +1,13 @@
 package testutil.testrules;
 
-import org.assertj.core.util.Preconditions;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.NotNull;
 import org.junit.rules.ExternalResource;
-import org.junit.rules.TestRule;
-import org.subethamail.smtp.TooMuchDataException;
 import org.subethamail.smtp.server.SMTPServer;
 import org.subethamail.wiser.Wiser;
 import org.subethamail.wiser.WiserMessage;
 
-import org.jetbrains.annotations.NotNull;
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;

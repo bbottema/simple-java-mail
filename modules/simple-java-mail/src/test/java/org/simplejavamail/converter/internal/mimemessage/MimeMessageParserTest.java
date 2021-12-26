@@ -1,5 +1,16 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import jakarta.activation.DataHandler;
+import jakarta.mail.BodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Part;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.ParameterList;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.assertj.core.api.ThrowableAssert;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -15,17 +26,6 @@ import org.simplejavamail.internal.util.NamedDataSource;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.activation.DataHandler;
-import javax.mail.BodyPart;
-import javax.mail.MessagingException;
-import javax.mail.Part;
-import javax.mail.Session;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.ParameterList;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Calendar;

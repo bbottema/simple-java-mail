@@ -1,13 +1,12 @@
 package org.simplejavamail.internal.modules;
 
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
-import org.jetbrains.annotations.NotNull;
-
-import javax.mail.Session;
-import javax.mail.Transport;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;

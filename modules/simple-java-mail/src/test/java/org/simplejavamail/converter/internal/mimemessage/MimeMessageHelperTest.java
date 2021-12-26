@@ -1,5 +1,11 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import jakarta.mail.BodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.ContentType;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.assertj.core.api.ThrowableAssert;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -18,12 +24,6 @@ import org.simplejavamail.internal.util.MiscUtil;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.mail.BodyPart;
-import javax.mail.MessagingException;
-import javax.mail.internet.ContentType;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;

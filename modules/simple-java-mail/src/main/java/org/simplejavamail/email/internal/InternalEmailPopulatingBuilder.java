@@ -1,13 +1,13 @@
 package org.simplejavamail.email.internal;
 
+import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import javax.mail.internet.MimeMessage;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;

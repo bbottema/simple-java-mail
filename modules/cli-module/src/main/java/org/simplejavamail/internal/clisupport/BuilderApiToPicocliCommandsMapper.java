@@ -1,7 +1,9 @@
 package org.simplejavamail.internal.clisupport;
 
-import com.google.code.regexp.Pattern;
 import com.google.code.regexp.Matcher;
+import com.google.code.regexp.Pattern;
+import jakarta.activation.DataSource;
+import jakarta.mail.internet.MimeMessage;
 import org.bbottema.javareflection.BeanUtils;
 import org.bbottema.javareflection.BeanUtils.Visibility;
 import org.bbottema.javareflection.ClassUtils;
@@ -30,8 +32,6 @@ import org.simplejavamail.internal.util.StringUtil;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
 import org.slf4j.Logger;
 
-import javax.activation.DataSource;
-import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;

@@ -1,13 +1,13 @@
 package org.simplejavamail.api.email;
 
+import jakarta.activation.DataSource;
+import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.util.MiscUtil;
 
-import javax.activation.DataSource;
-import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
 import java.io.Serializable;

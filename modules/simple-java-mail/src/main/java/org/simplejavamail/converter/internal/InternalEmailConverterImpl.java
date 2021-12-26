@@ -1,11 +1,10 @@
 package org.simplejavamail.converter.internal;
 
+import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.util.InternalEmailConverter;
-
-import javax.mail.internet.MimeMessage;
 
 /**
  * @see InternalEmailConverter

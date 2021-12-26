@@ -1,10 +1,9 @@
 package org.simplejavamail.internal.smimesupport;
 
+import jakarta.mail.internet.ContentType;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.MimePart;
 import net.markenwerk.utils.mail.smime.SmimeException;
-
-import javax.mail.internet.ContentType;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.MimePart;
 
 /**
  * The original SmimeUtil misses the case for enveloped S/MIME content (SIGNED_ENVELOPED).

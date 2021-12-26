@@ -2,7 +2,6 @@ package org.simplejavamail.converter;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
@@ -133,5 +132,14 @@ public class EmailConverterTest {
 		assertThat(s1.getAttachments()).extracting("name").containsExactlyInAnyOrder("ecblank.gif", "logo_imabenelux.jpg");
 		Email s2 = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#318 Email with nodata-attachment2.msg"));
 		assertThat(s2.getAttachments()).extracting("name").containsExactlyInAnyOrder("ETS Andre Glotz SA CP 1.doc");
+	}
+
+	@Test
+	public void testIt() {
+		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#332 Email with problematic embedded image.eml"));
+		assertThat(s1.getAttachments()).isEmpty();
+		assertThat(s1.getEmbeddedImages()).extracting("name")
+				.containsExactly("DB294AA3-160F-4825-923A-B16C8B674543@home");
+		assertThat(s1.getHTMLText()).containsPattern("\"cid:DB294AA3-160F-4825-923A-B16C8B674543@home\"");
 	}
 }

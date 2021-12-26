@@ -1,11 +1,11 @@
 package org.simplejavamail.api.email;
 
+import jakarta.activation.DataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.internal.util.MiscUtil;
 
-import javax.activation.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;

@@ -1,9 +1,9 @@
 package org.simplejavamail.internal.clisupport.valueinterpreters;
 
+import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.converter.EmailConverter;
 
-import org.jetbrains.annotations.NotNull;
-import javax.mail.internet.MimeMessage;
 import java.io.File;
 
 public class EmlFilePathToMimeMessageFunction extends FileBasedFunction<MimeMessage> {

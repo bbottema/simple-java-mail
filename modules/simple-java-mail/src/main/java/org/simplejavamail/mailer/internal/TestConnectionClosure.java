@@ -1,14 +1,14 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import javax.mail.MessagingException;
-import javax.mail.Session;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**

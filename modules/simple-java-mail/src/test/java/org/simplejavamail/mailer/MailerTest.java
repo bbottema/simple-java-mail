@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import net.markenwerk.utils.mail.dkim.DkimMessage;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -18,8 +20,6 @@ import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayInputStream;
 import java.io.File;

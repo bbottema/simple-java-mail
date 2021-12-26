@@ -1,12 +1,12 @@
 package org.simplejavamail.api.mailer;
 
+import jakarta.mail.Session;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import javax.mail.Session;
 import javax.net.ssl.SSLSocketFactory;
 
 /**

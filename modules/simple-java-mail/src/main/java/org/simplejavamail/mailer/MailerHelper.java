@@ -1,6 +1,9 @@
 package org.simplejavamail.mailer;
 
 import com.sanctionco.jmail.EmailValidator;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeUtility;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -11,9 +14,6 @@ import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.slf4j.Logger;
 
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeUtility;
 import java.util.Collection;
 import java.util.Map;
 

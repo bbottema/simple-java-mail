@@ -1,16 +1,16 @@
 package org.simplejavamail.api.mailer.config;
 
+import jakarta.mail.Session;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.config.ConfigLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.Nullable;
-import javax.mail.Session;
 import java.util.Properties;
 
 import static java.lang.String.format;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
  * Defines the various types of transport protocols and implements respective properties so that a {@link Session} may be configured using a

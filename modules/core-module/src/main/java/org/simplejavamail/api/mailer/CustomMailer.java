@@ -1,11 +1,10 @@
 package org.simplejavamail.api.mailer;
 
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
-
-import org.jetbrains.annotations.NotNull;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
 
 /**
  * By default, Simple Java Mail handles the ultimate connection and sending of emails. However, it is possible to replace this last step

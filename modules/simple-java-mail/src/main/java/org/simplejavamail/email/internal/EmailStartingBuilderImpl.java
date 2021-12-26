@@ -1,5 +1,7 @@
 package org.simplejavamail.email.internal;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -7,9 +9,6 @@ import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.email.EmailBuilder;
-
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
@@ -123,16 +122,16 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	public EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage emailMessage, final boolean repyToAll, @NotNull final String htmlTemplate) {
 		final MimeMessage replyMessage;
 		try {
-			replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
+			MimeMessage replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
 			replyMessage.setText("ignore");
 			replyMessage.setFrom("ignore@ignore.ignore");
 		} catch (final MessagingException e) {
 			throw new EmailException("was unable to parse mimemessage to produce a reply for", e);
 		}
-		
+
 		final Email repliedTo = EmailConverter.mimeMessageToEmail(emailMessage);
 		final Email generatedReply = EmailConverter.mimeMessageToEmail(replyMessage);
-		
+
 		return startingBlank()
 				.withSubject(generatedReply.getSubject())
 				.to(generatedReply.getRecipients())

@@ -1,17 +1,16 @@
 package org.simplejavamail.mailer.internal.util;
 
+import jakarta.mail.Address;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.modules.ModuleLoader;
 import org.slf4j.Logger;
 
-import org.jetbrains.annotations.NotNull;
-
-import javax.mail.Address;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.MimeMessage;
 import java.util.UUID;
 
 import static org.slf4j.LoggerFactory.getLogger;

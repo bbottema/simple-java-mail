@@ -1,5 +1,8 @@
 package org.simplejavamail.internal.modules;
 
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimePart;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -11,9 +14,6 @@ import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionRe
 import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimePart;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
