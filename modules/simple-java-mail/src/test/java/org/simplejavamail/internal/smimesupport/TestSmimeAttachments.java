@@ -19,7 +19,7 @@ import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 public class TestSmimeAttachments {
 
@@ -75,7 +75,7 @@ public class TestSmimeAttachments {
 				.clearHeaders() // set by Outlook when sending, so is missing in the saved .msg from before sending
 				.clearReplyTo() // same
 				.clearBounceTo() // same
-				.from(assumeNonNull(fromEmlBuilder.getFromRecipient()).getName(), "donotreply@unknown-from-address.net")
+				.from(verifyNonnullOrEmpty(fromEmlBuilder.getFromRecipient()).getName(), "donotreply@unknown-from-address.net")
 				.buildEmail();
 
 		EmailAssert.assertThat(emailParsedFromMsg).isEqualTo(emailExpectedFromEml);
@@ -114,7 +114,7 @@ public class TestSmimeAttachments {
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(1);
 		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactly("signed-email.eml");
 
-		final Email smimeSignedEmail = assumeNonNull(emailParsedFromMsg.getSmimeSignedEmail());
+		final Email smimeSignedEmail = verifyNonnullOrEmpty(emailParsedFromMsg.getSmimeSignedEmail());
 
 		assertThat(smimeSignedEmail.getHeaders()).contains(new SimpleEntry<>("Message-ID", singletonList(SMIME_ATTACHMENT_MESSAGE_ID)));
 		assertThat(normalizeNewlines(smimeSignedEmail.getPlainText())).isEqualTo("Invio messaggio SMIME (signed and clear text)\n"
@@ -158,7 +158,7 @@ public class TestSmimeAttachments {
 				.clearHeaders() // set by Outlook when sending, so is missing in the saved .msg from before sending
 				.clearReplyTo() // same
 				.clearBounceTo() // same
-				.from(assumeNonNull(fromEmlBuilder.getFromRecipient()).getName(), "donotreply@unknown-from-address.net")
+				.from(verifyNonnullOrEmpty(fromEmlBuilder.getFromRecipient()).getName(), "donotreply@unknown-from-address.net")
 				.buildEmail();
 
 		Email emailWithCopiedMerginBehavior = EmailBuilder

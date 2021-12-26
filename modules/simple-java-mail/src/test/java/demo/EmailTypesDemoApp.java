@@ -1,10 +1,13 @@
 package demo;
 
+import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
 
 import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Demonstration program for the Simple Java Mail framework. Just fill your gmail, password and press GO.
@@ -27,7 +30,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	}
 
 	private static void testSimplePlainText(Mailer mailerTLS) {
-		mailerTLS.sendMail(EmailBuilder.startingBlank()
+		final AsyncResponse result = mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - simple (using plain text)")
@@ -39,6 +42,8 @@ public class EmailTypesDemoApp extends DemoAppBase {
 						"- plain text (root)")
 				.clearHTMLText()
 				.buildEmail());
+		
+		assertThat(result).isNull();
 	}
 
 	private static void testSimpleHTMLText(Mailer mailerTLS) {

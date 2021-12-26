@@ -12,16 +12,24 @@ public final class Preconditions {
 	
 	@NotNull
 	public static <T> T checkNonEmptyArgument(@Nullable final T arg, @NotNull final String parameterName) {
-		return verifyNonnull(arg, format("%s is required", parameterName));
+		return verifyNonnullOrEmpty(arg, format("%s is required", parameterName));
 	}
 	
 	@NotNull
-	public static <T> T assumeNonNull(@Nullable final T arg) {
-		return verifyNonnull(arg, "argument was assumed nonNull, but was null");
+	public static <T> T verifyNonnull(@Nullable final T arg) {
+		if (arg == null) {
+			throw new IllegalArgumentException("argument was assumed nonNull, but was null");
+		}
+		return arg;
 	}
 	
 	@NotNull
-	private static <T> T verifyNonnull(@Nullable final T arg, @NotNull final String message) {
+	public static <T> T verifyNonnullOrEmpty(@Nullable final T arg) {
+		return verifyNonnullOrEmpty(arg, "argument was assumed nonNull and nonEmpty, but was null or empty");
+	}
+	
+	@NotNull
+	private static <T> T verifyNonnullOrEmpty(@Nullable final T arg, @NotNull final String message) {
 		if (MiscUtil.valueNullOrEmpty(arg)) {
 			throw new IllegalArgumentException(message);
 		}

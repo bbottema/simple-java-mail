@@ -9,7 +9,7 @@ import javax.mail.Session;
 import java.util.Properties;
 
 import static java.lang.String.format;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 
 /**
@@ -72,7 +72,7 @@ public enum TransportStrategy {
 		public Properties generateProperties() {
 			final Properties props = super.generateProperties();
 			props.put("mail.transport.protocol", "smtp");
-			if (assumeNonNull(ConfigLoader.valueOrPropertyAsBoolean(opportunisticTLS, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS))) {
+			if (verifyNonnullOrEmpty(ConfigLoader.valueOrPropertyAsBoolean(opportunisticTLS, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS))) {
 				LOGGER.debug("Opportunistic TLS mode enabled for SMTP plain protocol.");
 				props.put("mail.smtp.starttls.enable", "true");
 				props.put("mail.smtp.starttls.required", "false");

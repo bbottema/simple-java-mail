@@ -46,8 +46,9 @@ import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsString;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.Preconditions.assumeNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.mailer.internal.MailerException.ERROR_READING_FROM_FILE;
 import static org.simplejavamail.mailer.internal.MailerException.ERROR_READING_SMIME_FROM_INPUTSTREAM;
 
@@ -214,23 +215,23 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 			this.proxyPassword = getStringProperty(PROXY_PASSWORD);
 		}
 		this.clusterKey = hasProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)
-				? UUID.fromString(assumeNonNull(getStringProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))
+				? UUID.fromString(verifyNonnullOrEmpty(getStringProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))
 				: UUID.randomUUID(); // <-- this makes sure it won't form a cluster with another mailer
 
-		this.proxyPort 								= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
-		this.proxyBridgePort 						= assumeNonNull(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
-		this.debugLogging 							= assumeNonNull(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
-		this.sessionTimeout 						= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
-		this.trustAllSSLHost 						= assumeNonNull(valueOrPropertyAsBoolean(null, Property.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
-		this.verifyingServerIdentity 				= assumeNonNull(valueOrPropertyAsBoolean(null, Property.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY));
-		this.threadPoolSize 						= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
-		this.threadPoolKeepAliveTime 				= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
-		this.connectionPoolCoreSize 				= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
-		this.connectionPoolMaxSize 					= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
-		this.connectionPoolClaimTimeoutMillis 		= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS));
-		this.connectionPoolExpireAfterMillis 		= assumeNonNull(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
-		this.connectionPoolLoadBalancingStrategy	= assumeNonNull(valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
-		this.transportModeLoggingOnly 				= assumeNonNull(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
+		this.proxyPort 								= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
+		this.proxyBridgePort 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
+		this.debugLogging 							= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
+		this.sessionTimeout 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
+		this.trustAllSSLHost 						= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
+		this.verifyingServerIdentity 				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY));
+		this.threadPoolSize 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
+		this.threadPoolKeepAliveTime 				= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
+		this.connectionPoolCoreSize 				= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
+		this.connectionPoolMaxSize 					= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
+		this.connectionPoolClaimTimeoutMillis 		= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS));
+		this.connectionPoolExpireAfterMillis 		= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
+		this.connectionPoolLoadBalancingStrategy	= verifyNonnullOrEmpty(valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
+		this.transportModeLoggingOnly 				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
 
 		final String trustedHosts = valueOrPropertyAsString(null, Property.DEFAULT_TRUSTED_HOSTS, null);
 		if (trustedHosts != null) {
@@ -241,7 +242,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 		if (hasProperty(SMIME_SIGNING_KEYSTORE)) {
 			signByDefaultWithSmime(Pkcs12Config.builder()
-					.pkcs12Store(assumeNonNull(getStringProperty(SMIME_SIGNING_KEYSTORE)))
+					.pkcs12Store(verifyNonnullOrEmpty(getStringProperty(SMIME_SIGNING_KEYSTORE)))
 					.storePassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEYSTORE_PASSWORD), "Keystore password property"))
 					.keyAlias(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_ALIAS), "Key alias property"))
 					.keyPassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_PASSWORD), "Key password property"))
