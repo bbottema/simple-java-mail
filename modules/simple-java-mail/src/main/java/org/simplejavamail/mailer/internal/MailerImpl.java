@@ -158,7 +158,7 @@ public class MailerImpl implements Mailer {
 		if (serverConfig.getUsername() != null) {
 			props.put(transportStrategy.propertyNameUsername(), serverConfig.getUsername());
 		}
-		// https://www.tutorialspoint.com/javamail_api/javamail_api_smtp_servers.htm
+		// https://archive.ph/VkrwH (https://www.tutorialspoint.com/javamail_api/javamail_api_smtp_servers.htm)
 		if (serverConfig.getCustomSSLFactoryInstance() != null) {
 			props.put("mail.smtp.ssl.socketFactory", serverConfig.getCustomSSLFactoryInstance());
 		} else if (serverConfig.getCustomSSLFactoryClass() != null) {
@@ -312,8 +312,9 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#sendMail(Email)
 	 */
 	@Override
-	public final void sendMail(final Email email) {
-		sendMail(email, getOperationalConfig().isAsync());
+	@Nullable
+	public final AsyncResponse sendMail(final Email email) {
+		return sendMail(email, getOperationalConfig().isAsync());
 	}
 
 	/**

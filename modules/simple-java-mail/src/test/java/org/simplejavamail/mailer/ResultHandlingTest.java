@@ -13,6 +13,7 @@ import testutil.ConfigLoaderTestHelper;
 
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,8 +27,11 @@ public class ResultHandlingTest {
 
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnSuccessHandler() throws Exception {
-		AsyncResponse asyncResponse = sendAsyncMail(true);
-
+		emailSentSuccesfullyShouldInvokeOnSuccessHandler(sendAsyncMailUsingMailerAPI(true));
+		emailSentSuccesfullyShouldInvokeOnSuccessHandler(sendAsyncMailUsingMailerBuilderAPI(true));
+	}
+	
+	private void emailSentSuccesfullyShouldInvokeOnSuccessHandler(AsyncResponse asyncResponse) throws InterruptedException, ExecutionException {
 		// set handlers, then wait for result
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
@@ -44,15 +48,18 @@ public class ResultHandlingTest {
 			}
 		});
 		asyncResponse.getFuture().get();
-
+		
 		assertThat(successHandlerInvoked).hasValue(true);
 		assertThat(exceptionHandlerInvoked).hasValue(false);
 	}
-
+	
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay() throws Exception {
-		AsyncResponse asyncResponse = sendAsyncMail(true);
-
+		emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(sendAsyncMailUsingMailerAPI(true));
+		emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(sendAsyncMailUsingMailerBuilderAPI(true));
+	}
+	
+	private void emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(AsyncResponse asyncResponse) throws InterruptedException, ExecutionException {
 		// wait for result, then set handlers
 		asyncResponse.getFuture().get();
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
@@ -69,15 +76,18 @@ public class ResultHandlingTest {
 				exceptionHandlerInvoked.set(true);
 			}
 		});
-
+		
 		assertThat(successHandlerInvoked).hasValue(true);
 		assertThat(exceptionHandlerInvoked).hasValue(false);
 	}
-
+	
 	@Test
-	public void emailSentSuccesfullyShouldInvokeOnExceptionHandler() throws Exception {
-		AsyncResponse asyncResponse = sendAsyncMail(false);
-
+	public void emailSentSuccesfullyShouldInvokeOnExceptionHandler() {
+		emailSentSuccesfullyShouldInvokeOnExceptionHandler(sendAsyncMailUsingMailerAPI(false));
+		emailSentSuccesfullyShouldInvokeOnExceptionHandler(sendAsyncMailUsingMailerBuilderAPI(false));
+	}
+	
+	private void emailSentSuccesfullyShouldInvokeOnExceptionHandler(AsyncResponse asyncResponse) {
 		// set handlers, then wait for result
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
@@ -93,20 +103,20 @@ public class ResultHandlingTest {
 				exceptionHandlerInvoked.set(true);
 			}
 		});
-
+		
 		try {
 			asyncResponse.getFuture().get();
 		} catch (Exception e) {
 			// good
 		}
-
+		
 		assertThat(successHandlerInvoked).hasValue(false);
 		assertThat(exceptionHandlerInvoked).hasValue(true);
 	}
-
+	
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnExceptionHandlerAfterDelay() throws Exception {
-		AsyncResponse asyncResponse = sendAsyncMail(false);
+		AsyncResponse asyncResponse = sendAsyncMailUsingMailerAPI(false);
 
 		// wait for result, then set handlers
 		try {
@@ -132,9 +142,9 @@ public class ResultHandlingTest {
 		assertThat(successHandlerInvoked).hasValue(false);
 		assertThat(exceptionHandlerInvoked).hasValue(true);
 	}
-
+	
 	@Nullable
-	private AsyncResponse sendAsyncMail(boolean sendSuccesfully) {
+	private AsyncResponse sendAsyncMailUsingMailerAPI(boolean sendSuccesfully) {
 		final boolean async = true;
 		return MailerBuilder
 				.withSMTPServer("localhost", 0)
@@ -144,6 +154,19 @@ public class ResultHandlingTest {
 						.from("Simple Java Mail demo", "simplejavamail@demo.app")
 						.withPlainText("")
 						.buildEmail(), async);
+	}
+	
+	@Nullable
+	private AsyncResponse sendAsyncMailUsingMailerBuilderAPI(boolean sendSuccesfully) {
+		return MailerBuilder
+				.withSMTPServer("localhost", 0)
+				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
+				.async()
+				.buildMailer().sendMail(EmailBuilder.startingBlank()
+						.to("a@b.com")
+						.from("Simple Java Mail demo", "simplejavamail@demo.app")
+						.withPlainText("")
+						.buildEmail());
 	}
 
 	private static class MySimulatingMailer implements CustomMailer {

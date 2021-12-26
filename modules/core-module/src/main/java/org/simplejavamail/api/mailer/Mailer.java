@@ -57,8 +57,9 @@ public interface Mailer {
 	/**
 	 * Delegates to {@link #sendMail(Email, boolean)}, with <code>async = false</code>. This method returns only when the email has been processed by
 	 * the target SMTP server.
+	 * @return AsyncResponse if the email was configured to be sent asynchronously.
 	 */
-	void sendMail(Email email);
+	@Nullable AsyncResponse sendMail(Email email);
 	
 	/**
 	 * Processes an {@link Email} instance into a completely configured {@link Message}.
@@ -85,6 +86,7 @@ public interface Mailer {
 	 * @see #validate(Email)
 	 */
 	@Nullable
+	// FIXME replace with Optional when Java 8?
 	AsyncResponse sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
 	
 	/**
