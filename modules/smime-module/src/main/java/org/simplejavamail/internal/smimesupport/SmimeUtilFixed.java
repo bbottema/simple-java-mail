@@ -3,7 +3,7 @@ package org.simplejavamail.internal.smimesupport;
 import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimePart;
-import net.markenwerk.utils.mail.smime.SmimeException;
+import org.simplejavamail.utils.mail.smime.SmimeException;
 
 /**
  * The original SmimeUtil misses the case for enveloped S/MIME content (SIGNED_ENVELOPED).
@@ -61,9 +61,9 @@ public final class SmimeUtilFixed {
 				|| protocol.equalsIgnoreCase("application/x-pkcs7-signature");
 	}
 
-	private static net.markenwerk.utils.mail.smime.SmimeException handledException(Exception e) {
-		if (e instanceof net.markenwerk.utils.mail.smime.SmimeException) {
-			return (net.markenwerk.utils.mail.smime.SmimeException) e;
+	private static org.simplejavamail.utils.mail.smime.SmimeException handledException(Exception e) {
+		if (e instanceof org.simplejavamail.utils.mail.smime.SmimeException) {
+			return (org.simplejavamail.utils.mail.smime.SmimeException) e;
 		}
 		return new SmimeException(e.getMessage(), e);
 	}
