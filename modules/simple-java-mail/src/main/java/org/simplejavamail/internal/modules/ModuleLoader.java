@@ -20,10 +20,6 @@ public class ModuleLoader {
 	private static final Collection<Class> FORCED_DISABLED_MODULES = new ArrayList<>();
 	private static final Collection<Class> FORCED_RECHECK_MODULES = new ArrayList<>();
 
-	public static void clearLoadedModules() {
-		LOADED_MODULES.clear();
-	}
-	
 	public static AuthenticatedSocksModule loadAuthenticatedSocksModule() {
 		if (!LOADED_MODULES.containsKey(AuthenticatedSocksModule.class)) {
 			LOADED_MODULES.put(AuthenticatedSocksModule.class, loadModule(
@@ -103,7 +99,7 @@ public class ModuleLoader {
 	private static <T> T loadModule(Class moduleClass,String moduleName, String moduleImplClassName, String moduleHome) {
 		try {
 			if (FORCED_DISABLED_MODULES.contains(moduleClass)) {
-				throw new IllegalAccessException("Module is focrfully disabled");
+				throw new IllegalAccessException("Module is forcefully disabled");
 			}
 			if (!MiscUtil.classAvailable(moduleImplClassName)) {
 				throw new ModuleLoaderException(format(ModuleLoaderException.ERROR_MODULE_MISSING, moduleName, moduleHome));
@@ -123,7 +119,7 @@ public class ModuleLoader {
 	// used from junit tests (using reflection, because it's invisible in the core-module)
 	@SuppressWarnings("unused")
 	public static void _forceRecheckModule() {
-		FORCED_DISABLED_MODULES.add(BatchModule.class);
-		FORCED_DISABLED_MODULES.add(SMIMEModule.class);
+		FORCED_RECHECK_MODULES.add(BatchModule.class);
+		FORCED_RECHECK_MODULES.add(SMIMEModule.class);
 	}
 }

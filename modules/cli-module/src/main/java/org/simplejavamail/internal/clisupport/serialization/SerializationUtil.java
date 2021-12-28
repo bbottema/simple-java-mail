@@ -8,8 +8,6 @@ import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.jetbrains.annotations.NotNull;
 import org.objenesis.strategy.StdInstantiatorStrategy;
 
-import java.io.IOException;
-
 /**
  * Used to serialize attachments of nested Outlook messages. This is needed because outlook-message-parser returns a Java structure from a .msg source, but this conversion is 1-way. An Email object
  * represents attachments as DataSources however, so for this we need to serialize back from the java structure to a binary format. This Util does this.
@@ -32,8 +30,7 @@ public class SerializationUtil {
 	}
 
 	@NotNull
-	public static byte[] serialize(@NotNull final Object serializable)
-			throws IOException {
+	public static byte[] serialize(@NotNull final Object serializable) {
 		final Output output = new Output(1024, -1);
 		KRYO.writeClassAndObject(output, serializable);
 		return output.toBytes();
@@ -41,8 +38,7 @@ public class SerializationUtil {
 
 	@SuppressWarnings("unchecked")
 	@NotNull
-	public static <T> T deserialize(@NotNull final byte[] serialized)
-			throws IOException {
+	public static <T> T deserialize(@NotNull final byte[] serialized) {
 		return (T) KRYO.readClassAndObject(new Input(serialized));
 	}
 }

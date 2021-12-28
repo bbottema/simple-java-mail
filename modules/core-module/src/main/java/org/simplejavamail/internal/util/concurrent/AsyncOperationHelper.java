@@ -34,7 +34,7 @@ public class AsyncOperationHelper {
 	}
 	
 	/**
-	 * Executes using a the given ExecutorService, which is left running after the thread finishes running.
+	 * Executes using the given ExecutorService, which is left running after the thread finishes running.
 	 *
 	 * @see Executors#newSingleThreadExecutor()
 	 */

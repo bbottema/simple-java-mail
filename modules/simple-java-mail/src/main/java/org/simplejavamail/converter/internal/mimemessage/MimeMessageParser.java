@@ -472,7 +472,7 @@ public final class MimeMessageParser {
 
 	@NotNull
 	private static List<InternetAddress> parseInternetAddresses(@Nullable final Address[] recipients) {
-		final List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<Address>();
+		final List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<>();
 		final List<InternetAddress> mailAddresses = new ArrayList<>();
 		for (final Address address : addresses) {
 			if (address instanceof InternetAddress) {

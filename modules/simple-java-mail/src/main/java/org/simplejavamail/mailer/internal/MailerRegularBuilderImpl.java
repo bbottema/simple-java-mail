@@ -87,7 +87,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		}
 		this.transportStrategy = TransportStrategy.SMTP;
 		if (hasProperty(TRANSPORT_STRATEGY)) {
-			withTransportStrategy(verifyNonnullOrEmpty(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)));
+			withTransportStrategy(verifyNonnullOrEmpty(ConfigLoader.getProperty(TRANSPORT_STRATEGY)));
 		}
 		if (hasProperty(CUSTOM_SSLFACTORY_CLASS)) {
 			withCustomSSLFactoryClass(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(CUSTOM_SSLFACTORY_CLASS)));

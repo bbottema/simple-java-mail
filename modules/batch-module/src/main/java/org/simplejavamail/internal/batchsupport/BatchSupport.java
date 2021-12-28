@@ -110,7 +110,7 @@ public class BatchSupport implements BatchModule {
 	public Future<?> shutdownConnectionPools(@NotNull Session session) {
 		if (smtpConnectionPool == null) {
 			LOGGER.warn("user requested connection pool shutdown, but there is no connection pool to shut down (yet)");
-			FutureTask<Void> voidFutureTask = new FutureTask<>(new Runnable() {public void run() { }}, null);
+			FutureTask<Void> voidFutureTask = new FutureTask<>(() -> { }, null);
 			voidFutureTask.run();
 			return voidFutureTask;
 		}

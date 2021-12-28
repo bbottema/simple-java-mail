@@ -10,7 +10,7 @@ import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
  * Builder that supports a fixed {@link Session} instance. Allows configuring all generic Mailer settings, but not SMTP and transport strategy
  * details.
  * <p>
- * <strong>Note:</strong> Any SMTP server properties that can be set on the {@link Session} object by are presumed to be already present in the passed
+ * <strong>Note:</strong> Any SMTP server properties that can be set on the {@link Session} object by are presumed to be already present in the past
  * {@link Session} instance.
  *
  * @see org.simplejavamail.api.mailer.config.TransportStrategy

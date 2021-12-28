@@ -30,7 +30,7 @@ final class ClusterHelper {
 				.loadBalancingStrategy(operationalConfig.getConnectionPoolLoadBalancingStrategy() == ROUND_ROBIN
 						? new RoundRobinLoadBalancing<>()
 						: new RandomAccessLoadBalancing<>())
-				.defaultExpirationPolicy(new TimeoutSinceLastAllocationExpirationPolicy<Transport>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
+				.defaultExpirationPolicy(new TimeoutSinceLastAllocationExpirationPolicy<>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
 		return smtpClusterConfig;
 	}
 

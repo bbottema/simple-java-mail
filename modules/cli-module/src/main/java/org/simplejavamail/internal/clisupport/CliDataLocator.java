@@ -21,7 +21,7 @@ public class CliDataLocator {
 
 	@NotNull
 	private static String locateDataFile(String dataFileName) {
-		// the following is needed bacause this is a project with submodules and it changes depending on how the code is executed
+		// the following is needed bacause this is a project with submodules, and it changes depending on how the code is executed
 		if (new File("src/test/resources/log4j2.xml").exists()) {
 			return "src/main/resources/" + dataFileName;
 		} else if (new File("modules/cli-module/src/test/resources/log4j2.xml").exists()) {

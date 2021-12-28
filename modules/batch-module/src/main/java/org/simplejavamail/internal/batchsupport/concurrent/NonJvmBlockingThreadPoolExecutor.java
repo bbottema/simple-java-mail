@@ -26,9 +26,9 @@ public class NonJvmBlockingThreadPoolExecutor extends ThreadPoolExecutor {
 				threadPoolSize,
 				threadPoolKeepAliveTime,
 				TimeUnit.MILLISECONDS,
-				new LinkedBlockingQueue<Runnable>(),
+				new LinkedBlockingQueue<>(),
 				new NamedThreadFactory(format("Simple Java Mail async mail sender, executor %s / thread", counter++)));
-		// if a timeout is configured, the user wants threads to die off automatically
+		// if a timeout is configured, the user wants threads to die off automatically,
 		// so they won't block the JVM from shutting down
 		if (threadPoolKeepAliveTime > 0) {
 			allowCoreThreadTimeOut(true);

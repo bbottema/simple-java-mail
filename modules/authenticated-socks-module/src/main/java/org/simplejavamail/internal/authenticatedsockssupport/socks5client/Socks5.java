@@ -50,13 +50,6 @@ public class Socks5 {
 		this.setChainProxy(chainProxy);
 	}
 
-//	public Socks5(final String host, final int port, final ProxyCredentials credentials)
-//			throws UnknownHostException {
-//		this.inetAddress = InetAddress.getByName(host);
-//		this.port = port;
-//		this.credentials = credentials;
-//	}
-
 	public void buildConnection()
 			throws IOException {
 		if (inetAddress == null) {

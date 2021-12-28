@@ -362,7 +362,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 				}
 			}
 			if (hasProperty(DEFAULT_SUBJECT)) {
-				withSubject((String) getProperty(DEFAULT_SUBJECT));
+				withSubject(getProperty(DEFAULT_SUBJECT));
 			}
 			if (hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
 				encryptWithSmime(verifyNonnullOrEmpty(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));
@@ -1671,7 +1671,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withHeader(@NotNull final String name, @Nullable final Object value) {
 		checkNonEmptyArgument(name, "name");
 		if (!headers.containsKey(name)) {
-			headers.put(name, new ArrayList<String>());
+			headers.put(name, new ArrayList<>());
 		}
 		headers.get(name).add(value != null ? String.valueOf(value) : null);
 		return this;

@@ -380,7 +380,7 @@ public class SMIMESupport implements SMIMEModule {
 			} else if (mimePart.isMimeType("application/pkcs7-mime") || mimePart.isMimeType("application/x-pkcs7-mime")) {
 				return new SMIMESigned(mimePart);
 			} else {
-				throw new SmimeException(format(MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED, mimePart.toString()));
+				throw new SmimeException(format(MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED, mimePart));
 			}
 		} catch (MessagingException | CMSException | SMIMEException | IOException e) {
 			throw new SmimeException(ERROR_DETERMINING_SMIME_SIGNER, e);

@@ -1,7 +1,7 @@
 package org.simplejavamail.api.internal.smimesupport.model;
 
 /**
- * Implemented by the S/MIME module to return some basic meta data to the main Simple Javan Mail module.
+ * Implemented by the S/MIME module to return some basic metadata to the main Simple Javan Mail module.
  */
 public interface SmimeDetails {
 	String getSmimeMime();

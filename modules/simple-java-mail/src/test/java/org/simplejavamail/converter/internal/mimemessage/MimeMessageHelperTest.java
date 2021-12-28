@@ -30,18 +30,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(MiscUtil.class)
-@PowerMockIgnore("javax.management.*")
 public class MimeMessageHelperTest {
 	
 	@Before
 	public void setup() {
-		ModuleLoader.clearLoadedModules();
 		ConfigLoaderTestHelper.clearConfigProperties();
 		ModuleLoader._forceRecheckModule();
 	}
-	
+
 	@Test
 	public void determineResourceName1()
 			throws IOException {
@@ -111,39 +107,6 @@ public class MimeMessageHelperTest {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
-		
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			@Override
-			public void call() {
-				EmailConverter.emailToMimeMessage(email);
-			}
-		})
-				.isInstanceOf(Class.forName("org.simplejavamail.internal.dkimsupport.DKIMSigningException"))
-				.hasMessage("Error signing MimeMessage with DKIM");
-	}
-	
-	@Test
-	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseDKIMLibraryIsMissing()
-			throws IOException, ClassNotFoundException {
-		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
-				.signWithDomainKey("dummykey", "moo.com", "selector")
-				.buildEmail();
-		
-		PowerMockito.mockStatic(MiscUtil.class);
-		BDDMockito.given(MiscUtil.classAvailable("oorg.simplejavamail.internal.dkimsupport.DKIMSigner")).willReturn(false);
-		BDDMockito.given(MiscUtil.encodeText(anyString())).willCallRealMethod();
-
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			@Override
-			public void call() {
-				EmailConverter.emailToMimeMessage(email);
-			}
-		})
-				.hasMessage("DKIM module not found, make sure it is on the classpath (https://github.com/bbottema/simple-java-mail/tree/develop/modules/dkim-module)");
-		
-		PowerMockito.mockStatic(MiscUtil.class);
-		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner")).willCallRealMethod();
-		BDDMockito.given(MiscUtil.encodeText(anyString())).willCallRealMethod();
 		
 		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
 			@Override

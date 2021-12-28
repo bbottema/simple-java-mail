@@ -135,7 +135,7 @@ public final class MiscUtil {
 		byte[] data = new byte[1024];
 		int read;
 		while ((read = inputStream.read(data, 0, data.length)) != -1) {
-			buffer.write(data, 0, read);;
+			buffer.write(data, 0, read);
 		}
 		buffer.flush();
 		return buffer.toByteArray();

@@ -60,7 +60,7 @@ public enum TransportStrategy {
 		 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
 		 * was provided, this value defaults to {@value DEFAULT_OPPORTUNISTIC_TLS}.
 		 * <p>
-		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
+		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert to the legacy behavior.
 		 */
 		@Nullable
 		private Boolean opportunisticTLS;
@@ -180,7 +180,7 @@ public enum TransportStrategy {
 		 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
 		 * was provided, this value defaults to {@value DEFAULT_OPPORTUNISTIC_TLS}.
 		 * <p>
-		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
+		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert to the legacy behavior.
 		 * <p>
 		 * Setting <code>null</code> will revert to property value if available in config or default to {@value
 		 * DEFAULT_OPPORTUNISTIC_TLS}
@@ -575,7 +575,7 @@ public enum TransportStrategy {
 	 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
 	 * was provided, this value defaults to it default.
 	 * <p>
-	 * Setting this flag to false causes {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
+	 * Setting this flag to false causes {@link TransportStrategy#SMTP} to revert to the legacy behavior.
 	 * <p>
 	 * Only has any effect when invoked via {@code TransportStrategy.SMTP.setOpportunisticTLS(true/false)}
 	 */

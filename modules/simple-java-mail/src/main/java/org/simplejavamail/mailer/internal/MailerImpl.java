@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -134,12 +133,12 @@ public class MailerImpl implements Mailer {
 	 * <em>"mail.smtp.host"</em> for SMTP and <em>"mail.smtps.host"</em> for SMTPS)</li> </ol>
 	 * <p>
 	 * Furthermore adds proxy SOCKS properties if a proxy configuration was provided, overwriting any SOCKS properties already present.
-	 * <p>Finally, if there are extra properties in the properties file (ie. <em>simplejavamail.extraproperties.thisisextra=value</em>), then these
+	 * <p>Finally, if there are extra properties in the properties file (i.e. <em>simplejavamail.extraproperties.thisisextra=value</em>), then these
 	 * are loaded directly on the internal Session instance. This Java equivalent of this is: <code>mailer.getSession().getProperties().setProperty(..)</code>.
 	 *
 	 * @param serverConfig      Remote SMTP server details.
 	 * @param transportStrategy The transport protocol strategy enum that actually handles the session configuration. Session configuration meaning
-	 *                          setting the right properties for the appropriate transport type (ie. <em>"mail.smtp.host"</em> for SMTP,
+	 *                          setting the right properties for the appropriate transport type (i.e. <em>"mail.smtp.host"</em> for SMTP,
 	 *                          <em>"mail.smtps.host"</em> for SMTPS).
 	 *
 	 * @return A fully configured <code>Session</code> instance complete with transport protocol settings.
@@ -165,7 +164,7 @@ public class MailerImpl implements Mailer {
 			props.put("mail.smtp.ssl.socketFactory.class", serverConfig.getCustomSSLFactoryClass());
 		}
 		if (ConfigLoader.hasProperty(EXTRA_PROPERTIES)) {
-			props.putAll(ConfigLoader.<Map<?, ?>>getProperty(EXTRA_PROPERTIES));
+			props.putAll(ConfigLoader.getProperty(EXTRA_PROPERTIES));
 		}
 
 		if (serverConfig.getPassword() != null) {
@@ -265,7 +264,7 @@ public class MailerImpl implements Mailer {
 			}
 			if (proxyConfig.requiresAuthentication()) {
 				if (transportStrategy != null) {
-					// wire anonymous proxy request to our own proxy bridge so we can perform authentication to the actual proxy
+					// wire anonymous proxy request to our own proxy bridge, so we can perform authentication to the actual proxy
 					sessionProperties.put(transportStrategy.propertyNameSocksHost(), "localhost");
 					sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getProxyBridgePort()));
 				} else {

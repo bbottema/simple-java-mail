@@ -92,6 +92,6 @@ public final class SmimeUtilFixed {
 		 * Indicates that the {@link MimePart} or {@link MimeMultipart} is neither
 		 * S/MIME encrypted nor S/MIME signed.
 		 */
-		NEITHER;
+		NEITHER
 	}
 }

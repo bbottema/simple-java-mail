@@ -93,7 +93,7 @@ public final class ConfigLoader {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
 	
 	/**
-	 * By default the optional file {@value} will be loaded from classpath to load initial defaults.
+	 * By default, the optional file {@value} will be loaded from classpath to load initial defaults.
 	 */
 	public static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
 

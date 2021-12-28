@@ -1,7 +1,6 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
 import org.slf4j.Logger;

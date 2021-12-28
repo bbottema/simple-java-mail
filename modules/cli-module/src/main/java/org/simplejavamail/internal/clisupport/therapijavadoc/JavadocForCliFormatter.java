@@ -166,7 +166,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 	protected String renderValue(InlineValue e) {
 		Object obj = TherapiJavadocHelper.resolveFieldForValue(e.getValue());
 		if (obj != null) {
-			return String.format("@|%s %s|@", CODE_STYLE, obj.toString());
+			return String.format("@|%s %s|@", CODE_STYLE, obj);
 		}
 		throw new AssertionError("{@value} cannot be resolved");
 	}

@@ -3,7 +3,7 @@ package org.simplejavamail.internal.authenticatedsockssupport.socks5server.msg;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The enumeration <code>ServerReply</code> represents reply of servers will SOCKS client send a command request to the SOCKS server.
+ * The enumeration <code>ServerReply</code> represents reply of servers when a SOCKS client sends a command request to the SOCKS server.
  */
 public enum ServerReply {
 

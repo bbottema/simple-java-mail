@@ -5,7 +5,6 @@ import org.simplejavamail.config.ConfigLoader.Property;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 

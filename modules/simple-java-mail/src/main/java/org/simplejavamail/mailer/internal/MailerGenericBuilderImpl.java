@@ -47,7 +47,6 @@ import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.mailer.internal.MailerException.ERROR_READING_FROM_FILE;
 import static org.simplejavamail.mailer.internal.MailerException.ERROR_READING_SMIME_FROM_INPUTSTREAM;

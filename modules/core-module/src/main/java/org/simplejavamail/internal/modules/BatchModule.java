@@ -27,7 +27,7 @@ public interface BatchModule {
 	AsyncResponse executeAsync(@NotNull String processName, @NotNull Runnable operation);
 
 	/**
-	 * Executes using a the given ExecutorService, which is left running after the thread finishes running.
+	 * Executes using the given ExecutorService, which is left running after the thread finishes running.
 	 */
 	@NotNull
 	AsyncResponse executeAsync(@NotNull ExecutorService executorService, @NotNull String processName, @NotNull Runnable operation);

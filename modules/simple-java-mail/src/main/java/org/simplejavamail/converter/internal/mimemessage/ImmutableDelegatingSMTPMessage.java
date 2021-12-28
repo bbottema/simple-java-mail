@@ -52,11 +52,6 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 	}
 
 	@Override
-	public String getEnvelopeFrom() {
-		return super.getEnvelopeFrom();
-	}
-
-	@Override
 	public boolean getAllow8bitMIME() {
 		return (delegate instanceof SMTPMessage) && ((SMTPMessage) delegate).getAllow8bitMIME();
 	}
