@@ -33,8 +33,8 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Properties;
 
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
-import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.moveInvalidEmbeddedResourcesToAttachments;

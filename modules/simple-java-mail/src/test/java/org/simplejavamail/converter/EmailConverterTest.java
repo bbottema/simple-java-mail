@@ -13,8 +13,8 @@ import java.io.File;
 import java.util.Properties;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
-import static javax.mail.Message.RecipientType.CC;
-import static javax.mail.Message.RecipientType.TO;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 

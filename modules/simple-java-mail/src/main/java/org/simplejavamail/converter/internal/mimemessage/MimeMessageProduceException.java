@@ -1,14 +1,13 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import org.simplejavamail.MailException;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.MailException;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
- * This exception is used to communicate errors during production of a new {@link javax.mail.internet.MimeMessage}.
+ * This exception is used to communicate errors during production of a new {@link jakarta.mail.internet.MimeMessage}.
  */
 @SuppressWarnings("serial")
 class MimeMessageProduceException extends MailException {

@@ -48,7 +48,7 @@ public interface SMIMEModule {
 	/**
 	 * @return The S/MIME mime type and signed who signed the attachment.
 	 * <br>
-	 * <strong>Note:</strong> the attachment is assumed to be a signed / encrypted {@link javax.mail.internet.MimeBodyPart}.
+	 * <strong>Note:</strong> the attachment is assumed to be a signed / encrypted {@link jakarta.mail.internet.MimeBodyPart}.
 	 */
 	@NotNull
 	SmimeDetails getSmimeDetails(@NotNull AttachmentResource attachment);
@@ -56,7 +56,7 @@ public interface SMIMEModule {
 	/**
 	 * Delegates to {@link #getSignedByAddress(MimePart)}, where the datasource of the attachment is read completely as a MimeMessage.
 	 * <br>
-	 * <strong>Note:</strong> the attachment is assumed to be a signed / encrypted {@link javax.mail.internet.MimeBodyPart}.
+	 * <strong>Note:</strong> the attachment is assumed to be a signed / encrypted {@link jakarta.mail.internet.MimeBodyPart}.
 	 */
 	@Nullable
 	String getSignedByAddress(@NotNull AttachmentResource smimeAttachment);

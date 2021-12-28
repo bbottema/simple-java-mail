@@ -23,9 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
+import static jakarta.mail.Message.RecipientType.BCC;
 import static java.util.Calendar.APRIL;
 import static java.util.Calendar.SEPTEMBER;
-import static javax.mail.Message.RecipientType.BCC;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.CalendarMethod.ADD;
 import static org.simplejavamail.api.email.CalendarMethod.REPLY;

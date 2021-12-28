@@ -362,7 +362,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * any one time to a single server. Make sure your server can handle the load coming from all connections. There's no point having hundred concurrent connections if it degrades your
 	 * server's performance because of CPU throttling and network congestion.
 	 * <p>
-	 * In addition, if your server makes connections wait, it means threads will be waiting on the {@link javax.mail.Transport} instance to start their work load, instead of threads being blocked
+	 * In addition, if your server makes connections wait, it means threads will be waiting on the {@link jakarta.mail.Transport} instance to start their work load, instead of threads being blocked
 	 * on a <em>claim</em> for an available {@code Transport} instance. In other words: by having an oversized connection pool, you inadvertently bypass the blocking claim mechanism of the
 	 * connection pool and wait on the Transport directly instead.
 	 * <p>

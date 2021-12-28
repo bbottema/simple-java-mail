@@ -67,7 +67,7 @@ public final class MimeMessageParser {
 	private static final List<String> HEADERS_TO_IGNORE = new ArrayList<>();
 
 	static {
-		// taken from: protected javax.mail.internet.InternetHeaders constructor
+		// taken from: protected jakarta.mail.internet.InternetHeaders constructor
 		/*
 		 * When extracting information to create an Email, we're NOT interested in the following headers:
          */

@@ -12,7 +12,7 @@ public enum LoadBalancingStrategy {
 	 */
 	ROUND_ROBIN,
 	/**
-	 * Randomly choose a connection pool (server) to request a connection ({@link javax.mail.Transport}) object from.
+	 * Randomly choose a connection pool (server) to request a connection ({@link jakarta.mail.Transport}) object from.
 	 */
 	RANDOM_ACCESS;
 

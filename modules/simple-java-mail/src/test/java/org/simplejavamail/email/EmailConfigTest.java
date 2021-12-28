@@ -4,13 +4,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.internal.util.MiscUtil;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
 
-import static javax.mail.Message.RecipientType.*;
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("unused")

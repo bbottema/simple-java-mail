@@ -17,7 +17,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 /**
- * Helper class that produces and populates a mime messages. Deals with javax.mail RFC MimeMessage stuff, as well as
+ * Helper class that produces and populates a mime messages. Deals with jakarta.mail RFC MimeMessage stuff, as well as
  * <a href="http://www.simplejavamail.org/#section-dkim">DKIM signing</a> and
  * <a href="http://www.simplejavamail.org/#section-sending-smime">S/MIME signing / encryption</a>.
  * <p>

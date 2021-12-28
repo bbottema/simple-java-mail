@@ -1,7 +1,6 @@
 package org.simplejavamail.email.internal;
 
 import org.apache.commons.collections4.map.HashedMap;
-import org.assertj.core.api.ThrowableAssert;
 import org.assertj.core.api.iterable.Extractor;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -18,13 +17,13 @@ import java.net.HttpURLConnection;
 import java.util.Map;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
-import static javax.mail.Message.RecipientType.BCC;
-import static javax.mail.Message.RecipientType.CC;
-import static javax.mail.Message.RecipientType.TO;
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assumptions.assumeThat;
-import static org.assertj.core.api.ThrowableAssert.*;
+import static org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
@@ -51,7 +50,6 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYS
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
 import static org.simplejavamail.util.TestDataHelper.getUrl;
-import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 public class EmailPopulatingBuilderImpl2Test {
 

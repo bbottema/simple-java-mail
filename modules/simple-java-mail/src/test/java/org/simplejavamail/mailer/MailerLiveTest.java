@@ -33,9 +33,9 @@ import java.util.GregorianCalendar;
 import java.util.concurrent.ExecutionException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
-import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;

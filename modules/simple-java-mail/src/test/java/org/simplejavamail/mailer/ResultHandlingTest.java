@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -11,8 +13,6 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
 
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 

@@ -24,13 +24,14 @@ import java.io.OutputStream;
 import java.util.Date;
 import java.util.Properties;
 
+import static jakarta.mail.Flags.Flag.ANSWERED;
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.util.Collections.list;
-import static javax.mail.Flags.Flag.ANSWERED;
-import static javax.mail.Message.RecipientType.BCC;
-import static javax.mail.Message.RecipientType.CC;
-import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.groups.FieldsOrPropertiesExtractor.extract;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;

@@ -32,7 +32,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
- * Helper class that produces and populates a mime messages. Deals with javax.mail RFC MimeMessage stuff, as well as DKIM signing.
+ * Helper class that produces and populates a mime messages. Deals with jakarta.mail RFC MimeMessage stuff, as well as DKIM signing.
  */
 public class MimeMessageHelper {
 

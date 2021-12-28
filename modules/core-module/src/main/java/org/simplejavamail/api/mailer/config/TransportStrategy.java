@@ -212,7 +212,7 @@ public enum TransportStrategy {
 	 *     <li>
 	 * {@code mail.smtps.quitwait} is set to {@code false} to get rid of a strange SSLException:
 	 * <pre>
-	 * javax.mail.MessagingException: Exception reading response;
+	 * jakarta.mail.MessagingException: Exception reading response;
 	 * nested exception is:
 	 * 	javax.net.ssl.SSLException: Unsupported record version Unknown-50.49
 	 * (..)</pre>

@@ -64,7 +64,7 @@ public interface Mailer {
 	 * <p>
 	 * Sends the JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all
 	 * connection details have been configured in the provided {@link Session} instance and finally {@link Transport#sendMessage(Message,
-	 * javax.mail.Address[])}.
+	 * jakarta.mail.Address[])}.
 	 * <p>
 	 * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and providing
 	 * a message id.
