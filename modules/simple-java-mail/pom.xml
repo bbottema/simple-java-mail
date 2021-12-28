@@ -78,16 +78,10 @@
             <scope>test</scope>
         </dependency>
         <dependency><!-- SMTP test server -->
-            <groupId>org.subethamail</groupId>
+            <groupId>com.github.davidmoten</groupId>
             <artifactId>subethasmtp</artifactId>
-            <version>3.1.7</version>
+            <version>6.0.1</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.mail</groupId>
-                    <artifactId>mail</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
     </dependencies>
 

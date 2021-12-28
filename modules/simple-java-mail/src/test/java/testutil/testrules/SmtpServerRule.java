@@ -11,7 +11,6 @@ import org.subethamail.wiser.WiserMessage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.Iterator;
 import java.util.List;
 
 import static java.lang.String.format;
@@ -26,16 +25,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  * The {@link Wiser} instance can be directly retrieved but also only from inside a JUnit statement.
  */
 public class SmtpServerRule extends ExternalResource {
-	private final Wiser wiser = new Wiser();
-	private final int port;
+	private final Wiser wiser;
 
 	public SmtpServerRule(@NotNull Integer port) {
-		this.port = port;
+		this.wiser = Wiser.accepter((from, recipient) -> true).port(port);
 	}
 
 	@Override
 	protected void before() {
-		this.wiser.setPort(port);
 		this.wiser.start();
 	}
 
@@ -62,12 +59,9 @@ public class SmtpServerRule extends ExternalResource {
 		checkState("getMessages()");
 		List<WiserMessage> messages = getMessages();
 		assertThat(messages).hasSize(1);
-		Iterator<WiserMessage> iterator = messages.iterator();
-		WiserMessage wiserMessage = iterator.next();
+		WiserMessage wiserMessage = messages.remove(0);
 		assertThat(wiserMessage.getEnvelopeReceiver()).isEqualTo(envelopeReceiver);
-		MimeMessage mimeMessage = wiserMessage.getMimeMessage();
-		iterator.remove();
-		return mimeMessage;
+		return wiserMessage.getMimeMessage();
 	}
 	
 	@NotNull
@@ -76,9 +70,7 @@ public class SmtpServerRule extends ExternalResource {
 		checkState("getMessages()");
 		List<WiserMessage> messages = getMessages();
 		assertThat(messages).hasSize(1);
-		Iterator<WiserMessage> iterator = messages.iterator();
-		WiserMessage wiserMessage = iterator.next();
-		iterator.remove();
+		WiserMessage wiserMessage = messages.remove(0);
 		return new MimeMessageAndEnvelope(wiserMessage.getMimeMessage(), wiserMessage.getEnvelopeSender());
 	}
 	
@@ -87,16 +79,14 @@ public class SmtpServerRule extends ExternalResource {
 			throws MessagingException {
 		checkState("getMessages()");
 		List<WiserMessage> messages = getMessages();
-		Iterator<WiserMessage> iterator = messages.iterator();
-		while (iterator.hasNext()) {
-			WiserMessage wiserMessage = iterator.next();
-			if (wiserMessage.getEnvelopeReceiver().equals(envelopeReceiver)) {
-				MimeMessage mimeMessage = wiserMessage.getMimeMessage();
-				iterator.remove();
-				return mimeMessage;
-			}
-		}
-		throw new AssertionError("message not found for recipient " + envelopeReceiver);
+
+		WiserMessage wiserMessage = messages.stream()
+				.filter(m->m.getEnvelopeReceiver().equals(envelopeReceiver))
+				.findFirst()
+				.orElseThrow(() -> new AssertionError("message not found for recipient " + envelopeReceiver));
+
+		messages.remove(wiserMessage);
+		return wiserMessage.getMimeMessage();
 	}
 
 	@NotNull
