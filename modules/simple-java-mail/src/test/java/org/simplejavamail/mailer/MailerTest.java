@@ -2,7 +2,6 @@ package org.simplejavamail.mailer;
 
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
-import net.markenwerk.utils.mail.dkim.DkimMessage;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +16,7 @@ import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.ImmutableDelegatingSMTPMessage;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.simplejavamail.util.TestDataHelper;
+import org.simplejavamail.utils.mail.dkim.DkimMessage;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 

@@ -32,9 +32,9 @@
 
         <!-- needed for dkim support -->
         <dependency>
-            <groupId>net.markenwerk</groupId>
+            <groupId>org.simplejavamail</groupId>
             <artifactId>utils-mail-dkim</artifactId>
-            <version>1.2.0</version>
+            <version>3.0.0</version>
         </dependency>
     </dependencies>
 </project>
