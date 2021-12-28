@@ -122,7 +122,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	public EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage emailMessage, final boolean repyToAll, @NotNull final String htmlTemplate) {
 		final MimeMessage replyMessage;
 		try {
-			MimeMessage replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
+			replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
 			replyMessage.setText("ignore");
 			replyMessage.setFrom("ignore@ignore.ignore");
 		} catch (final MessagingException e) {

@@ -57,7 +57,7 @@
         <dependency><!-- gives us @NotNull annotations-->
             <groupId>com.github.bbottema</groupId>
             <artifactId>jetbrains-runtime-annotations</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.1</version>
             <scope>runtime</scope><!-- SimpleJavaMail uses the annotation using java reflection -->
         </dependency>
 
@@ -154,6 +154,7 @@
                                         <!-- these are manually managed versions -->
                                         <exclude>org.apache.poi:poi</exclude>
                                         <exclude>org.apache.poi:poi-scratchpad</exclude>
+                                        <exclude>org.slf4j:slf4j-api</exclude>
                                     </excludes>
                                 </requireUpperBoundDeps>
                             </rules>
