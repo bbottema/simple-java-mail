@@ -326,8 +326,8 @@ public class EmailTest {
 	@SuppressWarnings("SameParameterValue")
 	private static Map<String, Collection<Object>> map(String name1, int value1, String name2, String value2) {
 		Map<String, Collection<Object>> map = new HashMap<>();
-		map.put(name1, Collections.<Object>singletonList(value1));
-		map.put(name2, Collections.<Object>singletonList(value2));
+		map.put(name1, Collections.singletonList(value1));
+		map.put(name2, Collections.singletonList(value2));
 		return map;
 	}
 
@@ -335,7 +335,7 @@ public class EmailTest {
 	@SuppressWarnings("SameParameterValue")
 	private static Map<String, Collection<Object>> map(String name1, int value1) {
 		Map<String, Collection<Object>> map = new HashMap<>();
-		map.put(name1, Collections.<Object>singletonList(value1));
+		map.put(name1, Collections.singletonList(value1));
 		return map;
 	}
 

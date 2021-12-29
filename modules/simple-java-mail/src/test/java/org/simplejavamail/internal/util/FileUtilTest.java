@@ -1,6 +1,5 @@
 package org.simplejavamail.internal.util;
 
-import org.assertj.core.api.ThrowableAssert;
 import org.junit.Test;
 
 import java.io.File;
@@ -14,13 +13,7 @@ public class FileUtilTest {
 	@Test
 	public void testReadFileContent()
 			throws IOException {
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			@Override
-			public void call()
-					throws Throwable {
-				FileUtil.readFileContent(new File("moo"));
-			}
-		})
+		assertThatThrownBy(() -> FileUtil.readFileContent(new File("moo")))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("File not found: moo");
 

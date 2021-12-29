@@ -1,6 +1,5 @@
 package org.simplejavamail.internal.util;
 
-import org.assertj.core.api.ThrowableAssert;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,22 +39,14 @@ public class StringUtilTest {
 	
 	@Test
 	public void colorizeDescriptions_UnbalanceTokenSets_TooManyClosed() {
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			public void call() {
-				replaceNestedTokens("{{ ] ] {{ ]", 0, "{{", "]", "--[\\w:]*", formatterForPattern("%s"));
-			}
-		})
+		assertThatThrownBy(() -> replaceNestedTokens("{{ ] ] {{ ]", 0, "{{", "]", "--[\\w:]*", formatterForPattern("%s")))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("closed token without open token");
 	}
 	
 	@Test
 	public void colorizeDescriptions_UnbalanceTokenSets_TooManyOpened() {
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			public void call() {
-				replaceNestedTokens("{ } { { }", 0, "{", "}", "--[\\w:]*", formatterForPattern("%s"));
-			}
-		})
+		assertThatThrownBy(() -> replaceNestedTokens("{ } { { }", 0, "{", "}", "--[\\w:]*", formatterForPattern("%s")))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("open token without closed token");
 	}

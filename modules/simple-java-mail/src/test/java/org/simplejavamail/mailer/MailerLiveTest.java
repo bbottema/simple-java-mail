@@ -163,8 +163,7 @@ public class MailerLiveTest {
 	}
 
 	@Test
-	public void testOutlookMessageWithNestedOutlookMessageAttachment()
-			throws IOException {
+	public void testOutlookMessageWithNestedOutlookMessageAttachment() {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream("test-messages/#298 Email with nested msg.msg");
 		Email email = EmailConverter.outlookMsgToEmail(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
 

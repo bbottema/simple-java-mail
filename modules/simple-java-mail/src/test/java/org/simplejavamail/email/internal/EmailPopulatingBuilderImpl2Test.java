@@ -23,7 +23,6 @@ import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assumptions.assumeThat;
-import static org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
@@ -173,11 +172,7 @@ public class EmailPopulatingBuilderImpl2Test {
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"missing.html\"/>");
 
-		assertThatThrownBy(new ThrowingCallable() {
-			public void call() {
-				emailPopulatingBuilder.buildEmail();
-			}
-		})
+		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
 				.hasMessage("Unable to dynamically resolve data source for the following image src: missing.html");
 	}

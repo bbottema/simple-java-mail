@@ -12,6 +12,7 @@ class KeyStoreInfo {
 	/**
 	 * Delegates to {@link #KeyStoreInfo(String, String, String)} using "JKS" as type.
 	 */
+	@SuppressWarnings("unused")
 	public KeyStoreInfo(final String keyStorePath, final String password) {
 		this(keyStorePath, password, "JKS");
 	}

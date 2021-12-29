@@ -11,7 +11,6 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.ParameterList;
 import jakarta.mail.util.ByteArrayDataSource;
-import org.assertj.core.api.ThrowableAssert;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
@@ -112,7 +111,7 @@ public class MimeMessageParserTest {
 		ParameterList pl = new ParameterList();
 		pl.set("filename", fileName);
 		pl.set("name", fileName);
-		attachmentPart.setHeader("Content-Type", contentType + pl.toString());
+		attachmentPart.setHeader("Content-Type", contentType + pl);
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
 		attachmentPart.setDisposition(dispositionType);
 		return attachmentPart;
@@ -171,12 +170,7 @@ public class MimeMessageParserTest {
 		assertThat(interpretRecipient(" ")).isNull();
 
 		// next one is unparsable by InternetAddress#parse(), so it should be taken as is
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			@Override
-			public void call() {
-				interpretRecipient(" \"  m oo  \" a@b.com    ");
-			}
-		})
+		assertThatThrownBy(() -> interpretRecipient(" \"  m oo  \" a@b.com    "))
 				.isInstanceOf(MimeMessageParseException.class)
 				.hasMessage("Error parsing [TO] address [ \"  m oo  \" a@b.com    ]");
 	}

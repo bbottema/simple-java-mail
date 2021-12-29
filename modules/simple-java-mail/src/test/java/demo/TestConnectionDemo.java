@@ -1,7 +1,6 @@
 package demo;
 
 import org.simplejavamail.api.mailer.AsyncResponse;
-import org.simplejavamail.api.mailer.AsyncResponse.ExceptionConsumer;
 import org.simplejavamail.api.mailer.Mailer;
 
 import java.util.concurrent.ExecutionException;
@@ -56,7 +55,7 @@ public class TestConnectionDemo {
 		// asyncResponse.onException((e) -> System.err.println("error"));
 		
 		// java 7 meh
-		asyncResponse.onSuccess(new Runnable() { public void run() { System.out.println("success"); } });
-		asyncResponse.onException(new ExceptionConsumer() { public void accept(Exception e) { System.err.println("error"); } });
+		asyncResponse.onSuccess(() -> System.out.println("success"));
+		asyncResponse.onException(e -> System.err.println("error"));
 	}
 }

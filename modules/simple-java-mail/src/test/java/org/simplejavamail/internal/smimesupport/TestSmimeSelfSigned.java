@@ -10,12 +10,9 @@ import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import testutil.SecureTestDataHelper;
-import testutil.SecureTestDataHelper.PasswordsConsumer;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.util.Properties;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.TO;
@@ -174,58 +171,51 @@ public class TestSmimeSelfSigned {
 	@Test
 	public void testEncryptedMessageEml_LegacySignedEnvelopedAttachment()
 			throws Exception {
-		SecureTestDataHelper.runTestWithSecureTestData(new PasswordsConsumer() {
-			@Override
-			public void accept(final Properties passwords) {
-				final Pkcs12Config pkcs12Config = Pkcs12Config.builder()
-						.pkcs12Store(RESOURCES + "/secure-testdata/secure-testdata/legacy-signed-enveloped-email/7acc30df-26dd-40b3-9d45-e31f681e755b.p12")
-						.storePassword(passwords.getProperty("legacy-signed-enveloped-email-zip-keystore-password"))
-						.keyAlias("sectigo limited id von ")
-						.keyPassword(passwords.getProperty("legacy-signed-enveloped-email-zip-key-password"))
-						.build();
-				Email emailParsedFromEml = EmailConverter.emlToEmail(new File(RESOURCES + "/secure-testdata/secure-testdata/legacy-signed-enveloped-email/email.eml"), pkcs12Config);
+		SecureTestDataHelper.runTestWithSecureTestData(passwords -> {
+			final Pkcs12Config pkcs12Config = Pkcs12Config.builder()
+					.pkcs12Store(RESOURCES + "/secure-testdata/secure-testdata/legacy-signed-enveloped-email/7acc30df-26dd-40b3-9d45-e31f681e755b.p12")
+					.storePassword(passwords.getProperty("legacy-signed-enveloped-email-zip-keystore-password"))
+					.keyAlias("sectigo limited id von ")
+					.keyPassword(passwords.getProperty("legacy-signed-enveloped-email-zip-key-password"))
+					.build();
+			Email emailParsedFromEml = EmailConverter.emlToEmail(new File(RESOURCES + "/secure-testdata/secure-testdata/legacy-signed-enveloped-email/email.eml"), pkcs12Config);
 
-				EmailAssert.assertThat(emailParsedFromEml).hasSubject("Ausarbeitung einer Schutzrechtsanmeldung : R.389390, Hr/Pv");
+			EmailAssert.assertThat(emailParsedFromEml).hasSubject("Ausarbeitung einer Schutzrechtsanmeldung : R.389390, Hr/Pv");
 
-				assertThat(normalizeNewlines(emailParsedFromEml.getPlainText())).doesNotStartWith("This is a multipart message in MIME format.");
-				assertThat(normalizeNewlines(emailParsedFromEml.getPlainText())).contains("Sehr geehrte Damen und Herren,");
+			assertThat(normalizeNewlines(emailParsedFromEml.getPlainText())).doesNotStartWith("This is a multipart message in MIME format.");
+			assertThat(normalizeNewlines(emailParsedFromEml.getPlainText())).contains("Sehr geehrte Damen und Herren,");
 
-				assertThat(emailParsedFromEml.getEmbeddedImages()).isEmpty();
+			assertThat(emailParsedFromEml.getEmbeddedImages()).isEmpty();
 
-				assertThat(emailParsedFromEml.getAttachments()).extracting("name")
-						.containsExactlyInAnyOrder("smime.p7m",
-								"PDmembran_m_Stuelement_pdf_3373833.pdf",
-								"IN_COVER_SHEET_3374652_pdf_3374715.pdf",
-								"389390_Pruefung_des_Entwurfs_3493097.doc"
-						);
-				assertThat(emailParsedFromEml.getDecryptedAttachments()).extracting("name")
-						.containsExactlyInAnyOrder("signed-email.eml",
-								"PDmembran_m_Stuelement_pdf_3373833.pdf",
-								"IN_COVER_SHEET_3374652_pdf_3374715.pdf",
-								"389390_Pruefung_des_Entwurfs_3493097.doc");
+			assertThat(emailParsedFromEml.getAttachments()).extracting("name")
+					.containsExactlyInAnyOrder("smime.p7m",
+							"PDmembran_m_Stuelement_pdf_3373833.pdf",
+							"IN_COVER_SHEET_3374652_pdf_3374715.pdf",
+							"389390_Pruefung_des_Entwurfs_3493097.doc"
+					);
+			assertThat(emailParsedFromEml.getDecryptedAttachments()).extracting("name")
+					.containsExactlyInAnyOrder("signed-email.eml",
+							"PDmembran_m_Stuelement_pdf_3373833.pdf",
+							"IN_COVER_SHEET_3374652_pdf_3374715.pdf",
+							"389390_Pruefung_des_Entwurfs_3493097.doc");
 
-				EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-						.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
-						.smimeMime("application/pkcs7-mime")
-						.smimeType("enveloped-data")
-						.smimeName("smime.p7m")
-						.build());
-			}
+			EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+					.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
+					.smimeMime("application/pkcs7-mime")
+					.smimeType("enveloped-data")
+					.smimeName("smime.p7m")
+					.build());
 		});
 	}
 
 	@Test
 	public void testNPE_InSmimeUtilFixed()
 			throws Exception {
-		SecureTestDataHelper.runTestWithSecureTestData(new PasswordsConsumer() {
-			@Override
-			public void accept(final Properties passwords)
-					throws FileNotFoundException {
-				String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/npe-SmimeUtilFixed-test-email/NPE_SmimeUtilFixed Test Mail.msg";
-				FileInputStream fileInputStream = new FileInputStream(fileNameMsg);
-				EmailConverter.outlookMsgToEmail(fileInputStream);
-				// ok, no NPE
-			}
+		SecureTestDataHelper.runTestWithSecureTestData(passwords -> {
+			String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/npe-SmimeUtilFixed-test-email/NPE_SmimeUtilFixed Test Mail.msg";
+			FileInputStream fileInputStream = new FileInputStream(fileNameMsg);
+			EmailConverter.outlookMsgToEmail(fileInputStream);
+			// ok, no NPE
 		});
 	}
 

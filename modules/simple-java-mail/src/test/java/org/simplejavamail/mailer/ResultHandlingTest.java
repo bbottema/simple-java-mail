@@ -35,18 +35,8 @@ public class ResultHandlingTest {
 		// set handlers, then wait for result
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
-		asyncResponse.onSuccess(new Runnable() {
-			@Override
-			public void run() {
-				successHandlerInvoked.set(true);
-			}
-		});
-		asyncResponse.onException(new AsyncResponse.ExceptionConsumer() {
-			@Override
-			public void accept(final Exception e) {
-				exceptionHandlerInvoked.set(true);
-			}
-		});
+		asyncResponse.onSuccess(() -> successHandlerInvoked.set(true));
+		asyncResponse.onException(e -> exceptionHandlerInvoked.set(true));
 		asyncResponse.getFuture().get();
 
 		assertThat(successHandlerInvoked).hasValue(true);
@@ -64,18 +54,8 @@ public class ResultHandlingTest {
 		asyncResponse.getFuture().get();
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
-		asyncResponse.onSuccess(new Runnable() {
-			@Override
-			public void run() {
-				successHandlerInvoked.set(true);
-			}
-		});
-		asyncResponse.onException(new AsyncResponse.ExceptionConsumer() {
-			@Override
-			public void accept(final Exception e) {
-				exceptionHandlerInvoked.set(true);
-			}
-		});
+		asyncResponse.onSuccess(() -> successHandlerInvoked.set(true));
+		asyncResponse.onException(e -> exceptionHandlerInvoked.set(true));
 
 		assertThat(successHandlerInvoked).hasValue(true);
 		assertThat(exceptionHandlerInvoked).hasValue(false);
@@ -91,18 +71,8 @@ public class ResultHandlingTest {
 		// set handlers, then wait for result
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
-		asyncResponse.onSuccess(new Runnable() {
-			@Override
-			public void run() {
-				successHandlerInvoked.set(true);
-			}
-		});
-		asyncResponse.onException(new AsyncResponse.ExceptionConsumer() {
-			@Override
-			public void accept(final Exception e) {
-				exceptionHandlerInvoked.set(true);
-			}
-		});
+		asyncResponse.onSuccess(() -> successHandlerInvoked.set(true));
+		asyncResponse.onException(e -> exceptionHandlerInvoked.set(true));
 
 		try {
 			asyncResponse.getFuture().get();
@@ -115,7 +85,7 @@ public class ResultHandlingTest {
 	}
 
 	@Test
-	public void emailSentSuccesfullyShouldInvokeOnExceptionHandlerAfterDelay() throws Exception {
+	public void emailSentSuccesfullyShouldInvokeOnExceptionHandlerAfterDelay() {
 		AsyncResponse asyncResponse = sendAsyncMailUsingMailerAPI(false);
 
 		// wait for result, then set handlers
@@ -126,18 +96,8 @@ public class ResultHandlingTest {
 		}
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
-		asyncResponse.onSuccess(new Runnable() {
-			@Override
-			public void run() {
-				successHandlerInvoked.set(true);
-			}
-		});
-		asyncResponse.onException(new AsyncResponse.ExceptionConsumer() {
-			@Override
-			public void accept(final Exception e) {
-				exceptionHandlerInvoked.set(true);
-			}
-		});
+		asyncResponse.onSuccess(() -> successHandlerInvoked.set(true));
+		asyncResponse.onException(e -> exceptionHandlerInvoked.set(true));
 
 		assertThat(successHandlerInvoked).hasValue(false);
 		assertThat(exceptionHandlerInvoked).hasValue(true);

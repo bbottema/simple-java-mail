@@ -1,6 +1,5 @@
 package org.simplejavamail.internal.clisupport;
 
-import org.assertj.core.api.ThrowableAssert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -27,11 +26,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		final List<String> strings = new ArrayList<>();
 		strings.add("@| |@ |@ @| |@");
 		
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			public void call() {
-				colorizeDescriptions(strings);
-			}
-		})
+		assertThatThrownBy(() -> colorizeDescriptions(strings))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("closed token without open token");
 	}
@@ -41,11 +36,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		final List<String> strings = new ArrayList<>();
 		strings.add("@| |@ @| @| |@");
 		
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			public void call() {
-				colorizeDescriptions(strings);
-			}
-		})
+		assertThatThrownBy(() -> colorizeDescriptions(strings))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("open token without closed token");
 	}

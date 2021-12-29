@@ -6,21 +6,13 @@ import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.util.ByteArrayDataSource;
-import org.assertj.core.api.ThrowableAssert;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.BDDMockito;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.modules.ModuleLoader;
-import org.simplejavamail.internal.util.MiscUtil;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -28,7 +20,6 @@ import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
 
 public class MimeMessageHelperTest {
 	
@@ -108,12 +99,7 @@ public class MimeMessageHelperTest {
 				.signWithDomainKey("dummykey", "moo.com", "selector")
 				.buildEmail();
 		
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			@Override
-			public void call() {
-				EmailConverter.emailToMimeMessage(email);
-			}
-		})
+		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))
 				.isInstanceOf(Class.forName("org.simplejavamail.internal.dkimsupport.DKIMSigningException"))
 				.hasMessage("Error signing MimeMessage with DKIM");
 	}

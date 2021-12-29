@@ -147,6 +147,7 @@ public class MiscUtilTest {
 	}
 
 	@Test
+	@SuppressWarnings("unused")
 	public void testCountMandatoryParameters() {
 		Method methodWithZeroParameters = new Object() {public void methodWithZeroParameters() {}}.getClass().getDeclaredMethods()[0];
 		Method methodWithZeroMandatoryParameters = new Object() {public void methodWithZeroMandatoryParameters(@Nullable Integer optionalInt) {}}.getClass().getDeclaredMethods()[0];

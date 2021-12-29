@@ -133,7 +133,7 @@ public class EmailHelper {
 				/*10*/ROUND_ROBIN,
 				/*11*/false,
 				/*12*/false,
-				/*13*/SimpleOptional.ofNullable(hostsToTrust).orElse(Lists.<String>emptyList()),
+				/*13*/SimpleOptional.ofNullable(hostsToTrust).orElse(Lists.emptyList()),
 				/*14*/trustAllSSLHost,
 				/*15*/verifyServerIdentity,
 				/*16*/newSingleThreadExecutor(),

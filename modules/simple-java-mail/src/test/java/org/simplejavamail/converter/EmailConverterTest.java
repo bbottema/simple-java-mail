@@ -7,10 +7,8 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.Recipient;
 import testutil.SecureTestDataHelper;
-import testutil.SecureTestDataHelper.PasswordsConsumer;
 
 import java.io.File;
-import java.util.Properties;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.CC;
@@ -82,40 +80,31 @@ public class EmailConverterTest {
 	@Test
 	public void testEmlWithQuotablePrintableCalendarAttachment()
 			throws Exception {
-		SecureTestDataHelper.runTestWithSecureTestData(new PasswordsConsumer() {
-			@Override
-			public void accept(final Properties passwords) {
-				File file = new File(RESOURCES + "/secure-testdata/secure-testdata/calendar-quotable-printable-email/qp-calendar-multipart.eml");
-				final Email email = EmailConverter.emlToEmail(file);
-				assertThat(email.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
-				assertThat(email.getCalendarText()).startsWith("BEGIN:VCALENDAR");
-			}
+		SecureTestDataHelper.runTestWithSecureTestData(passwords -> {
+			File file = new File(RESOURCES + "/secure-testdata/secure-testdata/calendar-quotable-printable-email/qp-calendar-multipart.eml");
+			final Email email = EmailConverter.emlToEmail(file);
+			assertThat(email.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
+			assertThat(email.getCalendarText()).startsWith("BEGIN:VCALENDAR");
 		});
 	}
 
 	@Test
 	public void testMimeMessageWithNestedMessages()
 			throws Exception {
-		SecureTestDataHelper.runTestWithSecureTestData(new SecureTestDataHelper.PasswordsConsumer() {
-			@Override
-			public void accept(final Properties passwords) {
-				String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/nested-mimemessages-without-name-email/4990344.eml";
-				Email email = EmailConverter.emlToEmail(new File(fileNameMsg));
-				assertThat(email.getAttachments()).extracting("name").containsExactly("ForwardedMessage.eml", "ForwardedMessage.eml");
-			}
+		SecureTestDataHelper.runTestWithSecureTestData(passwords -> {
+			String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/nested-mimemessages-without-name-email/4990344.eml";
+			Email email = EmailConverter.emlToEmail(new File(fileNameMsg));
+			assertThat(email.getAttachments()).extracting("name").containsExactly("ForwardedMessage.eml", "ForwardedMessage.eml");
 		});
 	}
 
 	@Test
 	public void testOutlookMessageWithNestedMessages()
 			throws Exception {
-		SecureTestDataHelper.runTestWithSecureTestData(new SecureTestDataHelper.PasswordsConsumer() {
-			@Override
-			public void accept(final Properties passwords) {
-				String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/nested-mimemessages-without-name-email/4990344.msg";
-				Email email = EmailConverter.outlookMsgToEmail(new File(fileNameMsg));
-				assertThat(email.getAttachments()).extracting("name").containsExactly("NDPB.eml", "Voicemail .eml");
-			}
+		SecureTestDataHelper.runTestWithSecureTestData(passwords -> {
+			String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/nested-mimemessages-without-name-email/4990344.msg";
+			Email email = EmailConverter.outlookMsgToEmail(new File(fileNameMsg));
+			assertThat(email.getAttachments()).extracting("name").containsExactly("NDPB.eml", "Voicemail .eml");
 		});
 	}
 
