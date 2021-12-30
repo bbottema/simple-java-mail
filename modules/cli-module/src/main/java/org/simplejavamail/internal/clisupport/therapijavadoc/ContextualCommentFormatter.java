@@ -2,10 +2,9 @@ package org.simplejavamail.internal.clisupport.therapijavadoc;
 
 import com.github.therapi.runtimejavadoc.Comment;
 import com.github.therapi.runtimejavadoc.CommentElement;
-import com.github.therapi.runtimejavadoc.CommentFormatter;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
