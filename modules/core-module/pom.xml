@@ -55,7 +55,7 @@
         <dependency><!-- Annotation processor -->
             <groupId>com.github.therapi</groupId>
             <artifactId>therapi-runtime-javadoc-scribe</artifactId>
-            <version>0.9.0</version>
+            <version>0.12.0</version>
             <scope>provided</scope><!-- makes library mandatory if we should support CLI (even optionally) -->
         </dependency>
 

@@ -34,6 +34,11 @@ public class GenerateHelpTest {
 	}
 
 	@Test
+	public void testUsagesThatContainsPercentS() {
+		CliSupport.runCLI(new String[] {"send", "--email:replyingTo--help",});
+	}
+
+	@Test
 	public void testListHelpForConnectWithoutError() {
 		CliSupport.runCLI(new String[]{"connect", "--help"});
 	}

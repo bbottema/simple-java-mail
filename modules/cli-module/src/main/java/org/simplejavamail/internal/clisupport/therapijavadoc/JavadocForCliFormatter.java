@@ -66,15 +66,20 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 				.replaceAll("<em>(.*?)</em>", "@|" + EMPHASIZE_STYLE + " $1|@")
 				.replaceAll("&gt;", ">")
 				.replaceAll("&lt;", "<")
-				.replaceAll("\\{@code (.*?)}", "@|" + CODE_STYLE + " $1|@")
-				.replaceAll("<code>(.*?)</code>", "@|" + CODE_STYLE + " $1|@")
+				.replaceAll("\\{@code (.*?)}", formatCode("$1"))
+				.replaceAll("<code>(.*?)</code>", formatCode("$1"))
 				.replaceAll("<a href=\"(.+?)\">(.+?)</a>", "$2 ($1)")
 				.replaceAll("%s", "%%s");
 	}
-	
+
 	@Override
 	protected String renderCode(InlineTag e) {
-		return String.format("@|%s %s|@", CODE_STYLE, e.getValue());
+		return formatCode(e.getValue().replaceAll("%s", "%%s"));
+	}
+
+	@NotNull
+	private static String formatCode(String value) {
+		return String.format("@|%s %s|@", CODE_STYLE, value);
 	}
 	
 	@Override
