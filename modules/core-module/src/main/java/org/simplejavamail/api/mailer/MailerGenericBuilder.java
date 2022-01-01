@@ -358,7 +358,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withConnectionPoolCoreSize(@NotNull Integer connectionPoolCoreSize);
 
 	/**
-	 * Configured the connection pool's max size (default {@value DEFAULT_CONNECTIONPOOL_MAX_SIZE}) in case of high thread contention. Note that this determines how many connections can be open at
+	 * Configures the connection pool's max size (default {@value DEFAULT_CONNECTIONPOOL_MAX_SIZE}) in case of high thread contention. Note that this
+	 * determines how many connections can be open at
 	 * any one time to a single server. Make sure your server can handle the load coming from all connections. There's no point having a hundred concurrent connections if it degrades your
 	 * server's performance because of CPU throttling and network congestion.
 	 * <p>
