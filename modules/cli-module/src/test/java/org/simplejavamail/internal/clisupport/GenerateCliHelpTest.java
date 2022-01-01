@@ -7,7 +7,7 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
-public class GenerateHelpTest {
+public class GenerateCliHelpTest {
 
 	private PrintStream sysOut;
 	private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
