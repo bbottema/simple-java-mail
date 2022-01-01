@@ -1,6 +1,5 @@
 package org.simplejavamail.internal.clisupport.therapijavadoc;
 
-import com.github.therapi.runtimejavadoc.ClassJavadoc;
 import com.github.therapi.runtimejavadoc.InlineLink;
 import com.github.therapi.runtimejavadoc.Link;
 import com.github.therapi.runtimejavadoc.MethodJavadoc;
@@ -9,12 +8,10 @@ import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
 import com.github.therapi.runtimejavadoc.SeeAlsoJavadoc;
 import com.github.therapi.runtimejavadoc.Value;
 import com.google.code.regexp.Matcher;
-import com.google.code.regexp.Pattern;
 import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.MethodUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.TestOnly;
 import org.simplejavamail.internal.clisupport.CliDataLocator;
 import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
 import org.simplejavamail.internal.util.FileUtil;
@@ -31,14 +28,11 @@ import java.util.Set;
 import static com.google.code.regexp.Pattern.compile;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toList;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.StringUtil.padRight;
 
 public final class TherapiJavadocHelper {
-
-	private static final Pattern LEGACY_PARAMETER_TYPE_PATTERN = compile("(?:.*:: )?([\\w.]+)\\)?");
 
 	// using a pregenerated cache file shaves off 10% runtime
 	private static final File THERAPI_DATAFILE = new File(CliDataLocator.locateTherapiDataFile());
@@ -57,7 +51,6 @@ public final class TherapiJavadocHelper {
 		}
 	}
 
-	@TestOnly
 	public static void persistCache() {
 		try {
 			FileUtil.writeFileBytes(THERAPI_DATAFILE, SerializationUtil.serialize(THERAPI_CACHE));
@@ -169,46 +162,7 @@ public final class TherapiJavadocHelper {
 
 	@NotNull
 	private static MethodJavadoc getMethodJavadocCached(final Method m) {
-		final String methodKey = m.toString();
-		if (!THERAPI_CACHE.containsKey(methodKey)) {
-			THERAPI_CACHE.put(methodKey, getMethodJavadoc(m));
-		}
-		return THERAPI_CACHE.get(methodKey);
-	}
-
-	/**
-	 * @deprecated this is a workaround for https://github.com/dnault/therapi-runtime-javadoc/issues/50
-	 */
-	@Deprecated
-	@NotNull
-	private static MethodJavadoc getMethodJavadoc(final Method m) {
-		ClassJavadoc javadoc = RuntimeJavadoc.getJavadoc(m.getDeclaringClass());
-		for (MethodJavadoc methodJavadoc : javadoc.getMethods()) {
-			if (matches(m, methodJavadoc)) {
-				return methodJavadoc;
-			}
-		}
-		return MethodJavadoc.createEmpty(m);
-	}
-
-	/**
-	 * @deprecated this is a workaround for https://github.com/dnault/therapi-runtime-javadoc/issues/50
-	 */
-	@Deprecated
-	private static boolean matches(final Method m, final MethodJavadoc methodJavadoc) {
-		if (!m.getName().equals(methodJavadoc.getName())) {
-			return false;
-		}
-		List<String> methodParamsTypes = new ArrayList<>();
-		for (Class<?> aClass : m.getParameterTypes()) {
-			methodParamsTypes.add(aClass.getCanonicalName());
-		}
-		// FIX (deprecated)
-		List<String> paramTypesStripped = methodJavadoc.getParamTypes().stream()
-				.map(s -> LEGACY_PARAMETER_TYPE_PATTERN.matcher(s).replaceFirst("$1"))
-				.collect(toList());
-		// /FIX
-		return methodParamsTypes.equals(paramTypesStripped);
+		return THERAPI_CACHE.computeIfAbsent(m.toString(), methodKey -> RuntimeJavadoc.getJavadoc(m));
 	}
 
 	@NotNull

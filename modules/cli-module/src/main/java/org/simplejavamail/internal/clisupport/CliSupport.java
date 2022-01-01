@@ -1,6 +1,5 @@
 package org.simplejavamail.internal.clisupport;
 
-import org.jetbrains.annotations.TestOnly;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
@@ -55,7 +54,6 @@ public class CliSupport {
 		}
 	}
 
-	@TestOnly
 	public static void listUsagesForAllOptions() {
 		for (CliDeclaredOptionSpec declaredOption : DECLARED_OPTIONS) {
 			runCLI(new String[] { "send", declaredOption.getName() + "--help" });
