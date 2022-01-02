@@ -58,7 +58,7 @@ public class MailerSOCKSLiveTest {
 		if (!async) {
 			mailer.sendMail(originalEmail);
 		} else {
-			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, async)).getFuture().get();
+			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, async)).get();
 		}
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());

@@ -7,7 +7,6 @@ import org.bbottema.genericobjectpool.PoolableObject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
-import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.simplejavamail.internal.modules.BatchModule;
@@ -17,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
@@ -41,9 +41,8 @@ public class BatchSupport implements BatchModule {
 	/**
 	 * @see BatchModule#executeAsync(String, Runnable)
 	 */
-	@NotNull
 	@Override
-	public AsyncResponse executeAsync(@NotNull final String processName, @NotNull final Runnable operation) {
+	public CompletableFuture<Void> executeAsync(@NotNull final String processName, @NotNull final Runnable operation) {
 		return AsyncOperationHelper.executeAsync(processName, operation);
 	}
 
@@ -52,7 +51,7 @@ public class BatchSupport implements BatchModule {
 	 */
 	@NotNull
 	@Override
-	public AsyncResponse executeAsync(@NotNull final ExecutorService executorService, @NotNull final String processName, @NotNull final Runnable operation) {
+	public CompletableFuture<Void> executeAsync(@NotNull final ExecutorService executorService, @NotNull final String processName, @NotNull final Runnable operation) {
 		return AsyncOperationHelper.executeAsync(executorService, processName, operation);
 	}
 

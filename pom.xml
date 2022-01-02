@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.bbottema</groupId>
         <artifactId>modular-project-parent</artifactId>
-        <version>1.0.18</version>
+        <version>1.0.19</version>
     </parent>
 
     <groupId>org.simplejavamail</groupId>
@@ -93,7 +93,7 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>1.7.25</version>
+                <version>1.7.32</version>
             </dependency>
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
@@ -113,7 +113,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.13.1</version>
+                <version>4.13.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

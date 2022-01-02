@@ -3,16 +3,15 @@ package org.simplejavamail.mailer;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -31,13 +30,13 @@ public class ResultHandlingTest {
 		emailSentSuccesfullyShouldInvokeOnSuccessHandler(sendAsyncMailUsingMailerBuilderAPI(true));
 	}
 
-	private void emailSentSuccesfullyShouldInvokeOnSuccessHandler(AsyncResponse asyncResponse) throws InterruptedException, ExecutionException {
+	private void emailSentSuccesfullyShouldInvokeOnSuccessHandler(CompletableFuture<Void> f) throws InterruptedException, ExecutionException {
 		// set handlers, then wait for result
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
-		asyncResponse.onSuccess(() -> successHandlerInvoked.set(true));
-		asyncResponse.onException(e -> exceptionHandlerInvoked.set(true));
-		asyncResponse.getFuture().get();
+
+		f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		f.get();
 
 		assertThat(successHandlerInvoked).hasValue(true);
 		assertThat(exceptionHandlerInvoked).hasValue(false);
@@ -49,13 +48,13 @@ public class ResultHandlingTest {
 		emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(sendAsyncMailUsingMailerBuilderAPI(true));
 	}
 
-	private void emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(AsyncResponse asyncResponse) throws InterruptedException, ExecutionException {
+	private void emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(CompletableFuture<Void> f) throws InterruptedException, ExecutionException {
 		// wait for result, then set handlers
-		asyncResponse.getFuture().get();
+		f.get();
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
-		asyncResponse.onSuccess(() -> successHandlerInvoked.set(true));
-		asyncResponse.onException(e -> exceptionHandlerInvoked.set(true));
+
+		f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
 
 		assertThat(successHandlerInvoked).hasValue(true);
 		assertThat(exceptionHandlerInvoked).hasValue(false);
@@ -67,15 +66,15 @@ public class ResultHandlingTest {
 		emailSentSuccesfullyShouldInvokeOnExceptionHandler(sendAsyncMailUsingMailerBuilderAPI(false));
 	}
 
-	private void emailSentSuccesfullyShouldInvokeOnExceptionHandler(AsyncResponse asyncResponse) {
+	private void emailSentSuccesfullyShouldInvokeOnExceptionHandler(CompletableFuture<Void> f) {
 		// set handlers, then wait for result
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
-		asyncResponse.onSuccess(() -> successHandlerInvoked.set(true));
-		asyncResponse.onException(e -> exceptionHandlerInvoked.set(true));
+
+		f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
 
 		try {
-			asyncResponse.getFuture().get();
+			f.get();
 		} catch (Exception e) {
 			// good
 		}
@@ -86,25 +85,25 @@ public class ResultHandlingTest {
 
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnExceptionHandlerAfterDelay() {
-		AsyncResponse asyncResponse = sendAsyncMailUsingMailerAPI(false);
+		CompletableFuture<Void> f = sendAsyncMailUsingMailerAPI(false);
 
 		// wait for result, then set handlers
 		try {
-			asyncResponse.getFuture().get();
+			f.get();
 		} catch (Exception e) {
 			// good
 		}
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
-		asyncResponse.onSuccess(() -> successHandlerInvoked.set(true));
-		asyncResponse.onException(e -> exceptionHandlerInvoked.set(true));
+
+		f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
 
 		assertThat(successHandlerInvoked).hasValue(false);
 		assertThat(exceptionHandlerInvoked).hasValue(true);
 	}
 
-	@Nullable
-	private AsyncResponse sendAsyncMailUsingMailerAPI(boolean sendSuccesfully) {
+	@NotNull
+	private CompletableFuture<Void> sendAsyncMailUsingMailerAPI(boolean sendSuccesfully) {
 		final boolean async = true;
 		return MailerBuilder
 				.withSMTPServer("localhost", 0)
@@ -116,8 +115,8 @@ public class ResultHandlingTest {
 						.buildEmail(), async);
 	}
 
-	@Nullable
-	private AsyncResponse sendAsyncMailUsingMailerBuilderAPI(boolean sendSuccesfully) {
+	@NotNull
+	private CompletableFuture<Void> sendAsyncMailUsingMailerBuilderAPI(boolean sendSuccesfully) {
 		return MailerBuilder
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))

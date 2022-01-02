@@ -1,11 +1,11 @@
 package demo;
 
 import jakarta.mail.util.ByteArrayDataSource;
-import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,7 +30,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	}
 
 	private static void testSimplePlainText(Mailer mailerTLS) {
-		final AsyncResponse result = mailerTLS.sendMail(EmailBuilder.startingBlank()
+		final CompletableFuture<Void> result = mailerTLS.sendMail(EmailBuilder.startingBlank()
 				.to(YOUR_GMAIL_ADDRESS)
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - simple (using plain text)")
@@ -43,7 +43,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 				.clearHTMLText()
 				.buildEmail());
 
-		assertThat(result).isNull();
+		assertThat(result).isCompleted();
 	}
 
 	private static void testSimpleHTMLText(Mailer mailerTLS) {

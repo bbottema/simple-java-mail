@@ -13,6 +13,7 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 /**
@@ -48,16 +49,16 @@ public interface Mailer {
 	 * <p>
 	 * Note: synchronizes on the thread for sending mails so that we don't get into race condition conflicts with emails actually being sent.
 	 *
-	 * @return An AsyncResponse in case of async == true, otherwise <code>null</code>.
+	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 */
-	AsyncResponse testConnection(boolean async);
+	@NotNull CompletableFuture<Void> testConnection(boolean async);
 	
 	/**
 	 * Delegates to {@link #sendMail(Email, boolean)}, with <code>async = false</code>. This method returns only when the email has been processed by
 	 * the target SMTP server.
-	 * @return AsyncResponse if the email was configured to be sent asynchronously.
+	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 */
-	@Nullable AsyncResponse sendMail(Email email);
+	@NotNull CompletableFuture<Void> sendMail(Email email);
 	
 	/**
 	 * Processes an {@link Email} instance into a completely configured {@link Message}.
@@ -78,14 +79,12 @@ public interface Mailer {
 	 * @param email The information for the email to be sent.
 	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
 	 *              send the email and this method returns immediately.
-	 * @return A {@link AsyncResponse} or null if not <em>async</em>.
+	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
 	 * @see java.util.concurrent.Executors#newFixedThreadPool(int)
 	 * @see #validate(Email)
 	 */
-	@Nullable
-	// FIXME replace with Optional when Java 8?
-	AsyncResponse sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
+	@NotNull CompletableFuture<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
 	
 	/**
 	 * Validates an {@link Email} instance. Validation fails if the subject is missing, content is missing, or no recipients are defined or that

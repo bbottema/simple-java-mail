@@ -7,7 +7,6 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
-import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -24,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -294,13 +294,13 @@ public class MailerImpl implements Mailer {
 	/**
 	 * @see Mailer#testConnection(boolean)
 	 */
-	@Nullable
-	public synchronized AsyncResponse testConnection(boolean async) {
+	@NotNull
+	public synchronized CompletableFuture<Void> testConnection(boolean async) {
 		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, async, smtpConnectionCounter);
 
 		if (!async) {
 			testConnectionClosure.run();
-			return null;
+			return CompletableFuture.completedFuture(null);
 		} else {
 			return ModuleLoader.loadBatchModule()
 					.executeAsync("testSMTPConnection process", testConnectionClosure);
@@ -311,8 +311,8 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#sendMail(Email)
 	 */
 	@Override
-	@Nullable
-	public final AsyncResponse sendMail(final Email email) {
+	@NotNull
+	public final CompletableFuture<Void> sendMail(final Email email) {
 		return sendMail(email, getOperationalConfig().isAsync());
 	}
 
@@ -320,15 +320,15 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#sendMail(Email, boolean)
 	 */
 	@Override
-	@Nullable
-	public final AsyncResponse sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
+	@NotNull
+	public final CompletableFuture<Void> sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (validate(email)) {
 			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, emailGovernance, session, email, proxyServer, async, operationalConfig.isTransportModeLoggingOnly(),
 					smtpConnectionCounter);
 
 			if (!async) {
 				sendMailClosure.run();
-				return null;
+				return CompletableFuture.completedFuture(null);
 			} else
 				return ModuleLoader.batchModuleAvailable()
 						? ModuleLoader.loadBatchModule()
@@ -362,15 +362,14 @@ public class MailerImpl implements Mailer {
 
 	@Override
 	public String toString() {
-		final StringBuilder sb = new StringBuilder("MailerImpl {");
-		sb.append("\n\tserverConfig=").append(serverConfig);
-		sb.append(",\n\ttransportStrategy=").append(transportStrategy);
-		sb.append(",\n\tproxyConfig=").append(proxyConfig);
-		sb.append(",\n\toperationalConfig=").append(operationalConfig);
-		sb.append(",\n\temailGovernance=").append(emailGovernance);
-		sb.append(",\n\tsession=").append(session.getProperties());
-		sb.append("\n}");
-		return sb.toString();
+		return "MailerImpl {"
+				+ "\n\tserverConfig=" + serverConfig
+				+ ",\n\ttransportStrategy=" + transportStrategy
+				+ ",\n\tproxyConfig=" + proxyConfig
+				+ ",\n\toperationalConfig=" + operationalConfig
+				+ ",\n\temailGovernance=" + emailGovernance
+				+ ",\n\tsession=" + session.getProperties()
+				+ "\n}";
 	}
 
 	/**
