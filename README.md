@@ -126,7 +126,7 @@ v6.3.0 - [v6.3.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail
 
 This release adds the following major new feature:
 
-- [#260](https://github.com/bbottema/simple-java-mail/issues/260) Add support for dynamic datasource resolution (file/url/classpath) for embedded images in HTML body
+- [#260](https://github.com/bbottema/simple-java-mail/issues/260) **Add support for dynamic datasource resolution** (file/url/classpath) for embedded images in HTML body
 
 
 [v6.1.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.1.0%7Cjar) (5-July-2020)
