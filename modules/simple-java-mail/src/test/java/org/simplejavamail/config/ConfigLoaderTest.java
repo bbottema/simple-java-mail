@@ -7,7 +7,6 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
-import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,8 +63,8 @@ public class ConfigLoaderTest {
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
 		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY)).isEqualTo("value");
-		assertThat(ConfigLoader.valueOrProperty(null, TRANSPORT_STRATEGY)).isEqualTo("preconfiguredValue");
-		assertThat(ConfigLoader.valueOrProperty(null, SMTP_HOST)).isNull();
+		assertThat(ConfigLoader.valueOrProperty((String) null, TRANSPORT_STRATEGY)).isEqualTo("preconfiguredValue");
+		assertThat(ConfigLoader.valueOrProperty((String) null, SMTP_HOST)).isNull();
 	}
 
 	@Test
@@ -109,9 +108,6 @@ public class ConfigLoaderTest {
 
 	@Test
 	public void overridefromSystemVariables() {
-		Map<Property, Object> properties = new HashMap<>();
-		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
-
 		assertThat(ConfigLoader.valueOrPropertyAsString("value", PROXY_USERNAME, "backup")).isEqualTo("value");
 		assertThat(ConfigLoader.valueOrPropertyAsString(null, PROXY_USERNAME, "backup")).isEqualTo("username proxy"); // from config file
 		// cannot be tested:
@@ -149,10 +145,10 @@ public class ConfigLoaderTest {
 		properties.put(DEFAULT_BCC_NAME, null);
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
 
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isEqualTo("preconfiguredValue1");
-		assertThat(ConfigLoader.getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("preconfiguredValue2");
-		assertThat(ConfigLoader.getProperty(DEFAULT_BCC_NAME)).isNull();
-		assertThat(ConfigLoader.getProperty(PROXY_HOST)).isNull();
+		assertThat(ConfigLoader.<String>getProperty(TRANSPORT_STRATEGY)).isEqualTo("preconfiguredValue1");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("preconfiguredValue2");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_BCC_NAME)).isNull();
+		assertThat(ConfigLoader.<String>getProperty(PROXY_HOST)).isNull();
 	}
 
 	@Test
@@ -174,41 +170,41 @@ public class ConfigLoaderTest {
 	@Test
 	public void loadPropertiesFromFileClassPath() {
 		ConfigLoader.loadProperties("simplejavamail.properties", false);
-		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
+		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
 
-		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
-		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
-		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
-		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
+		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
+		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
 
-		assertThat(ConfigLoader.getProperty(PROXY_HOST)).isEqualTo("proxy.default.com");
-		assertThat(ConfigLoader.getProperty(PROXY_PORT)).isEqualTo(1080);
-		assertThat(ConfigLoader.getProperty(PROXY_USERNAME)).isEqualTo("username proxy");
-		assertThat(ConfigLoader.getProperty(PROXY_PASSWORD)).isEqualTo("password proxy");
-		assertThat(ConfigLoader.getProperty(PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(1081);
+		assertThat(ConfigLoader.<String>getProperty(PROXY_HOST)).isEqualTo("proxy.default.com");
+		assertThat(ConfigLoader.<Integer>getProperty(PROXY_PORT)).isEqualTo(1080);
+		assertThat(ConfigLoader.<String>getProperty(PROXY_USERNAME)).isEqualTo("username proxy");
+		assertThat(ConfigLoader.<String>getProperty(PROXY_PASSWORD)).isEqualTo("password proxy");
+		assertThat(ConfigLoader.<Integer>getProperty(PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(1081);
 
-		assertThat(ConfigLoader.getProperty(DEFAULT_FROM_NAME)).isEqualTo("From Default");
-		assertThat(ConfigLoader.getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("from@default.com");
-		assertThat(ConfigLoader.getProperty(DEFAULT_REPLYTO_NAME)).isEqualTo("Reply-To Default");
-		assertThat(ConfigLoader.getProperty(DEFAULT_REPLYTO_ADDRESS)).isEqualTo("reply-to@default.com");
-		assertThat(ConfigLoader.getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
-		assertThat(ConfigLoader.getProperty(DEFAULT_TO_ADDRESS)).isEqualTo("to@default.com");
-		assertThat(ConfigLoader.getProperty(DEFAULT_CC_NAME)).isEqualTo("CC Default");
-		assertThat(ConfigLoader.getProperty(DEFAULT_CC_ADDRESS)).isEqualTo("cc@default.com");
-		assertThat(ConfigLoader.getProperty(DEFAULT_BCC_NAME)).isEqualTo("BCC Default");
-		assertThat(ConfigLoader.getProperty(DEFAULT_BCC_ADDRESS)).isEqualTo("bcc@default.com");
-		assertThat(ConfigLoader.getProperty(DEFAULT_SUBJECT)).isEqualTo("Default Subject");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_FROM_NAME)).isEqualTo("From Default");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("from@default.com");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_REPLYTO_NAME)).isEqualTo("Reply-To Default");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_REPLYTO_ADDRESS)).isEqualTo("reply-to@default.com");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_ADDRESS)).isEqualTo("to@default.com");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_CC_NAME)).isEqualTo("CC Default");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_CC_ADDRESS)).isEqualTo("cc@default.com");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_BCC_NAME)).isEqualTo("BCC Default");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_BCC_ADDRESS)).isEqualTo("bcc@default.com");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_SUBJECT)).isEqualTo("Default Subject");
 
-		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEYSTORE)).isEqualTo("src/test/resources/pkcs12/smime_keystore.pkcs12");
-		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEYSTORE_PASSWORD)).isEqualTo("letmein");
-		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEY_ALIAS)).isEqualTo("smime_test_user_alias");
-		assertThat(ConfigLoader.getProperty(SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("letmein");
-		assertThat(ConfigLoader.getProperty(SMIME_ENCRYPTION_CERTIFICATE)).isEqualTo("src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
+		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEYSTORE)).isEqualTo("src/test/resources/pkcs12/smime_keystore.pkcs12");
+		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEYSTORE_PASSWORD)).isEqualTo("letmein");
+		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEY_ALIAS)).isEqualTo("smime_test_user_alias");
+		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("letmein");
+		assertThat(ConfigLoader.<String>getProperty(SMIME_ENCRYPTION_CERTIFICATE)).isEqualTo("src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
 
-		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)).isEqualTo("");
-		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)).isEqualTo("");
-		assertThat(ConfigLoader.getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)).isEqualTo("");
+		assertThat(ConfigLoader.<String>getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)).isEqualTo("");
+		assertThat(ConfigLoader.<String>getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)).isEqualTo("");
+		assertThat(ConfigLoader.<String>getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)).isEqualTo("");
 	}
 
 	@Test
@@ -222,11 +218,11 @@ public class ConfigLoaderTest {
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s2.getBytes()), true);
 
 		// some checks from the config file
-		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTPS);
+		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTPS);
 		// now check if the extra properties were added
-		assertThat(ConfigLoader.getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
-		assertThat(ConfigLoader.getProperty(DEFAULT_TO_ADDRESS)).isEqualTo("to@default.com");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_ADDRESS)).isEqualTo("to@default.com");
 	}
 
 	@Test
@@ -240,13 +236,13 @@ public class ConfigLoaderTest {
 				+ "simplejavamail.custom.sslfactory.class=teh_class\n";
 
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
-		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
-		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
-		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
-		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
-		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
-		assertThat(ConfigLoader.getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
+		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
+		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
+		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
+		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 	}
 
 	@Test
@@ -263,13 +259,13 @@ public class ConfigLoaderTest {
 		source.put("simplejavamail.extraproperties.b", "B");
 
 		ConfigLoader.loadProperties(source, false);
-		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
-		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
-		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
-		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
-		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
-		assertThat(ConfigLoader.getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
+		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
+		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
+		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
+		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
 				.containsExactly(new SimpleEntry<>("a", "A"), new SimpleEntry<>("b", "B"));
 	}
@@ -286,13 +282,13 @@ public class ConfigLoaderTest {
 		source.put("simplejavamail.custom.sslfactory.class", "teh_class");
 
 		ConfigLoader.loadProperties(source, false);
-		assertThat(ConfigLoader.getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
-		assertThat(ConfigLoader.getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
-		assertThat(ConfigLoader.getProperty(SMTP_PORT)).isEqualTo(25);
-		assertThat(ConfigLoader.getProperty(SMTP_USERNAME)).isEqualTo("username");
-		assertThat(ConfigLoader.getProperty(SMTP_PASSWORD)).isEqualTo("password");
-		assertThat(ConfigLoader.getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
+		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
+		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
+		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
+		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 	}
 
 	@Test

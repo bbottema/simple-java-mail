@@ -1,8 +1,9 @@
 package org.simplejavamail.api.email;
 
+import jakarta.mail.Message.RecipientType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import javax.mail.Message.RecipientType;
+
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -27,7 +28,7 @@ public final class Recipient implements Serializable {
 	 * 
 	 * @param name The name of the recipient, optional in which just the address is shown.
 	 * @param address The email address of the recipient.
-	 * @param type The recipient type (eg. {@link RecipientType#TO}), optional for {@code from} and {@code replyTo} fields.
+	 * @param type The recipient type (e.g. {@link RecipientType#TO}), optional for {@code from} and {@code replyTo} fields.
 	 * @see RecipientType
 	 */
 	public Recipient(@Nullable final String name, @NotNull final String address, @Nullable final RecipientType type) {

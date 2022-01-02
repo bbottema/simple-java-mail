@@ -1,17 +1,16 @@
 package org.simplejavamail.internal.batchsupport;
 
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import org.bbottema.clusteredobjectpool.core.ClusterConfig;
 import org.bbottema.clusteredobjectpool.core.api.LoadBalancingStrategy;
 import org.bbottema.clusteredobjectpool.cyclingstrategies.RandomAccessLoadBalancing;
 import org.bbottema.clusteredobjectpool.cyclingstrategies.RoundRobinLoadBalancing;
 import org.bbottema.genericobjectpool.expirypolicies.TimeoutSinceLastAllocationExpirationPolicy;
 import org.bbottema.genericobjectpool.util.Timeout;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
-
-import org.jetbrains.annotations.NotNull;
-import javax.mail.Session;
-import javax.mail.Transport;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_ROBIN;
@@ -31,7 +30,7 @@ final class ClusterHelper {
 				.loadBalancingStrategy(operationalConfig.getConnectionPoolLoadBalancingStrategy() == ROUND_ROBIN
 						? new RoundRobinLoadBalancing<>()
 						: new RandomAccessLoadBalancing<>())
-				.defaultExpirationPolicy(new TimeoutSinceLastAllocationExpirationPolicy<Transport>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
+				.defaultExpirationPolicy(new TimeoutSinceLastAllocationExpirationPolicy<>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
 		return smtpClusterConfig;
 	}
 

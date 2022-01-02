@@ -1,29 +1,27 @@
 package org.simplejavamail.config;
 
+import com.google.code.regexp.Matcher;
+import com.google.code.regexp.Pattern;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.util.SimpleConversions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import static com.google.code.regexp.Pattern.compile;
 import static java.util.Collections.unmodifiableMap;
-import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
@@ -95,7 +93,7 @@ public final class ConfigLoader {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
 	
 	/**
-	 * By default the optional file {@value} will be loaded from classpath to load initial defaults.
+	 * By default, the optional file {@value} will be loaded from classpath to load initial defaults.
 	 */
 	public static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
 

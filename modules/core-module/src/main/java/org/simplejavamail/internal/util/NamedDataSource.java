@@ -1,9 +1,9 @@
 package org.simplejavamail.internal.util;
 
+import jakarta.activation.DataSource;
+import jakarta.mail.EncodingAware;
 import org.jetbrains.annotations.Nullable;
 
-import javax.activation.DataSource;
-import javax.mail.EncodingAware;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

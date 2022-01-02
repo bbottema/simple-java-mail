@@ -14,8 +14,8 @@ import java.io.File;
 import java.util.AbstractMap.SimpleEntry;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.util.Collections.singletonList;
-import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;

@@ -2,7 +2,6 @@ package org.simplejavamail.internal.clisupport;
 
 import org.junit.Test;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
-import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
 
 import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Method;
@@ -39,7 +38,7 @@ public class CliDeclaredOptionSpecTest {
 	private CliDeclaredOptionSpec createDummyCommand(List<CliDeclaredOptionSpec> unsortedSet, String prefix, String name) {
 		Method dummyMethod = getClass().getMethods()[0];
 		@SuppressWarnings("ConstantConditions")
-		CliDeclaredOptionSpec instance = new CliDeclaredOptionSpec(prefix + ":" + name, new ArrayList<String>(), new ArrayList<CliDeclaredOptionValue>(), EMAIL, dummyMethod);
+		CliDeclaredOptionSpec instance = new CliDeclaredOptionSpec(prefix + ":" + name, new ArrayList<>(), new ArrayList<>(), EMAIL, dummyMethod);
 		unsortedSet.add(instance);
 		return instance;
 	}

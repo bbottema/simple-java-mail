@@ -1,11 +1,11 @@
 package org.simplejavamail.api.email;
 
+import jakarta.activation.DataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.internal.util.MiscUtil;
 
-import javax.activation.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
@@ -17,7 +17,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 
 /**
  * A named immutable email attachment information object. The name can be a simple name, a filename or a named embedded image (eg.
- * &lt;cid:footer&gt;). Contains a {@link DataSource} that is compatible with the javax.mail API.
+ * &lt;cid:footer&gt;). Contains a {@link DataSource} that is compatible with the jakarta.mail API.
  *
  * @see DataSource
  */

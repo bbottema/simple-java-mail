@@ -1,10 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Session;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
-
-import org.jetbrains.annotations.NotNull;
-import javax.mail.Session;
 
 /**
  * @see MailerFromSessionBuilder

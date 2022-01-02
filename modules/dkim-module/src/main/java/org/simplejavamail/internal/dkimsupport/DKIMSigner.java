@@ -1,16 +1,16 @@
 package org.simplejavamail.internal.dkimsupport;
 
-import net.markenwerk.utils.mail.dkim.Canonicalization;
-import net.markenwerk.utils.mail.dkim.DkimMessage;
-import net.markenwerk.utils.mail.dkim.DkimSigner;
-import net.markenwerk.utils.mail.dkim.SigningAlgorithm;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.modules.DKIMModule;
+import org.simplejavamail.utils.mail.dkim.Canonicalization;
+import org.simplejavamail.utils.mail.dkim.DkimMessage;
+import org.simplejavamail.utils.mail.dkim.DkimSigner;
+import org.simplejavamail.utils.mail.dkim.SigningAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;

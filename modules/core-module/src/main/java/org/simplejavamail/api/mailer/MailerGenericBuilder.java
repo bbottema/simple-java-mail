@@ -1,6 +1,8 @@
 package org.simplejavamail.api.mailer;
 
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
+import com.sanctionco.jmail.EmailValidator;
+import com.sanctionco.jmail.JMail;
+import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
@@ -9,10 +11,8 @@ import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import javax.mail.Session;
 import java.io.File;
 import java.io.InputStream;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -197,7 +197,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 
 	/**
 	 * This flag is set on the Session instance through {@link Session#setDebug(boolean)} so that it generates debug information. To get more
-	 * information out of the underlying JavaMail framework or out of Simple Java Mail, increase logging config of your chosen logging framework.
+	 * information out of the underlying JavaMail framework or out of Simple Java Mail, increase logging config of your chosen logging-framework.
 	 *
 	 * @param debugLogging Enables or disables debug logging with {@code true} or {@code false}.
 	 */
@@ -219,15 +219,15 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withSessionTimeout(@NotNull Integer sessionTimeout);
 
 	/**
-	 * Sets the email address validation restrictions when validating and sending emails using the current <code>Mailer</code> instance.
+	 * Sets the email address validator used when validating and sending emails using the current <code>Mailer</code> instance.
 	 * <p>
-	 * Defaults to {@link EmailAddressCriteria#RFC_COMPLIANT} if not overridden with a ({@code null}) value.
+	 * Defaults to {@link JMail#strictValidator()}.
 	 *
-	 * @see EmailAddressCriteria
-	 * @see #clearEmailAddressCriteria()
-	 * @see #resetEmailAddressCriteria()
+	 * @see EmailValidator
+	 * @see #clearEmailValidator()
+	 * @see #resetEmailValidator()
 	 */
-	T withEmailAddressCriteria(@NotNull EnumSet<EmailAddressCriteria> emailAddressCriteria);
+	T withEmailValidator(@NotNull EmailValidator emailValidator);
 
 	/**
 	 * Signs this <em>all emails by default</em> with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
@@ -338,7 +338,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * means those mailes form a cluster where mail-send action are rotated over connection pools stemming from these
 	 * mailer instances (this has implications for mailers defining connections differently from eachother, see documentation).
 	 * <p>
-	 * By default a cluster key is uniquely generated, so for a single new mailer a new cluster is always generated,
+	 * By default, a cluster key is uniquely generated, so for a single new mailer a new cluster is always generated,
 	 * thus effectively nothing is clustered.
 	 *
 	 * @see <a href="http://www.simplejavamail.org/configuration.html#section-batch-and-clustering">Clustering with Simple Java Mail</a>
@@ -358,11 +358,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withConnectionPoolCoreSize(@NotNull Integer connectionPoolCoreSize);
 
 	/**
-	 * Configured the connection pool's max size (default {@value DEFAULT_CONNECTIONPOOL_MAX_SIZE}) in case of high thread contention. Note that this determines how many connections can be open at
-	 * any one time to a single server. Make sure your server can handle the load coming from all connections. There's no point having hundred concurrent connections if it degrades your
+	 * Configures the connection pool's max size (default {@value DEFAULT_CONNECTIONPOOL_MAX_SIZE}) in case of high thread contention. Note that this
+	 * determines how many connections can be open at
+	 * any one time to a single server. Make sure your server can handle the load coming from all connections. There's no point having a hundred concurrent connections if it degrades your
 	 * server's performance because of CPU throttling and network congestion.
 	 * <p>
-	 * In addition, if your server makes connections wait, it means threads will be waiting on the {@link javax.mail.Transport} instance to start their work load, instead of threads being blocked
+	 * In addition, if your server makes connections wait, it means threads will be waiting on the {@link jakarta.mail.Transport} instance to start their work load, instead of threads being blocked
 	 * on a <em>claim</em> for an available {@code Transport} instance. In other words: by having an oversized connection pool, you inadvertently bypass the blocking claim mechanism of the
 	 * connection pool and wait on the Transport directly instead.
 	 * <p>
@@ -397,7 +398,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * Defines the various types of load balancing modes supported by the connection pool ion the <a href="http://http://www.simplejavamail.org/configuration.html#section-batch-and-clustering">batch-module</a>.
 	 * <p>
-	 * This is only relevant if you have multiple mail servers in one or more clusters. Currently it is impossible to define different load balancing strategies for different clusters.
+	 * This is only relevant if you have multiple mail servers in one or more clusters. Currently, it is impossible to define different load balancing strategies for different clusters.
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
@@ -503,12 +504,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetSessionTimeout();
 
 	/**
-	 * Resets emailAddressCriteria to {@link EmailAddressCriteria#RFC_COMPLIANT}.
+	 * Resets the email validator to {@link JMail#strictValidator()}.
 	 *
-	 * @see #withEmailAddressCriteria(EnumSet)
-	 * @see #clearEmailAddressCriteria()
+	 * @see #withEmailValidator(EmailValidator)
+	 * @see #clearEmailValidator()
 	 */
-	T resetEmailAddressCriteria();
+	T resetEmailValidator();
 
 	/**
 	 * Resets the executor services to be used back to the default, created by the Batch module if loaded, or else
@@ -623,12 +624,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearProxy();
 
 	/**
-	 * Removes all email address criteria, meaning validation won't take place.
+	 * Makes the email validator <code>null</code>, meaning validation won't take place.
 	 *
-	 * @see #withEmailAddressCriteria(EnumSet)
-	 * @see #resetEmailAddressCriteria()
+	 * @see #withEmailValidator(EmailValidator)
+	 * @see #resetEmailValidator()
 	 */
-	T clearEmailAddressCriteria();
+	T clearEmailValidator();
 
 	/**
 	 * Removes S/MIME signing, so emails won't be signed by default.
@@ -703,10 +704,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	Integer getSessionTimeout();
 
 	/**
-	 * @see #withEmailAddressCriteria(EnumSet)
+	 * @see #withEmailValidator(EmailValidator)
 	 */
 	@Nullable
-	EnumSet<EmailAddressCriteria> getEmailAddressCriteria();
+	EmailValidator getEmailValidator();
 
 	/**
 	 * @see #signByDefaultWithSmime(Pkcs12Config)

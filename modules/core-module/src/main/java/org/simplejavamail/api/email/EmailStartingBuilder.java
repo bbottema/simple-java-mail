@@ -1,21 +1,21 @@
 package org.simplejavamail.api.email;
 
+import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
-import org.jetbrains.annotations.NotNull;
-import javax.mail.internet.MimeMessage;
 import java.util.regex.Pattern;
 
 import static java.util.regex.Pattern.compile;
 
 /**
- * Entry Builder API for starting starting new emails.
+ * Entry Builder API for starting new emails.
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 public interface EmailStartingBuilder {
 	/**
-	 * Used for replying to emails, when quoting the original email. Matches the beginning of every line.
+	 * Used for replying to email, when quoting the original email. Matches the beginning of every line.
 	 * <p>
 	 * <strong>Pattern used</strong>: {@code "(?m)^"}
 	 *
@@ -125,7 +125,7 @@ public interface EmailStartingBuilder {
 	 *                     include.
 	 * @param repyToAll    Indicates whether all original receivers should be included in this new reply. Also see {@link
 	 *                     MimeMessage#reply(boolean)}.
-	 * @param htmlTemplate HTML quoting template that should be used in the reply. Should contains the substring {@code "%s"}. Be advised that HTML is very limited in emails.
+	 * @param htmlTemplate HTML quoting template that should be used in the reply. Should contain the substring {@code "%s"}. Be advised that HTML is very limited in emails.
 	 *
 	 * @see #replyingTo(Email)
 	 * @see #replyingTo(Email, String)

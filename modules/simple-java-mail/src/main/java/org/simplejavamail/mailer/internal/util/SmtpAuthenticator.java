@@ -1,12 +1,11 @@
 package org.simplejavamail.mailer.internal.util;
 
+import jakarta.mail.Authenticator;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.MailerImpl;
-
-import javax.mail.Authenticator;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
 
 /**
  * Simple Authenticator used to create a {@link Session} object with in {@link MailerImpl#createMailSession(ServerConfig, TransportStrategy)}.

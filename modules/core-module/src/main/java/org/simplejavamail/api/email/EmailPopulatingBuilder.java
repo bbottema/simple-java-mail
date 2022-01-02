@@ -1,16 +1,17 @@
 package org.simplejavamail.api.email;
 
+import com.google.code.regexp.Pattern;
+import jakarta.activation.DataSource;
+import jakarta.mail.Message;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
-import javax.activation.DataSource;
-import javax.mail.Message;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -20,9 +21,9 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
-import static java.util.regex.Pattern.compile;
+import static com.google.code.regexp.Pattern.compile;
+
 
 /**
  * Fluent interface Builder for populating {@link Email} instances. An instance of this builder can only be obtained through one of the builder
@@ -51,7 +52,7 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * <strong>Note 1:</strong> ID is user-controlled. Only when converting an email, Simple Java Mail might fill the sent-date.
 	 * <br>
-	 * <strong>Note 2:</strong> The id-format should be conform <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
+	 * <strong>Note 2:</strong> The id-format should conform to <a href="https://tools.ietf.org/html/rfc5322#section-3.6.4">rfc5322#section-3.6.4</a>
 	 *
 	 * @param id The mime message id, example: {@code <123@456>}
 	 */
@@ -744,7 +745,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder bccAddressesWithDefaultName(@NotNull String name, @NotNull Collection<InternetAddress> addresses);
 	
 	/**
-	 * Delegates to {@link #withRecipients(String, boolean, Collection, Message.RecipientType)}, leaving existing names in tact and defaulting when missing.
+	 * Delegates to {@link #withRecipients(String, boolean, Collection, Message.RecipientType)}, leaving existing names intact and defaulting when missing.
 	 */
 	@NotNull
 	EmailPopulatingBuilder withRecipientsWithDefaultName(@Nullable String defaultName, @NotNull Collection<String> oneOrMoreAddressesEach, @Nullable Message.RecipientType recipientType);
@@ -794,7 +795,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @NotNull Collection<String> oneOrMoreAddressesEach, @Nullable Message.RecipientType recipientType);
 	
 	/**
-	 * Delegates to {@link #withAddresses(String, boolean, Collection, Message.RecipientType)}, leaving existing names in tact and defaulting when missing.
+	 * Delegates to {@link #withAddresses(String, boolean, Collection, Message.RecipientType)}, leaving existing names intact and defaulting when missing.
 	 */
 	@NotNull
 	EmailPopulatingBuilder withAddressesWithDefaultName(@Nullable String defaultName, @NotNull Collection<InternetAddress> addresses, @Nullable Message.RecipientType recipientType);
@@ -871,7 +872,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Enables auto resolution of file datasources for embedded images.
 	 * <p>
-	 * Normally, you would manually markup your HTML with images using {@code cid:<some_id>} and then add an embedded image
+	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
 	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-file-resolution, you can just
 	 * refer to the file instead and the data will be included dynamically with a generated <em>cid</em>.
 	 *
@@ -885,7 +886,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Enables auto resolution of classpath datasources for embedded images.
 	 * <p>
-	 * Normally, you would manually markup your HTML with images using {@code cid:<some_id>} and then add an embedded image
+	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
 	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-classpath-resolution, you can just
 	 * refer to the resource on the classpath instead and the data will be included dynamically with a generated <em>cid</em>.
 	 *
@@ -899,7 +900,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Enables auto resolution of URL's for embedded images.
 	 * <p>
-	 * Normally, you would manually markup your HTML with images using {@code cid:<some_id>} and then add an embedded image
+	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
 	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-URL-resolution, you can just
 	 * refer to the hosted image instead and the data will be downloaded and included dynamically with a generated <em>cid</em>.
 	 *
@@ -961,7 +962,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Dictates whether files will be resolved for embedded images when they are not nested under the baseDir (if baseDir is set).
 	 *
-	 * @param allowEmbeddedImageOutsideBaseDir Whether files should be resolved that reside outside of the baseDir (if set)
+	 * @param allowEmbeddedImageOutsideBaseDir Whether files should be resolved that reside outside the baseDir (if set)
 	 *
 	 * @see #withEmbeddedImageAutoResolutionForFiles(boolean)
 	 * @see #withEmbeddedImageBaseDir(String)
@@ -971,7 +972,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Dictates whether sources will be resolved for embedded images when they are not nested under the baseClassPath (if baseClassPath is set).
 	 *
-	 * @param allowEmbeddedImageOutsideBaseClassPath Whether image sources should be resolved that reside outside of the baseClassPath (if set)
+	 * @param allowEmbeddedImageOutsideBaseClassPath Whether image sources should be resolved that reside outside the baseClassPath (if set)
 	 *
 	 * @see #withEmbeddedImageAutoResolutionForClassPathResources(boolean)
 	 * @see #withEmbeddedImageBaseClassPath(String)
@@ -981,7 +982,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Dictates whether url's will be resolved for embedded images when they are not nested under the baseUrl (if baseUrl is set).
 	 *
-	 * @param allowEmbeddedImageOutsideBaseUrl Whether url's should be resolved that reside outside of the baseUrl (if set)
+	 * @param allowEmbeddedImageOutsideBaseUrl Whether url's should be resolved that reside outside the baseUrl (if set)
 	 *
 	 * @see #withEmbeddedImageAutoResolutionForURLs(boolean)
 	 * @see #withEmbeddedImageBaseUrl(String)
@@ -995,7 +996,7 @@ public interface EmailPopulatingBuilder {
 	 * Not using this option effectively means a more lenient approach to image sources.
 	 * <p>
 	 * Note: It also allows you to work with URL's as image sources that can't be resolved at time of sending, but that makes sense
-	 * when viewing the email in some client (eg. relative url's).
+	 * when viewing the email in some client (e.g. relative url's).
 	 *
 	 * @param embeddedImageAutoResolutionMustBeSuccesful Whether auto resolution is enforced and bubbles up failure to do so.
 	 */
@@ -1005,9 +1006,9 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withEmbeddedImage(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and
 	 * mimetype.
 	 *
-	 * @param name     The name of the image as being referred to from the message content body (eg. 'signature').
+	 * @param name     The name of the image as being referred to from the message content body (e.g. 'signature').
 	 * @param data     The byte data of the image to be embedded.
-	 * @param mimetype The content type of the given data (eg. "image/gif" or "image/jpeg").
+	 * @param mimetype The content type of the given data (e.g. "image/gif" or "image/jpeg").
 	 */
 	EmailPopulatingBuilder withEmbeddedImage(@NotNull String name, @NotNull byte[] data, @NotNull String mimetype);
 	
@@ -1018,7 +1019,7 @@ public interface EmailPopulatingBuilder {
 	 * The provided {@link DataSource} is assumed to be of mimetype png, jpg or whatever the email client supports as valid image embedded in HTML
 	 * content.
 	 *
-	 * @param name      The name of the image as being referred to from the message content body (eg. 'src="cid:yourImageName"'). If not provided, the
+	 * @param name      The name of the image as being referred to from the message content body (e.g. 'src="cid:yourImageName"'). If not provided, the
 	 *                  name of the given data source is used instead.
 	 * @param imagedata The image data.
 	 *
@@ -1051,10 +1052,10 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withAttachment(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and
 	 * mimetype.
 	 *
-	 * @param name     Optional name of the attachment (eg. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is
+	 * @param name     Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is
 	 *                 empty, a name will be generated using {@link java.util.UUID}.
 	 * @param data     The binary data of the attachment.
-	 * @param mimetype The content type of the given data (eg. "plain/text", "image/gif" or "application/pdf").
+	 * @param mimetype The content type of the given data (e.g. "plain/text", "image/gif" or "application/pdf").
 	 *
 	 * @see #withAttachment(String, DataSource)
 	 * @see #withAttachments(List)
@@ -1067,7 +1068,7 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * <strong>Note</strong>: for embedding images instead of attaching them for download, refer to {@link #withEmbeddedImage(String, DataSource)} instead.
 	 *
-	 * @param name     Optional name of the attachment (eg. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is
+	 * @param name     Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is
 	 *                 empty, a name will be generated using {@link java.util.UUID}.
 	 * @param filedata The attachment data.
 	 *
@@ -1272,7 +1273,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withDispositionNotificationTo(@Nullable String fixedName, @NotNull InternetAddress address);
 	
 	/**
-	 * Indicates the this email should use the <a href="https://tools.ietf.org/html/rfc8098">NPM flag "Disposition-Notification-To"</a> with the given
+	 * Indicates this email should use the <a href="https://tools.ietf.org/html/rfc8098">NPM flag "Disposition-Notification-To"</a> with the given
 	 * preconfigred {@link Recipient}. This flag can be used to request a return receipt from the recipient to signal that the recipient has read the
 	 * email.
 	 * <p>
@@ -1332,10 +1333,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull Recipient recipient);
 
 	/**
-	 * When the an email is sent it is converted to a MimeMessage at which time the sent-date is filled with the current date. With this method
+	 * When an email is sent it is converted to a MimeMessage at which time the sent-date is filled with the current date. With this method
 	 * this can be fixed to a date of choice.
 	 * <p>
-	 * <strong>Note:</strong> the sent date is user-controlled. Only when converting an email, Simple Java Mail might fill the sent-date.
+	 * <strong>Note:</strong> the <em>sent</em> date is user-controlled. Only when converting an email, Simple Java Mail might fill the sent-date.
 	 *
 	 * @param sentDate The date to use as sent date.
 	 */
@@ -1458,7 +1459,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearSentDate();
 
 	/**
-	 * When readig and converting an email, this flag makes the behavior revert back to the default merging
+	 * When readig and converting an email, this flag makes the behavior revert to the default merging
 	 * behavior for single S/MIME signed attachments, which is that it <em>is</em> merged into the root message.
 	 * <p>
 	 * This can be useful when copying an {@link Email} that <em>was</em> merged (default behavior), to unmerge it.

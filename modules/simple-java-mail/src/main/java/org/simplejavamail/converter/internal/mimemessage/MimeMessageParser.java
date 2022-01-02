@@ -1,6 +1,26 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import com.sun.mail.handlers.text_plain;
+import jakarta.activation.ActivationDataFlavor;
+import jakarta.activation.CommandMap;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
+import jakarta.activation.MailcapCommandMap;
+import jakarta.mail.Address;
+import jakarta.mail.Header;
+import jakarta.mail.Message.RecipientType;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.ContentType;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimePart;
+import jakarta.mail.internet.MimeUtility;
+import jakarta.mail.internet.ParseException;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.MiscUtil;
@@ -8,26 +28,6 @@ import org.simplejavamail.internal.util.NamedDataSource;
 import org.simplejavamail.internal.util.NaturalEntryKeyComparator;
 import org.simplejavamail.internal.util.Preconditions;
 
-import javax.activation.ActivationDataFlavor;
-import javax.activation.CommandMap;
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
-import javax.activation.MailcapCommandMap;
-import javax.mail.Address;
-import javax.mail.Header;
-import javax.mail.Message.RecipientType;
-import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.Part;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.ContentType;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimePart;
-import javax.mail.internet.MimeUtility;
-import javax.mail.internet.ParseException;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -49,9 +49,9 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 /**
  * Parses a MimeMessage and stores the individual parts such a plain text, HTML text and attachments.
@@ -67,7 +67,7 @@ public final class MimeMessageParser {
 	private static final List<String> HEADERS_TO_IGNORE = new ArrayList<>();
 
 	static {
-		// taken from: protected javax.mail.internet.InternetHeaders constructor
+		// taken from: protected jakarta.mail.internet.InternetHeaders constructor
 		/*
 		 * When extracting information to create an Email, we're NOT interested in the following headers:
          */
@@ -125,7 +125,7 @@ public final class MimeMessageParser {
 	/**
 	 * Extracts the content of a MimeMessage recursively.
 	 */
-	public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage, final boolean fetchAttachmentData) {
+	public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage, boolean fetchAttachmentData) {
 		final ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
 		parsedComponents.messageId = parseMessageId(mimeMessage);
 		parsedComponents.sentDate = parseSentDate(mimeMessage);
@@ -148,10 +148,8 @@ public final class MimeMessageParser {
 		final String disposition = parseDisposition(currentPart);
 
 		if (isMimeType(currentPart, "text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			//noinspection RedundantCast
 			parsedComponents.plainContent.append((Object) parseContent(currentPart));
 		} else if (isMimeType(currentPart, "text/html") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			//noinspection RedundantCast
 			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
 		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.calendarContent = parseCalendarContent(currentPart);
@@ -386,7 +384,7 @@ public final class MimeMessageParser {
 	private static DataSource createDataSource(@NotNull final MimePart part, final boolean fetchAttachmentData) {
 		final DataSource dataSource = retrieveDataHandler(part).getDataSource();
 		final String dataSourceName = parseDataSourceName(part, dataSource);
-		
+
 		if (fetchAttachmentData) {
 			final String contentType = MiscUtil.parseBaseMimeType(dataSource.getContentType());
 			final ByteArrayDataSource result = new ByteArrayDataSource(readContent(retrieveInputStream(dataSource)), contentType);
@@ -396,7 +394,7 @@ public final class MimeMessageParser {
 			return new NamedDataSource(dataSourceName, dataSource);
 		}
 	}
-	
+
 	@SuppressWarnings("WeakerAccess")
 	public static InputStream retrieveInputStream(final DataSource dataSource) {
 		try {
@@ -474,7 +472,7 @@ public final class MimeMessageParser {
 
 	@NotNull
 	private static List<InternetAddress> parseInternetAddresses(@Nullable final Address[] recipients) {
-		final List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<Address>();
+		final List<Address> addresses = (recipients != null) ? Arrays.asList(recipients) : new ArrayList<>();
 		final List<InternetAddress> mailAddresses = new ArrayList<>();
 		for (final Address address : addresses) {
 			if (address instanceof InternetAddress) {

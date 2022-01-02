@@ -1,9 +1,9 @@
 package org.simplejavamail.mailer.internal.util;
 
+import jakarta.mail.Session;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.slf4j.Logger;
 
-import javax.mail.Session;
 import java.util.Properties;
 
 import static org.slf4j.LoggerFactory.getLogger;

@@ -33,7 +33,7 @@
         <dependency>
             <groupId>com.github.bbottema</groupId>
             <artifactId>java-reflection</artifactId>
-            <version>3.13.0</version>
+            <version>4.0.0</version>
         </dependency>
 
         <!-- needed for cli support -->
@@ -47,7 +47,7 @@
         <dependency><!-- Runtime library -->
             <groupId>com.github.therapi</groupId>
             <artifactId>therapi-runtime-javadoc</artifactId>
-            <version>0.9.0</version>
+            <version>0.13.0</version>
         </dependency>
 
         <!-- dependencies that should be included in the assembly for the stand-alone jar -->
@@ -87,6 +87,26 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- needed for converting the CLI options structure to binary format for quicker CLI startup -->
+        <dependency>
+            <groupId>com.esotericsoftware</groupId>
+            <artifactId>kryo</artifactId>
+            <version>5.0.0-RC1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency><!-- adds support for deserializing UnmodifiableCollection -->
+            <groupId>de.javakaffee</groupId>
+            <artifactId>kryo-serializers</artifactId>
+            <version>0.45</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency><!-- support for named regex groups in Android -->
+            <groupId>com.github.tony19</groupId>
+            <artifactId>named-regexp</artifactId>
+            <version>0.2.6</version>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -113,57 +133,87 @@
         </dependency>
     </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>appassembler-maven-plugin</artifactId>
-                <version>1.8.1</version>
-                <configuration>
-                    <configurationSourceDirectory>src/main/resources</configurationSourceDirectory>
-                    <copyConfigurationDirectory>true</copyConfigurationDirectory>
-                    <repositoryLayout>flat</repositoryLayout>
-                    <repositoryName>lib</repositoryName>
-                    <showConsoleWindow>true</showConsoleWindow>
-                    <platforms>
-                        <platform>unix</platform>
-                        <platform>windows</platform>
-                    </platforms>
-                    <programs>
-                        <program>
-                            <mainClass>org.simplejavamail.cli.SimpleJavaMail</mainClass>
-                            <id>sjm</id>
-                        </program>
-                    </programs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>assemble</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/assembly/standalone-cli-descriptor.xml</descriptor>
-                    </descriptors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>assemble-all</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+    <profiles>
+        <profile>
+            <id>publish-cli</id>
+            <activation>
+                <property>
+                    <name>jacoco.skip</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <!-- always trigger CliListAllSupportedOptionsDemoApp when packaging CLI artifacts, generating cli data files -->
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.0.0</version>
+                        <executions>
+                            <execution>
+                                <id>generateCliData</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <mainClass>demo.CliListAllSupportedOptionsDemoApp</mainClass>
+                            <classpathScope>test</classpathScope>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>appassembler-maven-plugin</artifactId>
+                        <version>1.8.1</version>
+                        <configuration>
+                            <configurationSourceDirectory>src/main/resources</configurationSourceDirectory>
+                            <copyConfigurationDirectory>true</copyConfigurationDirectory>
+                            <repositoryLayout>flat</repositoryLayout>
+                            <repositoryName>lib</repositoryName>
+                            <showConsoleWindow>true</showConsoleWindow>
+                            <platforms>
+                                <platform>unix</platform>
+                                <platform>windows</platform>
+                            </platforms>
+                            <programs>
+                                <program>
+                                    <mainClass>org.simplejavamail.cli.SimpleJavaMail</mainClass>
+                                    <id>sjm</id>
+                                </program>
+                            </programs>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>assemble</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/standalone-cli-descriptor.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>assemble-all</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

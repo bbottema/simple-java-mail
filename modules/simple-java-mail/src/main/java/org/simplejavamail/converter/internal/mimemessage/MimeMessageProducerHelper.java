@@ -1,13 +1,13 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Finds a compatible {@link MimeMessageProducer} for a given Email and produces a MimeMessage accordingly.
  * <p>
- * This way, a MimeMessage structure will always be as succinct as possible, so that email clients will never get confused to due missing parts (such
+ * This way, a MimeMessage structure will always be as succinct as possible, so that email clients will never get confused due to missing parts (such
  * as no attachments in a "mixed" multipart or no embedded images in a "related" multipart).
  * <p>
  * Also see issue <a href="https://github.com/bbottema/simple-java-mail/issues/144">#144</a>

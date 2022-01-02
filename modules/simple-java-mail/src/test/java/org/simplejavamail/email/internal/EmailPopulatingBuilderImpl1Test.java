@@ -1,6 +1,11 @@
 package org.simplejavamail.email.internal;
 
-import org.assertj.core.api.ThrowableAssert;
+import com.google.code.regexp.Matcher;
+import com.google.code.regexp.Pattern;
+import jakarta.activation.DataSource;
+import jakarta.mail.Message;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.jetbrains.annotations.Nullable;
@@ -16,10 +21,6 @@ import org.simplejavamail.internal.util.CertificationUtil;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.activation.DataSource;
-import javax.mail.Message;
-import javax.mail.internet.InternetAddress;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -33,13 +34,11 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
-import static javax.mail.Message.RecipientType.BCC;
-import static javax.mail.Message.RecipientType.CC;
-import static javax.mail.Message.RecipientType.TO;
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
@@ -902,11 +901,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"log4j2.xml\"/>");
 
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			public void call() {
-				emailPopulatingBuilder.buildEmail();
-			}
-		})
+		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
 				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: log4j2.xml");
 	}
@@ -986,11 +981,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/log4j2.xml\"/>");
 
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			public void call() {
-				emailPopulatingBuilder.buildEmail();
-			}
-		})
+		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
 				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: src/test/resources/log4j2.xml");
 	}
@@ -1023,11 +1014,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"download.html\"/>");
 
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			public void call() {
-				emailPopulatingBuilder.buildEmail();
-			}
-		})
+		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
 				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: download.html");
 	}
@@ -1152,11 +1139,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"https://www.simplejavamail.org/download.html\"/>");
 
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			public void call() {
-				emailPopulatingBuilder.buildEmail();
-			}
-		})
+		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
 				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: https://www.simplejavamail.org/download.html");
 	}
@@ -1185,11 +1168,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/how-to.html\"/>");
 
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			public void call() {
-				emailPopulatingBuilder.buildEmail();
-			}
-		})
+		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
 				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: /how-to.html");
 	}
@@ -1269,11 +1248,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/log4j2.xml\"/>");
 
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			public void call() {
-				emailPopulatingBuilder.buildEmail();
-			}
-		})
+		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
 				.hasMessageContaining("Unable to dynamically resolve data source for the following image src: /log4j2.xml");
 	}

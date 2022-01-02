@@ -1,8 +1,15 @@
 package org.simplejavamail.internal.smimesupport;
 
-import net.markenwerk.utils.mail.smime.SmimeKey;
-import net.markenwerk.utils.mail.smime.SmimeKeyStore;
-import net.markenwerk.utils.mail.smime.SmimeUtil;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Session;
+import jakarta.mail.internet.ContentType;
+import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.MimePart;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
@@ -36,20 +43,12 @@ import org.simplejavamail.internal.smimesupport.SmimeUtilFixed.SmimeStateFixed;
 import org.simplejavamail.internal.smimesupport.builder.SmimeParseResultBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.smimesupport.model.SmimeDetailsImpl;
-import org.simplejavamail.internal.util.SimpleOptional;
+import org.simplejavamail.utils.mail.smime.SmimeKey;
+import org.simplejavamail.utils.mail.smime.SmimeKeyStore;
+import org.simplejavamail.utils.mail.smime.SmimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.Session;
-import javax.mail.internet.ContentType;
-import javax.mail.internet.InternetHeaders;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.MimePart;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -60,6 +59,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -182,7 +182,7 @@ public class SMIMESupport implements SMIMEModule {
 			final AttachmentDecryptionResult onlyAttachmentDecrypted = smimeBuilder.getDecryptedAttachmentResults().get(0);
 			if (isSmimeAttachment(onlyAttachment) && isMimeMessageAttachment(onlyAttachmentDecrypted.getAttachmentResource())) {
 				smimeBuilder.getOriginalSmimeDetails().completeWith(determineSmimeDetails(onlyAttachment));
-				smimeBuilder.setSmimeSignedEmailToProcess(onlyAttachmentDecrypted.getAttachmentResource());
+				smimeBuilder.setSmimeSignedEmail(onlyAttachmentDecrypted.getAttachmentResource());
 			}
 		}
 	}
@@ -380,7 +380,7 @@ public class SMIMESupport implements SMIMEModule {
 			} else if (mimePart.isMimeType("application/pkcs7-mime") || mimePart.isMimeType("application/x-pkcs7-mime")) {
 				return new SMIMESigned(mimePart);
 			} else {
-				throw new SmimeException(format(MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED, mimePart.toString()));
+				throw new SmimeException(format(MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED, mimePart));
 			}
 		} catch (MessagingException | CMSException | SMIMEException | IOException e) {
 			throw new SmimeException(ERROR_DETERMINING_SMIME_SIGNER, e);
@@ -440,9 +440,9 @@ public class SMIMESupport implements SMIMEModule {
 			@Nullable final Pkcs12Config defaultSmimeSigningStore) {
 		MimeMessage result = messageToProtect;
 
-		final Pkcs12Config pkcs12Config = SimpleOptional
+		final Pkcs12Config pkcs12Config = Optional
 				.ofNullable(emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning())
-				.orMaybe(defaultSmimeSigningStore);
+				.orElse(defaultSmimeSigningStore);
 		if (pkcs12Config != null) {
 			result = signMessage(session, result, pkcs12Config);
 		}

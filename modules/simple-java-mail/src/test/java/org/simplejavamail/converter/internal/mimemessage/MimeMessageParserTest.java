@@ -1,6 +1,16 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import org.assertj.core.api.ThrowableAssert;
+import jakarta.activation.DataHandler;
+import jakarta.mail.BodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Part;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.ParameterList;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,17 +25,6 @@ import org.simplejavamail.internal.util.NamedDataSource;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.activation.DataHandler;
-import javax.mail.BodyPart;
-import javax.mail.MessagingException;
-import javax.mail.Part;
-import javax.mail.Session;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.ParameterList;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Calendar;
@@ -33,8 +32,8 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Properties;
 
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
-import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.moveInvalidEmbeddedResourcesToAttachments;
@@ -112,7 +111,7 @@ public class MimeMessageParserTest {
 		ParameterList pl = new ParameterList();
 		pl.set("filename", fileName);
 		pl.set("name", fileName);
-		attachmentPart.setHeader("Content-Type", contentType + pl.toString());
+		attachmentPart.setHeader("Content-Type", contentType + pl);
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
 		attachmentPart.setDisposition(dispositionType);
 		return attachmentPart;
@@ -171,12 +170,7 @@ public class MimeMessageParserTest {
 		assertThat(interpretRecipient(" ")).isNull();
 
 		// next one is unparsable by InternetAddress#parse(), so it should be taken as is
-		assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-			@Override
-			public void call() {
-				interpretRecipient(" \"  m oo  \" a@b.com    ");
-			}
-		})
+		assertThatThrownBy(() -> interpretRecipient(" \"  m oo  \" a@b.com    "))
 				.isInstanceOf(MimeMessageParseException.class)
 				.hasMessage("Error parsing [TO] address [ \"  m oo  \" a@b.com    ]");
 	}

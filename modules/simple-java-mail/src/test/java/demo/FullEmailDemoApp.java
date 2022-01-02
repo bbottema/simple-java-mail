@@ -1,5 +1,7 @@
 package demo;
 
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -7,12 +9,10 @@ import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.CalendarHelper;
 
-import javax.mail.internet.MimeMessage;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
-import static java.nio.charset.Charset.defaultCharset;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static java.nio.charset.Charset.defaultCharset;
 
 /**
  * Demonstration program for the Simple Java Mail framework. Just fill your gmail, password and press GO.

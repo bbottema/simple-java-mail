@@ -9,7 +9,7 @@ public class MailerBuilderTest {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		MailerBuilder
 				.withSMTPServer("moo", 0)
-				.clearEmailAddressCriteria()
+				.clearEmailValidator()
 				.buildMailer();
 		// good, no more errors due to #335
 	}

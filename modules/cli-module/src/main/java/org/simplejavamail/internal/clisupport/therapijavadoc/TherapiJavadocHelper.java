@@ -2,30 +2,64 @@ package org.simplejavamail.internal.clisupport.therapijavadoc;
 
 import com.github.therapi.runtimejavadoc.InlineLink;
 import com.github.therapi.runtimejavadoc.Link;
+import com.github.therapi.runtimejavadoc.MethodJavadoc;
 import com.github.therapi.runtimejavadoc.ParamJavadoc;
 import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
 import com.github.therapi.runtimejavadoc.SeeAlsoJavadoc;
 import com.github.therapi.runtimejavadoc.Value;
+import com.google.code.regexp.Matcher;
 import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.MethodUtils;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.internal.clisupport.CliDataLocator;
+import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
+import org.simplejavamail.internal.util.FileUtil;
+
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 
+import static com.google.code.regexp.Pattern.compile;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static java.util.regex.Pattern.compile;
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.StringUtil.padRight;
 
 public final class TherapiJavadocHelper {
-	
+
+	// using a pregenerated cache file shaves off 10% runtime
+	private static final File THERAPI_DATAFILE = new File(CliDataLocator.locateTherapiDataFile());
+	// this caches roughly halves runtime (doubles performance)
+	private static final Map<String, MethodJavadoc> THERAPI_CACHE = loadTherapiCache();
+
+	private static Map<String, MethodJavadoc> loadTherapiCache() {
+		if (THERAPI_DATAFILE.exists()) {
+			try {
+				return SerializationUtil.deserialize(FileUtil.readFileBytes(THERAPI_DATAFILE));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			return new HashMap<>();
+		}
+	}
+
+	public static void persistCache() {
+		try {
+			FileUtil.writeFileBytes(THERAPI_DATAFILE, SerializationUtil.serialize(THERAPI_CACHE));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	private TherapiJavadocHelper() {
 	}
 	
@@ -52,19 +86,19 @@ public final class TherapiJavadocHelper {
 
 	@Nullable
 	private static Class<?> findReferencedClass(String referencedClassName) {
-		Class<?> aClass = ClassUtils.locateClass(referencedClassName, "org.simplejavamail", null);
-		return aClass != null ? aClass : ClassUtils.locateClass(referencedClassName, null, null);
+		return ofNullable(ClassUtils.locateClass(referencedClassName, "org.simplejavamail", null))
+				.orElseGet(() -> ClassUtils.locateClass(referencedClassName, null, null));
 	}
 
 	@NotNull
 	static String getJavadocMainDescription(Method m, int nestingDepth) {
 		return new JavadocForCliFormatter(nestingDepth)
-				.format(RuntimeJavadoc.getJavadoc(m).getComment());
+				.format(getMethodJavadocCached(m).getComment());
 	}
 	
 	@NotNull
 	public static List<DocumentedMethodParam> getParamDescriptions(Method m) {
-		List<ParamJavadoc> params = RuntimeJavadoc.getJavadoc(m).getParams();
+		List<ParamJavadoc> params = getMethodJavadocCached(m).getParams();
 		if (m.getParameterTypes().length != params.size()) {
 			throw new AssertionError("Number of documented parameters doesn't match with Method's actual parameters: " + m);
 		}
@@ -74,7 +108,7 @@ public final class TherapiJavadocHelper {
 		}
 		return paramDescriptions;
 	}
-	
+
 	@NotNull
 	public static List<String> getJavadocSeeAlsoReferences(Method m, boolean onlyIncludeClicompatibleJavadocLinks, int maxTextWidth) {
 		List<String> seeAlsoReferences = new ArrayList<>();
@@ -84,7 +118,7 @@ public final class TherapiJavadocHelper {
 		int longestLink = 0;
 		boolean allDescriptionsOnNextLine = false;
 		
-		for (SeeAlsoJavadoc seeAlsoJavadoc : RuntimeJavadoc.getJavadoc(m).getSeeAlso()) {
+		for (SeeAlsoJavadoc seeAlsoJavadoc : getMethodJavadocCached(m).getSeeAlso()) {
 			switch (seeAlsoJavadoc.getSeeAlsoType()) {
 				case STRING_LITERAL:
 					seeAlsoReferences.add(seeAlsoJavadoc.getStringLiteral());
@@ -126,7 +160,12 @@ public final class TherapiJavadocHelper {
 		
 		return seeAlsoReferences;
 	}
-	
+
+	@NotNull
+	private static MethodJavadoc getMethodJavadocCached(final Method m) {
+		return THERAPI_CACHE.computeIfAbsent(m.toString(), methodKey -> RuntimeJavadoc.getJavadoc(m));
+	}
+
 	@NotNull
 	public static List<String> determineCliOptionDescriptions(Method m) {
 		String javadoc = TherapiJavadocHelper.getJavadocMainDescription(m, 0);
@@ -134,7 +173,7 @@ public final class TherapiJavadocHelper {
 		List<String> basicExplanationPlusFurtherDetails = asList(javadoc.split("\n", 2));
 		return colorizeDescriptions(basicExplanationPlusFurtherDetails);
 	}
-	
+
 	public static class DocumentedMethodParam {
 		@NotNull private final String name;
 		@NotNull private final String javadoc;

@@ -10,9 +10,9 @@ public class CliShowCommandHelpDemoApp {
 	public static void main(String[] args) {
 		System.out.println("--------------- SEND -------------------");
 		CliSupport.runCLI(new String[]{"send", "--help"});
-		System.out.println("\n\n\n\n\n\n-------------- CONNECT ------------------");
-		CliSupport.runCLI(new String[]{"connect", "--help"});
-		System.out.println("\n\n\n\n\n\n------------- VALIDATE ------------------");
-		CliSupport.runCLI(new String[]{"validate", "--help"});
+//		System.out.println("\n\n\n\n\n\n-------------- CONNECT ------------------");
+//		CliSupport.runCLI(new String[]{"connect", "--help"});
+//		System.out.println("\n\n\n\n\n\n------------- VALIDATE ------------------");
+//		CliSupport.runCLI(new String[]{"validate", "--help"});
 	}
 }

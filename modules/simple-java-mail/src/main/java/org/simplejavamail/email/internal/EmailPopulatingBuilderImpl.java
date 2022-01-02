@@ -1,6 +1,12 @@
 package org.simplejavamail.email.internal;
 
+import com.google.code.regexp.Matcher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jakarta.activation.DataSource;
+import jakarta.mail.Message.RecipientType;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -19,11 +25,6 @@ import org.simplejavamail.internal.util.FileUtil;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 
-import javax.activation.DataSource;
-import javax.mail.Message.RecipientType;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -40,16 +41,15 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.regex.Matcher.quoteReplacement;
-import static javax.mail.Message.RecipientType.BCC;
-import static javax.mail.Message.RecipientType.CC;
-import static javax.mail.Message.RecipientType.TO;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
@@ -96,8 +96,8 @@ import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSource
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveImageFileDataSourceFromDisk;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveUrlDataSource;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
  * @see EmailPopulatingBuilder
@@ -362,7 +362,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 				}
 			}
 			if (hasProperty(DEFAULT_SUBJECT)) {
-				withSubject((String) getProperty(DEFAULT_SUBJECT));
+				withSubject(getProperty(DEFAULT_SUBJECT));
 			}
 			if (hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
 				encryptWithSmime(verifyNonnullOrEmpty(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));
@@ -1671,7 +1671,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withHeader(@NotNull final String name, @Nullable final Object value) {
 		checkNonEmptyArgument(name, "name");
 		if (!headers.containsKey(name)) {
-			headers.put(name, new ArrayList<String>());
+			headers.put(name, new ArrayList<>());
 		}
 		headers.get(name).add(value != null ? String.valueOf(value) : null);
 		return this;
@@ -2359,7 +2359,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Nullable
 	public byte[] getDkimPrivateKeyData() {
-		return dkimPrivateKeyData;
+		return dkimPrivateKeyData != null ? dkimPrivateKeyData.clone() : null;
 	}
 	
 	/**

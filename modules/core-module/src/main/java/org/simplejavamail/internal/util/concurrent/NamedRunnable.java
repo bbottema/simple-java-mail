@@ -1,15 +1,37 @@
 package org.simplejavamail.internal.util.concurrent;
 
-public abstract class NamedRunnable implements Runnable {
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
-	private final String name;
+import static org.slf4j.LoggerFactory.getLogger;
 
-	protected NamedRunnable(final String name) {
-		this.name = name;
+
+/**
+ * This Runnable is smart in the sense that it can shutdown the
+ */
+@RequiredArgsConstructor
+public class NamedRunnable implements Runnable {
+
+	private static final Logger LOGGER = getLogger(NamedRunnable.class);
+
+	@NotNull private final String processName;
+	@NotNull private final Runnable operation;
+
+	@Override
+	public void run() {
+		// by the time the code reaches here, the user would have configured the appropriate handlers
+		try {
+			operation.run();
+		} catch (Exception e) {
+			LOGGER.error("Failed to run " + processName, e);
+			throw e;
+		}
 	}
 
 	@Override
 	public String toString() {
-		return name;
+		return processName;
 	}
 }

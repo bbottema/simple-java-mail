@@ -1,13 +1,11 @@
 package org.simplejavamail.api.mailer.config;
 
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
-import org.jetbrains.annotations.NotNull;
+import com.sanctionco.jmail.EmailValidator;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
 import java.io.InputStream;
-import java.util.EnumSet;
 
 /**
  * Governance for all emails being sent through the current {@link org.simplejavamail.api.mailer.Mailer} instance.
@@ -18,12 +16,12 @@ import java.util.EnumSet;
 public interface EmailGovernance {
 
 	/**
-	 * @return The effective validation criteria used for email validation. Returns an empty set if no validation should be done.
-	 * @see MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
-	 * @see EmailAddressCriteria
+	 * @return The effective email validator used for email validation. Can be <code>null</code> if no validation should be done.
+	 * @see MailerGenericBuilder#withEmailValidator(EmailValidator)
+	 * @see EmailValidator
 	 */
-	@NotNull
-	EnumSet<EmailAddressCriteria> getEmailAddressCriteria();
+	@Nullable
+	EmailValidator getEmailValidator();
 
 	/**
 	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)

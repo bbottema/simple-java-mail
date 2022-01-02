@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 
 import static java.lang.String.format;
@@ -22,5 +23,14 @@ public class FileUtil {
             throw new IllegalArgumentException(format("File not found: %s", file));
         }
         return Files.readAllBytes(file.toPath());
+    }
+
+    public static void writeFileBytes(@NotNull final File file, final byte[] bytes) throws IOException {
+        try {
+            Files.createFile(file.toPath());
+        } catch (FileAlreadyExistsException e) {
+            // ignore
+        }
+        Files.write(file.toPath(), bytes);
     }
 }

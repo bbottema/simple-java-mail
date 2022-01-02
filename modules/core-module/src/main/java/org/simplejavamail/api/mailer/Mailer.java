@@ -1,7 +1,8 @@
 package org.simplejavamail.api.mailer;
 
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressCriteria;
-import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -12,9 +13,7 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import javax.mail.Message;
-import javax.mail.Session;
-import javax.mail.Transport;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 /**
@@ -22,7 +21,7 @@ import java.util.concurrent.Future;
  * which is related to doing things with an email (server not always relevant, like with validation, S/MIME encryption etc.).
  * <p>
  * The e-mail message structure is built to work with all e-mail clients and has been tested with many different webclients as well as some desktop
- * applications. You can <a href="http://www.simplejavamail.org/rfc-compliant.html#section-explore-multipart">experiment</a> with the various types of emails and resulting mime structure on the Simple Java Mail mail website.
+ * applications. You can <a href="http://www.simplejavamail.org/rfc-compliant.html#section-explore-multipart">experiment</a> with the various types of emails and resulting mime structure on the Simple Java mail website.
  * <p>
  * <strong>Note: </strong>if the <a href="http://www.simplejavamail.org/modules.html#batch-module">batch-module</a>
  * is loaded when building a mailer, it will also register itself with the cluster using the provided or random cluster key, so other mailers using the same cluster key immediately start having
@@ -50,23 +49,23 @@ public interface Mailer {
 	 * <p>
 	 * Note: synchronizes on the thread for sending mails so that we don't get into race condition conflicts with emails actually being sent.
 	 *
-	 * @return An AsyncResponse in case of async == true, otherwise <code>null</code>.
+	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 */
-	AsyncResponse testConnection(boolean async);
+	@NotNull CompletableFuture<Void> testConnection(boolean async);
 	
 	/**
 	 * Delegates to {@link #sendMail(Email, boolean)}, with <code>async = false</code>. This method returns only when the email has been processed by
 	 * the target SMTP server.
-	 * @return AsyncResponse if the email was configured to be sent asynchronously.
+	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 */
-	@Nullable AsyncResponse sendMail(Email email);
+	@NotNull CompletableFuture<Void> sendMail(Email email);
 	
 	/**
 	 * Processes an {@link Email} instance into a completely configured {@link Message}.
 	 * <p>
 	 * Sends the JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all
 	 * connection details have been configured in the provided {@link Session} instance and finally {@link Transport#sendMessage(Message,
-	 * javax.mail.Address[])}.
+	 * jakarta.mail.Address[])}.
 	 * <p>
 	 * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and providing
 	 * a message id.
@@ -80,14 +79,12 @@ public interface Mailer {
 	 * @param email The information for the email to be sent.
 	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
 	 *              send the email and this method returns immediately.
-	 * @return A {@link AsyncResponse} or null if not <em>async</em>.
+	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
 	 * @see java.util.concurrent.Executors#newFixedThreadPool(int)
 	 * @see #validate(Email)
 	 */
-	@Nullable
-	// FIXME replace with Optional when Java 8?
-	AsyncResponse sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
+	@NotNull CompletableFuture<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
 	
 	/**
 	 * Validates an {@link Email} instance. Validation fails if the subject is missing, content is missing, or no recipients are defined or that
@@ -105,7 +102,7 @@ public interface Mailer {
 	 *
 	 * @return Always <code>true</code> (throws a {@link MailException} exception if validation fails).
 	 * @throws MailException Is being thrown in any of the above causes.
-	 * @see EmailAddressValidator
+	 * @see com.sanctionco.jmail.EmailValidator
 	 */
 	@SuppressWarnings({"SameReturnValue" })
 	boolean validate(Email email) throws MailException;
@@ -132,7 +129,7 @@ public interface Mailer {
 	/**
 	 * @return The transport strategy to be used. Will be {@code null} in case a custom fixed {@link Session} instance is used.
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withTransportStrategy(TransportStrategy)
-	 * @see EmailAddressCriteria
+	 * @see com.sanctionco.jmail.EmailValidator
 	 */
 	@Nullable
 	TransportStrategy getTransportStrategy();
@@ -150,7 +147,7 @@ public interface Mailer {
 	OperationalConfig getOperationalConfig();
 
 	/**
-	 * @return The effective governance applied to each email (default S/MIME signing, email addresscriteria for validation etc.).
+	 * @return The effective governance applied to each email (default S/MIME signing, email validator etc.).
 	 */
 	@NotNull
 	EmailGovernance getEmailGovernance();

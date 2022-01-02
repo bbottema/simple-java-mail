@@ -20,10 +20,6 @@ public class DemoAppBase {
 	// https://security.google.com/settings/security/apppasswords
 	private static final String YOUR_GMAIL_PASSWORD = "<your password>";
 	
-	static final MailerRegularBuilder<?> mailerSMTPBuilder = buildMailer("smtp.gmail.com", 25, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP);
-	static final MailerRegularBuilder<?> mailerTLSBuilder = buildMailer("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP_TLS);
-	static final MailerRegularBuilder<?> mailerSSLBuilder = buildMailer("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTPS);
-	
 	/**
 	 * If you just want to see what email is being sent, just set this to true. It won't actually connect to an SMTP server then.
 	 */
@@ -40,6 +36,10 @@ public class DemoAppBase {
 			throw new AssertionError("For these demo's to work, please provide your Gnail credentials in DemoAppBase.java first (or change the SMTP config)");
 		}
 	}
+
+	static final MailerRegularBuilder<?> mailerSMTPBuilder = buildMailer("smtp.gmail.com", 25, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP);
+	static final MailerRegularBuilder<?> mailerTLSBuilder = buildMailer("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP_TLS);
+	static final MailerRegularBuilder<?> mailerSSLBuilder = buildMailer("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTPS);
 	
 	@SuppressWarnings("SameParameterValue")
 	private static MailerRegularBuilder<?> buildMailer(String host, int port, String gMailAddress, String gMailPassword, TransportStrategy strategy) {

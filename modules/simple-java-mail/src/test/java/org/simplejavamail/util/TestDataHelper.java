@@ -1,11 +1,10 @@
 package org.simplejavamail.util;
 
+import jakarta.mail.util.ByteArrayDataSource;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
-
-import org.jetbrains.annotations.NotNull;
-import javax.mail.util.ByteArrayDataSource;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;

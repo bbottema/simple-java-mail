@@ -1,10 +1,10 @@
 package org.simplejavamail.internal.smimesupport;
 
+import jakarta.mail.internet.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 
-import javax.mail.internet.ContentType;
 import java.util.List;
 
 import static java.util.Arrays.asList;

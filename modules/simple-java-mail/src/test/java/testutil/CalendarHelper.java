@@ -3,6 +3,7 @@ package testutil;
 import net.fortuna.ical4j.data.CalendarOutputter;
 import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.DateTime;
+import net.fortuna.ical4j.model.TimeZone;
 import net.fortuna.ical4j.model.TimeZoneRegistry;
 import net.fortuna.ical4j.model.TimeZoneRegistryFactory;
 import net.fortuna.ical4j.model.component.VEvent;
@@ -19,14 +20,13 @@ import net.fortuna.ical4j.util.CompatibilityHints;
 import net.fortuna.ical4j.util.FixedUidGenerator;
 import net.fortuna.ical4j.util.MapTimeZoneCache;
 import net.fortuna.ical4j.util.UidGenerator;
-
 import org.jetbrains.annotations.NotNull;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.URI;
 import java.util.GregorianCalendar;
-import java.util.TimeZone;
 
 /**
  * Creates dummy Calendar event using the <a href="https://github.com/ical4j/ical4j/wiki/Examples">ical4j</a> library.
@@ -59,7 +59,7 @@ public final class CalendarHelper {
 		// Create a TimeZone
 		TimeZoneRegistry registry = TimeZoneRegistryFactory.getInstance().createRegistry();
 		TimeZone timezone = registry.getTimeZone("America/Mexico_City");
-		VTimeZone tz = ((net.fortuna.ical4j.model.TimeZone) timezone).getVTimeZone();
+		VTimeZone tz = timezone.getVTimeZone();
 		
 		// Start Date is on: April 1, 2008, 9:00 am
 		java.util.Calendar startDate = new GregorianCalendar();

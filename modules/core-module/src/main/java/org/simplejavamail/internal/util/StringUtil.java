@@ -1,11 +1,11 @@
 package org.simplejavamail.internal.util;
 
+import com.google.code.regexp.Matcher;
+import com.google.code.regexp.Pattern;
 import org.jetbrains.annotations.NotNull;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import static com.google.code.regexp.Pattern.compile;
 import static java.lang.String.format;
-import static java.util.regex.Pattern.compile;
 import static java.util.regex.Pattern.quote;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 

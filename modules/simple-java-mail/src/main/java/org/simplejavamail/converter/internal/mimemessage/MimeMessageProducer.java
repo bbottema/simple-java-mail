@@ -1,23 +1,23 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.modules.ModuleLoader;
 
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 /**
- * Helper class that produces and populates a mime messages. Deals with javax.mail RFC MimeMessage stuff, as well as
+ * Helper class that produces and populates a mime messages. Deals with jakarta.mail RFC MimeMessage stuff, as well as
  * <a href="http://www.simplejavamail.org/#section-dkim">DKIM signing</a> and
  * <a href="http://www.simplejavamail.org/#section-sending-smime">S/MIME signing / encryption</a>.
  * <p>

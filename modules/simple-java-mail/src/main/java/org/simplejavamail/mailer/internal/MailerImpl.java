@@ -1,11 +1,12 @@
 package org.simplejavamail.mailer.internal;
 
+import com.sanctionco.jmail.EmailValidator;
+import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
-import org.simplejavamail.api.mailer.AsyncResponse;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -20,20 +21,18 @@ import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.mail.Session;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
  * @see Mailer
@@ -69,7 +68,7 @@ public class MailerImpl implements Mailer {
 	private final AtomicInteger smtpConnectionCounter = new AtomicInteger();
 	
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailAddressCriteria(EnumSet)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailValidator(EmailValidator)
 	 */
 	@NotNull
 	private final EmailGovernance emailGovernance;
@@ -121,7 +120,7 @@ public class MailerImpl implements Mailer {
 		}
 		this.session = session;
 		this.operationalConfig = operationalConfig;
-		final TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orMaybe(findStrategyForSession(session));
+		TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orElse(findStrategyForSession(session));
 		this.proxyServer = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
 		initSession(session, operationalConfig, effectiveTransportStrategy);
 		initCluster(session, operationalConfig);
@@ -134,12 +133,12 @@ public class MailerImpl implements Mailer {
 	 * <em>"mail.smtp.host"</em> for SMTP and <em>"mail.smtps.host"</em> for SMTPS)</li> </ol>
 	 * <p>
 	 * Furthermore adds proxy SOCKS properties if a proxy configuration was provided, overwriting any SOCKS properties already present.
-	 * <p>Finally, if there are extra properties in the properties file (ie. <em>simplejavamail.extraproperties.thisisextra=value</em>), then these
+	 * <p>Finally, if there are extra properties in the properties file (i.e. <em>simplejavamail.extraproperties.thisisextra=value</em>), then these
 	 * are loaded directly on the internal Session instance. This Java equivalent of this is: <code>mailer.getSession().getProperties().setProperty(..)</code>.
 	 *
 	 * @param serverConfig      Remote SMTP server details.
 	 * @param transportStrategy The transport protocol strategy enum that actually handles the session configuration. Session configuration meaning
-	 *                          setting the right properties for the appropriate transport type (ie. <em>"mail.smtp.host"</em> for SMTP,
+	 *                          setting the right properties for the appropriate transport type (i.e. <em>"mail.smtp.host"</em> for SMTP,
 	 *                          <em>"mail.smtps.host"</em> for SMTPS).
 	 *
 	 * @return A fully configured <code>Session</code> instance complete with transport protocol settings.
@@ -165,7 +164,7 @@ public class MailerImpl implements Mailer {
 			props.put("mail.smtp.ssl.socketFactory.class", serverConfig.getCustomSSLFactoryClass());
 		}
 		if (ConfigLoader.hasProperty(EXTRA_PROPERTIES)) {
-			props.putAll(ConfigLoader.<Map<?, ?>>getProperty(EXTRA_PROPERTIES));
+			props.putAll(ConfigLoader.getProperty(EXTRA_PROPERTIES));
 		}
 
 		if (serverConfig.getPassword() != null) {
@@ -265,7 +264,7 @@ public class MailerImpl implements Mailer {
 			}
 			if (proxyConfig.requiresAuthentication()) {
 				if (transportStrategy != null) {
-					// wire anonymous proxy request to our own proxy bridge so we can perform authentication to the actual proxy
+					// wire anonymous proxy request to our own proxy bridge, so we can perform authentication to the actual proxy
 					sessionProperties.put(transportStrategy.propertyNameSocksHost(), "localhost");
 					sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getProxyBridgePort()));
 				} else {
@@ -295,13 +294,13 @@ public class MailerImpl implements Mailer {
 	/**
 	 * @see Mailer#testConnection(boolean)
 	 */
-	@Nullable
-	public synchronized AsyncResponse testConnection(boolean async) {
+	@NotNull
+	public synchronized CompletableFuture<Void> testConnection(boolean async) {
 		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, async, smtpConnectionCounter);
 
 		if (!async) {
 			testConnectionClosure.run();
-			return null;
+			return CompletableFuture.completedFuture(null);
 		} else {
 			return ModuleLoader.loadBatchModule()
 					.executeAsync("testSMTPConnection process", testConnectionClosure);
@@ -312,8 +311,8 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#sendMail(Email)
 	 */
 	@Override
-	@Nullable
-	public final AsyncResponse sendMail(final Email email) {
+	@NotNull
+	public final CompletableFuture<Void> sendMail(final Email email) {
 		return sendMail(email, getOperationalConfig().isAsync());
 	}
 
@@ -321,15 +320,15 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#sendMail(Email, boolean)
 	 */
 	@Override
-	@Nullable
-	public final AsyncResponse sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
+	@NotNull
+	public final CompletableFuture<Void> sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (validate(email)) {
 			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, emailGovernance, session, email, proxyServer, async, operationalConfig.isTransportModeLoggingOnly(),
 					smtpConnectionCounter);
 
 			if (!async) {
 				sendMailClosure.run();
-				return null;
+				return CompletableFuture.completedFuture(null);
 			} else
 				return ModuleLoader.batchModuleAvailable()
 						? ModuleLoader.loadBatchModule()
@@ -347,7 +346,7 @@ public class MailerImpl implements Mailer {
 	@SuppressWarnings({"SameReturnValue"})
 	public boolean validate(@NotNull final Email email)
 			throws MailException {
-		return MailerHelper.validate(email, emailGovernance.getEmailAddressCriteria());
+		return MailerHelper.validate(email, emailGovernance.getEmailValidator());
 	}
 
 	/**
@@ -355,10 +354,22 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	public Future<?> shutdownConnectionPool() {
-		if (!operationalConfig.executorServiceIsUserProvided()) {
+		if (!operationalConfig.isExecutorServiceIsUserProvided()) {
 			operationalConfig.getExecutorService().shutdown();
 		}
 		return ModuleLoader.loadBatchModule().shutdownConnectionPools(session);
+	}
+
+	@Override
+	public String toString() {
+		return "MailerImpl {"
+				+ "\n\tserverConfig=" + serverConfig
+				+ ",\n\ttransportStrategy=" + transportStrategy
+				+ ",\n\tproxyConfig=" + proxyConfig
+				+ ",\n\toperationalConfig=" + operationalConfig
+				+ ",\n\temailGovernance=" + emailGovernance
+				+ ",\n\tsession=" + session.getProperties()
+				+ "\n}";
 	}
 
 	/**

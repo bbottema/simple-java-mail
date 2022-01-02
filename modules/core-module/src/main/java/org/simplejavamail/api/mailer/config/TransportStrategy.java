@@ -1,16 +1,16 @@
 package org.simplejavamail.api.mailer.config;
 
+import jakarta.mail.Session;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.config.ConfigLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.Nullable;
-import javax.mail.Session;
 import java.util.Properties;
 
 import static java.lang.String.format;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
  * Defines the various types of transport protocols and implements respective properties so that a {@link Session} may be configured using a
@@ -60,7 +60,7 @@ public enum TransportStrategy {
 		 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
 		 * was provided, this value defaults to {@value DEFAULT_OPPORTUNISTIC_TLS}.
 		 * <p>
-		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
+		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert to the legacy behavior.
 		 */
 		@Nullable
 		private Boolean opportunisticTLS;
@@ -180,7 +180,7 @@ public enum TransportStrategy {
 		 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
 		 * was provided, this value defaults to {@value DEFAULT_OPPORTUNISTIC_TLS}.
 		 * <p>
-		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
+		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert to the legacy behavior.
 		 * <p>
 		 * Setting <code>null</code> will revert to property value if available in config or default to {@value
 		 * DEFAULT_OPPORTUNISTIC_TLS}
@@ -212,7 +212,7 @@ public enum TransportStrategy {
 	 *     <li>
 	 * {@code mail.smtps.quitwait} is set to {@code false} to get rid of a strange SSLException:
 	 * <pre>
-	 * javax.mail.MessagingException: Exception reading response;
+	 * jakarta.mail.MessagingException: Exception reading response;
 	 * nested exception is:
 	 * 	javax.net.ssl.SSLException: Unsupported record version Unknown-50.49
 	 * (..)</pre>
@@ -575,7 +575,7 @@ public enum TransportStrategy {
 	 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
 	 * was provided, this value defaults to it default.
 	 * <p>
-	 * Setting this flag to false causes {@link TransportStrategy#SMTP} to revert back to the legacy behavior.
+	 * Setting this flag to false causes {@link TransportStrategy#SMTP} to revert to the legacy behavior.
 	 * <p>
 	 * Only has any effect when invoked via {@code TransportStrategy.SMTP.setOpportunisticTLS(true/false)}
 	 */

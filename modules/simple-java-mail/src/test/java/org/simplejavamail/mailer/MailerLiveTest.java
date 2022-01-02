@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeUtility;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -21,9 +24,6 @@ import testutil.EmailHelper;
 import testutil.testrules.MimeMessageAndEnvelope;
 import testutil.testrules.SmtpServerRule;
 
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeUtility;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,16 +33,16 @@ import java.util.GregorianCalendar;
 import java.util.concurrent.ExecutionException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
-import static javax.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.EmailHelper.readOutlookMessage;
 
@@ -163,8 +163,7 @@ public class MailerLiveTest {
 	}
 
 	@Test
-	public void testOutlookMessageWithNestedOutlookMessageAttachment()
-			throws IOException {
+	public void testOutlookMessageWithNestedOutlookMessageAttachment() {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream("test-messages/#298 Email with nested msg.msg");
 		Email email = EmailConverter.outlookMsgToEmail(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
 
@@ -307,7 +306,7 @@ public class MailerLiveTest {
 		if (!async) {
 			mailer.sendMail(originalEmail);
 		} else {
-			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, async)).getFuture().get();
+			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, async)).get();
 		}
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());

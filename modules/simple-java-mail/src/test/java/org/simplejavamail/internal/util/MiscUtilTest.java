@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.simplejavamail.api.email.Recipient;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.AbstractMap;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class MiscUtilTest {
 	@Test
@@ -145,6 +147,7 @@ public class MiscUtilTest {
 	}
 
 	@Test
+	@SuppressWarnings("unused")
 	public void testCountMandatoryParameters() {
 		Method methodWithZeroParameters = new Object() {public void methodWithZeroParameters() {}}.getClass().getDeclaredMethods()[0];
 		Method methodWithZeroMandatoryParameters = new Object() {public void methodWithZeroMandatoryParameters(@Nullable Integer optionalInt) {}}.getClass().getDeclaredMethods()[0];
@@ -155,6 +158,28 @@ public class MiscUtilTest {
 		assertThat(MiscUtil.countMandatoryParameters(methodWithZeroMandatoryParameters)).isEqualTo(0);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithOnlyMandatoryParameters)).isEqualTo(1);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithMixedMandatoryParameters)).isEqualTo(1);
+	}
+
+	@Test
+	public void testReadFileContent()
+			throws IOException {
+		assertThatThrownBy(() -> FileUtil.readFileContent(new File("moo")))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("File not found: moo");
+
+		assertThat(FileUtil.readFileContent(new File("src/test/resources/ignore.properties")))
+				.contains("simplejavamail.defaults.bcc.address=moo");
+	}
+
+	@Test
+	public void testWriteFileContent()
+			throws IOException {
+		FileUtil.writeFileBytes(new File("target/test.file"), "This is a test".getBytes());
+
+		assertThat(FileUtil.readFileBytes(new File("target/test.file")))
+				.isEqualTo("This is a test".getBytes());
+		assertThat(FileUtil.readFileContent(new File("target/test.file")))
+				.isEqualTo("This is a test");
 	}
 
 	@Test

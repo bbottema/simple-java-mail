@@ -1,5 +1,9 @@
 package org.simplejavamail.internal.clisupport;
 
+import com.google.code.regexp.Matcher;
+import com.google.code.regexp.Pattern;
+import jakarta.activation.DataSource;
+import jakarta.mail.internet.MimeMessage;
 import org.bbottema.javareflection.BeanUtils;
 import org.bbottema.javareflection.BeanUtils.Visibility;
 import org.bbottema.javareflection.ClassUtils;
@@ -28,8 +32,6 @@ import org.simplejavamail.internal.util.StringUtil;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
 import org.slf4j.Logger;
 
-import javax.activation.DataSource;
-import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
@@ -37,22 +39,20 @@ import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import static com.google.code.regexp.Pattern.compile;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.EnumSet.allOf;
 import static java.util.EnumSet.of;
-import static java.util.regex.Pattern.compile;
 import static org.bbottema.javareflection.TypeUtils.containsAnnotation;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -102,16 +102,15 @@ public final class BuilderApiToPicocliCommandsMapper {
 	
 	@NotNull
 	static List<CliDeclaredOptionSpec> generateOptionsFromBuilderApi(@SuppressWarnings("SameParameterValue") Class<?>[] relevantBuilderRootApi) {
-		final List<CliDeclaredOptionSpec> cliOptions = new ArrayList<>();
+		final Set<CliDeclaredOptionSpec> cliOptions = new TreeSet<>();
 		final Set<Class<?>> processedApiNodes = new HashSet<>();
 		for (Class<?> apiRoot : relevantBuilderRootApi) {
 			generateOptionsFromBuilderApiChain(apiRoot, processedApiNodes, cliOptions);
 		}
-		Collections.sort(cliOptions);
-		return cliOptions;
+		return new ArrayList<>(cliOptions);
 	}
 	
-	private static void generateOptionsFromBuilderApiChain(Class<?> apiNode, Set<Class<?>> processedApiNodes, List<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
+	private static void generateOptionsFromBuilderApiChain(Class<?> apiNode, Set<Class<?>> processedApiNodes, Set<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
 		Class<?> apiNodeChainClass = apiNode;
 		while (apiNodeChainClass != null && apiNodeChainClass.getPackage().getName().contains("org.simplejavamail")) {
 			for (Class<?> apiInterface : apiNodeChainClass.getInterfaces()) {
@@ -126,7 +125,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	 * Produces all the --option Picocli-based params for specific API class. <br>
 	 * Recursive for returned API class (since builders can return different builders.
 	 */
-	private static void generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes, List<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
+	private static void generateOptionsFromBuilderApi(Class<?> apiNode, Set<Class<?>> processedApiNodes, Set<CliDeclaredOptionSpec> cliOptionsFoundSoFar) {
 		if (processedApiNodes.contains(apiNode)) {
 			return;
 		}

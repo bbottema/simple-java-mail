@@ -8,7 +8,7 @@ import java.net.Socket;
 
 /**
  * The class <code>SocketPipe</code> represents pipe that can transfer data from one socket to another socket. The tow socket should be
- * connected sockets. If any of the them occurred error the pipe will close all of them.
+ * connected sockets. If any error occurred, the pipe will close all of them.
  */
 public class SocketPipe {
 

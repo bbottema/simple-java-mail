@@ -1,10 +1,9 @@
 package org.simplejavamail.internal.smimesupport;
 
-import net.markenwerk.utils.mail.smime.SmimeException;
-
-import javax.mail.internet.ContentType;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.MimePart;
+import jakarta.mail.internet.ContentType;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.MimePart;
+import org.simplejavamail.utils.mail.smime.SmimeException;
 
 /**
  * The original SmimeUtil misses the case for enveloped S/MIME content (SIGNED_ENVELOPED).
@@ -62,9 +61,9 @@ public final class SmimeUtilFixed {
 				|| protocol.equalsIgnoreCase("application/x-pkcs7-signature");
 	}
 
-	private static net.markenwerk.utils.mail.smime.SmimeException handledException(Exception e) {
-		if (e instanceof net.markenwerk.utils.mail.smime.SmimeException) {
-			return (net.markenwerk.utils.mail.smime.SmimeException) e;
+	private static org.simplejavamail.utils.mail.smime.SmimeException handledException(Exception e) {
+		if (e instanceof org.simplejavamail.utils.mail.smime.SmimeException) {
+			return (org.simplejavamail.utils.mail.smime.SmimeException) e;
 		}
 		return new SmimeException(e.getMessage(), e);
 	}
@@ -93,6 +92,6 @@ public final class SmimeUtilFixed {
 		 * Indicates that the {@link MimePart} or {@link MimeMultipart} is neither
 		 * S/MIME encrypted nor S/MIME signed.
 		 */
-		NEITHER;
+		NEITHER
 	}
 }

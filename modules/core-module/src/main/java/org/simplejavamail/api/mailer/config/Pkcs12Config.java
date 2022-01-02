@@ -1,23 +1,21 @@
 package org.simplejavamail.api.mailer.config;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import lombok.EqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Objects;
 
 import static java.lang.String.format;
 
 /**
  * Config holder for PKCS12 store+key info used for S/MIME encrypting / decrypting.
  */
-// FIXME LOMBOK!!
+@EqualsAndHashCode
 public final class Pkcs12Config {
 
 	@NotNull private final byte[] pkcs12StoreData;
@@ -31,7 +29,6 @@ public final class Pkcs12Config {
 		this.keyAlias = keyAlias;
 		this.keyPassword = keyPassword;
 	}
-
 	@NotNull
 	public static Pkcs12ConfigBuilder builder() {
 		return new Pkcs12ConfigBuilder();
@@ -39,7 +36,7 @@ public final class Pkcs12Config {
 
 	@NotNull
 	public  byte[] getPkcs12StoreData() {
-		return this.pkcs12StoreData;
+		return this.pkcs12StoreData.clone();
 	}
 
 	@NotNull
@@ -66,29 +63,6 @@ public final class Pkcs12Config {
 				.append(", keyPassword=***")
 				.append('}');
 		return sb.toString();
-	}
-
-	@Override
-	public boolean equals(@Nullable final Object o) {
-		if (this == o) {
-			return true;
-		}
-		if (o == null || getClass() != o.getClass()) {
-			return false;
-		}
-		final Pkcs12Config that = (Pkcs12Config) o;
-		return Arrays.equals(pkcs12StoreData, that.pkcs12StoreData) &&
-				Arrays.equals(storePassword, that.storePassword) &&
-				keyAlias.equals(that.keyAlias) &&
-				Arrays.equals(keyPassword, that.keyPassword);
-	}
-
-	@Override
-	public int hashCode() {
-		int result = Objects.hash(Arrays.hashCode(pkcs12StoreData), keyAlias);
-		result = 31 * result + Arrays.hashCode(storePassword);
-		result = 31 * result + Arrays.hashCode(keyPassword);
-		return result;
 	}
 
 	public static class Pkcs12ConfigBuilder {

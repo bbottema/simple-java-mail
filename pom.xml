@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.bbottema</groupId>
         <artifactId>modular-project-parent</artifactId>
-        <version>1.0.17</version>
+        <version>1.0.19</version>
     </parent>
 
     <groupId>org.simplejavamail</groupId>
@@ -20,8 +20,9 @@
     <url>http://www.simplejavamail.org/</url>
 
     <properties>
-        <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
         <automaticModuleName>org.simplejavamail.undefined</automaticModuleName> <!-- update in individual modules -->
+        <license.owner.name>Benny Bottema</license.owner.name>
+        <license.owner.email>benny@bennybottema.com</license.owner.email>
     </properties>
 
     <!-- to skip some steps: -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -Denforcer.skip=true -Djacoco.skip=true -Dlicense.skip=true -->
@@ -56,8 +57,14 @@
         <dependency><!-- gives us @NotNull annotations-->
             <groupId>com.github.bbottema</groupId>
             <artifactId>jetbrains-runtime-annotations</artifactId>
-            <version>1.0.0</version>
-            <scope>runtime</scope><!-- SimpleJavaMail uses the annotation using java reflection -->
+            <version>1.0.1</version>
+            <scope>compile</scope><!-- SimpleJavaMail uses the annotation using java reflection -->
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.22</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- testing -->
@@ -76,7 +83,7 @@
         <dependency>
             <groupId>com.github.bbottema</groupId>
             <artifactId>java-socks-proxy-server</artifactId>
-            <version>1.0.2</version>
+            <version>2.0.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -92,7 +99,7 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>1.7.25</version>
+                <version>1.7.32</version>
             </dependency>
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
@@ -112,7 +119,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.13.1</version>
+                <version>4.13.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -153,6 +160,7 @@
                                         <!-- these are manually managed versions -->
                                         <exclude>org.apache.poi:poi</exclude>
                                         <exclude>org.apache.poi:poi-scratchpad</exclude>
+                                        <exclude>org.slf4j:slf4j-api</exclude>
                                     </excludes>
                                 </requireUpperBoundDeps>
                             </rules>

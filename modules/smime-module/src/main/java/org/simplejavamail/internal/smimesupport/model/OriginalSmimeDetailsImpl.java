@@ -1,15 +1,14 @@
 package org.simplejavamail.internal.smimesupport.model;
 
-import org.simplejavamail.api.email.OriginalSmimeDetails;
-import org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil;
 
 import java.util.Objects;
 
 import static java.lang.Boolean.TRUE;
-import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
+import static java.util.Optional.ofNullable;
 
 /**
  * @see OriginalSmimeDetails
@@ -18,7 +17,7 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 
 	private static final long serialVersionUID = 1234567L;
 
-	@NotNull private SmimeMode smimeMode;
+	@Nullable private SmimeMode smimeMode;
 	@Nullable private String smimeMime;
 	@Nullable private String smimeType;
 	@Nullable private String smimeName;
@@ -28,7 +27,7 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 	@Nullable private Boolean smimeSignatureValid;
 
 	@java.beans.ConstructorProperties({ "smimeMime", "smimeType", "smimeName", "smimeProtocol", "smimeMicalg", "smimeSignedBy", "smimeSignatureValid" })
-	private OriginalSmimeDetailsImpl(@NotNull SmimeMode smimeMode, @Nullable String smimeMime, @Nullable String smimeType, @Nullable String smimeName, @Nullable String smimeProtocol,
+	private OriginalSmimeDetailsImpl(@Nullable SmimeMode smimeMode, @Nullable String smimeMime, @Nullable String smimeType, @Nullable String smimeName, @Nullable String smimeProtocol,
 			@Nullable String smimeMicalg,
 			@Nullable String smimeSignedBy, @Nullable Boolean smimeSignatureValid) {
 		this.smimeMime = smimeMime;
@@ -50,25 +49,25 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 	 * Used to combine S/MIME details from several sources (OutlookMessage root level, and S/MIME signed attachment).
 	 */
 	public void completeWith(@NotNull final OriginalSmimeDetails attachmentSmimeDetails) {
-		this.smimeMime = ofNullable(smimeMime).orMaybe(attachmentSmimeDetails.getSmimeMime());
-		this.smimeType = ofNullable(smimeType).orMaybe(attachmentSmimeDetails.getSmimeType());
-		this.smimeName = ofNullable(smimeName).orMaybe(attachmentSmimeDetails.getSmimeName());
-		this.smimeProtocol = ofNullable(smimeProtocol).orMaybe(attachmentSmimeDetails.getSmimeProtocol());
-		this.smimeMicalg = ofNullable(smimeMicalg).orMaybe(attachmentSmimeDetails.getSmimeMicalg());
-		this.smimeSignedBy = ofNullable(smimeSignedBy).orMaybe(attachmentSmimeDetails.getSmimeSignedBy());
-		this.smimeSignatureValid = ofNullable(smimeSignatureValid).orMaybe(attachmentSmimeDetails.getSmimeSignatureValid());
-
-		this.smimeMode = determineSmode(ofNullable(smimeMode).orElse(attachmentSmimeDetails.getSmimeMode()));
+		this.smimeMime = ofNullable(smimeMime).orElse(attachmentSmimeDetails.getSmimeMime());
+		this.smimeType = ofNullable(smimeType).orElse(attachmentSmimeDetails.getSmimeType());
+		this.smimeName = ofNullable(smimeName).orElse(attachmentSmimeDetails.getSmimeName());
+		this.smimeProtocol = ofNullable(smimeProtocol).orElse(attachmentSmimeDetails.getSmimeProtocol());
+		this.smimeMicalg = ofNullable(smimeMicalg).orElse(attachmentSmimeDetails.getSmimeMicalg());
+		this.smimeSignedBy = ofNullable(smimeSignedBy).orElse(attachmentSmimeDetails.getSmimeSignedBy());
+		this.smimeSignatureValid = ofNullable(smimeSignatureValid).orElse(attachmentSmimeDetails.getSmimeSignatureValid());
+		this.smimeMode = determineSmode(ofNullable(this.smimeMode).orElse(attachmentSmimeDetails.getSmimeMode()));
 	}
 
-	private SmimeMode determineSmode(@NotNull final SmimeMode smimeMode) {
+	@Nullable
+	private SmimeMode determineSmode(@Nullable final SmimeMode smimeMode) {
 		return smimeMode == SmimeMode.PLAIN
 				? SmimeRecognitionUtil.determineSmimeMode(this)
 				: smimeMode;
 	}
 
 	public void completeWithSmimeSignedBy(@Nullable final String smimeSignedBy) {
-		this.smimeSignedBy = ofNullable(this.smimeSignedBy).orMaybe(smimeSignedBy);
+		this.smimeSignedBy = ofNullable(this.smimeSignedBy).orElse(smimeSignedBy);
 	}
 
 	public void completeWithSmimeSignatureValid(final boolean signatureValid) {
@@ -110,7 +109,7 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 	}
 
 	@Override
-	@NotNull
+	@Nullable
 	public SmimeMode getSmimeMode() {
 		return this.smimeMode;
 	}
@@ -159,14 +158,14 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 
 	@SuppressWarnings("unused")
 	public static class OriginalSmimeDetailsBuilder {
-		private SmimeMode smimeMode = SmimeMode.PLAIN;
-		private String smimeMime;
-		private String smimeType;
-		private String smimeName;
-		private String smimeProtocol;
-		private String smimeMicalg;
-		private String smimeSignedBy;
-		private Boolean smimeSignatureValid;
+		@Nullable private SmimeMode smimeMode = SmimeMode.PLAIN;
+		@Nullable private String smimeMime;
+		@Nullable private String smimeType;
+		@Nullable private String smimeName;
+		@Nullable private String smimeProtocol;
+		@Nullable private String smimeMicalg;
+		@Nullable private String smimeSignedBy;
+		@Nullable private Boolean smimeSignatureValid;
 
 		OriginalSmimeDetailsBuilder() {
 		}

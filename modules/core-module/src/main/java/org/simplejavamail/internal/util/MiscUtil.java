@@ -1,18 +1,18 @@
 package org.simplejavamail.internal.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jakarta.activation.DataSource;
+import jakarta.activation.FileDataSource;
+import jakarta.activation.URLDataSource;
+import jakarta.mail.Message.RecipientType;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeUtility;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Recipient;
 
-import javax.activation.DataSource;
-import javax.activation.FileDataSource;
-import javax.activation.URLDataSource;
-import javax.mail.Message.RecipientType;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeUtility;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -135,7 +135,7 @@ public final class MiscUtil {
 		byte[] data = new byte[1024];
 		int read;
 		while ((read = inputStream.read(data, 0, data.length)) != -1) {
-			buffer.write(data, 0, read);;
+			buffer.write(data, 0, read);
 		}
 		buffer.flush();
 		return buffer.toByteArray();

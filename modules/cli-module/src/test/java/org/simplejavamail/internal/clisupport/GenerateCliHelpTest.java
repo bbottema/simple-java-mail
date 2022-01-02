@@ -7,7 +7,7 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
-public class GenerateHelpTest {
+public class GenerateCliHelpTest {
 
 	private PrintStream sysOut;
 	private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
@@ -31,6 +31,11 @@ public class GenerateHelpTest {
 	@Test
 	public void testListHelpForSendWithoutError() {
 		CliSupport.runCLI(new String[]{"send", "--help"});
+	}
+
+	@Test
+	public void testUsagesThatContainsPercentS() {
+		CliSupport.runCLI(new String[] {"send", "--email:replyingTo--help",});
 	}
 
 	@Test

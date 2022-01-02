@@ -1,17 +1,16 @@
 package org.simplejavamail.api.mailer;
 
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
-
-import org.jetbrains.annotations.NotNull;
-import javax.mail.Message;
-import javax.mail.Session;
 
 /**
  * Builder that supports a fixed {@link Session} instance. Allows configuring all generic Mailer settings, but not SMTP and transport strategy
  * details.
  * <p>
- * <strong>Note:</strong> Any SMTP server properties that can be set on the {@link Session} object by are presumed to be already present in the passed
+ * <strong>Note:</strong> Any SMTP server properties that can be set on the {@link Session} object by are presumed to be already present in the past
  * {@link Session} instance.
  *
  * @see org.simplejavamail.api.mailer.config.TransportStrategy
