@@ -35,7 +35,7 @@ Major features:
 - [#295](https://github.com/bbottema/simple-java-mail/issues/295) And also switched to JavaMail's successor Jakarta Mail 2.0.1 (see notes below)
 - [#323](https://github.com/bbottema/simple-java-mail/issues/323) Solved the great CLI performance problem (now executes near instantly)
 - [#319](https://github.com/bbottema/simple-java-mail/issues/319) Replaced the underlying regex-based email-address validation library with the lexer based [JMail](https://github.com/RohanNagar/jmail), which is faster, correcter, documented better and is more up-to-date with RFC's
-- [#367](https://github.com/bbottema/simple-java-mail/issues/367) The sendMail/testConnection methods now has proper support for `CompletableFuture`
+- [#367](https://github.com/bbottema/simple-java-mail/issues/367) The sendMail/testConnection methods now have proper support for `CompletableFuture`
 
 Bugfixes:
 - [#352](https://github.com/bbottema/simple-java-mail/issues/352) Bug: names regex groups are not supported in Android JVM
