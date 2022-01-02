@@ -13,6 +13,8 @@ import javax.net.ssl.SSLSocketFactory;
  * Default builder for generating Mailer instances. Sets defaults configured for SMTP host, SMTP port, SMTP username, SMTP password and transport
  * strategy.
  * <p>
+ * <strong>Note:</strong> To start creating a new Mailer, you use {@code MailerBuilder} directly instead.
+ * <p>
  * <strong>Note:</strong> Any builder methods invoked after this will override the default value.
  * <p>
  * In addition on generic Mailer setting, this builder is used to configure SMTP server details and transport strategy needed to produce a valid

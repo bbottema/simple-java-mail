@@ -11,6 +11,8 @@ import static java.util.regex.Pattern.compile;
 
 /**
  * Entry Builder API for starting new emails.
+ * <p>
+ * <strong>Note:</strong> To start creating a new Email, you use {@code EmailBuilder} directly instead.
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 public interface EmailStartingBuilder {

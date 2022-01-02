@@ -25,7 +25,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * Builder superclass which contains API to take care of all generic Mailer properties unrelated to the SMTP server
  * (host, port, username, password and transport strategy).
  * <p>
- * To start a new Mailer builder, refer to {@link MailerRegularBuilder}.
+ * <strong>Note:</strong> To start creating a new Mailer, you use {@code MailerBuilder} directly instead.
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {

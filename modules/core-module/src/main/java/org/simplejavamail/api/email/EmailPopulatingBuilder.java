@@ -28,8 +28,9 @@ import static com.google.code.regexp.Pattern.compile;
 /**
  * Fluent interface Builder for populating {@link Email} instances. An instance of this builder can only be obtained through one of the builder
  * starters on {@link EmailStartingBuilder}.
+ * <strong>Note:</strong> To start creating a new Email, you use {@code EmailBuilder} directly instead.
  * <p>
- * NOTE: for some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
+ * <strong>Note:</strong> For some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
