@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SimpleHTMLEscapeUtil {
-	public static final Map<Character, String> ESCAPE_MAP = new HashMap<Character, String>() {{
+	private static final Map<Character, String> ESCAPE_MAP = new HashMap<Character, String>() {{
 		put('"', "&quot;");
 		put('&', "&amp;");
 		put('<', "&lt;");
