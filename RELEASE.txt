@@ -3,8 +3,33 @@ http://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>6.7.5</version>
+    <version>7.0.0</version>
 </dependency>
+
+v7.0.0 (2-January-2022)
+
+It has been two years since the last major release, but 7.0.0 finally here!
+
+#### What's new ####
+
+Major features:
+- #322: Simple Java Mail migrated to Java 8 finally
+- #295: And also switched to JavaMail's successor Jakarta Mail 2.0.1
+- #323: Solved the great CLI performance problem (now executes near instantly)
+- #319: Replaced the underlying regex-based email-address validation library with the lexer based [JMail](https://github.com/RohanNagar/jmail), which is faster, correcter, documented better and is more up-to-date with RFC's
+- #367: The sendMail/testConnection methods now has proper support for `CompletableFuture`
+
+Bugfixes:
+- #352: Bug: names regex groups are not supported in Android JVM
+- #326: Bug: NullPointer when parsing Outlook Message with nested empty Outlook message
+- #330: Bug: cli expected --mailer arguments duplicated 3 times
+- #324: Bug: Add back missing log4j2 for CLI library
+
+Maintenance:
+- #368: Resolve log4j (Java8) [vulnerability](https://logging.apache.org/log4j/2.x/security.html) in Simple Java Mail's CLI module
+- #330: Improved feedback from failing CLI commands
+- #327: Implement toString() for Mailer instances for debugging purposes
+
 
 v6.7.0 - v6.7.5
 
