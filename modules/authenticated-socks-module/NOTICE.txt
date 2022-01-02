@@ -4,7 +4,7 @@
   
   Simple Java Mail - Authenticated SOCKS module
   Copyright (C) 2009 Benny Bottema (benny@bennybottema.com)
-  http://www.simplejavamail.org
+  https://www.simplejavamail.org
   
   This product uses no commercial products.
   

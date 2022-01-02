@@ -1,4 +1,4 @@
-http://www.simplejavamail.org
+https://www.simplejavamail.org
 
 <dependency>
     <groupId>org.simplejavamail</groupId>
@@ -279,7 +279,7 @@ v5.0.1 - v5.0.8
 
 v5.0.0 (14-Februari-2018)
 
-Also see the migrating notes (http://www.simplejavamail.org/#/migrate500)
+Also see the migrating notes (https://www.simplejavamail.org/migration-notes-5.0.0.html#navigation)
 
 New features
 - #116 You can now test the connection to the SMTP server

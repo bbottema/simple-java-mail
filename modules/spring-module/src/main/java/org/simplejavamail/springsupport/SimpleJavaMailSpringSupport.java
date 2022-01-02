@@ -18,7 +18,7 @@ import java.util.Properties;
  * default properties in your Spring config.
  * <p>
  * Using profiles, you can have environment specific configurations that way. See
- * <a href="http://www.simplejavamail.org/#/configuration">simplejavamail.org</a> for example configuration.
+ * <a href="https://www.simplejavamail.org/#/configuration">simplejavamail.org</a> for example configuration.
  * <p>
  * The following properties will be applied
  * <ul>

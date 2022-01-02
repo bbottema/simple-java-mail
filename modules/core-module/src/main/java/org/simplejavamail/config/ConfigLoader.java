@@ -120,7 +120,7 @@ public final class ConfigLoader {
 	/**
 	 * List of all the properties recognized by Simple Java Mail. Can be used to programmatically get, set or remove default values.
 	 *
-	 * @see <a href="http://www.simplejavamail.org">simplejavamail.org</a>
+	 * @see <a href="https://www.simplejavamail.org">simplejavamail.org</a>
 	 */
 	public enum Property {
 		JAVAXMAIL_DEBUG("simplejavamail.javaxmail.debug"),

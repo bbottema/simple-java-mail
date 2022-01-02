@@ -6,11 +6,11 @@
 
 # Simple Java Mail #
 
-Simple Java Mail is the simplest to use lightweight mailing library for Java, while being able to send complex emails including **[CLI support](http://www.simplejavamail.org/cli.html#navigation)**, **[authenticated socks proxy](http://www.simplejavamail.org/features.html#section-proxy)**(!), **[attachments](http://www.simplejavamail.org/features.html#section-attachments)**, **[embedded images](http://www.simplejavamail.org/features.html#section-embedding)**, **[custom headers and properties](http://www.simplejavamail.org/features.html#section-custom-headers)**, **[robust address validation](http://www.simplejavamail.org/features.html#section-email-validation)**, **[build pattern](http://www.simplejavamail.org/features.html#section-builder-api)** and even **[DKIM signing](http://www.simplejavamail.org/features.html#section-dkim)**, **[S/MIME support](http://www.simplejavamail.org/features.html#section-sending-smime)** and **[external configuration files](http://www.simplejavamail.org/configuration.html#section-config-properties)** with **property overriding**, **[Spring support](http://www.simplejavamail.org/configuration.html#section-spring-support)** and **[Email conversion](http://www.simplejavamail.org/features.html#section-converting)** tools. Just send your emails without dealing with [RFCs](http://www.simplejavamail.org/rfc-compliant.html#navigation).
+Simple Java Mail is the simplest to use lightweight mailing library for Java, while being able to send complex emails including **[CLI support](https://www.simplejavamail.org/cli.html#navigation)**, **[authenticated socks proxy](https://www.simplejavamail.org/features.html#section-proxy)**(!), **[attachments](https://www.simplejavamail.org/features.html#section-attachments)**, **[embedded images](https://www.simplejavamail.org/features.html#section-embedding)**, **[custom headers and properties](https://www.simplejavamail.org/features.html#section-custom-headers)**, **[robust address validation](https://www.simplejavamail.org/features.html#section-email-validation)**, **[build pattern](https://www.simplejavamail.org/features.html#section-builder-api)** and even **[DKIM signing](https://www.simplejavamail.org/features.html#section-dkim)**, **[S/MIME support](https://www.simplejavamail.org/features.html#section-sending-smime)** and **[external configuration files](https://www.simplejavamail.org/configuration.html#section-config-properties)** with **property overriding**, **[Spring support](https://www.simplejavamail.org/configuration.html#section-spring-support)** and **[Email conversion](https://www.simplejavamail.org/features.html#section-converting)** tools. Just send your emails without dealing with [RFCs](https://www.simplejavamail.org/rfc-compliant.html#navigation).
 
 The Simple Java Mail library is a thin layer on top of [Jakarta Mail](https://eclipse-ee4j.github.io/mail/) that allows users to define emails on a high abstraction level without having to deal with mumbo jumbo such as 'multipart' and 'mimemessage'.
 
-### [simplejavamail.org](http://www.simplejavamail.org) ###
+### [simplejavamail.org](https://www.simplejavamail.org) ###
 
 Simple Java Mail is also available in [Maven Central](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22):
 
@@ -155,13 +155,13 @@ After almost two years of development the next major release 6.0.0 is finally he
 
 The core library is now even smaller compared to the 5.x.x series going from 183kb to 134kb!
 
-- [CLI support!!](http://www.simplejavamail.org/cli.html#navigation), 
-- major performance improvement with [advanced batch processing](http://www.simplejavamail.org/configuration.html#section-batch-and-clustering) including support for mail server clusters. 
-- You can now replace the final sending of emails with [your own logic](http://www.simplejavamail.org/features.html#section-custom-mailer), using a 3rd party service of your choice. 
-- 6.0.0 also includes support for [S/MIME signed and encrypted emails](http://www.simplejavamail.org/features.html#section-smime)! 
-- All 3rd party dependencies have been made optional by splitting up Simple Java Mail into easy to use [modules](http://www.simplejavamail.org/modules.html#navigation).
-- You can now monitor and [handle async processing](http://www.simplejavamail.org/features.html#section-handling-async-result) using Futures.
-- MimeMessage results are now [structurally matched](http://www.simplejavamail.org/rfc-compliant.html#section-explore-multipart) to specific needs (only using alternative/mixed etc. when needed) 
+- [CLI support!!](https://www.simplejavamail.org/cli.html#navigation), 
+- major performance improvement with [advanced batch processing](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering) including support for mail server clusters. 
+- You can now replace the final sending of emails with [your own logic](https://www.simplejavamail.org/features.html#section-custom-mailer), using a 3rd party service of your choice. 
+- 6.0.0 also includes support for [S/MIME signed and encrypted emails](https://www.simplejavamail.org/features.html#section-smime)! 
+- All 3rd party dependencies have been made optional by splitting up Simple Java Mail into easy to use [modules](https://www.simplejavamail.org/modules.html#navigation).
+- You can now monitor and [handle async processing](https://www.simplejavamail.org/features.html#section-handling-async-result) using Futures.
+- MimeMessage results are now [structurally matched](https://www.simplejavamail.org/rfc-compliant.html#section-explore-multipart) to specific needs (only using alternative/mixed etc. when needed) 
 
 Here's the complete list of changes:
 
@@ -302,7 +302,7 @@ v5.0.1 - [v5.0.8](https://search.maven.org/#artifactdetails%7Corg.simplejavamail
 
 [v5.0.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.0.0%7Cjar) (14-Februari-2018)
 
-Also see the [migration notes](http://www.simplejavamail.org/#/migrate500)
+Also see the [migration notes](https://www.simplejavamail.org/migration-notes-5.0.0.html#navigation)
 
 #### New features ####
 - [#116](https://github.com/bbottema/simple-java-mail/issues/116) You can now test the connection to the SMTP server
@@ -431,7 +431,7 @@ Patch: streamlined convenience methods for adding recipients.
 - [#41](https://github.com/bbottema/simple-java-mail/issues/41): added support for fast parallel batch processing
 - [#42](https://github.com/bbottema/simple-java-mail/issues/42): **added support for config files**
 - [#43](https://github.com/bbottema/simple-java-mail/issues/43): removed logging implementation dependencies from distribution and documented various sample configs
-- [#39](https://github.com/bbottema/simple-java-mail/issues/39): simplified and renamed packages to reflect the domain name of the new website: [simplejavamail.org](http://www.simplejavamail.org)
+- [#39](https://github.com/bbottema/simple-java-mail/issues/39): simplified and renamed packages to reflect the domain name of the new website: [simplejavamail.org](https://www.simplejavamail.org)
 - [#38](https://github.com/bbottema/simple-java-mail/issues/38): added support for anonymous proxy
 - [#38](https://github.com/bbottema/simple-java-mail/issues/38): **added support for authenticated proxy** 
 
@@ -496,7 +496,7 @@ Patch: streamlined convenience methods for adding recipients.
   * [#7](https://github.com/bbottema/simple-java-mail/issues/7): fixed NullPointerException when using your own Session instance
   * [#10](https://github.com/bbottema/simple-java-mail/issues/10): properly UTF-8 encode recipient addresses
   * [#14](https://github.com/bbottema/simple-java-mail/issues/14): switched to [SLF4J](https://www.slf4j.org/), so you can easily use your own selected logging framework
-  * [#17](https://github.com/bbottema/simple-java-mail/issues/17): Added [fluent interface](https://en.wikipedia.org/wiki/Builder_pattern) for building emails (see [here](http://www.simplejavamail.org/#section-builder-api) for an example)
+  * [#17](https://github.com/bbottema/simple-java-mail/issues/17): Added [fluent interface](https://en.wikipedia.org/wiki/Builder_pattern) for building emails (see [here](https://www.simplejavamail.org/#section-builder-api) for an example)
 
 
 [v2.1](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C2.1%7Cjar) (09-Aug-2012)

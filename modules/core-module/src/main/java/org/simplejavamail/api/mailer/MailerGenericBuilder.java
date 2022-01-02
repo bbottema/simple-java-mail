@@ -341,7 +341,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * By default, a cluster key is uniquely generated, so for a single new mailer a new cluster is always generated,
 	 * thus effectively nothing is clustered.
 	 *
-	 * @see <a href="http://www.simplejavamail.org/configuration.html#section-batch-and-clustering">Clustering with Simple Java Mail</a>
+	 * @see <a href="https://www.simplejavamail.org/configuration.html#section-batch-and-clustering">Clustering with Simple Java Mail</a>
 	 *
 	 * @param clusterKey See main description.
 	 */
@@ -396,7 +396,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withConnectionPoolExpireAfterMillis(@NotNull Integer connectionPoolExpireAfterMillis);
 
 	/**
-	 * Defines the various types of load balancing modes supported by the connection pool ion the <a href="http://http://www.simplejavamail.org/configuration.html#section-batch-and-clustering">batch-module</a>.
+	 * Defines the various types of load balancing modes supported by the connection pool ion the
+	 * <a href="https://www.simplejavamail.org/configuration.html#section-batch-and-clustering">batch-module</a>.
 	 * <p>
 	 * This is only relevant if you have multiple mail servers in one or more clusters. Currently, it is impossible to define different load balancing strategies for different clusters.
 	 * <p>

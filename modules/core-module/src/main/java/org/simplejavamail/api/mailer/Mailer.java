@@ -21,13 +21,14 @@ import java.util.concurrent.Future;
  * which is related to doing things with an email (server not always relevant, like with validation, S/MIME encryption etc.).
  * <p>
  * The e-mail message structure is built to work with all e-mail clients and has been tested with many different webclients as well as some desktop
- * applications. You can <a href="http://www.simplejavamail.org/rfc-compliant.html#section-explore-multipart">experiment</a> with the various types of emails and resulting mime structure on the Simple Java mail website.
+ * applications. You can <a href="https://www.simplejavamail.org/rfc-compliant.html#section-explore-multipart">experiment</a>
+ * with the various types of emails and resulting mime structure on the Simple Java mail website.
  * <p>
- * <strong>Note: </strong>if the <a href="http://www.simplejavamail.org/modules.html#batch-module">batch-module</a>
+ * <strong>Note: </strong>if the <a href="https://www.simplejavamail.org/modules.html#batch-module">batch-module</a>
  * is loaded when building a mailer, it will also register itself with the cluster using the provided or random cluster key, so other mailers using the same cluster key immediately start having
  * access to this new server.
  * <p>
- * <a href="http://www.simplejavamail.org">simplejavamail.org</a>
+ * <a href="https://www.simplejavamail.org">simplejavamail.org</a>
  *
  * @see MailerRegularBuilder
  * @see Email

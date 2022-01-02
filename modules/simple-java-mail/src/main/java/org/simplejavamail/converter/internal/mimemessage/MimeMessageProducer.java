@@ -18,8 +18,8 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
  * Helper class that produces and populates a mime messages. Deals with jakarta.mail RFC MimeMessage stuff, as well as
- * <a href="http://www.simplejavamail.org/#section-dkim">DKIM signing</a> and
- * <a href="http://www.simplejavamail.org/#section-sending-smime">S/MIME signing / encryption</a>.
+ * <a href="https://www.simplejavamail.org/#section-dkim">DKIM signing</a> and
+ * <a href="https://www.simplejavamail.org/#section-sending-smime">S/MIME signing / encryption</a>.
  * <p>
  * Some more <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/">helpful reading
  * material</a>.

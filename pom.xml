@@ -17,7 +17,7 @@
 
     <name>Simple Java Mail - Maven master project</name>
     <description>Simple Java Mail - Maven master project</description>
-    <url>http://www.simplejavamail.org/</url>
+    <url>https://www.simplejavamail.org/</url>
 
     <properties>
         <automaticModuleName>org.simplejavamail.undefined</automaticModuleName> <!-- update in individual modules -->
