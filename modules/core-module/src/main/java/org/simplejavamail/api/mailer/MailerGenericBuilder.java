@@ -109,7 +109,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * Changes the default for sending emails and testing server connections to asynchronous (batch mode).
 	 * <p>
-	 * In case of asynchronous mode, make sure you configure logging to file or inspect the returned {@link AsyncResponse}.
+	 * In case of asynchronous mode, make sure you configure logging to file or inspect the returned {@link java.util.concurrent.CompletableFuture}.
 	 * <p>
 	 * Note that you can configure a couple of concurrency properties such as thread pool size, keepAlivetime, connection pool size (or even a cluster) etc.
 	 *
