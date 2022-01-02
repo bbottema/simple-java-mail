@@ -12,9 +12,9 @@ import org.simplejavamail.internal.modules.ModuleLoader;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 /**
  * Helper class that produces and populates a mime messages. Deals with jakarta.mail RFC MimeMessage stuff, as well as

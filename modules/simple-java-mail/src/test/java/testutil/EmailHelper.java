@@ -12,7 +12,6 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
-import org.simplejavamail.internal.util.SimpleOptional;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 import static java.util.Calendar.SEPTEMBER;
+import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
@@ -133,7 +133,7 @@ public class EmailHelper {
 				/*10*/ROUND_ROBIN,
 				/*11*/false,
 				/*12*/false,
-				/*13*/SimpleOptional.ofNullable(hostsToTrust).orElse(Lists.emptyList()),
+				/*13*/ofNullable(hostsToTrust).orElse(Lists.emptyList()),
 				/*14*/trustAllSSLHost,
 				/*15*/verifyServerIdentity,
 				/*16*/newSingleThreadExecutor(),

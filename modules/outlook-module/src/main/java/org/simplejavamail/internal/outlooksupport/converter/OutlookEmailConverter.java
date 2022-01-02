@@ -24,10 +24,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
-import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 import static org.slf4j.LoggerFactory.getLogger;
 
 @SuppressWarnings("unused")
@@ -98,7 +98,7 @@ public class OutlookEmailConverter implements OutlookModule {
 			builder.withEmbeddedImage(verifyNonnullOrEmpty(extractCID(cidName)), cid.getValue().getData(), cid.getValue().getMimeTag());
 		}
 		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
-			String attachmentName = ofNullable(attachment.getLongFilename()).orMaybe(attachment.getFilename());
+			String attachmentName = ofNullable(attachment.getLongFilename()).orElse(attachment.getFilename());
 			builder.withAttachment(attachmentName, attachment.getData(), attachment.getMimeTag());
 		}
 		for (int i = 0; i < outlookMessage.getOutlookAttachments().size(); i++) {

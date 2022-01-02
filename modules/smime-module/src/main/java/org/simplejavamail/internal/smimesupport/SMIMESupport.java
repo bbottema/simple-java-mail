@@ -43,7 +43,6 @@ import org.simplejavamail.internal.smimesupport.SmimeUtilFixed.SmimeStateFixed;
 import org.simplejavamail.internal.smimesupport.builder.SmimeParseResultBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.smimesupport.model.SmimeDetailsImpl;
-import org.simplejavamail.internal.util.SimpleOptional;
 import org.simplejavamail.utils.mail.smime.SmimeKey;
 import org.simplejavamail.utils.mail.smime.SmimeKeyStore;
 import org.simplejavamail.utils.mail.smime.SmimeUtil;
@@ -60,6 +59,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -440,9 +440,9 @@ public class SMIMESupport implements SMIMEModule {
 			@Nullable final Pkcs12Config defaultSmimeSigningStore) {
 		MimeMessage result = messageToProtect;
 
-		final Pkcs12Config pkcs12Config = SimpleOptional
+		final Pkcs12Config pkcs12Config = Optional
 				.ofNullable(emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning())
-				.orMaybe(defaultSmimeSigningStore);
+				.orElse(defaultSmimeSigningStore);
 		if (pkcs12Config != null) {
 			result = signMessage(session, result, pkcs12Config);
 		}

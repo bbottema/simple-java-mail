@@ -49,9 +49,9 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.SimpleOptional.ofNullable;
 
 /**
  * Parses a MimeMessage and stores the individual parts such a plain text, HTML text and attachments.

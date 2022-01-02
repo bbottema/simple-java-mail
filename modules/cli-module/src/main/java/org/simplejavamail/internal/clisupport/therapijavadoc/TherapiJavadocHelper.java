@@ -28,6 +28,7 @@ import java.util.Set;
 import static com.google.code.regexp.Pattern.compile;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.StringUtil.padRight;
@@ -85,8 +86,8 @@ public final class TherapiJavadocHelper {
 
 	@Nullable
 	private static Class<?> findReferencedClass(String referencedClassName) {
-		Class<?> aClass = ClassUtils.locateClass(referencedClassName, "org.simplejavamail", null);
-		return aClass != null ? aClass : ClassUtils.locateClass(referencedClassName, null, null);
+		return ofNullable(ClassUtils.locateClass(referencedClassName, "org.simplejavamail", null))
+				.orElseGet(() -> ClassUtils.locateClass(referencedClassName, null, null));
 	}
 
 	@NotNull

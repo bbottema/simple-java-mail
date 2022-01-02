@@ -7,10 +7,10 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
-import org.simplejavamail.internal.util.SimpleOptional;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
@@ -200,7 +200,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 */
 	ServerConfig buildServerConfig() {
 		vallidateServerConfig();
-		final int serverPort = SimpleOptional.ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
+		final int serverPort = ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
 		return new ServerConfigImpl(verifyNonnullOrEmpty(getHost()), serverPort, username, password, customSSLFactory, customSSLFactoryInstance);
 	}
 
