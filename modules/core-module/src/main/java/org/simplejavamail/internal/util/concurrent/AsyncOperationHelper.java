@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.util.concurrent;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.CompletableFuture;
@@ -14,12 +16,9 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * Util that facilitates running a concurrent operation with CompletableFuture support.
  */
 @SuppressWarnings("SameParameterValue")
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AsyncOperationHelper {
 
-	// TODO Lombok
-	private AsyncOperationHelper() {
-	}
-	
 	/**
 	 * Executes using a single-execution ExecutorService, which is shutdown immediately after the operation finishes.
 	 *

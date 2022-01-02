@@ -60,6 +60,12 @@
             <version>1.0.1</version>
             <scope>compile</scope><!-- SimpleJavaMail uses the annotation using java reflection -->
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.22</version>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- testing -->
         <dependency>

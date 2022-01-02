@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.smimesupport.builder;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -10,44 +12,23 @@ import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import java.util.ArrayList;
 import java.util.List;
 
-// FIXME lombok
+@Getter
+@Setter
 public class SmimeParseResultBuilder implements SmimeParseResult {
 
-	@NotNull private final List<AttachmentDecryptionResult> decryptedAttachments = new ArrayList<>();
+	@NotNull private final List<AttachmentDecryptionResult> decryptedAttachmentResults = new ArrayList<>();
 	@NotNull private final OriginalSmimeDetailsImpl originalSmimeDetails = OriginalSmimeDetailsImpl.builder().build();
-	@Nullable private AttachmentResource smimeSignedEmailToProcess;
+	@Nullable private AttachmentResource smimeSignedEmail;
 
 	public void addDecryptedAttachments(@NotNull final List<AttachmentDecryptionResult> attachments) {
-		decryptedAttachments.addAll(attachments);
-	}
-
-	public void setSmimeSignedEmailToProcess(@NotNull final AttachmentResource smimeSignedEmailToProcess) {
-		this.smimeSignedEmailToProcess = smimeSignedEmailToProcess;
-	}
-
-	@Override
-	@NotNull
-	public OriginalSmimeDetailsImpl getOriginalSmimeDetails() {
-		return originalSmimeDetails;
-	}
-
-	@Override
-	@Nullable
-	public AttachmentResource getSmimeSignedEmail() {
-		return smimeSignedEmailToProcess;
-	}
-
-	@Override
-	@NotNull
-	public List<AttachmentDecryptionResult> getDecryptedAttachmentResults() {
-		return decryptedAttachments;
+		decryptedAttachmentResults.addAll(attachments);
 	}
 
 	@Override
 	@NotNull
 	public List<AttachmentResource> getDecryptedAttachments() {
 		final ArrayList<AttachmentResource> attachmentResources = new ArrayList<>();
-		for (final AttachmentDecryptionResult decryptedAttachment : decryptedAttachments) {
+		for (final AttachmentDecryptionResult decryptedAttachment : decryptedAttachmentResults) {
 			attachmentResources.add(decryptedAttachment.getAttachmentResource());
 		}
 		return attachmentResources;

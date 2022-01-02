@@ -354,7 +354,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	public Future<?> shutdownConnectionPool() {
-		if (!operationalConfig.executorServiceIsUserProvided()) {
+		if (!operationalConfig.isExecutorServiceIsUserProvided()) {
 			operationalConfig.getExecutorService().shutdown();
 		}
 		return ModuleLoader.loadBatchModule().shutdownConnectionPools(session);

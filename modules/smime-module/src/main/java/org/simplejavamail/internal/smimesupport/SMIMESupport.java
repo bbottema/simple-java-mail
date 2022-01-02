@@ -182,7 +182,7 @@ public class SMIMESupport implements SMIMEModule {
 			final AttachmentDecryptionResult onlyAttachmentDecrypted = smimeBuilder.getDecryptedAttachmentResults().get(0);
 			if (isSmimeAttachment(onlyAttachment) && isMimeMessageAttachment(onlyAttachmentDecrypted.getAttachmentResource())) {
 				smimeBuilder.getOriginalSmimeDetails().completeWith(determineSmimeDetails(onlyAttachment));
-				smimeBuilder.setSmimeSignedEmailToProcess(onlyAttachmentDecrypted.getAttachmentResource());
+				smimeBuilder.setSmimeSignedEmail(onlyAttachmentDecrypted.getAttachmentResource());
 			}
 		}
 	}

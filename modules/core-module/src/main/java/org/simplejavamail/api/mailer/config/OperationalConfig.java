@@ -113,7 +113,7 @@ public interface OperationalConfig {
 	 * Indicates whether the executor service was provided by the user or internally. Used to determine if Simple Java Mail should shut down the executor
 	 * when the connection pool is shut down.
 	 */
-	boolean executorServiceIsUserProvided();
+	boolean isExecutorServiceIsUserProvided();
 
 	/**
 	 * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
