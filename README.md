@@ -63,8 +63,9 @@ Thankfully, I obtained permissions from the maintainers -as well as original dev
 
 
 
-v6.7.0 - [v6.7.5](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.7.5%7Cjar)
+v6.7.0 - [v6.7.6](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.7.6%7Cjar)
 
+- v6.7.6 (22-January-2022): [#375](https://github.com/bbottema/simple-java-mail/issues/375) Bug: [batch-module](https://www.simplejavamail.org/features.html#section-sending-asynchronously) gives error when there is a [custom mailer](https://www.simplejavamail.org/features.html#section-custom-mailer)
 - v6.7.5 (26-December-2021): [#338](https://github.com/bbottema/simple-java-mail/issues/338) Enhancement: Also return AsyncResponse from plain Mailer.sendEmail(singleArgument) as async can be configured through MailerBuilder now
 - v6.7.4 (25-December-2021): [#331](https://github.com/bbottema/simple-java-mail/issues/331) Enhancement: Coalesce empty SMTP server arguments to null to support CLI better
 - v6.7.3 (25-December-2021): [#335](https://github.com/bbottema/simple-java-mail/issues/335) Bugfix: Precondition nonNull check also checks nonEmpty and breaks on clearEmailAddressCriteria

@@ -44,8 +44,9 @@ Thankfully, I obtained permissions from the maintainers -as well as original dev
 - https://github.com/simple-java-mail/java-utils-mail-dkim
 
 
-v6.7.0 - v6.7.5
+v6.7.0 - v6.7.6
 
+- v6.7.6 (22-January-2022): #375: Bug: batch-module gives error when there is a custom mailer
 - v6.7.5 (26-December-2021): #338: Enhancement: Also return AsyncResponse from plain Mailer.sendEmail(singleArgument) as async can be configured through MailerBuilder now
 - v6.7.4 (25-December-2021): #331: Enhancement: Coalesce empty SMTP server arguments to null to support CLI better
 - v6.7.3 (25-December-2021): #335: Bugfix: Precondition nonNull check also checks nonEmpty and breaks on clearEmailAddressCriteria
