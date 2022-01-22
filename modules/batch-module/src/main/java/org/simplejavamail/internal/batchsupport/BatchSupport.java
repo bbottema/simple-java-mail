@@ -79,6 +79,7 @@ public class BatchSupport implements BatchModule {
 
 	private void ensureClusterInitialized(@NotNull OperationalConfig operationalConfig) {
 		if (smtpConnectionPool == null) {
+			LOGGER.warn("Starting SMTP connection pool cluster: JVM won't shutdown until the pool is manually closed with mailer.shutdownConnectionPool() (for each mailer in the cluster)");
 			smtpConnectionPool = new SmtpConnectionPoolClustered(configureSmtpClusterConfig(operationalConfig));
 		} else if (compareClusterConfig(operationalConfig, smtpConnectionPool.getClusterConfig())) {
 			LOGGER.warn("Global SMTP Connection pool is already configured with pool defaults from the first Mailer instance, ignoring relevant properties from {}", operationalConfig);
