@@ -278,7 +278,7 @@ public class MailerImpl implements Mailer {
 	}
 
 	private void initCluster(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig) {
-		if (operationalConfig.getCustomMailer() == null && ModuleLoader.batchModuleAvailable()) {
+		if (ModuleLoader.batchModuleAvailable()) {
 			ModuleLoader.loadBatchModule().registerToCluster(operationalConfig, operationalConfig.getClusterKey(), session);
 		}
 	}

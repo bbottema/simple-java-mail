@@ -19,10 +19,10 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.simplejavamail.internal.batchsupport.BatchException.ERROR_ACQUIRING_KEYED_POOLABLE;
 import static org.simplejavamail.internal.batchsupport.ClusterHelper.compareClusterConfig;
 import static org.simplejavamail.internal.batchsupport.ClusterHelper.configureSmtpClusterConfig;
@@ -78,6 +78,7 @@ public class BatchSupport implements BatchModule {
 
 	private void ensureClusterInitialized(@NotNull OperationalConfig operationalConfig) {
 		if (smtpConnectionPool == null) {
+			LOGGER.warn("Starting SMTP connection pool cluster: JVM won't shutdown until the pool is manually closed with mailer.shutdownConnectionPool() (for each mailer in the cluster)");
 			smtpConnectionPool = new SmtpConnectionPoolClustered(configureSmtpClusterConfig(operationalConfig));
 		} else if (compareClusterConfig(operationalConfig, smtpConnectionPool.getClusterConfig())) {
 			LOGGER.warn("Global SMTP Connection pool is already configured with pool defaults from the first Mailer instance, ignoring relevant properties from {}", operationalConfig);
@@ -109,9 +110,7 @@ public class BatchSupport implements BatchModule {
 	public Future<?> shutdownConnectionPools(@NotNull Session session) {
 		if (smtpConnectionPool == null) {
 			LOGGER.warn("user requested connection pool shutdown, but there is no connection pool to shut down (yet)");
-			FutureTask<Void> voidFutureTask = new FutureTask<>(() -> { }, null);
-			voidFutureTask.run();
-			return voidFutureTask;
+			return completedFuture(null);
 		}
 		return smtpConnectionPool.shutdownPool(session);
 	}
