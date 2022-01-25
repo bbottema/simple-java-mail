@@ -16,7 +16,9 @@ import org.simplejavamail.mailer.internal.util.TransportRunner;
 import java.io.UnsupportedEncodingException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
+import static org.simplejavamail.mailer.internal.MailerException.*;
 
 /**
  * Separate closure that can be executed directly or from a thread.
@@ -67,18 +69,17 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 				TransportRunner.sendMessage(operationalConfig.getClusterKey(), session, message, message.getAllRecipients());
 			}
 		} catch (final UnsupportedEncodingException e) {
-			LOGGER.error("Failed to send email:\n{}", email.getId());
-			LOGGER.trace("{}", email);
-			throw new MailerException(MailerException.INVALID_ENCODING, e);
+			handleException(e, INVALID_ENCODING);
 		} catch (final MessagingException e) {
-			LOGGER.error("Failed to send email:\n{}", email.getId());
-			LOGGER.trace("{}", email);
-			throw new MailerException(MailerException.GENERIC_ERROR, e);
+			handleException(e, GENERIC_ERROR);
 		} catch (final Exception e) {
-			LOGGER.error("Failed to send email:\n{}", email.getId());
-			LOGGER.trace("{}", email);
-			throw e;
+			handleException(e, UNKNOWN_ERROR);
 		}
+	}
+
+	private void handleException(final Exception e, String errorMsg) {
+		LOGGER.trace("Failed to send email {}\n{}", email.getId(), email);
+		throw new MailerException(format(errorMsg, email.getId()), e);
 	}
 
 	private void logEmail(final MimeMessage message) {
