@@ -9,7 +9,7 @@ import java.lang.reflect.Method;
 public class ModuleLoaderTestHelper {
 	public static void _forceDisableBatchModule() {
 		try {
-			Class<?> classModuleLoader = Class.forName("org.simplejavamail.internal.modules.ModuleLoader");
+			Class<?> classModuleLoader = Class.forName("org.simplejavamail.internal.moduleloader.ModuleLoader");
 			Method m = classModuleLoader.getDeclaredMethod("_forceDisableBatchModule");
 			m.invoke(null);
 		} catch (IllegalAccessException | InvocationTargetException | ClassNotFoundException | NoSuchMethodException e) {
