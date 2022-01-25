@@ -8,7 +8,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.internal.modules.BatchModule;
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.slf4j.Logger;
 
 import java.util.UUID;

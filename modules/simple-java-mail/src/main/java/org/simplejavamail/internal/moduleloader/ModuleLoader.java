@@ -1,5 +1,10 @@
-package org.simplejavamail.internal.modules;
+package org.simplejavamail.internal.moduleloader;
 
+import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
+import org.simplejavamail.internal.modules.BatchModule;
+import org.simplejavamail.internal.modules.DKIMModule;
+import org.simplejavamail.internal.modules.OutlookModule;
+import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import java.util.ArrayList;

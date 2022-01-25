@@ -1,4 +1,4 @@
-package org.simplejavamail.internal.modules;
+package org.simplejavamail.internal.moduleloader;
 
 import org.simplejavamail.MailException;
 

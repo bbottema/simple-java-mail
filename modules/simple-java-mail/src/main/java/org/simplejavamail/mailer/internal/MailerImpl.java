@@ -14,7 +14,7 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
 import org.simplejavamail.mailer.MailerHelper;
 import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;

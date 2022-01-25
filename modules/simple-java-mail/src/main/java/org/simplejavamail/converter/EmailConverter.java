@@ -24,7 +24,7 @@ import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.EmailPopulatingBuilderFactoryImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
 import java.io.ByteArrayInputStream;
@@ -42,7 +42,7 @@ import java.util.Properties;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
-import static org.simplejavamail.internal.modules.ModuleLoader.loadSmimeModule;
+import static org.simplejavamail.internal.moduleloader.ModuleLoader.loadSmimeModule;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;

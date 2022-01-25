@@ -10,7 +10,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.MiscUtil;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;

@@ -13,7 +13,7 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.config.ConfigLoader.Property;
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.File;
 import java.io.FileInputStream;

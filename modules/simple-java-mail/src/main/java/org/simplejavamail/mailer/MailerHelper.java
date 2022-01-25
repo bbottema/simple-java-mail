@@ -11,7 +11,7 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.slf4j.Logger;
 
 import java.util.Collection;

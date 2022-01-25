@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Date;

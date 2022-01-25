@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.internal.modules.ModuleLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
