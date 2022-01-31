@@ -38,7 +38,7 @@ class CliCommandLineProducer {
                         "%n" +
                         "Note: All the regular functionality regarding properties and config files work with the CLI so you can provide defaults in a " +
                         "property file as long as it is visible (on class path) or as system environment variables.")
-                .version("Simple Java Mail 7.0.2");
+                .version("Simple Java Mail 7.1.0");
         
         rootCommandsHolder.usageMessage()
                 .customSynopsis("",
