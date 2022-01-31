@@ -39,12 +39,12 @@ import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionRe
 import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.modules.SMIMEModule;
-import org.simplejavamail.internal.smimesupport.SmimeUtilFixed.SmimeStateFixed;
 import org.simplejavamail.internal.smimesupport.builder.SmimeParseResultBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.smimesupport.model.SmimeDetailsImpl;
 import org.simplejavamail.utils.mail.smime.SmimeKey;
 import org.simplejavamail.utils.mail.smime.SmimeKeyStore;
+import org.simplejavamail.utils.mail.smime.SmimeState;
 import org.simplejavamail.utils.mail.smime.SmimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -246,10 +246,10 @@ public class SMIMESupport implements SMIMEModule {
 
 			AttachmentDecryptionResult liberatedContent = null;
 
-			final SmimeStateFixed smimeState = determineStatus(mimeBodyPart, messageSmimeDetails);
-			if (smimeState == SmimeStateFixed.ENCRYPTED) {
+			final SmimeState smimeState = determineStatus(mimeBodyPart, messageSmimeDetails);
+			if (smimeState == SmimeState.ENCRYPTED) {
 				liberatedContent = getEncryptedContent(pkcs12Config, mimeBodyPart);
-			} else if (smimeState == SmimeStateFixed.SIGNED) {
+			} else if (smimeState == SmimeState.SIGNED) {
 				liberatedContent = getSignedContent(mimeBodyPart);
 			}
 
@@ -264,7 +264,7 @@ public class SMIMESupport implements SMIMEModule {
 			throws MessagingException, IOException {
 		if (pkcs12Config != null) {
 			MimeBodyPart liberatedBodyPart = SmimeUtil.decrypt(mimeBodyPart, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
-			if (SmimeUtilFixed.getStatus(liberatedBodyPart) == SmimeStateFixed.SIGNED_ENVELOPED) {
+			if (SmimeUtil.getStatus(liberatedBodyPart) == SmimeState.SIGNED_ENVELOPED) {
 				final AttachmentDecryptionResult signedContent = getSignedContent(liberatedBodyPart);
 				if (signedContent != null) {
 					return new AttachmentDecryptionResultImpl(SmimeMode.SIGNED_ENCRYPTED, signedContent.getAttachmentResource());
@@ -318,13 +318,13 @@ public class SMIMESupport implements SMIMEModule {
 		return null;
 	}
 
-	private SmimeStateFixed determineStatus(@NotNull final MimePart mimeBodyPart, @NotNull final OriginalSmimeDetails messageSmimeDetails) {
-		SmimeStateFixed status = SmimeUtilFixed.getStatus(mimeBodyPart);
-		boolean trustStatus = status != SmimeStateFixed.ENCRYPTED || messageSmimeDetails.getSmimeMode() == SmimeMode.PLAIN;
+	private SmimeState determineStatus(@NotNull final MimePart mimeBodyPart, @NotNull final OriginalSmimeDetails messageSmimeDetails) {
+		SmimeState status = SmimeUtil.getStatus(mimeBodyPart);
+		boolean trustStatus = status != SmimeState.ENCRYPTED || messageSmimeDetails.getSmimeMode() == SmimeMode.PLAIN;
 		if (trustStatus) {
 			return status;
 		}
-		return "signed-data".equals(messageSmimeDetails.getSmimeType()) ? SmimeStateFixed.SIGNED : SmimeStateFixed.ENCRYPTED;
+		return "signed-data".equals(messageSmimeDetails.getSmimeType()) ? SmimeState.SIGNED : SmimeState.ENCRYPTED;
 	}
 
 	/**
@@ -369,7 +369,7 @@ public class SMIMESupport implements SMIMEModule {
 	}
 
 	public boolean verifyValidSignature(@NotNull MimeMessage mimeMessage, @NotNull OriginalSmimeDetails messageSmimeDetails) {
-		return determineStatus(mimeMessage, messageSmimeDetails) != SmimeStateFixed.SIGNED || SmimeUtil.checkSignature(mimeMessage);
+		return determineStatus(mimeMessage, messageSmimeDetails) != SmimeState.SIGNED || SmimeUtil.checkSignature(mimeMessage);
 	}
 
 	@NotNull
