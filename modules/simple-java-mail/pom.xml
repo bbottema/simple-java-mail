@@ -8,7 +8,7 @@
         <groupId>org.simplejavamail</groupId>
         <artifactId>maven-master-project</artifactId>
         <!--suppress MavenPropertyInParent -->
-        <version>7.0.1</version>
+        <version>7.0.2</version>
         <relativePath>../../</relativePath>
     </parent>
 
@@ -81,6 +81,14 @@
             <groupId>com.github.davidmoten</groupId>
             <artifactId>subethasmtp</artifactId>
             <version>6.0.1</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- required for java 9+ compatibility with assertj-assertions-generator-maven-plugin, which uses javax.annotation.Generated -->
+        <!-- see https://github.com/assertj/assertj-assertions-generator-maven-plugin/issues/93 -->
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+            <version>1.3.5</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

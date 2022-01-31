@@ -25,11 +25,11 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
+import static jakarta.xml.bind.DatatypeConverter.parseBase64Binary;
 import static java.util.Calendar.SEPTEMBER;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
-import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_ROBIN;
 import static org.simplejavamail.converter.EmailConverter.emlToEmailBuilder;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilder;

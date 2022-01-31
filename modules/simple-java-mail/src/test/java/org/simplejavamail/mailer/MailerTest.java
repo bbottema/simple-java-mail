@@ -30,8 +30,8 @@ import java.util.Properties;
 import java.util.UUID;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static jakarta.xml.bind.DatatypeConverter.parseBase64Binary;
 import static java.util.Calendar.APRIL;
-import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;

@@ -3,12 +3,14 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.0.1</version>
+    <version>7.0.2</version>
 </dependency>
 
-v7.0.1 (22-January-2022)
+v7.0.1 - v7.0.2
 
-- #375: Bug: batch-module gives error when there is a custom mailer
+- v7.0.2 (25-January-2022): #329: Enhancement: Exceptions cause error-level logging in addition to rethrowing the exception, but should just include the message in a custom exception
+- v7.0.2 (25-January-2022): #378: Bug: package org.simplejavamail.internal.modules causes split package problem in Java9+
+- v7.0.1 (22-January-2022): #375: Bug: [batch-module](https://www.simplejavamail.org/features.html#section-sending-asynchronously) gives error when there is a [custom mailer](https://www.simplejavamail.org/features.html#section-custom-mailer)
 
 
 v7.0.0 (2-January-2022)
