@@ -44,5 +44,11 @@
             <artifactId>assertj-core</artifactId>
             <version>3.21.0</version>
         </dependency>
+        <!-- java 9+ compatibility, these modules are not shipped anymore -->
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+            <version>3.0.1</version>
+        </dependency>
     </dependencies>
 </project>

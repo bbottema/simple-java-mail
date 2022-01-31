@@ -34,12 +34,6 @@
             <artifactId>jakarta.activation</artifactId>
             <version>2.0.1</version>
         </dependency>
-        <!-- java 9+ compatibility, these modules are not shipped anymore -->
-        <dependency>
-            <groupId>jakarta.xml.bind</groupId>
-            <artifactId>jakarta.xml.bind-api</artifactId>
-            <version>2.3.2</version>
-        </dependency>
 
         <dependency><!-- email validation framework -->
             <groupId>com.sanctionco.jmail</groupId>

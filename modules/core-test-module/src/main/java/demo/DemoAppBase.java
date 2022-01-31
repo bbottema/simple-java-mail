@@ -8,7 +8,7 @@ import testutil.ConfigLoaderTestHelper;
 import testutil.ImplLoader;
 import testutil.ModuleLoaderTestHelper;
 
-import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
+import static jakarta.xml.bind.DatatypeConverter.parseBase64Binary;
 
 public class DemoAppBase {
 

@@ -16,7 +16,7 @@ import java.nio.charset.Charset;
 import java.util.Properties;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
-import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
+import static jakarta.xml.bind.DatatypeConverter.parseBase64Binary;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
