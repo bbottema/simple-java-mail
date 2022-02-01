@@ -47,11 +47,5 @@
             <version>0.13.0</version>
             <scope>provided</scope><!-- makes library mandatory if we should support CLI (even optionally) -->
         </dependency>
-
-        <dependency><!-- support for named regex groups in Android -->
-            <groupId>com.github.tony19</groupId>
-            <artifactId>named-regexp</artifactId>
-            <version>0.2.6</version>
-        </dependency>
     </dependencies>
 </project>

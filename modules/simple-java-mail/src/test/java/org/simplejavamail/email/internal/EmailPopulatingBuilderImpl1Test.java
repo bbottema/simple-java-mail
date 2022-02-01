@@ -1,7 +1,5 @@
 package org.simplejavamail.email.internal;
 
-import com.google.code.regexp.Matcher;
-import com.google.code.regexp.Pattern;
 import jakarta.activation.DataSource;
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
@@ -34,6 +32,8 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.BCC;

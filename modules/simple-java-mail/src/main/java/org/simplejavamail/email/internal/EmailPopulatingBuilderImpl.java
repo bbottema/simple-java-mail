@@ -1,6 +1,5 @@
 package org.simplejavamail.email.internal;
 
-import com.google.code.regexp.Matcher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.activation.DataSource;
 import jakarta.mail.Message.RecipientType;
@@ -41,6 +40,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;

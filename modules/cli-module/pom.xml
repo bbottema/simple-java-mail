@@ -101,12 +101,6 @@
             <scope>compile</scope>
         </dependency>
 
-        <dependency><!-- support for named regex groups in Android -->
-            <groupId>com.github.tony19</groupId>
-            <artifactId>named-regexp</artifactId>
-            <version>0.2.6</version>
-        </dependency>
-
         <!-- Logging -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
