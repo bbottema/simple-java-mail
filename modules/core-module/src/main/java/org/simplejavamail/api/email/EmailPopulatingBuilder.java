@@ -1,6 +1,5 @@
 package org.simplejavamail.api.email;
 
-import com.google.code.regexp.Pattern;
 import jakarta.activation.DataSource;
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
@@ -21,8 +20,9 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
-import static com.google.code.regexp.Pattern.compile;
+import static java.util.regex.Pattern.compile;
 
 
 /**
