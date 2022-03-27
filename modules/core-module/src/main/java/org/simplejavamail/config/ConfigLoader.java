@@ -1,7 +1,5 @@
 package org.simplejavamail.config;
 
-import com.google.code.regexp.Matcher;
-import com.google.code.regexp.Pattern;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
@@ -19,9 +17,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import static com.google.code.regexp.Pattern.compile;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;

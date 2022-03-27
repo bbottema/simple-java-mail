@@ -1,7 +1,5 @@
 package org.simplejavamail.internal.clisupport;
 
-import com.google.code.regexp.Matcher;
-import com.google.code.regexp.Pattern;
 import jakarta.activation.DataSource;
 import jakarta.mail.internet.MimeMessage;
 import org.bbottema.javareflection.BeanUtils;
@@ -47,12 +45,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import static com.google.code.regexp.Pattern.compile;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.EnumSet.allOf;
 import static java.util.EnumSet.of;
+import static java.util.regex.Pattern.compile;
 import static org.bbottema.javareflection.TypeUtils.containsAnnotation;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;

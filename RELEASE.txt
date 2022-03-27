@@ -3,8 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.0.2</version>
+    <version>7.1.0</version>
 </dependency>
+
+v7.1.0 (25-January-2022)
+
+- #379: Maintenance: Adjust dependencies and make Java 9+ friendly
+
 
 v7.0.1 - v7.0.2
 
