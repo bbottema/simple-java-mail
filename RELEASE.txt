@@ -3,12 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.1.0</version>
+    <version>7.1.1</version>
 </dependency>
 
-v7.1.0 (25-January-2022)
+v7.1.0 - v7.1.1
 
-- #379: Maintenance: Adjust dependencies and make Java 9+ friendly
+- v7.1.1 #387: Bug: memory leak in SMPT connection pool when 3rd party deallocation failed with exception
+- v7.1.0 #379: Maintenance: Adjust dependencies and make Java 9+ friendly
 
 
 v7.0.1 - v7.0.2
