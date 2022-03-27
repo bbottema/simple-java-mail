@@ -387,7 +387,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * If {@code >0}, configures the connection pool to automatically close connections after some milliseconds (default {@value DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS}) since last usage.
 	 * <p>
 	 * Note that if you combine this with {@link #withConnectionPoolCoreSize(Integer)} also {@code >0} (default is {@value DEFAULT_CONNECTIONPOOL_CORE_SIZE}), connections will keep
-	 * closing and openings to keep core pool populated until shut down.
+	 * closing and opening to keep core pool populated until shut down.
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
