@@ -27,6 +27,19 @@
             <groupId>org.simplejavamail</groupId>
             <artifactId>core-module</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.bbottema</groupId>
+                    <artifactId>jetbrains-runtime-annotations</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.github.bbottema</groupId>
+            <artifactId>jetbrains-runtime-annotations</artifactId>
+            <version>1.0.1</version>
+            <type>jar</type>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>
