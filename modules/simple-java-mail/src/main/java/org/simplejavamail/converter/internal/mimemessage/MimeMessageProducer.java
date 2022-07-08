@@ -3,6 +3,8 @@ package org.simplejavamail.converter.internal.mimemessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import java.util.Arrays;
+import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
@@ -32,7 +34,9 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * @see <a href="https://github.com/bbottema/simple-java-mail/issues/144">#144: Simple Java Mail should tailor the MimeMessage structure to specific needs</a>
  */
 public abstract class MimeMessageProducer {
-	
+
+	protected static final List<String> HEADERS_TO_POPULATE_TO_CHILDREN = Arrays.asList("Content-Transfer-Encoding");
+
 	/**
 	 * @return Whether this mimemessage producer exactly matches the needs of the given email.
 	 */
@@ -96,7 +100,8 @@ public abstract class MimeMessageProducer {
 		return message;
 	}
 
-	abstract void populateMimeMessageMultipartStructure(@NotNull MimeMessage  message, @NotNull Email email) throws MessagingException;
+	abstract void populateMimeMessageMultipartStructure(@NotNull MimeMessage  message, @NotNull Email email)
+			throws MessagingException, UnsupportedEncodingException;
 	
 	
 	static boolean emailContainsMixedContent(@NotNull Email email) {

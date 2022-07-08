@@ -1,5 +1,9 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import static java.lang.String.format;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.mail.Address;
@@ -14,22 +18,18 @@ import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimePart;
 import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.internet.ParameterList;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
-
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.Map;
-import java.util.UUID;
-
-import static java.lang.String.format;
-import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * Helper class that produces and populates a mime messages. Deals with jakarta.mail RFC MimeMessage stuff, as well as DKIM signing.
@@ -97,21 +97,24 @@ public class MimeMessageHelper {
 	 * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)} and {@link
 	 *                            MimeMultipart#addBodyPart(BodyPart)}.
 	 */
-	static void setTexts(final Email email, final MimeMultipart multipartAlternativeMessages)
-			throws MessagingException {
+	static void setTexts(final Email email, final MimeMultipart multipartAlternativeMessages,
+			List<String> headers) throws MessagingException, UnsupportedEncodingException {
 		if (email.getPlainText() != null) {
 			final MimeBodyPart messagePart = new MimeBodyPart();
 			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING);
+			setHeaders(email, messagePart, headers);
 			multipartAlternativeMessages.addBodyPart(messagePart);
 		}
 		if (email.getHTMLText() != null) {
 			final MimeBodyPart messagePartHTML = new MimeBodyPart();
 			messagePartHTML.setContent(email.getHTMLText(), "text/html; charset=\"" + CHARACTER_ENCODING + "\"");
+			setHeaders(email, messagePartHTML, headers);
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
 		}
 		if (email.getCalendarText() != null && email.getCalendarMethod() != null) {
 			final MimeBodyPart messagePartCalendar = new MimeBodyPart();
 			messagePartCalendar.setContent(email.getCalendarText(), "text/calendar; charset=\"" + CHARACTER_ENCODING + "\"; method=\"" + email.getCalendarMethod().toString() + "\"");
+			setHeaders(email, messagePartCalendar, headers);
 			multipartAlternativeMessages.addBodyPart(messagePartCalendar);
 		}
 	}
@@ -215,6 +218,36 @@ public class MimeMessageHelper {
 			final Recipient returnReceiptTo = checkNonEmptyArgument(email.getReturnReceiptTo(), "returnReceiptTo");
 			final Address address = new InternetAddress(returnReceiptTo.getAddress(), returnReceiptTo.getName(), CHARACTER_ENCODING);
 			message.setHeader("Return-Receipt-To", address.toString());
+		}
+	}
+
+	/**
+	 * Sets all headers on the {@link MimeBodyPart} instance. Since we're not using a high-level JavaMail method, the JavaMail library says we need to do
+	 * some encoding and 'folding' manually, to get the value right for the headers (see {@link MimeUtility}.
+	 * <p>
+	 * Furthermore sets the notification flags <code>Disposition-Notification-To</code> and <code>Return-Receipt-To</code> if provided. It used
+	 * JavaMail's built in method for producing an RFC compliant email address (see {@link InternetAddress#toString()}).
+	 *
+	 * @param email   The message in which the headers are defined.
+	 * @param part The {@link MimeBodyPart} on which to set the raw, encoded and folded headers.
+	 * @throws UnsupportedEncodingException See {@link MimeUtility#encodeText(String, String, String)}
+	 * @throws MessagingException           See {@link Message#addHeader(String, String)}
+	 * @see MimeUtility#encodeText(String, String, String)
+	 * @see MimeUtility#fold(int, String)
+	 */
+	static void setHeaders(final Email email, final MimeBodyPart part, List<String> headers)
+			throws UnsupportedEncodingException, MessagingException {
+		for (final Map.Entry<String, Collection<String>> header : email.getHeaders().entrySet()) {
+			for (final String headerValue : header.getValue()) {
+				final String headerName = header.getKey();
+				if(headers.contains(headerName)) {
+					final String headerValueEncoded = MimeUtility
+							.encodeText(headerValue, CHARACTER_ENCODING, null);
+					final String foldedHeaderValue = MimeUtility
+							.fold(headerName.length() + 2, headerValueEncoded);
+					part.addHeader(header.getKey(), foldedHeaderValue);
+				}
+			}
 		}
 	}
 	

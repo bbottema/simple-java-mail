@@ -4,6 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import java.io.UnsupportedEncodingException;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 
@@ -32,10 +33,11 @@ class MimeMessageProducerMixedRelatedAlternative extends MimeMessageProducer {
 	}
 	
 	@Override
-	public void populateMimeMessageMultipartStructure(@NotNull MimeMessage message, @NotNull Email email) throws MessagingException {
+	public void populateMimeMessageMultipartStructure(@NotNull MimeMessage message, @NotNull Email email)
+			throws MessagingException, UnsupportedEncodingException {
 		MultipartStructureWrapper multipartStructureWrapper = new MultipartStructureWrapper();
 		
-		MimeMessageHelper.setTexts(email, multipartStructureWrapper.multipartAlternativeMessages);
+		MimeMessageHelper.setTexts(email, multipartStructureWrapper.multipartAlternativeMessages, HEADERS_TO_POPULATE_TO_CHILDREN);
 		MimeMessageHelper.configureForwarding(email, multipartStructureWrapper.multipartRootMixed);
 		MimeMessageHelper.setEmbeddedImages(email, multipartStructureWrapper.multipartRelated);
 		MimeMessageHelper.setAttachments(email, multipartStructureWrapper.multipartRootMixed);
