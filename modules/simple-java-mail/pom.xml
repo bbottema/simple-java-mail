@@ -121,6 +121,7 @@
                 <configuration>
                     <forkCount>8</forkCount><!-- for quad cores with multi-threading -->
                     <reuseForks>false</reuseForks>
+                    <argLine>-Xmx1024m -XX:MaxPermSize=256m</argLine>
                 </configuration>
             </plugin>
         </plugins>

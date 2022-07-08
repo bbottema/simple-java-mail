@@ -47,9 +47,9 @@
         <module>modules/dkim-module</module>
         <module>modules/smime-module</module>
         <module>modules/simple-java-mail</module>
-        <module>modules/spring-module</module>
-        <module>modules/cli-module</module>
-        <module>modules/jacoco-aggregator-module</module>
+<!--        <module>modules/spring-module</module>-->
+<!--        <module>modules/cli-module</module>-->
+<!--        <module>modules/jacoco-aggregator-module</module>-->
     </modules>
 
     <dependencies>
