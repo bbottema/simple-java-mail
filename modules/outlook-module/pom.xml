@@ -35,24 +35,8 @@
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>outlook-message-parser</artifactId>
-            <version>1.9.0</version>
+            <version>1.9.4</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
-
-    <!-- Apache POI 4.x is Java 8, so we can't use that -->
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.apache.poi</groupId>
-                <artifactId>poi</artifactId>
-                <version>3.17</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.poi</groupId>
-                <artifactId>poi-scratchpad</artifactId>
-                <version>3.9</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>
