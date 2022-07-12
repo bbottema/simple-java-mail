@@ -324,7 +324,18 @@ public interface EmailPopulatingBuilder {
 	 * @see "The Test demo app in Simple Java Mail's source for a working example."
 	 */
 	EmailPopulatingBuilder withCalendarText(@NotNull CalendarMethod calendarMethod, @NotNull String textCalendar);
-	
+
+	/**
+	 * Determines what encoding is applied to the text/html/iCalendar encoding in the MimeMessage/EML. Default is {@link ContentTransferEncoding#QUOTED_PRINTABLE}, which basicallt means plain
+	 * text, so you can just read the content of the EML (if not encrypted).
+	 * <p>
+	 * However, you can choose another encoding as supported by Jakarta Mail. The list is quite extensive, but the most common alternative is base64. This might be useful for example for obfuscating
+	 * the content to some extent.
+	 *
+	 * @param contentTransferEncoding The encoder to use for the text/html/iCalendar content.
+	 */
+	EmailPopulatingBuilder withContentTransferEncoding(@NotNull ContentTransferEncoding contentTransferEncoding);
+
 	/**
 	 * Delegates to {@link #withRecipients(Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
 	 */
@@ -1376,6 +1387,16 @@ public interface EmailPopulatingBuilder {
 	 * Resets <em>textHTML</em> to empty.
 	 */
 	EmailPopulatingBuilder clearHTMLText();
+
+	/**
+	 * Resets <em>calendarText</em> to empty.
+	 */
+	EmailPopulatingBuilder clearCalendarText();
+
+	/**
+	 * Resets <em>contentTransferEncoding</em> to {@link ContentTransferEncoding#QUOTED_PRINTABLE}.
+	 */
+	EmailPopulatingBuilder clearContentTransferEncoding();
 	
 	/**
 	 * Resets <em>subject</em> to empty.
@@ -1510,9 +1531,18 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Nullable
 	CalendarMethod getCalendarMethod();
-	
+
+	/**
+	 * @see #withCalendarText(CalendarMethod, String)
+	 */
 	@Nullable
 	String getTextCalendar();
+
+	/**
+	 * @see #withContentTransferEncoding(ContentTransferEncoding)
+	 * @see #clearContentTransferEncoding()
+	 */
+	ContentTransferEncoding getContentTransferEncoding();
 	
 	/**
 	 * @see #withSubject(String)

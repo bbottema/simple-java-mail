@@ -2,6 +2,7 @@ package org.simplejavamail.config;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.util.SimpleConversions;
@@ -44,6 +45,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * <li>simplejavamail.proxy.username</li>
  * <li>simplejavamail.proxy.password</li>
  * <li>simplejavamail.proxy.socks5bridge.port</li>
+ * <li>simplejavamail.defaults.content.transfer.encoding</li>
  * <li>simplejavamail.defaults.subject</li>
  * <li>simplejavamail.defaults.from.name</li>
  * <li>simplejavamail.defaults.from.address</li>
@@ -136,6 +138,7 @@ public final class ConfigLoader {
 		PROXY_PASSWORD("simplejavamail.proxy.password"),
 		PROXY_SOCKS5BRIDGE_PORT("simplejavamail.proxy.socks5bridge.port"),
 		DEFAULT_SUBJECT("simplejavamail.defaults.subject"),
+		DEFAULT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.content.transfer.encoding"),
 		DEFAULT_FROM_NAME("simplejavamail.defaults.from.name"),
 		DEFAULT_FROM_ADDRESS("simplejavamail.defaults.from.address"),
 		DEFAULT_REPLYTO_NAME("simplejavamail.defaults.replyto.name"),
@@ -445,6 +448,12 @@ public final class ConfigLoader {
 			return TransportStrategy.valueOf(propertyValue);
 		} catch (final IllegalArgumentException nfe) {
 			// ok, so not a TransportStrategy either
+		}
+		// read ContentTransferEncoding value
+		try {
+			return ContentTransferEncoding.valueOf(propertyValue);
+		} catch (final IllegalArgumentException nfe2) {
+			// ok, so not a ContentTransferEncoding either
 		}
 		// read LoadBalancingStrategy value
 		try {

@@ -75,6 +75,12 @@ public class Email implements Serializable {
 	private final String textCalendar;
 
 	/**
+	 * @see EmailPopulatingBuilder#withContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@NotNull
+	private final ContentTransferEncoding contentTransferEncoding;
+
+	/**
 	 * @see EmailPopulatingBuilder#withSubject(String)
 	 */
 	private final String subject;
@@ -233,6 +239,7 @@ public class Email implements Serializable {
 		textHTML = smimeMerge ? smimeSignedEmail.getHTMLText() : builder.getTextHTML();
 		calendarMethod = builder.getCalendarMethod();
 		textCalendar = builder.getTextCalendar();
+		contentTransferEncoding = builder.getContentTransferEncoding();
 		subject = builder.getSubject();
 		
 		useDispositionNotificationTo = builder.isUseDispositionNotificationTo();
@@ -604,5 +611,13 @@ public class Email implements Serializable {
 	@Nullable
 	public Date getSentDate() {
 		return sentDate != null ? new Date(sentDate.getTime()) : null;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@NotNull
+	public ContentTransferEncoding getContentTransferEncoding() {
+		return contentTransferEncoding;
 	}
 }

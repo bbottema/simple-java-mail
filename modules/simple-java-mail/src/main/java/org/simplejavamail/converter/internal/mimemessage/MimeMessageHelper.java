@@ -41,6 +41,8 @@ public class MimeMessageHelper {
 	 */
 	private static final String CHARACTER_ENCODING = StandardCharsets.UTF_8.name();
 
+	private static final String HEADER_CONTENT_TRANSFER_ENCODING = "Content-Transfer-Encoding";
+
 	private MimeMessageHelper() {
 
 	}
@@ -90,37 +92,39 @@ public class MimeMessageHelper {
 	}
 
 	/**
-	 * Fills the {@link Message} instance with the content bodies (text, html and calendar).
+	 * Fills the {@link Message} instance with the content bodies (text, html and calendar), with Content-Transfer-Encoding header taken from Email.
 	 *
 	 * @param email                        The message in which the content is defined.
 	 * @param multipartAlternativeMessages See {@link MimeMultipart#addBodyPart(BodyPart)}
-	 * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)} and {@link
-	 *                            MimeMultipart#addBodyPart(BodyPart)}.
+	 * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)} and {@link MimeMultipart#addBodyPart(BodyPart)}.
 	 */
 	static void setTexts(final Email email, final MimeMultipart multipartAlternativeMessages)
 			throws MessagingException {
 		if (email.getPlainText() != null) {
 			final MimeBodyPart messagePart = new MimeBodyPart();
 			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING);
+			messagePart.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, email.getContentTransferEncoding().getEncoder());
 			multipartAlternativeMessages.addBodyPart(messagePart);
 		}
 		if (email.getHTMLText() != null) {
 			final MimeBodyPart messagePartHTML = new MimeBodyPart();
 			messagePartHTML.setContent(email.getHTMLText(), "text/html; charset=\"" + CHARACTER_ENCODING + "\"");
+			messagePartHTML.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, email.getContentTransferEncoding().getEncoder());
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
 		}
 		if (email.getCalendarText() != null && email.getCalendarMethod() != null) {
 			final MimeBodyPart messagePartCalendar = new MimeBodyPart();
 			messagePartCalendar.setContent(email.getCalendarText(), "text/calendar; charset=\"" + CHARACTER_ENCODING + "\"; method=\"" + email.getCalendarMethod().toString() + "\"");
+			messagePartCalendar.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, email.getContentTransferEncoding().getEncoder());
 			multipartAlternativeMessages.addBodyPart(messagePartCalendar);
 		}
 	}
 
 	/**
-	 * Fills the {@link MimeBodyPart} instance with the content body content (text, html and calendar).
+	 * Fills the {@link MimeBodyPart} instance with the content body content (text, html and calendar), with Content-Transfer-Encoding header taken from Email.
 	 *
-	 * @param email       The message in which the content is defined.
-	 * @param messagePart The {@link MimeBodyPart} that will contain the body content (either plain text, HTML text or iCalendar text)
+	 * @param email                   The message in which the content is defined.
+	 * @param messagePart             The {@link MimeBodyPart} that will contain the body content (either plain text, HTML text or iCalendar text)
 	 *
 	 * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)}.
 	 */
@@ -135,6 +139,7 @@ public class MimeMessageHelper {
 		if (email.getCalendarText() != null && email.getCalendarMethod() != null) {
 			messagePart.setContent(email.getCalendarText(), "text/calendar; charset=\"" + CHARACTER_ENCODING + "\"; method=\"" + email.getCalendarMethod().toString() + "\"");
 		}
+		messagePart.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, email.getContentTransferEncoding().getEncoder());
 	}
 	
 	/**

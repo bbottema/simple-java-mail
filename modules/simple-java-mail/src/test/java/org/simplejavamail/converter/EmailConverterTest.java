@@ -1,14 +1,19 @@
 package org.simplejavamail.converter;
 
+import org.apache.commons.codec.binary.Base64;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.simplejavamail.api.email.CalendarMethod;
+import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.Recipient;
+import testutil.ConfigLoaderTestHelper;
+import testutil.EmailHelper;
 import testutil.SecureTestDataHelper;
 
 import java.io.File;
+import java.io.IOException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.CC;
@@ -122,7 +127,7 @@ public class EmailConverterTest {
 		Email s2 = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#318 Email with nodata-attachment2.msg"));
 		assertThat(s2.getAttachments()).extracting("name").containsExactlyInAnyOrder("ETS Andre Glotz SA CP 1.doc");
 	}
-	
+
 	@Test
 	public void testIt() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#332 Email with problematic embedded image.eml"));
@@ -130,5 +135,38 @@ public class EmailConverterTest {
 		assertThat(s1.getEmbeddedImages()).extracting("name")
 				.containsExactly("DB294AA3-160F-4825-923A-B16C8B674543@home");
 		assertThat(s1.getHTMLText()).containsPattern("\"cid:DB294AA3-160F-4825-923A-B16C8B674543@home\"");
+	}
+
+	@Test
+	public void testContentTransferEncodingQuotedPrintable() throws IOException {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false).buildEmail();
+		final String eml = EmailConverter.emailToEML(email);
+
+		System.out.println(eml);
+
+		assertThat(normalizeNewlines(eml)).contains("Content-Transfer-Encoding: quoted-printable\n"
+				+ "\n"
+				+ "We should meet up!");
+		assertThat(normalizeNewlines(eml)).contains("Content-Transfer-Encoding: quoted-printable\n"
+				+ "\n"
+				+ "<b>We should meet up!</b><img src=3D'cid:thumbsup'>");
+	}
+
+	@Test
+	public void testContentTransferEncodingBase64() throws IOException {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false)
+				.withContentTransferEncoding(ContentTransferEncoding.BASE_64).buildEmail();
+		final String eml = EmailConverter.emailToEML(email);
+
+		assertThat(normalizeNewlines(eml)).contains("Content-Transfer-Encoding: base64\n"
+				+ "\n"
+				+ new String(Base64.encodeBase64("We should meet up!".getBytes())));
+		assertThat(normalizeNewlines(eml)).contains("Content-Transfer-Encoding: base64\n"
+				+ "\n"
+				+ new String(Base64.encodeBase64("<b>We should meet up!</b><img src='cid:thumbsup'>".getBytes())));
 	}
 }

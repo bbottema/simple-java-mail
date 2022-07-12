@@ -2,6 +2,7 @@ package org.simplejavamail.config;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader.Property;
 import testutil.ConfigLoaderTestHelper;
@@ -13,12 +14,15 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BINARY;
+import static org.simplejavamail.api.email.ContentTransferEncoding.QUOTED_PRINTABLE;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
@@ -195,6 +199,7 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.<String>getProperty(DEFAULT_BCC_NAME)).isEqualTo("BCC Default");
 		assertThat(ConfigLoader.<String>getProperty(DEFAULT_BCC_ADDRESS)).isEqualTo("bcc@default.com");
 		assertThat(ConfigLoader.<String>getProperty(DEFAULT_SUBJECT)).isEqualTo("Default Subject");
+		assertThat(ConfigLoader.<ContentTransferEncoding>getProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)).isSameAs(BINARY);
 
 		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEYSTORE)).isEqualTo("src/test/resources/pkcs12/smime_keystore.pkcs12");
 		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEYSTORE_PASSWORD)).isEqualTo("letmein");

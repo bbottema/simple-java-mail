@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
+import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
@@ -18,6 +19,7 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.CertificationUtil;
 import org.simplejavamail.internal.util.FileUtil;
@@ -56,6 +58,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_A
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
@@ -149,6 +152,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #withCalendarText(CalendarMethod, String)
 	 */
 	private String textCalendar;
+
+	/**
+	 * @see #withContentTransferEncoding(ContentTransferEncoding)
+	 */
+	private ContentTransferEncoding contentTransferEncoding = ContentTransferEncoding.QUOTED_PRINTABLE;
 	
 	/**
 	 * @see #to(Recipient...)
@@ -360,6 +368,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 				} else {
 					bcc(verifyNonnullOrEmpty(getStringProperty(DEFAULT_BCC_ADDRESS)));
 				}
+			}
+			if (hasProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)) {
+				withContentTransferEncoding(verifyNonnullOrEmpty(getProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)));
 			}
 			if (hasProperty(DEFAULT_SUBJECT)) {
 				withSubject(getProperty(DEFAULT_SUBJECT));
@@ -618,7 +629,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		this.bounceToRecipient = recipient != null ? new Recipient(recipient.getName(), recipient.getAddress(), null) : null;
 		return this;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withSubject(String)
 	 */
@@ -776,6 +787,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withCalendarText(@NotNull final CalendarMethod calendarMethod, @NotNull final String textCalendar) {
 		this.calendarMethod = calendarMethod;
 		this.textCalendar = textCalendar;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
+		this.contentTransferEncoding = contentTransferEncoding;
 		return this;
 	}
 	
@@ -2085,13 +2105,32 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		this.text = null;
 		return this;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#clearHTMLText()
 	 */
 	@Override
 	public EmailPopulatingBuilder clearHTMLText() {
 		this.textHTML = null;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearCalendarText()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearCalendarText() {
+		this.calendarMethod = null;
+		this.textCalendar = null;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearContentTransferEncoding()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearContentTransferEncoding() {
+		this.contentTransferEncoding = ContentTransferEncoding.QUOTED_PRINTABLE;
 		return this;
 	}
 	
@@ -2289,7 +2328,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public CalendarMethod getCalendarMethod() {
 		 return calendarMethod;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#getTextCalendar()
 	 */
@@ -2297,6 +2336,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public String getTextCalendar() {
 		return textCalendar;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getContentTransferEncoding()
+	 */
+	@Override
+	public ContentTransferEncoding getContentTransferEncoding() {
+		return contentTransferEncoding;
 	}
 	
 	/**
