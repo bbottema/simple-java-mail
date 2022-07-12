@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%227.1.2%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-7.1.2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%227.1.3%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-7.1.3-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.8+-lightgray.svg)
 
@@ -18,14 +18,15 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.1.2</version>
+    <version>7.1.3</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v7.1.0 - [v7.1.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.1.2%7Cjar)
+v7.1.0 - [v7.1.3](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.1.3%7Cjar)
 
+- v7.1.3 (12-July-2022)[#403](https://github.com/bbottema/simple-java-mail/issues/403) Security: Bump zip4j (only used during testing)
 - v7.1.2 (12-July-2022)[#401](https://github.com/bbottema/simple-java-mail/issues/401) Enhancement: Add HEIC and WEBP support when dynamically resolving embedded images from classpath
 - v7.1.2 (12-July-2022)[#402](https://github.com/bbottema/simple-java-mail/issues/402) Security: Update Log4j to 2.17.1
 - v7.1.2 (12-July-2022)[#393](https://github.com/bbottema/simple-java-mail/issues/393) Security: Update Apache POI and POI Scratchpad
