@@ -32,7 +32,7 @@ class ImageMimeType {
             + "image/x-jps jps\n"
             + "image/x-jg art\n"
             + "image/x-icon ico\n"
-            + "image/x-generic jpg tif wmf tiff bmp xpm png jpeg emf\n"
+            + "image/x-generic jpg tif wmf tiff bmp xpm png jpeg emf heic webp\n"
             + "image/x-eps eps\n"
             + "image/x-dwg svf dxf dwg\n"
             + "image/x-cmu-raster ras\n"
@@ -47,18 +47,20 @@ class ImageMimeType {
             + "image/tiff tif tiff\n"
             + "image/svg+xml svgz svg\n"
             + "image/png x-png png PNG\n"
+//            + "image/heic heic\n"
             + "image/pjpeg jpg jfif jpeg jpe\n"
+            + "image/jpeg jpg JPG jfif jpeg jfif-tbnl jpe\n"
+            + "image/gif gif GIF\n"
+            + "image/bmp bmp bm\n"
+            + "image/webp webp\n"
             + "image/pict pic pict\n"
             + "image/naplps naplps nap\n"
             + "image/jutvision jut\n"
-            + "image/jpeg jpg JPG jfif jpeg jfif-tbnl jpe\n"
             + "image/ief iefs ief\n"
-            + "image/gif gif GIF\n"
             + "image/g3fax g3\n"
             + "image/florian flo turbot\n"
             + "image/fif fif\n"
-            + "image/cmu-raster ras rast\n"
-            + "image/bmp bmp bm";
+            + "image/cmu-raster ras rast";
 
     public static final MimetypesFileTypeMap IMAGE_MIMETYPES_FILE_TYPE_MAP = createMap();
 
