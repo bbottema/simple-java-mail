@@ -3,11 +3,14 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.1.1</version>
+    <version>7.1.2</version>
 </dependency>
 
-v7.1.0 - v7.1.1
+v7.1.0 - v7.1.2
 
+- v7.1.2 #401: Enhancement: Add HEIC and WEBP support when dynamically resolving embedded images from classpath
+- v7.1.2 #402: Security: Update Log4j to 2.17.1
+- v7.1.2 #393: Security: Update Apache POI and POI Scratchpad
 - v7.1.1 #387: Bug: memory leak in SMPT connection pool when 3rd party deallocation failed with exception
 - v7.1.0 #379: Maintenance: Adjust dependencies and make Java 9+ friendly
 
