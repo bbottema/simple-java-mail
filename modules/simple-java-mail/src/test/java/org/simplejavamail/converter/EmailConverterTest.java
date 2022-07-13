@@ -144,8 +144,6 @@ public class EmailConverterTest {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false).buildEmail();
 		final String eml = EmailConverter.emailToEML(email);
 
-		System.out.println(eml);
-
 		assertThat(normalizeNewlines(eml)).contains("Content-Transfer-Encoding: quoted-printable\n"
 				+ "\n"
 				+ "We should meet up!");
