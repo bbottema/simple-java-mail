@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.outlooksupport.converter;
 
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
@@ -108,8 +109,15 @@ public class OutlookEmailConverter implements OutlookModule {
 				final Email email = buildEmailFromOutlookMessage(builderFactory.create(), nestedMsg, builderFactory, internalEmailConverter)
 						.getEmailBuilder().buildEmail();
 				final MimeMessage message = internalEmailConverter.emailToMimeMessage(email);
-				final byte[] mimedata = internalEmailConverter.mimeMessageToEMLByteArray(message);
-				builder.withAttachment(nestedMsg.getSubject() + ".eml", new ByteArrayDataSource(mimedata, "message/rfc822"));
+				try {
+					final byte[] mimedata = internalEmailConverter.mimeMessageToEMLByteArray(message);
+					builder.withAttachment(nestedMsg.getSubject() + ".eml", new ByteArrayDataSource(mimedata, "message/rfc822"));
+				} catch (IllegalStateException e) {
+					boolean reasonIsEmptyMessage = e.getCause() instanceof MessagingException && e.getCause().getMessage().equals("No MimeMessage content");
+					if (!reasonIsEmptyMessage) throw e;
+					// :sadface: nested message attachment is actually invalid (possibly empty because of #396),
+					// so we're justgoing to ignore it
+				}
 			}
 		}
 
