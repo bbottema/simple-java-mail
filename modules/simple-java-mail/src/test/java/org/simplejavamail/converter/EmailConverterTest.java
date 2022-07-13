@@ -129,12 +129,22 @@ public class EmailConverterTest {
 	}
 
 	@Test
-	public void testIt() {
+	public void testProblematicEmbeddedImage() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#332 Email with problematic embedded image.eml"));
 		assertThat(s1.getAttachments()).isEmpty();
 		assertThat(s1.getEmbeddedImages()).extracting("name")
 				.containsExactly("DB294AA3-160F-4825-923A-B16C8B674543@home");
 		assertThat(s1.getHTMLText()).containsPattern("\"cid:DB294AA3-160F-4825-923A-B16C8B674543@home\"");
+	}
+
+	@Test
+	public void testProblematicExchangeDeliveryReceipts() throws Exception {
+		SecureTestDataHelper.runTestWithSecureTestData(passwords -> {
+			String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/nested-empty-outlook-msg/Outlook msg with empty nested msg attachment.msg";
+			Email email = EmailConverter.outlookMsgToEmail(new File(fileNameMsg));
+			assertThat(email.getAttachments()).isEmpty();
+			assertThat(email.getDecryptedAttachments()).isEmpty();
+		});
 	}
 
 	@Test
