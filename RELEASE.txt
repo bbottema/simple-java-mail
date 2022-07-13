@@ -3,12 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.2.0</version>
+    <version>7.2.1</version>
 </dependency>
 
-v7.2.0 (13-July-2022)
+v7.2.0 - v7.2.1
 
-- #399: Feature: Expand email builder API to support selective content encoding, like quoted-printable, base64, 7BIT and others
+- v7.2.1 #396: Enhancement: make Outlook support tolerant of invalid/empty nested Outlook message attachments
+- v7.2.0 #399: Feature: Expand email builder API to support selective content encoding, like quoted-printable, base64, 7BIT and others
 
 
 v7.1.0 - v7.1.3
