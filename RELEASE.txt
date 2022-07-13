@@ -6,6 +6,11 @@ https://www.simplejavamail.org
     <version>7.2.0</version>
 </dependency>
 
+v7.2.0 (13-July-2022)
+
+- #399: Feature: Expand email builder API to support selective content encoding, like quoted-printable, base64, 7BIT and others
+
+
 v7.1.0 - v7.1.3
 - v7.1.3 #403: Security: Bump zip4j (only used during testing)
 - v7.1.2 #401: Enhancement: Add HEIC and WEBP support when dynamically resolving embedded images from classpath
