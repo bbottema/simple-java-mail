@@ -25,13 +25,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
-import org.simplejavamail.internal.util.NaturalEntryKeyComparator;
 import org.simplejavamail.internal.util.Preconditions;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,6 +44,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -149,11 +148,14 @@ public final class MimeMessageParser {
 
 		if (isMimeType(currentPart, "text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.plainContent.append((Object) parseContent(currentPart));
+			checkContentTransferEncoding(currentPart, parsedComponents);
 		} else if (isMimeType(currentPart, "text/html") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
+			checkContentTransferEncoding(currentPart, parsedComponents);
 		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.calendarContent = parseCalendarContent(currentPart);
 			parsedComponents.calendarMethod = parseCalendarMethod(currentPart);
+			checkContentTransferEncoding(currentPart, parsedComponents);
 		} else if (isMimeType(currentPart, "multipart/*")) {
 			final Multipart mp = parseContent(currentPart);
 			for (int i = 0, count = countBodyParts(mp); i < count; i++) {
@@ -163,18 +165,37 @@ public final class MimeMessageParser {
 			final DataSource ds = createDataSource(currentPart, fetchAttachmentData);
 			// if the diposition is not provided, for now the part should be treated as inline (later non-embedded inline attachments are moved)
 			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-				parsedComponents.attachmentList.add(new SimpleEntry<>(parseResourceNameOrUnnamed(parseContentID(currentPart), parseFileName(currentPart)), ds));
+				parsedComponents.attachmentList.add(parseAttachment(parseContentID(currentPart), currentPart, ds));
 			} else if (disposition == null || Part.INLINE.equalsIgnoreCase(disposition)) {
 				if (parseContentID(currentPart) != null) {
 					parsedComponents.cidMap.put(parseContentID(currentPart), ds);
 				} else {
 					// contentID missing -> treat as standard attachment
-					parsedComponents.attachmentList.add(new SimpleEntry<>(parseResourceNameOrUnnamed(null, parseFileName(currentPart)), ds));
+					parsedComponents.attachmentList.add(parseAttachment(null, currentPart, ds));
 				}
 			} else {
 				throw new IllegalStateException("invalid attachment type");
 			}
 		}
+	}
+
+	private static void checkContentTransferEncoding(final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents) {
+		if (parsedComponents.contentTransferEncoding == null) {
+			for (final Header header : retrieveAllHeaders(currentPart)) {
+				if (isEmailHeader(header, "Content-Transfer-Encoding")) {
+					parsedComponents.contentTransferEncoding = header.getValue();
+				}
+			}
+		}
+	}
+
+	private static MimeDataSource parseAttachment(@Nullable final String contentId, final @NotNull MimePart mimePart, final DataSource ds) {
+		return MimeDataSource.builder()
+				.name(parseResourceNameOrUnnamed(contentId, parseFileName(mimePart)))
+				.dataSource(ds)
+				.contentDescription(parseContentDescription(mimePart))
+				.contentTransferEncoding(parseContentTransferEncoding(mimePart))
+				.build();
 	}
 
 	@SuppressWarnings("StatementWithEmptyBody")
@@ -469,6 +490,22 @@ public final class MimeMessageParser {
 			return "Bcc";
 		}
 	}
+	@Nullable
+	public static String parseContentDescription(@NotNull final MimePart mimePart) {
+		try {
+			return mimePart.getHeader("Content-Description", ",");
+		} catch (final MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_DESCRIPTION, e);
+		}
+	}
+	@Nullable
+	public static String parseContentTransferEncoding(@NotNull final MimePart mimePart) {
+		try {
+			return mimePart.getHeader("Content-Transfer-Encoding", ",");
+		} catch (final MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_TRANSFER_ENCODING, e);
+		}
+	}
 
 	@NotNull
 	private static List<InternetAddress> parseInternetAddresses(@Nullable final Address[] recipients) {
@@ -539,7 +576,7 @@ public final class MimeMessageParser {
 			Map.Entry<String, DataSource> cidEntry = it.next();
 			String cid = extractCID(cidEntry.getKey());
 			if (!htmlContent.contains("cid:" + cid)) {
-				parsedComponents.attachmentList.add(new SimpleEntry<>(cid, cidEntry.getValue()));
+				parsedComponents.attachmentList.add(new MimeDataSource(cid, cidEntry.getValue(), null, null));
 				it.remove();
 			}
 		}
@@ -547,7 +584,7 @@ public final class MimeMessageParser {
 
 	public static class ParsedMimeMessageComponents {
 		@SuppressWarnings("unchecked")
-		final Set<Map.Entry<String, DataSource>> attachmentList = new TreeSet<>(NaturalEntryKeyComparator.INSTANCE);
+		final Set<MimeDataSource> attachmentList = new TreeSet<>();
 		final Map<String, DataSource> cidMap = new TreeMap<>();
 		private final Map<String, Collection<Object>> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
@@ -560,6 +597,7 @@ public final class MimeMessageParser {
 		private InternetAddress dispositionNotificationTo;
 		private InternetAddress returnReceiptTo;
 		private InternetAddress bounceToAddress;
+		private String contentTransferEncoding;
 		private final StringBuilder plainContent = new StringBuilder();
 		final StringBuilder htmlContent = new StringBuilder();
 		private String calendarMethod;
@@ -571,7 +609,7 @@ public final class MimeMessageParser {
 			return messageId;
 		}
 
-		public Set<Map.Entry<String, DataSource>> getAttachmentList() {
+		public Set<MimeDataSource> getAttachmentList() {
 			return attachmentList;
 		}
 
@@ -638,6 +676,11 @@ public final class MimeMessageParser {
 		@Nullable
 		public String getCalendarContent() {
 			return calendarContent;
+		}
+
+		@Nullable
+		public String getContentTransferEncoding() {
+			return contentTransferEncoding;
 		}
 
 		@Nullable

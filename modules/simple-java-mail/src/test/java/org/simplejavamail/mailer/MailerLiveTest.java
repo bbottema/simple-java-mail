@@ -3,10 +3,12 @@ package org.simplejavamail.mailer;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeUtility;
+import lombok.val;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -30,14 +32,19 @@ import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
@@ -348,6 +355,15 @@ public class MailerLiveTest {
 		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session and is not received back on the MimeMessage
 		if (originalEmailPopulatingBuilder.getBounceToRecipient() != null) {
 			originalEmailPopulatingBuilder.clearBounceTo();
+		}
+		// Jakarta Mail defaults to 7Bit Content-Transfer-Encoding for text attachments, so we need to match that
+		if (!originalEmailPopulatingBuilder.getAttachments().isEmpty()) {
+			val attachments = originalEmailPopulatingBuilder.getAttachments().stream()
+					.map(att -> new AttachmentResource(att.getName(), att.getDataSource(), att.getDescription(), ofNullable(att.getContentTransferEncoding()).orElse(BIT7)))
+					.collect(toList());
+			originalEmailPopulatingBuilder
+					.clearAttachments()
+					.withAttachments(attachments);
 		}
 
 		if (originalEmailPopulatingBuilder.getOriginalSmimeDetails() instanceof PlainSmimeDetails) {

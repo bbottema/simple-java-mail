@@ -8,6 +8,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.CalendarMethod;
+import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
@@ -17,6 +18,7 @@ import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.internal.InternalEmailConverterImpl;
+import org.simplejavamail.converter.internal.mimemessage.MimeDataSource;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
@@ -26,6 +28,7 @@ import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
+import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -45,6 +48,7 @@ import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
 import static org.simplejavamail.internal.moduleloader.ModuleLoader.loadSmimeModule;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
@@ -636,17 +640,17 @@ public final class EmailConverter {
 			builder.withReplyTo(parsed.getReplyToAddresses().getPersonal(), parsed.getReplyToAddresses().getAddress());
 		}
 		builder.withHeaders(parsed.getHeaders());
-		final InternetAddress dnTo = parsed.getDispositionNotificationTo();
-		if (dnTo != null) {
-			builder.withDispositionNotificationTo(dnTo);
+		if (parsed.getDispositionNotificationTo() != null) {
+			builder.withDispositionNotificationTo(parsed.getDispositionNotificationTo());
 		}
-		final InternetAddress rrTo = parsed.getReturnReceiptTo();
-		if (rrTo != null) {
-			builder.withReturnReceiptTo(rrTo);
+		if (parsed.getReturnReceiptTo() != null) {
+			builder.withReturnReceiptTo(parsed.getReturnReceiptTo());
 		}
-		final InternetAddress bTo = parsed.getBounceToAddress();
-		if (bTo != null) {
-			builder.withBounceTo(bTo);
+		if (parsed.getBounceToAddress() != null) {
+			builder.withBounceTo(parsed.getBounceToAddress());
+		}
+		if (parsed.getContentTransferEncoding() != null) {
+			builder.withContentTransferEncoding(ContentTransferEncoding.byEncoder(parsed.getContentTransferEncoding()));
 		}
 		builder.fixingMessageId(parsed.getMessageId());
 		for (final InternetAddress to : parsed.getToAddresses()) {
@@ -671,8 +675,10 @@ public final class EmailConverter {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
 			builder.withEmbeddedImage(extractCID(cidName), cid.getValue());
 		}
-		for (final Map.Entry<String, DataSource> attachment : parsed.getAttachmentList()) {
-			builder.withAttachment(extractCID(attachment.getKey()), attachment.getValue());
+		for (final MimeDataSource attachment : parsed.getAttachmentList()) {
+			final ContentTransferEncoding encoding = !valueNullOrEmpty(attachment.getContentTransferEncoding())
+					? ContentTransferEncoding.byEncoder(attachment.getContentTransferEncoding()) : null;
+			builder.withAttachment(extractCID(attachment.getName()), attachment.getDataSource(), attachment.getContentDescription(), encoding);
 		}
 		return builder;
 	}

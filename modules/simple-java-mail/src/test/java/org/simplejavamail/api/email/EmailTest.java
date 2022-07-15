@@ -24,11 +24,13 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import static jakarta.mail.Message.RecipientType.BCC;
+import static java.nio.charset.Charset.defaultCharset;
 import static java.util.Calendar.APRIL;
 import static java.util.Calendar.SEPTEMBER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.CalendarMethod.ADD;
 import static org.simplejavamail.api.email.CalendarMethod.REPLY;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 public class EmailTest {
@@ -96,6 +98,7 @@ public class EmailTest {
 				.signWithDomainKey("dkim_key", "dkim_domain", "dkim_selector")
 				.withEmbeddedImage("the_image", DemoAppBase.produceThumbsUpImage(), "image/png")
 				.withAttachment("the_attachment", DemoAppBase.produceThumbsUpImage(), "image/png")
+				.withAttachment("described_attachment", "blah".getBytes(defaultCharset()), "text/plain", "cool description", BASE_64)
 				.buildEmail();
 
 		assertThat(e.toString()).isEqualTo("Email{\n"
@@ -120,12 +123,22 @@ public class EmailTest {
 				+ "	embeddedImages=[AttachmentResource{\n"
 				+ "		name='the_image',\n"
 				+ "		dataSource.name=the_image,\n"
-				+ "		dataSource.getContentType=image/png\n"
+				+ "		dataSource.getContentType=image/png,\n"
+				+ "		description=null,\n"
+				+ "		contentTransferEncoding=null\n"
 				+ "	}],\n"
 				+ "	attachments=[AttachmentResource{\n"
 				+ "		name='the_attachment',\n"
 				+ "		dataSource.name=the_attachment,\n"
-				+ "		dataSource.getContentType=image/png\n"
+				+ "		dataSource.getContentType=image/png,\n"
+				+ "		description=null,\n"
+				+ "		contentTransferEncoding=null\n"
+				+ "	}, AttachmentResource{\n"
+				+ "		name='described_attachment',\n"
+				+ "		dataSource.name=described_attachment,\n"
+				+ "		dataSource.getContentType=text/plain,\n"
+				+ "		description='cool description',\n"
+				+ "		contentTransferEncoding='base64'\n"
 				+ "	}],\n"
 				+ "	forwardingEmail=true\n"
 				+ "}");

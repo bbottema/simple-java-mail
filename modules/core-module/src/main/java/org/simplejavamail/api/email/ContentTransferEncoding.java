@@ -3,6 +3,7 @@ package org.simplejavamail.api.email;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 
@@ -28,4 +29,16 @@ public enum ContentTransferEncoding {
 	X_UUE("x-uue");
 
 	private final String encoder;
+
+	public static ContentTransferEncoding byEncoder(@NotNull final String encoder) {
+		return Arrays.stream(values())
+				.filter(c -> c.encoder.equals(encoder))
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("unknown content transfer encoder: " + encoder));
+	}
+
+	@Override
+	public String toString() {
+		return encoder;
+	}
 }

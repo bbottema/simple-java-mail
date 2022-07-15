@@ -41,6 +41,7 @@ public class MimeMessageHelper2Test {
 		PowerMockito.mockStatic(MiscUtil.class);
 		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport")).willCallRealMethod();
 		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner")).willReturn(false);
+		BDDMockito.given(MiscUtil.valueNullOrEmpty(null)).willCallRealMethod();
 		BDDMockito.given(MiscUtil.encodeText(anyString())).willCallRealMethod();
 
 		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))
@@ -48,6 +49,7 @@ public class MimeMessageHelper2Test {
 
 		PowerMockito.mockStatic(MiscUtil.class);
 		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner")).willCallRealMethod();
+		BDDMockito.given(MiscUtil.valueNullOrEmpty(null)).willCallRealMethod();
 		BDDMockito.given(MiscUtil.encodeText(anyString())).willCallRealMethod();
 
 		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))

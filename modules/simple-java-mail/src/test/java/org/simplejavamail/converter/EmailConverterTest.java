@@ -1,8 +1,10 @@
 package org.simplejavamail.converter;
 
+import jakarta.mail.util.ByteArrayDataSource;
 import org.apache.commons.codec.binary.Base64;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
@@ -14,11 +16,16 @@ import testutil.SecureTestDataHelper;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
+import static java.nio.charset.Charset.defaultCharset;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 
 public class EmailConverterTest {
@@ -152,12 +159,20 @@ public class EmailConverterTest {
 		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false).buildEmail();
-		final String eml = EmailConverter.emailToEML(email);
+		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
+		final String emlRoundtrip = normalizeNewlines(EmailConverter.emailToEML(EmailConverter.emlToEmail(eml)));
 
 		assertThat(normalizeNewlines(eml)).contains("Content-Transfer-Encoding: quoted-printable\n"
 				+ "\n"
 				+ "We should meet up!");
 		assertThat(normalizeNewlines(eml)).contains("Content-Transfer-Encoding: quoted-printable\n"
+				+ "\n"
+				+ "<b>We should meet up!</b><img src=3D'cid:thumbsup'>");
+
+		assertThat(normalizeNewlines(emlRoundtrip)).contains("Content-Transfer-Encoding: quoted-printable\n"
+				+ "\n"
+				+ "We should meet up!");
+		assertThat(normalizeNewlines(emlRoundtrip)).contains("Content-Transfer-Encoding: quoted-printable\n"
 				+ "\n"
 				+ "<b>We should meet up!</b><img src=3D'cid:thumbsup'>");
 	}
@@ -168,13 +183,106 @@ public class EmailConverterTest {
 
 		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false)
 				.withContentTransferEncoding(ContentTransferEncoding.BASE_64).buildEmail();
-		final String eml = EmailConverter.emailToEML(email);
+		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
+		final String emlRoundtrip = normalizeNewlines(EmailConverter.emailToEML(EmailConverter.emlToEmail(EmailConverter.emailToEML(email))));
 
-		assertThat(normalizeNewlines(eml)).contains("Content-Transfer-Encoding: base64\n"
+		assertThat(eml).contains("Content-Transfer-Encoding: base64\n"
 				+ "\n"
 				+ new String(Base64.encodeBase64("We should meet up!".getBytes())));
-		assertThat(normalizeNewlines(eml)).contains("Content-Transfer-Encoding: base64\n"
+		assertThat(eml).contains("Content-Transfer-Encoding: base64\n"
 				+ "\n"
 				+ new String(Base64.encodeBase64("<b>We should meet up!</b><img src='cid:thumbsup'>".getBytes())));
+
+		assertThat(emlRoundtrip).contains("Content-Transfer-Encoding: base64\n"
+				+ "\n"
+				+ new String(Base64.encodeBase64("We should meet up!".getBytes())));
+		assertThat(emlRoundtrip).contains("Content-Transfer-Encoding: base64\n"
+				+ "\n"
+				+ new String(Base64.encodeBase64("<b>We should meet up!</b><img src='cid:thumbsup'>".getBytes())));
+	}
+
+	@Test
+	public void testContentDescriptionAndContentTransferEncoding() throws IOException {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		String dummyAttachment1 = "Cupcake ipsum dolor sit amet donut. Apple pie caramels oat cake fruitcake sesame snaps. Bear claw cotton candy toffee danish sweet roll.";
+		String dummyAttachment2 = "I love pie I love donut sugar plum. I love halvah topping bonbon fruitcake brownie chocolate. Sweet tootsie roll wafer caramels sesame snaps.";
+		String dummyAttachment3 = "Danish chocolate pudding cake bonbon powder bonbon. I love cookie jelly beans cake oat cake. I love I love sweet roll sweet pudding topping icing.";
+
+		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false)
+				.clearAttachments()
+				.withAttachment("dummy text1.txt", dummyAttachment1.getBytes(defaultCharset()), "text/plain", "This is dummy text1", BIT7)
+				.withAttachment("dummy text2.txt", new ByteArrayDataSource(dummyAttachment2, "text/plain"), "This is dummy text2", BIT7)
+				.withAttachments(asList(new AttachmentResource("dummy text3.txt", new ByteArrayDataSource(dummyAttachment3, "text/plain"), "This is dummy text3", BIT7)))
+				.withAttachment("dummy text4.txt", new ByteArrayDataSource("this should not have a Content-Description header", "text/plain"), null, BIT7)
+				.buildEmail();
+
+		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
+		final String emlRoundtrip = normalizeNewlines(EmailConverter.emailToEML(EmailConverter.emlToEmail(EmailConverter.emailToEML(email))));
+
+		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text1.txt\"; name=\"dummy text1.txt\"\n"
+				+ "Content-Transfer-Encoding: 7bit\n"
+				+ "Content-Disposition: attachment; filename=\"dummy text1.txt\"\n"
+				+ "Content-ID: <dummy text1.txt>\n"
+				+ "Content-Description: This is dummy text1\n"
+				+ "\n"
+				+ "Cupcake ipsum dolor sit amet donut. Apple pie caramels oat cake fruitcake sesame snaps. Bear claw cotton candy toffee danish sweet roll.");
+		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text2.txt\"; name=\"dummy text2.txt\"\n"
+				+ "Content-Transfer-Encoding: 7bit\n"
+				+ "Content-Disposition: attachment; filename=\"dummy text2.txt\"\n"
+				+ "Content-ID: <dummy text2.txt>\n"
+				+ "Content-Description: This is dummy text2\n"
+				+ "\n"
+				+ "I love pie I love donut sugar plum. I love halvah topping bonbon fruitcake brownie chocolate. Sweet tootsie roll wafer caramels sesame snaps.");
+		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text3.txt\"; name=\"dummy text3.txt\"\n"
+				+ "Content-Transfer-Encoding: 7bit\n"
+				+ "Content-Disposition: attachment; filename=\"dummy text3.txt\"\n"
+				+ "Content-ID: <dummy text3.txt>\n"
+				+ "Content-Description: This is dummy text3\n"
+				+ "\n"
+				+ "Danish chocolate pudding cake bonbon powder bonbon. I love cookie jelly beans cake oat cake. I love I love sweet roll sweet pudding topping icing.");
+		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text4.txt\"; name=\"dummy text4.txt\"\n"
+				+ "Content-Transfer-Encoding: 7bit\n"
+				+ "Content-Disposition: attachment; filename=\"dummy text4.txt\"\n"
+				+ "Content-ID: <dummy text4.txt>\n"
+				+ "\n"
+				+ "this should not have a Content-Description header");
+
+		// same assertions on the EML after converting to MimeMessage and back
+
+		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text1.txt\"; name=\"dummy text1.txt\"\n"
+				+ "Content-Transfer-Encoding: 7bit\n"
+				+ "Content-Disposition: attachment; filename=\"dummy text1.txt\"\n"
+				+ "Content-ID: <dummy text1.txt>\n"
+				+ "Content-Description: This is dummy text1\n"
+				+ "\n"
+				+ "Cupcake ipsum dolor sit amet donut. Apple pie caramels oat cake fruitcake sesame snaps. Bear claw cotton candy toffee danish sweet roll.");
+		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text2.txt\"; name=\"dummy text2.txt\"\n"
+				+ "Content-Transfer-Encoding: 7bit\n"
+				+ "Content-Disposition: attachment; filename=\"dummy text2.txt\"\n"
+				+ "Content-ID: <dummy text2.txt>\n"
+				+ "Content-Description: This is dummy text2\n"
+				+ "\n"
+				+ "I love pie I love donut sugar plum. I love halvah topping bonbon fruitcake brownie chocolate. Sweet tootsie roll wafer caramels sesame snaps.");
+		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text3.txt\"; name=\"dummy text3.txt\"\n"
+				+ "Content-Transfer-Encoding: 7bit\n"
+				+ "Content-Disposition: attachment; filename=\"dummy text3.txt\"\n"
+				+ "Content-ID: <dummy text3.txt>\n"
+				+ "Content-Description: This is dummy text3\n"
+				+ "\n"
+				+ "Danish chocolate pudding cake bonbon powder bonbon. I love cookie jelly beans cake oat cake. I love I love sweet roll sweet pudding topping icing.");
+		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text4.txt\"; name=\"dummy text4.txt\"\n"
+				+ "Content-Transfer-Encoding: 7bit\n"
+				+ "Content-Disposition: attachment; filename=\"dummy text4.txt\"\n"
+				+ "Content-ID: <dummy text4.txt>\n"
+				+ "\n"
+				+ "this should not have a Content-Description header");
+	}
+
+	@NotNull
+	private List<AttachmentResource> asList(AttachmentResource attachment) {
+		List<AttachmentResource> collectionAttachment = new ArrayList<>();
+		collectionAttachment.add(attachment);
+		return collectionAttachment;
 	}
 }

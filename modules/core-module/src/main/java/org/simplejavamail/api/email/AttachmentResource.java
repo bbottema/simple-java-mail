@@ -26,27 +26,58 @@ public class AttachmentResource implements Serializable {
 	private static final long serialVersionUID = 1234567L;
 
 	/**
-	 * @see #AttachmentResource(String, DataSource)
+	 * @see #AttachmentResource(String, DataSource, String)
 	 */
 	private final String name;
 
 	/**
-	 * @see #AttachmentResource(String, DataSource)
+	 * @see #AttachmentResource(String, DataSource, String)
 	 */
 	// data source is not serializable, so transient (Kryo can do it though, see SerializationUtil in the OutlookModule)
 	private transient final DataSource dataSource;
 
 	/**
-	 * Constructor; initializes the attachment resource with a name and data.
-	 *
-	 * @param name       The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;). Leave
-	 *                   <code>null</code> to fall back on {@link DataSource#getName()}.
-	 * @param dataSource The attachment data. If no name was provided, the name of this datasource is used if provided.
-	 * @see DataSource
+	 * @see #AttachmentResource(String, DataSource, String)
+	 */
+	@Nullable
+	private final String description;
+
+	/**
+	 * @see #AttachmentResource(String, DataSource, String)
+	 */
+	@Nullable
+	private final ContentTransferEncoding contentTransferEncoding;
+
+	/**
+	 * Delegates to {@link AttachmentResource#AttachmentResource(String, DataSource, String, ContentTransferEncoding)} with null-description and no forced content transfer encoding
 	 */
 	public AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource) {
+		this(name, dataSource, null, null);
+	}
+
+	/**
+	 * Delegates to {@link AttachmentResource#AttachmentResource(String, DataSource, String, ContentTransferEncoding)} with no forced content transfer encoding
+	 */
+	public AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description) {
+		this(name, dataSource, description, null);
+	}
+
+	/**
+	 * Constructor; initializes the attachment resource with a name and data.
+	 *
+	 * @param name                    The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;). Leave
+	 *                                <code>null</code> to fall back on {@link DataSource#getName()}.
+	 * @param dataSource              The attachment data. If no name was provided, the name of this datasource is used if provided.
+	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
+	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
+	 *
+	 * @see DataSource
+	 */
+	public AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
 		this.name = name;
 		this.dataSource = checkNonEmptyArgument(dataSource, "dataSource");
+		this.description = description;
+		this.contentTransferEncoding = contentTransferEncoding;
 	}
 
 	/**
@@ -80,14 +111,6 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
-	 * @return {@link #dataSource}
-	 */
-	@NotNull
-	public DataSource getDataSource() {
-		return dataSource;
-	}
-
-	/**
 	 * Delegates to {@link DataSource#getInputStream}
 	 */
 	@NotNull
@@ -100,11 +123,35 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
-	 * @return {@link #name}
+	 * @see #AttachmentResource(String, DataSource, String)
+	 */
+	@NotNull
+	public DataSource getDataSource() {
+		return dataSource;
+	}
+
+	/**
+	 * @see #AttachmentResource(String, DataSource, String)
 	 */
 	@Nullable
 	public String getName() {
 		return name;
+	}
+
+	/**
+	 * @see #AttachmentResource(String, DataSource, String)
+	 */
+	@Nullable
+	public String getDescription() {
+		return description;
+	}
+
+	/**
+	 * @see #AttachmentResource(String, DataSource, String)
+	 */
+	@Nullable
+	public ContentTransferEncoding getContentTransferEncoding() {
+		return contentTransferEncoding;
 	}
 
 	@SuppressWarnings("SameReturnValue")
@@ -119,16 +166,20 @@ public class AttachmentResource implements Serializable {
 		if (o == null || getClass() != o.getClass()) return false;
 		AttachmentResource that = (AttachmentResource) o;
 		return Objects.equals(name, that.name) &&
-				EqualsHelper.isEqualDataSource(dataSource, that.dataSource);
+				EqualsHelper.isEqualDataSource(dataSource, that.dataSource) &&
+				Objects.equals(description, that.description) &&
+				Objects.equals(contentTransferEncoding, that.contentTransferEncoding);
 	}
 
 	@Override
 	@NotNull
 	public String toString() {
 		return "AttachmentResource{" +
-				"\n\t\tname='" + name + '\'' +
+				"\n\t\tname='" + name + "'" +
 				",\n\t\tdataSource.name=" + dataSource.getName() +
 				",\n\t\tdataSource.getContentType=" + dataSource.getContentType() +
+				",\n\t\tdescription=" + (description != null ? "'" + description + "'" : "null") +
+				",\n\t\tcontentTransferEncoding=" + (contentTransferEncoding != null ? "'" + contentTransferEncoding + "'" : "null") +
 				"\n\t}";
 	}
 

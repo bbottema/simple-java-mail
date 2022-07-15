@@ -249,6 +249,12 @@ public class MimeMessageHelper {
 		pl.set("name", fileName);
 		attachmentPart.setHeader("Content-Type", contentType + pl);
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
+//		if (!valueNullOrEmpty(attachmentResource.getDescription())) { // FIXME clean up?
+			attachmentPart.setHeader("Content-Description", attachmentResource.getDescription());
+//		}
+		if (!valueNullOrEmpty(attachmentResource.getContentTransferEncoding())) {
+			attachmentPart.setHeader("Content-Transfer-Encoding", attachmentResource.getContentTransferEncoding().getEncoder());
+		}
 		attachmentPart.setDisposition(dispositionType);
 		return attachmentPart;
 	}

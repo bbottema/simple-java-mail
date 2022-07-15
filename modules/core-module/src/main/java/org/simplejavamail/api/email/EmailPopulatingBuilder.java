@@ -1059,36 +1059,59 @@ public interface EmailPopulatingBuilder {
 	 * @see #withHeaders(Map)
 	 */
 	EmailPopulatingBuilder withHeader(@NotNull String name, @Nullable Object value);
-	
+
 	/**
-	 * Delegates to {@link #withAttachment(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and
-	 * mimetype.
+	 * Delegates to {@link #withAttachment(String, byte[], String, String, ContentTransferEncoding)} with null-description and no forced content transfer encoding.
+	 */
+	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull byte[] data, @NotNull String mimetype);
+
+	/**
+	 * Delegates to {@link #withAttachment(String, byte[], String, String, ContentTransferEncoding)} with no forced content transfer encoding.
+	 */
+	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull byte[] data, @NotNull String mimetype, @Nullable String description);
+
+	/**
+	 * Delegates to {@link #withAttachment(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
 	 *
-	 * @param name     Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is
-	 *                 empty, a name will be generated using {@link java.util.UUID}.
-	 * @param data     The binary data of the attachment.
-	 * @param mimetype The content type of the given data (e.g. "plain/text", "image/gif" or "application/pdf").
+	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
+	 *                                using {@link java.util.UUID}.
+	 * @param data                    The binary data of the attachment.
+	 * @param mimetype                The content type of the given data (e.g. "plain/text", "image/gif" or "application/pdf").
+	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
+	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
 	 *
 	 * @see #withAttachment(String, DataSource)
 	 * @see #withAttachments(List)
 	 */
-	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull byte[] data, @NotNull String mimetype);
+	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull byte[] data, @NotNull String mimetype, @Nullable String description, @Nullable ContentTransferEncoding contentTransferEncoding);
 	
 	/**
-	 * Adds an attachment to the email message, which will be shown in the email client as seperate files available for download or inline display if
-	 * the client supports it (for example, most browsers these days display PDF's in a popup).
+	 * Delegates to {@link #withAttachment(String, DataSource, String, ContentTransferEncoding)} with null-description and no forced content transfer encoding.
+	 */
+	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata);
+
+	/**
+	 * Delegates to {@link #withAttachment(String, DataSource, String, ContentTransferEncoding)} with no forced content transfer encoding.
+	 */
+	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description);
+
+	/**
+	 * Adds an attachment to the email message, which will be shown in the email client as seperate files available for download or inline display if the client supports it (for example, most browsers
+	 * these days display PDF's in a popup).
 	 * <p>
 	 * <strong>Note</strong>: for embedding images instead of attaching them for download, refer to {@link #withEmbeddedImage(String, DataSource)} instead.
 	 *
-	 * @param name     Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is
-	 *                 empty, a name will be generated using {@link java.util.UUID}.
-	 * @param filedata The attachment data.
+	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
+	 *                                using {@link java.util.UUID}.
+	 * @param filedata                The attachment data.
+	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
+	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
 	 *
 	 * @see #withAttachment(String, byte[], String)
 	 * @see #withAttachments(List)
 	 */
-	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata);
-	
+	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding);
+
 	/**
 	 * Delegates to {@link #withAttachment(String, DataSource)} for each attachment.
 	 */

@@ -65,7 +65,7 @@ public class MimeMessageParserTest {
 		assertThat(mimeMessageParts.getSentDate()).isBetween(receiveWindowStart.getTime(), new Date());
 
 		assertThat(mimeMessageParts.getCidMap()).containsOnlyKeys("<thumbsup>");
-		assertThat(mimeMessageParts.getAttachmentList()).extracting("key").containsOnly("dresscode.txt", "location.txt");
+		assertThat(mimeMessageParts.getAttachmentList()).extracting("name").containsOnly("dresscode.txt", "location.txt");
 	}
 
 	@Test
@@ -77,7 +77,7 @@ public class MimeMessageParserTest {
 		assertThat(components.getHtmlContent()).isNull();
 		assertThat(components.getPlainContent()).isEqualTo("body text");
 		assertThat(components.getCidMap()).isEmpty();
-		assertThat(components.getAttachmentList()).extracting("key").containsOnly("proper-name.txt");
+		assertThat(components.getAttachmentList()).extracting(MimeDataSource::getName).containsOnly("proper-name.txt");
 	}
 
 	private MimeMessage produceMimeMessageWithNamingIssue()
@@ -125,7 +125,7 @@ public class MimeMessageParserTest {
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).isEmpty();
-		assertThat(parsedComponents.attachmentList).extracting("key").containsOnly("moo1", "moo2");
+		assertThat(parsedComponents.attachmentList).extracting("name").containsOnly("moo1", "moo2");
 	}
 
 	@Test
@@ -137,7 +137,7 @@ public class MimeMessageParserTest {
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).isEmpty();
-		assertThat(parsedComponents.attachmentList).extracting("key").containsOnly("moo1", "moo2");
+		assertThat(parsedComponents.attachmentList).extracting(MimeDataSource::getName).containsOnly("moo1", "moo2");
 	}
 	
 	@Test
@@ -149,7 +149,7 @@ public class MimeMessageParserTest {
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).containsOnlyKeys("moo1");
-		assertThat(parsedComponents.attachmentList).extracting("key").containsOnly("moo2");
+		assertThat(parsedComponents.attachmentList).extracting(MimeDataSource::getName).containsOnly("moo2");
 	}
 	
 	@Test

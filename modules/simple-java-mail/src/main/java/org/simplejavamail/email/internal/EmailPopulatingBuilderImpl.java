@@ -19,7 +19,6 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
-import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.CertificationUtil;
 import org.simplejavamail.internal.util.FileUtil;
@@ -1643,7 +1642,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName())) {
 			throw new EmailException(NAME_MISSING_FOR_EMBEDDED_IMAGE);
 		}
-		embeddedImages.add(new AttachmentResource(name, imagedata));
+		embeddedImages.add(new AttachmentResource(name, imagedata, null));
 		return this;
 	}
 	
@@ -1696,27 +1695,59 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		headers.get(name).add(value != null ? String.valueOf(value) : null);
 		return this;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, byte[], String)
 	 */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final byte[] data, @NotNull final String mimetype) {
+		return withAttachment(name, data, mimetype, null, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, byte[], String, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final byte[] data, @NotNull final String mimetype, @Nullable final String description) {
+		return withAttachment(name, data, mimetype, description, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, byte[], String, String, ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final byte[] data, @NotNull final String mimetype, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
 		checkNotNull(data, "data");
 		checkNonEmptyArgument(mimetype, "mimetype");
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 		dataSource.setName(name);
-		withAttachment(name, dataSource);
+		withAttachment(name, dataSource, description, contentTransferEncoding);
 		return this;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata) {
+		return withAttachment(name, filedata, null, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description) {
+		return withAttachment(name, filedata, description, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource, String, ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
 		checkNonEmptyArgument(filedata, "filedata");
-		attachments.add(new AttachmentResource(name, filedata));
+		attachments.add(new AttachmentResource(name, filedata, description, contentTransferEncoding));
 		return this;
 	}
 
@@ -1726,7 +1757,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withAttachments(@NotNull final List<AttachmentResource> attachments) {
 		for (final AttachmentResource attachment : attachments) {
-			withAttachment(attachment.getName(), attachment.getDataSource());
+			withAttachment(attachment.getName(), attachment.getDataSource(), attachment.getDescription(), attachment.getContentTransferEncoding());
 		}
 		return this;
 	}

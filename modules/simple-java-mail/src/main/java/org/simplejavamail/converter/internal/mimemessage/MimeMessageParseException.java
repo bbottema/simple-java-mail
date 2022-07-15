@@ -29,6 +29,8 @@ class MimeMessageParseException extends MailException {
 	static final String ERROR_READING_CONTENT = "Error reading content";
 	static final String ERROR_DECODING_TEXT = "Error decoding text";
 	static final String ERROR_GETTING_RECIPIENTS = "Error getting [%s] recipient types";
+	static final String ERROR_GETTING_CONTENT_DESCRIPTION = "Error reading Content-Description header";
+	static final String ERROR_GETTING_CONTENT_TRANSFER_ENCODING = "Error reading Content-Transfer-Encoding header";
 	static final String ERROR_GETTING_SUBJECT = "Error getting subject";
 	static final String ERROR_GETTING_MESSAGE_ID = "Error getting message ID";
 	static final String ERROR_GETTING_SEND_DATE = "Error getting sent-date";

@@ -1,6 +1,8 @@
 package org.simplejavamail.internal.smimesupport;
 
+import lombok.val;
 import org.junit.Test;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -12,10 +14,12 @@ import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
 import java.io.File;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.List;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
@@ -75,6 +79,8 @@ public class TestSmimeAttachments {
 				.clearHeaders() // set by Outlook when sending, so is missing in the saved .msg from before sending
 				.clearReplyTo() // same
 				.clearBounceTo() // same
+				// Outlook doesn't provide Content-TransferEncoding header on attachment level:
+				.withAttachments(removeContentTransferEncodingFromAttachments(fromEmlBuilder))
 				.from(verifyNonnullOrEmpty(fromEmlBuilder.getFromRecipient()).getName(), "donotreply@unknown-from-address.net")
 				.buildEmail();
 
@@ -158,6 +164,8 @@ public class TestSmimeAttachments {
 				.clearHeaders() // set by Outlook when sending, so is missing in the saved .msg from before sending
 				.clearReplyTo() // same
 				.clearBounceTo() // same
+				// Outlook doesn't provide Content-TransferEncoding header on attachment level:
+				.withAttachments(removeContentTransferEncodingFromAttachments(fromEmlBuilder))
 				.from(verifyNonnullOrEmpty(fromEmlBuilder.getFromRecipient()).getName(), "donotreply@unknown-from-address.net")
 				.buildEmail();
 
@@ -173,5 +181,13 @@ public class TestSmimeAttachments {
 				.clearSMIMESignedAttachmentMergingBehavior()
 				.buildEmail();
 		EmailAssert.assertThat(emailWithDefaultMerginBehavior).isEqualTo(emailExpectedFromEml);
+	}
+
+	private List<AttachmentResource> removeContentTransferEncodingFromAttachments(final EmailPopulatingBuilder builder) {
+		val attachments = builder.getAttachments();
+		builder.clearAttachments();
+		return attachments.stream()
+				.map(att -> new AttachmentResource(att.getName(), att.getDataSource(), att.getDescription(), null))
+				.collect(toList());
 	}
 }
