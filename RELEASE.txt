@@ -8,7 +8,7 @@ https://www.simplejavamail.org
 
 v7.3.0 (15-July-2022)
 
-- #405: Feature: Expand email builder API to support forced content encoding for attachments, like quoted-printable, base64, 7BIT and others
+- #405: Feature: Expand email builder API to support forced content Content-Transfer-Encoding for attachments, like quoted-printable, base64, 7BIT and others
 - #404: Feature: Expand email builder API to support Content-Description on attachments
 
 

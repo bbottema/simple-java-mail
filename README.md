@@ -26,7 +26,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 [v7.3.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.3.0%7Cjar) (15-July-2022)
 
-- [#405](https://github.com/bbottema/simple-java-mail/issues/405) Feature: Expand email builder API to support forced content encoding for attachments, like quoted-printable, base64, 7BIT and others
+- [#405](https://github.com/bbottema/simple-java-mail/issues/405) Feature: Expand email builder API to support forced content Content-Transfer-Encoding for attachments, like quoted-printable, base64, 7BIT and others
 - [#404](https://github.com/bbottema/simple-java-mail/issues/404) Feature: Expand email builder API to support Content-Description on attachments
 
 
