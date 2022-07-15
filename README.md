@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%227.2.1%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-7.2.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%227.3.0%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-7.3.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.8+-lightgray.svg)
 
@@ -18,26 +18,32 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.2.1</version>
+    <version>7.3.0</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
+[v7.3.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.3.0%7Cjar) (15-July-2022)
+
+- [#405](https://github.com/bbottema/simple-java-mail/issues/405) Feature: Expand email builder API to support forced content encoding for attachments, like quoted-printable, base64, 7BIT and others
+- [#404](https://github.com/bbottema/simple-java-mail/issues/404) Feature: Expand email builder API to support Content-Description on attachments
+
+
 v7.2.0 - [v7.2.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.2.1%7Cjar)
 
-- v7.2.1 (13-July-2022)[#396](https://github.com/bbottema/simple-java-mail/issues/396) Enhancement: make Outlook support tolerant of invalid/empty nested Outlook message attachments
-- v7.2.0 (13-July-2022)[#399](https://github.com/bbottema/simple-java-mail/issues/399) Feature: Expand email builder API to support [selective content encoding](https://www.simplejavamail.org/features.html#section-content-transfer-encoding), like quoted-printable, base64, 7BIT and others
+- v7.2.1 (13-July-2022): [#396](https://github.com/bbottema/simple-java-mail/issues/396) Enhancement: make Outlook support tolerant of invalid/empty nested Outlook message attachments
+- v7.2.0 (13-July-2022): [#399](https://github.com/bbottema/simple-java-mail/issues/399) Feature: Expand email builder API to support [selective content encoding](https://www.simplejavamail.org/features.html#section-content-transfer-encoding), like quoted-printable, base64, 7BIT and others
 
 
 v7.1.0 - [v7.1.3](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.1.3%7Cjar)
 
-- v7.1.3 (12-July-2022)[#403](https://github.com/bbottema/simple-java-mail/issues/403) Security: Bump zip4j (only used during testing)
-- v7.1.2 (12-July-2022)[#401](https://github.com/bbottema/simple-java-mail/issues/401) Enhancement: Add HEIC and WEBP support when dynamically resolving embedded images from classpath
-- v7.1.2 (12-July-2022)[#402](https://github.com/bbottema/simple-java-mail/issues/402) Security: Update Log4j to 2.17.1
-- v7.1.2 (12-July-2022)[#393](https://github.com/bbottema/simple-java-mail/issues/393) Security: Update Apache POI and POI Scratchpad
-- v7.1.1 (27-March-2022)[#387](https://github.com/bbottema/simple-java-mail/issues/387) Bug: memory leak in SMPT connection pool when 3rd party deallocation failed with exception
-- v7.1.0 (25-January-2022)[#379](https://github.com/bbottema/simple-java-mail/issues/379) Maintenance: Adjust dependencies and make Java 9+ friendly
+- v7.1.3 (12-July-2022): [#403](https://github.com/bbottema/simple-java-mail/issues/403) Security: Bump zip4j (only used during testing)
+- v7.1.2 (12-July-2022): [#401](https://github.com/bbottema/simple-java-mail/issues/401) Enhancement: Add HEIC and WEBP support when dynamically resolving embedded images from classpath
+- v7.1.2 (12-July-2022): [#402](https://github.com/bbottema/simple-java-mail/issues/402) Security: Update Log4j to 2.17.1
+- v7.1.2 (12-July-2022): [#393](https://github.com/bbottema/simple-java-mail/issues/393) Security: Update Apache POI and POI Scratchpad
+- v7.1.1 (27-March-2022): [#387](https://github.com/bbottema/simple-java-mail/issues/387) Bug: memory leak in SMPT connection pool when 3rd party deallocation failed with exception
+- v7.1.0 (25-January-2022): [#379](https://github.com/bbottema/simple-java-mail/issues/379) Maintenance: Adjust dependencies and make Java 9+ friendly
 
 
 v7.0.1 - [v7.0.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.0.2%7Cjar)

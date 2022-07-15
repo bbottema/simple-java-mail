@@ -3,23 +3,28 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.2.1</version>
+    <version>7.3.0</version>
 </dependency>
+
+v7.3.0 (15-July-2022)
+
+- #405: Feature: Expand email builder API to support forced content encoding for attachments, like quoted-printable, base64, 7BIT and others
+- #404: Feature: Expand email builder API to support Content-Description on attachments
+
 
 v7.2.0 - v7.2.1
 
-- v7.2.1 #396: Enhancement: make Outlook support tolerant of invalid/empty nested Outlook message attachments
-- v7.2.0 #399: Feature: Expand email builder API to support selective content encoding, like quoted-printable, base64, 7BIT and others
+- v7.2.1 (13-July-2022): #396: Enhancement: make Outlook support tolerant of invalid/empty nested Outlook message attachments
+- v7.2.0 (13-July-2022): #399: Feature: Expand email builder API to support selective content encoding, like quoted-printable, base64, 7BIT and others
 
 
 v7.1.0 - v7.1.3
-- v7.1.3 #403: Security: Bump zip4j (only used during testing)
-- v7.1.2 #401: Enhancement: Add HEIC and WEBP support when dynamically resolving embedded images from classpath
-- v7.1.2 #401: Enhancement: Add HEIC and WEBP support when dynamically resolving embedded images from classpath
-- v7.1.2 #402: Security: Update Log4j to 2.17.1
-- v7.1.2 #393: Security: Update Apache POI and POI Scratchpad
-- v7.1.1 #387: Bug: memory leak in SMPT connection pool when 3rd party deallocation failed with exception
-- v7.1.0 #379: Maintenance: Adjust dependencies and make Java 9+ friendly
+- v7.1.3 (12-July-2022): #403: Security: Bump zip4j (only used during testing)
+- v7.1.2 (12-July-2022): #401: Enhancement: Add HEIC and WEBP support when dynamically resolving embedded images from classpath
+- v7.1.2 (12-July-2022): #402: Security: Update Log4j to 2.17.1
+- v7.1.2 (12-July-2022): #393: Security: Update Apache POI and POI Scratchpad
+- v7.1.1 (27-March-2022): #387: Bug: memory leak in SMPT connection pool when 3rd party deallocation failed with exception
+- v7.1.0 (25-January-2022): #379: Maintenance: Adjust dependencies and make Java 9+ friendly
 
 
 v7.0.1 - v7.0.2
