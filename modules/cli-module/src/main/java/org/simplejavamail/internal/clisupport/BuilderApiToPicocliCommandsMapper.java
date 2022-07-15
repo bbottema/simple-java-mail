@@ -13,6 +13,7 @@ import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.CalendarMethod;
+import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
@@ -24,6 +25,7 @@ import org.simplejavamail.internal.clisupport.valueinterpreters.EmlFilePathToMim
 import org.simplejavamail.internal.clisupport.valueinterpreters.MsgFilePathToMimeMessageFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.PemFilePathToX509CertificateFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToCalendarMethodFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToContentTransferEncodingFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToFileFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToLoadBalancingStrategyFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToTransportStrategyFunction;
@@ -85,6 +87,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(X509Certificate.class, "PEM FILE");
 		put(UUID.class, "UUID");
 		put(LoadBalancingStrategy.class, "NAME");
+		put(ContentTransferEncoding.class, "NAME");
 		put(Date.class, "yyyy-[M]M-[d]d[ HH:mm]");
 	}};
 	
@@ -96,6 +99,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
 		ValueConversionHelper.registerValueConverter(new StringToLoadBalancingStrategyFunction());
 		ValueConversionHelper.registerValueConverter(new StringToCalendarMethodFunction());
+		ValueConversionHelper.registerValueConverter(new StringToContentTransferEncodingFunction());
 	}
 	
 	private BuilderApiToPicocliCommandsMapper() {

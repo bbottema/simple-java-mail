@@ -1087,11 +1087,20 @@ public interface EmailPopulatingBuilder {
 	
 	/**
 	 * Delegates to {@link #withAttachment(String, DataSource, String, ContentTransferEncoding)} with null-description and no forced content transfer encoding.
+	 *
+	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
+	 *                                using {@link java.util.UUID}.
+	 * @param filedata                The attachment data.
 	 */
 	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata);
 
 	/**
 	 * Delegates to {@link #withAttachment(String, DataSource, String, ContentTransferEncoding)} with no forced content transfer encoding.
+	 *
+	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
+	 *                                using {@link java.util.UUID}.
+	 * @param filedata                The attachment data.
+	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
 	 */
 	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description);
 
