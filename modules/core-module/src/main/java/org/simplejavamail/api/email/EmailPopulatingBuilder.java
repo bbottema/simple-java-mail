@@ -1102,6 +1102,7 @@ public interface EmailPopulatingBuilder {
 	 * @param filedata                The attachment data.
 	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
 	 */
+	@Cli.OptionNameOverride("withDescribedAttachment")
 	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description);
 
 	/**
@@ -1119,6 +1120,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #withAttachment(String, DataSource, String, ContentTransferEncoding)
 	 * @see #withAttachments(List)
 	 */
+	@Cli.OptionNameOverride("withEncodedDescribedAttachment")
 	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding);
 
 	/**
