@@ -2,6 +2,7 @@ package org.simplejavamail.internal.clisupport;
 
 import jakarta.activation.DataSource;
 import jakarta.mail.internet.MimeMessage;
+import lombok.val;
 import org.bbottema.javareflection.BeanUtils;
 import org.bbottema.javareflection.BeanUtils.Visibility;
 import org.bbottema.javareflection.ClassUtils;
@@ -133,7 +134,8 @@ public final class BuilderApiToPicocliCommandsMapper {
 		processedApiNodes.add(apiNode);
 		
 		for (Method m : ClassUtils.collectMethods(apiNode, apiNode, of(MethodModifier.PUBLIC))) {
-			if (methodIsCliCompatible(m)) {
+			val cliMethodCompatibilityResult = methodIsCliCompatible(m);
+			if (cliMethodCompatibilityResult.isCompatible()) {
 				final String optionName = determineCliOptionName(apiNode, m);
 				LOGGER.debug("option {} found for {}.{}({})", optionName, apiNode.getSimpleName(), m.getName(), m.getParameterTypes());
 				
@@ -159,25 +161,29 @@ public final class BuilderApiToPicocliCommandsMapper {
 					generateOptionsFromBuilderApiChain(potentialNestedApiNode, processedApiNodes, cliOptionsFoundSoFar);
 				}
 			} else {
-				final String reason = (m.isAnnotationPresent(Cli.ExcludeApi.class))
-						? "Method excluded for CLI: {}.{}({})"
-						: "Method not CLI compatible: {}.{}({})";
-				LOGGER.debug(reason, apiNode.getSimpleName(), m.getName(), Arrays.toString(m.getParameterTypes()));
+				LOGGER.debug("Method not CLI compatible ({}): {}.{}({})",
+						cliMethodCompatibilityResult.getReason(), apiNode.getSimpleName(), m.getName(), Arrays.toString(m.getParameterTypes()));
 			}
 		}
 	}
 
-	public static boolean methodIsCliCompatible(Method m) {
-		if (!m.getDeclaringClass().isAnnotationPresent(Cli.BuilderApiNode.class) ||
-				m.isAnnotationPresent(Cli.ExcludeApi.class) ||
-				BeanUtils.isBeanMethod(m, m.getDeclaringClass(), allOf(Visibility.class), true) ||
-				MethodUtils.methodHasCollectionParameter(m)) {
-			return false;
+	public static CliMethodCompatibilityResult methodIsCliCompatible(Method m) {
+		if (!m.getDeclaringClass().isAnnotationPresent(Cli.BuilderApiNode.class)) {
+			return new CliMethodCompatibilityResult(false, "@BuilderApiNode missing on enclosing class");
+		} else if (m.isAnnotationPresent(Cli.ExcludeApi.class)) {
+			return new CliMethodCompatibilityResult(false, "Compatibility check failed: @ExcludeApi present");
+		} else if (BeanUtils.isBeanMethod(m, m.getDeclaringClass(), allOf(Visibility.class), true)) {
+			return new CliMethodCompatibilityResult(false, "Compatibility check failed: actually a bean method");
+		} else if (MethodUtils.methodHasCollectionParameter(m)) {
+			return new CliMethodCompatibilityResult(false, "Compatibility check failed: collection parameter present");
 		}
 		@SuppressWarnings("unchecked")
 		Class<String>[] stringParameters = new Class[m.getParameterTypes().length];
 		Arrays.fill(stringParameters, String.class);
-		return MethodUtils.isMethodCompatible(m, allOf(LookupMode.class), stringParameters);
+		if (!MethodUtils.isMethodCompatible(m, allOf(LookupMode.class), stringParameters)) {
+			return new CliMethodCompatibilityResult(false, "Compatibility check failed: parameters not compatible");
+		}
+		return new CliMethodCompatibilityResult(true);
 	}
 	
 	@NotNull

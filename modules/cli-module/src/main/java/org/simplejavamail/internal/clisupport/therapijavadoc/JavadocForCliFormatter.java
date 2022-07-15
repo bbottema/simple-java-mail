@@ -92,7 +92,7 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 		
 		if (m != null) {
 			final Class<?> apiNode = m.getDeclaringClass();
-			final boolean isCliCompatible = BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(m);
+			final boolean isCliCompatible = BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(m).isCompatible();
 			String result = (isCliCompatible)
 					? String.format("@|%s %s|@", OPTION_STYLE, BuilderApiToPicocliCommandsMapper.determineCliOptionName(apiNode, m))
 					: formatMethodReference("java-only method @|italic,faint ", m, "|@");
