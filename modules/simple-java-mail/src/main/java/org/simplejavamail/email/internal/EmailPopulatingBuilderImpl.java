@@ -1773,7 +1773,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * Delegates to {@link EmailPopulatingBuilder#signWithDomainKey(byte[], String, String)}.
+	 * @see EmailPopulatingBuilder#signWithDomainKey(String, String, String)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
@@ -1783,7 +1783,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * Delegates to {@link EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)}.
+	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
@@ -1797,7 +1797,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * Delegates to {@link EmailPopulatingBuilder#signWithDomainKey(byte[], String, String)}.
+	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
 	 */
 	@Override
 	public EmailPopulatingBuilder signWithDomainKey(@NotNull final InputStream dkimPrivateKeyInputStream, @NotNull final String signingDomain,

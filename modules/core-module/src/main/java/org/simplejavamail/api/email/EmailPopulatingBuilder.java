@@ -1080,7 +1080,7 @@ public interface EmailPopulatingBuilder {
 	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
 	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
 	 *
-	 * @see #withAttachment(String, DataSource)
+	 * @see #withAttachment(String, DataSource, String, ContentTransferEncoding)
 	 * @see #withAttachments(List)
 	 */
 	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull byte[] data, @NotNull String mimetype, @Nullable String description, @Nullable ContentTransferEncoding contentTransferEncoding);
@@ -1116,7 +1116,7 @@ public interface EmailPopulatingBuilder {
 	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
 	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
 	 *
-	 * @see #withAttachment(String, byte[], String)
+	 * @see #withAttachment(String, DataSource, String, ContentTransferEncoding)
 	 * @see #withAttachments(List)
 	 */
 	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding);

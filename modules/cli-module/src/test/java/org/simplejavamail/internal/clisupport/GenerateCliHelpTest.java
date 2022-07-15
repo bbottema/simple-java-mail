@@ -14,6 +14,7 @@ public class GenerateCliHelpTest {
 
 	@Before
 	public void setUpStreams() {
+		System.out.println("GenerateCliHelpTest.setUpStreams(): DISABLING System.out during CLI debug logging");
 		sysOut = System.out;
 		System.setOut(new PrintStream(outContent));
 	}
