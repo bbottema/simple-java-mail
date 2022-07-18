@@ -28,7 +28,6 @@ import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
-import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
