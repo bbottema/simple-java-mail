@@ -149,8 +149,8 @@ public class EmailConverterTest {
 		SecureTestDataHelper.runTestWithSecureTestData(passwords -> {
 			String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/nested-empty-outlook-msg/Outlook msg with empty nested msg attachment.msg";
 			Email email = EmailConverter.outlookMsgToEmail(new File(fileNameMsg));
-			assertThat(email.getAttachments()).isEmpty();
-			assertThat(email.getDecryptedAttachments()).isEmpty();
+			EmailAssert.assertThat(email).hasNoAttachments();
+			EmailAssert.assertThat(email).hasNoDecryptedAttachments();
 		});
 	}
 
