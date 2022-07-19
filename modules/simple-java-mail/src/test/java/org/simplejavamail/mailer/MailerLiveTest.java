@@ -2,7 +2,6 @@ package org.simplejavamail.mailer;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.internet.MimeUtility;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -468,12 +467,8 @@ public class MailerLiveTest {
 		EmailAssert.assertThat(receivedReplyToReply).hasOnlyRecipients(new Recipient("Moo Shmoo", "dummy@domain.com", TO));
 		assertThat(receivedReplyToReply.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailReplyPopulatingBuilder.getId())));
 
-		// FIXME revert this to folded check?
-		assertThat(receivedReplyToReply.getHeaders()).contains(entry("References",
-				singletonList(format("%s %s",
-						receivedEmailPopulatingBuilder.getId(),
-						receivedEmailReplyPopulatingBuilder.getId()))
-		));
+		val references = format("%s %s", receivedEmailPopulatingBuilder.getId(), receivedEmailReplyPopulatingBuilder.getId());
+		assertThat(receivedReplyToReply.getHeaders()).contains(entry("References", singletonList(references)));
 	}
 	
 	private void assertAttachmentMetadata(AttachmentResource embeddedImg, String mimeType, String filename) {
