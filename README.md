@@ -27,7 +27,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 [v7.4.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.4.0%7Cjar) (19-July-2020)
 
 - [#407](https://github.com/bbottema/simple-java-mail/issues/407) Enhancement: Process all Outlook message headers, either copying the as-is or translating them to respective Simple Java Mail API calls
-- [#404](https://github.com/bbottema/simple-java-mail/issues/407) Minor bugfix: the new attachment's contentDescription was missing in Email.toString()
+- [#404](https://github.com/bbottema/simple-java-mail/issues/404) Minor bugfix: the new attachment's contentDescription was missing in Email.toString()
 
 
 [v7.3.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.3.0%7Cjar) (15-July-2022)

@@ -9,7 +9,7 @@ https://www.simplejavamail.org
 v7.4.0 (19-July-2020)
 
 - #407: Enhancement: Process all Outlook message headers, either copying the as-is or translating them to respective Simple Java Mail API calls
-- #407: Minor bugfix: the new attachment's contentDescription was missing in Email.toString()
+- #404: Minor bugfix: the new attachment's contentDescription was missing in Email.toString()
 
 
 v7.3.0 (15-July-2022)
