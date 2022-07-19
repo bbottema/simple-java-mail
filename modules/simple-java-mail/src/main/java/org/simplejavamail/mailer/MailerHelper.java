@@ -76,12 +76,9 @@ public class MailerHelper {
 		scanForInjectionAttack(email.getSubject(), "email.subject");
 		for (final Map.Entry<String, Collection<String>> headerEntry : email.getHeaders().entrySet()) {
 			for (final String headerValue : headerEntry.getValue()) {
-				scanForInjectionAttack(headerEntry.getKey(), "email.header.mapEntryKey");
-				if (headerEntry.getKey().equals("References")) {
-					scanForInjectionAttack(MimeUtility.unfold(headerValue), "email.header.References");
-				} else {
-					scanForInjectionAttack(headerValue, "email.header." + headerEntry.getKey());
-				}
+				// FIXME is this still needed?
+				scanForInjectionAttack(headerEntry.getKey(), "email.header.headerName");
+				scanForInjectionAttack(MimeUtility.unfold(headerValue), "email.header." + headerEntry.getKey());
 			}
 		}
 		for (final AttachmentResource attachment : email.getAttachments()) {

@@ -210,7 +210,8 @@ public final class MimeMessageParser {
 			if (!parsedComponents.headers.containsKey(header.getName())) {
 				parsedComponents.headers.put(header.getName(), new ArrayList<>());
 			}
-			parsedComponents.headers.get(header.getName()).add(header.getValue());
+			// FIXME see if we can do without this unfold
+			parsedComponents.headers.get(header.getName()).add(MimeUtility.unfold(header.getValue()));
 		} else {
 			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}

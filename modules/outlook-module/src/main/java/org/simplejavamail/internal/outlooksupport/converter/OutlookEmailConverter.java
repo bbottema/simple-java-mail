@@ -2,6 +2,7 @@ package org.simplejavamail.internal.outlooksupport.converter;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
@@ -26,7 +27,9 @@ import java.io.InputStream;
 import java.util.Map;
 
 import static java.util.Optional.ofNullable;
+import static org.simplejavamail.internal.outlooksupport.converter.HeadersToIgnore.HEADERS_TO_IGNORE;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -82,6 +85,8 @@ public class OutlookEmailConverter implements OutlookModule {
 			@NotNull final InternalEmailConverter internalEmailConverter) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(outlookMessage, "outlookMessage");
+		outlookMessage.getHeadersMap()
+				.forEach((key, value) -> value.forEach(headerValue -> parseHeader(key, MimeUtility.unfold(headerValue), builder)));
 		String fromEmail = ofNullable(outlookMessage.getFromEmail()).orElse("donotreply@unknown-from-address.net");
 		builder.from(outlookMessage.getFromName(), fromEmail);
 		builder.fixingMessageId(outlookMessage.getMessageId());
@@ -122,6 +127,28 @@ public class OutlookEmailConverter implements OutlookModule {
 		}
 
 		return new EmailFromOutlookMessage(builder, new OutlookMessageProxy(outlookMessage));
+	}
+
+	@SuppressWarnings("StatementWithEmptyBody")
+	private static void parseHeader(final String headerName, final String headerValue, final EmailPopulatingBuilder builder) {
+		if (isEmailHeader(headerName, headerValue, "Disposition-Notification-To")) {
+			builder.withDispositionNotificationTo(headerValue);
+		} else if (isEmailHeader(headerName, headerValue, "Return-Receipt-To")) {
+			builder.withReturnReceiptTo(headerValue);
+		} else if (isEmailHeader(headerName, headerValue, "Return-Path")) {
+			builder.withBounceTo(headerValue);
+		} else if (!HEADERS_TO_IGNORE.contains(headerName)) {
+			builder.withHeader(headerName, headerValue);
+		} else {
+			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
+		}
+	}
+
+	private static boolean isEmailHeader(String name, String value, String emailHeaderName) {
+		return name.equals(emailHeaderName) &&
+				!valueNullOrEmpty(value) &&
+				!valueNullOrEmpty(value.trim()) &&
+				!value.equals("<>");
 	}
 
 	private static void copyReceiversFromOutlookMessage(@NotNull EmailPopulatingBuilder builder, @NotNull OutlookMessage outlookMessage) {

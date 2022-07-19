@@ -16,7 +16,6 @@ import testutil.SecureTestDataHelper;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +23,7 @@ import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.nio.charset.Charset.defaultCharset;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
@@ -44,6 +44,7 @@ public class EmailConverterTest {
 		EmailAssert.assertThat(msg).hasSubject("Test E-Mail");
 		EmailAssert.assertThat(msg).hasOnlyRecipients(sven, niklas);
 		EmailAssert.assertThat(msg).hasNoAttachments();
+		assertThat(msg.getHeaders()).containsEntry("x-pmx-scanned", singletonList("Mail was scanned by Sophos Pure Message"));
 		assertThat(msg.getPlainText()).isNotEmpty();
 		assertThat(normalizeNewlines(msg.getHTMLText())).isEqualTo("<div dir=\"auto\">Just a test to get an email with one cc recipient.</div>\n");
 		assertThat(normalizeNewlines(msg.getPlainText())).isEqualTo("Just a test to get an email with one cc recipient.\n");

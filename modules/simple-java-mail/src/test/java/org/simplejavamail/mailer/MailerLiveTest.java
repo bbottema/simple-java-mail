@@ -4,11 +4,11 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeUtility;
 import lombok.val;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
-import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -34,7 +34,6 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.TO;
@@ -358,12 +357,17 @@ public class MailerLiveTest {
 		}
 		// Jakarta Mail defaults to 7Bit Content-Transfer-Encoding for text attachments, so we need to match that
 		if (!originalEmailPopulatingBuilder.getAttachments().isEmpty()) {
-			val attachments = originalEmailPopulatingBuilder.getAttachments().stream()
-					.map(att -> new AttachmentResource(att.getName(), att.getDataSource(), att.getDescription(), ofNullable(att.getContentTransferEncoding()).orElse(BIT7)))
-					.collect(toList());
-			originalEmailPopulatingBuilder
-					.clearAttachments()
-					.withAttachments(attachments);
+			val attachments = fixAttachmentResourcesWith7Bit(originalEmailPopulatingBuilder.getAttachments());
+			originalEmailPopulatingBuilder.clearAttachments().withAttachments(attachments);
+			((InternalEmailPopulatingBuilder) originalEmailPopulatingBuilder)
+					.clearDecryptedAttachments()
+					.withDecryptedAttachments(attachments);
+		}
+		if (!originalEmailPopulatingBuilder.getDecryptedAttachments().isEmpty()) {
+			val decryptedAttachments = fixAttachmentResourcesWith7Bit(originalEmailPopulatingBuilder.getDecryptedAttachments());
+			((InternalEmailPopulatingBuilder) originalEmailPopulatingBuilder)
+					.clearDecryptedAttachments()
+					.withDecryptedAttachments(decryptedAttachments);
 		}
 
 		if (originalEmailPopulatingBuilder.getOriginalSmimeDetails() instanceof PlainSmimeDetails) {
@@ -382,7 +386,14 @@ public class MailerLiveTest {
 
 		return receivedEmail;
 	}
-	
+
+	@NotNull
+	private List<AttachmentResource> fixAttachmentResourcesWith7Bit(final List<AttachmentResource> originalEmailPopulatingBuilder) {
+		return originalEmailPopulatingBuilder.stream()
+				.map(att -> new AttachmentResource(att.getName(), att.getDataSource(), att.getDescription(), ofNullable(att.getContentTransferEncoding()).orElse(BIT7)))
+				.collect(toList());
+	}
+
 	@Test
 	public void createMailSession_ReplyToMessage()
 			throws MessagingException, ExecutionException, InterruptedException {
@@ -457,10 +468,11 @@ public class MailerLiveTest {
 		EmailAssert.assertThat(receivedReplyToReply).hasOnlyRecipients(new Recipient("Moo Shmoo", "dummy@domain.com", TO));
 		assertThat(receivedReplyToReply.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailReplyPopulatingBuilder.getId())));
 
+		// FIXME revert this to folded check?
 		assertThat(receivedReplyToReply.getHeaders()).contains(entry("References",
-				singletonList(MimeUtility.fold("References: ".length(), format("%s\n%s",
+				singletonList(format("%s %s",
 						receivedEmailPopulatingBuilder.getId(),
-						receivedEmailReplyPopulatingBuilder.getId())))
+						receivedEmailReplyPopulatingBuilder.getId()))
 		));
 	}
 	
