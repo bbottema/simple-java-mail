@@ -1161,6 +1161,7 @@ public interface EmailPopulatingBuilder {
 	 * @see <a href="https://github.com/markenwerk/java-utils-mail-dkim">more on DKIM 2</a>
 	 * @see <a href="http://www.gettingemaildelivered.com/dkim-explained-how-to-set-up-and-use-domainkeys-identified-mail-effectively">more on DKIM 3</a>
 	 * @see <a href="https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail">more on DKIM 4</a>
+	 * @see <a href="https://github.com/bbottema/dkim-verify">List of explanations all tags in a <em>DKIM-Signature</em> header</a>
 	 * @see #signWithDomainKey(byte[], String, String)
 	 * @see #signWithDomainKey(String, String, String)
 	 * @see #signWithDomainKey(File, String, String)
