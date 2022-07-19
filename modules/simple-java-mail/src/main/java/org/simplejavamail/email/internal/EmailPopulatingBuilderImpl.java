@@ -1763,12 +1763,26 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * This is used internally.
+	 *
 	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
 	 */
 	@NotNull
 	@Override
 	public InternalEmailPopulatingBuilder withDecryptedAttachments(@NotNull final List<AttachmentResource> attachments) {
 		decryptedAttachments.addAll(attachments);
+		return this;
+	}
+
+	/**
+	 * This is used internally for testing purposed
+	 *
+	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
+	 */
+	@NotNull
+	@Override
+	public InternalEmailPopulatingBuilder clearDecryptedAttachments() {
+		decryptedAttachments.clear();
 		return this;
 	}
 	
