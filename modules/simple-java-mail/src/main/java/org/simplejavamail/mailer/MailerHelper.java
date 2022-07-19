@@ -118,10 +118,10 @@ public class MailerHelper {
 	 * @param value      Value checked for suspicious newline characters "\n", "\r" and "%0A" (as acknowledged by SMTP servers).
 	 * @param valueLabel The name of the field being checked, used for reporting exceptions.
 	 *
-	 * @see <a href="https://web.archive.org/web/20160331233647/http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security">https://web.archive.org/web/20160331233647/http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security</a>
-	 * @see <a href="https://security.stackexchange.com/a/54100/110048">https://security.stackexchange.com/a/54100/110048</a>
-	 * @see <a href="https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)">https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)</a>
-	 * @see <a href="http://cwe.mitre.org/data/definitions/93.html">http://cwe.mitre.org/data/definitions/93.html</a>
+	 * @see <a href="https://web.archive.org/web/20160331233647/http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security">Email Header Injection security</a>
+	 * @see <a href="https://security.stackexchange.com/a/54100/110048">StackExchange - What threats come from CRLF in email generation?</a>
+	 * @see <a href="https://archive.ph/NuETu">OWASP - Testing for IMAP SMTP Injection</a>
+	 * @see <a href="https://archive.ph/uReuD">CWE-93: Improper Neutralization of CRLF Sequences ('CRLF Injection')</a>
 	 */
 	private static void scanForInjectionAttack(final @Nullable String value, final String valueLabel) {
 		if (value != null && (value.contains("\n") || value.contains("\r") || value.contains("%0A"))) {
