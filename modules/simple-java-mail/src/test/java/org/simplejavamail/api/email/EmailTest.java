@@ -73,6 +73,7 @@ public class EmailTest {
 				+ "\ttext='null',\n"
 				+ "\ttextHTML='null',\n"
 				+ "\ttextCalendar='null (method: null)',\n"
+				+ "\tcontentTransferEncoding='quoted-printable',\n"
 				+ "\tsubject='null',\n"
 				+ "\trecipients=[]\n"
 				+ "}");
@@ -110,6 +111,7 @@ public class EmailTest {
 				+ "	text='We should meet up!',\n"
 				+ "	textHTML='<b>We should meet up!</b><img src='cid:thumbsup'>',\n"
 				+ "	textCalendar='Calendar text (method: ADD)',\n"
+				+ "	contentTransferEncoding='quoted-printable',\n"
 				+ "	subject='hey',\n"
 				+ "	recipients=[Recipient{name='C.Cane', address='candycane@candyshop.org', type=To}],\n"
 				+ "	applyDKIMSignature=true,\n"
