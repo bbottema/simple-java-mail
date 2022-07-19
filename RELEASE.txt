@@ -3,8 +3,14 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.3.0</version>
+    <version>7.4.0</version>
 </dependency>
+
+v7.4.0 (19-July-2020)
+
+- #407: Enhancement: Process all Outlook message headers, either copying the as-is or translating them to respective Simple Java Mail API calls
+- #407: Minor bugfix: the new attachment's contentDescription was missing in Email.toString()
+
 
 v7.3.0 (15-July-2022)
 
