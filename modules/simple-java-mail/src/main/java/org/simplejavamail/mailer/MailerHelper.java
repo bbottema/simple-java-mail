@@ -101,6 +101,14 @@ public class MailerHelper {
 			scanForInjectionAttack(email.getBounceToRecipient().getName(), "email.bounceToRecipient.name");
 			scanForInjectionAttack(email.getBounceToRecipient().getAddress(), "email.bounceToRecipient.address");
 		}
+		if (!valueNullOrEmpty(email.getDispositionNotificationTo())) {
+			scanForInjectionAttack(email.getDispositionNotificationTo().getName(), "email.dispositionNotificationTo.name");
+			scanForInjectionAttack(email.getDispositionNotificationTo().getAddress(), "email.dispositionNotificationTo.address");
+		}
+		if (!valueNullOrEmpty(email.getReturnReceiptTo())) {
+			scanForInjectionAttack(email.getReturnReceiptTo().getName(), "email.returnReceiptTo.name");
+			scanForInjectionAttack(email.getReturnReceiptTo().getAddress(), "email.returnReceiptTo.address");
+		}
 		for (final Recipient recipient : email.getRecipients()) {
 			scanForInjectionAttack(recipient.getName(), "email.recipient.name");
 			scanForInjectionAttack(recipient.getAddress(), "email.recipient.address");
