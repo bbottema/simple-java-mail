@@ -211,6 +211,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Controls whether there will be any client-sided validation, including email address validation and CRLF injection attack detection (which will be warning instead).
 	 * <p>
 	 * If set to {@code true}, this silences the client completely and just delegates all responsibility of correctness/security to the server.
+	 *
+	 * @param disableAllClientValidation Enables or disables client-side email address validation (if configured) and CRLF injection scans. Default set to
+	 *                                   {@value DEFAULT_DISABLE_ALL_CLIENTVALIDATION}.
 	 */
 	T disablingAllClientValidation(@NotNull Boolean disableAllClientValidation);
 
@@ -510,7 +513,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 
 	/**
 	 * Reverts to default value '{@value #DEFAULT_VERIFY_SERVER_IDENTITY}' for the behaviour of disabling client-sided
-	 * validations (email addresses and CLRF injection scanning).
+	 * validations (email addresses and CRLF injection scanning).
 	 *
 	 * @see #disablingAllClientValidation(Boolean)
 	 */
