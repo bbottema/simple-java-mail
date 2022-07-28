@@ -92,6 +92,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	private boolean debugLogging;
+
+	/**
+	 * @see #disablingAllClientValidation(Boolean)
+	 */
+	private boolean disableAllClientValidation;
 	
 	/**
 	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
@@ -219,6 +224,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 		this.proxyPort 								= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
 		this.proxyBridgePort 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
+		this.disableAllClientValidation				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
 		this.debugLogging 							= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
 		this.sessionTimeout 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
 		this.trustAllSSLHost 						= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
@@ -298,6 +304,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getConnectionPoolLoadBalancingStrategy(),
 				isTransportModeLoggingOnly(),
 				isDebugLogging(),
+				isDisableAllClientValidation(),
 				getSslHostsToTrust(),
 				isTrustAllSSLHost(),
 				isVerifyingServerIdentity(),
@@ -379,13 +386,22 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.proxyBridgePort = proxyBridgePort;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	@Override
 	public T withDebugLogging(@NotNull final Boolean debugLogging) {
 		this.debugLogging = debugLogging;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#disablingAllClientValidation(Boolean)
+	 */
+	@Override
+	public T disablingAllClientValidation(@NotNull final Boolean disableAllClientValidation) {
+		this.disableAllClientValidation = disableAllClientValidation;
 		return (T) this;
 	}
 	
@@ -633,6 +649,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	/**
+	 * @see MailerGenericBuilder#resetDisableAllClientValidations()
+	 */
+	@Override
+	public T resetDisableAllClientValidations() {
+		return disablingAllClientValidation(DEFAULT_DISABLE_ALL_CLIENTVALIDATION);
+	}
+
+	/**
 	 * @see MailerGenericBuilder#resetSessionTimeout()
 	 */
 	@Override
@@ -848,13 +872,21 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public Integer getProxyBridgePort() {
 		return proxyBridgePort;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#isDebugLogging()
 	 */
 	@Override
 	public boolean isDebugLogging() {
 		return debugLogging;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#isDisableAllClientValidation()
+	 */
+	@Override
+	public boolean isDisableAllClientValidation() {
+		return disableAllClientValidation;
 	}
 	
 	/**

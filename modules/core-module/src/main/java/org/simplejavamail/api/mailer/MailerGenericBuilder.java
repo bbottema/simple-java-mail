@@ -105,6 +105,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Defaults to <code>{@value}</code>, sending mails rather than just only logging the mails.
 	 */
 	boolean DEFAULT_JAVAXMAIL_DEBUG = false;
+	/**
+	 * Defaults to <code>{@value}</code>, validating emailaddresses (can be configured seperately, but this does override it) and CRLF injection detection (will arn instead).
+	 */
+	boolean DEFAULT_DISABLE_ALL_CLIENTVALIDATION = false;
 
 	/**
 	 * Changes the default for sending emails and testing server connections to asynchronous (batch mode).
@@ -202,6 +206,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @param debugLogging Enables or disables debug logging with {@code true} or {@code false}.
 	 */
 	T withDebugLogging(@NotNull Boolean debugLogging);
+
+	/**
+	 * Controls whether there will be any client-sided validation, including email address validation and CRLF injection attack detection (which will be warning instead).
+	 * <p>
+	 * If set to {@code true}, this silences the client completely and just delegates all responsibility of correctness/security to the server.
+	 */
+	T disablingAllClientValidation(@NotNull Boolean disableAllClientValidation);
 
 	/**
 	 * Controls the timeout to use when sending emails (affects socket connect-, read- and write timeouts).
@@ -498,6 +509,14 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withCustomMailer(@NotNull CustomMailer customMailer);
 
 	/**
+	 * Reverts to default value '{@value #DEFAULT_VERIFY_SERVER_IDENTITY}' for the behaviour of disabling client-sided
+	 * validations (email addresses and CLRF injection scanning).
+	 *
+	 * @see #disablingAllClientValidation(Boolean)
+	 */
+	T resetDisableAllClientValidations();
+
+	/**
 	 * Resets session time to its default ({@value DEFAULT_SESSION_TIMEOUT_MILLIS}).
 	 *
 	 * @see #withSessionTimeout(Integer)
@@ -697,6 +716,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withDebugLogging(Boolean)
 	 */
 	boolean isDebugLogging();
+
+	/**
+	 * @see #disablingAllClientValidation(Boolean)
+	 */
+	boolean isDisableAllClientValidation();
 
 	/**
 	 * @see #withSessionTimeout(Integer)

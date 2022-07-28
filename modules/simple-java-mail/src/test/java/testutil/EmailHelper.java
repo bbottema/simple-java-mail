@@ -133,12 +133,13 @@ public class EmailHelper {
 				/*10*/ROUND_ROBIN,
 				/*11*/false,
 				/*12*/false,
-				/*13*/ofNullable(hostsToTrust).orElse(Lists.emptyList()),
-				/*14*/trustAllSSLHost,
-				/*15*/verifyServerIdentity,
-				/*16*/newSingleThreadExecutor(),
-				/*17*/false,
-				/*18*/null);
+				/*13*/false,
+				/*14*/ofNullable(hostsToTrust).orElse(Lists.emptyList()),
+				/*15*/trustAllSSLHost,
+				/*16*/verifyServerIdentity,
+				/*17*/newSingleThreadExecutor(),
+				/*18*/false,
+				/*19*/null);
 	}
 
 	@NotNull
@@ -157,12 +158,13 @@ public class EmailHelper {
 			/*10*/@NotNull final LoadBalancingStrategy connectionPoolLoadBalancingStrategy,
 			/*11*/final boolean transportModeLoggingOnly,
 			/*12*/final boolean debugLogging,
-			/*13*/@NotNull final List<String> sslHostsToTrust,
-			/*14*/final boolean trustAllSSLHost,
-			/*15*/final boolean verifyingServerIdentity,
-			/*16*/@NotNull final ExecutorService executorService,
-			/*17*/final boolean isExecutorServiceUserProvided,
-			/*18*/@Nullable final CustomMailer customMailer) {
+			/*13*/final boolean disableAllClientValidation,
+			/*14*/@NotNull final List<String> sslHostsToTrust,
+			/*15*/final boolean trustAllSSLHost,
+			/*16*/final boolean verifyingServerIdentity,
+			/*17*/@NotNull final ExecutorService executorService,
+			/*18*/final boolean isExecutorServiceUserProvided,
+			/*19*/@Nullable final CustomMailer customMailer) {
 		try {
 			Constructor<?> constructor = Class.forName("org.simplejavamail.mailer.internal.OperationalConfigImpl").getDeclaredConstructors()[0];
 			constructor.setAccessible(true);
@@ -180,12 +182,13 @@ public class EmailHelper {
 					/*10*/connectionPoolLoadBalancingStrategy,
 					/*11*/transportModeLoggingOnly,
 					/*12*/debugLogging,
-					/*13*/sslHostsToTrust,
-					/*14*/trustAllSSLHost,
-					/*15*/verifyingServerIdentity,
-					/*16*/executorService,
-					/*17*/isExecutorServiceUserProvided,
-					/*18*/customMailer);
+					/*13*/disableAllClientValidation,
+					/*14*/sslHostsToTrust,
+					/*15*/trustAllSSLHost,
+					/*16*/verifyingServerIdentity,
+					/*17*/executorService,
+					/*18*/isExecutorServiceUserProvided,
+					/*19*/customMailer);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

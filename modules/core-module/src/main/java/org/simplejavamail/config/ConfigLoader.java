@@ -39,6 +39,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * <li>simplejavamail.smtp.port</li>
  * <li>simplejavamail.smtp.username</li>
  * <li>simplejavamail.smtp.password</li>
+ * <li>simplejavamail.disable.all.clientvalidation</li>
  * <li>simplejavamail.custom.sslfactory.class</li>
  * <li>simplejavamail.proxy.host</li>
  * <li>simplejavamail.proxy.port</li>
@@ -131,6 +132,7 @@ public final class ConfigLoader {
 		SMTP_PORT("simplejavamail.smtp.port"),
 		SMTP_USERNAME("simplejavamail.smtp.username"),
 		SMTP_PASSWORD("simplejavamail.smtp.password"),
+		DISABLE_ALL_CLIENTVALIDATION("simplejavamail.disable.all.clientvalidation"),
 		CUSTOM_SSLFACTORY_CLASS("simplejavamail.custom.sslfactory.class"),
 		PROXY_HOST("simplejavamail.proxy.host"),
 		PROXY_PORT("simplejavamail.proxy.port"),

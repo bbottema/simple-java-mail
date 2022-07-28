@@ -343,10 +343,11 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#validate(Email)
 	 */
 	@Override
-	@SuppressWarnings({"SameReturnValue"})
 	public boolean validate(@NotNull final Email email)
 			throws MailException {
-		return MailerHelper.validate(email, emailGovernance.getEmailValidator());
+		return operationalConfig.isDisableAllClientValidation() ?
+				MailerHelper.validateLenient(email, emailGovernance.getEmailValidator()) :
+				MailerHelper.validate(email, emailGovernance.getEmailValidator());
 	}
 
 	/**

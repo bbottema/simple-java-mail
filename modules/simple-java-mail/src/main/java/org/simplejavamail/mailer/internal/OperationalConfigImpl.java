@@ -90,7 +90,12 @@ class OperationalConfigImpl implements OperationalConfig {
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	private final boolean debugLogging;
-	
+
+	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#disablingAllClientValidation(Boolean)
+	 */
+	private final boolean disableAllClientValidation;
+
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#trustingSSLHosts(String...)
 	 */

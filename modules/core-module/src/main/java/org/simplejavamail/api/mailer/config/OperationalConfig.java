@@ -69,12 +69,17 @@ public interface OperationalConfig {
 	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
 	boolean isTransportModeLoggingOnly();
-	
+
 	/**
 	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	boolean isDebugLogging();
-	
+
+	/**
+	 * @see MailerGenericBuilder#disablingAllClientValidation(Boolean)
+	 */
+	boolean isDisableAllClientValidation();
+
 	/**
 	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */

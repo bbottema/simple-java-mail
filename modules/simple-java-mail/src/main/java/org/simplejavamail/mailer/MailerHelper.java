@@ -52,6 +52,34 @@ public class MailerHelper {
 	}
 
 	/**
+	 * Lenient validation only checks for missing fields (which implies incorrect configuration or missing data),
+	 * but only warns for invalid address and suspected CRLF injections.
+	 *
+	 * @see #validateCompleteness(Email)
+	 * @see #validateAddresses(Email, EmailValidator)
+	 * @see #scanForInjectionAttacks(Email)
+	 */
+	@SuppressWarnings({ "SameReturnValue" })
+	public static boolean validateLenient(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
+			throws MailException {
+		LOGGER.debug("validating email...");
+		MailerHelper.validateCompleteness(email);
+		try {
+			MailerHelper.validateAddresses(email, emailValidator);
+		} catch (MailInvalidAddressException e) {
+			LOGGER.warn("encountered (and ignored) invalid address: {}", e.getMessage());
+		}
+		try {
+			MailerHelper.scanForInjectionAttacks(email);
+		} catch (MailSuspiciousCRLFValueException e) {
+			LOGGER.warn("encountered (and ignored) suspected CRLF injection: {}", e.getMessage());
+		}
+		LOGGER.debug("...no blocking problems found");
+
+		return true;
+	}
+
+	/**
 	 * Checks whether:
 	 * <ol>
 	 *     <li>there are recipients</li>

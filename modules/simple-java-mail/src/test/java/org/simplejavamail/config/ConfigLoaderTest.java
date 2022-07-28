@@ -15,7 +15,6 @@ import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BINARY;
-import static org.simplejavamail.api.email.ContentTransferEncoding.QUOTED_PRINTABLE;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
@@ -30,6 +29,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NA
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DISABLE_ALL_CLIENTVALIDATION;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
@@ -186,6 +186,7 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.<Integer>getProperty(PROXY_PORT)).isEqualTo(1080);
 		assertThat(ConfigLoader.<String>getProperty(PROXY_USERNAME)).isEqualTo("username proxy");
 		assertThat(ConfigLoader.<String>getProperty(PROXY_PASSWORD)).isEqualTo("password proxy");
+		assertThat(ConfigLoader.<Boolean>getProperty(DISABLE_ALL_CLIENTVALIDATION)).isFalse();
 		assertThat(ConfigLoader.<Integer>getProperty(PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(1081);
 
 		assertThat(ConfigLoader.<String>getProperty(DEFAULT_FROM_NAME)).isEqualTo("From Default");

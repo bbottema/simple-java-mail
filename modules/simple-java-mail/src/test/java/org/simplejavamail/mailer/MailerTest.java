@@ -418,7 +418,7 @@ public class MailerTest {
 				.buildMailer();
 	}
 
-	private MailerRegularBuilderImpl createFullyConfiguredMailerBuilder(final boolean authenticateProxy, final String prefix, @Nullable final TransportStrategy transportStrategy) {
+	public static MailerRegularBuilderImpl createFullyConfiguredMailerBuilder(final boolean authenticateProxy, final String prefix, @Nullable final TransportStrategy transportStrategy) {
 		MailerRegularBuilderImpl mailerBuilder = MailerBuilder
 				.withSMTPServer(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp")
 				.verifyingServerIdentity(true)
