@@ -3,8 +3,15 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.4.0</version>
+    <version>7.5.0</version>
 </dependency>
+
+v7.5.0 (28-July-2020)
+
+- #411: Enhancement: expose validation sub steps in the MailerHelper class for the completeness check, CRLF inject scans and address validations
+- #410: Bug: CRLF injection scan missing for dispositionNotificationTo and returnReceiptTo
+- #390: Enhancement: make client sided validation optional, turning off address validation and CRLF injection detection
+
 
 v7.4.0 (19-July-2020)
 
