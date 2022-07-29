@@ -2,12 +2,17 @@ package demo;
 
 import org.simplejavamail.internal.clisupport.CliSupport;
 import org.simplejavamail.api.mailer.config.ServerConfig;
+import testutil.ModuleLoaderTestHelper;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.util.Objects.requireNonNull;
 
 public class CliDemoApp extends DemoAppBase {
-	
+
+	static {
+		// make Simple Java Mail ignore the batch module, so the JVM is never blocked from shutting down (because of the connection pool)
+		ModuleLoaderTestHelper._forceDisableBatchModule();
+	}
 	private static final String SOURCE_FOLDER = determineResourceFolder("cli-module");
 	
 	/**

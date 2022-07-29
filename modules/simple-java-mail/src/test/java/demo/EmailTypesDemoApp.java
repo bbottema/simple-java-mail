@@ -3,6 +3,7 @@ package demo;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
+import testutil.ModuleLoaderTestHelper;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -14,6 +15,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SuppressWarnings({ "WeakerAccess" })
 public class EmailTypesDemoApp extends DemoAppBase {
+
+	static {
+		// make Simple Java Mail ignore the batch module, so the JVM is never blocked from shutting down (because of the connection pool)
+		ModuleLoaderTestHelper._forceDisableBatchModule();
+	}
 
 	public static void main(final String[] args) throws IOException {
 		Mailer mailerTLS = DemoAppBase.mailerTLSBuilder.buildMailer();

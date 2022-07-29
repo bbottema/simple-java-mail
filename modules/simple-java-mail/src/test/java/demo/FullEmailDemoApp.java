@@ -8,6 +8,7 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.CalendarHelper;
+import testutil.ModuleLoaderTestHelper;
 
 import java.io.IOException;
 
@@ -18,6 +19,11 @@ import static java.nio.charset.Charset.defaultCharset;
  * Demonstration program for the Simple Java Mail framework. Just fill your gmail, password and press GO.
  */
 public class FullEmailDemoApp extends DemoAppBase {
+
+	static {
+		// make Simple Java Mail ignore the batch module, so the JVM is never blocked from shutting down (because of the connection pool)
+		ModuleLoaderTestHelper._forceDisableBatchModule();
+	}
 
 	public static void main(final String[] args) throws IOException {
 		testMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailers();

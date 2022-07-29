@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import testutil.ConfigLoaderTestHelper;
 import testutil.ImplLoader;
-import testutil.ModuleLoaderTestHelper;
 
 import static jakarta.xml.bind.DatatypeConverter.parseBase64Binary;
 
@@ -24,12 +23,10 @@ public class DemoAppBase {
 	 * If you just want to see what email is being sent, just set this to true. It won't actually connect to an SMTP server then.
 	 */
 	private static final boolean LOGGING_MODE = false;
-	
+
 	static {
 		// make Simple Java Mail ignore the properties file completely: that's there for the junit tests, not this demo.
 		ConfigLoaderTestHelper.clearConfigProperties();
-		// make Simple Java Mail ignore the batch module, so the JVM is never blocked from shutting down (because of the connection pool)
-		ModuleLoaderTestHelper._forceDisableBatchModule();
 
 		//noinspection ConstantConditions
 		if (YOUR_GMAIL_ADDRESS.equals("your_gmail_user@gmail.com")) {

@@ -16,7 +16,8 @@ public class TestConnectionDemo {
 		
 		normalConnectionTest(mailerTLS);
 		asyncConnectionTestUsingFuture(mailerTLS);
-		asyncConnectionTestUsingHandlers(mailerTLS);
+		asyncConnectionTestUsingHandlers(mailerTLS)
+				.thenRun(() -> System.exit(0));
 		
 		System.out.println("Finished in " + (System.currentTimeMillis() - now) + "ms");
 	}
@@ -44,8 +45,8 @@ public class TestConnectionDemo {
 		}
 	}
 
-	private static void asyncConnectionTestUsingHandlers(Mailer mailerTLS) {
-		mailerTLS.testConnection(true).whenComplete((result, ex) -> {
+	private static CompletableFuture<Void> asyncConnectionTestUsingHandlers(Mailer mailerTLS) {
+		return mailerTLS.testConnection(true).whenComplete((result, ex) -> {
 			if (ex != null) {
 				System.err.printf("Execution failed %s", ex);
 			} else {
