@@ -32,7 +32,7 @@ public enum ContentTransferEncoding {
 
 	public static ContentTransferEncoding byEncoder(@NotNull final String encoder) {
 		return Arrays.stream(values())
-				.filter(c -> c.encoder.equals(encoder))
+				.filter(c -> c.encoder.equalsIgnoreCase(encoder))
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("unknown content transfer encoder: " + encoder));
 	}
