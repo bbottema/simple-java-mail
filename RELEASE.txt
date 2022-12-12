@@ -3,17 +3,23 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.5.0</version>
+    <version>7.5.1</version>
 </dependency>
 
-v7.5.0 (28-July-2020)
+v7.5.1 (12-December-2022)
+
+- #416: Bug: Support encoder names regardless of their case ("base64" is the same as "BASE64")
+- #424: Maintenance: bump JMail dependency from 1.2.1 to 1.4.1
+
+
+v7.5.0 (28-July-2022)
 
 - #411: Enhancement: expose validation sub steps in the MailerHelper class for the completeness check, CRLF inject scans and address validations
 - #410: Bug: CRLF injection scan missing for dispositionNotificationTo and returnReceiptTo
 - #390: Enhancement: make client sided validation optional, turning off address validation and CRLF injection detection
 
 
-v7.4.0 (19-July-2020)
+v7.4.0 (19-July-2022)
 
 - #407: Enhancement: Process all Outlook message headers, either copying the as-is or translating them to respective Simple Java Mail API calls
 - #404: Minor bugfix: the new attachment's contentDescription was missing in Email.toString()
