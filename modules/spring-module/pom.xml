@@ -19,7 +19,7 @@
 
     <properties>
         <automaticModuleName>org.simplejavamail.spring</automaticModuleName>
-        <spring.version>[4.3.18.RELEASE,)</spring.version>
+        <spring.version>[4.3.18.RELEASE,6.0.0)</spring.version>
     </properties>
 
     <dependencies>
