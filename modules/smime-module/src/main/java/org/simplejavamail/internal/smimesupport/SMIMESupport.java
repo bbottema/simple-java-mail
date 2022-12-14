@@ -111,7 +111,7 @@ public class SMIMESupport implements SMIMEModule {
 
 		if (smimeBuilder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
 			// this is the only way for Outlook messages to know a valid signature was included
-			smimeBuilder.getOriginalSmimeDetails().completeWithSmimeSignatureValid(smimeBuilder.getSmimeSignedEmail() != null);
+			smimeBuilder.getOriginalSmimeDetails().completeWithSmimeSignatureValid(smimeBuilder.getSmimeSignedOrEncryptedEmail() != null);
 		}
 
 		return smimeBuilder;
@@ -182,7 +182,7 @@ public class SMIMESupport implements SMIMEModule {
 			final AttachmentDecryptionResult onlyAttachmentDecrypted = smimeBuilder.getDecryptedAttachmentResults().get(0);
 			if (isSmimeAttachment(onlyAttachment) && isMimeMessageAttachment(onlyAttachmentDecrypted.getAttachmentResource())) {
 				smimeBuilder.getOriginalSmimeDetails().completeWith(determineSmimeDetails(onlyAttachment));
-				smimeBuilder.setSmimeSignedEmail(onlyAttachmentDecrypted.getAttachmentResource());
+				smimeBuilder.setSmimeSignedOrEncryptedEmail(onlyAttachmentDecrypted.getAttachmentResource());
 			}
 		}
 	}

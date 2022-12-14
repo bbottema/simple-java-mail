@@ -18,7 +18,7 @@ public class SmimeParseResultBuilder implements SmimeParseResult {
 
 	@NotNull private final List<AttachmentDecryptionResult> decryptedAttachmentResults = new ArrayList<>();
 	@NotNull private final OriginalSmimeDetailsImpl originalSmimeDetails = OriginalSmimeDetailsImpl.builder().build();
-	@Nullable private AttachmentResource smimeSignedEmail;
+	@Nullable private AttachmentResource smimeSignedOrEncryptedEmail;
 
 	public void addDecryptedAttachments(@NotNull final List<AttachmentDecryptionResult> attachments) {
 		decryptedAttachmentResults.addAll(attachments);

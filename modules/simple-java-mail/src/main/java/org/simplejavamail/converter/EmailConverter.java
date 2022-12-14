@@ -267,8 +267,8 @@ public final class EmailConverter {
 	private static void handleSmimeParseResult(final InternalEmailPopulatingBuilder emailBuilder, final SmimeParseResult smimeParseResult) {
 		emailBuilder.withDecryptedAttachments(smimeParseResult.getDecryptedAttachments());
 		emailBuilder.withOriginalSmimeDetails(smimeParseResult.getOriginalSmimeDetails());
-		if (smimeParseResult.getSmimeSignedEmail() != null) {
-			emailBuilder.withSmimeSignedEmail(emlToEmail(smimeParseResult.getSmimeSignedEmail().getDataSourceInputStream()));
+		if (smimeParseResult.getSmimeSignedOrEncryptedEmail() != null) {
+			emailBuilder.withSmimeSignedEmail(emlToEmail(smimeParseResult.getSmimeSignedOrEncryptedEmail().getDataSourceInputStream()));
 		}
 	}
 

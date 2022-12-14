@@ -221,7 +221,7 @@ public class MailerLiveTest {
 				.smimeName("smime.p7m")
 				.build());
 	}
-
+	
 	@Test
 	public void createMailSession_OutlookMessageSmimeSignEncryptTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
@@ -230,9 +230,9 @@ public class MailerLiveTest {
 		builder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 		verifyReceivedOutlookEmail(email, true, true);
-
+		
 		EmailAssert.assertThat(email).wasMergedWithSmimeSignedMessage();
-
+		
 		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
 				.smimeMime("application/pkcs7-mime")
@@ -246,6 +246,32 @@ public class MailerLiveTest {
 				.smimeMicalg("sha-256")
 				.smimeSignatureValid(true)
 				.smimeSignedBy("Benny Bottema")
+				.build());
+	}
+	
+	@Test
+	public void testEncryptSendAndReceiveDecrypt()
+			throws IOException, MessagingException, ExecutionException, InterruptedException {
+		val builder = EmailHelper.createDummyEmailBuilder(null, true, true, true, false, false, false, false)
+				.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
+		
+		Email email = assertSendingEmail(builder, false, true, false, false, false);
+		
+		EmailAssert.assertThat(email).wasMergedWithSmimeSignedMessage();
+		
+		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.ENCRYPTED)
+				.smimeMime("application/pkcs7-mime")
+				.smimeType("enveloped-data")
+				.smimeName("smime.p7m")
+				.build());
+		EmailAssert.assertThat(email.getSmimeSignedEmail()).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.PLAIN)
+				.smimeMime(null)
+				.smimeProtocol(null)
+				.smimeMicalg(null)
+				.smimeSignatureValid(null)
+				.smimeSignedBy(null)
 				.build());
 	}
 
@@ -381,6 +407,17 @@ public class MailerLiveTest {
 
 		if (!skipChecksDueToSmime) { // reading a signed mail is different from building a new one
 			assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());
+		} else {
+			val originalMail = originalEmailPopulatingBuilder.buildEmail();
+			EmailAssert.assertThat(receivedEmail).hasSubject(originalMail.getSubject());
+			EmailAssert.assertThat(receivedEmail).hasFromRecipient(originalMail.getFromRecipient());
+			EmailAssert.assertThat(receivedEmail).hasOnlyRecipients(originalMail.getRecipients());
+			EmailAssert.assertThat(receivedEmail).hasHTMLText(originalMail.getHTMLText());
+			EmailAssert.assertThat(receivedEmail).hasPlainText(originalMail.getPlainText());
+			EmailAssert.assertThat(receivedEmail).hasCalendarMethod(originalMail.getCalendarMethod());
+			EmailAssert.assertThat(receivedEmail).hasCalendarText(originalMail.getCalendarText());
+			EmailAssert.assertThat(receivedEmail).hasBounceToRecipient(originalMail.getBounceToRecipient());
+			EmailAssert.assertThat(receivedEmail).hasDispositionNotificationTo(originalMail.getDispositionNotificationTo());
 		}
 
 		return receivedEmail;

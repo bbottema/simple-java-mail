@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface SmimeParseResult {
 	@NotNull OriginalSmimeDetails getOriginalSmimeDetails();
-	@Nullable AttachmentResource getSmimeSignedEmail();
+	@Nullable AttachmentResource getSmimeSignedOrEncryptedEmail();
 	@NotNull List<AttachmentDecryptionResult> getDecryptedAttachmentResults();
 	@NotNull List<AttachmentResource> getDecryptedAttachments();
 }
