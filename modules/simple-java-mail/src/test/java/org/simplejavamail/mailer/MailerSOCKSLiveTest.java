@@ -21,7 +21,7 @@ public class MailerSOCKSLiveTest {
 	private static final Integer PROXY_SERVER_PORT = 253;
 
 	@Rule
-	public final SmtpServerRule smtpServerRule = new SmtpServerRule(SMTP_SERVER_PORT);
+	public final SmtpServerRule smtpServerRule = new SmtpServerRule(SMTP_SERVER_PORT, null, null);
 	@ClassRule
 	public static final SockServerRule sockServerRule = new SockServerRule(PROXY_SERVER_PORT);
 

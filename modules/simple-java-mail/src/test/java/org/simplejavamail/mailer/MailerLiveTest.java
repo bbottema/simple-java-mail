@@ -61,16 +61,19 @@ public class MailerLiveTest {
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 
 	private static final Integer SERVER_PORT = 251;
+	
+	private static final String USERNAME = "usey";
+	private static final String PASSWORD = "passy";
 
 	@Rule
-	public final SmtpServerRule smtpServerRule = new SmtpServerRule(SERVER_PORT);
+	public final SmtpServerRule smtpServerRule = new SmtpServerRule(SERVER_PORT, "usey", "passy");
 
 	private Mailer mailer;
 
 	@Before
 	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		mailer = MailerBuilder.withSMTPServer("localhost", SERVER_PORT).buildMailer();
+		mailer = MailerBuilder.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD).buildMailer();
 	}
 	
 	@Test
@@ -141,7 +144,7 @@ public class MailerLiveTest {
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		// override the default from the @Before test
 		mailer = MailerBuilder
-				.withSMTPServer("localhost", SERVER_PORT)
+				.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
 				.signByDefaultWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein")
 				.buildMailer();
 

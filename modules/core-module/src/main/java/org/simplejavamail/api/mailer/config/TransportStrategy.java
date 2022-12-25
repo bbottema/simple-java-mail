@@ -97,11 +97,11 @@ public enum TransportStrategy {
 		}
 
 		/**
-		 * @return "mail.smtp.username"
+		 * @return "mail.smtp.user"
 		 */
 		@Override
 		public String propertyNameUsername() {
-			return "mail.smtp.username";
+			return "mail.smtp.user";
 		}
 
 		/**
@@ -258,11 +258,11 @@ public enum TransportStrategy {
 		}
 
 		/**
-		 * @return "mail.smtps.username"
+		 * @return "mail.smtps.user"
 		 */
 		@Override
 		public String propertyNameUsername() {
-			return "mail.smtps.username";
+			return "mail.smtps.user";
 		}
 
 		/**
@@ -397,11 +397,11 @@ public enum TransportStrategy {
 		}
 
 		/**
-		 * @return "mail.smtp.username"
+		 * @return "mail.smtp.user"
 		 */
 		@Override
 		public String propertyNameUsername() {
-			return "mail.smtp.username";
+			return "mail.smtp.user";
 		}
 
 		/**

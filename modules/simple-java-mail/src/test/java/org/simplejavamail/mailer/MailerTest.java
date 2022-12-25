@@ -87,7 +87,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		
-		assertThat(session.getProperty("mail.smtp.username")).isNull();
+		assertThat(session.getProperty("mail.smtp.user")).isNull();
 		assertThat(session.getProperty("mail.smtp.auth")).isNull();
 		assertThat(session.getProperty("mail.smtp.socks.host")).isNull();
 		assertThat(session.getProperty("mail.smtp.socks.port")).isNull();
@@ -125,7 +125,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
+		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("proxy host");
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1080");
@@ -150,7 +150,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
+		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
@@ -176,7 +176,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
+		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
@@ -206,7 +206,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isNull();
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
+		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
@@ -236,7 +236,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
 		
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("username smtp");
+		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
@@ -256,7 +256,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.username")).isEqualTo("overridden username smtp");
+		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("overridden username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
@@ -276,7 +276,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtps.port")).isEqualTo("25");
 		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtps");
 		assertThat(session.getProperty("mail.smtps.quitwait")).isEqualTo("false");
-		assertThat(session.getProperty("mail.smtps.username")).isEqualTo("overridden username smtp");
+		assertThat(session.getProperty("mail.smtps.user")).isEqualTo("overridden username smtp");
 		assertThat(session.getProperty("mail.smtps.auth")).isEqualTo("true");
 		assertThat(session.getProperty("extra1")).isEqualTo("overridden value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("overridden value2");
