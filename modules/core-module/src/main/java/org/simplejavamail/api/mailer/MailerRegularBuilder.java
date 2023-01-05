@@ -43,8 +43,9 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 *
 	 * @param host Optional host that defaults to pre-configured property if left empty.
 	 * @param port Optional port number that defaults to pre-configured property if left empty.
-	 * @param username Optional username that defaults to pre-configured property if left empty.
-	 * @param password Optional password that defaults to pre-configured property if left empty.
+	 * @param username Optional SMTP server username that defaults to pre-configured property if left empty.
+	 * @param password Optional SMTP server password or OAUTH2 token (in case of TransportStrategy.SMTP_OAUTH2)
+	 *                    that defaults to pre-configured property if left empty.
 	 */
 	T withSMTPServer(@Nullable String host, @Nullable Integer port, @Nullable String username, @Nullable String password);
 
@@ -93,9 +94,9 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	T withSMTPServerUsername(@Nullable String username);
 
 	/**
-	 * Sets the optional SMTP password. Will default to pre-configured property if left empty.
+	 * Sets the optional SMTP password or OAUTH2 token (in case of TransportStrategy.SMTP_OAUTH2). Will default to pre-configured property if left empty.
 	 *
-	 * @param password Optional password that defaults to pre-configured property if left empty.
+	 * @param password Optional password or OAUTH2 token that defaults to pre-configured property if left empty.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
 	T withSMTPServerPassword(@Nullable String password);
