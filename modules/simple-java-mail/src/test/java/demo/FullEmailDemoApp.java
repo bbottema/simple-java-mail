@@ -9,11 +9,13 @@ import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.CalendarHelper;
 import testutil.ModuleLoaderTestHelper;
+import testutil.ThumbsUpImage;
 
 import java.io.IOException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.nio.charset.Charset.defaultCharset;
+import static testutil.ThumbsUpImage.*;
 
 /**
  * Demonstration program for the Simple Java Mail framework. Just fill your gmail, password and press GO.

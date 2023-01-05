@@ -1,6 +1,5 @@
 package org.simplejavamail.api.email;
 
-import demo.DemoAppBase;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -10,6 +9,7 @@ import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.NamedDataSource;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
+import testutil.ThumbsUpImage;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -32,6 +32,7 @@ import static org.simplejavamail.api.email.CalendarMethod.ADD;
 import static org.simplejavamail.api.email.CalendarMethod.REPLY;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
+import static testutil.ThumbsUpImage.*;
 
 public class EmailTest {
 
@@ -97,8 +98,8 @@ public class EmailTest {
 				.withHeader("dummyHeader2", "dummyHeaderValue2")
 				.withCalendarText(CalendarMethod.ADD, "Calendar text")
 				.signWithDomainKey("dkim_key", "dkim_domain", "dkim_selector")
-				.withEmbeddedImage("the_image", DemoAppBase.produceThumbsUpImage(), "image/png")
-				.withAttachment("the_attachment", DemoAppBase.produceThumbsUpImage(), "image/png")
+				.withEmbeddedImage("the_image", produceThumbsUpImage(), "image/png")
+				.withAttachment("the_attachment", produceThumbsUpImage(), "image/png")
 				.withAttachment("described_attachment", "blah".getBytes(defaultCharset()), "text/plain", "cool description", BASE_64)
 				.buildEmail();
 
