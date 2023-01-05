@@ -14,8 +14,8 @@ public class TransportConnectionHelper {
 
     /**
      * To connect using OAuth2 authentication, we need to connect slightly differently as we can't use only Session properties and the traditional Authenticator class for
-     * providing password. Instead, <em>mail.smtp.auth</em> is set to {@code false} and the OAuth2 authenticator should take over, but this is only triggered succesfully if we
-     * provide an empty non-null password, which is only possible using the alternative {@link Transport#connect(String, String)}.
+     * providing password. Instead, <em>mail.smtp.auth</em> is set to {@code false} and Google's OAuth2 Security Provider should take over, but this is only triggered succesfully if we
+     * provide an empty non-null password, and that is only possible using the alternative {@link Transport#connect(String, String)}.
      */
     public static void connectTransport(Transport transport, Session session) throws MessagingException {
         if (session.getProperties().containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY)) {
