@@ -11,7 +11,7 @@ import java.io.InputStream;
  * Governance for all emails being sent through the current {@link org.simplejavamail.api.mailer.Mailer} instance.
  * <p>
  * In simpeler terms: this class represents actions taken or configuration used by default for each individual email sent through the current mailer. For example, you might want to S/MIME sign all
- * emails by default. You can do it manually on each email of course, but then the keystore used for this not reused.
+ * emails by default. You can do it manually on each email of course, but then the keystore used for this is not reused.
  */
 public interface EmailGovernance {
 

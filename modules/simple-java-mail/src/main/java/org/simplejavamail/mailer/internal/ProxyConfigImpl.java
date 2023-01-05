@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 
 import org.jetbrains.annotations.Nullable;
@@ -9,6 +11,8 @@ import static java.lang.String.format;
 /**
  * @see ProxyConfig
  */
+@AllArgsConstructor
+@Getter
 class ProxyConfigImpl implements ProxyConfig {
 	
 	@Nullable private final String remoteProxyHost;
@@ -16,14 +20,6 @@ class ProxyConfigImpl implements ProxyConfig {
 	@Nullable private final String username;
 	@Nullable private final String password;
 	@Nullable private final Integer proxyBridgePort;
-	
-	ProxyConfigImpl(@Nullable final String remoteProxyHost, @Nullable final Integer remoteProxyPort, @Nullable final String username, @Nullable final String password, @Nullable final Integer proxyBridgePort) {
-		this.remoteProxyHost = remoteProxyHost;
-		this.remoteProxyPort = remoteProxyPort;
-		this.username = username;
-		this.password = password;
-		this.proxyBridgePort = proxyBridgePort;
-	}
 	
 	@Override
 	public boolean requiresProxy() {
@@ -46,35 +42,5 @@ class ProxyConfigImpl implements ProxyConfig {
 			str += format(", proxy bridge @ localhost:%s", proxyBridgePort);
 		}
 		return str;
-	}
-	
-	@Override
-	@Nullable
-	public Integer getProxyBridgePort() {
-		return proxyBridgePort;
-	}
-	
-	@Override
-	@Nullable
-	public String getRemoteProxyHost() {
-		return remoteProxyHost;
-	}
-	
-	@Override
-	@Nullable
-	public Integer getRemoteProxyPort() {
-		return remoteProxyPort;
-	}
-	
-	@Override
-	@Nullable
-	public String getUsername() {
-		return username;
-	}
-	
-	@Override
-	@Nullable
-	public String getPassword() {
-		return password;
 	}
 }

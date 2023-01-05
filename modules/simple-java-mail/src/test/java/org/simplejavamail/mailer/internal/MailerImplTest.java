@@ -1,9 +1,11 @@
 package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.Session;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -14,11 +16,10 @@ import java.util.List;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
-import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
-import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
+import static org.simplejavamail.api.mailer.config.TransportStrategy.*;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.EmailHelper.createDummyOperationalConfig;
 
@@ -69,6 +70,21 @@ public class MailerImplTest {
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.trust")).isNull();
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
+	}
+
+	@Test
+	public void setPropertOAuth2Property() {
+		val serverConfig = new ServerConfigImpl("hosty", 10, "usey", "passey", null, null);
+		val mailer = new MailerImpl(serverConfig, SMTP_OAUTH2, createDummyEmailGovernance(), createEmptyProxyConfig(), null, createDummyOperationalConfig(EMPTY_LIST, true, false));
+		assertThat(mailer.getSession().getProperties().getProperty("mail.smtp.auth.mechanisms")).isEqualTo("XOAUTH2");
+	}
+
+	@Test
+	public void checkForMissingOAuth2Token() {
+		val serverConfig = new ServerConfigImpl("hosty", 10, "usey", null, null, null);
+		assertThatThrownBy(() -> new MailerImpl(serverConfig, SMTP_OAUTH2, createDummyEmailGovernance(), createEmptyProxyConfig(), null, createDummyOperationalConfig(EMPTY_LIST, true, false)))
+				.hasMessage("TransportStrategy is OAUTH2 but no OAUTH2 token provided as password")
+				.isInstanceOf(MailException.class);
 	}
 	
 	@Test

@@ -1,8 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ServerConfig;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.mailer.config.ServerConfig;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -20,8 +21,8 @@ class ServerConfigImpl implements ServerConfig {
 	@Nullable private final String customSSLFactoryClass;
 	@Nullable private final SSLSocketFactory customSSLFactoryInstance;
 
-	ServerConfigImpl(@NotNull final String host, @NotNull final Integer port, @Nullable final String username, @Nullable final String password,
-					 @Nullable final String customSSLFactoryClass, final @Nullable SSLSocketFactory customSSLFactoryInstance) {
+	ServerConfigImpl(@NotNull final String host, @NotNull final Integer port, @Nullable final String username, @Nullable final String password, @Nullable final String customSSLFactoryClass,
+			final @Nullable SSLSocketFactory customSSLFactoryInstance) {
 		this.host = host;
 		this.port = port;
 		this.username = username;

@@ -11,7 +11,12 @@ import org.simplejavamail.config.ConfigLoader;
 import javax.net.ssl.SSLSocketFactory;
 
 import static java.util.Optional.ofNullable;
-import static org.simplejavamail.config.ConfigLoader.Property.*;
+import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
+import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
+import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
+import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PORT;
+import static org.simplejavamail.config.ConfigLoader.Property.SMTP_USERNAME;
+import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.emptyAsNull;
