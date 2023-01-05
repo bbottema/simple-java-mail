@@ -31,6 +31,12 @@
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>google-oauth2-provider</artifactId>
+            <version>1.0.1</version>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- optional support modules -->
         <dependency>

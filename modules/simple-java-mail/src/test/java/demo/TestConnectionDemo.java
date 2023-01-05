@@ -10,14 +10,17 @@ import java.util.concurrent.ExecutionException;
  */
 public class TestConnectionDemo {
 	public static void main(String[] args) throws InterruptedException {
-		Mailer mailerTLS = DemoAppBase.mailerTLSBuilder.buildMailer();
+//		Mailer mailerTLS = DemoAppBase.mailerTLSBuilder.buildMailer();
 
 		long now = System.currentTimeMillis();
 		
-		normalConnectionTest(mailerTLS);
-		asyncConnectionTestUsingFuture(mailerTLS);
-		asyncConnectionTestUsingHandlers(mailerTLS)
-				.thenRun(() -> System.exit(0));
+//		normalConnectionTest(mailerTLS);
+//		asyncConnectionTestUsingFuture(mailerTLS);
+//		asyncConnectionTestUsingHandlers(mailerTLS)
+//				.thenRun(() -> System.exit(0));
+
+		Mailer mailerOAuth2 = DemoAppBase.mailerOAuth2Builder.withDebugLogging(true).buildMailer();
+		normalConnectionTest(mailerOAuth2);
 		
 		System.out.println("Finished in " + (System.currentTimeMillis() - now) + "ms");
 	}

@@ -18,7 +18,10 @@ public class DemoAppBase {
 	// if you have 2-factor login turned on, you need to generate a once-per app password
 	// https://security.google.com/settings/security/apppasswords
 	private static final String YOUR_GMAIL_PASSWORD = "<your password>";
-	
+
+	// getting this token requires a few steps, listed here: https://github.com/bbottema/simple-java-mail/issues/421#issuecomment-1371010959
+	private static final String YOUR_OAUTH2_TOKEN = "<your oauth2 token>";
+
 	/**
 	 * If you just want to see what email is being sent, just set this to true. It won't actually connect to an SMTP server then.
 	 */
@@ -34,14 +37,17 @@ public class DemoAppBase {
 		}
 	}
 
-	static final MailerRegularBuilder<?> mailerSMTPBuilder = buildMailer("smtp.gmail.com", 25, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP);
-	static final MailerRegularBuilder<?> mailerTLSBuilder = buildMailer("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP_TLS);
-	static final MailerRegularBuilder<?> mailerSSLBuilder = buildMailer("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTPS);
+	static final MailerRegularBuilder<?> mailerSMTPBuilder = buildMailer("smtp.gmail.com", 25, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, null, TransportStrategy.SMTP);
+	static final MailerRegularBuilder<?> mailerTLSBuilder = buildMailer("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, null, TransportStrategy.SMTP_TLS);
+	static final MailerRegularBuilder<?> mailerSSLBuilder = buildMailer("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, null, TransportStrategy.SMTPS);
+	static final MailerRegularBuilder<?> mailerOAuth2Builder = buildMailer("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, null, YOUR_OAUTH2_TOKEN, TransportStrategy.SMTP_OAUTH2);
 	
 	@SuppressWarnings("SameParameterValue")
-	private static MailerRegularBuilder<?> buildMailer(String host, int port, String gMailAddress, String gMailPassword, TransportStrategy strategy) {
+	private static MailerRegularBuilder<?> buildMailer(String host, int port, String gMailAddress, String gMailPassword, String oauth2token, TransportStrategy strategy) {
 		return ImplLoader.loadMailerBuilder()
-				.withSMTPServer(host, port, gMailAddress, gMailPassword)
+				.withSMTPServer(host, port, gMailAddress)
+				.withSMTPServerPassword(gMailPassword)
+				.withSMTPOAuth2Token(oauth2token)
 				.withTransportStrategy(strategy)
 				.withTransportModeLoggingOnly(LOGGING_MODE)
 				.clearProxy();

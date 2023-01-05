@@ -11,12 +11,7 @@ import org.simplejavamail.config.ConfigLoader;
 import javax.net.ssl.SSLSocketFactory;
 
 import static java.util.Optional.ofNullable;
-import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
-import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
-import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
-import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PORT;
-import static org.simplejavamail.config.ConfigLoader.Property.SMTP_USERNAME;
-import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY;
+import static org.simplejavamail.config.ConfigLoader.Property.*;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.emptyAsNull;
@@ -46,7 +41,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 * @see #withSMTPServerPassword(String)
 	 */
 	private String password;
-	
+
+	/**
+	 * @see #withSMTPOAuth2Token(String)
+	 */
+	private String oauth2Token;
+
 	/**
 	 * @see #withTransportStrategy(TransportStrategy)
 	 */
@@ -85,6 +85,9 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		if (hasProperty(SMTP_PASSWORD)) {
 			withSMTPServerPassword(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(SMTP_PASSWORD)));
 		}
+		if (hasProperty(SMTP_OAUTH2_TOKEN)) {
+			withSMTPOAuth2Token(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(SMTP_OAUTH2_TOKEN)));
+		}
 		this.transportStrategy = TransportStrategy.SMTP;
 		if (hasProperty(TRANSPORT_STRATEGY)) {
 			withTransportStrategy(verifyNonnullOrEmpty(ConfigLoader.getProperty(TRANSPORT_STRATEGY)));
@@ -102,7 +105,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		this.transportStrategy = transportStrategy;
 		return this;
 	}
-	
+
 	/**
 	 * @see MailerRegularBuilder#withSMTPServer(String, Integer, String, String)
 	 */
@@ -112,6 +115,17 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 				.withSMTPServerPort(port)
 				.withSMTPServerUsername(emptyAsNull(username))
 				.withSMTPServerPassword(emptyAsNull(password));
+	}
+
+	/**
+	 * @see MailerRegularBuilder#withSMTPServerOAuth2(String, Integer, String, String)
+	 */
+	@Override
+	public MailerRegularBuilderImpl withSMTPServerOAuth2(@Nullable final String host, @Nullable final Integer port, @Nullable final String username, @Nullable final String oauth2Token) {
+		return withSMTPServerHost(host)
+				.withSMTPServerPort(port)
+				.withSMTPServerUsername(emptyAsNull(username))
+				.withSMTPOAuth2Token(emptyAsNull(oauth2Token));
 	}
 	
 	/**
@@ -159,13 +173,22 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		this.username = username;
 		return this;
 	}
-	
+
 	/**
 	 * @see MailerRegularBuilder#withSMTPServerPassword(String)
 	 */
 	@Override
 	public MailerRegularBuilderImpl withSMTPServerPassword(@Nullable final String password) {
 		this.password = password;
+		return this;
+	}
+
+	/**
+	 * @see MailerRegularBuilder#withSMTPOAuth2Token(String)
+	 */
+	@Override
+	public MailerRegularBuilderImpl withSMTPOAuth2Token(@Nullable final String oauth2Token) {
+		this.oauth2Token = oauth2Token;
 		return this;
 	}
 
@@ -201,7 +224,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	ServerConfig buildServerConfig() {
 		vallidateServerConfig();
 		final int serverPort = ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
-		return new ServerConfigImpl(verifyNonnullOrEmpty(getHost()), serverPort, username, password, customSSLFactory, customSSLFactoryInstance);
+		return new ServerConfigImpl(verifyNonnullOrEmpty(getHost()), serverPort, username, password, oauth2Token, customSSLFactory, customSSLFactoryInstance);
 	}
 
 	private void vallidateServerConfig() {

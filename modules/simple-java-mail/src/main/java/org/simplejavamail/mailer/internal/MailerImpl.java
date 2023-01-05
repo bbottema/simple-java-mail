@@ -8,12 +8,9 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.Mailer;
-import org.simplejavamail.api.mailer.config.EmailGovernance;
-import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.api.mailer.config.ServerConfig;
-import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.api.mailer.config.*;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.google.code.samples.oauth2.GoogleOAuth2Provider;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
 import org.simplejavamail.mailer.MailerHelper;
@@ -21,12 +18,14 @@ import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.Security;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
@@ -167,9 +166,26 @@ public class MailerImpl implements Mailer {
 			props.putAll(ConfigLoader.getProperty(EXTRA_PROPERTIES));
 		}
 
+		if (serverConfig.getPassword() != null && serverConfig.getOAuth2Token() != null) {
+			throw new MailerException(MailerException.CANNOT_USE_BOTH_PASSWORD_AND_OAUTH2);
+		}
+
+		if (serverConfig.getOAuth2Token() != null && transportStrategy != TransportStrategy.SMTP_OAUTH2) {
+			throw new MailerException(format(MailerException.WRONG_TRANSPORTSTRATEGY_FOR_OAUTH2_TOKEN, transportStrategy));
+		}
+
+		if (transportStrategy == TransportStrategy.SMTP_OAUTH2 && serverConfig.getOAuth2Token() == null) {
+			throw new MailerException(MailerException.MISSING_OAUTH2_TOKEN);
+		}
+
 		if (serverConfig.getPassword() != null) {
 			props.put(transportStrategy.propertyNameAuthenticate(), "true");
 			return Session.getInstance(props, new SmtpAuthenticator(serverConfig));
+		} else if (serverConfig.getOAuth2Token() != null) {
+			props.put(transportStrategy.propertyNameAuthenticate(), "false");
+			props.put(TransportStrategy.OAUTH2_TOKEN_PROPERTY, serverConfig.getOAuth2Token());
+			Security.addProvider(new GoogleOAuth2Provider());
+			return Session.getInstance(props);
 		} else {
 			return Session.getInstance(props);
 		}

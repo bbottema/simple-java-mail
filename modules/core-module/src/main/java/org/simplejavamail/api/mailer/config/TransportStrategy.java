@@ -411,7 +411,7 @@ public enum TransportStrategy {
 		public String propertyNameAuthenticate() {
 			return "mail.smtp.auth";
 		}
-		
+
 		/**
 		 * @return "mail.smtp.socks.host"
 		 */
@@ -419,7 +419,7 @@ public enum TransportStrategy {
 		public String propertyNameSocksHost() {
 			return "mail.smtp.socks.host";
 		}
-		
+
 		/**
 		 * @return "mail.smtp.socks.port"
 		 */
@@ -427,7 +427,7 @@ public enum TransportStrategy {
 		public String propertyNameSocksPort() {
 			return "mail.smtp.socks.port";
 		}
-		
+
 		/**
 		 * @return "mail.smtp.connectiontimeout"
 		 */
@@ -435,7 +435,7 @@ public enum TransportStrategy {
 		public String propertyNameConnectionTimeout() {
 			return "mail.smtp.connectiontimeout";
 		}
-		
+
 		/**
 		 * @return "mail.smtp.timeout"
 		 */
@@ -451,7 +451,7 @@ public enum TransportStrategy {
 		public String propertyNameWriteTimeout() {
 			return "mail.smtp.writetimeout";
 		}
-		
+
 		/**
 		 * @return "mail.smtp.from"
 		 */
@@ -459,7 +459,7 @@ public enum TransportStrategy {
 		public String propertyNameEnvelopeFrom() {
 			return "mail.smtp.from";
 		}
-		
+
 		/**
 		 * @return "mail.smtp.ssl.trust"
 		 */
@@ -484,6 +484,135 @@ public enum TransportStrategy {
 		public String propertyNameCheckServerIdentity() {
 			return "mail.smtp.ssl.checkserveridentity";
 		}
+	},
+
+	SMTP_OAUTH2 {
+
+		/**
+		 * When no server port has been configured either through property or by builder api (Java / CLI),
+		 * port <code>{@value}</code> will be used.
+		 */
+		private static final int DEFAULT_SMTP_OAUTH_PORT = 587;
+
+		/**
+		 * @see TransportStrategy#SMTP_OAUTH2
+		 */
+		@Override
+		public Properties generateProperties() {
+			final Properties props = super.generateProperties();
+			props.put("mail.transport.protocol", "smtp");
+			props.put("mail.smtp.starttls.enable", "true");
+			props.put("mail.smtp.starttls.required", "true");
+
+			props.put("mail.smtp.sasl.enable", "true");
+			props.put("mail.smtp.sasl.mechanisms", "XOAUTH2");
+			return props;
+		}
+
+		/**
+		 * @return "mail.smtp.host"
+		 */
+		@Override
+		public String propertyNameHost() {
+			return "mail.smtp.host";
+		}
+
+		/**
+		 * @return "mail.smtp.port"
+		 */
+		@Override
+		public String propertyNamePort() {
+			return "mail.smtp.port";
+		}
+
+		/**
+		 * @return "mail.smtp.user"
+		 */
+		@Override
+		public String propertyNameUsername() {
+			return "mail.smtp.user";
+		}
+
+		/**
+		 * @return "mail.smtp.auth"
+		 */
+		@Override
+		public String propertyNameAuthenticate() {
+			return "mail.smtp.auth";
+		}
+
+		/**
+		 * @return "mail.smtp.socks.host"
+		 */
+		@Override
+		public String propertyNameSocksHost() {
+			return "mail.smtp.socks.host";
+		}
+
+		/**
+		 * @return "mail.smtp.socks.port"
+		 */
+		@Override
+		public String propertyNameSocksPort() {
+			return "mail.smtp.socks.port";
+		}
+
+		/**
+		 * @return "mail.smtp.connectiontimeout"
+		 */
+		@Override
+		public String propertyNameConnectionTimeout() {
+			return "mail.smtp.connectiontimeout";
+		}
+
+		/**
+		 * @return "mail.smtp.timeout"
+		 */
+		@Override
+		public String propertyNameTimeout() {
+			return "mail.smtp.timeout";
+		}
+
+		/**
+		 * @return "mail.smtp.writetimeout"
+		 */
+		@Override
+		public String propertyNameWriteTimeout() {
+			return "mail.smtp.writetimeout";
+		}
+
+		/**
+		 * @return "mail.smtp.from"
+		 */
+		@Override
+		public String propertyNameEnvelopeFrom() {
+			return "mail.smtp.from";
+		}
+
+		/**
+		 * @return "mail.smtp.ssl.trust"
+		 */
+		@Override
+		public String propertyNameSSLTrust() {
+			return "mail.smtp.ssl.trust";
+		}
+
+		/**
+		 * @return {@value DEFAULT_SMTP_OAUTH_PORT}
+		 * @see #DEFAULT_SMTP_OAUTH_PORT
+		 */
+		@Override
+		public int getDefaultServerPort() {
+			return DEFAULT_SMTP_OAUTH_PORT;
+		}
+
+		/**
+		 * @return "mail.smtp.ssl.checkserveridentity"
+		 */
+		@Override
+		public String propertyNameCheckServerIdentity() {
+			return "mail.smtp.ssl.checkserveridentity";
+		}
 	};
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(TransportStrategy.class);
@@ -496,6 +625,8 @@ public enum TransportStrategy {
 	 * as a custom session when sending emails.
 	 */
 	private static final String TRANSPORT_STRATEGY_MARKER = "simplejavamail.transportstrategy";
+
+	public static final String OAUTH2_TOKEN_PROPERTY = "mail.imaps.sasl.mechanisms.oauth2.oauthToken";
 	
 	/**
 	 * For internal use only.
@@ -601,11 +732,12 @@ public enum TransportStrategy {
 	}
 
 	public String toString(final Properties properties) {
-		return format("session (host: %s, port: %s, username: %s, authenticate: %s, transport: %s)",
+		return format("session (host: %s, port: %s, username: %s, authenticate: %s, oauth2: %s, transport: %s)",
 				properties.get(propertyNameHost()),
 				properties.get(propertyNamePort()),
 				properties.get(propertyNameUsername()),
 				properties.get(propertyNameAuthenticate()),
+				properties.containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY),
 				this);
 	}
 }

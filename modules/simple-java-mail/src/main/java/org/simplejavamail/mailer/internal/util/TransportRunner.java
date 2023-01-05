@@ -7,8 +7,8 @@ import jakarta.mail.Transport;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
-import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.modules.BatchModule;
 import org.slf4j.Logger;
 
 import java.util.UUID;
@@ -49,7 +49,7 @@ public class TransportRunner {
 			sendUsingConnectionPool(ModuleLoader.loadBatchModule(), clusterKey, session, stickySession, runnable);
 		} else {
 			try (Transport transport = session.getTransport()) {
-				transport.connect();
+				TransportConnectionHelper.connectTransport(transport, session);
 				runnable.run(transport);
 			} finally {
 				LOGGER.trace("closing transport");
