@@ -496,6 +496,7 @@ public enum TransportStrategy {
 
 		/**
 		 * @see TransportStrategy#SMTP_OAUTH2
+		 * @see <a href="https://javaee.github.io/javamail/OAuth2">https://javaee.github.io/javamail/OAuth2</a>
 		 */
 		@Override
 		public Properties generateProperties() {
@@ -504,8 +505,7 @@ public enum TransportStrategy {
 			props.put("mail.smtp.starttls.enable", "true");
 			props.put("mail.smtp.starttls.required", "true");
 
-			props.put("mail.smtp.sasl.enable", "true");
-			props.put("mail.smtp.sasl.mechanisms", "XOAUTH2");
+			props.put("mail.smtp.auth.mechanisms", "XOAUTH2");
 			return props;
 		}
 
@@ -626,7 +626,8 @@ public enum TransportStrategy {
 	 */
 	private static final String TRANSPORT_STRATEGY_MARKER = "simplejavamail.transportstrategy";
 
-	public static final String OAUTH2_TOKEN_PROPERTY = "mail.imaps.sasl.mechanisms.oauth2.oauthToken";
+	// FIXME is this still the right place?
+	public static final String OAUTH2_TOKEN_PROPERTY = "simplejavamail.oauth2.token";
 	
 	/**
 	 * For internal use only.

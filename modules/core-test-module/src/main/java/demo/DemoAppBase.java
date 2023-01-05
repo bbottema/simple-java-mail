@@ -13,9 +13,9 @@ public class DemoAppBase {
 
 	static final Logger LOGGER = LoggerFactory.getLogger(DemoAppBase.class);
 	
-	static final String YOUR_GMAIL_ADDRESS = "yourname@gmail.com";
+	static final String YOUR_GMAIL_ADDRESS = "your_gmail_user@gmail.com";
 	
-	// if you have 2-factor login turned on, you need to generate a once-per app password
+	// if you have 2-factor login turned on, you need to generate a once-per app password:
 	// https://security.google.com/settings/security/apppasswords
 	private static final String YOUR_GMAIL_PASSWORD = "<your password>";
 

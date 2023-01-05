@@ -43,11 +43,6 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	private String password;
 
 	/**
-	 * @see #withSMTPOAuth2Token(String)
-	 */
-	private String oauth2Token;
-
-	/**
 	 * @see #withTransportStrategy(TransportStrategy)
 	 */
 	@NotNull
@@ -85,9 +80,6 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		if (hasProperty(SMTP_PASSWORD)) {
 			withSMTPServerPassword(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(SMTP_PASSWORD)));
 		}
-		if (hasProperty(SMTP_OAUTH2_TOKEN)) {
-			withSMTPOAuth2Token(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(SMTP_OAUTH2_TOKEN)));
-		}
 		this.transportStrategy = TransportStrategy.SMTP;
 		if (hasProperty(TRANSPORT_STRATEGY)) {
 			withTransportStrategy(verifyNonnullOrEmpty(ConfigLoader.getProperty(TRANSPORT_STRATEGY)));
@@ -117,17 +109,6 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 				.withSMTPServerPassword(emptyAsNull(password));
 	}
 
-	/**
-	 * @see MailerRegularBuilder#withSMTPServerOAuth2(String, Integer, String, String)
-	 */
-	@Override
-	public MailerRegularBuilderImpl withSMTPServerOAuth2(@Nullable final String host, @Nullable final Integer port, @Nullable final String username, @Nullable final String oauth2Token) {
-		return withSMTPServerHost(host)
-				.withSMTPServerPort(port)
-				.withSMTPServerUsername(emptyAsNull(username))
-				.withSMTPOAuth2Token(emptyAsNull(oauth2Token));
-	}
-	
 	/**
 	 * @see MailerRegularBuilder#withSMTPServer(String, Integer, String)
 	 */
@@ -184,15 +165,6 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	}
 
 	/**
-	 * @see MailerRegularBuilder#withSMTPOAuth2Token(String)
-	 */
-	@Override
-	public MailerRegularBuilderImpl withSMTPOAuth2Token(@Nullable final String oauth2Token) {
-		this.oauth2Token = oauth2Token;
-		return this;
-	}
-
-	/**
 	 * @see MailerRegularBuilder#withCustomSSLFactoryClass(String)
 	 */
 	@Override
@@ -224,7 +196,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	ServerConfig buildServerConfig() {
 		vallidateServerConfig();
 		final int serverPort = ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
-		return new ServerConfigImpl(verifyNonnullOrEmpty(getHost()), serverPort, username, password, oauth2Token, customSSLFactory, customSSLFactoryInstance);
+		return new ServerConfigImpl(verifyNonnullOrEmpty(getHost()), serverPort, username, password, customSSLFactory, customSSLFactoryInstance);
 	}
 
 	private void vallidateServerConfig() {

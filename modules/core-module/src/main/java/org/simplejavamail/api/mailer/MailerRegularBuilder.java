@@ -49,17 +49,6 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	T withSMTPServer(@Nullable String host, @Nullable Integer port, @Nullable String username, @Nullable String password);
 
 	/**
-	 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)}, {@link #withSMTPServerUsername(String)} and {@link
-	 * #withSMTPOAuth2Token(String)}.
-	 *
-	 * @param host Optional host that defaults to pre-configured property if left empty.
-	 * @param port Optional port number that defaults to pre-configured property if left empty.
-	 * @param username Optional username that defaults to pre-configured property if left empty.
-	 * @param oauth2Token Optional oauth2Token that defaults to pre-configured property if left empty.
-	 */
-	T withSMTPServerOAuth2(@Nullable String host, @Nullable Integer port, @Nullable String username, @Nullable String oauth2Token);
-	
-	/**
 	 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)} and {@link #withSMTPServerUsername(String)}.
 	 *
 	 * @param host Optional host that defaults to pre-configured property if left empty.
@@ -110,14 +99,6 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
 	T withSMTPServerPassword(@Nullable String password);
-
-	/**
-	 * Sets the optional OAuth2 token. Will default to pre-configured property if left empty.
-	 *
-	 * @param oauth2Token Optional oauth2 token that defaults to pre-configured property if left empty.
-	 */
-	@Cli.ExcludeApi(reason = "API is a subset of another API method")
-	T withSMTPOAuth2Token(@Nullable String oauth2Token);
 
 	/**
 	 * Configures the session with the right property to use your own factory for obtaining SSL connections.

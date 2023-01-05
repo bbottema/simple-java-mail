@@ -10,7 +10,6 @@ public interface ServerConfig {
 	@NotNull Integer getPort();
 	@Nullable String getUsername();
 	@Nullable String getPassword();
-	@Nullable String getOAuth2Token();
 	@Nullable String getCustomSSLFactoryClass();
 	@Nullable SSLSocketFactory getCustomSSLFactoryInstance();
 }

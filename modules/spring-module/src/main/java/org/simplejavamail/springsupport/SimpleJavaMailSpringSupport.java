@@ -28,7 +28,6 @@ import java.util.Properties;
  * <li>simplejavamail.smtp.port</li>
  * <li>simplejavamail.smtp.username</li>
  * <li>simplejavamail.smtp.password</li>
- * <li>simplejavamail.smtp.oauth2token</li>
  * <li>simplejavamail.disable.all.clientvalidation</li>
  * <li>simplejavamail.proxy.host</li>
  * <li>simplejavamail.proxy.port</li>
@@ -99,7 +98,6 @@ public class SimpleJavaMailSpringSupport {
 			@Nullable @Value("${simplejavamail.smtp.port:#{null}}") final String smtpPort,
 			@Nullable @Value("${simplejavamail.smtp.username:#{null}}") final String smtpUsername,
 			@Nullable @Value("${simplejavamail.smtp.password:#{null}}") final String smtpPassword,
-			@Nullable @Value("${simplejavamail.smtp.oauth2token:#{null}}") final String oauth2token,
 			@Nullable @Value("${simplejavamail.disable.all.clientvalidation:#{null}}") final String disableAllClientValidation,
 			@Nullable @Value("${simplejavamail.custom.sslfactory.class:#{null}}") final String customSSLFactoryClass,
 			@Nullable @Value("${simplejavamail.proxy.host:#{null}}") final String proxyHost,
@@ -157,7 +155,6 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.SMTP_PORT.key(), smtpPort);
 		setNullableProperty(emailProperties, Property.SMTP_USERNAME.key(), smtpUsername);
 		setNullableProperty(emailProperties, Property.SMTP_PASSWORD.key(), smtpPassword);
-		setNullableProperty(emailProperties, Property.SMTP_OAUTH2_TOKEN.key(), oauth2token);
 		setNullableProperty(emailProperties, Property.DISABLE_ALL_CLIENTVALIDATION.key(), disableAllClientValidation);
 		setNullableProperty(emailProperties, Property.CUSTOM_SSLFACTORY_CLASS.key(), customSSLFactoryClass);
 		setNullableProperty(emailProperties, Property.PROXY_HOST.key(), proxyHost);

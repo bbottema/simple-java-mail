@@ -30,6 +30,18 @@ public class FullEmailDemoApp extends DemoAppBase {
 	}
 	
 	private static void testMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailers() throws IOException {
+		// let's try producing and then consuming a MimeMessage ->
+		Email emailNormal = produceMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailersEmail();
+		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
+		Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
+
+		mailerSMTPBuilder.buildMailer().sendMail(emailNormal);
+		mailerTLSBuilder.buildMailer().sendMail(emailNormal);
+		mailerSSLBuilder.buildMailer().sendMail(emailNormal);
+		mailerTLSBuilder.buildMailer().sendMail(emailFromMimeMessage); // should produce the exact same result as emailPopulatingBuilderNormal!
+	}
+
+	static Email produceMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailersEmail() throws IOException {
 		final String resourcesPathOnDisk = determineResourceFolder("simple-java-mail") + "/test/resources";
 
 		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailBuilder.startingBlank()
@@ -64,24 +76,16 @@ public class FullEmailDemoApp extends DemoAppBase {
 				"		<li>attachment</li>" +
 				"	</ul></li>" +
 				"</ul></p>"); // makes it alternative
-		
+
 		emailPopulatingBuilderNormal.withSubject("Email with mixed + related + alternative content (including iCalendar event)");
-		
+
 		// add two text files in different ways and a black thumbs up embedded image ->
 		emailPopulatingBuilderNormal.withAttachment("dresscode.txt", new ByteArrayDataSource("Black Tie Optional", "text/plain"));
 		emailPopulatingBuilderNormal.withAttachment("location.txt", "On the moon!".getBytes(defaultCharset()), "text/plain");
 		emailPopulatingBuilderNormal.withAttachment("special_łąąśćńółęĄŻŹĆŃÓŁĘ.txt", "doorcode: Ken sent me".getBytes(defaultCharset()), "text/plain");
 		emailPopulatingBuilderNormal.withEmbeddedImage("thumbsup", produceThumbsUpImage(), "image/png");
 		emailPopulatingBuilderNormal.withCalendarText(CalendarMethod.REQUEST, CalendarHelper.createCalendarEvent());
-		
-		// let's try producing and then consuming a MimeMessage ->
-		Email emailNormal = emailPopulatingBuilderNormal.buildEmail();
-		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
-		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 
-		mailerSMTPBuilder.buildMailer().sendMail(emailNormal);
-		mailerTLSBuilder.buildMailer().sendMail(emailNormal);
-		mailerSSLBuilder.buildMailer().sendMail(emailNormal);
-		mailerTLSBuilder.buildMailer().sendMail(emailFromMimeMessage); // should produce the exact same result as emailPopulatingBuilderNormal!
+		return emailPopulatingBuilderNormal.buildEmail();
 	}
 }

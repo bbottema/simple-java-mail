@@ -17,17 +17,15 @@ class ServerConfigImpl implements ServerConfig {
 	@NotNull private final Integer port;
 	@Nullable private final String username;
 	@Nullable private final String password;
-	@Nullable private final String oauth2Token;
 	@Nullable private final String customSSLFactoryClass;
 	@Nullable private final SSLSocketFactory customSSLFactoryInstance;
 
-	ServerConfigImpl(@NotNull final String host, @NotNull final Integer port, @Nullable final String username, @Nullable final String password, @Nullable final String oauth2Token,
+	ServerConfigImpl(@NotNull final String host, @NotNull final Integer port, @Nullable final String username, @Nullable final String password,
 					 @Nullable final String customSSLFactoryClass, final @Nullable SSLSocketFactory customSSLFactoryInstance) {
 		this.host = host;
 		this.port = port;
 		this.username = username;
 		this.password = password;
-		this.oauth2Token = oauth2Token;
 		this.customSSLFactoryClass = customSSLFactoryClass;
 		this.customSSLFactoryInstance = customSSLFactoryInstance;
 
@@ -82,15 +80,6 @@ class ServerConfigImpl implements ServerConfig {
 	@Nullable
 	public String getPassword() {
 		return password;
-	}
-
-	/**
-	 * @see ServerConfig#getOAuth2Token()
-	 */
-	@Override
-	@Nullable
-	public String getOAuth2Token() {
-		return oauth2Token;
 	}
 
 	/**

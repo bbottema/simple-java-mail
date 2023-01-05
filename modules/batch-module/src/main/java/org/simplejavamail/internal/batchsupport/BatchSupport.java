@@ -8,9 +8,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
+import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,12 +95,22 @@ public class BatchSupport implements BatchModule {
 	public LifecycleDelegatingTransport acquireTransport(@NotNull final UUID clusterKey, @NotNull final Session session, boolean stickySession) {
 		try {
 			requireNonNull(smtpConnectionPool, "Connection pool used before it was initialized. This shouldn't be possible.");
+			checkConfigureOAuth2Token(session);
 			final PoolableObject<Transport> pooledTransport = stickySession
 					? smtpConnectionPool.claimResourceFromPool(new ResourceClusterAndPoolKey<>(clusterKey, session))
 					: smtpConnectionPool.claimResourceFromCluster(clusterKey);
 			return new LifecycleDelegatingTransportImpl(pooledTransport);
 		} catch (InterruptedException e) {
 			throw new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session), e);
+		}
+	}
+
+	// since the SMTP connection pool doesn't know about Simple Java Mail,
+	// it won't know where to look for the OAUTH2 token unless we copy the property
+	private void checkConfigureOAuth2Token(Session session) {
+		if (session.getProperties().containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY)) {
+			session.getProperties().setProperty(SmtpConnectionPool.OAUTH2_TOKEN_PROPERTY,
+					session.getProperties().getProperty(TransportStrategy.OAUTH2_TOKEN_PROPERTY));
 		}
 	}
 
