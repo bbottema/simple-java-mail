@@ -4,13 +4,12 @@ import jakarta.mail.util.ByteArrayDataSource;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ModuleLoaderTestHelper;
-import testutil.ThumbsUpImage;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static testutil.ThumbsUpImage.*;
+import static testutil.ThumbsUpImage.produceThumbsUpImage;
 
 /**
  * Demonstration program for the Simple Java Mail framework. Just fill your gmail, password and press GO.

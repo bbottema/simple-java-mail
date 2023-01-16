@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.outlooksupport.internal.model;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookAttachment;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookFileAttachment;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
@@ -9,8 +11,6 @@ import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeAp
 import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeApplicationSmime;
 import org.simplejavamail.outlookmessageparser.model.OutlookSmime.OutlookSmimeMultipartSigned;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,7 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.simplejavamail.internal.outlooksupport.internal.model.OutlookSmimeProxy.*;
+import static org.simplejavamail.internal.outlooksupport.internal.model.OutlookSmimeProxy.OutlookSmimeApplicationOctetStreamProxy;
+import static org.simplejavamail.internal.outlooksupport.internal.model.OutlookSmimeProxy.OutlookSmimeApplicationSmimeProxy;
+import static org.simplejavamail.internal.outlooksupport.internal.model.OutlookSmimeProxy.OutlookSmimeMultipartSignedProxy;
 
 /**
  * @see OutlookMessage

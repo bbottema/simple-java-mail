@@ -5,6 +5,7 @@ import com.sanctionco.jmail.JMail;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
@@ -12,7 +13,6 @@ import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.File;
@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static java.lang.String.format;
+import static org.simplejavamail.config.ConfigLoader.Property;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
@@ -109,6 +110,18 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Nullable
 	private EmailValidator emailValidator;
+
+	/**
+	 * @see MailerGenericBuilder#withEmailDefaults(Email)
+	 */
+	@Nullable
+	private Email emailDefaults;
+
+	/**
+	 * @see MailerGenericBuilder#withEmailOverrides(Email)
+	 */
+	@Nullable
+	private Email emailOverrides;
 
 	/**
 	 * @see MailerGenericBuilder#signByDefaultWithSmime(Pkcs12Config)
@@ -283,7 +296,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * For internal use.
 	 */
 	EmailGovernance buildEmailGovernance() {
-		return new EmailGovernanceImpl(getEmailValidator(), getPkcs12ConfigForSmimeSigning());
+		return new EmailGovernance(getEmailValidator(), getPkcs12ConfigForSmimeSigning(), getEmailDefaults(), getEmailOverrides());
 	}
 	
 	/**
@@ -413,13 +426,31 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.sessionTimeout = sessionTimeout;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withEmailValidator(EmailValidator)
 	 */
 	@Override
 	public T withEmailValidator(@NotNull final EmailValidator emailEmailValidator) {
 		this.emailValidator = emailEmailValidator;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withEmailDefaults(Email)
+	 */
+	@Override
+	public T withEmailDefaults(@NotNull Email emailDefaults) {
+		this.emailDefaults = emailDefaults;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withEmailOverrides(Email)
+	 */
+	@Override
+	public T withEmailOverrides(@NotNull Email emailOverrides) {
+		this.emailOverrides = emailOverrides;
 		return (T) this;
 	}
 
@@ -795,6 +826,24 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	/**
+	 * @see MailerGenericBuilder#clearEmailDefaults()
+	 */
+	@Override
+	public T clearEmailDefaults() {
+		this.emailDefaults = null;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#clearEmailOverrides()
+	 */
+	@Override
+	public T clearEmailOverrides() {
+		this.emailOverrides = null;
+		return (T) this;
+	}
+
+	/**
 	 * @see MailerGenericBuilder#clearSignByDefaultWithSmime()
 	 */
 	@Override
@@ -897,7 +946,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public Integer getSessionTimeout() {
 		return sessionTimeout;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#getEmailValidator()
 	 */
@@ -905,6 +954,24 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	public EmailValidator getEmailValidator() {
 		return emailValidator;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getEmailDefaults()
+	 */
+	@Override
+	@Nullable
+	public Email getEmailDefaults() {
+		return emailDefaults;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getEmailOverrides()
+	 */
+	@Override
+	@Nullable
+	public Email getEmailOverrides() {
+		return emailOverrides;
 	}
 
 	/**

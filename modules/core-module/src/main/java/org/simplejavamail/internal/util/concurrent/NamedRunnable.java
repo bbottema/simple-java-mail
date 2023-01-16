@@ -1,7 +1,6 @@
 package org.simplejavamail.internal.util.concurrent;
 
 import lombok.RequiredArgsConstructor;
-import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 

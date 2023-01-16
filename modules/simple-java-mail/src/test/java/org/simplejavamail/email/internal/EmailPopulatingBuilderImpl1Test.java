@@ -376,8 +376,8 @@ public class EmailPopulatingBuilderImpl1Test {
 				.from("from", "2@candyshop.org")
 				.buildEmail();
 
-		assertThat(email.isUseDispositionNotificationTo()).isFalse();
-		assertThat(email.isUseReturnReceiptTo()).isFalse();
+		assertThat(email.getUseDispositionNotificationTo()).isNull();
+		assertThat(email.getUseReturnReceiptTo()).isNull();
 		assertThat(email.getDispositionNotificationTo()).isNull();
 		assertThat(email.getReturnReceiptTo()).isNull();
 	}
@@ -393,8 +393,8 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReturnReceiptTo()
 				.buildEmail();
 
-		assertThat(email.isUseDispositionNotificationTo()).isTrue();
-		assertThat(email.isUseReturnReceiptTo()).isTrue();
+		assertThat(email.getUseDispositionNotificationTo()).isTrue();
+		assertThat(email.getUseReturnReceiptTo()).isTrue();
 		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
 		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
 	}
@@ -408,8 +408,8 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReturnReceiptTo()
 				.buildEmail();
 
-		assertThat(email.isUseDispositionNotificationTo()).isTrue();
-		assertThat(email.isUseReturnReceiptTo()).isTrue();
+		assertThat(email.getUseDispositionNotificationTo()).isTrue();
+		assertThat(email.getUseReturnReceiptTo()).isTrue();
 		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
 		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
 	}
@@ -423,8 +423,8 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReturnReceiptTo("customb@candyshop.org")
 				.buildEmail();
 
-		assertThat(email.isUseDispositionNotificationTo()).isTrue();
-		assertThat(email.isUseReturnReceiptTo()).isTrue();
+		assertThat(email.getUseDispositionNotificationTo()).isTrue();
+		assertThat(email.getUseReturnReceiptTo()).isTrue();
 		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient(null, "customa@candyshop.org", null));
 		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient(null, "customb@candyshop.org", null));
 	}

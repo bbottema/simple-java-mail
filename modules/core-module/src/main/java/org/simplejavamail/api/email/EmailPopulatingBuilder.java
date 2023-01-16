@@ -1049,16 +1049,23 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withHeader(String, Object)} for each header in the provided {@code Map}.
 	 */
 	<T> EmailPopulatingBuilder withHeaders(@NotNull Map<String, Collection<T>> headers);
-	
+
 	/**
-	 * Adds a header which will be included in the email. The value is stored as a <code>String</code>.
+	 * Delegates to {@link #withHeader(String, Object, boolean)} with <em>replaceHeader</em> set to {@code false}.
+	 */
+	EmailPopulatingBuilder withHeader(@NotNull String name, @Nullable Object value);
+
+	/**
+	 * Adds a header which will be included in the email. The value is stored as a <code>String</code>. Can be directed to replace the headers collection of values.
 	 *
 	 * @param name  The name of the header. Example: <code>withHeader("X-Priority", 2)</code>
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
+	 * @param replaceHeader Whether to add the value to an existing collection of values (if any) or create a new collection with only the given value.
 	 *
 	 * @see #withHeaders(Map)
 	 */
-	EmailPopulatingBuilder withHeader(@NotNull String name, @Nullable Object value);
+	@Cli.ExcludeApi(reason = "this is a rare case, so let's not crowd the CLI with it")
+	EmailPopulatingBuilder withHeader(@NotNull String name, @Nullable Object value, boolean replaceHeader);
 
 	/**
 	 * Delegates to {@link #withAttachment(String, byte[], String, String, ContentTransferEncoding)} with null-description and no forced content transfer encoding.
@@ -1648,7 +1655,8 @@ public interface EmailPopulatingBuilder {
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
-	boolean isUseDispositionNotificationTo();
+	@Nullable
+	Boolean getUseDispositionNotificationTo();
 	
 	/**
 	 * @see #withDispositionNotificationTo()
@@ -1661,7 +1669,8 @@ public interface EmailPopulatingBuilder {
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
 	 */
-	boolean isUseReturnReceiptTo();
+	@Nullable
+	Boolean getUseReturnReceiptTo();
 	
 	/**
 	 * @see #withReturnReceiptTo()

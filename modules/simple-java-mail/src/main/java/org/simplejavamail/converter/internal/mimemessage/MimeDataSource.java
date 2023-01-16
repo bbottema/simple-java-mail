@@ -2,7 +2,6 @@ package org.simplejavamail.converter.internal.mimemessage;
 
 import jakarta.activation.DataSource;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -70,10 +70,25 @@ public class MailerLiveTest {
 
 	private Mailer mailer;
 
+	// FIXME the builder should be reusable, but it fails this test when resused as a (static) field instance
+	private static EmailPopulatingBuilder EMAIL_DEFAULTS() {
+		return EmailBuilder.startingBlank()
+			.withHeader("governanceOverrideTest1", "ignored")
+			.withHeader("governanceDefaultTest1", "defaulted");
+	}
+	private static EmailPopulatingBuilder EMAIL_OVERRIDES() {
+		return EmailBuilder.startingBlank()
+				.withHeader("governanceOverrideTest1", "overridden") // overrides header from defaults-mail
+				.withHeader("governanceOverrideTest2", "also overridden"); // overrides header from in-mail
+	}
+
 	@Before
 	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		mailer = MailerBuilder.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD).buildMailer();
+		mailer = MailerBuilder.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
+				.withEmailDefaults(EMAIL_DEFAULTS().buildEmail())
+				.withEmailOverrides(EMAIL_OVERRIDES().buildEmail())
+				.buildMailer();
 	}
 	
 	@Test
@@ -146,6 +161,8 @@ public class MailerLiveTest {
 		mailer = MailerBuilder
 				.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
 				.signByDefaultWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein")
+				.withEmailDefaults(EMAIL_DEFAULTS().buildEmail())
+				.withEmailOverrides(EMAIL_OVERRIDES().buildEmail())
 				.buildMailer();
 
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
@@ -407,6 +424,15 @@ public class MailerLiveTest {
 		if (compensateForDresscodeAttachmentNameOverrideErasure) {
 			TestDataHelper.fixDresscodeAttachment(receivedEmail);
 		}
+
+		assertThat(receivedEmail.getHeaders()).containsEntry("governanceDefaultTest1", singletonList("defaulted"));
+		assertThat(receivedEmail.getHeaders()).containsEntry("governanceOverrideTest1", singletonList("overridden"));
+		assertThat(receivedEmail.getHeaders()).containsEntry("governanceOverrideTest2", singletonList("also overridden"));
+
+		originalEmailPopulatingBuilder
+				.withHeader("governanceDefaultTest1", "defaulted", true)
+				.withHeader("governanceOverrideTest1", "overridden", true)
+				.withHeader("governanceOverrideTest2", "also overridden", true);
 
 		if (!skipChecksDueToSmime) { // reading a signed mail is different from building a new one
 			assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());

@@ -3,9 +3,9 @@ package org.simplejavamail.api.internal.clisupport.model;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeOptionsInText;
 import static org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType.EMAIL;
 import static org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType.MAILER;
+import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeOptionsInText;
 
 public class CliBuilderApiTypeTest {
 	

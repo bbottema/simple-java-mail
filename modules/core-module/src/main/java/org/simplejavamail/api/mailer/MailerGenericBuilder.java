@@ -5,6 +5,7 @@ import com.sanctionco.jmail.JMail;
 import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
@@ -242,6 +243,22 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #resetEmailValidator()
 	 */
 	T withEmailValidator(@NotNull EmailValidator emailValidator);
+
+	/**
+	 * Sets a reference {@link Email} to be used for default values on all emails coming through this <code>Mailer</code> instance.
+	 *
+	 * @param emailDefaults The email to use as defaults.
+	 * @see #clearEmailDefaults()
+	 */
+	T withEmailDefaults(@NotNull Email emailDefaults);
+
+	/**
+	 * Sets a reference {@link Email} to be used for default values on all emails coming through this <code>Mailer</code> instance.
+	 *
+	 * @param emailoverrides The email to use as defaults.
+	 * @see #clearEmailOverrides()
+	 */
+	T withEmailOverrides(@NotNull Email emailoverrides);
 
 	/**
 	 * Signs this <em>all emails by default</em> with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
@@ -655,6 +672,20 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearEmailValidator();
 
 	/**
+	 * Makes the reference {@code Email} instance <code>null</code>, meaning no defaults will be applied.
+	 *
+	 * @see #withEmailDefaults(Email)
+	 */
+	T clearEmailDefaults();
+
+	/**
+	 * Makes the reference {@code Email} instance <code>null</code>, meaning no overrides will be applied.
+	 *
+	 * @see #withEmailOverrides(Email)
+	 */
+	T clearEmailOverrides();
+
+	/**
 	 * Removes S/MIME signing, so emails won't be signed by default.
 	 *
 	 * @see #signByDefaultWithSmime(Pkcs12Config)
@@ -736,6 +767,18 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	EmailValidator getEmailValidator();
+
+	/**
+	 * @see #withEmailDefaults(Email)
+	 */
+	@Nullable
+	Email getEmailDefaults();
+
+	/**
+	 * @see #withEmailOverrides(Email)
+	 */
+	@Nullable
+	Email getEmailOverrides();
 
 	/**
 	 * @see #signByDefaultWithSmime(Pkcs12Config)

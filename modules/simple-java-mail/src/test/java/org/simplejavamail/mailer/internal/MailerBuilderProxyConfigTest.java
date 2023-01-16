@@ -1,13 +1,13 @@
 package org.simplejavamail.mailer.internal;
 
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.mailer.MailerBuilder;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.mailer.MailerBuilder;
 import testutil.ConfigLoaderTestHelper;
 
-import org.jetbrains.annotations.Nullable;
 import java.io.ByteArrayInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;

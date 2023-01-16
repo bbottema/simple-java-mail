@@ -1,8 +1,8 @@
 package org.simplejavamail.internal.util;
 
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.MailException;
 
-import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;

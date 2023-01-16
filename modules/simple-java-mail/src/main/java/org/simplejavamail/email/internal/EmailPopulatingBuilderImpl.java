@@ -6,6 +6,7 @@ import jakarta.mail.Message.RecipientType;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -279,24 +280,28 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
-	private boolean useDispositionNotificationTo;
+	@Nullable
+	private Boolean useDispositionNotificationTo;
 	
 	/**
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
+	@Nullable
 	private Recipient dispositionNotificationTo;
 	
 	/**
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
 	 */
-	private boolean useReturnReceiptTo;
+	@Nullable
+	private Boolean useReturnReceiptTo;
 	
 	/**
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
 	 */
+	@Nullable
 	private Recipient returnReceiptTo;
 
 	/**
@@ -1671,6 +1676,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 *
 	 * @see EmailPopulatingBuilder#withHeaders(Map)
 	 */
+	@Override
 	@NotNull
 	public <T> InternalEmailPopulatingBuilder withHeaders(@NotNull final Map<String, Collection<T>> headers, final boolean ignoreSmimeMessageId) {
 		for (Map.Entry<String, Collection<T>> headerEntry : headers.entrySet()) {
@@ -1688,11 +1694,23 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withHeader(@NotNull final String name, @Nullable final Object value) {
+		return withHeader(name, value, false);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withHeader(String, Object, boolean)
+	 */
+	@Override
+	public EmailPopulatingBuilder withHeader(@NotNull final String name, @Nullable final Object value, boolean replaceHeader) {
 		checkNonEmptyArgument(name, "name");
-		if (!headers.containsKey(name)) {
-			headers.put(name, new ArrayList<>());
+		headers.putIfAbsent(name, new ArrayList<>());
+		if (replaceHeader) {
+			headers.get(name).clear();
 		}
-		headers.get(name).add(value != null ? String.valueOf(value) : null);
+		val valueString = value != null ? String.valueOf(value) : null;
+		if (!headers.get(name).contains(valueString)) {
+			headers.get(name).add(valueString);
+		}
 		return this;
 	}
 
@@ -2473,10 +2491,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#isUseDispositionNotificationTo()
+	 * @see EmailPopulatingBuilder#getUseDispositionNotificationTo()
 	 */
 	@Override
-	public boolean isUseDispositionNotificationTo() {
+	@Nullable
+	public Boolean getUseDispositionNotificationTo() {
 		return useDispositionNotificationTo;
 	}
 	
@@ -2490,10 +2509,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#isUseReturnReceiptTo()
+	 * @see EmailPopulatingBuilder#getUseReturnReceiptTo()
 	 */
 	@Override
-	public boolean isUseReturnReceiptTo() {
+	@Nullable
+	public Boolean getUseReturnReceiptTo() {
 		return useReturnReceiptTo;
 	}
 	

@@ -2,7 +2,6 @@ package org.simplejavamail.internal.batchsupport;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.mail.Session;
-import jakarta.mail.Transport;
 import lombok.val;
 import org.bbottema.clusteredobjectpool.core.api.ResourceKey.ResourceClusterAndPoolKey;
 import org.bbottema.genericobjectpool.PoolableObject;
@@ -14,12 +13,12 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
+import org.simplejavamail.smtpconnectionpool.SessionTransport;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -100,7 +99,7 @@ public class BatchSupport implements BatchModule {
 		try {
 			requireNonNull(smtpConnectionPool, "Connection pool used before it was initialized. This shouldn't be possible.");
 			checkConfigureOAuth2Token(session);
-			final PoolableObject<Transport> pooledTransport = stickySession
+			final PoolableObject<SessionTransport> pooledTransport = stickySession
 					? smtpConnectionPool.claimResourceFromPool(new ResourceClusterAndPoolKey<>(clusterKey, session))
 					: smtpConnectionPool.claimResourceFromCluster(clusterKey);
 			return new LifecycleDelegatingTransportImpl(pooledTransport);

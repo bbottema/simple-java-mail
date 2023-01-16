@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
@@ -123,7 +124,8 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo(Recipient)
 	 */
-	private final boolean useDispositionNotificationTo;
+	@Nullable
+	private final Boolean useDispositionNotificationTo;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
@@ -135,7 +137,8 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
-	private final boolean useReturnReceiptTo;
+	@Nullable
+	private final Boolean useReturnReceiptTo;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
@@ -242,8 +245,8 @@ public class Email implements Serializable {
 		contentTransferEncoding = builder.getContentTransferEncoding();
 		subject = builder.getSubject();
 		
-		useDispositionNotificationTo = builder.isUseDispositionNotificationTo();
-		useReturnReceiptTo = builder.isUseReturnReceiptTo();
+		useDispositionNotificationTo = builder.getUseDispositionNotificationTo();
+		useReturnReceiptTo = builder.getUseReturnReceiptTo();
 		emailToForward = builder.getEmailToForward();
 
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
@@ -253,7 +256,7 @@ public class Email implements Serializable {
 		x509CertificateForSmimeEncryption = builder.getX509CertificateForSmimeEncryption();
 		pkcs12ConfigForSmimeSigning = builder.getPkcs12ConfigForSmimeSigning();
 
-		if (useDispositionNotificationTo && MiscUtil.valueNullOrEmpty(builder.getDispositionNotificationTo())) {
+		if (TRUE.equals(useDispositionNotificationTo) && MiscUtil.valueNullOrEmpty(builder.getDispositionNotificationTo())) {
 			//noinspection IfMayBeConditional
 			if (builder.getReplyToRecipient() != null) {
 				dispositionNotificationTo = builder.getReplyToRecipient();
@@ -264,7 +267,7 @@ public class Email implements Serializable {
 			dispositionNotificationTo = builder.getDispositionNotificationTo();
 		}
 		
-		if (useReturnReceiptTo && MiscUtil.valueNullOrEmpty(builder.getReturnReceiptTo())) {
+		if (TRUE.equals(useReturnReceiptTo) && MiscUtil.valueNullOrEmpty(builder.getReturnReceiptTo())) {
 			//noinspection IfMayBeConditional
 			if (builder.getReplyToRecipient() != null) {
 				returnReceiptTo = builder.getReplyToRecipient();
@@ -335,11 +338,11 @@ public class Email implements Serializable {
 					",\n\t\tdkimSelector=" + dkimSelector +
 					",\n\t\tdkimSigningDomain=" + dkimSigningDomain;
 		}
-		if (useDispositionNotificationTo) {
+		if (TRUE.equals(useDispositionNotificationTo)) {
 			s += ",\n\tuseDispositionNotificationTo=" + true +
 					",\n\t\tdispositionNotificationTo=" + dispositionNotificationTo;
 		}
-		if (useReturnReceiptTo) {
+		if (TRUE.equals(useReturnReceiptTo)) {
 			s += ",\n\tuseReturnReceiptTo=" + true +
 					",\n\t\treturnReceiptTo=" + returnReceiptTo;
 		}
@@ -433,7 +436,8 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo(Recipient)
 	 */
-	public boolean isUseDispositionNotificationTo() {
+	@Nullable
+	public Boolean getUseDispositionNotificationTo() {
 		return useDispositionNotificationTo;
 	}
 	
@@ -450,7 +454,8 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
-	public boolean isUseReturnReceiptTo() {
+	@Nullable
+	public Boolean getUseReturnReceiptTo() {
 		return useReturnReceiptTo;
 	}
 	

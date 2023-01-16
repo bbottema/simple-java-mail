@@ -1,9 +1,9 @@
 package org.simplejavamail.internal.clisupport;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 
-import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;

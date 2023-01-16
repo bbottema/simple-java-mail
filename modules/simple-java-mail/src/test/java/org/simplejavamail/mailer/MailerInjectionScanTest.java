@@ -18,7 +18,6 @@ import java.io.IOException;
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -51,7 +50,7 @@ public class MailerInjectionScanTest {
 				.disablingAllClientValidation(true).buildMailer()
 				.sendMail(email);
 
-		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), eq(email), any(MimeMessage.class));
+		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
 	}
 

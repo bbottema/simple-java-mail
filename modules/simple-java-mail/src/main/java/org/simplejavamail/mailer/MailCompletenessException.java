@@ -1,7 +1,5 @@
 package org.simplejavamail.mailer;
 
-import org.simplejavamail.MailException;
-
 public class MailCompletenessException extends MailValidationException {
 
 	static final String MISSING_SENDER = "Email is not valid: missing sender. Provide with emailBuilder.from(...)";

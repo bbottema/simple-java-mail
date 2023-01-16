@@ -3,7 +3,6 @@ package org.simplejavamail.api.mailer;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 /**
@@ -19,5 +18,5 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
  */
 public interface CustomMailer {
 	void testConnection(@NotNull OperationalConfig operationalConfig, @NotNull Session session);
-	void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, final Email email, @NotNull MimeMessage message);
+	void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, MimeMessage mimeMessage);
 }

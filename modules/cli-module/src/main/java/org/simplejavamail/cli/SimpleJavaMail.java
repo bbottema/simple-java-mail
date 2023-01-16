@@ -1,6 +1,6 @@
 package org.simplejavamail.cli;
 
-import static org.simplejavamail.internal.clisupport.CliSupport.*;
+import static org.simplejavamail.internal.clisupport.CliSupport.runCLI;
 
 /**
  * Entry class when using the command line interface. Wires all the args into the CLI support.

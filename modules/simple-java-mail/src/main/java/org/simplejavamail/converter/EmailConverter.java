@@ -16,6 +16,7 @@ import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
+import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.internal.InternalEmailConverterImpl;
 import org.simplejavamail.converter.internal.mimemessage.MimeDataSource;
@@ -440,14 +441,14 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Refer to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session, Pkcs12Config)}.
+	 * Refer to {@link MimeMessageProducerHelper#produceMimeMessage(Email, EmailGovernance, Session)}.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final Pkcs12Config defaultSmimeSigningStore) {
 		try {
 			return MimeMessageProducerHelper.produceMimeMessage(
 					checkNonEmptyArgument(email, "email"),
-					checkNonEmptyArgument(session, "session"),
-					checkNonEmptyArgument(defaultSmimeSigningStore, "defaultSmimeSigningStore"));
+					new EmailGovernance(null, checkNonEmptyArgument(defaultSmimeSigningStore, "defaultSmimeSigningStore"), null, null),
+					checkNonEmptyArgument(session, "session"));
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
 			throw new IllegalStateException(e.getMessage(), e);
@@ -455,14 +456,14 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session, Pkcs12Config)} with empty S/MIME signing store.
+	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, EmailGovernance, Session)} with empty S/MIME signing store.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session) {
 		try {
 			return MimeMessageProducerHelper.produceMimeMessage(
 					checkNonEmptyArgument(email, "email"),
-					checkNonEmptyArgument(session, "session"),
-					null);
+					EmailGovernance.NO_GOVERNANCE,
+					checkNonEmptyArgument(session, "session"));
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
 			throw new IllegalStateException(e.getMessage(), e);

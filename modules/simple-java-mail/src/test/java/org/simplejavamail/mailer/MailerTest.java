@@ -15,6 +15,7 @@ import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.ImmutableDelegatingSMTPMessage;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
+import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import org.simplejavamail.util.TestDataHelper;
 import org.simplejavamail.utils.mail.dkim.DkimMessage;
 import testutil.ConfigLoaderTestHelper;
@@ -34,7 +35,6 @@ import static jakarta.xml.bind.DatatypeConverter.parseBase64Binary;
 import static java.util.Calendar.APRIL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -99,13 +99,16 @@ public class MailerTest {
 		assertThat(session.getProperty("extra-properties-property2")).isNull();
 
 		assertThat(mailer.getOperationalConfig().getClusterKey()).isEqualTo(clusterKey);
-		
-		// all constructors, providing the same minimal information
-		Mailer alternative1 = MailerBuilder.withSMTPServer("host", 25).withClusterKey(clusterKey).buildMailer();
-		Mailer alternative2 = MailerBuilder.usingSession(session).withClusterKey(clusterKey).buildMailer();
-		
-		assertThat(session.getProperties()).isEqualTo(alternative1.getSession().getProperties());
-		assertThat(session.getProperties()).isEqualTo(alternative2.getSession().getProperties());
+
+		Mailer otherMailerSameSession = MailerBuilder.usingSession(session).withClusterKey(clusterKey).buildMailer();
+		assertThat(session.getProperties()).isEqualTo(otherMailerSameSession.getSession().getProperties());
+
+		Mailer otherMailerOtherSession = MailerBuilder.withSMTPServer("host", 25).withClusterKey(clusterKey).buildMailer();
+		assertThat(session.getProperties()).isNotEqualTo(otherMailerOtherSession.getSession().getProperties());
+
+		SessionBasedEmailToMimeMessageConverter.unprimeSession(session);
+		SessionBasedEmailToMimeMessageConverter.unprimeSession(otherMailerOtherSession.getSession());
+		assertThat(session.getProperties()).isEqualTo(otherMailerOtherSession.getSession().getProperties());
 	}
 	
 	@Test
@@ -398,7 +401,7 @@ public class MailerTest {
 
 		getMailerWithCustomMailer(customMailerMock).sendMail(email);
 
-		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), eq(email), any(MimeMessage.class));
+		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
 	}
 
