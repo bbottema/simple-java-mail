@@ -24,8 +24,9 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 ### Latest Progress ###
 
-[v7.7.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.7.0%7Cjar) (16-January-2023)
+[v7.7.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.7.0%7Cjar) (17-January-2023)
 
+- [#430](https://github.com/bbottema/simple-java-mail/issues/430) Enhancement: auto-reconnect (if needed) when reclaiming a Transport connection from the SMTP connection pool (to avoid needless errors)
 - [#383](https://github.com/bbottema/simple-java-mail/issues/383) Feature: be able to set defaults and overrides on the Mailer level, rather than email or global level
 
 This moves the conversion of Email to MimeMessage to after a Transport instance has been selected (in case of a cluster of SMTP servers), 

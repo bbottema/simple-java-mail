@@ -6,8 +6,9 @@ https://www.simplejavamail.org
     <version>7.7.0</version>
 </dependency>
 
-v7.7.0 (16-January-2022)
+v7.7.0 (17-January-2022)
 
+- #430: Enhancement: auto-reconnect (if needed) when reclaiming a Transport connection from the SMTP connection pool (to avoid needless errors)
 - #383: Feature: be able to set defaults and overrides on the Mailer level, rather than email or global level
 
 This moves the conversion of Email to MimeMessage to after a Transport instance has been selected (in case of a cluster of SMTP servers),
