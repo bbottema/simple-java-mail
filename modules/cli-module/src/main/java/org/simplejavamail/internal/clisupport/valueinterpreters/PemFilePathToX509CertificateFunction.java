@@ -1,9 +1,9 @@
 package org.simplejavamail.internal.clisupport.valueinterpreters;
 
 import org.bbottema.javareflection.valueconverter.IncompatibleTypeException;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.internal.util.CertificationUtil;
 
-import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.security.NoSuchProviderException;

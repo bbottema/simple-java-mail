@@ -1,9 +1,8 @@
 package org.simplejavamail.internal.dkimsupport;
 
-import org.simplejavamail.MailException;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.MailException;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 

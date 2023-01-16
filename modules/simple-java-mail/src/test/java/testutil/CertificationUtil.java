@@ -8,8 +8,8 @@ import org.bouncycastle.cms.SignerInformationVerifier;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
-
 import org.jetbrains.annotations.NotNull;
+
 import java.security.cert.X509Certificate;
 
 public class CertificationUtil {

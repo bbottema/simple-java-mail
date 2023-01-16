@@ -1,14 +1,14 @@
 package org.simplejavamail.internal.authenticatedsockssupport;
 
-import org.simplejavamail.api.mailer.config.ProxyConfig;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
+import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5client.ProxyCredentials;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5client.Socks5;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5client.SocksSocket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;

@@ -3,10 +3,10 @@ package org.simplejavamail.internal.clisupport.valueinterpreters;
 import org.bbottema.javareflection.ReflectionUtils;
 import org.bbottema.javareflection.valueconverter.IncompatibleTypeException;
 import org.bbottema.javareflection.valueconverter.ValueFunction;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.MailException;
 import org.slf4j.Logger;
 
-import org.jetbrains.annotations.NotNull;
 import java.io.File;
 
 import static org.slf4j.LoggerFactory.getLogger;

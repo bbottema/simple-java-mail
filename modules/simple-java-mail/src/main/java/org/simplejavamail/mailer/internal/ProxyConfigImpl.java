@@ -2,9 +2,8 @@ package org.simplejavamail.mailer.internal;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.simplejavamail.api.mailer.config.ProxyConfig;
-
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.mailer.config.ProxyConfig;
 
 import static java.lang.String.format;
 

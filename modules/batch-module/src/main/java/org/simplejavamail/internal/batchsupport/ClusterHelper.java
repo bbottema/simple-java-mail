@@ -1,7 +1,6 @@
 package org.simplejavamail.internal.batchsupport;
 
 import jakarta.mail.Session;
-import jakarta.mail.Transport;
 import org.bbottema.clusteredobjectpool.core.ClusterConfig;
 import org.bbottema.clusteredobjectpool.core.api.LoadBalancingStrategy;
 import org.bbottema.clusteredobjectpool.cyclingstrategies.RandomAccessLoadBalancing;
@@ -10,6 +9,7 @@ import org.bbottema.genericobjectpool.expirypolicies.TimeoutSinceLastAllocationE
 import org.bbottema.genericobjectpool.util.Timeout;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.smtpconnectionpool.SessionTransport;
 import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -34,11 +34,11 @@ final class ClusterHelper {
 		return smtpClusterConfig;
 	}
 
-	static boolean compareClusterConfig(@NotNull final OperationalConfig operationalConfig, final ClusterConfig<Session, Transport> config) {
+	static boolean compareClusterConfig(@NotNull final OperationalConfig operationalConfig, final ClusterConfig<Session, SessionTransport> config) {
 		return config.getDefaultCorePoolSize() != operationalConfig.getConnectionPoolCoreSize() ||
 				config.getDefaultMaxPoolSize() != operationalConfig.getConnectionPoolMaxSize() ||
 				config.getLoadBalancingStrategy().getClass() != determineLoadBalancingStrategy(operationalConfig).getClass() ||
-				!config.getDefaultExpirationPolicy().equals(new TimeoutSinceLastAllocationExpirationPolicy<Transport>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
+				!config.getDefaultExpirationPolicy().equals(new TimeoutSinceLastAllocationExpirationPolicy<SessionTransport>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
 	}
 
 	@SuppressWarnings("rawtypes")

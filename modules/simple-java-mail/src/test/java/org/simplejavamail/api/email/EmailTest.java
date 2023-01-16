@@ -9,14 +9,12 @@ import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.NamedDataSource;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
-import testutil.ThumbsUpImage;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -27,12 +25,13 @@ import static jakarta.mail.Message.RecipientType.BCC;
 import static java.nio.charset.Charset.defaultCharset;
 import static java.util.Calendar.APRIL;
 import static java.util.Calendar.SEPTEMBER;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.CalendarMethod.ADD;
 import static org.simplejavamail.api.email.CalendarMethod.REPLY;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
-import static testutil.ThumbsUpImage.*;
+import static testutil.ThumbsUpImage.produceThumbsUpImage;
 
 public class EmailTest {
 
@@ -342,8 +341,8 @@ public class EmailTest {
 	@SuppressWarnings("SameParameterValue")
 	private static Map<String, Collection<Object>> map(String name1, int value1, String name2, String value2) {
 		Map<String, Collection<Object>> map = new HashMap<>();
-		map.put(name1, Collections.singletonList(value1));
-		map.put(name2, Collections.singletonList(value2));
+		map.put(name1, singletonList(value1));
+		map.put(name2, singletonList(value2));
 		return map;
 	}
 
@@ -351,7 +350,7 @@ public class EmailTest {
 	@SuppressWarnings("SameParameterValue")
 	private static Map<String, Collection<Object>> map(String name1, int value1) {
 		Map<String, Collection<Object>> map = new HashMap<>();
-		map.put(name1, Collections.singletonList(value1));
+		map.put(name1, singletonList(value1));
 		return map;
 	}
 

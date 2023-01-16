@@ -1,9 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
-import org.simplejavamail.api.mailer.config.ServerConfig;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.mailer.config.ServerConfig;
 
 import javax.net.ssl.SSLSocketFactory;
 

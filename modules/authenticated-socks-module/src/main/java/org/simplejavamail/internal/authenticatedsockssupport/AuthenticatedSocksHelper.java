@@ -1,11 +1,10 @@
 package org.simplejavamail.internal.authenticatedsockssupport;
 
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5server.AnonymousSocks5ServerImpl;
 import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
-
-import org.jetbrains.annotations.NotNull;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 

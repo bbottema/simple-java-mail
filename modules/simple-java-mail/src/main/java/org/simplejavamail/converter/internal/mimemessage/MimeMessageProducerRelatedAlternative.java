@@ -6,19 +6,20 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.mailer.config.EmailGovernance;
 
-class MimeMessageProducerRelatedAlternative extends MimeMessageProducer {
+class MimeMessageProducerRelatedAlternative extends SpecializedMimeMessageProducer {
 	@Override
 	boolean compatibleWithEmail(@NotNull Email email) {
 		return !emailContainsMixedContent(email) && emailContainsRelatedContent(email) && emailContainsAlternativeContent(email);
 	}
 	
 	@Override
-	public void populateMimeMessageMultipartStructure(@NotNull MimeMessage message, @NotNull Email email) throws MessagingException {
+	public void populateMimeMessageMultipartStructure(MimeMessage message, Email email, EmailGovernance emailGovernance) throws MessagingException {
 		MultipartStructureWrapper multipartStructureWrapper = new MultipartStructureWrapper();
 		
-		MimeMessageHelper.setTexts(email, multipartStructureWrapper.multipartAlternativeMessages);
-		MimeMessageHelper.setEmbeddedImages(email, multipartStructureWrapper.multipartRootRelated);
+		MimeMessageHelper.setTexts(email, emailGovernance, multipartStructureWrapper.multipartAlternativeMessages);
+		MimeMessageHelper.setEmbeddedImages(email, emailGovernance, multipartStructureWrapper.multipartRootRelated);
 		
 		message.setContent(multipartStructureWrapper.multipartRootRelated);
 	}

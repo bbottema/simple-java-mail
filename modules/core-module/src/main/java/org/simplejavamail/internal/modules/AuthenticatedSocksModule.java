@@ -1,9 +1,8 @@
 package org.simplejavamail.internal.modules;
 
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
-
-import org.jetbrains.annotations.NotNull;
 
 public interface AuthenticatedSocksModule {
 

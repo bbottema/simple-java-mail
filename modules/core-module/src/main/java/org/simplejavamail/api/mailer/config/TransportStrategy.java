@@ -626,7 +626,12 @@ public enum TransportStrategy {
 	 */
 	private static final String TRANSPORT_STRATEGY_MARKER = "simplejavamail.transportstrategy";
 
-	// FIXME is this still the right place?
+	/**
+	 * This is used internally to keep the OAuth2 token in the Session, rather than passing the token troughout the code explicitly.
+	 * <br>
+	 * All other properties have a fixed property name in Jakarta Mail, but not for the OAuth2 token (that I'm aware of), so that's why we
+	 * manually manage this property.
+	 */
 	public static final String OAUTH2_TOKEN_PROPERTY = "simplejavamail.oauth2.token";
 	
 	/**

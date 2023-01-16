@@ -68,10 +68,10 @@ public final class EqualsHelper {
 		if (!email1.getHeaders().equals(email2.getHeaders())) {
 			return false;
 		}
-		if (email1.isUseDispositionNotificationTo() != email2.isUseDispositionNotificationTo()) {
+		if (!Objects.equals(email1.getUseDispositionNotificationTo(), email2.getUseDispositionNotificationTo())) {
 			return false;
 		}
-		if (email1.isUseReturnReceiptTo() != email2.isUseReturnReceiptTo()) {
+		if (!Objects.equals(email1.getUseReturnReceiptTo(), email2.getUseReturnReceiptTo())) {
 			return false;
 		}
 		if (!fieldIsEqual(email1.getDispositionNotificationTo(), email2.getDispositionNotificationTo(), "dispositionNotificationTo")) {

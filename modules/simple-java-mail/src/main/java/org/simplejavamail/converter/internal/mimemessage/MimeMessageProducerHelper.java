@@ -3,17 +3,15 @@ package org.simplejavamail.converter.internal.mimemessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.api.mailer.config.EmailGovernance;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * Finds a compatible {@link MimeMessageProducer} for a given Email and produces a MimeMessage accordingly.
+ * Finds a compatible {@link SpecializedMimeMessageProducer} for a given Email and produces a MimeMessage accordingly.
  * <p>
  * This way, a MimeMessage structure will always be as succinct as possible, so that email clients will never get confused due to missing parts (such
  * as no attachments in a "mixed" multipart or no embedded images in a "related" multipart).
@@ -22,7 +20,7 @@ import java.util.List;
  */
 public final class MimeMessageProducerHelper {
 	
-	private static final List<MimeMessageProducer> mimeMessageProducers = Arrays.asList(
+	private static final List<SpecializedMimeMessageProducer> mimeMessageProducers = Arrays.asList(
 			new MimeMessageProducerSimple(),
 			new MimeMessageProducerAlternative(),
 			new MimeMessageProducerRelated(),
@@ -36,12 +34,12 @@ public final class MimeMessageProducerHelper {
 	private MimeMessageProducerHelper() {
 	}
 	
-	public static MimeMessage produceMimeMessage(@NotNull Email email, @NotNull Session session, @Nullable final Pkcs12Config defaultSmimeSigningStore) throws UnsupportedEncodingException, MessagingException {
-		for (MimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
+	public static MimeMessage produceMimeMessage(final Email email, EmailGovernance emailGovernance, final Session session) throws UnsupportedEncodingException, MessagingException {
+		for (SpecializedMimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
 			if (mimeMessageProducer.compatibleWithEmail(email)) {
-				return mimeMessageProducer.populateMimeMessage(email, session, defaultSmimeSigningStore);
+				return mimeMessageProducer.populateMimeMessage(email, emailGovernance, session);
 			}
 		}
-		throw new IllegalStateException("no compatible MimeMessageProducer found for email");
+		throw new IllegalStateException("no compatible SpecializedMimeMessageProducer found for email");
 	}
 }

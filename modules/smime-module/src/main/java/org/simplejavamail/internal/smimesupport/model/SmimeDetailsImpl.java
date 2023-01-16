@@ -1,9 +1,8 @@
 package org.simplejavamail.internal.smimesupport.model;
 
-import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
 
 public class SmimeDetailsImpl implements SmimeDetails {
 	@NotNull private final String smimeMime;

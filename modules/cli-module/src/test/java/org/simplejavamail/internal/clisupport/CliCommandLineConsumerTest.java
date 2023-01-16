@@ -2,9 +2,9 @@ package org.simplejavamail.internal.clisupport;
 
 import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.model.MethodModifier;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 

@@ -1,7 +1,7 @@
 package demo;
 
-import org.simplejavamail.internal.clisupport.CliSupport;
 import org.simplejavamail.api.mailer.config.ServerConfig;
+import org.simplejavamail.internal.clisupport.CliSupport;
 import testutil.ModuleLoaderTestHelper;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;

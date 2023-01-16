@@ -9,6 +9,7 @@ import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.util.ByteArrayDataSource;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Recipient;
@@ -25,17 +26,18 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.toHexString;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
+import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -379,5 +381,25 @@ public final class MiscUtil {
 			return fullMimeType.substring(0, pos);
 		}
 		return fullMimeType;
+	}
+
+	@Nullable
+	public static <In, Out> Out orOther(In in, @Nullable In alternativeIn, @Nullable In overrideIn, Function<In, Out> inToOut) {
+		return ofNullable(overrideIn).map(inToOut)
+				.orElse(ofNullable(inToOut.apply(in))
+						.orElse(ofNullable(alternativeIn).map(inToOut).orElse(null)));
+	}
+
+	@NotNull
+	public static <In, Out> ArrayList<Out> orOtherList(In in, @Nullable In alternativeIn, @Nullable In overrideIn, Function<In, Collection<Out>> inToOutList) {
+		val listOut = new ArrayList<Out>();
+		if (overrideIn != null) {
+			listOut.addAll(inToOutList.apply(overrideIn));
+		}
+		listOut.addAll(inToOutList.apply(in));
+		if (alternativeIn != null) {
+			listOut.addAll(inToOutList.apply(alternativeIn));
+		}
+		return listOut;
 	}
 }

@@ -1,6 +1,7 @@
 package org.simplejavamail.internal.batchsupport.concurrent;
 
 import org.jetbrains.annotations.NotNull;
+
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 

@@ -14,6 +14,7 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
 import org.simplejavamail.mailer.MailerHelper;
@@ -37,11 +38,11 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
 
 /**
  * @see Mailer
- * @see org.simplejavamail.converter.internal.mimemessage.MimeMessageProducer
+ * @see SpecializedMimeMessageProducer
  */
 public class MailerImpl implements Mailer {
-	
-	private static final Logger LOGGER = LoggerFactory.getLogger(MailerImpl.class);
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MailerImpl.class);
 
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
@@ -123,7 +124,7 @@ public class MailerImpl implements Mailer {
 		this.operationalConfig = operationalConfig;
 		TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orElse(findStrategyForSession(session));
 		this.proxyServer = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
-		initSession(session, operationalConfig, effectiveTransportStrategy);
+		initSession(session, operationalConfig, emailGovernance, effectiveTransportStrategy);
 		initCluster(session, operationalConfig);
 	}
 
@@ -186,19 +187,21 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	private void initSession(@NotNull final Session session, @NotNull OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
+	static private void initSession(@NotNull final Session session, @NotNull OperationalConfig operationalConfig, @NotNull EmailGovernance emailGovernance, @Nullable final TransportStrategy transportStrategy) {
 		session.setDebug(operationalConfig.isDebugLogging());
 		session.getProperties().putAll(operationalConfig.getProperties());
 
 		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);
 		configureTrustedHosts(session, operationalConfig, transportStrategy);
 		configureServerIdentityVerification(session, operationalConfig, transportStrategy);
+
+		SessionBasedEmailToMimeMessageConverter.primeSession(session, operationalConfig, emailGovernance);
 	}
 
 	/**
 	 * Configures the {@link Session} with the same timeout for socket connection timeout, read and write timeout.
 	 */
-	private void configureSessionWithTimeout(@NotNull final Session session, final int sessionTimeout, @Nullable final TransportStrategy transportStrategy) {
+	static private void configureSessionWithTimeout(@NotNull final Session session, final int sessionTimeout, @Nullable final TransportStrategy transportStrategy) {
 		if (transportStrategy != null) {
 			// socket timeouts handling
 			final Properties sessionProperties = session.getProperties();
@@ -210,7 +213,7 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	private void configureTrustedHosts(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
+	static private void configureTrustedHosts(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
 		if (transportStrategy != null) {
 			if (operationalConfig.isTrustAllSSLHost()) {
 				session.getProperties().setProperty(transportStrategy.propertyNameSSLTrust(), "*");
@@ -231,7 +234,7 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	private void configureServerIdentityVerification(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
+	static private void configureServerIdentityVerification(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
 		if (transportStrategy != null && transportStrategy != TransportStrategy.SMTP) {
 			session.getProperties().setProperty(transportStrategy.propertyNameCheckServerIdentity(),
 					Boolean.toString(operationalConfig.isVerifyingServerIdentity()));
@@ -334,7 +337,7 @@ public class MailerImpl implements Mailer {
 	@NotNull
 	public final CompletableFuture<Void> sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (validate(email)) {
-			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, emailGovernance, session, email, proxyServer, async, operationalConfig.isTransportModeLoggingOnly(),
+			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, operationalConfig.isTransportModeLoggingOnly(),
 					smtpConnectionCounter);
 
 			if (!async) {

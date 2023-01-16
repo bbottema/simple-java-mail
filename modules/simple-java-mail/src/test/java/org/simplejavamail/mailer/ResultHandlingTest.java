@@ -5,7 +5,6 @@ import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
-import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.email.EmailBuilder;
@@ -140,7 +139,7 @@ public class ResultHandlingTest {
 		}
 
 		@Override
-		public void sendMessage(@NotNull final OperationalConfig operationalConfig, @NotNull final Session session, final Email email, @NotNull final MimeMessage message) {
+		public void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, MimeMessage mimeMessage) {
 			if (!shouldSendSuccesfully) {
 				throw new RuntimeException("simulating fail...");
 			}

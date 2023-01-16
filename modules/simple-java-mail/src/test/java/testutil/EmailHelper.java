@@ -76,6 +76,7 @@ public class EmailHelper {
 					.withHeader("dummyHeader", "dummyHeaderValue")
 					.withHeader("dummyHeader", "dummyHeaderValueSecond")
 					.withHeader("anotherDummyHeader", "anotherDummyHeaderValue")
+					.withHeader("governanceOverrideTest2", "initial value") // overriden by emailGovernance in MailerLiveTest
 					.withDispositionNotificationTo("simple@address.com")
 					.withReturnReceiptTo("Complex Email", "simple@address.com");
 		}

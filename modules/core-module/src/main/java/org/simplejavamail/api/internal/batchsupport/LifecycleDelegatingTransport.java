@@ -1,5 +1,6 @@
 package org.simplejavamail.api.internal.batchsupport;
 
+import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import org.jetbrains.annotations.NotNull;
 
@@ -8,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
  * resource has had its use for the current send-email / test-connection invocation.
  */
 public interface LifecycleDelegatingTransport {
+	@NotNull Session getSessionUsedToObtainTransport();
 	@NotNull Transport getTransport();
 	void signalTransportUsed();
 	void signalTransportFailed();

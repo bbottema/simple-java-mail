@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import java.util.Collection;
 import java.util.Map;
 
+import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -94,9 +95,9 @@ public class MailerHelper {
 			throw new MailCompletenessException(MailCompletenessException.MISSING_RECIPIENT);
 		} else if (email.getFromRecipient() == null) {
 			throw new MailCompletenessException(MailCompletenessException.MISSING_SENDER);
-		} else if (email.isUseDispositionNotificationTo() && email.getDispositionNotificationTo() == null) {
+		} else if (TRUE.equals(email.getUseDispositionNotificationTo()) && email.getDispositionNotificationTo() == null) {
 			throw new MailCompletenessException(MailCompletenessException.MISSING_DISPOSITIONNOTIFICATIONTO);
-		} else if (email.isUseReturnReceiptTo() && email.getReturnReceiptTo() == null) {
+		} else if (TRUE.equals(email.getUseReturnReceiptTo()) && email.getReturnReceiptTo() == null) {
 			throw new MailCompletenessException(MailCompletenessException.MISSING_RETURNRECEIPTTO);
 		}
 	}
@@ -128,12 +129,12 @@ public class MailerHelper {
 			if (email.getBounceToRecipient() != null && !emailValidator.isValid(email.getBounceToRecipient().getAddress())) {
 				throw new MailInvalidAddressException(format(MailInvalidAddressException.INVALID_BOUNCETO, email));
 			}
-			if (email.isUseDispositionNotificationTo()) {
+			if (TRUE.equals(email.getUseDispositionNotificationTo())) {
 				if (!emailValidator.isValid(checkNonEmptyArgument(email.getDispositionNotificationTo(), "dispositionNotificationTo").getAddress())) {
 					throw new MailInvalidAddressException(format(MailInvalidAddressException.INVALID_DISPOSITIONNOTIFICATIONTO, email));
 				}
 			}
-			if (email.isUseReturnReceiptTo()) {
+			if (TRUE.equals(email.getUseReturnReceiptTo())) {
 				if (!emailValidator.isValid(checkNonEmptyArgument(email.getReturnReceiptTo(), "returnReceiptTo").getAddress())) {
 					throw new MailInvalidAddressException(format(MailInvalidAddressException.INVALID_RETURNRECEIPTTO, email));
 				}

@@ -3,10 +3,10 @@ package org.simplejavamail.converter.internal.mimemessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.UnsupportedEncodingException;
@@ -14,6 +14,7 @@ import java.util.Date;
 
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
+import static org.simplejavamail.internal.util.MiscUtil.orOther;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
@@ -31,14 +32,14 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  *
  * @see <a href="https://github.com/bbottema/simple-java-mail/issues/144">#144: Simple Java Mail should tailor the MimeMessage structure to specific needs</a>
  */
-public abstract class MimeMessageProducer {
+public abstract class SpecializedMimeMessageProducer {
 	
 	/**
 	 * @return Whether this mimemessage producer exactly matches the needs of the given email.
 	 */
 	abstract boolean compatibleWithEmail(@NotNull Email email);
 	
-	final MimeMessage populateMimeMessage(@NotNull final Email email, @NotNull Session session, @Nullable final Pkcs12Config defaultSmimeSigningStore)
+	final MimeMessage populateMimeMessage(final Email email, final EmailGovernance emailGovernance, @NotNull Session session)
 			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
@@ -64,14 +65,14 @@ public abstract class MimeMessageProducer {
 		};
 		
 		// set basic email properties
-		MimeMessageHelper.setSubject(email, message);
-		MimeMessageHelper.setFrom(email, message);
-		MimeMessageHelper.setReplyTo(email, message);
-		MimeMessageHelper.setRecipients(email, message);
+		MimeMessageHelper.setSubject(email, emailGovernance, message);
+		MimeMessageHelper.setFrom(email, emailGovernance, message);
+		MimeMessageHelper.setReplyTo(email, emailGovernance, message);
+		MimeMessageHelper.setRecipients(email, emailGovernance, message);
 		
-		populateMimeMessageMultipartStructure(message, email);
+		populateMimeMessageMultipartStructure(message, email, emailGovernance);
 		
-		MimeMessageHelper.setHeaders(email, message);
+		MimeMessageHelper.setHeaders(email, emailGovernance, message);
 		message.setSentDate(ofNullable(email.getSentDate()).orElse(new Date()));
 
 		/*
@@ -81,22 +82,23 @@ public abstract class MimeMessageProducer {
 			3. DKIM signing
 		 */
 		if (ModuleLoader.smimeModuleAvailable()) {
-			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email, defaultSmimeSigningStore);
+			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email, emailGovernance.getPkcs12ConfigForSmimeSigning());
 		}
 
 		if (!valueNullOrEmpty(email.getDkimSigningDomain())) {
 			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, email);
 		}
 
-		if (email.getBounceToRecipient() != null) {
+		val bountToRecipient = orOther(email, emailGovernance.getEmailDefaults(), emailGovernance.getEmailOverrides(), Email::getBounceToRecipient);
+		if (bountToRecipient != null) {
 			// display name not applicable: https://tools.ietf.org/html/rfc5321#section-4.1.2
-			message = new ImmutableDelegatingSMTPMessage(message, email.getBounceToRecipient().getAddress());
+			message = new ImmutableDelegatingSMTPMessage(message, bountToRecipient.getAddress());
 		}
 
 		return message;
 	}
 
-	abstract void populateMimeMessageMultipartStructure(@NotNull MimeMessage  message, @NotNull Email email) throws MessagingException;
+	abstract void populateMimeMessageMultipartStructure(MimeMessage  message, Email email, EmailGovernance emailGovernance) throws MessagingException;
 	
 	
 	static boolean emailContainsMixedContent(@NotNull Email email) {
