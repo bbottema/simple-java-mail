@@ -1052,6 +1052,9 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withHeader(String, Object, boolean)} with <em>replaceHeader</em> set to {@code false}.
+	 *
+	 * @param name  The name of the header. Example: <code>withHeader("X-Priority", 2)</code>
+	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
 	 */
 	EmailPopulatingBuilder withHeader(@NotNull String name, @Nullable Object value);
 
