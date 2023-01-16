@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%227.6.0%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-7.6.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%227.7.0%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-7.7.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.8+-lightgray.svg)
 
@@ -18,11 +18,20 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.6.0</version>
+    <version>7.7.0</version>
 </dependency>
 ```
 
 ### Latest Progress ###
+
+[v7.7.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.7.0%7Cjar) (16-January-2023)
+
+- [#383](https://github.com/bbottema/simple-java-mail/issues/383) Feature: be able to set defaults and overrides on the Mailer level, rather than email or global level
+
+This moves the conversion of Email to MimeMessage to after a Transport instance has been selected (in case of a cluster of SMTP servers), 
+so we can apply defaults/overrides on the Mailer level, meaning you can configure 'global' values for individual SMTP servers 
+(like a fixed FROM per server).
+
 
 [v7.6.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.6.0%7Cjar) (05-January-2023)
 

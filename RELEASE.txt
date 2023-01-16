@@ -3,8 +3,17 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.6.0</version>
+    <version>7.7.0</version>
 </dependency>
+
+v7.7.0 (16-January-2022)
+
+- #383: Feature: be able to set defaults and overrides on the Mailer level, rather than email or global level
+
+This moves the conversion of Email to MimeMessage to after a Transport instance has been selected (in case of a cluster of SMTP servers),
+so we can apply defaults/overrides on the Mailer level, meaning you can configure 'global' values for individual SMTP servers
+(like a fixed FROM per server).
+
 
 v7.6.0 (05-January-2022)
 
