@@ -401,7 +401,7 @@ public class MailerTest {
 
 		getMailerWithCustomMailer(customMailerMock).sendMail(email);
 
-		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(MimeMessage.class));
+		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
 	}
 

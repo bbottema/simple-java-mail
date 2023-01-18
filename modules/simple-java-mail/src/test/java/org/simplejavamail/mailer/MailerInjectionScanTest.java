@@ -50,7 +50,7 @@ public class MailerInjectionScanTest {
 				.disablingAllClientValidation(true).buildMailer()
 				.sendMail(email);
 
-		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(MimeMessage.class));
+		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
 	}
 

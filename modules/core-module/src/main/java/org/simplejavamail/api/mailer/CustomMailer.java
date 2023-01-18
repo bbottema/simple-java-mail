@@ -3,6 +3,7 @@ package org.simplejavamail.api.mailer;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 /**
@@ -13,10 +14,11 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
  * configuring a {@code Session} instance, producing a {@code MimeMessage}, all with full S/MIME, DKIM support and everything else.
  * <p>
  * <strong>Note:</strong> in this mode, proxy support is turned off assuming it is handled by the custom mailer as well.
+ * <strong>Note:</strong> in this mode, the batch-module (SMTP cluster(s) / smtp connection pooling) won't be used either.
  *
  * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
  */
 public interface CustomMailer {
 	void testConnection(@NotNull OperationalConfig operationalConfig, @NotNull Session session);
-	void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, MimeMessage mimeMessage);
+	void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @NotNull MimeMessage message);
 }

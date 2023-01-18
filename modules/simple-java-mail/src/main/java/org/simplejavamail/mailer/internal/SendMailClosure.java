@@ -47,7 +47,7 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 				LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
 			} else if (operationalConfig.getCustomMailer() != null) {
 				val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
-				operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, message);
+				operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, email, message);
 			} else {
 				TransportRunner.sendMessage(operationalConfig.getClusterKey(), session, email);
 			}
