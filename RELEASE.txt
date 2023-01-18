@@ -3,15 +3,16 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.7.0</version>
+    <version>7.7.1</version>
 </dependency>
 
-v7.7.0 (17-January-2022)
+v7.7.0 - [v7.7.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.7.1%7Cjar)
 
-- #430: Enhancement: auto-reconnect (if needed) when reclaiming a Transport connection from the SMTP connection pool (to avoid needless errors)
-- #383: Feature: be able to set defaults and overrides on the Mailer level, rather than email or global level
+- v7.7.1 (18-January-2023): #434: Regression bug in #430: Email parameter missing in CustomMailer interface
+- v7.7.0 (17-January-2023): #430: Enhancement: auto-reconnect (if needed) when reclaiming a Transport connection from the SMTP connection
+- v7.7.0 (17-January-2023): #383: Feature: be able to set defaults and overrides on the Mailer level, rather than email or global level
 
-This moves the conversion of Email to MimeMessage to after a Transport instance has been selected (in case of a cluster of SMTP servers),
+7.7.0 moves the conversion of Email to MimeMessage to after a Transport instance has been selected (in case of a cluster of SMTP servers),
 so we can apply defaults/overrides on the Mailer level, meaning you can configure 'global' values for individual SMTP servers
 (like a fixed FROM per server).
 

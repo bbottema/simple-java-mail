@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%227.7.0%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-7.7.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%227.7.1%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-7.7.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.8+-lightgray.svg)
 
@@ -18,18 +18,19 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.7.0</version>
+    <version>7.7.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-[v7.7.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.7.0%7Cjar) (17-January-2023)
+v7.7.0 - [v7.7.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.7.1%7Cjar)
 
-- [#430](https://github.com/bbottema/simple-java-mail/issues/430) Enhancement: auto-reconnect (if needed) when reclaiming a Transport connection from the SMTP connection pool (to avoid needless errors)
-- [#383](https://github.com/bbottema/simple-java-mail/issues/383) Feature: be able to set defaults and overrides on the Mailer level, rather than email or global level
+- v7.7.1 (18-January-2023): [#434](https://github.com/bbottema/simple-java-mail/issues/434) Regression bug in #430: Email parameter missing in CustomMailer interface
+- v7.7.0 (17-January-2023): [#430](https://github.com/bbottema/simple-java-mail/issues/430) Enhancement: auto-reconnect (if needed) when reclaiming a Transport connection from the SMTP connection
+- v7.7.0 (17-January-2023): [#383](https://github.com/bbottema/simple-java-mail/issues/383) Feature: be able to set defaults and overrides on the Mailer level, rather than email or global level
 
-This moves the conversion of Email to MimeMessage to after a Transport instance has been selected (in case of a cluster of SMTP servers), 
+7.7.0 moves the conversion of Email to MimeMessage to after a Transport instance has been selected (in case of a cluster of SMTP servers), 
 so we can apply defaults/overrides on the Mailer level, meaning you can configure 'global' values for individual SMTP servers 
 (like a fixed FROM per server).
 
