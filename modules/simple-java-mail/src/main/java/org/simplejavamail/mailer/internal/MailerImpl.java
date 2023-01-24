@@ -118,7 +118,7 @@ public class MailerImpl implements Mailer {
 		this.emailGovernance = emailGovernance;
 		this.proxyConfig = proxyConfig;
 		if (session == null) {
-			session = createMailSession(checkNonEmptyArgument(serverConfig, "serverConfig"), checkNonEmptyArgument(transportStrategy, "transportStrategy"));
+			session = createMailSession(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"));
 		}
 		this.session = session;
 		this.operationalConfig = operationalConfig;
@@ -151,40 +151,42 @@ public class MailerImpl implements Mailer {
 	 * @see TransportStrategy#propertyNameAuthenticate()
 	 */
 	@NotNull
-	public static Session createMailSession(@NotNull final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy) {
+	public static Session createMailSession(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy) {
 		final Properties props = transportStrategy.generateProperties();
-		props.put(transportStrategy.propertyNameHost(), serverConfig.getHost());
-		props.put(transportStrategy.propertyNamePort(), String.valueOf(serverConfig.getPort()));
-		
-		if (serverConfig.getUsername() != null) {
-			props.put(transportStrategy.propertyNameUsername(), serverConfig.getUsername());
-		}
-		// https://archive.ph/VkrwH (https://www.tutorialspoint.com/javamail_api/javamail_api_smtp_servers.htm)
-		if (serverConfig.getCustomSSLFactoryInstance() != null) {
-			props.put("mail.smtp.ssl.socketFactory", serverConfig.getCustomSSLFactoryInstance());
-		} else if (serverConfig.getCustomSSLFactoryClass() != null) {
-			props.put("mail.smtp.ssl.socketFactory.class", serverConfig.getCustomSSLFactoryClass());
-		}
+
 		if (ConfigLoader.hasProperty(EXTRA_PROPERTIES)) {
 			props.putAll(ConfigLoader.getProperty(EXTRA_PROPERTIES));
 		}
 
-		if (transportStrategy == TransportStrategy.SMTP_OAUTH2 && serverConfig.getPassword() == null) {
-			throw new MailerException(MailerException.MISSING_OAUTH2_TOKEN);
-		}
-
-		if (serverConfig.getPassword() != null) {
-			if (transportStrategy != SMTP_OAUTH2) {
-				props.put(transportStrategy.propertyNameAuthenticate(), "true");
-				return Session.getInstance(props, new SmtpAuthenticator(serverConfig));
-			} else {
-				// props.put(transportStrategy.propertyNameAuthenticate(), "false");
-				props.put(TransportStrategy.OAUTH2_TOKEN_PROPERTY, serverConfig.getPassword());
-				return Session.getInstance(props);
+		if (serverConfig != null) {
+			props.put(transportStrategy.propertyNameHost(), serverConfig.getHost());
+			props.put(transportStrategy.propertyNamePort(), String.valueOf(serverConfig.getPort()));
+			if (serverConfig.getUsername() != null) {
+				props.put(transportStrategy.propertyNameUsername(), serverConfig.getUsername());
 			}
-		} else {
-			return Session.getInstance(props);
+			// https://archive.ph/VkrwH (https://www.tutorialspoint.com/javamail_api/javamail_api_smtp_servers.htm)
+			if (serverConfig.getCustomSSLFactoryInstance() != null) {
+				props.put("mail.smtp.ssl.socketFactory", serverConfig.getCustomSSLFactoryInstance());
+			} else if (serverConfig.getCustomSSLFactoryClass() != null) {
+				props.put("mail.smtp.ssl.socketFactory.class", serverConfig.getCustomSSLFactoryClass());
+			}
+
+			if (transportStrategy == TransportStrategy.SMTP_OAUTH2 && serverConfig.getPassword() == null) {
+				throw new MailerException(MailerException.MISSING_OAUTH2_TOKEN);
+			}
+
+			if (serverConfig.getPassword() != null) {
+				if (transportStrategy != SMTP_OAUTH2) {
+					props.put(transportStrategy.propertyNameAuthenticate(), "true");
+					return Session.getInstance(props, new SmtpAuthenticator(serverConfig));
+				} else {
+					// props.put(transportStrategy.propertyNameAuthenticate(), "false");
+					props.put(TransportStrategy.OAUTH2_TOKEN_PROPERTY, serverConfig.getPassword());
+					return Session.getInstance(props);
+				}
+			}
 		}
+		return Session.getInstance(props);
 	}
 
 	static private void initSession(@NotNull final Session session, @NotNull OperationalConfig operationalConfig, @NotNull EmailGovernance emailGovernance, @Nullable final TransportStrategy transportStrategy) {

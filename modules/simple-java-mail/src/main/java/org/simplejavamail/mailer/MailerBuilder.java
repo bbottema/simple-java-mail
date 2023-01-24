@@ -3,6 +3,7 @@ package org.simplejavamail.mailer;
 import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
@@ -105,6 +106,22 @@ public class MailerBuilder {
 	@SuppressWarnings({"unused", "deprecation"})
 	public static MailerRegularBuilderImpl withDebugLogging(Boolean debugLogging) {
 		return new MailerRegularBuilderImpl().withDebugLogging(debugLogging);
+	}
+
+	/**
+	 * Delegates to {@link MailerRegularBuilder#withCustomMailer(CustomMailer)}.
+	 */
+	@SuppressWarnings("deprecation")
+	public static MailerRegularBuilderImpl withCustomMailer(final CustomMailer customMailer) {
+		return new MailerRegularBuilderImpl().withCustomMailer(customMailer);
+	}
+
+	/**
+	 * Delegates to {@link MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)}.
+	 */
+	@SuppressWarnings("deprecation")
+	public static MailerRegularBuilderImpl withTransportModeLoggingOnly() {
+		return new MailerRegularBuilderImpl().withTransportModeLoggingOnly(true);
 	}
 
 	/**

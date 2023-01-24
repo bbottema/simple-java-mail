@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.Mailer;
@@ -25,6 +26,7 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
 /**
  * @see MailerRegularBuilder
  */
+@Slf4j
 public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerRegularBuilderImpl> implements MailerRegularBuilder<MailerRegularBuilderImpl> {
 	
 	/**
@@ -198,14 +200,16 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	/**
 	 * For internal use.
 	 */
+	@Nullable
 	ServerConfig buildServerConfig() {
-		vallidateServerConfig();
-		final int serverPort = ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
-		return new ServerConfigImpl(verifyNonnullOrEmpty(getHost()), serverPort, username, password, customSSLFactory, customSSLFactoryInstance);
-	}
-
-	private void vallidateServerConfig() {
-		checkArgumentNotEmpty(host, "SMTP server host missing");
+		if (!isTransportModeLoggingOnly() && getCustomMailer() == null) {
+			checkArgumentNotEmpty(host, "SMTP server host missing");
+			final int serverPort = ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
+			return new ServerConfigImpl(verifyNonnullOrEmpty(getHost()), serverPort, username, password, customSSLFactory, customSSLFactoryInstance);
+		} else if (getCustomMailer() != null && host != null) {
+			log.warn("Both custom mailer and SMTP server configured, ignoring server configuration");
+		}
+		return null;
 	}
 
 	/**
