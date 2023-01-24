@@ -7,8 +7,8 @@ import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.internal.util.MiscUtil;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,8 +22,8 @@ public class ModuleLoader {
 	private static final Map<Class, Object> LOADED_MODULES = new HashMap<>();
 
 	// used from junit tests
-	private static final Collection<Class> FORCED_DISABLED_MODULES = new ArrayList<>();
-	private static final Collection<Class> FORCED_RECHECK_MODULES = new ArrayList<>();
+	private static final Set<Class> FORCED_DISABLED_MODULES = new HashSet<>();
+	private static final Set<Class> FORCED_RECHECK_MODULES = new HashSet<>();
 
 	public static AuthenticatedSocksModule loadAuthenticatedSocksModule() {
 		if (!LOADED_MODULES.containsKey(AuthenticatedSocksModule.class)) {

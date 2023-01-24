@@ -124,6 +124,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private Email emailOverrides;
 
 	/**
+	 * @see MailerGenericBuilder#withMaximumEmailSize(int)
+	 */
+	@Nullable
+	private Integer maximumEmailSize;
+
+	/**
 	 * @see MailerGenericBuilder#signByDefaultWithSmime(Pkcs12Config)
 	 */
 	@Nullable
@@ -296,7 +302,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * For internal use.
 	 */
 	EmailGovernance buildEmailGovernance() {
-		return new EmailGovernance(getEmailValidator(), getPkcs12ConfigForSmimeSigning(), getEmailDefaults(), getEmailOverrides());
+		return new EmailGovernance(
+				getEmailValidator(),
+				getPkcs12ConfigForSmimeSigning(),
+				getEmailDefaults(),
+				getEmailOverrides(),
+				getMaximumEmailSize());
 	}
 	
 	/**
@@ -451,6 +462,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withEmailOverrides(@NotNull Email emailOverrides) {
 		this.emailOverrides = emailOverrides;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withMaximumEmailSize(int)
+	 */
+	@Override
+	public T withMaximumEmailSize(int maximumEmailSize) {
+		this.maximumEmailSize = maximumEmailSize;
 		return (T) this;
 	}
 
@@ -844,6 +864,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	/**
+	 * @see MailerGenericBuilder#clearMaximumEmailSize()
+	 */
+	@Override
+	public T clearMaximumEmailSize() {
+		this.maximumEmailSize = null;
+		return (T) this;
+	}
+
+	/**
 	 * @see MailerGenericBuilder#clearSignByDefaultWithSmime()
 	 */
 	@Override
@@ -972,6 +1001,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	public Email getEmailOverrides() {
 		return emailOverrides;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getMaximumEmailSize()
+	 */
+	@Override
+	@Nullable
+	public Integer getMaximumEmailSize() {
+		return maximumEmailSize;
 	}
 
 	/**

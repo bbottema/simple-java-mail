@@ -9,6 +9,7 @@ import lombok.ToString;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
@@ -16,6 +17,8 @@ import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import static java.lang.String.format;
@@ -54,12 +57,29 @@ public class SessionBasedEmailToMimeMessageConverter {
     @NotNull
     public static MimeMessage convertAndLogMimeMessage(Session session, final Email email) throws MessagingException {
         val mimeMessageConverter = (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
-        return mimeMessageConverter.convertAndLogMimeMessage(email);
+        val mimeMessage = mimeMessageConverter.convertAndLogMimeMessage(email);
+        val governance = mimeMessageConverter.emailGovernance;
+
+        if (governance.getMaximumEmailSize() != null) {
+            val emailSize = calculateEmailSize(mimeMessage);
+            if (emailSize > governance.getMaximumEmailSize()) {
+                throw new EmailTooBigException(emailSize, governance.getMaximumEmailSize());
+            }
+        }
+        return mimeMessage;
+    }
+
+    private static int calculateEmailSize(MimeMessage mimeMessage) throws MessagingException {
+        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+            mimeMessage.writeTo(os);
+            return os.size();
+        } catch (IOException e) {
+            throw new RuntimeException("error trying to calculate email size", e);
+        }
     }
 
     @NotNull
     private MimeMessage convertAndLogMimeMessage(final Email email) throws MessagingException {
-        // fill and send wrapped mime message parts
         val message = convertMimeMessage(email, session, emailGovernance);
 
         SessionLogger.logSession(session, operationalConfig.isAsync(), "mail");

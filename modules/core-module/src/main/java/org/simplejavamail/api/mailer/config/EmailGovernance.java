@@ -26,7 +26,7 @@ import java.io.InputStream;
 @Getter()
 public class EmailGovernance {
 
-	public static final EmailGovernance NO_GOVERNANCE = new EmailGovernance(null, null, null, null);
+	public static final EmailGovernance NO_GOVERNANCE = new EmailGovernance(null, null, null, null, null);
 
 	/**
 	 * The effective email validator used for email validation. Can be <code>null</code> if no validation should be done.
@@ -56,4 +56,10 @@ public class EmailGovernance {
 	 * @see MailerGenericBuilder#withEmailOverrides(Email)
 	 */
 	@Nullable private final Email emailOverrides;
+
+	/**
+	 * Determines at what size Simple Java Mail should reject a MimeMessage. Useful if you know your SMTP server has a limit.
+	 * @see MailerGenericBuilder#withMaximumEmailSize(int)
+	 */
+	@Nullable private final Integer maximumEmailSize;
 }

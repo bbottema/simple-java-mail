@@ -261,6 +261,14 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withEmailOverrides(@NotNull Email emailoverrides);
 
 	/**
+	 * Sets a maximum size for emails (as MimeMessage) in bytes. If an email exceeds this size, exception @{@link EmailTooBigException} will be thrown (as the cause).
+	 *
+	 * @param maximumEmailSize Maximum size of an email (as MimeMessage) in bytes.
+	 * @see #clearMaximumEmailSize()
+	 */
+	T withMaximumEmailSize(int maximumEmailSize);
+
+	/**
 	 * Signs this <em>all emails by default</em> with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
 	 * can verify whether the email content was tampered with.
 	 * <p>
@@ -686,6 +694,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearEmailOverrides();
 
 	/**
+	 * Makes the maximum email size <code>null</code>, meaning no size check will be performed.
+	 *
+	 * @see #withMaximumEmailSize(int)
+	 */
+	T clearMaximumEmailSize();
+
+	/**
 	 * Removes S/MIME signing, so emails won't be signed by default.
 	 *
 	 * @see #signByDefaultWithSmime(Pkcs12Config)
@@ -779,6 +794,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	Email getEmailOverrides();
+
+	/**
+	 * @see #withMaximumEmailSize(int)
+	 */
+	@Nullable
+	Integer getMaximumEmailSize();
 
 	/**
 	 * @see #signByDefaultWithSmime(Pkcs12Config)

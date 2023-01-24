@@ -447,7 +447,7 @@ public final class EmailConverter {
 		try {
 			return MimeMessageProducerHelper.produceMimeMessage(
 					checkNonEmptyArgument(email, "email"),
-					new EmailGovernance(null, checkNonEmptyArgument(defaultSmimeSigningStore, "defaultSmimeSigningStore"), null, null),
+					new EmailGovernance(null, checkNonEmptyArgument(defaultSmimeSigningStore, "defaultSmimeSigningStore"), null, null, null),
 					checkNonEmptyArgument(session, "session"));
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)

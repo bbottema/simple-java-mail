@@ -112,7 +112,7 @@ public class MailerImplTest {
 
 	@Test
 	public void testSignWithSmime_WithConfigObject() {
-		final EmailGovernance emailGovernance = new EmailGovernance(null, loadPkcs12KeyStore(), null, null);
+		final EmailGovernance emailGovernance = new EmailGovernance(null, loadPkcs12KeyStore(), null, null, null);
 		final Mailer mailer = new MailerImpl(null, SMTP, emailGovernance, createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, true, false));
 
 		assertThat(mailer.getEmailGovernance().getPkcs12ConfigForSmimeSigning()).isNotNull();

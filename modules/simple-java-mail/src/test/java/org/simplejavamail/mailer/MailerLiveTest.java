@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
@@ -14,7 +15,10 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
+import org.simplejavamail.api.mailer.CustomMailer;
+import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
@@ -41,6 +45,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
@@ -540,5 +545,60 @@ public class MailerLiveTest {
 	private void assertAttachmentMetadata(AttachmentResource embeddedImg, String mimeType, String filename) {
 		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo(mimeType);
 		assertThat(embeddedImg.getName()).isEqualTo(filename);
+	}
+
+	@Test
+	public void testMaximumEmailSize() {
+		val mailer = MailerBuilder
+				.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
+				.withMaximumEmailSize(4)
+				.buildMailer();
+
+		sendAndVerifyEmailTooBigException(mailer);
+	}
+
+	@Test
+	public void testMaximumEmailSize_CustomMailer() {
+		val mailer = MailerBuilder
+				.withCustomMailer(new CustomMailer() {
+					@Override
+					public void testConnection(@NotNull OperationalConfig operationalConfig, @NotNull Session session) {
+						throw new RuntimeException("should reach here");
+					}
+
+					@Override
+					public void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @NotNull MimeMessage message) {
+						throw new RuntimeException("should reach here");
+					}
+				})
+				.withMaximumEmailSize(4)
+				.buildMailer();
+
+		sendAndVerifyEmailTooBigException(mailer);
+	}
+
+	@Test
+	public void testMaximumEmailSize_DontSendOnlyLog() {
+		val mailer = MailerBuilder
+				.withTransportModeLoggingOnly()
+				.withMaximumEmailSize(4)
+				.buildMailer();
+
+		sendAndVerifyEmailTooBigException(mailer);
+	}
+
+	private static void sendAndVerifyEmailTooBigException(Mailer mailer) {
+		val email = EmailBuilder.startingBlank()
+				.withPlainText("non empty text")
+				.withSubject("email size test")
+				.from("a@b.com")
+				.to("a@b.com")
+				.buildEmail();
+
+		assertThatThrownBy(() -> mailer.sendMail(email))
+				.hasMessageStartingWith("Failed to send email [ID:")
+				.getCause()
+				.isInstanceOf(EmailTooBigException.class)
+				.hasMessageContaining("bytes exceeds maximum allowed size of 4 bytes");
 	}
 }
