@@ -3,14 +3,15 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.8.0</version>
+    <version>7.8.1</version>
 </dependency>
 
-v7.8.0 (24-January-2023)
+v7.8.0 - v7.8.1
 
-- #436: Enhancement: add mailerBuilder.withTransportModeLoggingOnly() as mailer API entry point
-- #435: Enhancement: SMTP server config should be optional in case a CustomMailer is used
-- #427: Feature: set a maximum email size on Mailer level which throws EmailToBig exception when exceeded
+- v7.8.1 (01-February-2023): #438: Bug: properly Fail-Fast in case of Transport claim timeout in the batch-module, rather than running into NPE further down the line
+- v7.8.0 (24-January-2023): #436: Enhancement: add mailerBuilder.withTransportModeLoggingOnly() as mailer API entry point
+- v7.8.0 (24-January-2023): #435: Enhancement: SMTP server config should be optional in case a CustomMailer is used
+- v7.8.0 (24-January-2023): #427: Feature: set a maximum email size on Mailer level which throws EmailToBig exception when exceeded
 
 
 v7.7.0 - [v7.7.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.7.1%7Cjar)
