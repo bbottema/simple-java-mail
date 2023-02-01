@@ -7,4 +7,8 @@ class BatchException extends RuntimeException {
 	BatchException(final String msg, final Throwable cause) {
 		super(msg, cause);
 	}
+
+	BatchException(final String msg) {
+		super(msg);
+	}
 }

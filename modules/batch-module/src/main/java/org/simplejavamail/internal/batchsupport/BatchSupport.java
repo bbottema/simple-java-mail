@@ -26,6 +26,7 @@ import java.util.concurrent.Future;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.ofNullable;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.simplejavamail.internal.batchsupport.BatchException.ERROR_ACQUIRING_KEYED_POOLABLE;
 import static org.simplejavamail.internal.batchsupport.ClusterHelper.compareClusterConfig;
@@ -96,13 +97,20 @@ public class BatchSupport implements BatchModule {
 	@Override
 	@SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH", justification = "This is bullshit, Spotbugs. There's a requireNonNull() right in front of you, you numbnuts")
 	public LifecycleDelegatingTransport acquireTransport(@NotNull final UUID clusterKey, @NotNull final Session session, boolean stickySession) {
+		val smtpConnectionPool = requireNonNull(this.smtpConnectionPool, "Connection pool used before it was initialized. This shouldn't be possible.");
+		checkConfigureOAuth2Token(session);
+
+		return ofNullable(getSessionTransportPoolableObject(smtpConnectionPool, clusterKey, session, stickySession))
+					.map(LifecycleDelegatingTransportImpl::new)
+					.orElseThrow(() -> new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session)));
+	}
+
+	@Nullable
+	private PoolableObject<SessionTransport> getSessionTransportPoolableObject(SmtpConnectionPoolClustered smtpConnectionPool, UUID clusterKey, Session session, boolean stickySession) {
 		try {
-			requireNonNull(smtpConnectionPool, "Connection pool used before it was initialized. This shouldn't be possible.");
-			checkConfigureOAuth2Token(session);
-			final PoolableObject<SessionTransport> pooledTransport = stickySession
+			return stickySession
 					? smtpConnectionPool.claimResourceFromPool(new ResourceClusterAndPoolKey<>(clusterKey, session))
 					: smtpConnectionPool.claimResourceFromCluster(clusterKey);
-			return new LifecycleDelegatingTransportImpl(pooledTransport);
 		} catch (InterruptedException e) {
 			throw new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session), e);
 		}
