@@ -81,7 +81,10 @@ public abstract class SpecializedMimeMessageProducer {
 			2. S/MIME encryption
 			3. DKIM signing
 		 */
-		if (ModuleLoader.smimeModuleAvailable()) {
+
+		if (!valueNullOrEmpty(email.getPkcs12ConfigForSmimeSigning()) ||
+				!valueNullOrEmpty(emailGovernance.getPkcs12ConfigForSmimeSigning()) ||
+				!valueNullOrEmpty(email.getX509CertificateForSmimeEncryption())) {
 			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email, emailGovernance.getPkcs12ConfigForSmimeSigning());
 		}
 
