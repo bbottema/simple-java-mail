@@ -39,13 +39,13 @@ public class EmailHelper {
 
 	public static final Date CUSTOM_SENT_DATE = new GregorianCalendar(2011, SEPTEMBER, 15, 12, 5, 43).getTime();
 
-	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean onlyBasicFields, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule, boolean useDynamicImageEmbedding, final boolean includeCalendarText)
+	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean skipReplyToAndBounceTo, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule, boolean useDynamicImageEmbedding, final boolean includeCalendarText)
 			throws IOException {
-		return createDummyEmailBuilder(null, includeSubjectAndBody, onlyBasicFields, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule, false, useDynamicImageEmbedding, includeCalendarText);
+		return createDummyEmailBuilder(null, includeSubjectAndBody, skipReplyToAndBounceTo, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule, false, useDynamicImageEmbedding, includeCalendarText);
 	}
 
-	public static EmailPopulatingBuilder createDummyEmailBuilder(@Nullable String id, boolean includeSubjectAndBody, boolean onlyBasicFields, boolean includeCustomHeaders,
-			boolean useSmimeDetailsImplFromSmimeModule, final boolean fixSentDate, final boolean useDynamicImageEmbedding, final boolean includeCalendarText)
+	public static EmailPopulatingBuilder createDummyEmailBuilder(@Nullable String id, boolean includeSubjectAndBody, boolean skipReplyToAndBounceTo, boolean includeCustomHeaders,
+																 boolean useSmimeDetailsImplFromSmimeModule, final boolean fixSentDate, final boolean useDynamicImageEmbedding, final boolean includeCalendarText)
 			throws IOException {
 		EmailPopulatingBuilder builder = EmailBuilder.startingBlank()
 				.fixingMessageId(id)
@@ -53,7 +53,7 @@ public class EmailHelper {
 				// don't forget to add your own address here ->
 				.to("C.Cane", "candycane@candyshop.org");
 
-		if (!onlyBasicFields) {
+		if (!skipReplyToAndBounceTo) {
 			// normally not needed, but for the test it is because the MimeMessage will
 			// have it added automatically as well, so the parsed Email will also have it then
 			builder = builder
