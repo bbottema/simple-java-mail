@@ -25,7 +25,7 @@ import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIM
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
-public class TestSmimeAttachments {
+public class ReadSmimeAttachmentsTest {
 
 	private static final String RESOURCE_FOLDER = determineResourceFolder("simple-java-mail") + "/test/resources/test-messages";
 

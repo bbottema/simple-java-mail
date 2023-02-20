@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
-public class TestSmimeSelfSigned {
+public class ReadSmimeSelfSignedTest {
 
 	private static final String RESOURCES = determineResourceFolder("simple-java-mail") + "/test/resources";
 	private static final String RESOURCES_PKCS = RESOURCES + "/pkcs12";
