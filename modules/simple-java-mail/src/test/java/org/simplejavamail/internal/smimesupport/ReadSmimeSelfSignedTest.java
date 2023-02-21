@@ -213,7 +213,6 @@ public class ReadSmimeSelfSignedTest {
 			throws Exception {
 		// for some reason running this test from CLI fails without this line
 		// I think a previous cleanup failed or couldn't be executed successfully
-		SecureTestDataHelper.cleanupSecureTestData();
 		SecureTestDataHelper.runTestWithSecureTestData(passwords -> {
 			String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/npe-SmimeUtilFixed-test-email/NPE_SmimeUtilFixed Test Mail.msg";
 			FileInputStream fileInputStream = new FileInputStream(fileNameMsg);
