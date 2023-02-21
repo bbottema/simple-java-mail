@@ -54,10 +54,18 @@ public class DkimConfig implements Serializable {
 	@Nullable private final Set<String> excludedHeadersFromDkimDefaultSigningList;
 
 	DkimConfig(byte[] dkimPrivateKeyData, String dkimSigningDomain, String dkimSelector, @Nullable Set<String> excludedHeadersFromDkimDefaultSigningList) {
-		this.dkimPrivateKeyData = dkimPrivateKeyData;
+		this.dkimPrivateKeyData = dkimPrivateKeyData.clone();
 		this.dkimSigningDomain = dkimSigningDomain;
 		this.dkimSelector = dkimSelector;
 		this.excludedHeadersFromDkimDefaultSigningList = excludedHeadersFromDkimDefaultSigningList;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+	 */
+	public byte[] getDkimPrivateKeyData() {
+		return dkimPrivateKeyData.clone();
 	}
 
 	public static DkimConfigBuilder builder() {
