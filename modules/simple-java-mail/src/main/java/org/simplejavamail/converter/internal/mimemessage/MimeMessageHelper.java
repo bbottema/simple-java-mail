@@ -16,6 +16,7 @@ import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.internet.ParameterList;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
@@ -33,6 +34,7 @@ import java.util.UUID;
 
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.orOther;
 import static org.simplejavamail.internal.util.MiscUtil.orOtherList;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -296,7 +298,8 @@ public class MimeMessageHelper {
 		pl.set("name", fileName);
 		attachmentPart.setHeader("Content-Type", contentType + pl);
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
-		attachmentPart.setHeader("Content-Description", attachmentResource.getDescription());
+
+		attachmentPart.setHeader("Content-Description", determineAttachmentDescription(attachmentResource));
 		if (!valueNullOrEmpty(attachmentResource.getContentTransferEncoding())) {
 			attachmentPart.setHeader("Content-Transfer-Encoding", attachmentResource.getContentTransferEncoding().getEncoder());
 		}
@@ -336,5 +339,10 @@ public class MimeMessageHelper {
 			}
 		}
 		return resourceName;
+	}
+
+	@Nullable
+	private static String determineAttachmentDescription(AttachmentResource attachmentResource) {
+		return ofNullable(attachmentResource.getDescription()).map(MiscUtil::encodeText).orElse(null);
 	}
 }

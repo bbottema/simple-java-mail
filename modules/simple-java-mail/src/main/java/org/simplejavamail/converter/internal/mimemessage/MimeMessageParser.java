@@ -7,7 +7,6 @@ import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.activation.MailcapCommandMap;
 import jakarta.mail.Address;
-import jakarta.mail.Header;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
@@ -21,6 +20,7 @@ import jakarta.mail.internet.MimePart;
 import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.internet.ParseException;
 import jakarta.mail.util.ByteArrayDataSource;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.MiscUtil;
@@ -48,6 +48,7 @@ import java.util.regex.Pattern;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
@@ -139,7 +140,7 @@ public final class MimeMessageParser {
 	}
 
 	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents, final boolean fetchAttachmentData) {
-		for (final Header header : retrieveAllHeaders(currentPart)) {
+		for (final DecodedHeader header : retrieveAllHeaders(currentPart)) {
 			parseHeader(header, parsedComponents);
 		}
 
@@ -180,7 +181,7 @@ public final class MimeMessageParser {
 
 	private static void checkContentTransferEncoding(final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents) {
 		if (parsedComponents.contentTransferEncoding == null) {
-			for (final Header header : retrieveAllHeaders(currentPart)) {
+			for (final DecodedHeader header : retrieveAllHeaders(currentPart)) {
 				if (isEmailHeader(header, "Content-Transfer-Encoding")) {
 					parsedComponents.contentTransferEncoding = header.getValue();
 				}
@@ -198,24 +199,27 @@ public final class MimeMessageParser {
 	}
 
 	@SuppressWarnings("StatementWithEmptyBody")
-	private static void parseHeader(final Header header, @NotNull final ParsedMimeMessageComponents parsedComponents) {
+	private static void parseHeader(final DecodedHeader header, @NotNull final ParsedMimeMessageComponents parsedComponents) {
+		val headerValue = decodeText(header.getValue());
+		val headerName = decodeText(header.getName());
+
 		if (isEmailHeader(header, "Disposition-Notification-To")) {
-			parsedComponents.dispositionNotificationTo = createAddress(header.getValue(), "Disposition-Notification-To");
+			parsedComponents.dispositionNotificationTo = createAddress(headerValue, "Disposition-Notification-To");
 		} else if (isEmailHeader(header, "Return-Receipt-To")) {
-			parsedComponents.returnReceiptTo = createAddress(header.getValue(), "Return-Receipt-To");
+			parsedComponents.returnReceiptTo = createAddress(headerValue, "Return-Receipt-To");
 		} else if (isEmailHeader(header, "Return-Path")) {
-			parsedComponents.bounceToAddress = createAddress(header.getValue(), "Return-Path");
-		} else if (!HEADERS_TO_IGNORE.contains(header.getName())) {
-			if (!parsedComponents.headers.containsKey(header.getName())) {
-				parsedComponents.headers.put(header.getName(), new ArrayList<>());
+			parsedComponents.bounceToAddress = createAddress(headerValue, "Return-Path");
+		} else if (!HEADERS_TO_IGNORE.contains(headerName)) {
+			if (!parsedComponents.headers.containsKey(headerName)) {
+				parsedComponents.headers.put(headerName, new ArrayList<>());
 			}
-			parsedComponents.headers.get(header.getName()).add(MimeUtility.unfold(header.getValue()));
+			parsedComponents.headers.get(headerName).add(MimeUtility.unfold(headerValue));
 		} else {
 			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}
 	}
 
-	private static boolean isEmailHeader(Header header, String emailHeaderName) {
+	private static boolean isEmailHeader(DecodedHeader header, String emailHeaderName) {
 		return header.getName().equals(emailHeaderName) &&
 				!valueNullOrEmpty(header.getValue()) &&
 				!valueNullOrEmpty(header.getValue().trim()) &&
@@ -226,7 +230,7 @@ public final class MimeMessageParser {
 	public static String parseFileName(@NotNull final Part currentPart) {
 		try {
 			if (currentPart.getFileName() != null) {
-				return currentPart.getFileName();
+				return decodeText(currentPart.getFileName());
 			} else {
 				// replicate behavior from Thunderbird
 				if (Arrays.asList(currentPart.getHeader("Content-Type")).contains("message/rfc822")) {
@@ -276,7 +280,9 @@ public final class MimeMessageParser {
 	@Nullable
 	public static String parseContentID(@NotNull final MimePart currentPart) {
 		try {
-			return currentPart.getContentID();
+			return ofNullable(currentPart.getContentID())
+					.map(MimeMessageParser::decodeText)
+					.orElse(null);
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_ID, e);
 		}
@@ -336,9 +342,11 @@ public final class MimeMessageParser {
 
 	@SuppressWarnings("WeakerAccess")
 	@NotNull
-	public static List<Header> retrieveAllHeaders(@NotNull final MimePart part) {
+	public static List<DecodedHeader> retrieveAllHeaders(@NotNull final MimePart part) {
 		try {
-			return Collections.list(part.getAllHeaders());
+			return Collections.list(part.getAllHeaders()).stream()
+					.map(DecodedHeader::of)
+					.collect(toList());
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_ALL_HEADERS, e);
 		}
@@ -431,15 +439,6 @@ public final class MimeMessageParser {
 	}
 
 	@NotNull
-	private static String decodeText(@NotNull final String result) {
-		try {
-			return MimeUtility.decodeText(result);
-		} catch (final UnsupportedEncodingException e) {
-			throw new MimeMessageParseException(MimeMessageParseException.ERROR_DECODING_TEXT, e);
-		}
-	}
-
-	@NotNull
 	private static byte[] readContent(@NotNull final InputStream is) {
 		try {
 			return MiscUtil.readInputStreamToBytes(is);
@@ -472,7 +471,9 @@ public final class MimeMessageParser {
 		try {
 			// return mimeMessage.getRecipients(recipientType); // can fail in strict mode, see https://github.com/bbottema/simple-java-mail/issues/227
 			// workaround following (copied and modified from JavaMail internal code):
-			String s = mimeMessage.getHeader(getHeaderName(recipientType), ",");
+			val s = ofNullable(mimeMessage.getHeader(getHeaderName(recipientType), ","))
+					.map(MimeMessageParser::decodeText)
+					.orElse(null);
 			return (s == null) ? null : InternetAddress.parseHeader(s, false);
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_GETTING_RECIPIENTS, recipientType), e);
@@ -492,7 +493,9 @@ public final class MimeMessageParser {
 	@Nullable
 	public static String parseContentDescription(@NotNull final MimePart mimePart) {
 		try {
-			return mimePart.getHeader("Content-Description", ",");
+			return ofNullable(mimePart.getHeader("Content-Description", ","))
+					.map(MimeMessageParser::decodeText)
+					.orElse(null);
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_DESCRIPTION, e);
 		}
@@ -500,9 +503,20 @@ public final class MimeMessageParser {
 	@Nullable
 	public static String parseContentTransferEncoding(@NotNull final MimePart mimePart) {
 		try {
-			return mimePart.getHeader("Content-Transfer-Encoding", ",");
+			return ofNullable(mimePart.getHeader("Content-Transfer-Encoding", ","))
+					.map(MimeMessageParser::decodeText)
+					.orElse(null);
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_TRANSFER_ENCODING, e);
+		}
+	}
+
+	@NotNull
+	static String decodeText(@NotNull final String result) {
+		try {
+			return MimeUtility.decodeText(result);
+		} catch (final UnsupportedEncodingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_DECODING_TEXT, e);
 		}
 	}
 

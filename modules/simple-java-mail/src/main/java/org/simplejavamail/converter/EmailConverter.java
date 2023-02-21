@@ -5,6 +5,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.CalendarMethod;
@@ -117,9 +118,10 @@ public final class EmailConverter {
 	@NotNull
 	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@NotNull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config, final boolean fetchAttachmentData) {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
-		final EmailPopulatingBuilder builder = EmailBuilder.ignoringDefaults().startingBlank();
-		final ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(mimeMessage, fetchAttachmentData);
-		return decryptAttachments(buildEmailFromMimeMessage(builder, parsed), mimeMessage, pkcs12Config);
+		val builder = EmailBuilder.ignoringDefaults().startingBlank();
+		val parsed = MimeMessageParser.parseMimeMessage(mimeMessage, fetchAttachmentData);
+		val emailBuilder = buildEmailFromMimeMessage(builder, parsed);
+		return decryptAttachments(emailBuilder, mimeMessage, pkcs12Config);
 	}
 
 	/**

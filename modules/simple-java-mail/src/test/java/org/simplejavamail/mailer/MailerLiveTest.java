@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -63,7 +64,11 @@ import static testutil.EmailHelper.readOutlookMessage;
 @SuppressWarnings("unused")
 public class MailerLiveTest {
 
-	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
+	private static final String RESOURCES = determineResourceFolder("simple-java-mail") + "/test/resources";
+
+	private static final String RESOURCE_TEST_MESSAGES = RESOURCES + "/test-messages";
+
+	private static final String RESOURCES_PKCS = RESOURCES + "/pkcs12";
 
 	private static final Integer SERVER_PORT = 251;
 	
@@ -600,5 +605,22 @@ public class MailerLiveTest {
 				.getCause()
 				.isInstanceOf(EmailTooBigException.class)
 				.hasMessageContaining("bytes exceeds maximum allowed size of 4 bytes");
+	}
+
+	@Test
+	public void testNonASCIIAttachementNames() throws MessagingException {
+		val email = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#293 Email with vers quoted printable.eml"));
+
+		mailer.sendMail(email);
+
+		val receivedEmail = mimeMessageToEmail(smtpServerRule.getOnlyMessage().getMimeMessage());
+
+		assertThat(receivedEmail.getAttachments()).hasSize(1);
+
+		val attachment = receivedEmail.getAttachments().get(0);
+
+		assertThat(attachment.getName()).isEqualTo("Configure_SSO_for_Admin_Console_Access_\u2013_Silverfort.pdf.html");
+		assertThat(attachment.getDescription()).isEqualTo("Configure_SSO_for_Admin_Console_Access_\u2013_Silverfort.pdf.html");
+		assertThat(attachment.getContentTransferEncoding()).isEqualTo(ContentTransferEncoding.BASE_64);
 	}
 }
