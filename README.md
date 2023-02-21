@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%227.8.2%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-7.8.2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%227.8.3%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-7.8.3-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.8+-lightgray.svg)
 
@@ -18,14 +18,15 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.8.2</version>
+    <version>7.8.3</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v7.8.0 - [v7.8.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.8.2%7Cjar)
+v7.8.0 - [v7.8.3](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.8.3%7Cjar)
 
+- v7.8.3 (21-February-2023): [#293](https://github.com/bbottema/simple-java-mail/issues/293) Bugfix: Decoding missing in a few placed when parsing MimeMessage or sending an Email
 - v7.8.2 (09-February-2023): [#442](https://github.com/bbottema/simple-java-mail/issues/442) Enhancement: Simple Java Mail should throw an exception when trying to utilize S/MIME with smime-module on the classpath
 - v7.8.1 (01-February-2023): [#438](https://github.com/bbottema/simple-java-mail/issues/438) Bug: properly Fail-Fast in case of Transport claim timeout in the batch-module, rather than running into NPE further down the line
 - v7.8.0 (24-January-2023): [#436](https://github.com/bbottema/simple-java-mail/issues/436) Enhancement: add mailerBuilder.withTransportModeLoggingOnly() as mailer API entry point
