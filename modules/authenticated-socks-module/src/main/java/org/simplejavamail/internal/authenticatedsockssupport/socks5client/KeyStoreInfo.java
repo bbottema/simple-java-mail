@@ -1,6 +1,6 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
-import org.simplejavamail.internal.util.MiscUtil;
+import static java.util.Objects.requireNonNull;
 
 @SuppressWarnings("SameParameterValue")
 class KeyStoreInfo {
@@ -18,9 +18,9 @@ class KeyStoreInfo {
 	}
 
 	public KeyStoreInfo(final String keyStorePath, final String password, final String type) {
-		this.keyStorePath = MiscUtil.checkNotNull(keyStorePath, "Argument [keyStorePath] may not be null");
-		this.password = MiscUtil.checkNotNull(password, "Argument [password] may not be null");
-		this.type = MiscUtil.checkNotNull(type, "Argument [type] may not be null");
+		this.keyStorePath = requireNonNull(keyStorePath, "Argument [keyStorePath] may not be null");
+		this.password = requireNonNull(password, "Argument [password] may not be null");
+		this.type = requireNonNull(type, "Argument [type] may not be null");
 	}
 
 	public String getKeyStorePath() {

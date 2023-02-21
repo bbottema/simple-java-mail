@@ -2,7 +2,6 @@ package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
-import org.simplejavamail.internal.util.MiscUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,9 +34,9 @@ public class SocksSocket extends Socket {
 
 	private SocksSocket(final Socks5 proxy, final String remoteServerHost, final int remoteServerPort)
 			throws IOException {
-		this.proxy = MiscUtil.checkNotNull(proxy, "Argument [proxy] may not be null").copy();
+        this.proxy = requireNonNull(proxy, "Argument [proxy] may not be null").copy();
 		this.proxy.setProxySocket(proxySocket);
-		this.remoteServerHost = MiscUtil.checkNotNull(remoteServerHost, "Argument [remoteServerHost] may not be null");
+        this.remoteServerHost = requireNonNull(remoteServerHost, "Argument [remoteServerHost] may not be null");
 		this.remoteServerPort = remoteServerPort;
 		this.proxy.buildConnection();
 		proxySocket = this.proxy.getProxySocket();
@@ -52,9 +51,9 @@ public class SocksSocket extends Socket {
 
 	public SocksSocket(final Socks5 proxy, final InetSocketAddress socketAddress)
 			throws IOException {
-		MiscUtil.checkNotNull(proxy, "Argument [proxy] may not be null");
-		MiscUtil.checkNotNull(socketAddress, "Argument [socketAddress] may not be null");
-		this.proxy = proxy.copy();
+        requireNonNull(proxy, "Argument [proxy] may not be null");
+        requireNonNull(socketAddress, "Argument [socketAddress] may not be null");
+        this.proxy = proxy.copy();
 		this.remoteServerHost = socketAddress.getHostString();
 		this.remoteServerPort = socketAddress.getPort();
 		this.proxy.buildConnection();
@@ -77,9 +76,9 @@ public class SocksSocket extends Socket {
 
 	@SuppressWarnings("WeakerAccess")
 	public SocksSocket(final Socks5 proxy, final Socket proxySocket) {
-		MiscUtil.checkNotNull(proxy, "Argument [proxy] may not be null");
-		MiscUtil.checkNotNull(proxySocket, "Argument [proxySocket] may not be null");
-		if (proxySocket.isConnected()) {
+        requireNonNull(proxy, "Argument [proxy] may not be null");
+        requireNonNull(proxySocket, "Argument [proxySocket] may not be null");
+        if (proxySocket.isConnected()) {
 			throw new IllegalArgumentException("Proxy socket should be unconnected");
 		}
 		this.proxySocket = proxySocket;

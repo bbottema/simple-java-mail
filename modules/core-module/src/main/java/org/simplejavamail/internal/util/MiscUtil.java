@@ -1,6 +1,5 @@
 package org.simplejavamail.internal.util;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.activation.DataSource;
 import jakarta.activation.FileDataSource;
 import jakarta.activation.URLDataSource;
@@ -51,14 +50,6 @@ public final class MiscUtil {
 	private static final Pattern TOKEN_DELIMITER_PATTERN = compile("\\s*<\\|>\\s*");
 
 	private static final Random RANDOM = new Random();
-
-	@SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE")
-	public static <T> T checkNotNull(final @Nullable T value, final @Nullable String msg) {
-		if (value == null) {
-			throw new NullPointerException(msg);
-		}
-		return value;
-	}
 
 	public static <T> T checkArgumentNotEmpty(final @Nullable T value, final @Nullable String msg) {
 		if (valueNullOrEmpty(value)) {

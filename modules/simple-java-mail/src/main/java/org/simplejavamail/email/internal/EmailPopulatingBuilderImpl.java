@@ -51,6 +51,7 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 import static java.util.regex.Matcher.quoteReplacement;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
@@ -90,7 +91,6 @@ import static org.simplejavamail.email.internal.EmailException.ERROR_READING_SMI
 import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_IMAGE_DATASOURCE;
 import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
-import static org.simplejavamail.internal.util.MiscUtil.checkNotNull;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
@@ -1735,7 +1735,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final byte[] data, @NotNull final String mimetype, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
-		checkNotNull(data, "data");
+		requireNonNull(data, "data");
 		checkNonEmptyArgument(mimetype, "mimetype");
 		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
 		dataSource.setName(name);

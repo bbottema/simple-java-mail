@@ -17,19 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class MiscUtilTest {
-	@Test
-	@SuppressWarnings("ObviousNullCheck")
-	public void checkNotNull() {
-		assertThat(MiscUtil.checkNotNull("", null)).isEqualTo("");
-		assertThat(MiscUtil.checkNotNull("blah", null)).isEqualTo("blah");
-		assertThat(MiscUtil.checkNotNull(23523, null)).isEqualTo(23523);
-	}
-	
-	@Test(expected = NullPointerException.class)
-	public void checkNotNullWithException() {
-		MiscUtil.checkNotNull(null, null);
-	}
-	
+
 	@Test
 	public void checkArgumentNotEmpty() {
 		assertThat(MiscUtil.checkArgumentNotEmpty("blah", null)).isEqualTo("blah");

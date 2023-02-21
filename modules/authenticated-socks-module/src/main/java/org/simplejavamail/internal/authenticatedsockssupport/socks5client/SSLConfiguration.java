@@ -1,7 +1,6 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
 import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
-import org.simplejavamail.internal.util.MiscUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +17,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 
+import static java.util.Objects.requireNonNull;
+
 class SSLConfiguration {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SSLConfiguration.class);
@@ -33,8 +34,8 @@ class SSLConfiguration {
 
 	public SSLSocketFactory getSSLSocketFactory()
 			throws SocksException {
-		MiscUtil.checkNotNull(trustKeyStoreInfo, "trustKeyStoreInfo may not be null");
-		FileInputStream s1 = null;
+        requireNonNull(trustKeyStoreInfo, "trustKeyStoreInfo may not be null");
+        FileInputStream s1 = null;
 		FileInputStream s2 = null;
 		try {
 			final SSLContext context = SSLContext.getInstance("SSL");

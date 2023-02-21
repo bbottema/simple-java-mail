@@ -1,6 +1,6 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
-import org.simplejavamail.internal.util.MiscUtil;
+import static java.util.Objects.requireNonNull;
 
 public class ProxyCredentials {
 
@@ -13,7 +13,7 @@ public class ProxyCredentials {
 
 	public ProxyCredentials(final String username, final String password) {
 		this.username = username;
-		this.password = MiscUtil.checkNotNull(password, "Argument [password] may not be null");
+        this.password = requireNonNull(password, "Argument [password] may not be null");
 	}
 
 	public String getUsername() {

@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 final class SocksAuthenticationHelper {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocksAuthenticationHelper.class);
@@ -56,8 +57,8 @@ final class SocksAuthenticationHelper {
 
 	public static void performUserPasswordAuthentication(final Socks5 socksProxy)
 			throws IOException {
-		MiscUtil.checkNotNull(socksProxy, "Argument [socksProxy] may not be null");
-		final ProxyCredentials credentials = socksProxy.getCredentials();
+        requireNonNull(socksProxy, "Argument [socksProxy] may not be null");
+        final ProxyCredentials credentials = socksProxy.getCredentials();
 		if (credentials == null) {
 			throw new SocksException("Need Username/Password authentication");
 		}
