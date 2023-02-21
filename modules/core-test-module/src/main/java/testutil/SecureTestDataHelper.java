@@ -46,7 +46,7 @@ public class SecureTestDataHelper {
 		return passwords;
 	}
 
-	private static void cleanupSecureTestData() {
+	public static void cleanupSecureTestData() {
 		final File file = new File(RESOURCES + "/secure-testdata/secure-testdata");
 
 		int tries = 0;
