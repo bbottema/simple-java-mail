@@ -10,10 +10,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 
 /**
@@ -139,6 +142,15 @@ public class DkimConfig implements Serializable {
 		 */
 		public DkimConfigBuilder excludedHeadersFromDkimDefaultSigningList(@Nullable Set<String> excludedHeadersFromDkimDefaultSigningList) {
 			this.excludedHeadersFromDkimDefaultSigningList = excludedHeadersFromDkimDefaultSigningList;
+			return this;
+		}
+
+		/**
+		 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
+		 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+		 */
+		public DkimConfigBuilder excludedHeadersFromDkimDefaultSigningList(@Nullable String... excludedHeadersFromDkimDefaultSigningList) {
+			this.excludedHeadersFromDkimDefaultSigningList = new HashSet<>(asList(excludedHeadersFromDkimDefaultSigningList));
 			return this;
 		}
 
