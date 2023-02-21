@@ -6,7 +6,9 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -27,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.GregorianCalendar;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -288,7 +291,9 @@ public class MailerTest {
 	@Test
 	public void testDKIMPriming()
 			throws IOException {
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false);
+		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper
+				.createDummyEmailBuilder(true, false, false, true, false, false)
+				.from("Mr Sender", "mr.sender@supersecret-testing-domain.com");
 
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
 		String privateDERkeyBase64 =
@@ -300,11 +305,39 @@ public class MailerTest {
 						+ "Zwgvs3Rvv7k5NwifQOEbhbZAigAGCF5Jk/Ijpi6zaUn7754GSn2FOzWgxDguUKe/fcgdHBLai/1jIRVZQQJAXF2xzWMwP+TmX44QxK52QHVI8mhNzcnH7A311gWns6AbLcuLA9quwjU"
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
 
-		emailPopulatingBuilder.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
-		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
-		// success, signing did not produce an error
-		assertThat(mimeMessage).isInstanceOf(ImmutableDelegatingSMTPMessage.class);
-		assertThat(((ImmutableDelegatingSMTPMessage) mimeMessage).getDelegate()).isInstanceOf(DkimMessage.class);
+		emailPopulatingBuilder.signWithDomainKey(DkimConfig.builder()
+						.dkimPrivateKeyData(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)))
+						.dkimSigningDomain("supersecret-testing-domain.com")
+						.dkimSelector("dkim1")
+				.build());
+		MimeMessage dkimSignedMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
+		// success, hooking into the DKIM library did not produce an error
+		assertThat(dkimSignedMessage).isInstanceOf(ImmutableDelegatingSMTPMessage.class);
+		assertThat(((ImmutableDelegatingSMTPMessage) dkimSignedMessage).getDelegate()).isInstanceOf(DkimMessage.class);
+
+		// just a quick double check we don't have a DKIM signature yet:
+		assertThat(EmailConverter.mimeMessageToEmail(dkimSignedMessage).getHeaders()).doesNotContainKey("DKIM-Signature");
+
+		// now trigger the actual signing:
+		String eml = EmailConverter.mimeMessageToEML(dkimSignedMessage);
+		Email dkimSignedEmail = EmailConverter.emlToEmail(eml);
+		// success, signing itself did not produce an error either
+		assertThat(dkimSignedEmail.getHeaders()).containsKey("DKIM-Signature");
+		assertThat(dkimSignedEmail.getHeaders().get("DKIM-Signature"))
+				.isInstanceOf(List.class)
+				.hasSize(1)
+				.first()
+				.isInstanceOf(String.class)
+				.asString()
+				.contains(
+						"v=1;",
+						"a=rsa-sha256;",
+						"q=dns/txt;",
+						"c=relaxed/relaxed;",
+						"s=dkim1;",
+						"d=supersecret-testing-domain.com;",
+						"i=mr.sender@supersecret-testing-domain.com;",
+						"h=Content-Type:MIME-Version:Subject:Message-ID:To:Reply-To:From:Date;");
 	}
 
 	@Test
@@ -366,7 +399,11 @@ public class MailerTest {
 						+ "Zwgvs3Rvv7k5NwifQOEbhbZAigAGCF5Jk/Ijpi6zaUn7754GSn2FOzWgxDguUKe/fcgdHBLai/1jIRVZQQJAXF2xzWMwP+TmX44QxK52QHVI8mhNzcnH7A311gWns6AbLcuLA9quwjU"
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
 
-		emailPopulatingBuilder.signWithDomainKey(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)), "somemail.com", "select");
+		emailPopulatingBuilder.signWithDomainKey(DkimConfig.builder()
+				.dkimPrivateKeyData(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)))
+				.dkimSigningDomain("somemail.com")
+				.dkimSelector("select")
+				.build());
 		emailPopulatingBuilder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
 		emailPopulatingBuilder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 

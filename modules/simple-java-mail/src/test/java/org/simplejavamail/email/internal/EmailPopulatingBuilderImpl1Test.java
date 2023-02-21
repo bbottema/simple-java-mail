@@ -12,6 +12,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -810,12 +811,13 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		final Email email = builder
 				.from("a.b.com")
-				.signWithDomainKey(buf, "domain", "selector")
+				.signWithDomainKey(buf, "domain", "selector", null)
 				.buildEmail();
 
-		assertThat(Arrays.equals(email.getDkimPrivateKeyData(), buf)).isTrue();
-		EmailAssert.assertThat(email).hasDkimSelector("selector");
-		EmailAssert.assertThat(email).hasDkimSigningDomain("domain");
+		assertThat(email.getDkimConfig()).isNotNull();
+		assertThat(Arrays.equals(email.getDkimConfig().getDkimPrivateKeyData(), buf)).isTrue();
+		assertThat(email.getDkimConfig().getDkimSelector()).isEqualTo("selector");
+		assertThat(email.getDkimConfig().getDkimSigningDomain()).isEqualTo("domain");
 	}
 
 	@Test
@@ -1211,7 +1213,11 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testClearingValues() throws IOException {
 		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false, false)
 				.notMergingSingleSMIMESignedAttachment()
-				.signWithDomainKey("dkim_key", "dkim_domain", "dkim_selector")
+				.signWithDomainKey(DkimConfig.builder()
+						.dkimPrivateKeyData("dkim_key")
+						.dkimSigningDomain("dkim_domain")
+						.dkimSelector("dkim_selector")
+						.build())
 				.signWithSmime(new ByteArrayInputStream(new byte[]{}), "storePassword", "keyAlias", "keyPassword")
 				.encryptWithSmime(mock(X509Certificate.class));
 
@@ -1223,9 +1229,10 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailNormal.getSubject()).isNotNull();
 		assertThat(emailNormal.getBounceToRecipient()).isNotNull();
 		assertThat(emailNormal.getDispositionNotificationTo()).isNotNull();
-		assertThat(emailNormal.getDkimPrivateKeyData()).isNotNull();
-		assertThat(emailNormal.getDkimSelector()).isNotNull();
-		assertThat(emailNormal.getDkimSigningDomain()).isNotNull();
+		assertThat(emailNormal.getDkimConfig()).isNotNull();
+		assertThat(emailNormal.getDkimConfig().getDkimPrivateKeyData()).isNotNull();
+		assertThat(emailNormal.getDkimConfig().getDkimSelector()).isNotNull();
+		assertThat(emailNormal.getDkimConfig().getDkimSigningDomain()).isNotNull();
 		assertThat(emailNormal.getAttachments()).isNotEmpty();
 		assertThat(emailNormal.getEmbeddedImages()).isNotEmpty();
 		assertThat(emailNormal.getFromRecipient()).isNotNull();
@@ -1266,9 +1273,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailCleared.getSubject()).isNull();
 		assertThat(emailCleared.getBounceToRecipient()).isNull();
 		assertThat(emailCleared.getDispositionNotificationTo()).isNull();
-		assertThat(emailCleared.getDkimPrivateKeyData()).isNull();
-		assertThat(emailCleared.getDkimSelector()).isNull();
-		assertThat(emailCleared.getDkimSigningDomain()).isNull();
+		assertThat(emailCleared.getDkimConfig()).isNull();
 		assertThat(emailCleared.getAttachments()).isEmpty();
 		assertThat(emailCleared.getEmbeddedImages()).isEmpty();
 		assertThat(emailCleared.getFromRecipient()).isNull();
@@ -1286,22 +1291,25 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testClearingValuesAlternativeFlows() throws IOException {
 		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false, false)
-				.signWithDomainKey(new ByteArrayInputStream(new byte[]{'a'}), "dkim_domain", "dkim_selector");
+				.signWithDomainKey(DkimConfig.builder()
+						.dkimPrivateKeyData(new ByteArrayInputStream(new byte[]{'a'}))
+						.dkimSigningDomain("dkim_domain")
+						.dkimSelector("dkim_selector")
+						.build());
 
 		Email emailNormal = emailBuilder.buildEmail();
 
-		assertThat(emailNormal.getDkimPrivateKeyData()).isNotNull();
-		assertThat(emailNormal.getDkimSelector()).isNotNull();
-		assertThat(emailNormal.getDkimSigningDomain()).isNotNull();
+		assertThat(emailNormal.getDkimConfig()).isNotNull();
+		assertThat(emailNormal.getDkimConfig().getDkimPrivateKeyData()).isNotNull();
+		assertThat(emailNormal.getDkimConfig().getDkimSelector()).isNotNull();
+		assertThat(emailNormal.getDkimConfig().getDkimSigningDomain()).isNotNull();
 
 		emailBuilder
 				.clearDkim();
 
 		Email emailCleared = emailBuilder.buildEmail();
 
-		assertThat(emailCleared.getDkimPrivateKeyData()).isNull();
-		assertThat(emailCleared.getDkimSelector()).isNull();
-		assertThat(emailCleared.getDkimSigningDomain()).isNull();
+		assertThat(emailCleared.getDkimConfig()).isNull();
 	}
 
 	private Recipient createRecipient(final @Nullable String name, final String emailAddress, final Message.RecipientType recipientType) {

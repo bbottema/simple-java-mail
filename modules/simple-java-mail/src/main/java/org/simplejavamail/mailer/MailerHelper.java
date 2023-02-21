@@ -4,12 +4,14 @@ import com.sanctionco.jmail.EmailValidator;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeUtility;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.slf4j.Logger;
@@ -19,6 +21,7 @@ import java.util.Map;
 
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -219,11 +222,13 @@ public class MailerHelper {
 	}
 
 	/**
-	 * @see org.simplejavamail.internal.modules.DKIMModule#signMessageWithDKIM(MimeMessage, Email)
+	 * @see org.simplejavamail.internal.modules.DKIMModule#signMessageWithDKIM(MimeMessage, DkimConfig, Recipient)
 	 */
 	@SuppressWarnings("unused")
 	public static MimeMessage signMessageWithDKIM(@NotNull final MimeMessage messageToSign, @NotNull final Email emailContainingSigningDetails) {
-		return ModuleLoader.loadDKIMModule().signMessageWithDKIM(messageToSign, emailContainingSigningDetails);
+		val dkimConfig = requireNonNull(emailContainingSigningDetails.getDkimConfig(), "email.dkimConfig");
+		val fromRecipient = requireNonNull(emailContainingSigningDetails.getFromRecipient(), "email.fromRecipient");
+		return ModuleLoader.loadDKIMModule().signMessageWithDKIM(messageToSign, dkimConfig, fromRecipient);
 	}
 
 	/**

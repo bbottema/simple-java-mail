@@ -23,6 +23,7 @@ import java.util.TimeZone;
 
 import static jakarta.mail.Message.RecipientType.BCC;
 import static java.nio.charset.Charset.defaultCharset;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Calendar.APRIL;
 import static java.util.Calendar.SEPTEMBER;
 import static java.util.Collections.singletonList;
@@ -96,7 +97,7 @@ public class EmailTest {
 				.withHeader("dummyHeader1", "dummyHeaderValue1")
 				.withHeader("dummyHeader2", "dummyHeaderValue2")
 				.withCalendarText(CalendarMethod.ADD, "Calendar text")
-				.signWithDomainKey("dkim_key", "dkim_domain", "dkim_selector")
+				.signWithDomainKey("dkim_key".getBytes(UTF_8), "dkim_domain", "dkim_selector", null)
 				.withEmbeddedImage("the_image", produceThumbsUpImage(), "image/png")
 				.withAttachment("the_attachment", produceThumbsUpImage(), "image/png")
 				.withAttachment("described_attachment", "blah".getBytes(defaultCharset()), "text/plain", "cool description", BASE_64)
@@ -114,9 +115,7 @@ public class EmailTest {
 				+ "	contentTransferEncoding='quoted-printable',\n"
 				+ "	subject='hey',\n"
 				+ "	recipients=[Recipient{name='C.Cane', address='candycane@candyshop.org', type=To}],\n"
-				+ "	applyDKIMSignature=true,\n"
-				+ "		dkimSelector=dkim_selector,\n"
-				+ "		dkimSigningDomain=dkim_domain,\n"
+				+ "	dkimConfig=DkimConfig(dkimSigningDomain=dkim_domain, dkimSelector=dkim_selector, excludedHeadersFromDkimDefaultSigningList=null),\n"
 				+ "	useDispositionNotificationTo=true,\n"
 				+ "		dispositionNotificationTo=Recipient{name='dispo to', address='simple@address.com', type=null},\n"
 				+ "	useReturnReceiptTo=true,\n"

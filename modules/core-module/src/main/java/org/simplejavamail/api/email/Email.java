@@ -4,11 +4,11 @@ import jakarta.activation.DataSource;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.util.MiscUtil;
 
-import java.io.File;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.security.cert.X509Certificate;
@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 import static java.lang.Boolean.TRUE;
@@ -151,25 +152,13 @@ public class Email implements Serializable {
 	 */
 	// mime message is not serializable, so transient
 	private transient final MimeMessage emailToForward;
-	
-	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
-	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String)
-	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
-	 */
-	private final byte[] dkimPrivateKeyData;
-	
-	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
-	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
-	 */
-	private final String dkimSigningDomain;
+
 
 	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
-	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
 	 */
-	private final String dkimSelector;
+	private DkimConfig dkimConfig;
 
 	/**
 	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
@@ -277,16 +266,8 @@ public class Email implements Serializable {
 		} else {
 			returnReceiptTo = builder.getReturnReceiptTo();
 		}
-		
-		if (builder.getDkimPrivateKeyData() != null) {
-			this.dkimPrivateKeyData = builder.getDkimPrivateKeyData();
-			this.dkimSigningDomain = builder.getDkimSigningDomain();
-			this.dkimSelector = builder.getDkimSelector();
-		} else {
-			this.dkimPrivateKeyData = null;
-			this.dkimSigningDomain = null;
-			this.dkimSelector = null;
-		}
+
+		this.dkimConfig = builder.getDkimConfig();
 	}
 
 	/**
@@ -333,10 +314,8 @@ public class Email implements Serializable {
 				",\n\tcontentTransferEncoding='" + contentTransferEncoding + '\'' +
 				",\n\tsubject='" + subject + '\'' +
 				",\n\trecipients=" + recipients);
-		if (!MiscUtil.valueNullOrEmpty(dkimSigningDomain)) {
-			s += ",\n\tapplyDKIMSignature=" + true +
-					",\n\t\tdkimSelector=" + dkimSelector +
-					",\n\t\tdkimSigningDomain=" + dkimSigningDomain;
+		if (!MiscUtil.valueNullOrEmpty(dkimConfig)) {
+			s += ",\n\tdkimConfig=" + dkimConfig;
 		}
 		if (TRUE.equals(useDispositionNotificationTo)) {
 			s += ",\n\tuseDispositionNotificationTo=" + true +
@@ -552,31 +531,14 @@ public class Email implements Serializable {
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
 	 */
 	@Nullable
-	public byte[] getDkimPrivateKeyData() {
-		return dkimPrivateKeyData != null ? dkimPrivateKeyData.clone() : null;
+	public DkimConfig getDkimConfig() {
+		return dkimConfig;
 	}
 	
-	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
-	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
-	 */
-	@Nullable
-	public String getDkimSigningDomain() {
-		return dkimSigningDomain;
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
-	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
-	 */
-	@Nullable
-	public String getDkimSelector() {
-		return dkimSelector;
-	}
-
 	/**
 	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
 	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)

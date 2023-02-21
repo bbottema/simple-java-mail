@@ -17,6 +17,7 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
@@ -42,13 +43,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 
 import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
@@ -84,7 +85,6 @@ import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.email.internal.EmailException.ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT;
 import static org.simplejavamail.email.internal.EmailException.ERROR_PARSING_URL;
-import static org.simplejavamail.email.internal.EmailException.ERROR_READING_DKIM_FROM_INPUTSTREAM;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_FILE;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_PEM_INPUTSTREAM;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_SMIME_FROM_INPUTSTREAM;
@@ -242,24 +242,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private final Map<String, Collection<String>> headers;
 	
 	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
-	 * @see #signWithDomainKey(byte[], String, String)
-	 * @see #signWithDomainKey(File, String, String)
+	 * @see #signWithDomainKey(DkimConfig)
+	 * @see #signWithDomainKey(byte[], String, String, Set)
 	 */
-	private byte[] dkimPrivateKeyData;
+	private DkimConfig dkimConfig;
 	
-	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
-	 * @see #signWithDomainKey(File, String, String)
-	 */
-	private String dkimSigningDomain;
-	
-	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
-	 * @see #signWithDomainKey(File, String, String)
-	 */
-	private String dkimSelector;
-
 	/**
 	 * @see #signWithSmime(Pkcs12Config)
 	 * @see #signWithSmime(InputStream, String, String, String)
@@ -427,9 +414,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	private void validateDkim() {
-		if (getDkimPrivateKeyData() != null) {
-			checkNonEmptyArgument(getDkimSelector(), "dkimSelector");
-			checkNonEmptyArgument(getDkimSigningDomain(), "dkimSigningDomain");
+		if (getDkimConfig() != null) {
 			checkNonEmptyArgument(getFromRecipient(), "fromRecipient required when signing DKIM");
 		}
 	}
@@ -1805,54 +1790,26 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(String, String, String)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	public EmailPopulatingBuilder signWithDomainKey(@NotNull final String dkimPrivateKey, @NotNull final String signingDomain, @NotNull final String dkimSelector) {
-		checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
-		return signWithDomainKey(dkimPrivateKey.getBytes(UTF_8), signingDomain, dkimSelector);
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(File, String, String)
-	 */
-	@Override
-	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	public EmailPopulatingBuilder signWithDomainKey(@NotNull final File dkimPrivateKeyFile, @NotNull final String signingDomain, @NotNull final String dkimSelector) {
-		checkNonEmptyArgument(dkimPrivateKeyFile, "dkimPrivateKeyFile");
-		try (FileInputStream dkimPrivateKeyInputStream = new FileInputStream(dkimPrivateKeyFile)) {
-			return signWithDomainKey(dkimPrivateKeyInputStream, signingDomain, dkimSelector);
-		} catch (IOException e) {
-			throw new EmailException(format(ERROR_READING_FROM_FILE, dkimPrivateKeyFile), e);
-		}
-	}
-	
-	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(InputStream, String, String)
-	 */
-	@Override
-	public EmailPopulatingBuilder signWithDomainKey(@NotNull final InputStream dkimPrivateKeyInputStream, @NotNull final String signingDomain,
-													@NotNull final String dkimSelector) {
-		checkNonEmptyArgument(dkimPrivateKeyInputStream, "dkimPrivateKeyInputStream");
-		try {
-			signWithDomainKey(readInputStreamToBytes(dkimPrivateKeyInputStream), signingDomain, dkimSelector);
-		} catch (IOException e) {
-			throw new EmailException(ERROR_READING_DKIM_FROM_INPUTSTREAM, e);
-		}
+	public EmailPopulatingBuilder signWithDomainKey(@NotNull final DkimConfig dkimConfig) {
+		this.dkimConfig = checkNonEmptyArgument(dkimConfig, "dkimConfig");
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String)
+	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
 	 */
 	@Override
-	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	public EmailPopulatingBuilder signWithDomainKey(@NotNull final byte[] dkimPrivateKey, @NotNull final String signingDomain, @NotNull final String dkimSelector) {
-		this.dkimPrivateKeyData = checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey");
-		this.dkimSigningDomain = checkNonEmptyArgument(signingDomain, "dkimSigningDomain");
-		this.dkimSelector = checkNonEmptyArgument(dkimSelector, "dkimSelector");
-		return this;
+	public EmailPopulatingBuilder signWithDomainKey(@NotNull final byte[] dkimPrivateKey, @NotNull final String signingDomain, @NotNull final String dkimSelector, @Nullable final Set<String> excludedHeadersFromDkimDefaultSigningList) {
+		return signWithDomainKey(DkimConfig.builder()
+				.dkimPrivateKeyData(checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey"))
+				.dkimSigningDomain(checkNonEmptyArgument(signingDomain, "dkimSigningDomain"))
+				.dkimSelector(checkNonEmptyArgument(dkimSelector, "dkimSelector"))
+				.excludedHeadersFromDkimDefaultSigningList(excludedHeadersFromDkimDefaultSigningList)
+				.build());
 	}
 
 	/**
@@ -2271,9 +2228,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder clearDkim() {
-		this.dkimPrivateKeyData = null;
-		this.dkimSigningDomain = null;
-		this.dkimSelector = null;
+		this.dkimConfig = null;
 		return this;
 	}
 
@@ -2464,30 +2419,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#getDkimPrivateKeyData()
+	 * @see EmailPopulatingBuilder#getDkimConfig()
 	 */
 	@Override
 	@Nullable
-	public byte[] getDkimPrivateKeyData() {
-		return dkimPrivateKeyData != null ? dkimPrivateKeyData.clone() : null;
-	}
-	
-	/**
-	 * @see EmailPopulatingBuilder#getDkimSigningDomain()
-	 */
-	@Override
-	@Nullable
-	public String getDkimSigningDomain() {
-		return dkimSigningDomain;
-	}
-	
-	/**
-	 * @see EmailPopulatingBuilder#getDkimSelector()
-	 */
-	@Override
-	@Nullable
-	public String getDkimSelector() {
-		return dkimSelector;
+	public DkimConfig getDkimConfig() {
+		return dkimConfig;
 	}
 	
 	/**

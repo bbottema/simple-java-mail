@@ -12,7 +12,6 @@ import org.simplejavamail.email.EmailBuilder;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
  * @see EmailStartingBuilder
@@ -210,8 +209,8 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getSentDate() != null) {
 			builder.fixingSentDate(email.getSentDate());
 		}
-		if (email.getDkimPrivateKeyData() != null) {
-			builder.signWithDomainKey(email.getDkimPrivateKeyData(), verifyNonnullOrEmpty(email.getDkimSigningDomain()), verifyNonnullOrEmpty(email.getDkimSelector()));
+		if (email.getDkimConfig() != null) {
+			builder.signWithDomainKey(email.getDkimConfig());
 		}
 		if (email.getDispositionNotificationTo() != null) {
 			builder.withDispositionNotificationTo(email.getDispositionNotificationTo());

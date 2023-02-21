@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import testutil.ConfigLoaderTestHelper;
@@ -96,7 +97,11 @@ public class MimeMessageHelperTest {
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseItWillTryToSign()
 			throws IOException, ClassNotFoundException {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
-				.signWithDomainKey("dummykey", "moo.com", "selector")
+				.signWithDomainKey(DkimConfig.builder()
+						.dkimPrivateKeyData("dummykey")
+						.dkimSigningDomain("moo.com")
+						.dkimSelector("selector")
+						.build())
 				.buildEmail();
 		
 		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))

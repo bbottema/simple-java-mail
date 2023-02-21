@@ -16,6 +16,7 @@ import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.orOther;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * Helper class that produces and populates a mime messages. Deals with jakarta.mail RFC MimeMessage stuff, as well as
@@ -88,8 +89,8 @@ public abstract class SpecializedMimeMessageProducer {
 			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email, emailGovernance.getPkcs12ConfigForSmimeSigning());
 		}
 
-		if (!valueNullOrEmpty(email.getDkimSigningDomain())) {
-			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, email);
+		if (!valueNullOrEmpty(email.getDkimConfig())) {
+			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, email.getDkimConfig(), checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
 		}
 
 		val bountToRecipient = orOther(email, emailGovernance.getEmailDefaults(), emailGovernance.getEmailOverrides(), Email::getBounceToRecipient);

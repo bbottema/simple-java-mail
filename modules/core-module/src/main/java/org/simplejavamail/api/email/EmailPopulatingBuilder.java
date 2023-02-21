@@ -7,11 +7,11 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
@@ -20,10 +20,10 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static java.util.regex.Pattern.compile;
-
 
 /**
  * Fluent interface Builder for populating {@link Email} instances. An instance of this builder can only be obtained through one of the builder
@@ -37,8 +37,8 @@ import static java.util.regex.Pattern.compile;
 public interface EmailPopulatingBuilder {
 
 	/**
-	 * Regular Expression to find all {@code <img src="...">} entries in an HTML document.It needs to cater for various things, like more whitespaces including newlines on any place, HTML is not case
-	 * sensitive and there can be arbitrary text between "IMG" and "SRC" like IDs and other things.
+	 * Regular Expression to find all {@code <img src="...">} entries in an HTML document.It needs to cater for various things, like more whitespaces including newlines on any
+	 * place, HTML is not case-sensitive and there can be arbitrary text between "IMG" and "SRC" like IDs and other things.
 	 */
 	Pattern IMG_SRC_PATTERN = compile("(?<imageTagStart><[Ii][Mm][Gg]\\s*[^>]*?\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])(?<src>[^\"']+?)(?<imageSrcEnd>[\"'])");
 
@@ -1137,55 +1137,34 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withAttachment(String, DataSource)} for each attachment.
 	 */
 	EmailPopulatingBuilder withAttachments(@NotNull List<AttachmentResource> attachments);
-	
-	/**
-	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
-	 * dkimPrivateKey} data.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
-	 */
-	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	@SuppressWarnings("unused")
-	EmailPopulatingBuilder signWithDomainKey(@NotNull byte[] dkimPrivateKey, @NotNull String signingDomain, @NotNull String dkimSelector);
-	
-	/**
-	 * Delegates to {@link #signWithDomainKey(InputStream, String, String)} with a {@link ByteArrayInputStream} wrapped around the prodived {@code
-	 * dkimPrivateKey} string converted to UTF_8 byte array.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
-	 */
-	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	@SuppressWarnings("unused")
-	EmailPopulatingBuilder signWithDomainKey(@NotNull String dkimPrivateKey, @NotNull String signingDomain, @NotNull String dkimSelector);
-	
+
 	/**
 	 * Primes this email for signing with a DKIM domain key. Actual signing is done when sending using a <code>Mailer</code>.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
 	 *
-	 * @param dkimPrivateKeyInputStream De key content used to sign for the sending party.
-	 * @param signingDomain             The domain being authorized to send.
-	 * @param dkimSelector              Additional domain specifier.
+	 * @param dkimPrivateKey                            De key content used to sign for the sending party.
+	 * @param signingDomain                             The domain being authorized to send.
+	 * @param dkimSelector                              Additional domain specifier.
+	 * @param excludedHeadersFromDkimDefaultSigningList Allows you to exclude headers being signed, as might be the case when another mail transfer agent. For example, Amazon SES doesn't want Message-ID and Date Headers to be signed as they have internal mechanisms to handle these headers.
 	 *
 	 * @see <a href="https://postmarkapp.com/guides/dkim">more on DKIM 1</a>
 	 * @see <a href="https://github.com/markenwerk/java-utils-mail-dkim">more on DKIM 2</a>
 	 * @see <a href="http://www.gettingemaildelivered.com/dkim-explained-how-to-set-up-and-use-domainkeys-identified-mail-effectively">more on DKIM 3</a>
 	 * @see <a href="https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail">more on DKIM 4</a>
 	 * @see <a href="https://github.com/bbottema/dkim-verify">List of explanations all tags in a <em>DKIM-Signature</em> header</a>
-	 * @see #signWithDomainKey(byte[], String, String)
-	 * @see #signWithDomainKey(String, String, String)
-	 * @see #signWithDomainKey(File, String, String)
+	 * @see #signWithDomainKey(DkimConfig)
 	 */
-	EmailPopulatingBuilder signWithDomainKey(@NotNull InputStream dkimPrivateKeyInputStream, @NotNull String signingDomain, @NotNull String dkimSelector);
-	
+	@SuppressWarnings("unused")
+	EmailPopulatingBuilder signWithDomainKey(@NotNull byte[] dkimPrivateKey, @NotNull String signingDomain, @NotNull String dkimSelector, @Nullable Set<String> excludedHeadersFromDkimDefaultSigningList);
+
 	/**
-	 * As {@link #signWithDomainKey(InputStream, String, String)}, but with a File reference that is later read as {@code InputStream}.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
+	 * @see #signWithDomainKey(byte[], String, String, Set)
 	 */
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	EmailPopulatingBuilder signWithDomainKey(@NotNull File dkimPrivateKeyFile, @NotNull String signingDomain, @NotNull String dkimSelector);
-
+	@SuppressWarnings("unused")
+	EmailPopulatingBuilder signWithDomainKey(@NotNull DkimConfig dkimConfig);
+	
 	/**
 	 * Signs this email with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
 	 * can verify whether the email content was tampered with.
@@ -1633,26 +1612,11 @@ public interface EmailPopulatingBuilder {
 	Map<String, Collection<String>> getHeaders();
 	
 	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
-	 * @see #signWithDomainKey(byte[], String, String)
-	 * @see #signWithDomainKey(File, String, String)
+	 * @see #signWithDomainKey(DkimConfig)
+	 * @see #signWithDomainKey(byte[], String, String, Set)
 	 */
 	@Nullable
-	byte[] getDkimPrivateKeyData();
-	
-	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
-	 * @see #signWithDomainKey(File, String, String)
-	 */
-	@Nullable
-	String getDkimSigningDomain();
-	
-	/**
-	 * @see #signWithDomainKey(InputStream, String, String)
-	 * @see #signWithDomainKey(File, String, String)
-	 */
-	@Nullable
-	String getDkimSelector();
+	DkimConfig getDkimConfig();
 	
 	/**
 	 * @see #withDispositionNotificationTo()

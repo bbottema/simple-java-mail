@@ -5,6 +5,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
@@ -51,7 +52,11 @@ public class EmailStartingBuilderImplTest {
 				.withReplyTo("reply@to.com")
 				.withSubject("mooject")
 				.withReturnReceiptTo("RECEIPT@moo.com")
-				.signWithDomainKey("dkim_key", "dkim_domain", "dkim_selector")
+				.signWithDomainKey(DkimConfig.builder()
+						.dkimPrivateKeyData("dkim_key")
+						.dkimSigningDomain("dkim_domain")
+						.dkimSelector("dkim_selector")
+						.build())
 				.from("it's a me! <mario@moo.com>")
 				.fixingMessageId("id123")
 				.fixingSentDate(new Date())
