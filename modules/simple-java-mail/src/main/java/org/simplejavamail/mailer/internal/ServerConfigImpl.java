@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.ServerConfig;
@@ -12,6 +13,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 /**
  * @see ServerConfig
  */
+@Getter
 class ServerConfigImpl implements ServerConfig {
 	@NotNull private final String host;
 	@NotNull private final Integer port;
@@ -44,59 +46,5 @@ class ServerConfigImpl implements ServerConfig {
 			str += " (authenticated)";
 		}
 		return str;
-	}
-	
-	/**
-	 * @see ServerConfig#getHost()
-	 */
-	@NotNull
-	@Override
-	public String getHost() {
-		return host;
-	}
-	
-	/**
-	 * @see ServerConfig#getPort()
-	 */
-	@NotNull
-	@Override
-	public Integer getPort() {
-		return port;
-	}
-	
-	/**
-	 * @see ServerConfig#getUsername()
-	 */
-	@Override
-	@Nullable
-	public String getUsername() {
-		return username;
-	}
-
-	/**
-	 * @see ServerConfig#getPassword()
-	 */
-	@Override
-	@Nullable
-	public String getPassword() {
-		return password;
-	}
-
-	/**
-	 * @see ServerConfig#getCustomSSLFactoryClass()
-	 */
-	@Override
-	@Nullable
-	public String getCustomSSLFactoryClass() {
-		return customSSLFactoryClass;
-	}
-
-	/**
-	 * @see ServerConfig#getCustomSSLFactoryInstance()
-	 */
-	@Override
-	@Nullable
-	public SSLSocketFactory getCustomSSLFactoryInstance() {
-		return customSSLFactoryInstance;
 	}
 }
