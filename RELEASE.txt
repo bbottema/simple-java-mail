@@ -3,12 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.9.0</version>
+    <version>7.9.1</version>
 </dependency>
 
-v7.9.0 (21-February-2023)
+v7.9.0 - v7.9.1
 
-- #344: Enhancement: make DKIM signing more flexible by allowing header exclusions in DKIM signature
+- v7.9.1 (22-February-2023): #444: Bugfix: encoded delimited recipients in EML not parsed properly
+- v7.9.0 (21-February-2023): #344: Enhancement: make DKIM signing more flexible by allowing header exclusions in DKIM signature
 
 
 v7.8.0 - v7.8.3
