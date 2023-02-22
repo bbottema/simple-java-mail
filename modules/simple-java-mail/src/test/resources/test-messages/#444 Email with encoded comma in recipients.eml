@@ -1,0 +1,31 @@
+Received: from localhost (localhost [127.0.0.1])
+Subject: =?iso-8859-1?Q?Test E-Mail?=
+From: =?iso-8859-1?Q?Some_Name=2C_Jane_Doe?= <jane.doe@example.de>
+To: =?iso-8859-1?Q?Some_Name_2=2C_John_Doe?= <john.doe@example.de>
+Date: Thu, 17 Jul 2022 11:30:35 +0200
+Mime-Version: 1.0
+Content-Type: multipart/mixed;
+ boundary="=_XcF8-p0YPEze5FKM4wBEsW6g4fs7szT74eXdtYFWHz2tdNBa"
+X-Priority: 3 (Normal)
+Thread-Index: AdZmVACDs7DEv8/jTk61asogqNbsIg==
+Message-Id: <5f22933b.3ac9.2d67554856caaa4d@local>
+
+This is a multi-part message in MIME format. Your mail reader does not
+understand MIME message format.
+
+--=_XcF8-p0YPEze5FKM4wBEsW6g4fs7szT74eXdtYFWHz2tdNBa
+Content-Type: multipart/alternative;
+ boundary="=_XcF8-p5aPECh5FzV4wU-tWHDHl3ZdfMTYuEsAukbZ+BKbIZY"
+
+This is a multi-part message in MIME format. Your mail reader does not
+understand MIME message format.
+
+--=_XcF8-p5aPECh5FzV4wU-tWHDHl3ZdfMTYuEsAukbZ+BKbIZY
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+This is a multi-part message in MIME format. Your mail reader does not
+understand MIME message format.
+
+--=_XcF8-p0YPEze5FKM4wBEsW6g4fs7szT74eXdtYFWHz2tdNBa--
+

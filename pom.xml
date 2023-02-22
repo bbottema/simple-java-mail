@@ -66,6 +66,12 @@
             <version>1.18.22</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.pivovarit</groupId>
+            <artifactId>throwing-function</artifactId>
+            <version>1.5.1</version>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- testing -->
         <dependency>

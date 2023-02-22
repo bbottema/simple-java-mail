@@ -149,6 +149,13 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testProblematicCommasInRecipeints() {
+		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#444 Email with encoded comma in recipients.eml"));
+		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("Some Name, Jane Doe", "jane.doe@example.de", null));
+		EmailAssert.assertThat(s1).hasOnlyRecipients(new Recipient("Some Name 2, John Doe", "john.doe@example.de", TO));
+	}
+
+	@Test
 	public void testProblematicExchangeDeliveryReceipts() throws Exception {
 		SecureTestDataHelper.runTestWithSecureTestData(passwords -> {
 			String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/nested-empty-outlook-msg/Outlook msg with empty nested msg attachment.msg";

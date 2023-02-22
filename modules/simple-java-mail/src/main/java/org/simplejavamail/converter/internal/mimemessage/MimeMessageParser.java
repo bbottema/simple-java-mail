@@ -45,6 +45,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.pivovarit.function.ThrowingFunction.unchecked;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.ofNullable;
@@ -471,10 +472,14 @@ public final class MimeMessageParser {
 		try {
 			// return mimeMessage.getRecipients(recipientType); // can fail in strict mode, see https://github.com/bbottema/simple-java-mail/issues/227
 			// workaround following (copied and modified from JavaMail internal code):
-			val s = ofNullable(mimeMessage.getHeader(getHeaderName(recipientType), ","))
-					.map(MimeMessageParser::decodeText)
+			// and while we're at it, properly decode the personal names
+			val recipientHeader = mimeMessage.getHeader(getHeaderName(recipientType), ",");
+			return ofNullable(recipientHeader)
+					.map(unchecked(h -> InternetAddress.parseHeader(h, false)))
+					.map(ias -> Arrays.stream(ias)
+							.map(unchecked(ia -> new InternetAddress(ia.getAddress(), decodePersonalName(ia.getPersonal()))))
+							.toArray(Address[]::new))
 					.orElse(null);
-			return (s == null) ? null : InternetAddress.parseHeader(s, false);
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_GETTING_RECIPIENTS, recipientType), e);
 		}
@@ -490,6 +495,12 @@ public final class MimeMessageParser {
 			return "Bcc";
 		}
 	}
+
+	@Nullable
+	private static String decodePersonalName(String personalName) {
+		return personalName != null ? decodeText(personalName) : null;
+	}
+
 	@Nullable
 	public static String parseContentDescription(@NotNull final MimePart mimePart) {
 		try {
