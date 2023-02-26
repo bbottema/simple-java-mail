@@ -158,7 +158,7 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
 	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
 	 */
-	private DkimConfig dkimConfig;
+	private final DkimConfig dkimConfig;
 
 	/**
 	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
