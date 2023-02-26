@@ -55,7 +55,7 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
 
 /**
  * Utility to help convert {@link org.simplejavamail.api.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
- *
+ * <br>
  * If you use the Outlook parsing API, make sure you load the following dependency: <em>org.simplejavamail::outlook-message-parser</em>
  */
 @SuppressWarnings("WeakerAccess")
