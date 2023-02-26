@@ -10,6 +10,7 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimePart;
 import jakarta.mail.util.ByteArrayDataSource;
+import lombok.val;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
@@ -29,7 +30,6 @@ import org.bouncycastle.util.Store;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
-import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
@@ -59,7 +59,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -436,33 +435,15 @@ public class SMIMESupport implements SMIMEModule {
 
 	@NotNull
 	@Override
-	public MimeMessage signAndOrEncryptEmail(@Nullable final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails,
-			@Nullable final Pkcs12Config defaultSmimeSigningStore) {
-		MimeMessage result = messageToProtect;
-
-		final Pkcs12Config pkcs12Config = Optional
-				.ofNullable(emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning())
-				.orElse(defaultSmimeSigningStore);
-		if (pkcs12Config != null) {
-			result = signMessage(session, result, pkcs12Config);
-		}
-		if (emailContainingSmimeDetails.getX509CertificateForSmimeEncryption() != null) {
-			result = encryptMessage(session, result, emailContainingSmimeDetails.getX509CertificateForSmimeEncryption());
-		}
-		return result;
+	public MimeMessage signMessageWithSmime(@Nullable final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Pkcs12Config pkcs12Config) {
+		val smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
+		return SmimeUtil.sign(session, messageToProtect, smimeKey);
 	}
 
 	@NotNull
 	@Override
-	public MimeMessage signMessage(@Nullable Session session, @NotNull MimeMessage message, @NotNull Pkcs12Config pkcs12Config) {
-		SmimeKey smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
-		return SmimeUtil.sign(session, message, smimeKey);
-	}
-
-	@NotNull
-	@Override
-	public MimeMessage encryptMessage(@Nullable Session session, @NotNull MimeMessage message, @NotNull X509Certificate certificate) {
-		return SmimeUtil.encrypt(session, message, certificate);
+	public MimeMessage encryptMessageWithSmime(@Nullable final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final X509Certificate x509Certificate) {
+		return SmimeUtil.encrypt(session, messageToProtect, x509Certificate);
 	}
 
 	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12) {

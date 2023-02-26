@@ -20,9 +20,11 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
+import org.simplejavamail.internal.config.EmailProperty;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
@@ -170,8 +172,9 @@ public class MailerLiveTest {
 		// override the default from the @Before test
 		mailer = MailerBuilder
 				.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
-				.signByDefaultWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein")
-				.withEmailDefaults(EMAIL_DEFAULTS().buildEmail())
+				.withEmailDefaults(EMAIL_DEFAULTS()
+						.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein")
+						.buildEmail())
 				.withEmailOverrides(EMAIL_OVERRIDES().buildEmail())
 				.buildMailer();
 
@@ -179,7 +182,7 @@ public class MailerLiveTest {
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 
 		// verify that S/MIME was indeed only configured on the mailer instance
-		assertThat(mailer.getEmailGovernance().getPkcs12ConfigForSmimeSigning()).isNotNull();
+		assertThat(mailer.getEmailGovernance().<Pkcs12Config>resolveEmailProperty(email, EmailProperty.SMIME_SIGNING_CONFIG)).isNotNull();
 		assertThat(builder.getPkcs12ConfigForSmimeSigning()).isNull();
 		assertThat(email.getPkcs12ConfigForSmimeSigning()).isNull();
 

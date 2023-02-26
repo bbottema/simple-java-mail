@@ -16,6 +16,7 @@ import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.slf4j.Logger;
 
+import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Map;
 
@@ -234,11 +235,14 @@ public class MailerHelper {
 	/**
 	 * Depending on the Email configuration, signs and then encrypts message (both steps optional), using the S/MIME module.
 	 *
-	 * @see org.simplejavamail.internal.modules.SMIMEModule#signAndOrEncryptEmail(Session, MimeMessage, Email, Pkcs12Config)
+	 * @see org.simplejavamail.internal.modules.SMIMEModule#signMessageWithSmime(Session, MimeMessage, Pkcs12Config)
+	 * @see org.simplejavamail.internal.modules.SMIMEModule#encryptMessageWithSmime(Session, MimeMessage, X509Certificate)
 	 */
 	@SuppressWarnings("unused")
-	public static MimeMessage signAndOrEncryptMessageWithSmime(@NotNull final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails, @Nullable final Pkcs12Config defaultSmimeSigningStore) {
-		return ModuleLoader.loadSmimeModule()
-				.signAndOrEncryptEmail(session, messageToProtect, emailContainingSmimeDetails, defaultSmimeSigningStore);
+	public static MimeMessage signAndOrEncryptMessageWithSmime(@NotNull final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails) {
+		MimeMessage message = messageToProtect;
+		message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, message, requireNonNull(emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning(), "Pkcs12Config"));
+		message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, message, requireNonNull(emailContainingSmimeDetails.getX509CertificateForSmimeEncryption(), "X509Certificate"));
+		return message;
 	}
 }

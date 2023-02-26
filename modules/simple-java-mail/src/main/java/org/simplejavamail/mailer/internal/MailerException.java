@@ -7,7 +7,10 @@ import org.simplejavamail.MailException;
  */
 class MailerException extends MailException {
 
+	// FIXME not used anymore?
 	static final String ERROR_READING_SMIME_FROM_INPUTSTREAM = "Was unable to read S/MIME data from input stream";
+	static final String ERROR_READING_FROM_PEM_INPUTSTREAM = "Was unable to convert PEM data to X509 certificate";
+	static final String ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT = "Unable to load certificate (missing bouncy castle), is the S/MIME module on the class path?";
 	static final String ERROR_READING_FROM_FILE = "Error reading from file: %s";
 	static final String MISSING_OAUTH2_TOKEN = "TransportStrategy is OAUTH2 but no OAUTH2 token provided as password";
 	static final String INVALID_PROXY_SLL_COMBINATION = "Proxy is not supported for SSL connections (this is a limitation by the underlying JavaMail framework)";

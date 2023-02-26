@@ -15,6 +15,7 @@ import jakarta.mail.search.HeaderTerm;
 import org.assertj.core.api.iterable.Extractor;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.internal.config.EmailProperty;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -76,7 +77,10 @@ public class ImmutableDelegatingSMTPMessageTest {
 
 	@Test
 	public void testGettersResultInEqualValues() throws MessagingException, IOException {
-		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false, false).clearBounceTo().buildEmail();
+		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false, false)
+				.clearBounceTo()
+				.dontApplyDefaultValueFor(EmailProperty.BOUNCETO_RECIPIENT)
+				.buildEmail();
 		MimeMessage message = emailToMimeMessage(email);
 		message.setSender(new InternetAddress("a@b.com", "abcom"));
 

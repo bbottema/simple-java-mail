@@ -2,7 +2,6 @@ package org.simplejavamail.mailer.internal;
 
 import com.sanctionco.jmail.EmailValidator;
 import com.sanctionco.jmail.JMail;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
@@ -11,14 +10,10 @@ import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
+import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,29 +23,19 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static java.lang.String.format;
-import static org.simplejavamail.config.ConfigLoader.Property;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.config.ConfigLoader.valueOrProperty;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsBoolean;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsInteger;
 import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsString;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY;
+import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
+import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
+import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
-import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
-import static org.simplejavamail.mailer.internal.MailerException.ERROR_READING_FROM_FILE;
-import static org.simplejavamail.mailer.internal.MailerException.ERROR_READING_SMIME_FROM_INPUTSTREAM;
 
 /**
  * @see MailerGenericBuilder
@@ -128,12 +113,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Nullable
 	private Integer maximumEmailSize;
-
-	/**
-	 * @see MailerGenericBuilder#signByDefaultWithSmime(Pkcs12Config)
-	 */
-	@Nullable
-	private Pkcs12Config pkcs12ConfigForSmimeSigning;
 
 	/**
 	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
@@ -263,15 +242,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		}
 
 		this.emailValidator = JMail.strictValidator();
-
-		if (hasProperty(SMIME_SIGNING_KEYSTORE)) {
-			signByDefaultWithSmime(Pkcs12Config.builder()
-					.pkcs12Store(verifyNonnullOrEmpty(getStringProperty(SMIME_SIGNING_KEYSTORE)))
-					.storePassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEYSTORE_PASSWORD), "Keystore password property"))
-					.keyAlias(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_ALIAS), "Key alias property"))
-					.keyPassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_PASSWORD), "Key password property"))
-					.build());
-		}
 	}
 	
 	/**
@@ -302,9 +272,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * For internal use.
 	 */
 	EmailGovernance buildEmailGovernance() {
-		return new EmailGovernance(
+		return new EmailGovernanceImpl(
 				getEmailValidator(),
-				getPkcs12ConfigForSmimeSigning(),
 				getEmailDefaults(),
 				getEmailOverrides(),
 				getMaximumEmailSize());
@@ -471,70 +440,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withMaximumEmailSize(int maximumEmailSize) {
 		this.maximumEmailSize = maximumEmailSize;
-		return (T) this;
-	}
-
-	/**
-	 * @param pkcs12StoreFile The file containing the keystore
-	 * @param storePassword  The password to get keys from the store
-	 * @param keyAlias The key we need for signing
-	 * @param keyPassword The password for the key
-	 *
-	 * @see MailerGenericBuilder#signByDefaultWithSmime(File, String, String, String)
-	 */
-	@Override
-	@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
-	public T signByDefaultWithSmime(@NotNull final File pkcs12StoreFile, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword) {
-		try {
-			return signByDefaultWithSmime(new FileInputStream(pkcs12StoreFile), storePassword, keyAlias, keyPassword);
-		} catch (IOException e) {
-			throw new MailerException(format(ERROR_READING_FROM_FILE, pkcs12StoreFile), e);
-		}
-	}
-
-	/**
-	 * @param pkcs12StoreStream The data (file) input stream containing the keystore
-	 * @param storePassword  The password to get keys from the store
-	 * @param keyAlias The key we need for signing
-	 * @param keyPassword The password for the key
-	 *
-	 * @see MailerGenericBuilder#signByDefaultWithSmime(InputStream, String, String, String)
-	 */
-	@Override
-	public T signByDefaultWithSmime(@NotNull final InputStream pkcs12StoreStream, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword) {
-		final byte[] pkcs12StoreData;
-		try {
-			pkcs12StoreData = readInputStreamToBytes(pkcs12StoreStream);
-		} catch (IOException e) {
-			throw new MailerException(ERROR_READING_SMIME_FROM_INPUTSTREAM, e);
-		}
-		return signByDefaultWithSmime(pkcs12StoreData, storePassword, keyAlias, keyPassword);
-	}
-
-	/**
-	 * @param pkcs12StoreData The data (file) input stream containing the keystore
-	 * @param storePassword  The password to get keys from the store
-	 * @param keyAlias The key we need for signing
-	 * @param keyPassword The password for the key
-	 *
-	 * @see MailerGenericBuilder#signByDefaultWithSmime(InputStream, String, String, String)
-	 */
-	@Override
-	public T signByDefaultWithSmime(@NotNull final byte[] pkcs12StoreData, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword) {
-		return signByDefaultWithSmime(Pkcs12Config.builder()
-				.pkcs12Store(pkcs12StoreData)
-				.storePassword(storePassword)
-				.keyAlias(keyAlias)
-				.keyPassword(keyPassword)
-				.build());
-	}
-
-	/**
-	 * @see MailerGenericBuilder#signByDefaultWithSmime(Pkcs12Config)
-	 */
-	@Override
-	public T signByDefaultWithSmime(@NotNull final Pkcs12Config pkcs12Config) {
-		this.pkcs12ConfigForSmimeSigning = pkcs12Config;
 		return (T) this;
 	}
 
@@ -873,15 +778,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	/**
-	 * @see MailerGenericBuilder#clearSignByDefaultWithSmime()
-	 */
-	@Override
-	public T clearSignByDefaultWithSmime() {
-		this.pkcs12ConfigForSmimeSigning = null;
-		return (T) this;
-	}
-	
-	/**
 	 * @see MailerGenericBuilder#clearTrustedSSLHosts()
 	 */
 	@Override
@@ -1010,15 +906,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	public Integer getMaximumEmailSize() {
 		return maximumEmailSize;
-	}
-
-	/**
-	 * @see MailerGenericBuilder#getPkcs12ConfigForSmimeSigning()
-	 */
-	@Override
-	@Nullable
-	public Pkcs12Config getPkcs12ConfigForSmimeSigning() {
-		return pkcs12ConfigForSmimeSigning;
 	}
 
 	/**

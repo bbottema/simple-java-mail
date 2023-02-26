@@ -79,6 +79,10 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * <li>simplejavamail.smime.signing.key_alias</li>
  * <li>simplejavamail.smime.signing.key_password</li>
  * <li>simplejavamail.smime.encryption.certificate</li>
+ * <li>simplejavamail.dkim.signing.private_key_file_or_data</li>
+ * <li>simplejavamail.dkim.signing.selector</li>
+ * <li>simplejavamail.dkim.signing.signing_domain</li>
+ * <li>simplejavamail.dkim.signing.excluded_headers_from_default_signing_list</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.dir</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.url</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.classpath</li>
@@ -171,6 +175,10 @@ public final class ConfigLoader {
 		SMIME_SIGNING_KEYSTORE_PASSWORD("simplejavamail.smime.signing.keystore_password"),
 		SMIME_SIGNING_KEY_ALIAS("simplejavamail.smime.signing.key_alias"),
 		SMIME_SIGNING_KEY_PASSWORD("simplejavamail.smime.signing.key_password"),
+		DKIM_PRIVATE_KEY_FILE_OR_DATA("simplejavamail.dkim.signing.private_key_file_or_data"),
+		DKIM_SELECTOR("simplejavamail.dkim.signing.selector"),
+		DKIM_SIGNING_DOMAIN("simplejavamail.dkim.signing.signing_domain"),
+		DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST("simplejavamail.dkim.signing.excluded_headers_from_default_signing_list"),
 		SMIME_ENCRYPTION_CERTIFICATE("simplejavamail.smime.encryption.certificate"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR("simplejavamail.embeddedimages.dynamicresolution.enable.dir"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH("simplejavamail.embeddedimages.dynamicresolution.enable.classpath"),

@@ -3,18 +3,21 @@ package org.simplejavamail.converter.internal.mimemessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
-import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.internal.config.EmailProperty;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.UnsupportedEncodingException;
+import java.security.cert.X509Certificate;
 import java.util.Date;
 
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
-import static org.simplejavamail.internal.util.MiscUtil.orOther;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -83,20 +86,25 @@ public abstract class SpecializedMimeMessageProducer {
 			3. DKIM signing
 		 */
 
-		if (!valueNullOrEmpty(email.getPkcs12ConfigForSmimeSigning()) ||
-				!valueNullOrEmpty(emailGovernance.getPkcs12ConfigForSmimeSigning()) ||
-				!valueNullOrEmpty(email.getX509CertificateForSmimeEncryption())) {
-			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email, emailGovernance.getPkcs12ConfigForSmimeSigning());
+		Pkcs12Config pkcs12Config = emailGovernance.resolveEmailProperty(email, EmailProperty.SMIME_SIGNING_CONFIG);
+		if (pkcs12Config != null) {
+			message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, message, pkcs12Config);
 		}
 
-		if (!valueNullOrEmpty(email.getDkimConfig())) {
-			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, email.getDkimConfig(), checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
+		X509Certificate x509Certificate = emailGovernance.resolveEmailProperty(email, EmailProperty.SMIME_ENCRYPTION_CONFIG);
+		if (x509Certificate != null) {
+			message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, message, x509Certificate);
 		}
 
-		val bountToRecipient = orOther(email, emailGovernance.getEmailDefaults(), emailGovernance.getEmailOverrides(), Email::getBounceToRecipient);
-		if (bountToRecipient != null) {
+		DkimConfig dkimConfig = emailGovernance.resolveEmailProperty(email, EmailProperty.DKIM_SIGNING_CONFIG);
+		if (dkimConfig != null) {
+			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, dkimConfig, checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
+		}
+
+		Recipient bounceToRecipient = emailGovernance.resolveEmailProperty(email, EmailProperty.BOUNCETO_RECIPIENT);
+		if (bounceToRecipient != null) {
 			// display name not applicable: https://tools.ietf.org/html/rfc5321#section-4.1.2
-			message = new ImmutableDelegatingSMTPMessage(message, bountToRecipient.getAddress());
+			message = new ImmutableDelegatingSMTPMessage(message, bounceToRecipient.getAddress());
 		}
 
 		return message;

@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.internal.config.EmailProperty;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.InputStream;
@@ -39,6 +40,16 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 public class Email implements Serializable {
 
 	private static final long serialVersionUID = 1234567L;
+
+	/**
+	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
+	 */
+	private final Set<EmailProperty> propertiesNotToApplyDefaultValueFor;
+
+	/**
+	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
+	 */
+	private final Set<EmailProperty> propertiesNotToApplyOverrideValueFor;
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
@@ -207,6 +218,8 @@ public class Email implements Serializable {
 	public Email(@NotNull final EmailPopulatingBuilder builder) {
 		checkNonEmptyArgument(builder, "builder");
 
+		propertiesNotToApplyDefaultValueFor = builder.getPropertiesNotToApplyDefaultValueFor();
+		propertiesNotToApplyOverrideValueFor = builder.getPropertiesNotToApplyOverrideValueFor();
 		smimeSignedEmail = builder.getSmimeSignedEmail();
 
 		final boolean smimeMerge = builder.isMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
@@ -373,6 +386,22 @@ public class Email implements Serializable {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 		sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 		return sdf.format(date);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
+	 */
+	@Nullable
+	public Set<EmailProperty> getPropertiesNotToApplyDefaultValueFor() {
+		return propertiesNotToApplyDefaultValueFor;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
+	 */
+	@Nullable
+	public Set<EmailProperty> getPropertiesNotToApplyOverrideValueFor() {
+		return propertiesNotToApplyOverrideValueFor;
 	}
 
 	/**

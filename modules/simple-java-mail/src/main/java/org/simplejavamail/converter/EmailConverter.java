@@ -52,6 +52,7 @@ import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
+import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNANCE;
 
 /**
  * Utility to help convert {@link org.simplejavamail.api.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
@@ -439,32 +440,33 @@ public final class EmailConverter {
 	 * @see #emailToMimeMessage(Email, Session)
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email) {
-		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession());
+		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession(), NO_GOVERNANCE());
 	}
 
 	/**
-	 * Refer to {@link MimeMessageProducerHelper#produceMimeMessage(Email, EmailGovernance, Session)}.
+	 * Delegates to {@link #emailToMimeMessage(Email, Session)}, using a new empty {@link Session} instance.
+	 *
+	 * @see #emailToMimeMessage(Email, Session)
 	 */
-	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final Pkcs12Config defaultSmimeSigningStore) {
-		try {
-			return MimeMessageProducerHelper.produceMimeMessage(
-					checkNonEmptyArgument(email, "email"),
-					new EmailGovernance(null, checkNonEmptyArgument(defaultSmimeSigningStore, "defaultSmimeSigningStore"), null, null, null),
-					checkNonEmptyArgument(session, "session"));
-		} catch (UnsupportedEncodingException | MessagingException e) {
-			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new IllegalStateException(e.getMessage(), e);
-		}
+	public static MimeMessage emailToMimeMessage(@NotNull final Email email, final EmailGovernance emailGovernance) {
+		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession(), emailGovernance);
 	}
 
 	/**
 	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, EmailGovernance, Session)} with empty S/MIME signing store.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session) {
+		return emailToMimeMessage(email, session, NO_GOVERNANCE());
+	}
+
+	/**
+	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, EmailGovernance, Session)} with empty S/MIME signing store.
+	 */
+	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final EmailGovernance emailGovernance) {
 		try {
 			return MimeMessageProducerHelper.produceMimeMessage(
 					checkNonEmptyArgument(email, "email"),
-					EmailGovernance.NO_GOVERNANCE,
+					emailGovernance,
 					checkNonEmptyArgument(session, "session"));
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)

@@ -22,6 +22,7 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.config.EmailProperty;
 import org.simplejavamail.internal.util.CertificationUtil;
 import org.simplejavamail.internal.util.FileUtil;
 import org.simplejavamail.internal.util.MiscUtil;
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,7 +80,6 @@ import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYN
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
 import static org.simplejavamail.config.ConfigLoader.getBooleanProperty;
 import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.getStringProperty;
@@ -108,6 +109,12 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilder {
 
+	@Nullable
+	private Set<EmailProperty> propertiesNotToApplyDefaultValueFor;
+
+	@Nullable
+	private Set<EmailProperty> propertiesNotToApplyOverrideValueFor;
+	
 	/**
 	 * @see #fixingMessageId(String)
 	 */
@@ -380,9 +387,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			if (hasProperty(DEFAULT_SUBJECT)) {
 				withSubject(getProperty(DEFAULT_SUBJECT));
 			}
-			if (hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
-				encryptWithSmime(verifyNonnullOrEmpty(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));
-			}
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)) {
 				withEmbeddedImageAutoResolutionForFiles(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)));
 			}
@@ -487,6 +491,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			// unable to load datasource
 		}
 		throw new EmailException(format(ERROR_RESOLVING_IMAGE_DATASOURCE, srcLocation));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
+	 */
+	@Override
+	public EmailPopulatingBuilder dontApplyDefaultValueFor(@NotNull EmailProperty @NotNull ...emailProperties) {
+		this.propertiesNotToApplyDefaultValueFor = new HashSet<>(asList(emailProperties));
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
+	 */
+	@Override
+	public EmailPopulatingBuilder dontApplyOverrideValueFor(@NotNull EmailProperty @NotNull ...emailProperties) {
+		this.propertiesNotToApplyOverrideValueFor = new HashSet<>(asList(emailProperties));
+		return this;
 	}
 
 	/**
@@ -2292,6 +2314,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder clearSMIMESignedAttachmentMergingBehavior() {
 		this.mergeSingleSMIMESignedAttachment = true;
 		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getPropertiesNotToApplyDefaultValueFor()
+	 */
+	@Override
+	@Nullable
+	public Set<EmailProperty> getPropertiesNotToApplyDefaultValueFor() {
+		return propertiesNotToApplyDefaultValueFor;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getPropertiesNotToApplyOverrideValueFor()
+	 */
+	@Override
+	@Nullable
+	public Set<EmailProperty> getPropertiesNotToApplyOverrideValueFor() {
+		return propertiesNotToApplyOverrideValueFor;
 	}
 	
 	/*

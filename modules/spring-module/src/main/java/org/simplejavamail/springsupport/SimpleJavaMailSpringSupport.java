@@ -67,6 +67,10 @@ import java.util.Properties;
  * <li>simplejavamail.smime.signing.key_alias</li>
  * <li>simplejavamail.smime.signing.key_password</li>
  * <li>simplejavamail.smime.encryption.certificate</li>
+ * <li>simplejavamail.dkim.signing.private_key_file_or_data</li>
+ * <li>simplejavamail.dkim.signing.selector</li>
+ * <li>simplejavamail.dkim.signing.signing_domain</li>
+ * <li>simplejavamail.dkim.signing.excluded_headers_from_default_signing_list</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.dir</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.url</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.classpath</li>
@@ -138,6 +142,10 @@ public class SimpleJavaMailSpringSupport {
 			@Nullable @Value("${simplejavamail.smime.signing.key_alias:#{null}}") final String smimeSigningKeyAlias,
 			@Nullable @Value("${simplejavamail.smime.signing.key_password:#{null}}") final String smimeSigningKeyPassword,
 			@Nullable @Value("${simplejavamail.smime.encryption.certificate:#{null}}") final String smimeEncryptionCertificate,
+			@Nullable @Value("${simplejavamail.dkim.signing.private_key_file_or_data:#{null}}") final String dkimSigningPrivateKeyFileOrData,
+			@Nullable @Value("${simplejavamail.dkim.signing.selector:#{null}}") final String dkimSigningSelector,
+			@Nullable @Value("${simplejavamail.dkim.signing.signing_domain:#{null}}") final String dkimSigningDomain,
+			@Nullable @Value("${simplejavamail.dkim.signing.excluded_headers_from_default_signing_list:#{null}}") final String dkimSigningExcludedHeadersFromDefaultSigningList,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.dir:#{null}}") final String embeddedimagesDynamicresolutionEnableDir,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.url:#{null}}") final String embeddedimagesDynamicresolutionEnableUrl,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.classpath:#{null}}") final String embeddedimagesDynamicresolutionEnableClassPath,
@@ -195,6 +203,10 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_ALIAS.key(), smimeSigningKeyAlias);
 		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_PASSWORD.key(), smimeSigningKeyPassword);
 		setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_CERTIFICATE.key(), smimeEncryptionCertificate);
+		setNullableProperty(emailProperties, Property.DKIM_PRIVATE_KEY_FILE_OR_DATA.key(), dkimSigningPrivateKeyFileOrData);
+		setNullableProperty(emailProperties, Property.DKIM_SELECTOR.key(), dkimSigningSelector);
+		setNullableProperty(emailProperties, Property.DKIM_SIGNING_DOMAIN.key(), dkimSigningDomain);
+		setNullableProperty(emailProperties, Property.DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST.key(), dkimSigningExcludedHeadersFromDefaultSigningList);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR.key(), embeddedimagesDynamicresolutionEnableDir);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH.key(), embeddedimagesDynamicresolutionEnableClassPath);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL.key(), embeddedimagesDynamicresolutionEnableUrl);

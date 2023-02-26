@@ -10,10 +10,12 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.config.EmailProperty;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.security.cert.X509Certificate;
 import java.util.Map;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -38,6 +40,10 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NA
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_PRIVATE_KEY_FILE_OR_DATA;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SELECTOR;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SIGNING_DOMAIN;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
@@ -50,6 +56,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYS
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
+import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNANCE;
 import static org.simplejavamail.util.TestDataHelper.getUrl;
 
 public class EmailPopulatingBuilderImpl2Test {
@@ -81,6 +88,11 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(SMIME_SIGNING_KEYSTORE_PASSWORD, "letmein");
 		value.put(SMIME_SIGNING_KEY_ALIAS, "smime_test_user_alias");
 		value.put(SMIME_SIGNING_KEY_PASSWORD, "letmein");
+		value.put(SMIME_ENCRYPTION_CERTIFICATE, "cert");
+		value.put(DKIM_PRIVATE_KEY_FILE_OR_DATA, "1234");
+		value.put(DKIM_SIGNING_DOMAIN, "ignore.com");
+		value.put(DKIM_SELECTOR, "ignore");
+		value.put(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST, "Ignored");
 
 		ConfigLoaderTestHelper.setResolvedProperties(value);
 
@@ -94,7 +106,10 @@ public class EmailPopulatingBuilderImpl2Test {
 						new Recipient("test BCC name", "test_bcc1@domain.com", BCC), new Recipient("test BCC name", "test_bcc2@domain.com", BCC)
 				)
 				.hasSubject("test subject")
-				.hasPkcs12ConfigForSmimeSigning(null);
+				// the defaults are not applied on the Email, but on the Mailer, by providing a defaults reference Email FIXME test this!
+				.hasPkcs12ConfigForSmimeSigning(null)
+				.hasX509CertificateForSmimeEncryption(null)
+				.hasDkimConfig(null);
 	}
 
 	@Test
@@ -121,7 +136,8 @@ public class EmailPopulatingBuilderImpl2Test {
 						new Recipient(null, "test_bcc1@domain.com", BCC), new Recipient(null, "test_bcc2@domain.com", BCC)
 				);
 
-		assertThat(email.getX509CertificateForSmimeEncryption()).isNotNull();
+		assertThat(email.getX509CertificateForSmimeEncryption()).isNull();
+		assertThat(NO_GOVERNANCE().<X509Certificate>resolveEmailProperty(null, EmailProperty.SMIME_ENCRYPTION_CONFIG)).isNotNull();
 	}
 
 	@Test

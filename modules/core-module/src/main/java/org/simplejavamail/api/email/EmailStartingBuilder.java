@@ -4,6 +4,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
+import org.simplejavamail.internal.config.EmailProperty;
 
 import java.util.regex.Pattern;
 
@@ -36,7 +37,13 @@ public interface EmailStartingBuilder {
 			"1cm\">%s</blockquote>";
 	
 	/**
-	 * Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.
+	 * Configures this builder to create an email ignoring the all defaults from (System) properties, config files or defaults email on
+	 * Mailer level in the {@link org.simplejavamail.api.mailer.config.EmailGovernance}.
+	 * <br>
+	 * <strong>Note:</strong> This is irrelevant for Email instances used to set on {@link org.simplejavamail.api.mailer.config.EmailGovernance}
+	 * as defaults or overrides reference.
+	 *
+	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
 	 */
 	EmailStartingBuilder ignoringDefaults();
 	
