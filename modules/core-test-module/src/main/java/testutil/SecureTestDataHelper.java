@@ -29,7 +29,6 @@ public class SecureTestDataHelper {
 
 	private static Properties accessSecureTestData()
 			throws IOException {
-		final File file = new File(RESOURCES + "/secure-testdata/secure-testdata");
 		final InputStream inputStream = ConfigLoader.class.getClassLoader().getResourceAsStream("secure-testdata-passwords.properties");
 		final Properties passwords = new Properties();
 		passwords.load(checkArgumentNotEmpty(inputStream, "InputStream was null"));
@@ -39,7 +38,7 @@ public class SecureTestDataHelper {
 				.isNotEmpty();
 
 		synchronized (SecureTestDataHelper.class) {
-			if (!file.exists()) {
+			if (!new File(RESOURCES + "/secure-testdata/secure-testdata").exists()) {
 				final String secureDataPassword = passwords.getProperty("secure-testdata-zip");
 				new ZipFile(RESOURCES + "/secure-testdata/secure-testdata.zip", secureDataPassword.toCharArray())
 						.extractAll(RESOURCES + "/secure-testdata/secure-testdata");
