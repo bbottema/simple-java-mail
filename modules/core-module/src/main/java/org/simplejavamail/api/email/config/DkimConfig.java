@@ -86,7 +86,15 @@ public class DkimConfig implements Serializable {
 		 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
 		 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
 		 */
-		public DkimConfigBuilder dkimPrivateKeyData(File dkimPrivateKeyFile) {
+		public DkimConfigBuilder dkimPrivateKeyPath(String dkimPrivateKeyFile) {
+			return dkimPrivateKeyPath(new File(dkimPrivateKeyFile));
+		}
+
+		/**
+		 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
+		 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+		 */
+		public DkimConfigBuilder dkimPrivateKeyPath(File dkimPrivateKeyFile) {
 			try (FileInputStream dkimPrivateKeyInputStream = new FileInputStream(dkimPrivateKeyFile)) {
 				dkimPrivateKeyData(dkimPrivateKeyInputStream);
 			} catch (IOException e) {
