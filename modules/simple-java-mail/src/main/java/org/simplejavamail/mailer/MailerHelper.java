@@ -167,7 +167,7 @@ public class MailerHelper {
 		scanForInjectionAttack(email.getSubject(), "email.subject");
 		for (final Map.Entry<String, Collection<String>> headerEntry : email.getHeaders().entrySet()) {
 			for (final String headerValue : headerEntry.getValue()) {
-				// FIXME is this still needed?
+				// TODO is this still needed?
 				scanForInjectionAttack(headerEntry.getKey(), "email.header.headerName");
 				scanForInjectionAttack(MimeUtility.unfold(headerValue), format("email.header.[%s]", headerEntry.getKey()));
 			}

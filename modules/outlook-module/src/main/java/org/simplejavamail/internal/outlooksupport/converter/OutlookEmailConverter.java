@@ -90,7 +90,7 @@ public class OutlookEmailConverter implements OutlookModule {
 		String fromEmail = ofNullable(outlookMessage.getFromEmail()).orElse("donotreply@unknown-from-address.net");
 		builder.from(outlookMessage.getFromName(), fromEmail);
 		builder.fixingMessageId(outlookMessage.getMessageId());
-		builder.fixingSentDate(ofNullable(outlookMessage.getClientSubmitTime()).orElse(outlookMessage.getDate())); // FIXME creation date?
+		builder.fixingSentDate(ofNullable(outlookMessage.getClientSubmitTime()).orElse(outlookMessage.getDate())); // TODO creation date?
 		if (!MiscUtil.valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
 			builder.withReplyTo(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
 		}
