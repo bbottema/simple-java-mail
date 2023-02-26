@@ -171,6 +171,7 @@ public class ImmutableDelegatingSMTPMessageTest {
 		verify(mockMmessage).saveChanges();
 	}
 	
+	@SuppressWarnings("Convert2MethodRef")
 	@Test
 	public void testImmutability() throws IOException {
 		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false, false).buildEmail();
@@ -184,47 +185,47 @@ public class ImmutableDelegatingSMTPMessageTest {
 		assertThatThrownBy(subject::updateHeaders).hasMessageContaining("protected in the delegate");
 		assertThatThrownBy(() -> subject.createInternetHeaders(new ByteArrayInputStream(new byte[]{}))).hasMessageContaining("protected in the delegate");
 		assertThatThrownBy(() -> subject.createMimeMessage(Session.getDefaultInstance(new Properties()))).hasMessageContaining("protected in the delegate");
-		assertThatThrownBy(() -> subject.setEnvelopeFrom("from")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setNotifyOptions(3)).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setReturnOption(2)).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setAllow8bitMIME(false)).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setSendPartial(true)).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setSubmitter("submitter")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setMailExtension("ext")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setFrom(new InternetAddress())).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setFrom("value")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(subject::setFrom).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.addFrom(new Address[]{})).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setSender(new InternetAddress())).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setRecipients(TO, new Address[]{})).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setRecipients(TO, "addresses")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.addRecipients(TO, new Address[]{})).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.addRecipients(TO, "addresses")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setReplyTo(new Address[]{})).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setSubject("subject")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setSubject("subject", "UTF-8")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setSentDate(new Date())).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setDisposition("disposition")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setContentID("<id>")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setContentMD5("md5")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setDescription("description")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setDescription("description", "UTF-8")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setContentLanguage(new String[] {})).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setFileName("filename")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setDataHandler(mock(DataHandler.class))).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setContent("content", "type")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setText("text")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setText("text", "UTF-8")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setText("text", "UTF-8", "subtype")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setContent(mock(Multipart.class))).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setHeader("name", "value")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.addHeader("name", "value")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.removeHeader("name")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.addHeaderLine("line")).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setFlags(mock(Flags.class), false)).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setRecipient(TO, new InternetAddress())).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.addRecipient(TO, new InternetAddress())).hasMessage("Further mutation is not allowed");
-		assertThatThrownBy(() -> subject.setFlag(ANSWERED, true)).hasMessage("Further mutation is not allowed");
+		assertThatThrownBy(() -> subject.setEnvelopeFrom("from")).hasMessage("Further mutation is not allowed: setEnvelopeFrom(String)");
+		assertThatThrownBy(() -> subject.setNotifyOptions(3)).hasMessage("Further mutation is not allowed: setNotifyOptions(int)");
+		assertThatThrownBy(() -> subject.setReturnOption(2)).hasMessage("Further mutation is not allowed: setReturnOption(int)");
+		assertThatThrownBy(() -> subject.setAllow8bitMIME(false)).hasMessage("Further mutation is not allowed: setAllow8bitMIME(boolean)");
+		assertThatThrownBy(() -> subject.setSendPartial(true)).hasMessage("Further mutation is not allowed: setSendPartial(boolean)");
+		assertThatThrownBy(() -> subject.setSubmitter("submitter")).hasMessage("Further mutation is not allowed: setSubmitter(String)");
+		assertThatThrownBy(() -> subject.setMailExtension("ext")).hasMessage("Further mutation is not allowed: setMailExtension(String)");
+		assertThatThrownBy(() -> subject.setFrom(new InternetAddress())).hasMessage("Further mutation is not allowed: setFrom(Address)");
+		assertThatThrownBy(() -> subject.setFrom("value")).hasMessage("Further mutation is not allowed: setFrom(String)");
+		assertThatThrownBy(() -> subject.setFrom()).hasMessage("Further mutation is not allowed: setFrom()");
+		assertThatThrownBy(() -> subject.addFrom(new Address[]{})).hasMessage("Further mutation is not allowed: addFrom(Address[])");
+		assertThatThrownBy(() -> subject.setSender(new InternetAddress())).hasMessage("Further mutation is not allowed: setSender(Address)");
+		assertThatThrownBy(() -> subject.setRecipients(TO, new Address[]{})).hasMessage("Further mutation is not allowed: setRecipients(RecipientType, Address[])");
+		assertThatThrownBy(() -> subject.setRecipients(TO, "addresses")).hasMessage("Further mutation is not allowed: setRecipients(RecipientType, String)");
+		assertThatThrownBy(() -> subject.addRecipients(TO, new Address[]{})).hasMessage("Further mutation is not allowed: addRecipients(RecipientType, Address[])");
+		assertThatThrownBy(() -> subject.addRecipients(TO, "addresses")).hasMessage("Further mutation is not allowed: addRecipients(RecipientType, String)");
+		assertThatThrownBy(() -> subject.setReplyTo(new Address[]{})).hasMessage("Further mutation is not allowed: setReplyTo(Address[])");
+		assertThatThrownBy(() -> subject.setSubject("subject")).hasMessage("Further mutation is not allowed: setSubject(String)");
+		assertThatThrownBy(() -> subject.setSubject("subject", "UTF-8")).hasMessage("Further mutation is not allowed: setSubject(String, String)");
+		assertThatThrownBy(() -> subject.setSentDate(new Date())).hasMessage("Further mutation is not allowed: setSentDate(Date)");
+		assertThatThrownBy(() -> subject.setDisposition("disposition")).hasMessage("Further mutation is not allowed: setDisposition(String)");
+		assertThatThrownBy(() -> subject.setContentID("<id>")).hasMessage("Further mutation is not allowed: setContentID(String)");
+		assertThatThrownBy(() -> subject.setContentMD5("md5")).hasMessage("Further mutation is not allowed: setContentMD5(String)");
+		assertThatThrownBy(() -> subject.setDescription("description")).hasMessage("Further mutation is not allowed: setDescription(String)");
+		assertThatThrownBy(() -> subject.setDescription("description", "UTF-8")).hasMessage("Further mutation is not allowed: setDescription(String, String)");
+		assertThatThrownBy(() -> subject.setContentLanguage(new String[] {})).hasMessage("Further mutation is not allowed: setContentLanguage(String[])");
+		assertThatThrownBy(() -> subject.setFileName("filename")).hasMessage("Further mutation is not allowed: setFileName(String)");
+		assertThatThrownBy(() -> subject.setDataHandler(mock(DataHandler.class))).hasMessage("Further mutation is not allowed: setDataHandler(DataHandler)");
+		assertThatThrownBy(() -> subject.setContent("content", "type")).hasMessage("Further mutation is not allowed: setContent(Object, String)");
+		assertThatThrownBy(() -> subject.setText("text")).hasMessage("Further mutation is not allowed: setText(String)");
+		assertThatThrownBy(() -> subject.setText("text", "UTF-8")).hasMessage("Further mutation is not allowed: setText(String, String)");
+		assertThatThrownBy(() -> subject.setText("text", "UTF-8", "subtype")).hasMessage("Further mutation is not allowed: setText(String, String, String)");
+		assertThatThrownBy(() -> subject.setContent(mock(Multipart.class))).hasMessage("Further mutation is not allowed: setContent(Multipart)");
+		assertThatThrownBy(() -> subject.setHeader("name", "value")).hasMessage("Further mutation is not allowed: setHeader(String, String)");
+		assertThatThrownBy(() -> subject.addHeader("name", "value")).hasMessage("Further mutation is not allowed: addHeader(String, String)");
+		assertThatThrownBy(() -> subject.removeHeader("name")).hasMessage("Further mutation is not allowed: removeHeader(String)");
+		assertThatThrownBy(() -> subject.addHeaderLine("line")).hasMessage("Further mutation is not allowed: addHeaderLine(String)");
+		assertThatThrownBy(() -> subject.setFlags(mock(Flags.class), false)).hasMessage("Further mutation is not allowed: setFlags(Flags, boolean)");
+		assertThatThrownBy(() -> subject.setRecipient(TO, new InternetAddress())).hasMessage("Further mutation is not allowed: setRecipient(RecipientType, Address)");
+		assertThatThrownBy(() -> subject.addRecipient(TO, new InternetAddress())).hasMessage("Further mutation is not allowed: addRecipient(RecipientType, Address)");
+		assertThatThrownBy(() -> subject.setFlag(ANSWERED, true)).hasMessage("Further mutation is not allowed: setFlag(Flag, boolean)");
 	}
 
 	private static class HeaderExtractor implements Extractor<Header, String> {
