@@ -6,7 +6,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
@@ -309,6 +308,7 @@ public class MailerTest {
 						.dkimPrivateKeyData(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)))
 						.dkimSigningDomain("supersecret-testing-domain.com")
 						.dkimSelector("dkim1")
+						.excludedHeadersFromDkimDefaultSigningList("Reply-To")
 				.build());
 		MimeMessage dkimSignedMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, hooking into the DKIM library did not produce an error
@@ -337,7 +337,7 @@ public class MailerTest {
 						"s=dkim1;",
 						"d=supersecret-testing-domain.com;",
 						"i=mr.sender@supersecret-testing-domain.com;",
-						"h=Content-Type:MIME-Version:Subject:Message-ID:To:Reply-To:From:Date;");
+						"h=Content-Type:MIME-Version:Subject:Message-ID:To:"+/*Reply-To:*/"From:Date;");
 	}
 
 	@Test
