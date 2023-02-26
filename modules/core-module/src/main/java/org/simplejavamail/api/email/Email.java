@@ -20,10 +20,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.stream.Collectors.toList;
 import static org.simplejavamail.internal.util.ListUtil.merge;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -519,6 +523,36 @@ public class Email implements Serializable {
 	@NotNull
 	public List<Recipient> getRecipients() {
 		return recipients;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#to(Recipient...)
+	 * @see EmailPopulatingBuilder#cc(Recipient...)
+	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 */
+	@NotNull
+	public List<Recipient> getToRecipients() {
+		return recipients.stream().filter(r -> r.getType() == TO).collect(toList());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#to(Recipient...)
+	 * @see EmailPopulatingBuilder#cc(Recipient...)
+	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 */
+	@NotNull
+	public List<Recipient> getCcRecipients() {
+		return recipients.stream().filter(r -> r.getType() == CC).collect(toList());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#to(Recipient...)
+	 * @see EmailPopulatingBuilder#cc(Recipient...)
+	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 */
+	@NotNull
+	public List<Recipient> getBccRecipients() {
+		return recipients.stream().filter(r -> r.getType() == BCC).collect(toList());
 	}
 	
 	/**
