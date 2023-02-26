@@ -111,6 +111,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see #fixingMessageId(String)
 	 */
+	@Nullable
 	private String id;
 	
 	/**
@@ -121,36 +122,43 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see #withReplyTo(Recipient)
 	 */
+	@Nullable
 	private Recipient replyToRecipient;
 	
 	/**
 	 * @see #withBounceTo(Recipient)
 	 */
+	@Nullable
 	private Recipient bounceToRecipient;
 	
 	/**
 	 * @see #withSubject(String)
 	 */
+	@Nullable
 	private String subject;
 	
 	/**
 	 * @see #withPlainText(String)
 	 */
+	@Nullable
 	private String text;
 	
 	/**
 	 * @see #withHTMLText(String)
 	 */
+	@Nullable
 	private String textHTML;
 
 	/**
 	 * @see #withCalendarText(CalendarMethod, String)
 	 */
+	@Nullable
 	private CalendarMethod calendarMethod;
 
 	/**
 	 * @see #withCalendarText(CalendarMethod, String)
 	 */
+	@Nullable
 	private String textCalendar;
 
 	/**
@@ -184,16 +192,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see #withEmbeddedImageBaseDir(String)
 	 */
+	@Nullable
 	private String embeddedImageBaseDir;
 
 	/**
 	 * @see #withEmbeddedImageBaseClassPath(String)
 	 */
+	@Nullable
 	private String embeddedImageBaseClassPath;
 
 	/**
 	 * @see #withEmbeddedImageBaseUrl(URL)
 	 */
+	@Nullable
 	private URL embeddedImageBaseUrl;
 
 	/**
@@ -245,6 +256,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #signWithDomainKey(DkimConfig)
 	 * @see #signWithDomainKey(byte[], String, String, Set)
 	 */
+	@Nullable
 	private DkimConfig dkimConfig;
 	
 	/**
@@ -253,6 +265,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #encryptWithSmime(X509Certificate)
 	 * @see #encryptWithSmime(InputStream)
 	 */
+	@Nullable
 	private Pkcs12Config pkcs12ConfigForSmimeSigning;
 
 	/**
@@ -261,6 +274,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #signWithSmime(Pkcs12Config)
 	 * @see #signWithSmime(InputStream, String, String, String)
 	 */
+	@Nullable
 	private X509Certificate x509CertificateForSmimeEncryption;
 	
 	/**
@@ -848,7 +862,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#toMultiple(String...)
 	 */
 	@Override
-	public EmailPopulatingBuilder toMultiple(@NotNull final String... oneOrMoreAddressesEach) {
+	public EmailPopulatingBuilder toMultiple(@NotNull final String @NotNull ... oneOrMoreAddressesEach) {
 		return withRecipientsWithDefaultName(null, asList(oneOrMoreAddressesEach), TO);
 	}
 	
