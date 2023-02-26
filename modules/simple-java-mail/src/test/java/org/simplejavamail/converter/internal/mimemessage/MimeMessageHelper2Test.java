@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.BDDMockito;
+import org.mockito.internal.stubbing.answers.CallsRealMethods;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -43,19 +44,13 @@ public class MimeMessageHelper2Test {
 						.build())
 				.buildEmail();
 
-		PowerMockito.mockStatic(MiscUtil.class);
-		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport")).willCallRealMethod();
+		PowerMockito.mockStatic(MiscUtil.class, new CallsRealMethods());
 		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner")).willReturn(false);
-		BDDMockito.given(MiscUtil.valueNullOrEmpty(null)).willCallRealMethod();
-		BDDMockito.given(MiscUtil.encodeText(anyString())).willCallRealMethod();
 
 		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))
 				.hasMessage("DKIM module not found, make sure it is on the classpath (https://github.com/bbottema/simple-java-mail/tree/develop/modules/dkim-module)");
 
-		PowerMockito.mockStatic(MiscUtil.class);
-		BDDMockito.given(MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner")).willCallRealMethod();
-		BDDMockito.given(MiscUtil.valueNullOrEmpty(null)).willCallRealMethod();
-		BDDMockito.given(MiscUtil.encodeText(anyString())).willCallRealMethod();
+		PowerMockito.mockStatic(MiscUtil.class, new CallsRealMethods());
 
 		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))
 				.isInstanceOf(Class.forName("org.simplejavamail.internal.dkimsupport.DKIMSigningException"))
