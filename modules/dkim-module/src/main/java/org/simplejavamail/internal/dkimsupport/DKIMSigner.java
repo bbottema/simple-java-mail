@@ -32,12 +32,12 @@ public class DKIMSigner implements DKIMModule {
 	/**
 	 * @see DKIMModule#signMessageWithDKIM(MimeMessage, DkimConfig, Recipient)
 	 */
-	public MimeMessage signMessageWithDKIM(@NotNull final MimeMessage messageToSign, @NotNull final DkimConfig signingDetails, @NotNull final Recipient fromRecipient) {
+	public MimeMessage signMessageWithDKIM(@NotNull final MimeMessage messageToSign, @NotNull final DkimConfig dkimConfig, @NotNull final Recipient fromRecipient) {
 		LOGGER.debug("signing MimeMessage with DKIM...");
 		try {
-			final DkimSigner dkimSigner = new DkimSigner(signingDetails.getDkimSigningDomain(), signingDetails.getDkimSelector(), new ByteArrayInputStream(signingDetails.getDkimPrivateKeyData()));
+			final DkimSigner dkimSigner = new DkimSigner(dkimConfig.getDkimSigningDomain(), dkimConfig.getDkimSelector(), new ByteArrayInputStream(dkimConfig.getDkimPrivateKeyData()));
 
-			defaultTo(signingDetails.getExcludedHeadersFromDkimDefaultSigningList(), Collections.<String>emptySet())
+			defaultTo(dkimConfig.getExcludedHeadersFromDkimDefaultSigningList(), Collections.<String>emptySet())
 					.forEach(dkimSigner::removeHeaderToSign);
 			dkimSigner.setIdentity(fromRecipient.getAddress());
 			dkimSigner.setHeaderCanonicalization(Canonicalization.RELAXED);
