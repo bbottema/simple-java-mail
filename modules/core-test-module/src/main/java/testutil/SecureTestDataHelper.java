@@ -23,7 +23,7 @@ public class SecureTestDataHelper {
 		try {
 			consumer.accept(accessSecureTestData());
 		} finally {
-			cleanupSecureTestData();
+			//cleanupSecureTestData();
 		}
 	}
 
