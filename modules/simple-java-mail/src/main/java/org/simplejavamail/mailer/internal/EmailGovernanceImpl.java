@@ -109,12 +109,10 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	 */
 	@Nullable private final Integer maximumEmailSize;
 
-	// FIXME get rid of all the default properties in Email and move them to EmailDefaults
 	public EmailGovernanceImpl(@Nullable EmailValidator emailValidator, @Nullable Email emailDefaults, @Nullable Email emailOverrides, @Nullable Integer maximumEmailSize) {
 		this.emailValidator = emailValidator;
 		this.emailDefaults = emailDefaults != null ? emailDefaults : newDefaultsEmailWithDefaultDefaults();
-		// FIXME ignoringDefaults should go away as defaults are moved out of the Email constructor / edit: ignoringDefaults still has merit for the email builder
-		this.emailOverrides = emailOverrides != null ? emailOverrides : EmailBuilder.ignoringDefaults().startingBlank().buildEmail();
+		this.emailOverrides = emailOverrides != null ? emailOverrides : EmailBuilder.startingBlank().buildEmail();
 		this.maximumEmailSize = maximumEmailSize;
 	}
 
@@ -243,19 +241,16 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	}
 
 	@Nullable
-	// FIXME This shouldn't be called anymore, since an Email should just be completed by EmailGovernance and then _its_ already resolved properties should be used instead
 	private <T> T resolveEmailProperty(@Nullable Email email, @NotNull EmailProperty emailProperty) {
 		return overrideOrProvideOrDefaultProperty(email, emailDefaults, emailOverrides, emailProperty);
 	}
 
 	@NotNull
-	// FIXME same as above
 	private <T> List<T> resolveEmailCollectionProperty(@Nullable Email email, @NotNull EmailProperty emailProperty) {
 		return overrideAndOrProvideAndOrDefaultCollection(email, emailDefaults, emailOverrides, emailProperty);
 	}
 
 	@NotNull
-	// FIXME same as above
 	private Map<String, Collection<String>> resolveEmailHeadersProperty(@Nullable Email email) {
 		return overrideAndOrProvideAndOrDefaultHeaders(email, emailDefaults, emailOverrides);
 	}

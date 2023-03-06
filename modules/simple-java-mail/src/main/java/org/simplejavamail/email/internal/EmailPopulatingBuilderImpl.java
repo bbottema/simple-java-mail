@@ -2493,7 +2493,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	@Nullable
-	// FIXME what's the point of these useXXX methods?
 	public Boolean getUseDispositionNotificationTo() {
 		return useDispositionNotificationTo;
 	}

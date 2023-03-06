@@ -389,7 +389,7 @@ public class MailerLiveTest {
 		}
 
 		Email receivedEmail = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage(), loadPkcs12KeyStore())
-				.ignoringDefaults(false) // FIXME perhpas we should make this default, when converting a MimeMessage to an Email?
+				.ignoringDefaults(false) // FIXME perhaps we should make this default, when converting a MimeMessage to an Email?
 				.buildEmail();
 
 		if (!sentDateWasFixed) {
