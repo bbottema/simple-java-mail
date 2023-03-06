@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -62,7 +63,9 @@ public interface Mailer {
 	@NotNull CompletableFuture<Void> sendMail(Email email);
 	
 	/**
-	 * Processes an {@link Email} instance into a completely configured {@link Message}.
+	 * Processes an {@link Email} instance into a completely configured {@link Message}. First, it will apply all defaults and overrides to the email
+	 * instance using {@link EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)} . Then it will validate the email. Finally, it will process
+	 * the email into a JavaMail {@link Message} object.
 	 * <p>
 	 * Sends the JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all
 	 * connection details have been configured in the provided {@link Session} instance and finally {@link Transport#sendMessage(Message,
@@ -83,7 +86,7 @@ public interface Mailer {
 	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
 	 * @see java.util.concurrent.Executors#newFixedThreadPool(int)
-	 * @see #validate(Email)
+	 * @see #validate(EmailWithDefaultsAndOverridesApplied)
 	 */
 	@NotNull CompletableFuture<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
 	
@@ -93,10 +96,10 @@ public interface Mailer {
 	 * <p>
 	 * It also checks for illegal characters that would facilitate injection attacks:
 	 * <ul>
-	 * <li>http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security</li>
-	 * <li>https://security.stackexchange.com/a/54100/110048</li>
-	 * <li>https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)</li>
-	 * <li>http://cwe.mitre.org/data/definitions/93.html</li>
+	 * <li><a href="http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security">http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security</a></li>
+	 * <li><a href="https://security.stackexchange.com/a/54100/110048">https://security.stackexchange.com/a/54100/110048</a></li>
+	 * <li><a href="https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)">https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)</a></li>
+	 * <li><a href="http://cwe.mitre.org/data/definitions/93.html">http://cwe.mitre.org/data/definitions/93.html</a></li>
 	 * </ul>
 	 *
 	 * @param email The email that needs to be configured correctly.
@@ -106,7 +109,7 @@ public interface Mailer {
 	 * @see com.sanctionco.jmail.EmailValidator
 	 */
 	@SuppressWarnings({"SameReturnValue" })
-	boolean validate(Email email) throws MailException;
+	boolean validate(EmailWithDefaultsAndOverridesApplied email) throws MailException;
 
 	/**
 	 * Shuts down the connection pool associated with this {@link Mailer} instance and closes remaining open connections. Waits until all connections still in use become available again

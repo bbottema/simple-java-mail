@@ -8,11 +8,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
+import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,7 @@ public class SessionBasedEmailToMimeMessageConverter {
     }
 
     @NotNull
-    public static MimeMessage convertAndLogMimeMessage(Session session, final Email email) throws MessagingException {
+    public static MimeMessage convertAndLogMimeMessage(Session session, final EmailWithDefaultsAndOverridesApplied email) throws MessagingException {
         val mimeMessageConverter = (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
         val mimeMessage = mimeMessageConverter.convertAndLogMimeMessage(email);
         val governance = mimeMessageConverter.emailGovernance;
@@ -79,28 +80,29 @@ public class SessionBasedEmailToMimeMessageConverter {
     }
 
     @NotNull
-    private MimeMessage convertAndLogMimeMessage(final Email email) throws MessagingException {
-        val message = convertMimeMessage(email, session, emailGovernance);
+    private MimeMessage convertAndLogMimeMessage(final EmailWithDefaultsAndOverridesApplied email) throws MessagingException {
+        val message = convertMimeMessage(email, session);
 
         SessionLogger.logSession(session, operationalConfig.isAsync(), "mail");
         message.saveChanges(); // some headers and id's will be set for this specific message
+        // FIXME get rid of EmailWithDefaultsAndOverridesApplied and use Email directly
         //noinspection deprecation
-        email.internalSetId(message.getMessageID());
+        ((InternalEmail) email.getDelegate()).updateId(message.getMessageID());
 
         logEmail(message, operationalConfig.isTransportModeLoggingOnly(), email);
         return message;
     }
 
-    static private MimeMessage convertMimeMessage(final Email email, final Session session, final EmailGovernance emailGovernance) throws MessagingException {
+    static private MimeMessage convertMimeMessage(final EmailWithDefaultsAndOverridesApplied email, final Session session) throws MessagingException {
         try {
-            return MimeMessageProducerHelper.produceMimeMessage(email, emailGovernance, session);
+            return MimeMessageProducerHelper.produceMimeMessage(email, session);
         } catch (UnsupportedEncodingException e) {
             LOGGER.trace("Failed to send email {}\n{}", email.getId(), email);
             throw new MailerException(format(INVALID_ENCODING, email.getId()), e);
         }
     }
 
-    static private void logEmail(final MimeMessage message, boolean transportModeLoggingOnly, final Email email) {
+    static private void logEmail(final MimeMessage message, boolean transportModeLoggingOnly, final EmailWithDefaultsAndOverridesApplied email) {
         if (transportModeLoggingOnly) {
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info("\n\nEmail: {}\n", email);

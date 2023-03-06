@@ -8,14 +8,15 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.internal.config.EmailProperty;
+import org.simplejavamail.internal.util.CertificationUtil;
 import testutil.ConfigLoaderTestHelper;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.security.cert.X509Certificate;
 import java.util.Map;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -58,6 +59,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
 import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNANCE;
 import static org.simplejavamail.util.TestDataHelper.getUrl;
+import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 public class EmailPopulatingBuilderImpl2Test {
 
@@ -88,8 +90,8 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(SMIME_SIGNING_KEYSTORE_PASSWORD, "letmein");
 		value.put(SMIME_SIGNING_KEY_ALIAS, "smime_test_user_alias");
 		value.put(SMIME_SIGNING_KEY_PASSWORD, "letmein");
-		value.put(SMIME_ENCRYPTION_CERTIFICATE, "cert");
-		value.put(DKIM_PRIVATE_KEY_FILE_OR_DATA, "1234");
+		value.put(SMIME_ENCRYPTION_CERTIFICATE, "src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
+		value.put(DKIM_PRIVATE_KEY_FILE_OR_DATA, "src/test/resources/dkim/dkim_dummy_key.der");
 		value.put(DKIM_SIGNING_DOMAIN, "ignore.com");
 		value.put(DKIM_SELECTOR, "ignore");
 		value.put(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST, "Ignored");
@@ -97,6 +99,16 @@ public class EmailPopulatingBuilderImpl2Test {
 		ConfigLoaderTestHelper.setResolvedProperties(value);
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmail())
+				.hasFromRecipient(null)
+				.hasReplyToRecipient(null)
+				.hasBounceToRecipient(null)
+				.hasNoRecipients()
+				.hasSubject(null)
+				.hasPkcs12ConfigForSmimeSigning(null)
+				.hasX509CertificateForSmimeEncryption(null)
+				.hasDkimConfig(null);
+
+		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides().getDelegate())
 				.hasFromRecipient(new Recipient("Test From", "test_from@domain.com", null))
 				.hasReplyToRecipient(new Recipient("Test Replyto", "test_replyto@domain.com", null))
 				.hasBounceToRecipient(new Recipient("Test Bounceto", "test_boundeto@domain.com", null))
@@ -106,10 +118,14 @@ public class EmailPopulatingBuilderImpl2Test {
 						new Recipient("test BCC name", "test_bcc1@domain.com", BCC), new Recipient("test BCC name", "test_bcc2@domain.com", BCC)
 				)
 				.hasSubject("test subject")
-				// the defaults are not applied on the Email, but on the Mailer, by providing a defaults reference Email FIXME test this!
-				.hasPkcs12ConfigForSmimeSigning(null)
-				.hasX509CertificateForSmimeEncryption(null)
-				.hasDkimConfig(null);
+				.hasPkcs12ConfigForSmimeSigning(loadPkcs12KeyStore())
+				.hasX509CertificateForSmimeEncryption(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")))
+				.hasDkimConfig(DkimConfig.builder()
+						.dkimPrivateKeyPath(RESOURCES_PATH + "/dkim/dkim_dummy_key.der")
+						.dkimSigningDomain("ignore.com")
+						.dkimSelector("ignore")
+						.excludedHeadersFromDkimDefaultSigningList("Ignored")
+						.build());
 	}
 
 	@Test
@@ -125,8 +141,17 @@ public class EmailPopulatingBuilderImpl2Test {
 
 		ConfigLoaderTestHelper.setResolvedProperties(value);
 
-		Email email = EmailBuilder.startingBlank().buildEmail();
-		EmailAssert.assertThat(email)
+		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmail())
+				.hasFromRecipient(null)
+				.hasReplyToRecipient(null)
+				.hasBounceToRecipient(null)
+				.hasNoRecipients()
+				.hasX509CertificateForSmimeEncryption(null);
+
+		assertThat(NO_GOVERNANCE().produceEmailApplyingDefaultsAndOverrides(null).getX509CertificateForSmimeEncryption())
+				.isEqualTo(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")));
+
+		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides().getDelegate())
 				.hasFromRecipient(new Recipient(null, "test_from@domain.com", null))
 				.hasReplyToRecipient(new Recipient(null, "test_replyto@domain.com", null))
 				.hasBounceToRecipient(new Recipient(null, "test_boundeto@domain.com", null))
@@ -134,10 +159,8 @@ public class EmailPopulatingBuilderImpl2Test {
 						new Recipient(null, "test_to1@domain.com", TO), new Recipient(null, "test_to2@domain.com", TO),
 						new Recipient(null, "test_cc1@domain.com", CC), new Recipient(null, "test_cc2@domain.com", CC),
 						new Recipient(null, "test_bcc1@domain.com", BCC), new Recipient(null, "test_bcc2@domain.com", BCC)
-				);
-
-		assertThat(email.getX509CertificateForSmimeEncryption()).isNull();
-		assertThat(NO_GOVERNANCE().<X509Certificate>resolveEmailProperty(null, EmailProperty.SMIME_ENCRYPTION_CONFIG)).isNotNull();
+				)
+				.hasX509CertificateForSmimeEncryption(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")));
 	}
 
 	@Test

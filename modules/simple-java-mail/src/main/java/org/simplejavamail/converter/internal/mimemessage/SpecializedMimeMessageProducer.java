@@ -4,18 +4,13 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.email.config.DkimConfig;
-import org.simplejavamail.api.mailer.config.EmailGovernance;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
-import org.simplejavamail.internal.config.EmailProperty;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.UnsupportedEncodingException;
-import java.security.cert.X509Certificate;
 import java.util.Date;
 
+import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -41,9 +36,9 @@ public abstract class SpecializedMimeMessageProducer {
 	/**
 	 * @return Whether this mimemessage producer exactly matches the needs of the given email.
 	 */
-	abstract boolean compatibleWithEmail(@NotNull Email email);
+	abstract boolean compatibleWithEmail(@NotNull EmailWithDefaultsAndOverridesApplied email);
 	
-	final MimeMessage populateMimeMessage(final Email email, final EmailGovernance emailGovernance, @NotNull Session session)
+	final MimeMessage populateMimeMessage(@NotNull final EmailWithDefaultsAndOverridesApplied email, @NotNull Session session)
 			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
@@ -61,7 +56,7 @@ public abstract class SpecializedMimeMessageProducer {
 			@Override
 			public String toString() {
 				try {
-					return "MimeMessage<id:" + super.getMessageID() + ", subject:" + super.getSubject() + ">";
+					return format("MimeMessage<id:%s, subject:%s>", super.getMessageID(), super.getSubject());
 				} catch (MessagingException e) {
 					throw new IllegalStateException("should not reach here");
 				}
@@ -69,14 +64,14 @@ public abstract class SpecializedMimeMessageProducer {
 		};
 		
 		// set basic email properties
-		MimeMessageHelper.setSubject(email, emailGovernance, message);
-		MimeMessageHelper.setFrom(email, emailGovernance, message);
-		MimeMessageHelper.setReplyTo(email, emailGovernance, message);
-		MimeMessageHelper.setRecipients(email, emailGovernance, message);
+		MimeMessageHelper.setSubject(email, message);
+		MimeMessageHelper.setFrom(email, message);
+		MimeMessageHelper.setReplyTo(email, message);
+		MimeMessageHelper.setRecipients(email, message);
 		
-		populateMimeMessageMultipartStructure(message, email, emailGovernance);
+		populateMimeMessageMultipartStructure(message, email);
 		
-		MimeMessageHelper.setHeaders(email, emailGovernance, message);
+		MimeMessageHelper.setHeaders(email, message);
 		message.setSentDate(ofNullable(email.getSentDate()).orElse(new Date()));
 
 		/*
@@ -86,42 +81,38 @@ public abstract class SpecializedMimeMessageProducer {
 			3. DKIM signing
 		 */
 
-		Pkcs12Config pkcs12Config = emailGovernance.resolveEmailProperty(email, EmailProperty.SMIME_SIGNING_CONFIG);
-		if (pkcs12Config != null) {
-			message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, message, pkcs12Config);
+		if (email.getPkcs12ConfigForSmimeSigning() != null) {
+			message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, message, email.getPkcs12ConfigForSmimeSigning());
 		}
 
-		X509Certificate x509Certificate = emailGovernance.resolveEmailProperty(email, EmailProperty.SMIME_ENCRYPTION_CONFIG);
-		if (x509Certificate != null) {
-			message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, message, x509Certificate);
+		if (email.getX509CertificateForSmimeEncryption() != null) {
+			message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, message, email.getX509CertificateForSmimeEncryption());
 		}
 
-		DkimConfig dkimConfig = emailGovernance.resolveEmailProperty(email, EmailProperty.DKIM_SIGNING_CONFIG);
-		if (dkimConfig != null) {
-			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, dkimConfig, checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
+		if (email.getDkimConfig() != null) {
+			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, email.getDkimConfig(), checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
 		}
 
-		Recipient bounceToRecipient = emailGovernance.resolveEmailProperty(email, EmailProperty.BOUNCETO_RECIPIENT);
-		if (bounceToRecipient != null) {
+		if (email.getBounceToRecipient() != null) {
 			// display name not applicable: https://tools.ietf.org/html/rfc5321#section-4.1.2
-			message = new ImmutableDelegatingSMTPMessage(message, bounceToRecipient.getAddress());
+			message = new ImmutableDelegatingSMTPMessage(message, email.getBounceToRecipient().getAddress());
 		}
 
 		return message;
 	}
 
-	abstract void populateMimeMessageMultipartStructure(MimeMessage  message, Email email, EmailGovernance emailGovernance) throws MessagingException;
+	abstract void populateMimeMessageMultipartStructure(MimeMessage  message, EmailWithDefaultsAndOverridesApplied email) throws MessagingException;
 	
 	
-	static boolean emailContainsMixedContent(@NotNull Email email) {
+	static boolean emailContainsMixedContent(@NotNull EmailWithDefaultsAndOverridesApplied email) {
 		return !email.getAttachments().isEmpty() || email.getEmailToForward() != null;
 	}
 	
-	static boolean emailContainsRelatedContent(@NotNull Email email) {
+	static boolean emailContainsRelatedContent(@NotNull EmailWithDefaultsAndOverridesApplied email) {
 		return !email.getEmbeddedImages().isEmpty();
 	}
 	
-	static boolean emailContainsAlternativeContent(@NotNull Email email) {
+	static boolean emailContainsAlternativeContent(@NotNull EmailWithDefaultsAndOverridesApplied email) {
 		return (email.getPlainText() != null ? 1 : 0) +
 				(email.getHTMLText() != null ? 1 : 0) +
 				(email.getCalendarText() != null ? 1 : 0) > 1;

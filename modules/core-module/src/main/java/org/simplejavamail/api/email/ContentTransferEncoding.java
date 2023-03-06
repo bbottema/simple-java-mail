@@ -40,4 +40,8 @@ public enum ContentTransferEncoding {
 	public String toString() {
 		return encoder;
 	}
+
+	public static ContentTransferEncoding getDefault() {
+		return QUOTED_PRINTABLE;
+	}
 }

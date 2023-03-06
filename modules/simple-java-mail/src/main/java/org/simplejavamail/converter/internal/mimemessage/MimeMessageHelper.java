@@ -18,23 +18,22 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
-import org.simplejavamail.api.email.CalendarMethod;
+import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.mailer.config.EmailGovernance;
-import org.simplejavamail.internal.config.EmailProperty;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -55,12 +54,12 @@ public class MimeMessageHelper {
 
 	}
 
-	static void setSubject(@NotNull final Email email, final EmailGovernance governance, final MimeMessage message) throws MessagingException {
-		message.setSubject(governance.resolveEmailProperty(email, EmailProperty.SUBJECT), CHARACTER_ENCODING);
+	static void setSubject(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimeMessage message) throws MessagingException {
+		message.setSubject(email.getSubject(), CHARACTER_ENCODING);
 	}
 
-	static void setFrom(@NotNull final Email email, final EmailGovernance governance, final MimeMessage message) throws UnsupportedEncodingException, MessagingException {
-		Recipient fromRecipient = governance.resolveEmailProperty(email, EmailProperty.FROM_RECIPIENT);
+	static void setFrom(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimeMessage message) throws UnsupportedEncodingException, MessagingException {
+		val fromRecipient = email.getFromRecipient();
 		if (fromRecipient != null) {
 			message.setFrom(new InternetAddress(fromRecipient.getAddress(), fromRecipient.getName(), CHARACTER_ENCODING));
 		}
@@ -74,15 +73,9 @@ public class MimeMessageHelper {
 	 * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.
 	 * @throws MessagingException           See {@link Message#addRecipient(Message.RecipientType, Address)}
 	 */
-	static void setRecipients(final Email email, final EmailGovernance governance, final Message message)
+	static void setRecipients(final EmailWithDefaultsAndOverridesApplied email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
-		val allRecipients = new ArrayList<Recipient>();
-		// we cannot use ALL_RECIPIENTS, because the default value resolution might be blocked per recipient group
-		allRecipients.addAll(governance.resolveEmailCollectionProperty(email, EmailProperty.TO_RECIPIENTS));
-		allRecipients.addAll(governance.resolveEmailCollectionProperty(email, EmailProperty.CC_RECIPIENTS));
-		allRecipients.addAll(governance.resolveEmailCollectionProperty(email, EmailProperty.BCC_RECIPIENTS));
-
-		for (final Recipient recipient : allRecipients) {
+		for (final Recipient recipient : email.getRecipients()) {
 				message.addRecipient(recipient.getType(), new InternetAddress(recipient.getAddress(), recipient.getName(), CHARACTER_ENCODING));
 		}
 	}
@@ -95,13 +88,12 @@ public class MimeMessageHelper {
 	 * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.
 	 * @throws MessagingException           See {@link Message#setReplyTo(Address[])}
 	 */
-	static void setReplyTo(@NotNull final Email email, final EmailGovernance governance, final Message message)
+	static void setReplyTo(@NotNull final EmailWithDefaultsAndOverridesApplied email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
-		Recipient replyToRecipient = governance.resolveEmailProperty(email, EmailProperty.REPLYTO_RECIPIENT);
-		if (replyToRecipient != null) {
-			final InternetAddress replyToAddress = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(),
-					CHARACTER_ENCODING);
-			message.setReplyTo(new Address[] { replyToAddress });
+		if (email.getReplyToRecipient() != null) {
+			message.setReplyTo(new Address[] {
+					new InternetAddress(email.getReplyToRecipient().getAddress(), email.getReplyToRecipient().getName(), CHARACTER_ENCODING)
+			});
 		}
 	}
 
@@ -112,56 +104,56 @@ public class MimeMessageHelper {
 	 * @param multipartAlternativeMessages See {@link MimeMultipart#addBodyPart(BodyPart)}
 	 * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)} and {@link MimeMultipart#addBodyPart(BodyPart)}.
 	 */
-	static void setTexts(@NotNull final Email email, final EmailGovernance governance, final MimeMultipart multipartAlternativeMessages)
+	static void setTexts(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimeMultipart multipartAlternativeMessages)
 			throws MessagingException {
-		String plainText = governance.resolveEmailProperty(email, EmailProperty.BODY_TEXT);
-		if (plainText != null) {
-			final MimeBodyPart messagePart = new MimeBodyPart();
-			messagePart.setText(plainText, CHARACTER_ENCODING);
-			messagePart.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, email.getContentTransferEncoding().getEncoder());
+		if (email.getPlainText() != null) {
+			val messagePart = new MimeBodyPart();
+			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING);
+			messagePart.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
 			multipartAlternativeMessages.addBodyPart(messagePart);
 		}
-		String htmlText = governance.resolveEmailProperty(email, EmailProperty.BODY_HTML);
-		if (htmlText != null) {
-			final MimeBodyPart messagePartHTML = new MimeBodyPart();
-			messagePartHTML.setContent(htmlText, "text/html; charset=\"" + CHARACTER_ENCODING + "\"");
-			messagePartHTML.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, email.getContentTransferEncoding().getEncoder());
+		if (email.getHTMLText() != null) {
+			val messagePartHTML = new MimeBodyPart();
+			messagePartHTML.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING));
+			messagePartHTML.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
 		}
-		String calendarText = governance.resolveEmailProperty(email, EmailProperty.CALENDAR_TEXT);
-		CalendarMethod calendarMethod = governance.resolveEmailProperty(email, EmailProperty.CALENDAR_METHOD);
-		if (calendarText != null && calendarMethod != null) {
-			final MimeBodyPart messagePartCalendar = new MimeBodyPart();
-			messagePartCalendar.setContent(calendarText, "text/calendar; charset=\"" + CHARACTER_ENCODING + "\"; method=\"" + calendarMethod + "\"");
-			messagePartCalendar.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, email.getContentTransferEncoding().getEncoder());
+		if (email.getCalendarText() != null) {
+			val calendarMethod = requireNonNull(email.getCalendarMethod(), "calendarMethod is required when calendarText is set");
+			val messagePartCalendar = new MimeBodyPart();
+			messagePartCalendar.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING, calendarMethod));
+			messagePartCalendar.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
 			multipartAlternativeMessages.addBodyPart(messagePartCalendar);
 		}
+	}
+
+	private static String determineContentTransferEncoder(@NotNull EmailWithDefaultsAndOverridesApplied email) {
+		return (email.getContentTransferEncoding() != null
+				? email.getContentTransferEncoding()
+				: ContentTransferEncoding.getDefault()).getEncoder();
 	}
 
 	/**
 	 * Fills the {@link MimeBodyPart} instance with the content body content (text, html and calendar), with Content-Transfer-Encoding header taken from Email.
 	 *
-	 * @param email                   The message in which the content is defined.
-	 * @param messagePart             The {@link MimeBodyPart} that will contain the body content (either plain text, HTML text or iCalendar text)
-	 *
+	 * @param email       The message in which the content is defined.
+	 * @param messagePart The {@link MimeBodyPart} that will contain the body content (either plain text, HTML text or iCalendar text)
+	 *                    and the Content-Transfer-Encoding header.
 	 * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)}.
 	 */
-	static void setTexts(@NotNull final Email email, final EmailGovernance governance, final MimePart messagePart)
+	static void setTexts(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimePart messagePart)
 			throws MessagingException {
-		String plainText = governance.resolveEmailProperty(email, EmailProperty.BODY_TEXT);
-		if (plainText != null) {
-			messagePart.setText(plainText, CHARACTER_ENCODING);
+		if (email.getPlainText() != null) {
+			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING);
 		}
-		String htmlText = governance.resolveEmailProperty(email, EmailProperty.BODY_HTML);
-		if (htmlText != null) {
-			messagePart.setContent(htmlText, "text/html; charset=\"" + CHARACTER_ENCODING + "\"");
+		if (email.getHTMLText() != null) {
+			messagePart.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING));
 		}
-		String calendarText = governance.resolveEmailProperty(email, EmailProperty.CALENDAR_TEXT);
-		CalendarMethod calendarMethod = governance.resolveEmailProperty(email, EmailProperty.CALENDAR_METHOD);
-		if (calendarText != null && calendarMethod != null) {
-			messagePart.setContent(calendarText, "text/calendar; charset=\"" + CHARACTER_ENCODING + "\"; method=\"" + calendarMethod + "\"");
+		if (email.getCalendarText() != null) {
+			val calendarMethod = requireNonNull(email.getCalendarMethod(), "CalendarMethod must be set when CalendarText is set");
+			messagePart.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING, calendarMethod));
 		}
-		messagePart.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, email.getContentTransferEncoding().getEncoder());
+		messagePart.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
 	}
 	
 	/**
@@ -170,11 +162,10 @@ public class MimeMessageHelper {
 	 * <strong>Note:</strong> this is done without setting {@code Content-Disposition} so email clients can choose
 	 * how to display embedded forwards. Most client will show the forward as inline, some may show it as attachment.
 	 */
-	static void configureForwarding(@NotNull final Email email, final EmailGovernance governance, @NotNull final MimeMultipart multipartRootMixed) throws MessagingException {
-		MimeMessage emailToForward = governance.resolveEmailProperty(email, EmailProperty.MAIL_TO_FORWARD);
-		if (emailToForward != null) {
+	static void configureForwarding(@NotNull final EmailWithDefaultsAndOverridesApplied email, @NotNull final MimeMultipart multipartRootMixed) throws MessagingException {
+		if (email.getEmailToForward() != null) {
 			final BodyPart fordwardedMessage = new MimeBodyPart();
-			fordwardedMessage.setContent(emailToForward, "message/rfc822");
+			fordwardedMessage.setContent(email.getEmailToForward(), "message/rfc822");
 			multipartRootMixed.addBodyPart(fordwardedMessage);
 		}
 	}
@@ -186,10 +177,9 @@ public class MimeMessageHelper {
 	 * @param multipartRelated The branch in the email structure in which we'll stuff the embedded images.
 	 * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and {@link #getBodyPartFromDatasource(AttachmentResource, String)}
 	 */
-	static void setEmbeddedImages(@NotNull final Email email, final EmailGovernance governance, final MimeMultipart multipartRelated)
+	static void setEmbeddedImages(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimeMultipart multipartRelated)
 			throws MessagingException {
-		val attachmentResources = governance.<AttachmentResource>resolveEmailCollectionProperty(email, EmailProperty.EMBEDDED_IMAGES);
-		for (final AttachmentResource embeddedImage : attachmentResources) {
+		for (final AttachmentResource embeddedImage : email.getEmbeddedImages()) {
 			multipartRelated.addBodyPart(getBodyPartFromDatasource(embeddedImage, Part.INLINE));
 		}
 	}
@@ -202,10 +192,9 @@ public class MimeMessageHelper {
 	 * @param multipartRoot The branch in the email structure in which we'll stuff the attachments.
 	 * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and {@link #getBodyPartFromDatasource(AttachmentResource, String)}
 	 */
-	static void setAttachments(@NotNull final Email email, final EmailGovernance governance, final MimeMultipart multipartRoot)
+	static void setAttachments(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimeMultipart multipartRoot)
 			throws MessagingException {
-		val attachmentResources = governance.<AttachmentResource>resolveEmailCollectionProperty(email, EmailProperty.ATTACHMENTS);
-		for (final AttachmentResource attachment : attachmentResources) {
+		for (final AttachmentResource attachment : email.getAttachments()) {
 			multipartRoot.addBodyPart(getBodyPartFromDatasource(attachment, Part.ATTACHMENT));
 		}
 	}
@@ -224,24 +213,22 @@ public class MimeMessageHelper {
 	 * @see MimeUtility#encodeText(String, String, String)
 	 * @see MimeUtility#fold(int, String)
 	 */
-	static void setHeaders(@NotNull final Email email, final EmailGovernance governance, final Message message)
+	static void setHeaders(@NotNull final EmailWithDefaultsAndOverridesApplied email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
 
 		// add headers (for raw message headers we need to 'fold' them using MimeUtility
-		for (val header : governance.resolveEmailHeadersProperty(email).entrySet()) {
+		for (val header : email.getHeaders().entrySet()) {
 			setHeader(message, header);
 		}
 
-		val useDispositionNotificationTo = governance.resolveEmailProperty(email, EmailProperty.USE_DISPOSITION_NOTIFICATION_TO);
-		if (TRUE.equals(useDispositionNotificationTo)) {
-			final Recipient dispositionTo = checkNonEmptyArgument(governance.resolveEmailProperty(email, EmailProperty.DISPOSITION_NOTIFICATION_TO), "dispositionNotificationTo");
+		if (TRUE.equals(email.getUseDispositionNotificationTo())) {
+			final Recipient dispositionTo = checkNonEmptyArgument(email.getDispositionNotificationTo(), "dispositionNotificationTo");
 			final Address address = new InternetAddress(dispositionTo.getAddress(), dispositionTo.getName(), CHARACTER_ENCODING);
 			message.setHeader("Disposition-Notification-To", address.toString());
 		}
 
-		val useReturnReceiptTo = governance.resolveEmailProperty(email, EmailProperty.USE_RETURN_RECEIPT_TO);
-		if (TRUE.equals(useReturnReceiptTo)) {
-			final Recipient returnReceiptTo = checkNonEmptyArgument(governance.resolveEmailProperty(email, EmailProperty.RETURN_RECEIPT_TO), "returnReceiptTo");
+		if (TRUE.equals(email.getUseReturnReceiptTo())) {
+			final Recipient returnReceiptTo = checkNonEmptyArgument(email.getReturnReceiptTo(), "returnReceiptTo");
 			final Address address = new InternetAddress(returnReceiptTo.getAddress(), returnReceiptTo.getName(), CHARACTER_ENCODING);
 			message.setHeader("Return-Receipt-To", address.toString());
 		}

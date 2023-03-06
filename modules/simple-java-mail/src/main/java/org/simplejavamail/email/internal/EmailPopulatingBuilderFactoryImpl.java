@@ -9,6 +9,7 @@ import org.simplejavamail.api.internal.general.EmailPopulatingBuilderFactory;
 public final class EmailPopulatingBuilderFactoryImpl implements EmailPopulatingBuilderFactory {
 	@Override
 	public EmailPopulatingBuilder create() {
-		return 	new EmailPopulatingBuilderImpl(false);
+		// FIXME shouldn't this be .ignoringDefaults(true)?
+		return 	new EmailPopulatingBuilderImpl().ignoringOverrides(true);
 	}
 }

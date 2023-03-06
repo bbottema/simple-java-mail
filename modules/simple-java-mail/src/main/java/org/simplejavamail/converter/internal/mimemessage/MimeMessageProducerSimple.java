@@ -4,8 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.config.EmailGovernance;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 
 /**
  * Produces a MimeMessage with {@link MimeMultipart} structure as follows:<br>
@@ -19,12 +18,12 @@ import org.simplejavamail.api.mailer.config.EmailGovernance;
 class MimeMessageProducerSimple extends SpecializedMimeMessageProducer {
 	
 	@Override
-	public boolean compatibleWithEmail(@NotNull Email email) {
+	public boolean compatibleWithEmail(@NotNull EmailWithDefaultsAndOverridesApplied email) {
 		return !emailContainsMixedContent(email) && !emailContainsRelatedContent(email) && !emailContainsAlternativeContent(email);
 	}
 	
 	@Override
-	public void populateMimeMessageMultipartStructure(MimeMessage message, Email email, EmailGovernance emailGovernance) throws MessagingException {
-		MimeMessageHelper.setTexts(email, emailGovernance, message);
+	public void populateMimeMessageMultipartStructure(MimeMessage message, EmailWithDefaultsAndOverridesApplied email) throws MessagingException {
+		MimeMessageHelper.setTexts(email, message);
 	}
 }

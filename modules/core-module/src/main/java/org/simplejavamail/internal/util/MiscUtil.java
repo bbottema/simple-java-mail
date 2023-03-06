@@ -419,16 +419,16 @@ public final class MiscUtil {
 		return collectedHeaders;
 	}
 
-	private static boolean defaultAllowedForProperty(@Nullable Email defaultsEmail, @NotNull final EmailProperty emailProperty) {
-		return defaultsEmail == null ||
-				defaultsEmail.getPropertiesNotToApplyDefaultValueFor() == null ||
-				!defaultsEmail.getPropertiesNotToApplyDefaultValueFor().contains(emailProperty);
+	private static boolean defaultAllowedForProperty(@Nullable Email provided, @NotNull final EmailProperty emailProperty) {
+		return provided == null || !provided.isIgnoreDefaults() &&
+				(provided.getPropertiesNotToApplyDefaultValueFor() == null ||
+						!provided.getPropertiesNotToApplyDefaultValueFor().contains(emailProperty));
 	}
 
-	private static boolean overrideAllowedForProperty(@Nullable Email defaultsEmail, @NotNull final EmailProperty emailProperty) {
-		return defaultsEmail == null ||
-				defaultsEmail.getPropertiesNotToApplyOverrideValueFor() == null ||
-				!defaultsEmail.getPropertiesNotToApplyOverrideValueFor().contains(emailProperty);
+	private static boolean overrideAllowedForProperty(@Nullable Email provided, @NotNull final EmailProperty emailProperty) {
+		return provided == null || !provided.isIgnoreOverrides() &&
+				(provided.getPropertiesNotToApplyOverrideValueFor() == null ||
+						!provided.getPropertiesNotToApplyOverrideValueFor ().contains(emailProperty));
 	}
 
 	private static void addOrOverrideHeaders(HashMap<String, Collection<String>> collectedHeaders, @NotNull Map<String, Collection<String>> headers) {

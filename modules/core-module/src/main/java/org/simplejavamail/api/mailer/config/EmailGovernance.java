@@ -4,12 +4,9 @@ import com.sanctionco.jmail.EmailValidator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
-import org.simplejavamail.internal.config.EmailProperty;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Governance for all emails being sent through the current {@link org.simplejavamail.api.mailer.Mailer} instance. That is, this class represents actions
@@ -35,24 +32,18 @@ public interface EmailGovernance {
     @Nullable Integer getMaximumEmailSize();
 
     /**
-     * Resolves a property by first checking overrides (if the override wasn't disabled globally, or for this property specifically), then checking the email itself, and finally
-     * checking the defaults (again checking if it was disabled). If the property is not set on any of these, <code>null</code> is returned.
+     * This method will apply the defaults and overrides to the given email and return the result as a new instance. The original email is not modified.
+     * <p>
+     * Note that this is used automatically when sending or converting an email, so you don't need to call this yourself. This method might be useful
+     * if you don't want to send the email, but just want to use a helper method or wish to inspect the email without sending (for the latter case
+     * {@link org.simplejavamail.api.mailer.MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)} might be of interest too).
+     * <p>
+     * Alternatively, you can also use {@link EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides()} or
+     * {@link EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)}.
+     *
+     * @param provided The email to apply the defaults and overrides to. If <code>null</code>, a new empty email will be created but will still be
+     *                 populated with the defaults and overrides.
      */
-    @Nullable <T> T resolveEmailProperty(@Nullable Email email, @NotNull EmailProperty emailProperty);
-
-    /**
-     * Resolves a collection property by first checking overrides (if the override wasn't disabled globally, or for this property specifically), then checking the email itself, and finally
-     * checking the defaults (again checking if it was disabled). If the property is not set on any of these, an empty <code>List</code> is returned.
-     * <br>
-     * The collections are merged from these sources, with the overrides taking precedence.
-     */
-    @NotNull <T> List<T> resolveEmailCollectionProperty(@Nullable Email email, @NotNull EmailProperty emailProperty);
-
-    /**
-     * Specifically resolves the headers by first checking overrides (if the override wasn't disabled globally, or for this property specifically), then checking the email itself, and finally
-     * checking the defaults (again checking if it was disabled). If the property is not set on any of these, an empty <code>List</code> is returned.
-     * <br>
-     * The header maps are merged from these sources, with the overrides taking precedence. The keys are added to the map, but their associated value collections are not merged, but replaced.
-     */
-    Map<String, Collection<String>> resolveEmailHeadersProperty(@Nullable Email email);
+    @NotNull
+    EmailWithDefaultsAndOverridesApplied produceEmailApplyingDefaultsAndOverrides(@Nullable Email provided);
 }

@@ -17,10 +17,7 @@ import org.simplejavamail.internal.util.MiscUtil;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import java.io.IOException;
-
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(MiscUtil.class)
@@ -35,7 +32,7 @@ public class MimeMessageHelper2Test {
 
 	@Test
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseDKIMLibraryIsMissing()
-			throws IOException, ClassNotFoundException {
+			throws ClassNotFoundException {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 				.signWithDomainKey(DkimConfig.builder()
 						.dkimPrivateKeyData("dummykey")

@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
@@ -438,7 +439,7 @@ public class MailerTest {
 
 		getMailerWithCustomMailer(customMailerMock).sendMail(email);
 
-		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
+		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(EmailWithDefaultsAndOverridesApplied.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
 	}
 

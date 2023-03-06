@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
@@ -38,12 +39,12 @@ public class MailerHelper {
 	/**
 	 * Delegates to all other validations for a full checkup.
 	 *
-	 * @see #validateCompleteness(Email)
-	 * @see #validateAddresses(Email, EmailValidator)
-	 * @see #scanForInjectionAttacks(Email)
+	 * @see #validateCompleteness(EmailWithDefaultsAndOverridesApplied)
+	 * @see #validateAddresses(EmailWithDefaultsAndOverridesApplied, EmailValidator)
+	 * @see #scanForInjectionAttacks(EmailWithDefaultsAndOverridesApplied)
 	 */
 	@SuppressWarnings({ "SameReturnValue" })
-	public static boolean validate(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
+	public static boolean validate(@NotNull final EmailWithDefaultsAndOverridesApplied email, @Nullable final EmailValidator emailValidator)
 			throws MailException {
 		LOGGER.debug("validating email...");
 
@@ -60,12 +61,12 @@ public class MailerHelper {
 	 * Lenient validation only checks for missing fields (which implies incorrect configuration or missing data),
 	 * but only warns for invalid address and suspected CRLF injections.
 	 *
-	 * @see #validateCompleteness(Email)
-	 * @see #validateAddresses(Email, EmailValidator)
-	 * @see #scanForInjectionAttacks(Email)
+	 * @see #validateCompleteness(EmailWithDefaultsAndOverridesApplied)
+	 * @see #validateAddresses(EmailWithDefaultsAndOverridesApplied, EmailValidator)
+	 * @see #scanForInjectionAttacks(EmailWithDefaultsAndOverridesApplied)
 	 */
 	@SuppressWarnings({ "SameReturnValue" })
-	public static boolean validateLenient(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
+	public static boolean validateLenient(@NotNull final EmailWithDefaultsAndOverridesApplied email, @Nullable final EmailValidator emailValidator)
 			throws MailException {
 		LOGGER.debug("validating email...");
 		MailerHelper.validateCompleteness(email);
@@ -93,7 +94,7 @@ public class MailerHelper {
 	 *     <li>if there is a return receipt TO if flag is set to use it</li>
 	 * </ol>
 	 */
-	public static void validateCompleteness(final @NotNull Email email) {
+	public static void validateCompleteness(final @NotNull EmailWithDefaultsAndOverridesApplied email) {
 		// check for mandatory values
 		if (email.getRecipients().size() == 0) {
 			throw new MailCompletenessException(MailCompletenessException.MISSING_RECIPIENT);
@@ -117,7 +118,7 @@ public class MailerHelper {
 	 *     <li>return-receipt-to recipient, if provided</li>
 	 * </ol>
 	 */
-	public static void validateAddresses(final @NotNull Email email, final @Nullable EmailValidator emailValidator) {
+	public static void validateAddresses(final @NotNull EmailWithDefaultsAndOverridesApplied email, final @Nullable EmailValidator emailValidator) {
 		if (emailValidator != null) {
 			if (!emailValidator.isValid(email.getFromRecipient().getAddress())) {
 				throw new MailInvalidAddressException(format(MailInvalidAddressException.INVALID_SENDER, email));
@@ -163,7 +164,7 @@ public class MailerHelper {
 	 *
 	 * @see #scanForInjectionAttack
 	 */
-	public static void scanForInjectionAttacks(final @NotNull Email email) {
+	public static void scanForInjectionAttacks(final @NotNull EmailWithDefaultsAndOverridesApplied email) {
 		// check for illegal values
 		scanForInjectionAttack(email.getSubject(), "email.subject");
 		for (final Map.Entry<String, Collection<String>> headerEntry : email.getHeaders().entrySet()) {

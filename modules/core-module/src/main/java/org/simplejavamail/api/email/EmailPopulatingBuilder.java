@@ -10,6 +10,8 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
+import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.config.EmailProperty;
 
@@ -44,10 +46,60 @@ public interface EmailPopulatingBuilder {
 	Pattern IMG_SRC_PATTERN = compile("(?<imageTagStart><[Ii][Mm][Gg]\\s*[^>]*?\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])(?<src>[^\"']+?)(?<imageSrcEnd>[\"'])");
 
 	/**
-	 * Validated DKIM values and then delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument.
+	 * Validated DKIM values and then delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument. This results in an Email instance with
+	 * just the values set on this builder by the user. <strong>This is the regular use case and the common way to send emails using a {@link Mailer} instance.</strong>
+	 * <p>
+	 * If you don't have a Mailer instance or you just want to call helper methods that only accept an {@link EmailWithDefaultsAndOverridesApplied}, there are two ways
+	 * to complete this Email with defaults and overrides that you may have configured as (system) properties (files):
+	 * <ol>
+	 *     <li>Construct a new {@code EmailGovernanceImpl} or use {@code EmailGovernanceImpl.NO_GOVERNANCE()}, and then use {@link EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)}</li>
+	 *     <li>Don't use {@link #buildEmail()}, but use {@link #buildEmailCompletedWithDefaultsAndOverrides()} or {@link #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)} instead</li>
+	 * </ol>
+	 * It depends on whether you like fine-grained control over email governance (validation, max email size, defaults, overrides, etc.) or not.
+	 *
+	 * @see #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)
 	 */
+	@SuppressWarnings("JavadocDeclaration")
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	Email buildEmail();
+
+	/**
+	 * Delegates to {@link #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)} with an empty default email governance, which
+	 * will still apply default config (System) properties (files).
+	 */
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	EmailWithDefaultsAndOverridesApplied buildEmailCompletedWithDefaultsAndOverrides();
+
+	/**
+	 * Like {@link #buildEmail()}, but returning the final email version right away. Useful if you don't use a Mailer which works with email governance,
+	 * or just want to call a helper method that only accepts {@link EmailWithDefaultsAndOverridesApplied}. For regular cases of just sending with a {@link Mailer}, this
+	 * completion stage happens automatically when converting to MimeMessage. In that case use {@link #buildEmail()} instead.
+	 * <p>
+	 * Why not always apply defaults and overrides? Because it would be a waste of resources to do so, especially when you are sending multiple emails resuing a mailer instance.
+	 * Another use case is that when using a server cluster with the batch-module (multiple mailer instances), defaults set during sending ensure that the defaults set for a
+	 * specific mailer are used. This is sometimes important if an SMTP server needs a specific sender address, or if you want to use a specific DKIM signature bound to that server.
+	 *
+	 * @param emailGovernance The email governance to use for this email. It determines which default values and overrides to apply, what the maximum
+	 *                           email size is, etc.
+	 */
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	EmailWithDefaultsAndOverridesApplied buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance);
+
+	/**
+	 * Indicates that when the email is sent, no default values whatsoever should be applied to the email.
+	 *
+	 * @see #dontApplyDefaultValueFor(EmailProperty...)
+	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withEmailDefaults(Email)
+	 */
+	EmailPopulatingBuilder ignoringDefaults(boolean ignoreDefaults);
+
+	/**
+	 * Indicates that when the email is sent, no override values whatsoever should be applied to the email.
+	 *
+	 * @see #dontApplyOverrideValueFor(EmailProperty...)
+	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withEmailOverrides(Email)
+	 */
+	EmailPopulatingBuilder ignoringOverrides(boolean ignoreDefaults);
 
 	/**
 	 * Allows you to prevent a property to be configured with default values. This might be useful if you have defined defaults (either through (system) properties,
@@ -1537,6 +1589,16 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearSMIMESignedAttachmentMergingBehavior();
 
 	/**
+	 * @see #ignoringDefaults(boolean)
+	 */
+	boolean isIgnoreDefaults();
+
+	/**
+	 * @see #ignoringOverrides(boolean)
+	 */
+	boolean isIgnoreOverrides();
+
+	/**
 	 * @see #dontApplyDefaultValueFor(EmailProperty...)
 	 */
 	@Nullable
@@ -1600,6 +1662,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #withContentTransferEncoding(ContentTransferEncoding)
 	 * @see #clearContentTransferEncoding()
 	 */
+	@Nullable
 	ContentTransferEncoding getContentTransferEncoding();
 	
 	/**

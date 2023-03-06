@@ -5,7 +5,7 @@ import jakarta.mail.Session;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -29,11 +29,10 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 
 	@NotNull private final OperationalConfig operationalConfig;
 	@NotNull private final Session session;
-	@NotNull private final Email email;
+	@NotNull private final EmailWithDefaultsAndOverridesApplied email;
 	private final boolean transportModeLoggingOnly;
 
-	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @Nullable AnonymousSocks5Server proxyServer,
-					boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
+	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull EmailWithDefaultsAndOverridesApplied email, @Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
 		super(smtpConnectionCounter, proxyServer);
 		this.operationalConfig = operationalConfig;
 		this.session = session;

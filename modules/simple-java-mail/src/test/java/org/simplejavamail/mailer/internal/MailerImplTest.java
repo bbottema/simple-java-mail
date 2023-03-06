@@ -9,10 +9,8 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.internal.config.EmailProperty;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -124,7 +122,7 @@ public class MailerImplTest {
 		final EmailGovernance emailGovernance = new EmailGovernanceImpl(null, emailWithDefaultPkcs12KeyStoreDefault, null, null);
 		final Mailer mailer = new MailerImpl(null, SMTP, emailGovernance, createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, true, false));
 
-		final Pkcs12Config actual = mailer.getEmailGovernance().resolveEmailProperty(null, EmailProperty.SMIME_SIGNING_CONFIG);
+		val actual = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(null).getPkcs12ConfigForSmimeSigning();
 
 		assertThat(actual).isNotNull();
 		assertThat(actual.getPkcs12StoreData()).isNotNull();

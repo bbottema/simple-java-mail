@@ -15,11 +15,13 @@ import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
+import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.config.EmailProperty;
@@ -56,20 +58,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static java.util.regex.Matcher.quoteReplacement;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_NAME;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
@@ -81,7 +69,6 @@ import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYN
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL;
 import static org.simplejavamail.config.ConfigLoader.getBooleanProperty;
-import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.email.internal.EmailException.ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT;
@@ -102,6 +89,7 @@ import static org.simplejavamail.internal.util.MiscUtil.tryResolveUrlDataSource;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
+import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNANCE;
 
 /**
  * @see EmailPopulatingBuilder
@@ -109,47 +97,57 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilder {
 
+	/**
+	 * @see #ignoringDefaults(boolean)
+	 */
+	private boolean ignoringDefaults;
+
+	/**
+	 * @see #ignoringOverrides(boolean)
+	 */
+	private boolean ignoringOverrides;
+
 	@Nullable
 	private Set<EmailProperty> propertiesNotToApplyDefaultValueFor;
 
 	@Nullable
 	private Set<EmailProperty> propertiesNotToApplyOverrideValueFor;
-	
+
 	/**
 	 * @see #fixingMessageId(String)
 	 */
 	@Nullable
 	private String id;
-	
+
 	/**
 	 * @see #from(Recipient)
 	 */
 	private Recipient fromRecipient;
-	
+
 	/**
 	 * @see #withReplyTo(Recipient)
 	 */
 	@Nullable
 	private Recipient replyToRecipient;
-	
+
 	/**
 	 * @see #withBounceTo(Recipient)
 	 */
 	@Nullable
 	private Recipient bounceToRecipient;
-	
+
 	/**
 	 * @see #withSubject(String)
 	 */
 	@Nullable
 	private String subject;
-	
+
 	/**
 	 * @see #withPlainText(String)
 	 */
 	@Nullable
 	private String text;
-	
+
 	/**
 	 * @see #withHTMLText(String)
 	 */
@@ -171,15 +169,16 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see #withContentTransferEncoding(ContentTransferEncoding)
 	 */
-	private ContentTransferEncoding contentTransferEncoding = ContentTransferEncoding.QUOTED_PRINTABLE;
-	
+	@Nullable
+	private ContentTransferEncoding contentTransferEncoding;
+
 	/**
 	 * @see #to(Recipient...)
 	 * @see #cc(Recipient...)
 	 * @see #bcc(Recipient...)
 	 */
 	@NotNull
-	private final List<Recipient> recipients;
+	private final List<Recipient> recipients = new ArrayList<>();
 
 	/**
 	 * @see #withEmbeddedImageAutoResolutionForFiles(boolean)
@@ -238,34 +237,34 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #withEmbeddedImage(String, DataSource)
 	 */
 	@NotNull
-	private final List<AttachmentResource> embeddedImages;
-	
+	private final List<AttachmentResource> embeddedImages = new ArrayList<>();
+
 	/**
 	 * @see #withAttachment(String, DataSource)
 	 */
 	@NotNull
-	private final List<AttachmentResource> attachments;
+	private final List<AttachmentResource> attachments = new ArrayList<>();
 
 	/**
 	 * @see #withDecryptedAttachments(List)
 	 */
 	@NotNull
-	private final List<AttachmentResource> decryptedAttachments;
+	private final List<AttachmentResource> decryptedAttachments = new ArrayList<>();
 
 	/**
 	 * @see #withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	@NotNull
-	private final Map<String, Collection<String>> headers;
-	
+	private final Map<String, Collection<String>> headers = new HashMap<>();
+
 	/**
 	 * @see #signWithDomainKey(DkimConfig)
 	 * @see #signWithDomainKey(byte[], String, String, Set)
 	 */
 	@Nullable
 	private DkimConfig dkimConfig;
-	
+
 	/**
 	 * @see #signWithSmime(Pkcs12Config)
 	 * @see #signWithSmime(InputStream, String, String, String)
@@ -283,28 +282,28 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Nullable
 	private X509Certificate x509CertificateForSmimeEncryption;
-	
+
 	/**
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
 	@Nullable
 	private Boolean useDispositionNotificationTo;
-	
+
 	/**
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
 	@Nullable
 	private Recipient dispositionNotificationTo;
-	
+
 	/**
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
 	 */
 	@Nullable
 	private Boolean useReturnReceiptTo;
-	
+
 	/**
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
@@ -321,7 +320,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
 	@NotNull
-	private OriginalSmimeDetails originalSmimeDetails;
+	private OriginalSmimeDetails originalSmimeDetails = new PlainSmimeDetails();
 
 	/**
 	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
@@ -342,51 +341,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see EmailStartingBuilder#startingBlank()
 	 */
-	EmailPopulatingBuilderImpl(final boolean applyDefaults) {
-		recipients = new ArrayList<>();
-		embeddedImages = new ArrayList<>();
-		attachments = new ArrayList<>();
-		decryptedAttachments = new ArrayList<>();
-		headers = new HashMap<>();
-		originalSmimeDetails = new PlainSmimeDetails();
-
-		if (applyDefaults) {
-			if (hasProperty(DEFAULT_FROM_ADDRESS)) {
-				from(getStringProperty(DEFAULT_FROM_NAME), verifyNonnullOrEmpty(getStringProperty(DEFAULT_FROM_ADDRESS)));
-			}
-			if (hasProperty(DEFAULT_REPLYTO_ADDRESS)) {
-				withReplyTo(getStringProperty(DEFAULT_REPLYTO_NAME), verifyNonnullOrEmpty(getStringProperty(DEFAULT_REPLYTO_ADDRESS)));
-			}
-			if (hasProperty(DEFAULT_BOUNCETO_ADDRESS)) {
-				withBounceTo(getStringProperty(DEFAULT_BOUNCETO_NAME), verifyNonnullOrEmpty(getStringProperty(DEFAULT_BOUNCETO_ADDRESS)));
-			}
-			if (hasProperty(DEFAULT_TO_ADDRESS)) {
-				if (hasProperty(DEFAULT_TO_NAME)) {
-					to(getStringProperty(DEFAULT_TO_NAME), getStringProperty(DEFAULT_TO_ADDRESS));
-				} else {
-					to(verifyNonnullOrEmpty(getStringProperty(DEFAULT_TO_ADDRESS)));
-				}
-			}
-			if (hasProperty(DEFAULT_CC_ADDRESS)) {
-				if (hasProperty(DEFAULT_CC_NAME)) {
-					cc(getStringProperty(DEFAULT_CC_NAME), getStringProperty(DEFAULT_CC_ADDRESS));
-				} else {
-					cc(verifyNonnullOrEmpty(getStringProperty(DEFAULT_CC_ADDRESS)));
-				}
-			}
-			if (hasProperty(DEFAULT_BCC_ADDRESS)) {
-				if (hasProperty(DEFAULT_BCC_NAME)) {
-					bcc(getStringProperty(DEFAULT_BCC_NAME), getStringProperty(DEFAULT_BCC_ADDRESS));
-				} else {
-					bcc(verifyNonnullOrEmpty(getStringProperty(DEFAULT_BCC_ADDRESS)));
-				}
-			}
-			if (hasProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)) {
-				withContentTransferEncoding(verifyNonnullOrEmpty(getProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)));
-			}
-			if (hasProperty(DEFAULT_SUBJECT)) {
-				withSubject(getProperty(DEFAULT_SUBJECT));
-			}
+	EmailPopulatingBuilderImpl() {
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)) {
 				withEmbeddedImageAutoResolutionForFiles(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)));
 			}
@@ -417,9 +372,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)) {
 				embeddedImageAutoResolutionMustBeSuccesful(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)));
 			}
-		}
 	}
-
 	/**
 	 * @see EmailPopulatingBuilder#buildEmail()
 	 */
@@ -428,7 +381,26 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public Email buildEmail() {
 		validateDkim();
 		resolveDynamicEmbeddedImageDataSources();
-		return new Email(this);
+		//noinspection deprecation
+		return new InternalEmail(this);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides()
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailWithDefaultsAndOverridesApplied buildEmailCompletedWithDefaultsAndOverrides() {
+		return buildEmailCompletedWithDefaultsAndOverrides(NO_GOVERNANCE());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailWithDefaultsAndOverridesApplied buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance) {
+		return emailGovernance.produceEmailApplyingDefaultsAndOverrides(buildEmail());
 	}
 
 	private void validateDkim() {
@@ -491,6 +463,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			// unable to load datasource
 		}
 		throw new EmailException(format(ERROR_RESOLVING_IMAGE_DATASOURCE, srcLocation));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
+	 */
+	@Override
+	public EmailPopulatingBuilder ignoringDefaults(boolean ignoreDefaults) {
+		this.ignoringDefaults = ignoreDefaults;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#ignoringOverrides(boolean)
+	 */
+	@Override
+	public EmailPopulatingBuilder ignoringOverrides(boolean ignoreDefaults) {
+		this.ignoringOverrides = ignoreDefaults;
+		return this;
 	}
 
 	/**
@@ -2317,6 +2307,22 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see #ignoringDefaults(boolean)
+	 */
+	@Override
+	public boolean isIgnoreDefaults() {
+		return ignoringDefaults;
+	}
+
+	/**
+	 * @see #ignoringOverrides(boolean)
+	 */
+	@Override
+	public boolean isIgnoreOverrides() {
+		return ignoringOverrides;
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#getPropertiesNotToApplyDefaultValueFor()
 	 */
 	@Override
@@ -2414,6 +2420,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#getContentTransferEncoding()
 	 */
 	@Override
+	@Nullable
 	public ContentTransferEncoding getContentTransferEncoding() {
 		return contentTransferEncoding;
 	}

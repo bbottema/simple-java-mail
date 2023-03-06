@@ -42,6 +42,16 @@ public class Email implements Serializable {
 	private static final long serialVersionUID = 1234567L;
 
 	/**
+	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
+	 */
+	private final boolean ignoreDefaults;
+
+	/**
+	 * @see EmailPopulatingBuilder#ignoringOverrides(boolean)
+	 */
+	private final boolean ignoreOverrides;
+
+	/**
 	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
 	 */
 	private final Set<EmailProperty> propertiesNotToApplyDefaultValueFor;
@@ -54,7 +64,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
 	 */
-	private String id;
+	protected String id;
 	
 	/**
 	 * @see EmailPopulatingBuilder#from(Recipient)
@@ -94,7 +104,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withContentTransferEncoding(ContentTransferEncoding)
 	 */
-	@NotNull
+	@Nullable
 	private final ContentTransferEncoding contentTransferEncoding;
 
 	/**
@@ -200,9 +210,9 @@ public class Email implements Serializable {
 	private final OriginalSmimeDetails originalSmimeDetails;
 
 	/**
-	 * @see Email#wasMergedWithSmimeSignedMessage()
+	 * @see "ExtendedEmail.wasMergedWithSmimeSignedMessage()"
 	 */
-	private final boolean wasMergedWithSmimeSignedMessage;
+	protected final boolean wasMergedWithSmimeSignedMessage;
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
@@ -218,6 +228,8 @@ public class Email implements Serializable {
 	public Email(@NotNull final EmailPopulatingBuilder builder) {
 		checkNonEmptyArgument(builder, "builder");
 
+		ignoreDefaults = builder.isIgnoreDefaults();
+		ignoreOverrides = builder.isIgnoreOverrides();
 		propertiesNotToApplyDefaultValueFor = builder.getPropertiesNotToApplyDefaultValueFor();
 		propertiesNotToApplyOverrideValueFor = builder.getPropertiesNotToApplyOverrideValueFor();
 		smimeSignedEmail = builder.getSmimeSignedEmail();
@@ -287,25 +299,6 @@ public class Email implements Serializable {
 		this.dkimConfig = builder.getDkimConfig();
 	}
 
-	/**
-	 * @deprecated Don't use this method, refer to {@link EmailPopulatingBuilder#fixingMessageId(String)} instead. This method is used internally to
-	 * update the message id once a mail has been sent.
-	 */
-	@Deprecated
-	public void internalSetId(@NotNull final String id) {
-		this.id = id;
-	}
-
-	/**
-	 * @deprecated Don't use this method. This method is used internally when using the builder API to copy an email that
-	 * contains an S/MIME signed message. Without this method, we don't know if the copy should also be merged to match the
-	 * copied email.
-	 */
-	@Deprecated
-	public boolean wasMergedWithSmimeSignedMessage() {
-		return wasMergedWithSmimeSignedMessage;
-	}
-
 	@SuppressWarnings("SameReturnValue")
 	@Override
 	public int hashCode() {
@@ -328,7 +321,7 @@ public class Email implements Serializable {
 				",\n\ttext='" + text + '\'' +
 				",\n\ttextHTML='" + textHTML + '\'' +
 				",\n\ttextCalendar='" + format("%s (method: %s)", textCalendar, calendarMethod) + '\'' +
-				",\n\tcontentTransferEncoding='" + contentTransferEncoding + '\'' +
+				",\n\tcontentTransferEncoding='" + (contentTransferEncoding != null ? contentTransferEncoding : ContentTransferEncoding.getDefault()) + '\'' +
 				",\n\tsubject='" + subject + '\'' +
 				",\n\trecipients=" + recipients);
 		if (!MiscUtil.valueNullOrEmpty(dkimConfig)) {
@@ -386,6 +379,20 @@ public class Email implements Serializable {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 		sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 		return sdf.format(date);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
+	 */
+	public boolean isIgnoreDefaults() {
+		return ignoreDefaults;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#ignoringOverrides(boolean)
+	 */
+	public boolean isIgnoreOverrides() {
+		return ignoreOverrides;
 	}
 
 	/**
@@ -647,7 +654,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withContentTransferEncoding(ContentTransferEncoding)
 	 */
-	@NotNull
+	@Nullable
 	public ContentTransferEncoding getContentTransferEncoding() {
 		return contentTransferEncoding;
 	}

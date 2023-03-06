@@ -12,6 +12,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
@@ -222,6 +223,10 @@ public final class EmailConverter {
 	}
 
 	/**
+	 * Note: the email builder wrapper by {@link EmailFromOutlookMessage} is set to ignore defaults as to stay as close as possible to the original MimeMessage.
+	 * If you wish to use the result to send an email, you might want to first call {@link EmailPopulatingBuilder#ignoringDefaults(boolean)} to set the builder
+	 * to use defaults again.
+	 *
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("deprecation")
@@ -435,38 +440,35 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link #emailToMimeMessage(Email, Session)}, using a new empty {@link Session} instance.
-	 *
-	 * @see #emailToMimeMessage(Email, Session)
+	 * Delegates to {@link #emailToMimeMessage(Email, Session, EmailGovernance)}, using a new empty {@link Session} instance,
+	 * and without email governance - but defaults from (system) prorties (files) are still applied, if provided..
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email) {
 		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession(), NO_GOVERNANCE());
 	}
 
 	/**
-	 * Delegates to {@link #emailToMimeMessage(Email, Session)}, using a new empty {@link Session} instance.
-	 *
-	 * @see #emailToMimeMessage(Email, Session)
+	 * Delegates to {@link #emailToMimeMessage(Email, Session, EmailGovernance)}, using a new empty {@link Session} instance.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, final EmailGovernance emailGovernance) {
 		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession(), emailGovernance);
 	}
 
 	/**
-	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, EmailGovernance, Session)} with empty S/MIME signing store.
+	 * Delegates to {@link #emailToMimeMessage(Email, Session, EmailGovernance)} with no email governance -
+	 * but defaults from (system) prorties (files) are still applied, if provided.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session) {
 		return emailToMimeMessage(email, session, NO_GOVERNANCE());
 	}
 
 	/**
-	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, EmailGovernance, Session)} with empty S/MIME signing store.
+	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(EmailWithDefaultsAndOverridesApplied, Session)}.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final EmailGovernance emailGovernance) {
 		try {
 			return MimeMessageProducerHelper.produceMimeMessage(
-					checkNonEmptyArgument(email, "email"),
-					emailGovernance,
+					emailGovernance.produceEmailApplyingDefaultsAndOverrides(email),
 					checkNonEmptyArgument(session, "session"));
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)

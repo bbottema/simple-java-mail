@@ -10,9 +10,6 @@ import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.mailer.Mailer;
-import org.simplejavamail.api.mailer.config.TransportStrategy;
-import org.simplejavamail.mailer.MailerBuilder;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 import testutil.SecureTestDataHelper;
@@ -166,7 +163,7 @@ public class EmailConverterTest {
 	}
 
 	@Test
-	public void testContentTransferEncodingQuotedPrintable() throws IOException {
+	public void testContentTransferEncodingQuotedPrintable() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false).buildEmail();
@@ -189,7 +186,7 @@ public class EmailConverterTest {
 	}
 
 	@Test
-	public void testContentTransferEncodingBase64() throws IOException {
+	public void testContentTransferEncodingBase64() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false)

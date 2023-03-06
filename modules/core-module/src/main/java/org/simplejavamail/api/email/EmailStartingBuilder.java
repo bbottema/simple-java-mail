@@ -35,10 +35,11 @@ public interface EmailStartingBuilder {
 	 */
 	String DEFAULT_QUOTING_MARKUP = "<blockquote style=\"color: gray; border-left: 1px solid #4f4f4f; padding-left: " +
 			"1cm\">%s</blockquote>";
-	
+
 	/**
 	 * Configures this builder to create an email ignoring the all defaults from (System) properties, config files or defaults email on
-	 * Mailer level in the {@link org.simplejavamail.api.mailer.config.EmailGovernance}.
+	 * Mailer level in the {@link org.simplejavamail.api.mailer.config.EmailGovernance}. You can make individual exceptions with
+	 * 	 * {@link EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)}
 	 * <br>
 	 * <strong>Note:</strong> This is irrelevant for Email instances used to set on {@link org.simplejavamail.api.mailer.config.EmailGovernance}
 	 * as defaults or overrides reference.
@@ -46,6 +47,18 @@ public interface EmailStartingBuilder {
 	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
 	 */
 	EmailStartingBuilder ignoringDefaults();
+
+	/**
+	 * Configures this builder to create an email ignoring the all overrides from (System) properties, config files or defaults email on
+	 * Mailer level in the {@link org.simplejavamail.api.mailer.config.EmailGovernance}. You can make individual exceptions with
+	 * {@link EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)}
+	 * <br>
+	 * <strong>Note:</strong> This is irrelevant for Email instances used to set on {@link org.simplejavamail.api.mailer.config.EmailGovernance}
+	 * as defaults or overrides reference.
+	 *
+	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
+	 */
+	EmailStartingBuilder ignoringOverrides();
 	
 	/**
 	 * Most common use case for creating a new email. Starts with an empty email, populated with defaults when set through config properties (if

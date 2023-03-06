@@ -5,8 +5,7 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.config.EmailGovernance;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 
 /**
  * Produces a MimeMessage with {@link MimeMultipart} structure as follows:<br>
@@ -28,18 +27,18 @@ import org.simplejavamail.api.mailer.config.EmailGovernance;
 class MimeMessageProducerMixedRelatedAlternative extends SpecializedMimeMessageProducer {
 	
 	@Override
-	public boolean compatibleWithEmail(@NotNull Email email) {
+	public boolean compatibleWithEmail(@NotNull EmailWithDefaultsAndOverridesApplied email) {
 		return emailContainsMixedContent(email) && emailContainsRelatedContent(email) && emailContainsAlternativeContent(email);
 	}
 	
 	@Override
-	public void populateMimeMessageMultipartStructure(MimeMessage message, Email email, EmailGovernance emailGovernance) throws MessagingException {
+	public void populateMimeMessageMultipartStructure(MimeMessage message, EmailWithDefaultsAndOverridesApplied email) throws MessagingException {
 		MultipartStructureWrapper multipartStructureWrapper = new MultipartStructureWrapper();
 		
-		MimeMessageHelper.setTexts(email, emailGovernance, multipartStructureWrapper.multipartAlternativeMessages);
-		MimeMessageHelper.configureForwarding(email, emailGovernance, multipartStructureWrapper.multipartRootMixed);
-		MimeMessageHelper.setEmbeddedImages(email, emailGovernance, multipartStructureWrapper.multipartRelated);
-		MimeMessageHelper.setAttachments(email, emailGovernance, multipartStructureWrapper.multipartRootMixed);
+		MimeMessageHelper.setTexts(email, multipartStructureWrapper.multipartAlternativeMessages);
+		MimeMessageHelper.configureForwarding(email, multipartStructureWrapper.multipartRootMixed);
+		MimeMessageHelper.setEmbeddedImages(email, multipartStructureWrapper.multipartRelated);
+		MimeMessageHelper.setAttachments(email, multipartStructureWrapper.multipartRootMixed);
 		
 		message.setContent(multipartStructureWrapper.multipartRootMixed);
 	}
