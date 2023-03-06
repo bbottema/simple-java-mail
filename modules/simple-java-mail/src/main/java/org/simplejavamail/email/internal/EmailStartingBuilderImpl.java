@@ -196,7 +196,6 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@SuppressWarnings({"deprecation" })
 	@Override
-	// FIXME junit test this copying method
 	public EmailPopulatingBuilder copying(@NotNull final Email email) {
 		EmailPopulatingBuilder builder = new EmailPopulatingBuilderImpl()
 				.ignoringOverrides(ignoreDefaults)
@@ -226,6 +225,9 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		builder.withRecipients(email.getRecipients());
 		builder.withEmbeddedImages(email.getEmbeddedImages());
 		builder.withAttachments(email.getAttachments());
+		if (email.getContentTransferEncoding() != null) {
+			builder.withContentTransferEncoding(email.getContentTransferEncoding());
+		}
 		((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
 		if (email.getSentDate() != null) {
 			builder.fixingSentDate(email.getSentDate());

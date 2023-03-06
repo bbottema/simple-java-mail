@@ -28,7 +28,7 @@ public class InternalEmail extends Email {
      * are applied. When sending the email, however, we still need a reference to the original email to be able to update the message id. userProvidedEmail can be set to
      * null in some junit tests.
      */
-    public void setUserProvidedEmail(@NotNull final Email userProvidedEmail) {
+    public void setUserProvidedEmail(@Nullable final Email userProvidedEmail) {
         this.userProvidedEmail = (InternalEmail) userProvidedEmail;
     }
 

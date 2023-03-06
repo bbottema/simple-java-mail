@@ -1,14 +1,17 @@
 package org.simplejavamail.email.internal;
 
+import lombok.val;
 import org.junit.Test;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
+import testutil.EmailHelper;
 
 import java.io.File;
 import java.util.Date;
@@ -21,6 +24,28 @@ public class EmailStartingBuilderImplTest {
 
 	private static final String RESOURCES_PATH = determineResourceFolder("simple-java-mail") + "/test/resources";
 	private static final String RESOURCES_TEST_MESSAGES = RESOURCES_PATH + "/test-messages";
+
+	@Test
+	public void testCopying() {
+		val email1 = EmailHelper.createDummyEmailBuilder("moo", true, false, true, true, true, false, true)
+				.signWithDomainKey(DkimConfig.builder()
+						.dkimPrivateKeyData("dummykey")
+						.dkimSigningDomain("moo.com")
+						.dkimSelector("selector")
+						.build())
+				.buildEmailCompletedWithDefaultsAndOverrides()
+				.getDelegate();
+
+		//noinspection deprecation
+		((InternalEmail) email1).setUserProvidedEmail(null);
+
+		val email2 = EmailBuilder
+				.ignoringDefaults()
+				.ignoringOverrides()
+				.copying(email1).buildEmail();
+
+		assertThat(email2).isEqualTo(email1);
+	}
 
 	@Test
 	public void testCopyingSmimeSignedOutlookMessage() {
