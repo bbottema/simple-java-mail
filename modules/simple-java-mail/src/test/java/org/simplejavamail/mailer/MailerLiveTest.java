@@ -142,8 +142,7 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_OutlookMessageTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
-		val builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
-				.ignoringDefaults(false);
+		val builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
 		Email email = assertSendingEmail(builder, false, false, false, true, false);
 		verifyReceivedOutlookEmail(email, false, false);
 	}
@@ -152,7 +151,6 @@ public class MailerLiveTest {
 	public void createMailSession_OutlookMessageSmimeSignTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
-				.ignoringDefaults(false)
 				.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 		verifyReceivedOutlookEmail(email, true, false);
@@ -182,8 +180,7 @@ public class MailerLiveTest {
 						.buildEmail())
 				.buildMailer();
 
-		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
-				.ignoringDefaults(false);
+		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 
 		// verify that S/MIME was indeed only configured on the mailer instance
@@ -246,7 +243,6 @@ public class MailerLiveTest {
 	public void createMailSession_OutlookMessageSmimeEncryptTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
-				.ignoringDefaults(false)
 				.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 		verifyReceivedOutlookEmail(email, false, true);
@@ -265,7 +261,6 @@ public class MailerLiveTest {
 	public void createMailSession_OutlookMessageSmimeSignEncryptTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
-				.ignoringDefaults(false)
 				.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein")
 				.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
@@ -388,9 +383,7 @@ public class MailerLiveTest {
 			assertThat(receivedMimeMessage.getEnvelopeSender()).isEqualTo(originalEmail.getFromRecipient().getAddress());
 		}
 
-		Email receivedEmail = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage(), loadPkcs12KeyStore())
-				.ignoringDefaults(false) // FIXME perhaps we should make this default, when converting a MimeMessage to an Email?
-				.buildEmail();
+		Email receivedEmail = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage(), loadPkcs12KeyStore()).buildEmail();
 
 		if (!sentDateWasFixed) {
 			GregorianCalendar receiveWindowStart = new GregorianCalendar();
@@ -485,9 +478,7 @@ public class MailerLiveTest {
 	public void createMailSession_ReplyToMessage()
 			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
-		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
-				.ignoringDefaults(false)
-				.buildEmail());
+		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
@@ -519,9 +510,7 @@ public class MailerLiveTest {
 	public void createMailSession_ReplyToMessage_NotAll_AndCustomReferences()
 			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
-		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
-				.ignoringDefaults(false)
-				.buildEmail());
+		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		

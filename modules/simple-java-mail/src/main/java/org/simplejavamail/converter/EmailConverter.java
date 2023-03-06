@@ -120,7 +120,7 @@ public final class EmailConverter {
 	@NotNull
 	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@NotNull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config, final boolean fetchAttachmentData) {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
-		val builder = EmailBuilder.ignoringDefaults().startingBlank();
+		val builder = EmailBuilder.startingBlank();
 		val parsed = MimeMessageParser.parseMimeMessage(mimeMessage, fetchAttachmentData);
 		val emailBuilder = buildEmailFromMimeMessage(builder, parsed);
 		return decryptAttachments(emailBuilder, mimeMessage, pkcs12Config);
