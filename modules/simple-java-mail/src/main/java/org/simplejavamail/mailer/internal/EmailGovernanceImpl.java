@@ -232,6 +232,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		builder.fixingMessageId(resolveEmailProperty(provided, EmailProperty.ID));
 
 		val email = builder.buildEmail();
+
+		// we need to update the user's email instance with the generated ID when sending
 		if (provided != null) {
 			//noinspection deprecation
 			((InternalEmail) email).setUserProvidedEmail(provided);
