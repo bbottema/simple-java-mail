@@ -100,10 +100,6 @@ public class MailerHelper {
 			throw new MailCompletenessException(MailCompletenessException.MISSING_RECIPIENT);
 		} else if (email.getFromRecipient() == null) {
 			throw new MailCompletenessException(MailCompletenessException.MISSING_SENDER);
-		} else if (TRUE.equals(email.getUseDispositionNotificationTo()) && email.getDispositionNotificationTo() == null) {
-			throw new MailCompletenessException(MailCompletenessException.MISSING_DISPOSITIONNOTIFICATIONTO);
-		} else if (TRUE.equals(email.getUseReturnReceiptTo()) && email.getReturnReceiptTo() == null) {
-			throw new MailCompletenessException(MailCompletenessException.MISSING_RETURNRECEIPTTO);
 		}
 	}
 
