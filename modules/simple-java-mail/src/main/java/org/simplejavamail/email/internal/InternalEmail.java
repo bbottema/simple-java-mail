@@ -5,19 +5,21 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 
 /**
  * @deprecated for internal use only. This class hides some methods from the public API that are used internally to implement the builder API.
  */
 @Deprecated
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = true, exclude = {"defaultsAndOverridesApplied"})
 @SuppressWarnings("DeprecatedIsStillUsed")
-public class InternalEmail extends Email {
+public class InternalEmail extends Email implements EmailWithDefaultsAndOverridesApplied {
 
     private static final long serialVersionUID = 1234567L;
 
     @Nullable
     private InternalEmail userProvidedEmail;
+    private boolean defaultsAndOverridesApplied;
 
     public InternalEmail(@NotNull EmailPopulatingBuilder builder) {
         super(builder);
@@ -52,4 +54,15 @@ public class InternalEmail extends Email {
         return wasMergedWithSmimeSignedMessage;
     }
 
+    @Override
+    public void markAsDefaultsAndOverridesApplied() {
+        this.defaultsAndOverridesApplied = true;
+    }
+
+    @Override
+    public void verifyDefaultsAndOverridesApplied() {
+        if (!defaultsAndOverridesApplied) {
+            throw new IllegalStateException("Email was not marked as complete. This is a bug in Simple Java Mail. Please report this issue.");
+        }
+    }
 }

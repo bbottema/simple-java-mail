@@ -5,7 +5,7 @@ import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.BatchModule;
@@ -31,7 +31,7 @@ public class TransportRunner {
 	/**
 	 * NOTE: only in case batch-module is *not* in use, the {@link Session} passed in here is garuanteed to be used to send this message.
 	 */
-	public static void sendMessage(@NotNull final UUID clusterKey, final Session session, @NotNull EmailWithDefaultsAndOverridesApplied email)
+	public static void sendMessage(@NotNull final UUID clusterKey, final Session session, @NotNull Email email)
 			throws MessagingException {
 		runOnSessionTransport(clusterKey, session, false, (transport, actualSessionUsed) -> {
 			val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(actualSessionUsed, email);

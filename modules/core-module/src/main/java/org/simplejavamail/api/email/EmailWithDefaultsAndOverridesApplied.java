@@ -1,20 +1,11 @@
 package org.simplejavamail.api.email;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.Delegate;
-import org.jetbrains.annotations.NotNull;
-
-@RequiredArgsConstructor
-@Getter
-// FIXME temporary workaround to make sure we update all the calls that require a final Email, with a fcall to EmailGovernance.produceFinalEmail() first
-@SuppressFBWarnings("EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WI")
-public class EmailWithDefaultsAndOverridesApplied {
-    @Delegate
-    @NotNull Email delegate;
-
-    public int hashCode() {
-        return 0;
-    }
+/**
+ * Since defaults and overrides are not applied all the way in the beginning anymore when creating an Email instance, at the time of sending we want to
+ * double-check that defaults and overrides are applied by that time at least. Making this a compile-time check proved to be very cumbersome and confusing
+ * to the user, so finally we opted for a runtime check behind the scenes.
+ */
+public interface EmailWithDefaultsAndOverridesApplied {
+    void markAsDefaultsAndOverridesApplied();
+    void verifyDefaultsAndOverridesApplied();
 }

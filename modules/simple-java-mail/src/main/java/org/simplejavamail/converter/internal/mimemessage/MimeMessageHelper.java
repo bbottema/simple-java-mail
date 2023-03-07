@@ -20,7 +20,6 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
@@ -54,11 +53,11 @@ public class MimeMessageHelper {
 
 	}
 
-	static void setSubject(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimeMessage message) throws MessagingException {
+	static void setSubject(@NotNull final Email email, final MimeMessage message) throws MessagingException {
 		message.setSubject(email.getSubject(), CHARACTER_ENCODING);
 	}
 
-	static void setFrom(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimeMessage message) throws UnsupportedEncodingException, MessagingException {
+	static void setFrom(@NotNull final Email email, final MimeMessage message) throws UnsupportedEncodingException, MessagingException {
 		val fromRecipient = email.getFromRecipient();
 		if (fromRecipient != null) {
 			message.setFrom(new InternetAddress(fromRecipient.getAddress(), fromRecipient.getName(), CHARACTER_ENCODING));
@@ -73,7 +72,7 @@ public class MimeMessageHelper {
 	 * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.
 	 * @throws MessagingException           See {@link Message#addRecipient(Message.RecipientType, Address)}
 	 */
-	static void setRecipients(final EmailWithDefaultsAndOverridesApplied email, final Message message)
+	static void setRecipients(final Email email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
 		for (final Recipient recipient : email.getRecipients()) {
 				message.addRecipient(recipient.getType(), new InternetAddress(recipient.getAddress(), recipient.getName(), CHARACTER_ENCODING));
@@ -88,7 +87,7 @@ public class MimeMessageHelper {
 	 * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.
 	 * @throws MessagingException           See {@link Message#setReplyTo(Address[])}
 	 */
-	static void setReplyTo(@NotNull final EmailWithDefaultsAndOverridesApplied email, final Message message)
+	static void setReplyTo(@NotNull final Email email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
 		if (email.getReplyToRecipient() != null) {
 			message.setReplyTo(new Address[] {
@@ -104,7 +103,7 @@ public class MimeMessageHelper {
 	 * @param multipartAlternativeMessages See {@link MimeMultipart#addBodyPart(BodyPart)}
 	 * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)} and {@link MimeMultipart#addBodyPart(BodyPart)}.
 	 */
-	static void setTexts(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimeMultipart multipartAlternativeMessages)
+	static void setTexts(@NotNull final Email email, final MimeMultipart multipartAlternativeMessages)
 			throws MessagingException {
 		if (email.getPlainText() != null) {
 			val messagePart = new MimeBodyPart();
@@ -127,7 +126,7 @@ public class MimeMessageHelper {
 		}
 	}
 
-	private static String determineContentTransferEncoder(@NotNull EmailWithDefaultsAndOverridesApplied email) {
+	private static String determineContentTransferEncoder(@NotNull Email email) {
 		return (email.getContentTransferEncoding() != null
 				? email.getContentTransferEncoding()
 				: ContentTransferEncoding.getDefault()).getEncoder();
@@ -141,7 +140,7 @@ public class MimeMessageHelper {
 	 *                    and the Content-Transfer-Encoding header.
 	 * @throws MessagingException See {@link BodyPart#setText(String)}, {@link BodyPart#setContent(Object, String)}.
 	 */
-	static void setTexts(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimePart messagePart)
+	static void setTexts(@NotNull final Email email, final MimePart messagePart)
 			throws MessagingException {
 		if (email.getPlainText() != null) {
 			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING);
@@ -162,7 +161,7 @@ public class MimeMessageHelper {
 	 * <strong>Note:</strong> this is done without setting {@code Content-Disposition} so email clients can choose
 	 * how to display embedded forwards. Most client will show the forward as inline, some may show it as attachment.
 	 */
-	static void configureForwarding(@NotNull final EmailWithDefaultsAndOverridesApplied email, @NotNull final MimeMultipart multipartRootMixed) throws MessagingException {
+	static void configureForwarding(@NotNull final Email email, @NotNull final MimeMultipart multipartRootMixed) throws MessagingException {
 		if (email.getEmailToForward() != null) {
 			final BodyPart fordwardedMessage = new MimeBodyPart();
 			fordwardedMessage.setContent(email.getEmailToForward(), "message/rfc822");
@@ -177,7 +176,7 @@ public class MimeMessageHelper {
 	 * @param multipartRelated The branch in the email structure in which we'll stuff the embedded images.
 	 * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and {@link #getBodyPartFromDatasource(AttachmentResource, String)}
 	 */
-	static void setEmbeddedImages(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimeMultipart multipartRelated)
+	static void setEmbeddedImages(@NotNull final Email email, final MimeMultipart multipartRelated)
 			throws MessagingException {
 		for (final AttachmentResource embeddedImage : email.getEmbeddedImages()) {
 			multipartRelated.addBodyPart(getBodyPartFromDatasource(embeddedImage, Part.INLINE));
@@ -192,7 +191,7 @@ public class MimeMessageHelper {
 	 * @param multipartRoot The branch in the email structure in which we'll stuff the attachments.
 	 * @throws MessagingException See {@link MimeMultipart#addBodyPart(BodyPart)} and {@link #getBodyPartFromDatasource(AttachmentResource, String)}
 	 */
-	static void setAttachments(@NotNull final EmailWithDefaultsAndOverridesApplied email, final MimeMultipart multipartRoot)
+	static void setAttachments(@NotNull final Email email, final MimeMultipart multipartRoot)
 			throws MessagingException {
 		for (final AttachmentResource attachment : email.getAttachments()) {
 			multipartRoot.addBodyPart(getBodyPartFromDatasource(attachment, Part.ATTACHMENT));
@@ -213,7 +212,7 @@ public class MimeMessageHelper {
 	 * @see MimeUtility#encodeText(String, String, String)
 	 * @see MimeUtility#fold(int, String)
 	 */
-	static void setHeaders(@NotNull final EmailWithDefaultsAndOverridesApplied email, final Message message)
+	static void setHeaders(@NotNull final Email email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
 
 		// add headers (for raw message headers we need to 'fold' them using MimeUtility

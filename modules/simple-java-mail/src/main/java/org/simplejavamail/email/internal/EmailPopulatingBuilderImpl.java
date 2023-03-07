@@ -15,7 +15,6 @@ import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
@@ -390,7 +389,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-	public EmailWithDefaultsAndOverridesApplied buildEmailCompletedWithDefaultsAndOverrides() {
+	public Email buildEmailCompletedWithDefaultsAndOverrides() {
 		return buildEmailCompletedWithDefaultsAndOverrides(NO_GOVERNANCE());
 	}
 
@@ -399,7 +398,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-	public EmailWithDefaultsAndOverridesApplied buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance) {
+	public Email buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance) {
 		return emailGovernance.produceEmailApplyingDefaultsAndOverrides(buildEmail());
 	}
 

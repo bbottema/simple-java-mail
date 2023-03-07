@@ -34,7 +34,6 @@ public class JavadocForCliFormatter extends ContextualCommentFormatter {
 		super(nestingDepth);
 	}
 	
-	@SuppressWarnings("StringConcatenationInLoop")
 	@Override
 	@NotNull
 	public String format(Comment comment) {

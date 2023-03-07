@@ -6,7 +6,6 @@ import jakarta.mail.util.ByteArrayDataSource;
 import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.config.ConfigLoader;
@@ -51,7 +50,7 @@ public class MailerInjectionScanTest {
 				.disablingAllClientValidation(true).buildMailer()
 				.sendMail(email);
 
-		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(EmailWithDefaultsAndOverridesApplied.class), any(MimeMessage.class));
+		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
 	}
 
@@ -64,7 +63,7 @@ public class MailerInjectionScanTest {
 								"<iframe src=\"http://example.com/\"></iframe><!--")
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
-				.hasMessageStartingWith("Suspected of injection attack, field: email.subject with suspicious value: test1\r\n");
+				.hasMessageStartingWith("Suspected of injection attack, field: email.subject with suspicious value: test1\\r\\n");
 	}
 
 	@Test
@@ -79,7 +78,7 @@ public class MailerInjectionScanTest {
 								"<iframe src=\"http://example.com/\"></iframe><!--")
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
-				.hasMessageStartingWith("Suspected of injection attack, field: email.subject with suspicious value: test1\r\n");
+				.hasMessageStartingWith("Suspected of injection attack, field: email.subject with suspicious value: test1\\r\\n");
 	}
 
 	@Test
@@ -173,7 +172,7 @@ public class MailerInjectionScanTest {
 						.withEmbeddedImage("naughty\ntooth", "moomoo".getBytes(), "text/plain")
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
-				.hasMessage("Suspected of injection attack, field: email.embeddedImage.name with suspicious value: naughty\ntooth");
+				.hasMessage("Suspected of injection attack, field: email.embeddedImage.name with suspicious value: naughty\\ntooth");
 
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
 				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
@@ -181,7 +180,7 @@ public class MailerInjectionScanTest {
 						.withAttachment("naughty\ntooth", "moomoo".getBytes(), "text/plain")
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
-				.hasMessage("Suspected of injection attack, field: email.attachment.name with suspicious value: naughty\ntooth");
+				.hasMessage("Suspected of injection attack, field: email.attachment.name with suspicious value: naughty\\ntooth");
 	}
 
 	@Test
@@ -193,7 +192,7 @@ public class MailerInjectionScanTest {
 						.withEmbeddedImage("sweety tooth", new NamedDataSource("naughty\ntooth", new ByteArrayDataSource("moomoo".getBytes(), "text/plain")))
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
-				.hasMessage("Suspected of injection attack, field: email.embeddedImage.datasource.name with suspicious value: naughty\ntooth");
+				.hasMessage("Suspected of injection attack, field: email.embeddedImage.datasource.name with suspicious value: naughty\\ntooth");
 
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
 				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
@@ -201,7 +200,7 @@ public class MailerInjectionScanTest {
 						.withAttachment("sweety tooth", new NamedDataSource("naughty\ntooth", new ByteArrayDataSource("moomoo".getBytes(), "text/plain")))
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
-				.hasMessage("Suspected of injection attack, field: email.attachment.datasource.name with suspicious value: naughty\ntooth");
+				.hasMessage("Suspected of injection attack, field: email.attachment.datasource.name with suspicious value: naughty\\ntooth");
 	}
 
 	@Test
@@ -212,7 +211,7 @@ public class MailerInjectionScanTest {
 						.withAttachment("sweety tooth", new ByteArrayDataSource("moomoo".getBytes(), "text/plain"), "evil\ndescription")
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
-				.hasMessage("Suspected of injection attack, field: email.attachment.description with suspicious value: evil\ndescription");
+				.hasMessage("Suspected of injection attack, field: email.attachment.description with suspicious value: evil\\ndescription");
 	}
 
 	@Test
@@ -232,6 +231,6 @@ public class MailerInjectionScanTest {
 						.withHeader("good name", "bad\rvalue")
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
-				.hasMessage("Suspected of injection attack, field: email.header.[good name] with suspicious value: bad\rvalue");
+				.hasMessage("Suspected of injection attack, field: email.header.[good name] with suspicious value: bad\\rvalue");
 	}
 }

@@ -13,7 +13,6 @@ import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
@@ -155,6 +154,7 @@ public class MailerLiveTest {
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 		verifyReceivedOutlookEmail(email, true, false);
 
+		//noinspection deprecation
 		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isFalse();
 
 		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
@@ -190,6 +190,7 @@ public class MailerLiveTest {
 
 		verifyReceivedOutlookEmail(email, true, false);
 
+		//noinspection deprecation
 		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isFalse();
 
 		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
@@ -247,6 +248,7 @@ public class MailerLiveTest {
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 		verifyReceivedOutlookEmail(email, false, true);
 
+		//noinspection deprecation
 		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isTrue();
 
 		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
@@ -266,6 +268,7 @@ public class MailerLiveTest {
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 		verifyReceivedOutlookEmail(email, true, true);
 
+		//noinspection deprecation
 		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isTrue();
 		
 		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
@@ -291,7 +294,8 @@ public class MailerLiveTest {
 				.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 		
 		Email email = assertSendingEmail(builder, false, true, false, false, false);
-		
+
+		//noinspection deprecation
 		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isTrue();
 		
 		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
@@ -577,7 +581,7 @@ public class MailerLiveTest {
 					}
 
 					@Override
-					public void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull EmailWithDefaultsAndOverridesApplied email, @NotNull MimeMessage message) {
+					public void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @NotNull MimeMessage message) {
 						throw new RuntimeException("should reach here");
 					}
 				})

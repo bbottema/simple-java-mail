@@ -4,7 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.UnsupportedEncodingException;
@@ -36,9 +36,9 @@ public abstract class SpecializedMimeMessageProducer {
 	/**
 	 * @return Whether this mimemessage producer exactly matches the needs of the given email.
 	 */
-	abstract boolean compatibleWithEmail(@NotNull EmailWithDefaultsAndOverridesApplied email);
+	abstract boolean compatibleWithEmail(@NotNull Email email);
 	
-	final MimeMessage populateMimeMessage(@NotNull final EmailWithDefaultsAndOverridesApplied email, @NotNull Session session)
+	final MimeMessage populateMimeMessage(@NotNull final Email email, @NotNull Session session)
 			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
@@ -101,18 +101,18 @@ public abstract class SpecializedMimeMessageProducer {
 		return message;
 	}
 
-	abstract void populateMimeMessageMultipartStructure(MimeMessage  message, EmailWithDefaultsAndOverridesApplied email) throws MessagingException;
+	abstract void populateMimeMessageMultipartStructure(MimeMessage  message, Email email) throws MessagingException;
 	
 	
-	static boolean emailContainsMixedContent(@NotNull EmailWithDefaultsAndOverridesApplied email) {
+	static boolean emailContainsMixedContent(@NotNull Email email) {
 		return !email.getAttachments().isEmpty() || email.getEmailToForward() != null;
 	}
 	
-	static boolean emailContainsRelatedContent(@NotNull EmailWithDefaultsAndOverridesApplied email) {
+	static boolean emailContainsRelatedContent(@NotNull Email email) {
 		return !email.getEmbeddedImages().isEmpty();
 	}
 	
-	static boolean emailContainsAlternativeContent(@NotNull EmailWithDefaultsAndOverridesApplied email) {
+	static boolean emailContainsAlternativeContent(@NotNull Email email) {
 		return (email.getPlainText() != null ? 1 : 0) +
 				(email.getHTMLText() != null ? 1 : 0) +
 				(email.getCalendarText() != null ? 1 : 0) > 1;

@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -32,7 +32,7 @@ import static org.simplejavamail.mailer.internal.MailerException.INVALID_ENCODIN
  * in case of the batch-module, we cannot know which Session will be picked for the actual sending, so we need to be able to convert the
  * email to a mime message at the time of sending using Transport, not at the time of sending in the entry MailerImpl. This guarantees
  * that both the operational connection and the emails being sent through a specific SMTP server are managed by the Mailer responsible
- * for this SMTP server configuration (data being email defaults defined on Mailer level).
+ * for this SMTP server configuration (data being email defaults/overrides defined on Mailer level).
  */
 @RequiredArgsConstructor
 @EqualsAndHashCode
@@ -56,7 +56,7 @@ public class SessionBasedEmailToMimeMessageConverter {
     }
 
     @NotNull
-    public static MimeMessage convertAndLogMimeMessage(Session session, final EmailWithDefaultsAndOverridesApplied email) throws MessagingException {
+    public static MimeMessage convertAndLogMimeMessage(Session session, final Email email) throws MessagingException {
         val mimeMessageConverter = (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
         val mimeMessage = mimeMessageConverter.convertAndLogMimeMessage(email);
         val governance = mimeMessageConverter.emailGovernance;
@@ -80,20 +80,20 @@ public class SessionBasedEmailToMimeMessageConverter {
     }
 
     @NotNull
-    private MimeMessage convertAndLogMimeMessage(final EmailWithDefaultsAndOverridesApplied email) throws MessagingException {
+    private MimeMessage convertAndLogMimeMessage(final Email email) throws MessagingException {
         val message = convertMimeMessage(email, session);
 
         SessionLogger.logSession(session, operationalConfig.isAsync(), "mail");
         message.saveChanges(); // some headers and id's will be set for this specific message
-        // FIXME get rid of EmailWithDefaultsAndOverridesApplied and use Email directly
+
         //noinspection deprecation
-        ((InternalEmail) email.getDelegate()).updateId(message.getMessageID());
+        ((InternalEmail) email).updateId(message.getMessageID());
 
         logEmail(message, operationalConfig.isTransportModeLoggingOnly(), email);
         return message;
     }
 
-    static private MimeMessage convertMimeMessage(final EmailWithDefaultsAndOverridesApplied email, final Session session) throws MessagingException {
+    static private MimeMessage convertMimeMessage(final Email email, final Session session) throws MessagingException {
         try {
             return MimeMessageProducerHelper.produceMimeMessage(email, session);
         } catch (UnsupportedEncodingException e) {
@@ -102,7 +102,7 @@ public class SessionBasedEmailToMimeMessageConverter {
         }
     }
 
-    static private void logEmail(final MimeMessage message, boolean transportModeLoggingOnly, final EmailWithDefaultsAndOverridesApplied email) {
+    static private void logEmail(final MimeMessage message, boolean transportModeLoggingOnly, final Email email) {
         if (transportModeLoggingOnly) {
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info("\n\nEmail: {}\n", email);

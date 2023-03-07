@@ -108,7 +108,7 @@ public class EmailPopulatingBuilderImpl2Test {
 				.hasX509CertificateForSmimeEncryption(null)
 				.hasDkimConfig(null);
 
-		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides().getDelegate())
+		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
 				.hasFromRecipient(new Recipient("Test From", "test_from@domain.com", null))
 				.hasReplyToRecipient(new Recipient("Test Replyto", "test_replyto@domain.com", null))
 				.hasBounceToRecipient(new Recipient("Test Bounceto", "test_boundeto@domain.com", null))
@@ -151,7 +151,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		assertThat(NO_GOVERNANCE().produceEmailApplyingDefaultsAndOverrides(null).getX509CertificateForSmimeEncryption())
 				.isEqualTo(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")));
 
-		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides().getDelegate())
+		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
 				.hasFromRecipient(new Recipient(null, "test_from@domain.com", null))
 				.hasReplyToRecipient(new Recipient(null, "test_replyto@domain.com", null))
 				.hasBounceToRecipient(new Recipient(null, "test_boundeto@domain.com", null))

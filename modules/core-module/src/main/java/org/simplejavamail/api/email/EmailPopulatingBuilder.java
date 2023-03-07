@@ -68,7 +68,7 @@ public interface EmailPopulatingBuilder {
 	 * will still apply default config (System) properties (files).
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-	EmailWithDefaultsAndOverridesApplied buildEmailCompletedWithDefaultsAndOverrides();
+	Email buildEmailCompletedWithDefaultsAndOverrides();
 
 	/**
 	 * Like {@link #buildEmail()}, but returning the final email version right away. Useful if you don't use a Mailer which works with email governance,
@@ -83,7 +83,7 @@ public interface EmailPopulatingBuilder {
 	 *                           email size is, etc.
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-	EmailWithDefaultsAndOverridesApplied buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance);
+	Email buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance);
 
 	/**
 	 * Indicates that when the email is sent, no default values whatsoever should be applied to the email.

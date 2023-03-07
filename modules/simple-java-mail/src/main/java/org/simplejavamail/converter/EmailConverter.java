@@ -12,7 +12,6 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
@@ -463,7 +462,7 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(EmailWithDefaultsAndOverridesApplied, Session)}.
+	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session)}.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final EmailGovernance emailGovernance) {
 		try {

@@ -6,7 +6,6 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
@@ -25,6 +24,7 @@ public class EmailStartingBuilderImplTest {
 	private static final String RESOURCES_PATH = determineResourceFolder("simple-java-mail") + "/test/resources";
 	private static final String RESOURCES_TEST_MESSAGES = RESOURCES_PATH + "/test-messages";
 
+	@SuppressWarnings("deprecation")
 	@Test
 	public void testCopying() {
 		val email1 = EmailHelper.createDummyEmailBuilder("moo", true, false, true, true, true, false, true)
@@ -33,10 +33,8 @@ public class EmailStartingBuilderImplTest {
 						.dkimSigningDomain("moo.com")
 						.dkimSelector("selector")
 						.build())
-				.buildEmailCompletedWithDefaultsAndOverrides()
-				.getDelegate();
+				.buildEmailCompletedWithDefaultsAndOverrides();
 
-		//noinspection deprecation
 		((InternalEmail) email1).setUserProvidedEmail(null);
 
 		val email2 = EmailBuilder

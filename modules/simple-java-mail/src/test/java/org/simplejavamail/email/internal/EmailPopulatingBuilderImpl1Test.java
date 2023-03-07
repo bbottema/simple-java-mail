@@ -385,7 +385,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReturnReceiptTo("custom@candyshop.com")
 				.withDispositionNotificationTo()
 				.withReturnReceiptTo()
-				.buildEmail();
+				.buildEmailCompletedWithDefaultsAndOverrides();
 
 		assertThat(email.getUseDispositionNotificationTo()).isTrue();
 		assertThat(email.getUseReturnReceiptTo()).isTrue();
@@ -400,7 +400,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.from("from", "2@candyshop.org")
 				.withDispositionNotificationTo()
 				.withReturnReceiptTo()
-				.buildEmail();
+				.buildEmailCompletedWithDefaultsAndOverrides();
 
 		assertThat(email.getUseDispositionNotificationTo()).isTrue();
 		assertThat(email.getUseReturnReceiptTo()).isTrue();

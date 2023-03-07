@@ -7,7 +7,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
@@ -340,11 +339,10 @@ public class MailerImpl implements Mailer {
 	@Override
 	@NotNull
 	public final CompletableFuture<Void> sendMail(final Email userProvidedEmail, @SuppressWarnings("SameParameterValue") final boolean async) {
-		val emailAppliedWithDefaultsAndOverrides = emailGovernance.produceEmailApplyingDefaultsAndOverrides(userProvidedEmail);
+		val email = emailGovernance.produceEmailApplyingDefaultsAndOverrides(userProvidedEmail);
 
-		if (validate(emailAppliedWithDefaultsAndOverrides)) {
-			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, emailAppliedWithDefaultsAndOverrides, proxyServer, operationalConfig.isTransportModeLoggingOnly(),
-					smtpConnectionCounter);
+		if (validate(email)) {
+			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 
 			if (!async) {
 				sendMailClosure.run();
@@ -360,10 +358,10 @@ public class MailerImpl implements Mailer {
 	}
 
 	/**
-	 * @see Mailer#validate(EmailWithDefaultsAndOverridesApplied)
+	 * @see Mailer#validate(Email)
 	 */
 	@Override
-	public boolean validate(@NotNull final EmailWithDefaultsAndOverridesApplied email)
+	public boolean validate(@NotNull final Email email)
 			throws MailException {
 		return operationalConfig.isDisableAllClientValidation() ?
 				MailerHelper.validateLenient(email, emailGovernance.getEmailValidator()) :

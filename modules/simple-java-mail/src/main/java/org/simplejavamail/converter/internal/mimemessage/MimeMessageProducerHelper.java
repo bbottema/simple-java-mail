@@ -3,7 +3,8 @@ package org.simplejavamail.converter.internal.mimemessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.email.internal.InternalEmail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
@@ -33,7 +34,9 @@ public final class MimeMessageProducerHelper {
 	private MimeMessageProducerHelper() {
 	}
 	
-	public static MimeMessage produceMimeMessage(EmailWithDefaultsAndOverridesApplied email, Session session) throws UnsupportedEncodingException, MessagingException {
+	public static MimeMessage produceMimeMessage(Email email, Session session) throws UnsupportedEncodingException, MessagingException {
+		//noinspection deprecation
+		((InternalEmail) email).verifyDefaultsAndOverridesApplied();
 		for (SpecializedMimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
 			if (mimeMessageProducer.compatibleWithEmail(email)) {
 				return mimeMessageProducer.populateMimeMessage(email, session);

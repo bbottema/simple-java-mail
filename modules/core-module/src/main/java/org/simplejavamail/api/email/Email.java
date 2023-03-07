@@ -236,8 +236,7 @@ public class Email implements Serializable {
 
 		final boolean smimeMerge = builder.isMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
 
-		this.wasMergedWithSmimeSignedMessage = smimeMerge;
-
+		wasMergedWithSmimeSignedMessage = smimeMerge;
 		recipients = unmodifiableList(builder.getRecipients());
 		embeddedImages = unmodifiableList((smimeMerge)
 				? merge(builder.getEmbeddedImages(), smimeSignedEmail.getEmbeddedImages())
@@ -251,7 +250,6 @@ public class Email implements Serializable {
 		headers = unmodifiableMap((smimeMerge)
 				? merge(builder.getHeaders(), smimeSignedEmail.getHeaders())
 				: builder.getHeaders());
-
 		id = builder.getId();
 		fromRecipient = builder.getFromRecipient();
 		replyToRecipient = builder.getReplyToRecipient();
@@ -262,41 +260,16 @@ public class Email implements Serializable {
 		textCalendar = builder.getTextCalendar();
 		contentTransferEncoding = builder.getContentTransferEncoding();
 		subject = builder.getSubject();
-		
 		useDispositionNotificationTo = builder.getUseDispositionNotificationTo();
+		dispositionNotificationTo = builder.getDispositionNotificationTo();
 		useReturnReceiptTo = builder.getUseReturnReceiptTo();
+		returnReceiptTo = builder.getReturnReceiptTo();
 		emailToForward = builder.getEmailToForward();
-
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
-
 		sentDate = builder.getSentDate();
-
 		x509CertificateForSmimeEncryption = builder.getX509CertificateForSmimeEncryption();
 		pkcs12ConfigForSmimeSigning = builder.getPkcs12ConfigForSmimeSigning();
-
-		if (TRUE.equals(useDispositionNotificationTo) && MiscUtil.valueNullOrEmpty(builder.getDispositionNotificationTo())) {
-			//noinspection IfMayBeConditional
-			if (builder.getReplyToRecipient() != null) {
-				dispositionNotificationTo = builder.getReplyToRecipient();
-			} else {
-				dispositionNotificationTo = builder.getFromRecipient();
-			}
-		} else {
-			dispositionNotificationTo = builder.getDispositionNotificationTo();
-		}
-		
-		if (TRUE.equals(useReturnReceiptTo) && MiscUtil.valueNullOrEmpty(builder.getReturnReceiptTo())) {
-			//noinspection IfMayBeConditional
-			if (builder.getReplyToRecipient() != null) {
-				returnReceiptTo = builder.getReplyToRecipient();
-			} else {
-				returnReceiptTo = builder.getFromRecipient();
-			}
-		} else {
-			returnReceiptTo = builder.getReturnReceiptTo();
-		}
-
-		this.dkimConfig = builder.getDkimConfig();
+		dkimConfig = builder.getDkimConfig();
 	}
 
 	@SuppressWarnings("SameReturnValue")

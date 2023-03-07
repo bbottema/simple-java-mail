@@ -11,7 +11,6 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
@@ -21,6 +20,7 @@ import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.config.EmailProperty;
 
+import java.io.File;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Date;
@@ -116,7 +116,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		this.maximumEmailSize = maximumEmailSize;
 	}
 
-	// The name is a bit cryptic, but succinct, and it's only used internally
+	// The name is a bit cryptic, but succinct (and it's only used internally)
 	private Email newDefaultsEmailWithDefaultDefaults() {
 		final EmailPopulatingBuilder allDefaults = EmailBuilder.startingBlank();
 
@@ -169,27 +169,33 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			allDefaults.encryptWithSmime(verifyNonnullOrEmpty(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));
 		}
 		if (allDefaults.getDkimConfig() == null && hasProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA)) {
-			allDefaults.signWithDomainKey(DkimConfig.builder()
-					// FIXME try load as data as well if file doesn't exist
-					.dkimPrivateKeyPath(verifyNonnullOrEmpty(getStringProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA)))
+			val dkimConfigBuilder = DkimConfig.builder()
 					.dkimSelector(verifyNonnullOrEmpty(getStringProperty(DKIM_SELECTOR)))
 					.dkimSigningDomain(verifyNonnullOrEmpty(getStringProperty(DKIM_SIGNING_DOMAIN)))
-					.excludedHeadersFromDkimDefaultSigningList(verifyNonnullOrEmpty(getStringProperty(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST)))
-					.build());
+					.excludedHeadersFromDkimDefaultSigningList(verifyNonnullOrEmpty(getStringProperty(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST)));
+			val dkimPrivateKeyFileOrData = verifyNonnullOrEmpty(getStringProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA));
+			if (new File(dkimPrivateKeyFileOrData).exists()) {
+				dkimConfigBuilder.dkimPrivateKeyPath(dkimPrivateKeyFileOrData);
+			} else {
+				dkimConfigBuilder.dkimPrivateKeyData(dkimPrivateKeyFileOrData);
+			}
+			allDefaults.signWithDomainKey(dkimConfigBuilder.build());
 		}
 
 		return allDefaults.buildEmail();
 	}
 
 	@NotNull
-	// FIXME junit test this using Email.equals()
-	public EmailWithDefaultsAndOverridesApplied produceEmailApplyingDefaultsAndOverrides(@Nullable Email provided) {
+	public Email produceEmailApplyingDefaultsAndOverrides(@Nullable Email provided) {
 		val builder = (provided == null || provided.getEmailToForward() == null)
 				? EmailBuilder.startingBlank()
 				: EmailBuilder.forwarding(provided.getEmailToForward());
 
-		// replace above entire builder chain with seperate calls, so calls are not chained
-		ofNullable(this.<Recipient>resolveEmailProperty(provided, EmailProperty.FROM_RECIPIENT)).ifPresent(builder::from);
+		final Recipient fromRecipient = resolveEmailProperty(provided, EmailProperty.FROM_RECIPIENT);
+		final Recipient replyToRecipient = resolveEmailProperty(provided, EmailProperty.REPLYTO_RECIPIENT);
+
+		ofNullable(fromRecipient).ifPresent(builder::from);
+		builder.withReplyTo(replyToRecipient);
 		builder.to(resolveEmailCollectionProperty(provided, EmailProperty.TO_RECIPIENTS));
 		builder.cc(resolveEmailCollectionProperty(provided, EmailProperty.CC_RECIPIENTS));
 		builder.bcc(resolveEmailCollectionProperty(provided, EmailProperty.BCC_RECIPIENTS));
@@ -204,25 +210,35 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		builder.withHeaders(resolveEmailHeadersProperty(provided));
 		builder.withAttachments(resolveEmailCollectionProperty(provided, EmailProperty.ATTACHMENTS));
 		builder.withEmbeddedImages(resolveEmailCollectionProperty(provided, EmailProperty.EMBEDDED_IMAGES));
-		val useDispositionNotificationTo = resolveEmailProperty(provided, EmailProperty.USE_DISPOSITION_NOTIFICATION_TO);
-		if (TRUE.equals(useDispositionNotificationTo)) {
-			final Recipient dispositionNotificationToRecipient = resolveEmailProperty(provided, EmailProperty.DISPOSITION_NOTIFICATION_TO);
-			if (dispositionNotificationToRecipient != null) {
-				builder.withDispositionNotificationTo(dispositionNotificationToRecipient);
-			} else {
-				builder.withDispositionNotificationTo();
-			}
-		}
+
 		val useReturnReceiptTo = resolveEmailProperty(provided, EmailProperty.USE_RETURN_RECEIPT_TO);
 		if (TRUE.equals(useReturnReceiptTo)) {
-			final Recipient returnReceiptToRecipient = resolveEmailProperty(provided, EmailProperty.RETURN_RECEIPT_TO);
+			Recipient returnReceiptToRecipient = resolveEmailProperty(provided, EmailProperty.RETURN_RECEIPT_TO);
 			if (returnReceiptToRecipient != null) {
 				builder.withReturnReceiptTo(returnReceiptToRecipient);
+			} else if (replyToRecipient != null) {
+				builder.withReturnReceiptTo(replyToRecipient);
+			} else if (fromRecipient != null) {
+				builder.withReturnReceiptTo(fromRecipient);
 			} else {
 				builder.withReturnReceiptTo();
 			}
 		}
-		builder.withReplyTo(this.<Recipient>resolveEmailProperty(provided, EmailProperty.REPLYTO_RECIPIENT));
+
+		val useDispositionNotificationTo = resolveEmailProperty(provided, EmailProperty.USE_DISPOSITION_NOTIFICATION_TO);
+		if (TRUE.equals(useDispositionNotificationTo)) {
+			Recipient dispositionNotificationToRecipient = resolveEmailProperty(provided, EmailProperty.DISPOSITION_NOTIFICATION_TO);
+			if (dispositionNotificationToRecipient != null) {
+				builder.withDispositionNotificationTo(dispositionNotificationToRecipient);
+			} else if (replyToRecipient != null) {
+				builder.withDispositionNotificationTo(replyToRecipient);
+			} else if (fromRecipient != null) {
+				builder.withDispositionNotificationTo(fromRecipient);
+			} else {
+				builder.withDispositionNotificationTo();
+			}
+		}
+
 		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withContentTransferEncoding);
 		ofNullable(this.<Pkcs12Config>resolveEmailProperty(provided, EmailProperty.SMIME_SIGNING_CONFIG)).ifPresent(builder::signWithSmime);
 		ofNullable(this.<X509Certificate>resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG)).ifPresent(builder::encryptWithSmime);
@@ -239,7 +255,9 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			((InternalEmail) email).setUserProvidedEmail(provided);
 		}
 
-		return new EmailWithDefaultsAndOverridesApplied(email);
+		//noinspection deprecation
+		((InternalEmail) email).markAsDefaultsAndOverridesApplied();
+		return email;
 	}
 
 	@Nullable

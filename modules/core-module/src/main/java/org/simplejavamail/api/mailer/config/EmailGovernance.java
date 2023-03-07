@@ -5,7 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
 /**
@@ -45,5 +44,5 @@ public interface EmailGovernance {
      *                 populated with the defaults and overrides.
      */
     @NotNull
-    EmailWithDefaultsAndOverridesApplied produceEmailApplyingDefaultsAndOverrides(@Nullable Email provided);
+    Email produceEmailApplyingDefaultsAndOverrides(@Nullable Email provided);
 }

@@ -10,7 +10,6 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
@@ -21,11 +20,12 @@ import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Map;
 
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -37,14 +37,23 @@ public class MailerHelper {
 	private static final Logger LOGGER = getLogger(MailerHelper.class);
 
 	/**
-	 * Delegates to all other validations for a full checkup.
-	 *
-	 * @see #validateCompleteness(EmailWithDefaultsAndOverridesApplied)
-	 * @see #validateAddresses(EmailWithDefaultsAndOverridesApplied, EmailValidator)
-	 * @see #scanForInjectionAttacks(EmailWithDefaultsAndOverridesApplied)
+	 * Delegates to #validate(Email, EmailValidator) with a null validator.
 	 */
 	@SuppressWarnings({ "SameReturnValue" })
-	public static boolean validate(@NotNull final EmailWithDefaultsAndOverridesApplied email, @Nullable final EmailValidator emailValidator)
+	public static boolean validate(@NotNull final Email email)
+			throws MailException {
+		return validate(email, null);
+	}
+
+	/**
+	 * Delegates to all other validations for a full checkup.
+	 *
+	 * @see #validateCompleteness(Email)
+	 * @see #validateAddresses(Email, EmailValidator)
+	 * @see #scanForInjectionAttacks(Email)
+	 */
+	@SuppressWarnings({ "SameReturnValue" })
+	public static boolean validate(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
 			throws MailException {
 		LOGGER.debug("validating email...");
 
@@ -58,15 +67,23 @@ public class MailerHelper {
 	}
 
 	/**
+	 * Delegate to #validateLenient(Email, EmailValidator) with a null validator.
+	 */
+	public static boolean validateLenient(@NotNull final Email email)
+			throws MailException {
+		return validateLenient(email, null);
+	}
+
+	/**
 	 * Lenient validation only checks for missing fields (which implies incorrect configuration or missing data),
 	 * but only warns for invalid address and suspected CRLF injections.
 	 *
-	 * @see #validateCompleteness(EmailWithDefaultsAndOverridesApplied)
-	 * @see #validateAddresses(EmailWithDefaultsAndOverridesApplied, EmailValidator)
-	 * @see #scanForInjectionAttacks(EmailWithDefaultsAndOverridesApplied)
+	 * @see #validateCompleteness(Email)
+	 * @see #validateAddresses(Email, EmailValidator)
+	 * @see #scanForInjectionAttacks(Email) 
 	 */
 	@SuppressWarnings({ "SameReturnValue" })
-	public static boolean validateLenient(@NotNull final EmailWithDefaultsAndOverridesApplied email, @Nullable final EmailValidator emailValidator)
+	public static boolean validateLenient(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
 			throws MailException {
 		LOGGER.debug("validating email...");
 		MailerHelper.validateCompleteness(email);
@@ -86,15 +103,13 @@ public class MailerHelper {
 	}
 
 	/**
-	 * Checks whether:
+	 * Checks whether the following RFC 5322 mandatory properties are present:
 	 * <ol>
 	 *     <li>there are recipients</li>
 	 *     <li>if there is a sender</li>
-	 *     <li>if there is a disposition notification TO if flag is set to use it</li>
-	 *     <li>if there is a return receipt TO if flag is set to use it</li>
 	 * </ol>
 	 */
-	public static void validateCompleteness(final @NotNull EmailWithDefaultsAndOverridesApplied email) {
+	public static void validateCompleteness(final @NotNull Email email) {
 		// check for mandatory values
 		if (email.getRecipients().size() == 0) {
 			throw new MailCompletenessException(MailCompletenessException.MISSING_RECIPIENT);
@@ -114,32 +129,31 @@ public class MailerHelper {
 	 *     <li>return-receipt-to recipient, if provided</li>
 	 * </ol>
 	 */
-	public static void validateAddresses(final @NotNull EmailWithDefaultsAndOverridesApplied email, final @Nullable EmailValidator emailValidator) {
+	public static void validateAddresses(final @NotNull Email email, final @Nullable EmailValidator emailValidator) {
 		if (emailValidator != null) {
-			if (!emailValidator.isValid(email.getFromRecipient().getAddress())) {
-				throw new MailInvalidAddressException(format(MailInvalidAddressException.INVALID_SENDER, email));
-			}
+			validateAddress(emailValidator, email.getFromRecipient(), MailInvalidAddressException.INVALID_SENDER);
 			for (final Recipient recipient : email.getRecipients()) {
-				if (!emailValidator.isValid(recipient.getAddress())) {
-					throw new MailInvalidAddressException(format(MailInvalidAddressException.INVALID_RECIPIENT, email));
+				switch (ofNullable(recipient.getType()).orElse(TO).toString()) {
+					case "Cc": validateAddress(emailValidator, recipient, MailInvalidAddressException.INVALID_CC_RECIPIENT); break;
+					case "Bcc": validateAddress(emailValidator, recipient, MailInvalidAddressException.INVALID_BCC_RECIPIENT); break;
+					case "To":
+					default: validateAddress(emailValidator, recipient, MailInvalidAddressException.INVALID_TO_RECIPIENT); break;
 				}
 			}
-			if (email.getReplyToRecipient() != null && !emailValidator.isValid(email.getReplyToRecipient().getAddress())) {
-				throw new MailInvalidAddressException(format(MailInvalidAddressException.INVALID_REPLYTO, email));
+			validateAddress(emailValidator, email.getReplyToRecipient(), MailInvalidAddressException.INVALID_REPLYTO);
+			validateAddress(emailValidator, email.getBounceToRecipient(), MailInvalidAddressException.INVALID_BOUNCETO);
+			if (TRUE.equals(email.getUseDispositionNotificationTo()) && email.getDispositionNotificationTo() != null) {
+				validateAddress(emailValidator, email.getDispositionNotificationTo(), MailInvalidAddressException.INVALID_DISPOSITIONNOTIFICATIONTO);
 			}
-			if (email.getBounceToRecipient() != null && !emailValidator.isValid(email.getBounceToRecipient().getAddress())) {
-				throw new MailInvalidAddressException(format(MailInvalidAddressException.INVALID_BOUNCETO, email));
+			if (TRUE.equals(email.getUseReturnReceiptTo()) && email.getReturnReceiptTo() != null) {
+				validateAddress(emailValidator, email.getReturnReceiptTo(), MailInvalidAddressException.INVALID_RETURNRECEIPTTO);
 			}
-			if (TRUE.equals(email.getUseDispositionNotificationTo())) {
-				if (!emailValidator.isValid(checkNonEmptyArgument(email.getDispositionNotificationTo(), "dispositionNotificationTo").getAddress())) {
-					throw new MailInvalidAddressException(format(MailInvalidAddressException.INVALID_DISPOSITIONNOTIFICATIONTO, email));
-				}
-			}
-			if (TRUE.equals(email.getUseReturnReceiptTo())) {
-				if (!emailValidator.isValid(checkNonEmptyArgument(email.getReturnReceiptTo(), "returnReceiptTo").getAddress())) {
-					throw new MailInvalidAddressException(format(MailInvalidAddressException.INVALID_RETURNRECEIPTTO, email));
-				}
-			}
+		}
+	}
+
+	private static void validateAddress(@NotNull EmailValidator emailValidator, @Nullable Recipient recipient, @NotNull String errorTemplate) {
+		if (recipient != null && !emailValidator.isValid(recipient.getAddress())) {
+			throw new MailInvalidAddressException(format(errorTemplate, recipient.getAddress()));
 		}
 	}
 
@@ -160,7 +174,7 @@ public class MailerHelper {
 	 *
 	 * @see #scanForInjectionAttack
 	 */
-	public static void scanForInjectionAttacks(final @NotNull EmailWithDefaultsAndOverridesApplied email) {
+	public static void scanForInjectionAttacks(final @NotNull Email email) {
 		// check for illegal values
 		scanForInjectionAttack(email.getSubject(), "email.subject");
 		for (final Map.Entry<String, Collection<String>> headerEntry : email.getHeaders().entrySet()) {
@@ -215,7 +229,8 @@ public class MailerHelper {
 	 */
 	public static void scanForInjectionAttack(final @Nullable String value, final String valueLabel) {
 		if (value != null && (value.contains("\n") || value.contains("\r") || value.contains("%0A"))) {
-			throw new MailSuspiciousCRLFValueException(format(MailSuspiciousCRLFValueException.INJECTION_SUSPECTED, valueLabel, value));
+			final String s = value.replaceAll("\n", "\\\\n").replaceAll("\r", "\\\\r");
+			throw new MailSuspiciousCRLFValueException(format(MailSuspiciousCRLFValueException.INJECTION_SUSPECTED, valueLabel, s));
 		}
 	}
 

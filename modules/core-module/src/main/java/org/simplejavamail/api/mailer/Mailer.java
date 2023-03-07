@@ -109,7 +109,7 @@ public interface Mailer {
 	 * @see com.sanctionco.jmail.EmailValidator
 	 */
 	@SuppressWarnings({"SameReturnValue" })
-	boolean validate(EmailWithDefaultsAndOverridesApplied email) throws MailException;
+	boolean validate(Email email) throws MailException;
 
 	/**
 	 * Shuts down the connection pool associated with this {@link Mailer} instance and closes remaining open connections. Waits until all connections still in use become available again
