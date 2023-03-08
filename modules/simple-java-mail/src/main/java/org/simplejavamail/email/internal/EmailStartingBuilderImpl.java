@@ -11,19 +11,27 @@ import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.email.EmailBuilder;
 
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 
 /**
  * @see EmailStartingBuilder
  */
 public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
-	
+
 	/**
 	 * Flag used when creating a new {@link EmailPopulatingBuilderImpl} indicating whether to use property defaults or to ignore them.
 	 * <p>
-	 * Flag can be disabled using {@link #ignoringDefaults()}.
+	 * Flag can be enabled using {@link #ignoringDefaults()}.
 	 */
-	private boolean applyDefaults = true;
+	private boolean ignoreDefaults = false;
+
+	/**
+	 * Flag used when creating a new {@link EmailPopulatingBuilderImpl} indicating whether to use property overrides or to ignore them.
+	 * <p>
+	 * Flag can be enabled using {@link #ignoringOverrides()}.
+	 */
+	private boolean ignoreOverrides = false;
 	
 	/**
 	 * @deprecated Used internally. Don't use this. Use one of the {@link EmailBuilder#startingBlank()} instead.
@@ -32,13 +40,22 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	@SuppressWarnings("DeprecatedIsStillUsed")
 	public EmailStartingBuilderImpl() {
 	}
-	
+
 	/**
 	 * @see EmailStartingBuilder#ignoringDefaults()
 	 */
 	@Override
 	public EmailStartingBuilder ignoringDefaults() {
-		applyDefaults = false;
+		ignoreDefaults = true;
+		return this;
+	}
+
+	/**
+	 * @see EmailStartingBuilder#ignoringOverrides()
+	 */
+	@Override
+	public EmailStartingBuilder ignoringOverrides() {
+		ignoreOverrides = true;
 		return this;
 	}
 	
@@ -47,7 +64,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder startingBlank() {
-		return new EmailPopulatingBuilderImpl(applyDefaults);
+		return new EmailPopulatingBuilderImpl().ignoringDefaults(ignoreDefaults);
 	}
 	
 	/**
@@ -177,10 +194,13 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	/**
 	 * @see EmailStartingBuilder#copying(Email)
 	 */
-	@SuppressWarnings({ "CastCanBeRemovedNarrowingVariableType", "deprecation" })
+	@SuppressWarnings({"deprecation" })
 	@Override
 	public EmailPopulatingBuilder copying(@NotNull final Email email) {
-		EmailPopulatingBuilder builder = new EmailPopulatingBuilderImpl(applyDefaults);
+		EmailPopulatingBuilder builder = new EmailPopulatingBuilderImpl()
+				.ignoringOverrides(ignoreDefaults)
+				.ignoringOverrides(ignoreOverrides);
+
 		if (email.getId() != null) {
 			builder.fixingMessageId(email.getId());
 		}
@@ -205,9 +225,18 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		builder.withRecipients(email.getRecipients());
 		builder.withEmbeddedImages(email.getEmbeddedImages());
 		builder.withAttachments(email.getAttachments());
+		if (email.getContentTransferEncoding() != null) {
+			builder.withContentTransferEncoding(email.getContentTransferEncoding());
+		}
 		((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
 		if (email.getSentDate() != null) {
 			builder.fixingSentDate(email.getSentDate());
+		}
+		if (email.getPkcs12ConfigForSmimeSigning() != null) {
+			builder.signWithSmime(email.getPkcs12ConfigForSmimeSigning());
+		}
+		if (email.getX509CertificateForSmimeEncryption() != null) {
+			builder.encryptWithSmime(email.getX509CertificateForSmimeEncryption());
 		}
 		if (email.getDkimConfig() != null) {
 			builder.signWithDomainKey(email.getDkimConfig());
@@ -219,7 +248,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			builder.withReturnReceiptTo(email.getReturnReceiptTo());
 		}
 		if (email.getCalendarMethod() != null) {
-			builder.withCalendarText(email.getCalendarMethod(), email.getCalendarText());
+			builder.withCalendarText(email.getCalendarMethod(), requireNonNull(email.getCalendarText(), "CalendarText"));
 		}
 		if (email.getEmailToForward() != null) {
 			((InternalEmailPopulatingBuilder) builder).withForward(email.getEmailToForward());
@@ -229,7 +258,12 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			((InternalEmailPopulatingBuilder) builder).withSmimeSignedEmail(email.getSmimeSignedEmail());
 		}
 		((InternalEmailPopulatingBuilder) builder).withOriginalSmimeDetails(email.getOriginalSmimeDetails());
-		if (!email.wasMergedWithSmimeSignedMessage()) {
+
+		if (!(email instanceof InternalEmail)) {
+			throw new AssertionError("Email is not of type InternalEmail, this should not be possible");
+		}
+
+		if (!((InternalEmail) email).wasMergedWithSmimeSignedMessage()) {
 			builder.notMergingSingleSMIMESignedAttachment();
 		}
 		return builder;

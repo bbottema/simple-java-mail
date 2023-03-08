@@ -3,18 +3,16 @@ package org.simplejavamail.converter.internal.mimemessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
-import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
+import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
-import static org.simplejavamail.internal.util.MiscUtil.orOther;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -40,7 +38,7 @@ public abstract class SpecializedMimeMessageProducer {
 	 */
 	abstract boolean compatibleWithEmail(@NotNull Email email);
 	
-	final MimeMessage populateMimeMessage(final Email email, final EmailGovernance emailGovernance, @NotNull Session session)
+	final MimeMessage populateMimeMessage(@NotNull final Email email, @NotNull Session session)
 			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
@@ -58,7 +56,7 @@ public abstract class SpecializedMimeMessageProducer {
 			@Override
 			public String toString() {
 				try {
-					return "MimeMessage<id:" + super.getMessageID() + ", subject:" + super.getSubject() + ">";
+					return format("MimeMessage<id:%s, subject:%s>", super.getMessageID(), super.getSubject());
 				} catch (MessagingException e) {
 					throw new IllegalStateException("should not reach here");
 				}
@@ -66,14 +64,14 @@ public abstract class SpecializedMimeMessageProducer {
 		};
 		
 		// set basic email properties
-		MimeMessageHelper.setSubject(email, emailGovernance, message);
-		MimeMessageHelper.setFrom(email, emailGovernance, message);
-		MimeMessageHelper.setReplyTo(email, emailGovernance, message);
-		MimeMessageHelper.setRecipients(email, emailGovernance, message);
+		MimeMessageHelper.setSubject(email, message);
+		MimeMessageHelper.setFrom(email, message);
+		MimeMessageHelper.setReplyTo(email, message);
+		MimeMessageHelper.setRecipients(email, message);
 		
-		populateMimeMessageMultipartStructure(message, email, emailGovernance);
+		populateMimeMessageMultipartStructure(message, email);
 		
-		MimeMessageHelper.setHeaders(email, emailGovernance, message);
+		MimeMessageHelper.setHeaders(email, message);
 		message.setSentDate(ofNullable(email.getSentDate()).orElse(new Date()));
 
 		/*
@@ -83,26 +81,27 @@ public abstract class SpecializedMimeMessageProducer {
 			3. DKIM signing
 		 */
 
-		if (!valueNullOrEmpty(email.getPkcs12ConfigForSmimeSigning()) ||
-				!valueNullOrEmpty(emailGovernance.getPkcs12ConfigForSmimeSigning()) ||
-				!valueNullOrEmpty(email.getX509CertificateForSmimeEncryption())) {
-			message = ModuleLoader.loadSmimeModule().signAndOrEncryptEmail(session, message, email, emailGovernance.getPkcs12ConfigForSmimeSigning());
+		if (email.getPkcs12ConfigForSmimeSigning() != null) {
+			message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, message, email.getPkcs12ConfigForSmimeSigning());
 		}
 
-		if (!valueNullOrEmpty(email.getDkimConfig())) {
+		if (email.getX509CertificateForSmimeEncryption() != null) {
+			message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, message, email.getX509CertificateForSmimeEncryption());
+		}
+
+		if (email.getDkimConfig() != null) {
 			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, email.getDkimConfig(), checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
 		}
 
-		val bountToRecipient = orOther(email, emailGovernance.getEmailDefaults(), emailGovernance.getEmailOverrides(), Email::getBounceToRecipient);
-		if (bountToRecipient != null) {
+		if (email.getBounceToRecipient() != null) {
 			// display name not applicable: https://tools.ietf.org/html/rfc5321#section-4.1.2
-			message = new ImmutableDelegatingSMTPMessage(message, bountToRecipient.getAddress());
+			message = new ImmutableDelegatingSMTPMessage(message, email.getBounceToRecipient().getAddress());
 		}
 
 		return message;
 	}
 
-	abstract void populateMimeMessageMultipartStructure(MimeMessage  message, Email email, EmailGovernance emailGovernance) throws MessagingException;
+	abstract void populateMimeMessageMultipartStructure(MimeMessage  message, Email email) throws MessagingException;
 	
 	
 	static boolean emailContainsMixedContent(@NotNull Email email) {

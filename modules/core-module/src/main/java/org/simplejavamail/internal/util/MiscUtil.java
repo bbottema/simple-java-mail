@@ -11,7 +11,9 @@ import jakarta.mail.util.ByteArrayDataSource;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.internal.config.EmailProperty;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -26,10 +28,10 @@ import java.nio.charset.Charset;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.toHexString;
@@ -375,22 +377,69 @@ public final class MiscUtil {
 	}
 
 	@Nullable
-	public static <In, Out> Out orOther(In in, @Nullable In alternativeIn, @Nullable In overrideIn, Function<In, Out> inToOut) {
-		return ofNullable(overrideIn).map(inToOut)
-				.orElse(ofNullable(inToOut.apply(in))
-						.orElse(ofNullable(alternativeIn).map(inToOut).orElse(null)));
+	public static <Out> Out overrideOrProvideOrDefaultProperty(@Nullable Email provided, @Nullable Email defaults, @Nullable Email overrides, @NotNull EmailProperty emailProperty) {
+		return ofNullable(overrideAllowedForProperty(provided, emailProperty) ? overrides : null)
+				.map(emailProperty.<Out>getGetter())
+				.orElse(ofNullable(provided)
+						.map(emailProperty.<Out>getGetter())
+						.orElse(ofNullable(defaultAllowedForProperty(provided, emailProperty) ? defaults : null)
+								.map(emailProperty.<Out>getGetter())
+								.orElse(null)));
 	}
 
 	@NotNull
-	public static <In, Out> ArrayList<Out> orOtherList(In in, @Nullable In alternativeIn, @Nullable In overrideIn, Function<In, Collection<Out>> inToOutList) {
+	public static <Out> List<Out> overrideAndOrProvideAndOrDefaultCollection(@Nullable Email provided, @Nullable Email defaults, @Nullable Email overrides, @NotNull EmailProperty emailProperty) {
 		val listOut = new ArrayList<Out>();
-		if (overrideIn != null) {
-			listOut.addAll(inToOutList.apply(overrideIn));
+		if (overrides != null && overrideAllowedForProperty(provided, emailProperty)) {
+			listOut.addAll(emailProperty.<Collection<Out>>getGetter().apply(overrides));
 		}
-		listOut.addAll(inToOutList.apply(in));
-		if (alternativeIn != null) {
-			listOut.addAll(inToOutList.apply(alternativeIn));
+		if (provided != null) {
+			listOut.addAll(emailProperty.<Collection<Out>>getGetter().apply(provided));
+		}
+		if (defaults != null && defaultAllowedForProperty(provided, emailProperty)) {
+			listOut.addAll(emailProperty.<Collection<Out>>getGetter().apply(defaults));
 		}
 		return listOut;
+	}
+
+	@NotNull
+	public static Map<String, Collection<String>> overrideAndOrProvideAndOrDefaultHeaders(@Nullable Email provided, @Nullable Email defaults, @Nullable Email overrides) {
+		val collectedHeaders = new HashMap<String, Collection<String>>();
+
+		if (defaults != null && defaultAllowedForProperty(provided, EmailProperty.HEADERS)) {
+			addOrOverrideHeaders(collectedHeaders, defaults.getHeaders());
+		}
+		if (provided != null) {
+			addOrOverrideHeaders(collectedHeaders, provided.getHeaders());
+		}
+		if (overrides != null && overrideAllowedForProperty(provided, EmailProperty.HEADERS)) {
+			addOrOverrideHeaders(collectedHeaders, overrides.getHeaders());
+		}
+
+		return collectedHeaders;
+	}
+
+	private static boolean defaultAllowedForProperty(@Nullable Email provided, @NotNull final EmailProperty emailProperty) {
+		return provided == null || !provided.isIgnoreDefaults() &&
+				(provided.getPropertiesNotToApplyDefaultValueFor() == null ||
+						!provided.getPropertiesNotToApplyDefaultValueFor().contains(emailProperty));
+	}
+
+	private static boolean overrideAllowedForProperty(@Nullable Email provided, @NotNull final EmailProperty emailProperty) {
+		return provided == null || !provided.isIgnoreOverrides() &&
+				(provided.getPropertiesNotToApplyOverrideValueFor() == null ||
+						!provided.getPropertiesNotToApplyOverrideValueFor ().contains(emailProperty));
+	}
+
+	private static void addOrOverrideHeaders(HashMap<String, Collection<String>> collectedHeaders, @NotNull Map<String, Collection<String>> headers) {
+		headers.forEach((headerKey, headerValues) -> {
+			collectedHeaders.putIfAbsent(headerKey, new ArrayList<>());
+			/*
+				we don't merge header values that have the same key from defaults or overrides;
+				instead, we assume the use will always want to override the entire header
+			 */
+			collectedHeaders.get(headerKey).clear();
+			collectedHeaders.get(headerKey).addAll(headerValues);
+		});
 	}
 }

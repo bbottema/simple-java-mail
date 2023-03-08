@@ -1,5 +1,6 @@
 package org.simplejavamail.api.email.config;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.jetbrains.annotations.Nullable;
@@ -10,7 +11,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,6 +25,7 @@ import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
  */
 @ToString(exclude = "dkimPrivateKeyData")
 @Getter
+@EqualsAndHashCode
 public class DkimConfig implements Serializable {
 
 	private static final long serialVersionUID = 1234567L;
@@ -86,7 +87,15 @@ public class DkimConfig implements Serializable {
 		 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
 		 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
 		 */
-		public DkimConfigBuilder dkimPrivateKeyData(File dkimPrivateKeyFile) {
+		public DkimConfigBuilder dkimPrivateKeyPath(String dkimPrivateKeyFile) {
+			return dkimPrivateKeyPath(new File(dkimPrivateKeyFile));
+		}
+
+		/**
+		 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
+		 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+		 */
+		public DkimConfigBuilder dkimPrivateKeyPath(File dkimPrivateKeyFile) {
 			try (FileInputStream dkimPrivateKeyInputStream = new FileInputStream(dkimPrivateKeyFile)) {
 				dkimPrivateKeyData(dkimPrivateKeyInputStream);
 			} catch (IOException e) {

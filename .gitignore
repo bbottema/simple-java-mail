@@ -7,3 +7,4 @@
 /modules/cli-module/src/main/resources/therapi.data
 *.iml
 *.log
+/modules/simple-java-mail/src/test/resources/secure-testdata/secure-testdata/

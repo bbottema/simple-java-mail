@@ -6,7 +6,6 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.config.EmailGovernance;
 
 class MimeMessageProducerMixedRelated extends SpecializedMimeMessageProducer {
 	@Override
@@ -16,13 +15,13 @@ class MimeMessageProducerMixedRelated extends SpecializedMimeMessageProducer {
 	
 	@SuppressWarnings("Duplicates")
 	@Override
-	public void populateMimeMessageMultipartStructure(MimeMessage message, Email email, EmailGovernance emailGovernance) throws MessagingException {
+	public void populateMimeMessageMultipartStructure(MimeMessage message, Email email) throws MessagingException {
 		MultipartStructureWrapper multipartStructureWrapper = new MultipartStructureWrapper();
 		
-		MimeMessageHelper.setTexts(email, emailGovernance, multipartStructureWrapper.multipartRelated);
-		MimeMessageHelper.configureForwarding(email, emailGovernance, multipartStructureWrapper.multipartRootMixed);
-		MimeMessageHelper.setEmbeddedImages(email, emailGovernance, multipartStructureWrapper.multipartRelated);
-		MimeMessageHelper.setAttachments(email, emailGovernance, multipartStructureWrapper.multipartRootMixed);
+		MimeMessageHelper.setTexts(email, multipartStructureWrapper.multipartRelated);
+		MimeMessageHelper.configureForwarding(email, multipartStructureWrapper.multipartRootMixed);
+		MimeMessageHelper.setEmbeddedImages(email, multipartStructureWrapper.multipartRelated);
+		MimeMessageHelper.setAttachments(email, multipartStructureWrapper.multipartRootMixed);
 		
 		message.setContent(multipartStructureWrapper.multipartRootMixed);
 	}

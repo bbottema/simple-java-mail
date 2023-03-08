@@ -2,6 +2,7 @@ package org.simplejavamail.mailer.internal;
 
 import com.sanctionco.jmail.EmailValidator;
 import jakarta.mail.Session;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -337,10 +338,11 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<Void> sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
+	public final CompletableFuture<Void> sendMail(final Email userProvidedEmail, @SuppressWarnings("SameParameterValue") final boolean async) {
+		val email = emailGovernance.produceEmailApplyingDefaultsAndOverrides(userProvidedEmail);
+
 		if (validate(email)) {
-			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, operationalConfig.isTransportModeLoggingOnly(),
-					smtpConnectionCounter);
+			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 
 			if (!async) {
 				sendMailClosure.run();

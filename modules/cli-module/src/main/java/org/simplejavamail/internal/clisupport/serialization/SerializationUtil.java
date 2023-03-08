@@ -38,7 +38,7 @@ public class SerializationUtil {
 
 	@SuppressWarnings("unchecked")
 	@NotNull
-	public static <T> T deserialize(@NotNull final byte[] serialized) {
+	public static <T> T deserialize(final byte@NotNull[] serialized) {
 		return (T) KRYO.readClassAndObject(new Input(serialized));
 	}
 }

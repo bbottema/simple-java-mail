@@ -9,6 +9,6 @@ import org.simplejavamail.api.internal.general.EmailPopulatingBuilderFactory;
 public final class EmailPopulatingBuilderFactoryImpl implements EmailPopulatingBuilderFactory {
 	@Override
 	public EmailPopulatingBuilder create() {
-		return 	new EmailPopulatingBuilderImpl(false);
+		return 	new EmailPopulatingBuilderImpl();
 	}
 }

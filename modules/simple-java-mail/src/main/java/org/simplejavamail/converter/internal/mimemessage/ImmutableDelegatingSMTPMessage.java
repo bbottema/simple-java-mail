@@ -22,6 +22,8 @@ import java.io.OutputStream;
 import java.util.Date;
 import java.util.Enumeration;
 
+import static java.lang.String.format;
+
 /**
  * This class helps us use methods from SMTPMessage, while retaining an original MimeMessage as a delegate for everything else.
  * <p>
@@ -32,10 +34,14 @@ import java.util.Enumeration;
  */
 public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 
-	private static final AssertionError UNSUPPORTED_PROTECTED_METHOD = new AssertionError("This method should not be used, "
-			+ "nor can it be supported as this method is protected in the delegate. If it is still needed, we need to find "
-			+ "a way around");
-	private static final AssertionError MUTATION_NOT_SUPPORTED = new AssertionError("Further mutation is not allowed");
+	private static AssertionError UNSUPPORTED_PROTECTED_METHOD(String s) {
+		return new AssertionError(format("This method should not be used, nor can it be supported as this method " +
+				"is protected in the delegate. If it is still needed, we need to find a way around: %s", s));
+	}
+	
+	private static AssertionError MUTATION_NOT_SUPPORTED(String s) {
+		return new AssertionError(format("Further mutation is not allowed: %s", s));
+	}
 
 	@NotNull
 	private final MimeMessage delegate;
@@ -354,246 +360,246 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 
 	@Override
 	public void setMessageNumber(final int msgnum) {
-		throw UNSUPPORTED_PROTECTED_METHOD;
+		throw UNSUPPORTED_PROTECTED_METHOD("setMessageNumber(int)");
 	}
 
 	@Override
 	public void setExpunged(final boolean expunged) {
-		throw UNSUPPORTED_PROTECTED_METHOD;
+		throw UNSUPPORTED_PROTECTED_METHOD("setExpunged(boolean)");
 	}
 
 	@Override
 	public void parse(final InputStream is) {
-		throw UNSUPPORTED_PROTECTED_METHOD;
+		throw UNSUPPORTED_PROTECTED_METHOD("parse(InputStream)");
 	}
 
 	@Override
 	public InputStream getContentStream() {
-		throw UNSUPPORTED_PROTECTED_METHOD;
+		throw UNSUPPORTED_PROTECTED_METHOD("getContentStream()");
 	}
 
 	@Override
 	public void updateMessageID() {
-		throw UNSUPPORTED_PROTECTED_METHOD;
+		throw UNSUPPORTED_PROTECTED_METHOD("updateMessageID()");
 	}
 
 	@Override
 	public void updateHeaders() {
-		throw UNSUPPORTED_PROTECTED_METHOD;
+		throw UNSUPPORTED_PROTECTED_METHOD("updateHeaders()");
 	}
 
 	@Override
 	public InternetHeaders createInternetHeaders(final InputStream is) {
-		throw UNSUPPORTED_PROTECTED_METHOD;
+		throw UNSUPPORTED_PROTECTED_METHOD("createInternetHeaders(InputStream)");
 	}
 
 	@Override
 	public MimeMessage createMimeMessage(final Session session) {
-		throw UNSUPPORTED_PROTECTED_METHOD;
+		throw UNSUPPORTED_PROTECTED_METHOD("createMimeMessage(Session)");
 	}
 
 	@Override
 	public void setEnvelopeFrom(final String from) {
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setEnvelopeFrom(String)");
 	}
 
 	@Override
 	public void setNotifyOptions(final int options) {
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setNotifyOptions(int)");
 	}
 
 	@Override
 	public void setReturnOption(final int option) {
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setReturnOption(int)");
 	}
 
 	@Override
 	public void setAllow8bitMIME(final boolean allow) {
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setAllow8bitMIME(boolean)");
 	}
 
 	@Override
 	public void setSendPartial(final boolean partial) {
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setSendPartial(boolean)");
 	}
 
 	@Override
 	public void setSubmitter(final String submitter) {
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setSubmitter(String)");
 	}
 
 	@Override
 	public void setMailExtension(final String extension) {
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setMailExtension(String)");
 	}
 
 	@Override
 	public void setFrom(final Address address) {
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setFrom(Address)");
 	}
 
 	@Override
 	public void setFrom(final String address){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setFrom(String)");
 	}
 
 	@Override
 	public void setFrom(){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setFrom()");
 	}
 
 	@Override
 	public void addFrom(final Address[] addresses){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("addFrom(Address[])");
 	}
 
 	@Override
 	public void setSender(final Address address){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setSender(Address)");
 	}
 
 	@Override
 	public void setRecipients(final Message.RecipientType type, final Address[] addresses){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setRecipients(RecipientType, Address[])");
 	}
 
 	@Override
 	public void setRecipients(final Message.RecipientType type, final String addresses){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setRecipients(RecipientType, String)");
 	}
 
 	@Override
 	public void addRecipients(final Message.RecipientType type, final Address[] addresses){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("addRecipients(RecipientType, Address[])");
 	}
 
 	@Override
 	public void addRecipients(final Message.RecipientType type, final String addresses){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("addRecipients(RecipientType, String)");
 	}
 
 	@Override
 	public void setReplyTo(final Address[] addresses){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setReplyTo(Address[])");
 	}
 
 	@Override
 	public void setSubject(final String subject){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setSubject(String)");
 	}
 
 	@Override
 	public void setSubject(final String subject, final String charset){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setSubject(String, String)");
 	}
 
 	@Override
 	public void setSentDate(final Date d){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setSentDate(Date)");
 	}
 
 	@Override
 	public void setDisposition(final String disposition){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setDisposition(String)");
 	}
 
 	@Override
 	public void setContentID(final String cid){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setContentID(String)");
 	}
 
 	@Override
 	public void setContentMD5(final String md5){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setContentMD5(String)");
 	}
 
 	@Override
 	public void setDescription(final String description){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setDescription(String)");
 	}
 
 	@Override
 	public void setDescription(final String description, final String charset){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setDescription(String, String)");
 	}
 
 	@Override
 	public void setContentLanguage(final String[] languages){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setContentLanguage(String[])");
 	}
 
 	@Override
 	public void setFileName(final String filename){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setFileName(String)");
 	}
 
 	@Override
 	public void setDataHandler(final DataHandler dh){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setDataHandler(DataHandler)");
 	}
 
 	@Override
 	public void setContent(final Object o, final String type){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setContent(Object, String)");
 	}
 
 	@Override
 	public void setText(final String text){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setText(String)");
 	}
 
 	@Override
 	public void setText(final String text, final String charset){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setText(String, String)");
 	}
 
 	@Override
 	public void setText(final String text, final String charset, final String subtype){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setText(String, String, String)");
 	}
 
 	@Override
 	public void setContent(final Multipart mp){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setContent(Multipart)");
 	}
 
 	@Override
 	public void setHeader(final String name, final String value){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setHeader(String, String)");
 	}
 
 	@Override
 	public void addHeader(final String name, final String value){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("addHeader(String, String)");
 	}
 
 	@Override
 	public void removeHeader(final String name){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("removeHeader(String)");
 	}
 
 	@Override
 	public void addHeaderLine(final String line){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("addHeaderLine(String)");
 	}
 
 	@Override
 	public void setFlags(final Flags flag, final boolean set){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setFlags(Flags, boolean)");
 	}
 
 	@Override
 	public void setRecipient(final Message.RecipientType type, final Address address){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setRecipient(RecipientType, Address)");
 	}
 
 	@Override
 	public void addRecipient(final Message.RecipientType type, final Address address){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("addRecipient(RecipientType, Address)");
 	}
 
 	@Override
 	public void setFlag(final Flags.Flag flag, final boolean set){
-		throw MUTATION_NOT_SUPPORTED;
+		throw MUTATION_NOT_SUPPORTED("setFlag(Flag, boolean)");
 	}
 }

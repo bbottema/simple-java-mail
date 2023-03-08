@@ -1,7 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
 import org.jetbrains.annotations.Nullable;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import testutil.ConfigLoaderTestHelper;
@@ -10,31 +9,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 public class ServerConfigTest {
-
-	@Test
-	@Ignore("Enable once the notnull plugin is enabled again or substituted")
-	public void NoArgconstructor_WithoutConfigFile_WithoutHost() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		
-		try {
-			new ServerConfigImpl(null, null, null, null, null, null);
-			fail("IllegalArgumentException expected for host");
-		} catch (IllegalArgumentException e) {
-			// ok
-		}
-	}
-
-	@Test
-	@Ignore("Enable once the notnull plugin is enabled again or substituted")
-	public void NoArgconstructor_WithoutConfigFile_WithoutPort() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		try {
-			new ServerConfigImpl("host", null, null, null, null, null);
-			fail("IllegalArgumentException expected for port");
-		} catch (IllegalArgumentException e) {
-			// ok
-		}
-	}
 
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername() {

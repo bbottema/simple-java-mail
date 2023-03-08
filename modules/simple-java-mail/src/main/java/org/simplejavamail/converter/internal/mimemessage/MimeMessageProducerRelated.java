@@ -5,7 +5,6 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.config.EmailGovernance;
 
 class MimeMessageProducerRelated extends SpecializedMimeMessageProducer {
 	@Override
@@ -14,10 +13,10 @@ class MimeMessageProducerRelated extends SpecializedMimeMessageProducer {
 	}
 	
 	@Override
-	public void populateMimeMessageMultipartStructure(MimeMessage message, Email email, EmailGovernance emailGovernance) throws MessagingException {
+	public void populateMimeMessageMultipartStructure(MimeMessage message, Email email) throws MessagingException {
 		MimeMultipart multipartRootRelated = new MimeMultipart("related");
-		MimeMessageHelper.setTexts(email, emailGovernance, multipartRootRelated);
-		MimeMessageHelper.setEmbeddedImages(email, emailGovernance, multipartRootRelated);
+		MimeMessageHelper.setTexts(email, multipartRootRelated);
+		MimeMessageHelper.setEmbeddedImages(email, multipartRootRelated);
 		message.setContent(multipartRootRelated);
 	}
 }

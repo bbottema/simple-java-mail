@@ -23,7 +23,7 @@ public final class Pkcs12Config {
 	@NotNull private final String keyAlias;
 	@NotNull private final char[] keyPassword;
 
-	private Pkcs12Config(@NotNull byte[] pkcs12StoreData, @NotNull char[] storePassword, @NotNull String keyAlias, @NotNull char[] keyPassword) {
+	private Pkcs12Config(byte@NotNull[] pkcs12StoreData, @NotNull char[] storePassword, @NotNull String keyAlias, @NotNull char[] keyPassword) {
 		this.pkcs12StoreData = pkcs12StoreData.clone();
 		this.storePassword = storePassword;
 		this.keyAlias = keyAlias;

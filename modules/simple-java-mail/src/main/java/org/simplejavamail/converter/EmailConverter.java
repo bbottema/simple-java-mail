@@ -52,10 +52,11 @@ import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
+import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNANCE;
 
 /**
  * Utility to help convert {@link org.simplejavamail.api.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
- *
+ * <br>
  * If you use the Outlook parsing API, make sure you load the following dependency: <em>org.simplejavamail::outlook-message-parser</em>
  */
 @SuppressWarnings("WeakerAccess")
@@ -118,7 +119,7 @@ public final class EmailConverter {
 	@NotNull
 	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@NotNull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config, final boolean fetchAttachmentData) {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
-		val builder = EmailBuilder.ignoringDefaults().startingBlank();
+		val builder = EmailBuilder.startingBlank();
 		val parsed = MimeMessageParser.parseMimeMessage(mimeMessage, fetchAttachmentData);
 		val emailBuilder = buildEmailFromMimeMessage(builder, parsed);
 		return decryptAttachments(emailBuilder, mimeMessage, pkcs12Config);
@@ -221,6 +222,10 @@ public final class EmailConverter {
 	}
 
 	/**
+	 * Note: the email builder wrapper by {@link EmailFromOutlookMessage} is set to ignore defaults as to stay as close as possible to the original MimeMessage.
+	 * If you wish to use the result to send an email, you might want to first call {@link EmailPopulatingBuilder#ignoringDefaults(boolean)} to set the builder
+	 * to use defaults again.
+	 *
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("deprecation")
@@ -434,37 +439,35 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link #emailToMimeMessage(Email, Session)}, using a new empty {@link Session} instance.
-	 *
-	 * @see #emailToMimeMessage(Email, Session)
+	 * Delegates to {@link #emailToMimeMessage(Email, Session, EmailGovernance)}, using a new empty {@link Session} instance,
+	 * and without email governance - but defaults from (system) prorties (files) are still applied, if provided..
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email) {
-		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession());
+		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession(), NO_GOVERNANCE());
 	}
 
 	/**
-	 * Refer to {@link MimeMessageProducerHelper#produceMimeMessage(Email, EmailGovernance, Session)}.
+	 * Delegates to {@link #emailToMimeMessage(Email, Session, EmailGovernance)}, using a new empty {@link Session} instance.
 	 */
-	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final Pkcs12Config defaultSmimeSigningStore) {
-		try {
-			return MimeMessageProducerHelper.produceMimeMessage(
-					checkNonEmptyArgument(email, "email"),
-					new EmailGovernance(null, checkNonEmptyArgument(defaultSmimeSigningStore, "defaultSmimeSigningStore"), null, null, null),
-					checkNonEmptyArgument(session, "session"));
-		} catch (UnsupportedEncodingException | MessagingException e) {
-			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new IllegalStateException(e.getMessage(), e);
-		}
+	public static MimeMessage emailToMimeMessage(@NotNull final Email email, final EmailGovernance emailGovernance) {
+		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession(), emailGovernance);
 	}
 
 	/**
-	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, EmailGovernance, Session)} with empty S/MIME signing store.
+	 * Delegates to {@link #emailToMimeMessage(Email, Session, EmailGovernance)} with no email governance -
+	 * but defaults from (system) prorties (files) are still applied, if provided.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session) {
+		return emailToMimeMessage(email, session, NO_GOVERNANCE());
+	}
+
+	/**
+	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session)}.
+	 */
+	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final EmailGovernance emailGovernance) {
 		try {
 			return MimeMessageProducerHelper.produceMimeMessage(
-					checkNonEmptyArgument(email, "email"),
-					EmailGovernance.NO_GOVERNANCE,
+					emailGovernance.produceEmailApplyingDefaultsAndOverrides(email),
 					checkNonEmptyArgument(session, "session"));
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)

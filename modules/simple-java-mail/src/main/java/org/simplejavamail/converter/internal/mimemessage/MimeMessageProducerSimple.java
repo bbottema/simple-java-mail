@@ -5,7 +5,6 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.config.EmailGovernance;
 
 /**
  * Produces a MimeMessage with {@link MimeMultipart} structure as follows:<br>
@@ -24,7 +23,7 @@ class MimeMessageProducerSimple extends SpecializedMimeMessageProducer {
 	}
 	
 	@Override
-	public void populateMimeMessageMultipartStructure(MimeMessage message, Email email, EmailGovernance emailGovernance) throws MessagingException {
-		MimeMessageHelper.setTexts(email, emailGovernance, message);
+	public void populateMimeMessageMultipartStructure(MimeMessage message, Email email) throws MessagingException {
+		MimeMessageHelper.setTexts(email, message);
 	}
 }

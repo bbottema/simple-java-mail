@@ -50,7 +50,7 @@ class CliCommandLineConsumerResultHandler {
 	private static void processCliValidate(List<CliReceivedOptionData> receivedOptions) {
 		final EmailPopulatingBuilder emailBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.EMAIL, new EmailStartingBuilderImpl());
 		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, new MailerRegularBuilderImpl());
-		mailerBuilder.buildMailer().validate(emailBuilder.buildEmail());
+		mailerBuilder.buildMailer().validate(emailBuilder.buildEmailCompletedWithDefaultsAndOverrides());
 	}
 	
 	@SuppressWarnings("unchecked")

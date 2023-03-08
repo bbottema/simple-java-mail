@@ -4,7 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.config.EmailGovernance;
+import org.simplejavamail.email.internal.InternalEmail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
@@ -34,10 +34,13 @@ public final class MimeMessageProducerHelper {
 	private MimeMessageProducerHelper() {
 	}
 	
-	public static MimeMessage produceMimeMessage(final Email email, EmailGovernance emailGovernance, final Session session) throws UnsupportedEncodingException, MessagingException {
+	@SuppressWarnings("deprecation")
+	public static MimeMessage produceMimeMessage(Email email, Session session) throws UnsupportedEncodingException, MessagingException {
+		assert email instanceof InternalEmail;
+		((InternalEmail) email).verifyDefaultsAndOverridesApplied();
 		for (SpecializedMimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
 			if (mimeMessageProducer.compatibleWithEmail(email)) {
-				return mimeMessageProducer.populateMimeMessage(email, emailGovernance, session);
+				return mimeMessageProducer.populateMimeMessage(email, session);
 			}
 		}
 		throw new IllegalStateException("no compatible SpecializedMimeMessageProducer found for email");

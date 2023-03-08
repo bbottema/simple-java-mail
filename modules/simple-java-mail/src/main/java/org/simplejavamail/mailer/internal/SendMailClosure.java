@@ -32,8 +32,7 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 	@NotNull private final Email email;
 	private final boolean transportModeLoggingOnly;
 
-	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @Nullable AnonymousSocks5Server proxyServer,
-					boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
+	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
 		super(smtpConnectionCounter, proxyServer);
 		this.operationalConfig = operationalConfig;
 		this.session = session;

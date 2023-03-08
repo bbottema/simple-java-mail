@@ -19,106 +19,107 @@ import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 @Slf4j
 public final class EqualsHelper {
 
-	@SuppressWarnings("WeakerAccess")
-	public static boolean equalsEmail(final Email email1, final Email email2) {
-		if (!fieldIsEqual(email1.getFromRecipient(), email2.getFromRecipient(), "fromRecipient")) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getId(), email2.getId(), "id")) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getSentDate(), email2.getSentDate(), "sendDate")) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getReplyToRecipient(), email2.getReplyToRecipient(), "replyToRecipient")) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getBounceToRecipient(), email2.getBounceToRecipient(), "bounceToRecipient")) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getPlainText(), email2.getPlainText(), "plainText")) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getCalendarText(), email2.getCalendarText(), "calendarText")) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getCalendarMethod(), email2.getCalendarMethod(), "calendarMethod")) {
-			return false;
-		}
-		//noinspection SimplifiableConditionalExpression
-		if (email1.getEmailToForward() != null ? email2.getEmailToForward() == null : email2.getEmailToForward() != null) {
-			return false;
-		}
-		if (email1.getHTMLText() != null ? !normalizeNewlines(email1.getHTMLText()).equals(normalizeNewlines(email2.getHTMLText())) : email2.getHTMLText() != null) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getSubject(), email2.getSubject(), "subject")) {
-			return false;
-		}
+    @SuppressWarnings("WeakerAccess")
+    public static boolean equalsEmail(final Email email1, final Email email2) {
+        if (!fieldIsEqual(email1.getFromRecipient(), email2.getFromRecipient(), "fromRecipient")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getId(), email2.getId(), "id")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getSentDate(), email2.getSentDate(), "sendDate")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getReplyToRecipient(), email2.getReplyToRecipient(), "replyToRecipient")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getBounceToRecipient(), email2.getBounceToRecipient(), "bounceToRecipient")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getPlainText(), email2.getPlainText(), "plainText")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getCalendarText(), email2.getCalendarText(), "calendarText")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getCalendarMethod(), email2.getCalendarMethod(), "calendarMethod")) {
+            return false;
+        }
+        //noinspection SimplifiableConditionalExpression
+        if (email1.getEmailToForward() != null ? email2.getEmailToForward() == null : email2.getEmailToForward() != null) {
+            return false;
+        }
+        if (email1.getHTMLText() != null ? !normalizeNewlines(email1.getHTMLText()).equals(normalizeNewlines(email2.getHTMLText())) : email2.getHTMLText() != null) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getSubject(), email2.getSubject(), "subject")) {
+            return false;
+        }
 
-		if (!isEqualRecipientList(email1.getRecipients(), email2.getRecipients())) {
-			return false;
-		}
-		if (!email1.getEmbeddedImages().containsAll(email2.getEmbeddedImages()) || !email2.getEmbeddedImages().containsAll(email1.getEmbeddedImages())) {
-			return false;
-		}
-		if (!email1.getAttachments().containsAll(email2.getAttachments()) || !email2.getAttachments().containsAll(email1.getAttachments())) {
-			return false;
-		}
-		if (!email1.getHeaders().equals(email2.getHeaders())) {
-			return false;
-		}
-		if (!Objects.equals(email1.getUseDispositionNotificationTo(), email2.getUseDispositionNotificationTo())) {
-			return false;
-		}
-		if (!Objects.equals(email1.getUseReturnReceiptTo(), email2.getUseReturnReceiptTo())) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getDispositionNotificationTo(), email2.getDispositionNotificationTo(), "dispositionNotificationTo")) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getOriginalSmimeDetails(), email2.getOriginalSmimeDetails(), "originalSmimeDetails")) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getPkcs12ConfigForSmimeSigning(), email2.getPkcs12ConfigForSmimeSigning(), "pkcs12ConfigForSmimeSigning")) {
-			return false;
-		}
-		if (!fieldIsEqual(email1.getX509CertificateForSmimeEncryption(), email2.getX509CertificateForSmimeEncryption(), "x509CertificateForSmimeEncryption")) {
-			return false;
-		}
-		return fieldIsEqual(email1.getReturnReceiptTo(), email2.getReturnReceiptTo(), "returnReceiptTo");
-	}
+        if (!isEqualRecipientList(email1.getRecipients(), email2.getRecipients())) {
+            return false;
+        }
+        if (!email1.getEmbeddedImages().containsAll(email2.getEmbeddedImages()) || !email2.getEmbeddedImages().containsAll(email1.getEmbeddedImages())) {
+            return false;
+        }
+        if (!email1.getAttachments().containsAll(email2.getAttachments()) || !email2.getAttachments().containsAll(email1.getAttachments())) {
+            return false;
+        }
+        if (!email1.getHeaders().equals(email2.getHeaders())) {
+            return false;
+        }
+        if (!Objects.equals(email1.getUseDispositionNotificationTo(), email2.getUseDispositionNotificationTo())) {
+            return false;
+        }
+        if (!Objects.equals(email1.getUseReturnReceiptTo(), email2.getUseReturnReceiptTo())) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getDispositionNotificationTo(), email2.getDispositionNotificationTo(), "dispositionNotificationTo")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getOriginalSmimeDetails(), email2.getOriginalSmimeDetails(), "originalSmimeDetails")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getPkcs12ConfigForSmimeSigning(), email2.getPkcs12ConfigForSmimeSigning(), "pkcs12ConfigForSmimeSigning")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getX509CertificateForSmimeEncryption(), email2.getX509CertificateForSmimeEncryption(), "x509CertificateForSmimeEncryption")) {
+            return false;
+        }
+        return fieldIsEqual(email1.getReturnReceiptTo(), email2.getReturnReceiptTo(), "returnReceiptTo");
+    }
 
-	private static boolean isEqualRecipientList(final List<Recipient> recipients, final List<Recipient> otherRecipients) {
-		if (recipients.size() != otherRecipients.size()) {
-			return false;
-		}
-		for (final Recipient otherRecipient : otherRecipients) {
-			if (!containsRecipient(recipients, otherRecipient)) {
-				return false;
-			}
-		}
-		return true;
-	}
+    private static boolean isEqualRecipientList(final List<Recipient> recipients, final List<Recipient> otherRecipients) {
+        if (recipients.size() != otherRecipients.size()) {
+            return false;
+        }
+        for (final Recipient otherRecipient : otherRecipients) {
+            if (!containsRecipient(recipients, otherRecipient)) {
+                log.debug("Email unqual for recipients: {} vs {}", recipients, otherRecipients);
+                return false;
+            }
+        }
+        return true;
+    }
 
-	private static boolean containsRecipient(final List<Recipient> recipients, @Nullable final Recipient otherRecipient) {
-		for (final Recipient recipient : recipients) {
-			if (fieldIsEqual(recipient, otherRecipient, "recipient")) {
-				return true;
-			}
-		}
-		return false;
-	}
+    private static boolean containsRecipient(final List<Recipient> recipients, @Nullable final Recipient otherRecipient) {
+        for (final Recipient recipient : recipients) {
+            if (Objects.equals(recipient, otherRecipient)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-	static boolean isEqualDataSource(@Nullable final DataSource a, @Nullable final DataSource b) {
-		return (a == b) || (a != null && b != null &&
-				fieldIsEqual(a.getName(), b.getName(), "name") &&
-				fieldIsEqual(a.getContentType(), b.getContentType(), "contentType"));
-	}
+    static boolean isEqualDataSource(@Nullable final DataSource a, @Nullable final DataSource b) {
+        return (a == b) || (a != null && b != null &&
+                fieldIsEqual(a.getName(), b.getName(), "name") &&
+                fieldIsEqual(a.getContentType(), b.getContentType(), "contentType"));
+    }
 
-	private static boolean fieldIsEqual(final Object obj1, final Object obj2, final String name) {
-		val isEqual = Objects.equals(obj1, obj2);
-		if (!isEqual) log.debug("Email unqual for {}: {} vs {}", name, obj1, obj2);
-		return isEqual;
-	}
+    private static boolean fieldIsEqual(final Object obj1, final Object obj2, final String name) {
+        val isEqual = Objects.equals(obj1, obj2);
+        if (!isEqual) log.debug("Email unqual for {}: {} vs {}", name, obj1, obj2);
+        return isEqual;
+    }
 }

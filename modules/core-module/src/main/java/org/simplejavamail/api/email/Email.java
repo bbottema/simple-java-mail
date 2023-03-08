@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.internal.config.EmailProperty;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.InputStream;
@@ -20,10 +21,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.stream.Collectors.toList;
 import static org.simplejavamail.internal.util.ListUtil.merge;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -37,9 +42,29 @@ public class Email implements Serializable {
 	private static final long serialVersionUID = 1234567L;
 
 	/**
+	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
+	 */
+	private final boolean ignoreDefaults;
+
+	/**
+	 * @see EmailPopulatingBuilder#ignoringOverrides(boolean)
+	 */
+	private final boolean ignoreOverrides;
+
+	/**
+	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
+	 */
+	private final Set<EmailProperty> propertiesNotToApplyDefaultValueFor;
+
+	/**
+	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
+	 */
+	private final Set<EmailProperty> propertiesNotToApplyOverrideValueFor;
+
+	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
 	 */
-	private String id;
+	protected String id;
 	
 	/**
 	 * @see EmailPopulatingBuilder#from(Recipient)
@@ -79,7 +104,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withContentTransferEncoding(ContentTransferEncoding)
 	 */
-	@NotNull
+	@Nullable
 	private final ContentTransferEncoding contentTransferEncoding;
 
 	/**
@@ -158,7 +183,7 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
 	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
 	 */
-	private DkimConfig dkimConfig;
+	private final DkimConfig dkimConfig;
 
 	/**
 	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
@@ -185,9 +210,9 @@ public class Email implements Serializable {
 	private final OriginalSmimeDetails originalSmimeDetails;
 
 	/**
-	 * @see Email#wasMergedWithSmimeSignedMessage()
+	 * @see "ExtendedEmail.wasMergedWithSmimeSignedMessage()"
 	 */
-	private final boolean wasMergedWithSmimeSignedMessage;
+	protected final boolean wasMergedWithSmimeSignedMessage;
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
@@ -203,12 +228,15 @@ public class Email implements Serializable {
 	public Email(@NotNull final EmailPopulatingBuilder builder) {
 		checkNonEmptyArgument(builder, "builder");
 
+		ignoreDefaults = builder.isIgnoreDefaults();
+		ignoreOverrides = builder.isIgnoreOverrides();
+		propertiesNotToApplyDefaultValueFor = builder.getPropertiesNotToApplyDefaultValueFor();
+		propertiesNotToApplyOverrideValueFor = builder.getPropertiesNotToApplyOverrideValueFor();
 		smimeSignedEmail = builder.getSmimeSignedEmail();
 
 		final boolean smimeMerge = builder.isMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
 
-		this.wasMergedWithSmimeSignedMessage = smimeMerge;
-
+		wasMergedWithSmimeSignedMessage = smimeMerge;
 		recipients = unmodifiableList(builder.getRecipients());
 		embeddedImages = unmodifiableList((smimeMerge)
 				? merge(builder.getEmbeddedImages(), smimeSignedEmail.getEmbeddedImages())
@@ -222,7 +250,6 @@ public class Email implements Serializable {
 		headers = unmodifiableMap((smimeMerge)
 				? merge(builder.getHeaders(), smimeSignedEmail.getHeaders())
 				: builder.getHeaders());
-
 		id = builder.getId();
 		fromRecipient = builder.getFromRecipient();
 		replyToRecipient = builder.getReplyToRecipient();
@@ -233,60 +260,16 @@ public class Email implements Serializable {
 		textCalendar = builder.getTextCalendar();
 		contentTransferEncoding = builder.getContentTransferEncoding();
 		subject = builder.getSubject();
-		
 		useDispositionNotificationTo = builder.getUseDispositionNotificationTo();
+		dispositionNotificationTo = builder.getDispositionNotificationTo();
 		useReturnReceiptTo = builder.getUseReturnReceiptTo();
+		returnReceiptTo = builder.getReturnReceiptTo();
 		emailToForward = builder.getEmailToForward();
-
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
-
 		sentDate = builder.getSentDate();
-
 		x509CertificateForSmimeEncryption = builder.getX509CertificateForSmimeEncryption();
 		pkcs12ConfigForSmimeSigning = builder.getPkcs12ConfigForSmimeSigning();
-
-		if (TRUE.equals(useDispositionNotificationTo) && MiscUtil.valueNullOrEmpty(builder.getDispositionNotificationTo())) {
-			//noinspection IfMayBeConditional
-			if (builder.getReplyToRecipient() != null) {
-				dispositionNotificationTo = builder.getReplyToRecipient();
-			} else {
-				dispositionNotificationTo = builder.getFromRecipient();
-			}
-		} else {
-			dispositionNotificationTo = builder.getDispositionNotificationTo();
-		}
-		
-		if (TRUE.equals(useReturnReceiptTo) && MiscUtil.valueNullOrEmpty(builder.getReturnReceiptTo())) {
-			//noinspection IfMayBeConditional
-			if (builder.getReplyToRecipient() != null) {
-				returnReceiptTo = builder.getReplyToRecipient();
-			} else {
-				returnReceiptTo = builder.getFromRecipient();
-			}
-		} else {
-			returnReceiptTo = builder.getReturnReceiptTo();
-		}
-
-		this.dkimConfig = builder.getDkimConfig();
-	}
-
-	/**
-	 * @deprecated Don't use this method, refer to {@link EmailPopulatingBuilder#fixingMessageId(String)} instead. This method is used internally to
-	 * update the message id once a mail has been sent.
-	 */
-	@Deprecated
-	public void internalSetId(@NotNull final String id) {
-		this.id = id;
-	}
-
-	/**
-	 * @deprecated Don't use this method. This method is used internally when using the builder API to copy an email that
-	 * contains an S/MIME signed message. Without this method, we don't know if the copy should also be merged to match the
-	 * copied email.
-	 */
-	@Deprecated
-	public boolean wasMergedWithSmimeSignedMessage() {
-		return wasMergedWithSmimeSignedMessage;
+		dkimConfig = builder.getDkimConfig();
 	}
 
 	@SuppressWarnings("SameReturnValue")
@@ -311,7 +294,7 @@ public class Email implements Serializable {
 				",\n\ttext='" + text + '\'' +
 				",\n\ttextHTML='" + textHTML + '\'' +
 				",\n\ttextCalendar='" + format("%s (method: %s)", textCalendar, calendarMethod) + '\'' +
-				",\n\tcontentTransferEncoding='" + contentTransferEncoding + '\'' +
+				",\n\tcontentTransferEncoding='" + (contentTransferEncoding != null ? contentTransferEncoding : ContentTransferEncoding.getDefault()) + '\'' +
 				",\n\tsubject='" + subject + '\'' +
 				",\n\trecipients=" + recipients);
 		if (!MiscUtil.valueNullOrEmpty(dkimConfig)) {
@@ -369,6 +352,36 @@ public class Email implements Serializable {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 		sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 		return sdf.format(date);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
+	 */
+	public boolean isIgnoreDefaults() {
+		return ignoreDefaults;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#ignoringOverrides(boolean)
+	 */
+	public boolean isIgnoreOverrides() {
+		return ignoreOverrides;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
+	 */
+	@Nullable
+	public Set<EmailProperty> getPropertiesNotToApplyDefaultValueFor() {
+		return propertiesNotToApplyDefaultValueFor;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
+	 */
+	@Nullable
+	public Set<EmailProperty> getPropertiesNotToApplyOverrideValueFor() {
+		return propertiesNotToApplyOverrideValueFor;
 	}
 
 	/**
@@ -520,6 +533,36 @@ public class Email implements Serializable {
 	public List<Recipient> getRecipients() {
 		return recipients;
 	}
+
+	/**
+	 * @see EmailPopulatingBuilder#to(Recipient...)
+	 * @see EmailPopulatingBuilder#cc(Recipient...)
+	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 */
+	@NotNull
+	public List<Recipient> getToRecipients() {
+		return recipients.stream().filter(r -> r.getType() == TO).collect(toList());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#to(Recipient...)
+	 * @see EmailPopulatingBuilder#cc(Recipient...)
+	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 */
+	@NotNull
+	public List<Recipient> getCcRecipients() {
+		return recipients.stream().filter(r -> r.getType() == CC).collect(toList());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#to(Recipient...)
+	 * @see EmailPopulatingBuilder#cc(Recipient...)
+	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 */
+	@NotNull
+	public List<Recipient> getBccRecipients() {
+		return recipients.stream().filter(r -> r.getType() == BCC).collect(toList());
+	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
@@ -584,7 +627,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withContentTransferEncoding(ContentTransferEncoding)
 	 */
-	@NotNull
+	@Nullable
 	public ContentTransferEncoding getContentTransferEncoding() {
 		return contentTransferEncoding;
 	}
