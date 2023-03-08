@@ -88,18 +88,24 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Indicates that when the email is sent, no default values whatsoever should be applied to the email.
 	 *
+	 * @param ignoreDefaults Whether to ignore all default values or not for this email.
+	 *
 	 * @see #dontApplyDefaultValueFor(EmailProperty...)
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withEmailDefaults(Email)
 	 */
+	@Cli.OptionNameOverride("ignoringDefaultsYesNo")
 	EmailPopulatingBuilder ignoringDefaults(boolean ignoreDefaults);
 
 	/**
 	 * Indicates that when the email is sent, no override values whatsoever should be applied to the email.
 	 *
+	 * @param ignoreOverrides Whether to ignore all overrides values or not for this email.
+	 *
 	 * @see #dontApplyOverrideValueFor(EmailProperty...)
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withEmailOverrides(Email)
 	 */
-	EmailPopulatingBuilder ignoringOverrides(boolean ignoreDefaults);
+	@Cli.OptionNameOverride("ignoringOverridesYesNo")
+	EmailPopulatingBuilder ignoringOverrides(boolean ignoreOverrides);
 
 	/**
 	 * Allows you to prevent a property to be configured with default values. This might be useful if you have defined defaults (either through (system) properties,
