@@ -34,8 +34,9 @@ public final class MimeMessageProducerHelper {
 	private MimeMessageProducerHelper() {
 	}
 	
+	@SuppressWarnings("deprecation")
 	public static MimeMessage produceMimeMessage(Email email, Session session) throws UnsupportedEncodingException, MessagingException {
-		//noinspection deprecation
+		assert email instanceof InternalEmail;
 		((InternalEmail) email).verifyDefaultsAndOverridesApplied();
 		for (SpecializedMimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
 			if (mimeMessageProducer.compatibleWithEmail(email)) {
