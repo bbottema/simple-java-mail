@@ -85,13 +85,16 @@ public class OutlookEmailConverter implements OutlookModule {
 			@NotNull final InternalEmailConverter internalEmailConverter) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(outlookMessage, "outlookMessage");
-		outlookMessage.getHeadersMap()
-				.forEach((key, value) -> value.forEach(headerValue -> parseHeader(key, MimeUtility.unfold(headerValue), builder)));
+		outlookMessage.getHeadersMap().entrySet().stream()
+				.filter(e -> !valueNullOrEmpty(e.getKey()))
+				.forEach((entry) -> entry.getValue()
+						.forEach(headerValue -> parseHeader(entry.getKey(), MimeUtility.unfold(headerValue), builder))
+				);
 		String fromEmail = ofNullable(outlookMessage.getFromEmail()).orElse("donotreply@unknown-from-address.net");
 		builder.from(outlookMessage.getFromName(), fromEmail);
 		builder.fixingMessageId(outlookMessage.getMessageId());
 		builder.fixingSentDate(ofNullable(outlookMessage.getClientSubmitTime()).orElse(outlookMessage.getDate())); // TODO creation date?
-		if (!MiscUtil.valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
+		if (!valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
 			builder.withReplyTo(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
 		}
 		copyReceiversFromOutlookMessage(builder, outlookMessage);
