@@ -3,8 +3,22 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>7.9.1</version>
+    <version>8.0.0</version>
 </dependency>
+
+v8.0.0 (08-March-2023)
+
+- #451: Feature: Make defaults and overrides a first class feature
+- #452: Enhancement: with ".disableAllClientValidation(true)", also ignore errors from the completeness check
+- #447: Enhancement: allow defaults/overrides to ignore individual fields (turn off for specific properties)
+- #446: Enhancement: add missing defaults properties for DKIM
+- #450: Bug: when using dispositionNotificationTo or returnReceiptTo mode, when the corresponding emails are not filled, it fails even though it should fall back to replyTo or From
+- #449: Bug: IllegalArgumentException on parsing empty header name and value (when parsing Outlook message)
+- #448: Bug: withEmailDefaults and withEmailOverrides does not work with CustomMailer
+
+This release changes how Email instances are built, or more specifically, when defaults and overrides are applied.
+There are now overloaded build methods that provide similar behaviour as previous versions.
+
 
 v7.9.0 - v7.9.1
 
