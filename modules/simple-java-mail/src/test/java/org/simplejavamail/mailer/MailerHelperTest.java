@@ -34,13 +34,8 @@ public class MailerHelperTest {
 
     @Test
     public void validateLenient() {
-        // missing fields should still fail
         val emailMissingFrom = newBuilder().clearFromRecipient().buildEmail();
-        assertThatThrownBy(() -> MailerHelper.validateLenient(emailMissingFrom, JMail.strictValidator()))
-                .isInstanceOf(MailCompletenessException.class)
-                .hasMessageContaining("Email is not valid: missing sender.");
-
-        // but invalid address or suspicious fields should not
+        assertThatNoException().isThrownBy(() -> MailerHelper.validateLenient(emailMissingFrom, JMail.strictValidator()));
         val emailInvalidFrom = newBuilder().from("invalid", "invalid").buildEmail();
         assertThat(MailerHelper.validateLenient(emailInvalidFrom)).isTrue();
         assertThatNoException().isThrownBy(() -> MailerHelper.validateLenient(emailInvalidFrom, JMail.strictValidator()));

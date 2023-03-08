@@ -86,7 +86,11 @@ public class MailerHelper {
 	public static boolean validateLenient(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
 			throws MailException {
 		LOGGER.debug("validating email...");
-		MailerHelper.validateCompleteness(email);
+		try {
+			MailerHelper.validateCompleteness(email);
+		} catch (MailCompletenessException e) {
+			LOGGER.warn("encountered (and ignored) missing field: {}", e.getMessage());
+		}
 		try {
 			MailerHelper.validateAddresses(email, emailValidator);
 		} catch (MailInvalidAddressException e) {
@@ -194,8 +198,10 @@ public class MailerHelper {
 			scanForInjectionAttack(embeddedImage.getDataSource().getName(), "email.embeddedImage.datasource.name");
 			scanForInjectionAttack(embeddedImage.getDescription(), "email.embeddedImage.description");
 		}
-		scanForInjectionAttack(email.getFromRecipient().getName(), "email.fromRecipient.name");
-		scanForInjectionAttack(email.getFromRecipient().getAddress(), "email.fromRecipient.address");
+		if (!valueNullOrEmpty(email.getFromRecipient())) {
+			scanForInjectionAttack(email.getFromRecipient().getName(), "email.fromRecipient.name");
+			scanForInjectionAttack(email.getFromRecipient().getAddress(), "email.fromRecipient.address");
+		}
 		if (!valueNullOrEmpty(email.getReplyToRecipient())) {
 			scanForInjectionAttack(email.getReplyToRecipient().getName(), "email.replyToRecipient.name");
 			scanForInjectionAttack(email.getReplyToRecipient().getAddress(), "email.replyToRecipient.address");
