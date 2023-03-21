@@ -24,7 +24,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 ### Latest Progress ###
 
-[v8.0.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.0.0%7Cjar) (08-March-2023)
+[v8.0.0](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.0.0/) (08-March-2023)
 
 - [#451](https://github.com/bbottema/simple-java-mail/issues/451): Feature: Make defaults and overrides a first class feature
 - [#452](https://github.com/bbottema/simple-java-mail/issues/452): Enhancement: with ".disableAllClientValidation(true)", also ignore errors from the completeness check
@@ -38,13 +38,13 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 There are now overloaded build methods that provide similar behaviour as previous versions.**
 
 
-v7.9.0 - [v7.9.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.9.1%7Cjar)
+v7.9.0 - [v7.9.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/7.9.1/)
 
 - v7.9.1 (22-February-2023): [#444](https://github.com/bbottema/simple-java-mail/issues/444) Bugfix: encoded delimited recipients in EML not parsed properly
 - v7.9.0 (21-February-2023): [#344](https://github.com/bbottema/simple-java-mail/issues/344) Enhancement: make DKIM signing more flexible by allowing header exclusions in DKIM signature
 
 
-v7.8.0 - [v7.8.3](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.8.3%7Cjar)
+v7.8.0 - [v7.8.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/7.8.3/)
 
 - v7.8.3 (21-February-2023): [#293](https://github.com/bbottema/simple-java-mail/issues/293) Bugfix: Decoding missing in a few placed when parsing MimeMessage or sending an Email
 - v7.8.2 (09-February-2023): [#442](https://github.com/bbottema/simple-java-mail/issues/442) Enhancement: Simple Java Mail should throw an exception when trying to utilize S/MIME with smime-module on the classpath
