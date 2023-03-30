@@ -3,18 +3,19 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.0.0</version>
+    <version>8.0.1</version>
 </dependency>
 
-v8.0.0 (08-March-2023)
+v8.0.0 - v8.0.1
 
-- #451: Feature: Make defaults and overrides a first class feature
-- #452: Enhancement: with ".disableAllClientValidation(true)", also ignore errors from the completeness check
-- #447: Enhancement: allow defaults/overrides to ignore individual fields (turn off for specific properties)
-- #446: Enhancement: add missing defaults properties for DKIM
-- #450: Bug: when using dispositionNotificationTo or returnReceiptTo mode, when the corresponding emails are not filled, it fails even though it should fall back to replyTo or From
-- #449: Bug: IllegalArgumentException on parsing empty header name and value (when parsing Outlook message)
-- #448: Bug: withEmailDefaults and withEmailOverrides does not work with CustomMailer
+- v8.0.1 (30-April-2023): #456: Enhancement: make Content-Transfer encoder detection more lenient, supporting more values from the wild
+- v8.0.0 (08-March-2023): #451: Feature: Make defaults and overrides a first class feature
+- v8.0.0 (08-March-2023): #452: Enhancement: with ".disableAllClientValidation(true)", also ignore errors from the completeness check
+- v8.0.0 (08-March-2023): #450: Bug: when using dispositionNotificationTo or returnReceiptTo mode, when the corresponding emails are not filled, it fails even though it should fall back to replyTo or From
+- v8.0.0 (08-March-2023): #449: Bug: IllegalArgumentException on parsing empty header name and value (when parsing Outlook message)
+- v8.0.0 (08-March-2023): #448: Bug: withEmailDefaults and withEmailOverrides does not work with CustomMailer
+- v8.0.0 (08-March-2023): #447: Enhancement: allow defaults/overrides to ignore individual fields (turn off for specific properties)
+- v8.0.0 (08-March-2023): #446: Enhancement: add missing defaults properties for DKIM
 
 This release changes how Email instances are built, or more specifically, when defaults and overrides are applied.
 There are now overloaded build methods that provide similar behaviour as previous versions.
