@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.simplejavamail</groupId>
+		<artifactId>maven-master-project</artifactId>
+		<!--suppress MavenPropertyInParent -->
+		<version>8.0.1</version>
+		<relativePath>../../</relativePath>
+	</parent>
+
+	<artifactId>simplejavamail-karaf-feature</artifactId>
+	<packaging>feature</packaging>
+	<name>Simple Java Mail - Karaf feature</name>
+	<description>Feature descriptor for Apache Karaf</description>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.karaf.tooling</groupId>
+				<artifactId>karaf-maven-plugin</artifactId>
+				<version>4.4.3</version>
+				<extensions>true</extensions>
+				<configuration>
+					<excludedArtifactIds>
+						<excludedArtifactId>slf4j-api</excludedArtifactId>
+					</excludedArtifactIds>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>features-generate-descriptor</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.simplejavamail</groupId>
+			<artifactId>core-module</artifactId>
+			<version>${project.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.simplejavamail</groupId>
+			<artifactId>simple-java-mail</artifactId>
+			<version>${project.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+	</dependencies>
+</project>

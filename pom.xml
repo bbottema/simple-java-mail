@@ -50,6 +50,7 @@
         <module>modules/spring-module</module>
         <module>modules/cli-module</module>
         <module>modules/jacoco-aggregator-module</module>
+        <module>modules/karaf-module</module>
     </modules>
 
     <dependencies>
