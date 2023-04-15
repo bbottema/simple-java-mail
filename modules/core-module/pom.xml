@@ -21,6 +21,26 @@
         <automaticModuleName>org.simplejavamail.core</automaticModuleName>
     </properties>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Export-Package>
+                            org.simplejavamail.*
+                        </Export-Package>
+                        <Import-Package>
+                            !org.jacoco.*,
+                            *
+                        </Import-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
 
         <!-- core dependencies -->
