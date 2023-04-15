@@ -3,8 +3,14 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.0.1</version>
+    <version>8.1.0</version>
 </dependency>
+
+v8.1.0 (15-April-2023)
+
+- #458: Missing osgi headers (#288) and added support for Apache Karaf
+- #288: Maintenance: missing OSGI package-exports from core-module
+
 
 v8.0.0 - v8.0.1
 
