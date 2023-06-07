@@ -12,9 +12,14 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.converter.internal.mimemessage.ImmutableDelegatingSMTPMessage;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.email.internal.InternalEmail;
+import org.simplejavamail.internal.dkimsupport.DkimMessageIdFixingMimeMessage;
+import org.simplejavamail.mailer.internal.util.MessageIdFixingMimeMessage;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
+import org.simplejavamail.utils.mail.smime.SmimeMessageIdFixingMimeMessage;
+import org.simplejavamail.utils.mail.smime.SmimeMessageIdFixingSMTPMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,6 +89,15 @@ public class SessionBasedEmailToMimeMessageConverter {
         val message = convertMimeMessage(email, session);
 
         SessionLogger.logSession(session, operationalConfig.isAsync(), "mail");
+
+        if (!(message instanceof MessageIdFixingMimeMessage) &&
+                !(message instanceof DkimMessageIdFixingMimeMessage) &&
+                !(message instanceof ImmutableDelegatingSMTPMessage) &&
+                !(message instanceof SmimeMessageIdFixingMimeMessage) &&
+                !(message instanceof SmimeMessageIdFixingSMTPMessage)) {
+            throw new AssertionError("Wrong MimeMessage type; will be unable to fix Message-ID on message.saveChanges()");
+        }
+
         message.saveChanges(); // some headers and id's will be set for this specific message
 
         //noinspection deprecation

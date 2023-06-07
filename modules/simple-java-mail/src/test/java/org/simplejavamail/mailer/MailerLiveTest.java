@@ -289,7 +289,7 @@ public class MailerLiveTest {
 	
 	@Test
 	public void testEncryptSendAndReceiveDecrypt()
-			throws IOException, MessagingException, ExecutionException, InterruptedException {
+			throws MessagingException, ExecutionException, InterruptedException {
 		val builder = EmailHelper.createDummyEmailBuilder(null, true, true, true, false, false, false, false)
 				.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 		

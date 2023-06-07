@@ -3,6 +3,7 @@ package org.simplejavamail.internal.dkimsupport;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.internal.modules.DKIMModule;
@@ -30,9 +31,9 @@ public class DKIMSigner implements DKIMModule {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DKIMSigner.class);
 
 	/**
-	 * @see DKIMModule#signMessageWithDKIM(MimeMessage, DkimConfig, Recipient)
+	 * @see DKIMModule#signMessageWithDKIM(Email email, MimeMessage, DkimConfig, Recipient)
 	 */
-	public MimeMessage signMessageWithDKIM(@NotNull final MimeMessage messageToSign, @NotNull final DkimConfig dkimConfig, @NotNull final Recipient fromRecipient) {
+	public MimeMessage signMessageWithDKIM(@NotNull Email email, @NotNull final MimeMessage messageToSign, @NotNull final DkimConfig dkimConfig, @NotNull final Recipient fromRecipient) {
 		LOGGER.debug("signing MimeMessage with DKIM...");
 		try {
 			final DkimSigner dkimSigner = new DkimSigner(dkimConfig.getDkimSigningDomain(), dkimConfig.getDkimSelector(), new ByteArrayInputStream(dkimConfig.getDkimPrivateKeyData()));
@@ -51,7 +52,7 @@ public class DKIMSigner implements DKIMModule {
 				dkimSigner.setCheckDomainKey(false);
 			}
 
-			return new DkimMessage(messageToSign, dkimSigner);
+			return new DkimMessageIdFixingMimeMessage(messageToSign, dkimSigner, email.getId());
 		} catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException | MessagingException e) {
 			throw new org.simplejavamail.internal.dkimsupport.DKIMSigningException(org.simplejavamail.internal.dkimsupport.DKIMSigningException.ERROR_SIGNING_DKIM_INVALID_DOMAINKEY, e);
 		}

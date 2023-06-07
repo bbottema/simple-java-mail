@@ -30,6 +30,7 @@ import org.bouncycastle.util.Store;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
@@ -435,15 +436,15 @@ public class SMIMESupport implements SMIMEModule {
 
 	@NotNull
 	@Override
-	public MimeMessage signMessageWithSmime(@Nullable final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Pkcs12Config pkcs12Config) {
+	public MimeMessage signMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final Pkcs12Config pkcs12Config) {
 		val smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
-		return SmimeUtil.sign(session, messageToProtect, smimeKey);
+		return SmimeUtil.sign(session, email.getId(), messageToProtect, smimeKey);
 	}
 
 	@NotNull
 	@Override
-	public MimeMessage encryptMessageWithSmime(@Nullable final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final X509Certificate x509Certificate) {
-		return SmimeUtil.encrypt(session, messageToProtect, x509Certificate);
+	public MimeMessage encryptMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final X509Certificate x509Certificate) {
+		return SmimeUtil.encrypt(session, email.getId(), messageToProtect, x509Certificate);
 	}
 
 	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12) {

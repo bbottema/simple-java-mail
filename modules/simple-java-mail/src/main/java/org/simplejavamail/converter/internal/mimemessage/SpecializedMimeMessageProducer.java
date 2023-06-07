@@ -6,14 +6,13 @@ import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.mailer.internal.util.MessageIdFixingMimeMessage;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
-import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
-import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
@@ -43,25 +42,7 @@ public abstract class SpecializedMimeMessageProducer {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
 
-		MimeMessage message = new MimeMessage(session) {
-			@Override
-			protected void updateMessageID() throws MessagingException {
-				if (valueNullOrEmpty(email.getId())) {
-					super.updateMessageID();
-				} else {
-					setHeader("Message-ID", email.getId());
-				}
-			}
-			
-			@Override
-			public String toString() {
-				try {
-					return format("MimeMessage<id:%s, subject:%s>", super.getMessageID(), super.getSubject());
-				} catch (MessagingException e) {
-					throw new IllegalStateException("should not reach here");
-				}
-			}
-		};
+		MimeMessage message = new MessageIdFixingMimeMessage(session, email.getId());
 		
 		// set basic email properties
 		MimeMessageHelper.setSubject(email, message);
@@ -82,15 +63,15 @@ public abstract class SpecializedMimeMessageProducer {
 		 */
 
 		if (email.getPkcs12ConfigForSmimeSigning() != null) {
-			message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, message, email.getPkcs12ConfigForSmimeSigning());
+			message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, email, message, email.getPkcs12ConfigForSmimeSigning());
 		}
 
 		if (email.getX509CertificateForSmimeEncryption() != null) {
-			message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, message, email.getX509CertificateForSmimeEncryption());
+			message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, email, message, email.getX509CertificateForSmimeEncryption());
 		}
 
 		if (email.getDkimConfig() != null) {
-			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(message, email.getDkimConfig(), checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
+			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(email, message, email.getDkimConfig(), checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
 		}
 
 		if (email.getBounceToRecipient() != null) {

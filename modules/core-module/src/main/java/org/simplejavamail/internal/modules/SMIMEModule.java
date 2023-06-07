@@ -70,8 +70,8 @@ public interface SMIMEModule {
 	boolean verifyValidSignature(@NotNull MimeMessage mimeMessage, @NotNull OriginalSmimeDetails messageSmimeDetails);
 
 	@NotNull
-	MimeMessage signMessageWithSmime(@NotNull Session session, @NotNull MimeMessage messageToProtect, @NotNull Pkcs12Config pkcs12Config);
+	MimeMessage signMessageWithSmime(@NotNull Session session, @NotNull final Email email, @NotNull MimeMessage messageToProtect, @NotNull Pkcs12Config pkcs12Config);
 
 	@NotNull
-	MimeMessage encryptMessageWithSmime(@NotNull Session session, @NotNull MimeMessage messageToProtect, @NotNull X509Certificate x509Certificate);
+	MimeMessage encryptMessageWithSmime(@NotNull Session session, @NotNull final Email email, @NotNull MimeMessage messageToProtect, @NotNull X509Certificate x509Certificate);
 }
