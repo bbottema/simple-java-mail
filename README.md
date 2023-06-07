@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.1.0%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-8.1.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.1.1%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-8.1.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 1.7+](https://img.shields.io/badge/java-1.8+-lightgray.svg)
 
@@ -18,16 +18,17 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.1.0</version>
+    <version>8.1.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-[v8.1.0](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.1.0/) (15-April-2023)
+v8.1.0 - [v8.1.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.1.1/)
 
-- [#458](https://github.com/bbottema/simple-java-mail/pull/458) Missing osgi headers (#288) and added support for Apache Karaf
-- [#288](https://github.com/bbottema/simple-java-mail/issues/288) Maintenance: missing OSGI package-exports from core-module
+- v8.1.1 (07-June-2023): [#461](https://github.com/bbottema/simple-java-mail/pull/461) Bugfix: Fixed MessageID not preserved when signing/encrypting with S/MIME and/or DKIM
+- v8.1.0 (15-April-2023): [#458](https://github.com/bbottema/simple-java-mail/pull/458) Missing osgi headers (#288) and added support for Apache Karaf
+- v8.1.0 (15-April-2023): [#288](https://github.com/bbottema/simple-java-mail/issues/288) Maintenance: missing OSGI package-exports from core-module
 
 
 v8.0.0 - [v8.0.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.0.1/)
