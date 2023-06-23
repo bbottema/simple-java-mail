@@ -18,6 +18,7 @@ public class ModuleLoader {
 
 	private static final boolean BATCH_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.batchsupport.BatchSupport");
 	private static final boolean SMIME_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
+	private static final boolean DKIM_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner");
 
 	private static final Map<Class, Object> LOADED_MODULES = new HashMap<>();
 
@@ -98,6 +99,13 @@ public class ModuleLoader {
 				((FORCED_RECHECK_MODULES.contains(SMIMEModule.class) &&
 						MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport")) ||
 						SMIME_SUPPORT_CLASS_AVAILABLE);
+	}
+
+	public static boolean dkimModuleAvailable() {
+		return !FORCED_DISABLED_MODULES.contains(DKIMModule.class) &&
+				((FORCED_RECHECK_MODULES.contains(DKIMModule.class) &&
+						MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner")) ||
+						DKIM_SUPPORT_CLASS_AVAILABLE);
 	}
 
 	@SuppressWarnings("unchecked")

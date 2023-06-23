@@ -57,4 +57,9 @@ public class DKIMSigner implements DKIMModule {
 			throw new org.simplejavamail.internal.dkimsupport.DKIMSigningException(org.simplejavamail.internal.dkimsupport.DKIMSigningException.ERROR_SIGNING_DKIM_INVALID_DOMAINKEY, e);
 		}
 	}
+
+	@Override
+	public boolean isMessageIdFixingMessage(MimeMessage message) {
+		return message instanceof DkimMessageIdFixingMimeMessage;
+	}
 }

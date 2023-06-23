@@ -45,6 +45,8 @@ import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.smimesupport.model.SmimeDetailsImpl;
 import org.simplejavamail.utils.mail.smime.SmimeKey;
 import org.simplejavamail.utils.mail.smime.SmimeKeyStore;
+import org.simplejavamail.utils.mail.smime.SmimeMessageIdFixingMimeMessage;
+import org.simplejavamail.utils.mail.smime.SmimeMessageIdFixingSMTPMessage;
 import org.simplejavamail.utils.mail.smime.SmimeState;
 import org.simplejavamail.utils.mail.smime.SmimeUtil;
 import org.slf4j.Logger;
@@ -445,6 +447,11 @@ public class SMIMESupport implements SMIMEModule {
 	@Override
 	public MimeMessage encryptMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final X509Certificate x509Certificate) {
 		return SmimeUtil.encrypt(session, email.getId(), messageToProtect, x509Certificate);
+	}
+
+	@Override
+	public boolean isMessageIdFixingMessage(MimeMessage message) {
+		return message instanceof SmimeMessageIdFixingMimeMessage || message instanceof SmimeMessageIdFixingSMTPMessage;
 	}
 
 	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12) {

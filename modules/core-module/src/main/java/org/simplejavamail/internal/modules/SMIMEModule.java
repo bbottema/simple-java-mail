@@ -74,4 +74,11 @@ public interface SMIMEModule {
 
 	@NotNull
 	MimeMessage encryptMessageWithSmime(@NotNull Session session, @NotNull final Email email, @NotNull MimeMessage messageToProtect, @NotNull X509Certificate x509Certificate);
+
+	/**
+	 * @return Whether the email has been properly wrapped in a MimeMessage subtype that overrides Message-ID. This is to
+	 * make sure we never send an email without making sure the Message-ID is properly customized (using
+	 * {@link org.simplejavamail.api.email.EmailPopulatingBuilder#fixingMessageId(String)}.
+	 */
+    boolean isMessageIdFixingMessage(MimeMessage message);
 }

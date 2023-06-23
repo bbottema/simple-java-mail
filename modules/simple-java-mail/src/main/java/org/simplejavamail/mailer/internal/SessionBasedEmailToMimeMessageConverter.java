@@ -15,11 +15,9 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.internal.mimemessage.ImmutableDelegatingSMTPMessage;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.email.internal.InternalEmail;
-import org.simplejavamail.internal.dkimsupport.DkimMessageIdFixingMimeMessage;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.mailer.internal.util.MessageIdFixingMimeMessage;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
-import org.simplejavamail.utils.mail.smime.SmimeMessageIdFixingMimeMessage;
-import org.simplejavamail.utils.mail.smime.SmimeMessageIdFixingSMTPMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,12 +88,8 @@ public class SessionBasedEmailToMimeMessageConverter {
 
         SessionLogger.logSession(session, operationalConfig.isAsync(), "mail");
 
-        if (!(message instanceof MessageIdFixingMimeMessage) &&
-                !(message instanceof DkimMessageIdFixingMimeMessage) &&
-                !(message instanceof ImmutableDelegatingSMTPMessage) &&
-                !(message instanceof SmimeMessageIdFixingMimeMessage) &&
-                !(message instanceof SmimeMessageIdFixingSMTPMessage)) {
-            throw new AssertionError("Wrong MimeMessage type; will be unable to fix Message-ID on message.saveChanges()");
+        if (!messageIsProperlyWrappedForCustomMessageId(message)) {
+            throw new AssertionError("Wrong MimeMessage type; would be unable to fix Message-ID on message.saveChanges()");
         }
 
         message.saveChanges(); // some headers and id's will be set for this specific message
@@ -105,6 +99,12 @@ public class SessionBasedEmailToMimeMessageConverter {
 
         logEmail(message, operationalConfig.isTransportModeLoggingOnly(), email);
         return message;
+    }
+
+    private static boolean messageIsProperlyWrappedForCustomMessageId(MimeMessage message) {
+        return message instanceof MessageIdFixingMimeMessage || message instanceof ImmutableDelegatingSMTPMessage ||
+                (ModuleLoader.dkimModuleAvailable() && ModuleLoader.loadDKIMModule().isMessageIdFixingMessage(message)) ||
+                (ModuleLoader.smimeModuleAvailable() && ModuleLoader.loadSmimeModule().isMessageIdFixingMessage(message));
     }
 
     static private MimeMessage convertMimeMessage(final Email email, final Session session) throws MessagingException {
