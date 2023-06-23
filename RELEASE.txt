@@ -3,11 +3,12 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.1.1</version>
+    <version>8.1.2</version>
 </dependency>
 
-v8.1.0 - v8.1.1
+v8.1.0 - v8.1.2
 
+- v8.1.2 (23-June-2023): #465: Regression bug #461: Simple Java Mail always requires DKIM/SMIME modules
 - v8.1.1 (07-June-2023): #461: Bugfix: Fixed MessageID not preserved when signing/encrypting with S/MIME and/or DKIM
 - v8.1.0 (15-April-2023): #458: Missing osgi headers (#288) and added support for Apache Karaf
 - v8.1.0 (15-April-2023): #288: Maintenance: missing OSGI package-exports from core-module
