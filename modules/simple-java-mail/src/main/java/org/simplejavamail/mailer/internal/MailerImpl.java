@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -444,5 +445,17 @@ public class MailerImpl implements Mailer {
 	@NotNull
 	public EmailGovernance getEmailGovernance() {
 		return emailGovernance;
+	}
+
+	/**
+	 * NOTE: this doesn't work with try-with resource if emails are sent asynchronously. This auto-close is only
+	 * meant for Spring integration, for when Spring wants to close the Mailer bean.
+	 *
+	 * @see <a href="https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/beans/factory/DisposableBean.html">Spring DisposableBean</a>
+	 * @see Mailer#close()
+	 */
+	@Override
+	public void close() throws ExecutionException, InterruptedException {
+		shutdownConnectionPool().get();
 	}
 }

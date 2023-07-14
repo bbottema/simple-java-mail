@@ -7,7 +7,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -34,7 +33,7 @@ import java.util.concurrent.Future;
  * @see MailerRegularBuilder
  * @see Email
  */
-public interface Mailer {
+public interface Mailer extends AutoCloseable {
 	/**
 	 * In case Simple Java Mail falls short somehow, you can get a hold of the internal {@link Session} instance to debug or tweak. Please let us know
 	 * why you are needing this on <a href="https://github.com/bbottema/simple-java-mail/issues">simple-java-mail/issues</a>.
