@@ -86,7 +86,7 @@ public interface Mailer {
 	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
 	 * @see java.util.concurrent.Executors#newFixedThreadPool(int)
-	 * @see #validate(EmailWithDefaultsAndOverridesApplied)
+	 * @see #validate(Email)
 	 */
 	@NotNull CompletableFuture<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
 	
