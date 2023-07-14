@@ -37,7 +37,7 @@ import java.util.concurrent.Future;
 public interface Mailer {
 	/**
 	 * In case Simple Java Mail falls short somehow, you can get a hold of the internal {@link Session} instance to debug or tweak. Please let us know
-	 * why you are needing this on https://github.com/bbottema/simple-java-mail/issues.
+	 * why you are needing this on <a href="https://github.com/bbottema/simple-java-mail/issues">simple-java-mail/issues</a>.
 	 */
 	Session getSession();
 	
