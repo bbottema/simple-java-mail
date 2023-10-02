@@ -320,7 +320,7 @@ public class MailerLiveTest {
 		EmailAssert.assertThat(email).hasSubject("hey");
 		// Outlook overrode this when saving the .email to match the mail account
 		EmailAssert.assertThat(email).hasRecipients(new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO));
-		EmailAssert.assertThat(email).hasReplyToRecipient(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", null));
+		EmailAssert.assertThat(email).hasReplyToRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", null));
 		assertThat(normalizeNewlines(email.getPlainText())).isEqualTo("We should meet up!\n");
 		// Outlook overrode this value too OR converted the original HTML to RTF, from which OutlookMessageParser derived this HTML
 		assertThat(normalizeNewlines(email.getHTMLText())).isEqualTo(
@@ -408,7 +408,7 @@ public class MailerLiveTest {
 		}
 
 		// hack: it seems Wiser automatically defaults replyTo address to the From address if left empty
-		if (originalEmailPopulatingBuilder.getReplyToRecipient() == null) {
+		if (originalEmailPopulatingBuilder.getReplyToRecipients().isEmpty()) {
 			originalEmailPopulatingBuilder.withReplyTo(originalEmailPopulatingBuilder.getFromRecipient());
 		}
 		// received email will always have an id, so let's make sure we're able to compare to the original email object

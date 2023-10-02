@@ -126,8 +126,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/**
 	 * @see #withReplyTo(Recipient)
 	 */
-	@Nullable
-	private Recipient replyToRecipient;
+	@NotNull
+	private final List<Recipient> replyToRecipients = new ArrayList<>();
 
 	/**
 	 * @see #withBounceTo(Recipient)
@@ -559,8 +559,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "API is subset of another API")
-	public EmailPopulatingBuilder withReplyTo(@Nullable final String replyToAddress) {
-		return withReplyTo(replyToAddress != null ? new Recipient(null, replyToAddress, null) : null);
+	public EmailPopulatingBuilder withReplyTo(@NotNull final String replyToAddress) {
+		return withReplyTo(new Recipient(null, replyToAddress, null));
 	}
 	
 	/**
@@ -589,13 +589,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
 		return withReplyTo(new Recipient(fixedName, replyToAddress.getAddress(), null));
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withReplyTo(Recipient)
 	 */
 	@Override
-	public EmailPopulatingBuilder withReplyTo(@Nullable final Recipient recipient) {
-		this.replyToRecipient = recipient != null ? new Recipient(recipient.getName(), recipient.getAddress(), null) : null;
+	public EmailPopulatingBuilder withReplyTo(@NotNull final Recipient recipient) {
+		this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null));
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withReplyTo(List)
+	 */
+	@Override
+	public EmailPopulatingBuilder withReplyTo(@NotNull final List<Recipient> recipients) {
+		for (Recipient recipient : recipients) {
+			this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null));
+		}
 		return this;
 	}
 	
@@ -2129,7 +2140,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder clearReplyTo() {
-		this.replyToRecipient = null;
+		this.replyToRecipients.clear();
 		return this;
 	}
 	
@@ -2362,12 +2373,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#getReplyToRecipient()
+	 * @see EmailPopulatingBuilder#getReplyToRecipients()
 	 */
 	@Override
-	@Nullable
-	public Recipient getReplyToRecipient() {
-		return replyToRecipient;
+	@NotNull
+	public List<Recipient> getReplyToRecipients() {
+		return replyToRecipients;
 	}
 	
 	/**

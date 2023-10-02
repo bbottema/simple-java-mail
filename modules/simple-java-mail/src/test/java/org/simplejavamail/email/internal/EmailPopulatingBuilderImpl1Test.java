@@ -26,8 +26,10 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.cert.X509Certificate;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -84,9 +86,10 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReplyTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
 				.buildEmail();
 
-		assertThat(email.getReplyToRecipient().getName()).isEqualTo("lollypop");
-		assertThat(email.getReplyToRecipient().getAddress()).isEqualTo("lol.pop@somemail.com");
-		assertThat(email.getReplyToRecipient().getType()).isNull();
+		assertThat(email.getReplyToRecipients()).hasSize(1);
+		assertThat(email.getReplyToRecipients().get(0).getName()).isEqualTo("lollypop");
+		assertThat(email.getReplyToRecipients().get(0).getAddress()).isEqualTo("lol.pop@somemail.com");
+		assertThat(email.getReplyToRecipients().get(0).getType()).isNull();
 	}
 
 	@Test
@@ -151,9 +154,9 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReplyTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
 				.buildEmail();
 
-		assertThat(email.getReplyToRecipient().getName()).isEqualTo("lollypop2");
-		assertThat(email.getReplyToRecipient().getAddress()).isEqualTo("lol.pop2@somemail.com");
-		assertThat(email.getReplyToRecipient().getType()).isNull();
+		assertThat(email.getReplyToRecipients()).containsExactlyInAnyOrder(
+				new Recipient("lollypop", "lol.pop@somemail.com", null),
+				new Recipient("lollypop2", "lol.pop2@somemail.com", null));
 	}
 
 	@Test
@@ -1240,7 +1243,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailNormal.getHTMLText()).isNotNull();
 		assertThat(emailNormal.getPlainText()).isNotNull();
 		assertThat(emailNormal.getRecipients()).isNotEmpty();
-		assertThat(emailNormal.getReplyToRecipient()).isNotNull();
+		assertThat(emailNormal.getReplyToRecipients()).isNotEmpty();
 		assertThat(emailNormal.getReturnReceiptTo()).isNotNull();
 		assertThat(emailNormal.getSentDate()).isNotNull();
 		assertThat(emailNormal.getPkcs12ConfigForSmimeSigning()).isNotNull();
@@ -1281,7 +1284,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailCleared.getHTMLText()).isNull();
 		assertThat(emailCleared.getPlainText()).isNull();
 		assertThat(emailCleared.getRecipients()).isEmpty();
-		assertThat(emailCleared.getReplyToRecipient()).isNull();
+		assertThat(emailCleared.getReplyToRecipients()).isEmpty();
 		assertThat(emailCleared.getReturnReceiptTo()).isNull();
 		assertThat(emailCleared.getSentDate()).isNull();
 		assertThat(emailCleared.getPkcs12ConfigForSmimeSigning()).isNull();

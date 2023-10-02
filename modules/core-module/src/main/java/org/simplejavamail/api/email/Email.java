@@ -74,8 +74,9 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withReplyTo(Recipient)
 	 */
-	private final Recipient replyToRecipient;
-	
+	@NotNull
+	private final List<Recipient> replyToRecipients;
+
 	/**
 	 * @see EmailPopulatingBuilder#withBounceTo(Recipient)
 	 */
@@ -252,7 +253,7 @@ public class Email implements Serializable {
 				: builder.getHeaders());
 		id = builder.getId();
 		fromRecipient = builder.getFromRecipient();
-		replyToRecipient = builder.getReplyToRecipient();
+		replyToRecipients = unmodifiableList(builder.getReplyToRecipients());
 		bounceToRecipient = builder.getBounceToRecipient();
 		text = smimeMerge ? smimeSignedEmail.getPlainText() : builder.getText();
 		textHTML = smimeMerge ? smimeSignedEmail.getHTMLText() : builder.getTextHTML();
@@ -289,7 +290,7 @@ public class Email implements Serializable {
 		String s = "Email{" +
 				"\n\tid=" + id + ("\n\tsentDate=" + formatDate(sentDate) +
 				"\n\tfromRecipient=" + fromRecipient +
-				",\n\treplyToRecipient=" + replyToRecipient +
+				",\n\treplyToRecipients=" + replyToRecipients +
 				",\n\tbounceToRecipient=" + bounceToRecipient +
 				",\n\ttext='" + text + '\'' +
 				",\n\ttextHTML='" + textHTML + '\'' +
@@ -403,9 +404,9 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withReplyTo(Recipient)
 	 */
-	@Nullable
-	public Recipient getReplyToRecipient() {
-		return replyToRecipient;
+	@NotNull
+	public List<Recipient> getReplyToRecipients() {
+		return replyToRecipients;
 	}
 	
 	/**

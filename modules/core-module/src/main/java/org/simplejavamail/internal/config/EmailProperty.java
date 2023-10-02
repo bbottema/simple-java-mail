@@ -30,7 +30,7 @@ public enum EmailProperty {
     USE_DISPOSITION_NOTIFICATION_TO (Email::getUseDispositionNotificationTo, false),
     CONTENT_TRANSFER_ENCODING(Email::getContentTransferEncoding, false),
     FROM_RECIPIENT(Email::getFromRecipient, false),
-    REPLYTO_RECIPIENT(Email::getReplyToRecipient, false),
+    REPLYTO_RECIPIENT(Email::getReplyToRecipients, true),
     BOUNCETO_RECIPIENT(Email::getBounceToRecipient, false),
     ALL_RECIPIENTS(Email::getRecipients, true),
     TO_RECIPIENTS(Email::getToRecipients, true),

@@ -115,7 +115,7 @@ public class MailerHelper {
 	 */
 	public static void validateCompleteness(final @NotNull Email email) {
 		// check for mandatory values
-		if (email.getRecipients().size() == 0) {
+		if (email.getRecipients().isEmpty()) {
 			throw new MailCompletenessException(MailCompletenessException.MISSING_RECIPIENT);
 		} else if (email.getFromRecipient() == null) {
 			throw new MailCompletenessException(MailCompletenessException.MISSING_SENDER);
@@ -144,7 +144,9 @@ public class MailerHelper {
 					default: validateAddress(emailValidator, recipient, MailInvalidAddressException.INVALID_TO_RECIPIENT); break;
 				}
 			}
-			validateAddress(emailValidator, email.getReplyToRecipient(), MailInvalidAddressException.INVALID_REPLYTO);
+			for (final Recipient recipient : email.getReplyToRecipients()) {
+				validateAddress(emailValidator, recipient, MailInvalidAddressException.INVALID_REPLYTO);
+			}
 			validateAddress(emailValidator, email.getBounceToRecipient(), MailInvalidAddressException.INVALID_BOUNCETO);
 			if (TRUE.equals(email.getUseDispositionNotificationTo()) && email.getDispositionNotificationTo() != null) {
 				validateAddress(emailValidator, email.getDispositionNotificationTo(), MailInvalidAddressException.INVALID_DISPOSITIONNOTIFICATIONTO);
@@ -202,9 +204,9 @@ public class MailerHelper {
 			scanForInjectionAttack(email.getFromRecipient().getName(), "email.fromRecipient.name");
 			scanForInjectionAttack(email.getFromRecipient().getAddress(), "email.fromRecipient.address");
 		}
-		if (!valueNullOrEmpty(email.getReplyToRecipient())) {
-			scanForInjectionAttack(email.getReplyToRecipient().getName(), "email.replyToRecipient.name");
-			scanForInjectionAttack(email.getReplyToRecipient().getAddress(), "email.replyToRecipient.address");
+		for (final Recipient recipient : email.getReplyToRecipients()) {
+			scanForInjectionAttack(recipient.getName(), "email.replyToRecipient.name");
+			scanForInjectionAttack(recipient.getAddress(), "email.replyToRecipient.address");
 		}
 		if (!valueNullOrEmpty(email.getBounceToRecipient())) {
 			scanForInjectionAttack(email.getBounceToRecipient().getName(), "email.bounceToRecipient.name");

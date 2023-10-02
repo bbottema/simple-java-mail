@@ -192,10 +192,10 @@ public class EmailGovernanceImpl implements EmailGovernance {
 				: EmailBuilder.forwarding(provided.getEmailToForward());
 
 		final Recipient fromRecipient = resolveEmailProperty(provided, EmailProperty.FROM_RECIPIENT);
-		final Recipient replyToRecipient = resolveEmailProperty(provided, EmailProperty.REPLYTO_RECIPIENT);
+		final List<Recipient> replyToRecipients = resolveEmailCollectionProperty(provided, EmailProperty.REPLYTO_RECIPIENT);
 
 		ofNullable(fromRecipient).ifPresent(builder::from);
-		builder.withReplyTo(replyToRecipient);
+		builder.withReplyTo(replyToRecipients);
 		builder.to(resolveEmailCollectionProperty(provided, EmailProperty.TO_RECIPIENTS));
 		builder.cc(resolveEmailCollectionProperty(provided, EmailProperty.CC_RECIPIENTS));
 		builder.bcc(resolveEmailCollectionProperty(provided, EmailProperty.BCC_RECIPIENTS));
@@ -216,8 +216,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			Recipient returnReceiptToRecipient = resolveEmailProperty(provided, EmailProperty.RETURN_RECEIPT_TO);
 			if (returnReceiptToRecipient != null) {
 				builder.withReturnReceiptTo(returnReceiptToRecipient);
-			} else if (replyToRecipient != null) {
-				builder.withReturnReceiptTo(replyToRecipient);
+			} else if (!replyToRecipients.isEmpty()) {
+				builder.withReturnReceiptTo(replyToRecipients.get(0));
 			} else if (fromRecipient != null) {
 				builder.withReturnReceiptTo(fromRecipient);
 			} else {
@@ -230,8 +230,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			Recipient dispositionNotificationToRecipient = resolveEmailProperty(provided, EmailProperty.DISPOSITION_NOTIFICATION_TO);
 			if (dispositionNotificationToRecipient != null) {
 				builder.withDispositionNotificationTo(dispositionNotificationToRecipient);
-			} else if (replyToRecipient != null) {
-				builder.withDispositionNotificationTo(replyToRecipient);
+			} else if (!replyToRecipients.isEmpty()) {
+				builder.withDispositionNotificationTo(replyToRecipients.get(0));
 			} else if (fromRecipient != null) {
 				builder.withDispositionNotificationTo(fromRecipient);
 			} else {

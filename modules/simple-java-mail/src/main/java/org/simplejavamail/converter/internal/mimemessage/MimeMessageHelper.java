@@ -80,19 +80,22 @@ public class MimeMessageHelper {
 	}
 
 	/**
-	 * Fills the {@link Message} instance with reply-to address.
+	 * Fills the {@link Message} instance with reply-to address(es).
 	 *
 	 * @param email   The message in which the recipients are defined.
-	 * @param message The javax message that needs to be filled with reply-to address.
+	 * @param message The javax message that needs to be filled with reply-to addresses.
 	 * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.
 	 * @throws MessagingException           See {@link Message#setReplyTo(Address[])}
 	 */
 	static void setReplyTo(@NotNull final Email email, final Message message)
 			throws UnsupportedEncodingException, MessagingException {
-		if (email.getReplyToRecipient() != null) {
-			message.setReplyTo(new Address[] {
-					new InternetAddress(email.getReplyToRecipient().getAddress(), email.getReplyToRecipient().getName(), CHARACTER_ENCODING)
-			});
+		if (!email.getReplyToRecipients().isEmpty()) {
+			val replyToAddresses = new Address[email.getReplyToRecipients().size()];
+			int i = 0;
+			for (val replyToRecipient : email.getReplyToRecipients()) {
+				replyToAddresses[i++] = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(), CHARACTER_ENCODING);
+			}
+			message.setReplyTo(replyToAddresses);
 		}
 	}
 

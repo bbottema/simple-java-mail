@@ -30,7 +30,7 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getSentDate(), email2.getSentDate(), "sendDate")) {
             return false;
         }
-        if (!fieldIsEqual(email1.getReplyToRecipient(), email2.getReplyToRecipient(), "replyToRecipient")) {
+        if (!isEqualRecipientList(email1.getReplyToRecipients(), email2.getReplyToRecipients())) {
             return false;
         }
         if (!fieldIsEqual(email1.getBounceToRecipient(), email2.getBounceToRecipient(), "bounceToRecipient")) {

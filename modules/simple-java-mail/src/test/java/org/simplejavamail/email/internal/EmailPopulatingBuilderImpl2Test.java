@@ -1,7 +1,6 @@
 package org.simplejavamail.email.internal;
 
 import org.apache.commons.collections4.map.HashedMap;
-import org.assertj.core.api.iterable.Extractor;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
@@ -18,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Map;
+import java.util.function.Function;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.BCC;
@@ -100,7 +100,7 @@ public class EmailPopulatingBuilderImpl2Test {
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmail())
 				.hasFromRecipient(null)
-				.hasReplyToRecipient(null)
+				.hasNoReplyToRecipients()
 				.hasBounceToRecipient(null)
 				.hasNoRecipients()
 				.hasSubject(null)
@@ -110,7 +110,7 @@ public class EmailPopulatingBuilderImpl2Test {
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
 				.hasFromRecipient(new Recipient("Test From", "test_from@domain.com", null))
-				.hasReplyToRecipient(new Recipient("Test Replyto", "test_replyto@domain.com", null))
+				.hasReplyToRecipients(new Recipient("Test Replyto", "test_replyto@domain.com", null))
 				.hasBounceToRecipient(new Recipient("Test Bounceto", "test_boundeto@domain.com", null))
 				.hasRecipients(
 						new Recipient("test TO name", "test_to1@domain.com", TO), new Recipient("test TO name", "test_to2@domain.com", TO),
@@ -143,7 +143,7 @@ public class EmailPopulatingBuilderImpl2Test {
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmail())
 				.hasFromRecipient(null)
-				.hasReplyToRecipient(null)
+				.hasNoReplyToRecipients()
 				.hasBounceToRecipient(null)
 				.hasNoRecipients()
 				.hasX509CertificateForSmimeEncryption(null);
@@ -153,7 +153,7 @@ public class EmailPopulatingBuilderImpl2Test {
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
 				.hasFromRecipient(new Recipient(null, "test_from@domain.com", null))
-				.hasReplyToRecipient(new Recipient(null, "test_replyto@domain.com", null))
+				.hasReplyToRecipients(new Recipient(null, "test_replyto@domain.com", null))
 				.hasBounceToRecipient(new Recipient(null, "test_boundeto@domain.com", null))
 				.hasRecipients(
 						new Recipient(null, "test_to1@domain.com", TO), new Recipient(null, "test_to2@domain.com", TO),
@@ -245,9 +245,9 @@ public class EmailPopulatingBuilderImpl2Test {
 		assertThat(email.getEmbeddedImages()).isEmpty();
 	}
 
-	private static class DatasourceReadingExtractor implements Extractor<AttachmentResource, String> {
+	private static class DatasourceReadingExtractor implements Function<AttachmentResource, String> {
 		@Override
-		public String extract(final AttachmentResource input) {
+		public String apply(final AttachmentResource input) {
 			try {
 				final String sourceContent = input.readAllData();
 				if (sourceContent.contains(DOWNLOAD_SIMPLE_JAVA_MAIL)) {

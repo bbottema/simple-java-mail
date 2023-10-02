@@ -41,7 +41,7 @@ public class EmailConfigTest {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		Email email = EmailBuilder.startingBlank().buildEmail();
 		assertThat(email.getFromRecipient()).isNull();
-		assertThat(email.getReplyToRecipient()).isNull();
+		assertThat(email.getReplyToRecipients()).isEmpty();
 		assertThat(email.getBounceToRecipient()).isNull();
 		assertThat(email.getRecipients()).isEmpty();
 	}
@@ -50,7 +50,8 @@ public class EmailConfigTest {
 	public void emailConstructor_WithConfig() {
 		val email = EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides();
 		assertThat(email.getFromRecipient()).isEqualToComparingFieldByField(new Recipient("From Default", "from@default.com", null));
-		assertThat(email.getReplyToRecipient()).isEqualToComparingFieldByField(new Recipient("Reply-To Default", "reply-to@default.com", null));
+		assertThat(email.getReplyToRecipients()).hasSize(1);
+		assertThat(email.getReplyToRecipients().get(0)).isEqualToComparingFieldByField(new Recipient("Reply-To Default", "reply-to@default.com", null));
 		assertThat(email.getBounceToRecipient()).isEqualToComparingFieldByField(new Recipient("Bounce-To Default", "bounce-to@default.com", null));
 		assertThat(email.getRecipients()).isNotEmpty();
 		assertThat(email.getRecipients()).hasSize(3);

@@ -207,9 +207,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getFromRecipient() != null) {
 			builder.from(email.getFromRecipient());
 		}
-		if (email.getReplyToRecipient() != null) {
-			builder.withReplyTo(email.getReplyToRecipient());
-		}
+		builder.withReplyTo(email.getReplyToRecipients());
 		if (email.getBounceToRecipient() != null) {
 			builder.withBounceTo(email.getBounceToRecipient());
 		}

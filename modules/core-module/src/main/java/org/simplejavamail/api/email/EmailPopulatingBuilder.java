@@ -49,7 +49,7 @@ public interface EmailPopulatingBuilder {
 	 * Validated DKIM values and then delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument. This results in an Email instance with
 	 * just the values set on this builder by the user. <strong>This is the regular use case and the common way to send emails using a {@link Mailer} instance.</strong>
 	 * <p>
-	 * If you don't have a Mailer instance or you just want to call helper methods that only accept an {@link EmailWithDefaultsAndOverridesApplied}, there are two ways
+	 * If you don't have a Mailer instance, or you just want to call helper methods that only accept an {@link EmailWithDefaultsAndOverridesApplied}, there are two ways
 	 * to complete this Email with defaults and overrides that you may have configured as (system) properties (files):
 	 * <ol>
 	 *     <li>Construct a new {@code EmailGovernanceImpl} or use {@code EmailGovernanceImpl.NO_GOVERNANCE()}, and then use {@link EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)}</li>
@@ -181,12 +181,12 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder from(@NotNull Recipient recipient);
 	
 	/**
-	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given email address (or null if missing).
+	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given email address.
 	 *
 	 * @param replyToAddress The address that receivers will get when they reply to the email.
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
-	EmailPopulatingBuilder withReplyTo(@Nullable String replyToAddress);
+	EmailPopulatingBuilder withReplyTo(@NotNull String replyToAddress);
 	
 	/**
 	 * Delegates to {@link #withReplyTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and email address.
@@ -205,17 +205,22 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withReplyTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and address.
 	 */
 	EmailPopulatingBuilder withReplyTo(@Nullable String fixedName, @NotNull InternetAddress replyToAddress);
-	
+
+	/**
+	 * Delegates to #withReplyTo(Recipient...)
+	 */
+	EmailPopulatingBuilder withReplyTo(@NotNull Recipient recipient);
+
 	/**
 	 * Sets the <em>replyTo</em> address of this email with given {@link Recipient} (ignoring its {@link Message.RecipientType} if provided).
 	 * <p>
 	 * If provided, email clients should prioritize the <em>replyTo</em> recipient over the <em>from</em> recipient when replying to this email.
 	 *
-	 * @param recipient Preconfigured recipient which includes optional name and mandatory email address.
+	 * @param recipients Preconfigured recipients which each includes optional name and mandatory email address.
 	 *
 	 * @see #withReplyTo(String, String)
 	 */
-	EmailPopulatingBuilder withReplyTo(@Nullable Recipient recipient);
+	EmailPopulatingBuilder withReplyTo(@NotNull List<Recipient> recipients);
 	
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the email address (or null if missing).
@@ -399,7 +404,7 @@ public interface EmailPopulatingBuilder {
 	 * {@link #withPlainText(String)} and {@link #withHTMLText(String)}.
 	 *
 	 * @param calendarMethod An RFC-2446 VEVENT calendar component method. Example: {@code PUBLISH, REQUEST, REPLY, ADD, CANCEL, REFRESH, COUNTER, DECLINECOUNTER}
-	 * @param textCalendar free form text, which you should can produce with a library such as
+	 * @param textCalendar free form text, which you can produce with a library such as
 	 *                        <a href="https://github.com/ical4j/ical4j/wiki/Examples">ical4j</a>.
 	 *
 	 * @see "The Test demo app in Simple Java Mail's source for a working example."
@@ -1340,8 +1345,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder encryptWithSmime(@NotNull X509Certificate x509Certificate);
 
 	/**
-	 * When the S/MIME module is loaded, S/MIME signed / encrypted attachments are decrypted and kept in a separate list. However
-	 * if it is a single attachment and the actual attachment has mimetype "message/rfc822", it is assumes to be the message
+	 * When the S/MIME module is loaded, S/MIME signed / encrypted attachments are decrypted and kept in a separate list. However,
+	 * if it is a single attachment and the actual attachment has mimetype "message/rfc822", it is assumed to be the message
 	 * itself and by default will be merged with the top level email (basically overriding body, headers and attachments).
 	 * <br>
 	 * This API disables this behavior and stricly keeps all attachments as-is (still decrypted, but not merged with the email).
@@ -1471,7 +1476,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearFromRecipient();
 	
 	/**
-	 * Resets <em>replyToRecipient</em> to empty.
+	 * Resets <em>replyToRecipients</em> to empty.
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearReplyTo();
@@ -1631,8 +1636,8 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * @see #withReplyTo(Recipient)
 	 */
-	@Nullable
-	Recipient getReplyToRecipient();
+	@NotNull
+	List<Recipient> getReplyToRecipients();
 	
 	/**
 	 * @see #withBounceTo(Recipient)
