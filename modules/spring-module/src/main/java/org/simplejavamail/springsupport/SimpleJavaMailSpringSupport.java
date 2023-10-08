@@ -17,6 +17,9 @@ import java.util.Properties;
  * for your convenience in case you wish to further configure it in Java code. For this to work, you need to include
  * default properties in your Spring config.
  * <p>
+ * Note that there are some overloaded property names, which is because of the recently added Spring Boot IDE hints support,
+ * and due to the fact that Spring Boot does not support dashes.
+ * <p>
  * Using profiles, you can have environment specific configurations that way. See
  * <a href="https://www.simplejavamail.org/#/configuration">simplejavamail.org</a> for example configuration.
  * <p>
@@ -29,6 +32,7 @@ import java.util.Properties;
  * <li>simplejavamail.smtp.username</li>
  * <li>simplejavamail.smtp.password</li>
  * <li>simplejavamail.disable.all.clientvalidation</li>
+ * <li>simplejavamail.custom.sslfactory.class</li>
  * <li>simplejavamail.proxy.host</li>
  * <li>simplejavamail.proxy.port</li>
  * <li>simplejavamail.proxy.username</li>
@@ -64,13 +68,19 @@ import java.util.Properties;
  * <li>simplejavamail.opportunistic.tls</li>
  * <li>simplejavamail.smime.signing.keystore</li>
  * <li>simplejavamail.smime.signing.keystore_password</li>
+ * <li>simplejavamail.smime.signing.keystore-password</li>
  * <li>simplejavamail.smime.signing.key_alias</li>
+ * <li>simplejavamail.smime.signing.key-alias</li>
  * <li>simplejavamail.smime.signing.key_password</li>
+ * <li>simplejavamail.smime.signing.key-password</li>
  * <li>simplejavamail.smime.encryption.certificate</li>
  * <li>simplejavamail.dkim.signing.private_key_file_or_data</li>
+ * <li>simplejavamail.dkim.signing.private-key-file-or-data</li>
  * <li>simplejavamail.dkim.signing.selector</li>
  * <li>simplejavamail.dkim.signing.signing_domain</li>
+ * <li>simplejavamail.dkim.signing.signing-domain</li>
  * <li>simplejavamail.dkim.signing.excluded_headers_from_default_signing_list</li>
+ * <li>simplejavamail.dkim.signing.excluded-headers-from-default-signing-list</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.dir</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.url</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.classpath</li>
@@ -104,6 +114,7 @@ public class SimpleJavaMailSpringSupport {
 			@Nullable @Value("${simplejavamail.smtp.password:#{null}}") final String smtpPassword,
 			@Nullable @Value("${simplejavamail.disable.all.clientvalidation:#{null}}") final String disableAllClientValidation,
 			@Nullable @Value("${simplejavamail.custom.sslfactory.class:#{null}}") final String customSSLFactoryClass,
+			@Nullable @Value("${simplejavamail.custom.sslfactory.clazz:#{null}}") final String customSSLFactoryClassSpringBoot,
 			@Nullable @Value("${simplejavamail.proxy.host:#{null}}") final String proxyHost,
 			@Nullable @Value("${simplejavamail.proxy.port:#{null}}") final String proxyPort,
 			@Nullable @Value("${simplejavamail.proxy.username:#{null}}") final String proxyUsername,
@@ -135,17 +146,23 @@ public class SimpleJavaMailSpringSupport {
 			@Nullable @Value("${simplejavamail.defaults.trustallhosts:#{null}}") final String defaultTrustAllHosts,
 			@Nullable @Value("${simplejavamail.defaults.trustedhosts:#{null}}") final String defaultTrustedHosts,
 			@Nullable @Value("${simplejavamail.defaults.verifyserveridentity:#{null}}") final String defaultVerifyServerIdentity,
-			@Nullable @Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String defaultTransportModeLoggingOnly,
-			@Nullable @Value("${simplejavamail.opportunistic.tls:#{null}}") final String defaultOpportunisticTls,
+			@Nullable @Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String transportModeLoggingOnly,
+			@Nullable @Value("${simplejavamail.opportunistic.tls:#{null}}") final String opportunisticTls,
 			@Nullable @Value("${simplejavamail.smime.signing.keystore:#{null}}") final String smimeSigningKeyStore,
 			@Nullable @Value("${simplejavamail.smime.signing.keystore_password:#{null}}") final String smimeSigningKeyStorePassword,
+			@Nullable @Value("${simplejavamail.smime.signing.keystore-password:#{null}}") final String smimeSigningKeyStorePasswordSpringBoot,
 			@Nullable @Value("${simplejavamail.smime.signing.key_alias:#{null}}") final String smimeSigningKeyAlias,
+			@Nullable @Value("${simplejavamail.smime.signing.key-alias:#{null}}") final String smimeSigningKeyAliasSpringBoot,
 			@Nullable @Value("${simplejavamail.smime.signing.key_password:#{null}}") final String smimeSigningKeyPassword,
+			@Nullable @Value("${simplejavamail.smime.signing.key-password:#{null}}") final String smimeSigningKeyPasswordSpringBoot,
 			@Nullable @Value("${simplejavamail.smime.encryption.certificate:#{null}}") final String smimeEncryptionCertificate,
 			@Nullable @Value("${simplejavamail.dkim.signing.private_key_file_or_data:#{null}}") final String dkimSigningPrivateKeyFileOrData,
+			@Nullable @Value("${simplejavamail.dkim.signing.private-key-file-or-data:#{null}}") final String dkimSigningPrivateKeyFileOrDataSpringBoot,
 			@Nullable @Value("${simplejavamail.dkim.signing.selector:#{null}}") final String dkimSigningSelector,
 			@Nullable @Value("${simplejavamail.dkim.signing.signing_domain:#{null}}") final String dkimSigningDomain,
+			@Nullable @Value("${simplejavamail.dkim.signing.signing-domain:#{null}}") final String dkimSigningDomainSpringBoot,
 			@Nullable @Value("${simplejavamail.dkim.signing.excluded_headers_from_default_signing_list:#{null}}") final String dkimSigningExcludedHeadersFromDefaultSigningList,
+			@Nullable @Value("${simplejavamail.dkim.signing.excluded-headers-from-default-signing-list:#{null}}") final String dkimSigningExcludedHeadersFromDefaultSigningListSpringBoot,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.dir:#{null}}") final String embeddedimagesDynamicresolutionEnableDir,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.url:#{null}}") final String embeddedimagesDynamicresolutionEnableUrl,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.classpath:#{null}}") final String embeddedimagesDynamicresolutionEnableClassPath,
@@ -164,8 +181,12 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.SMTP_USERNAME.key(), smtpUsername);
 		setNullableProperty(emailProperties, Property.SMTP_PASSWORD.key(), smtpPassword);
 		setNullableProperty(emailProperties, Property.DISABLE_ALL_CLIENTVALIDATION.key(), disableAllClientValidation);
-		setNullableProperty(emailProperties, Property.CUSTOM_SSLFACTORY_CLASS.key(), customSSLFactoryClass);
-		setNullableProperty(emailProperties, Property.PROXY_HOST.key(), proxyHost);
+        if (customSSLFactoryClass != null) {
+            setNullableProperty(emailProperties, Property.CUSTOM_SSLFACTORY_CLASS.key(), customSSLFactoryClass);
+        } else {
+            setNullableProperty(emailProperties, Property.CUSTOM_SSLFACTORY_CLASS.key(), customSSLFactoryClassSpringBoot); // can still be null
+        }
+        setNullableProperty(emailProperties, Property.PROXY_HOST.key(), proxyHost);
 		setNullableProperty(emailProperties, Property.PROXY_PORT.key(), proxyPort);
 		setNullableProperty(emailProperties, Property.PROXY_USERNAME.key(), proxyUsername);
 		setNullableProperty(emailProperties, Property.PROXY_PASSWORD.key(), proxyPassword);
@@ -196,17 +217,41 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_TRUST_ALL_HOSTS.key(), defaultTrustAllHosts);
 		setNullableProperty(emailProperties, Property.DEFAULT_TRUSTED_HOSTS.key(), defaultTrustedHosts);
 		setNullableProperty(emailProperties, Property.DEFAULT_VERIFY_SERVER_IDENTITY.key(), defaultVerifyServerIdentity);
-		setNullableProperty(emailProperties, Property.TRANSPORT_MODE_LOGGING_ONLY.key(), defaultTransportModeLoggingOnly);
-		setNullableProperty(emailProperties, Property.OPPORTUNISTIC_TLS.key(), defaultOpportunisticTls);
+		setNullableProperty(emailProperties, Property.TRANSPORT_MODE_LOGGING_ONLY.key(), transportModeLoggingOnly);
+		setNullableProperty(emailProperties, Property.OPPORTUNISTIC_TLS.key(), opportunisticTls);
 		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEYSTORE.key(), smimeSigningKeyStore);
-		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEYSTORE_PASSWORD.key(), smimeSigningKeyStorePassword);
-		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_ALIAS.key(), smimeSigningKeyAlias);
-		setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_PASSWORD.key(), smimeSigningKeyPassword);
+		if (smimeSigningKeyStorePassword != null) {
+			setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEYSTORE_PASSWORD.key(), smimeSigningKeyStorePassword);
+		} else {
+			setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEYSTORE_PASSWORD.key(), smimeSigningKeyStorePasswordSpringBoot);
+		}
+		if (smimeSigningKeyAlias != null) {
+			setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_ALIAS.key(), smimeSigningKeyAlias);
+		} else {
+			setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_ALIAS.key(), smimeSigningKeyAliasSpringBoot);
+		}
+		if (smimeSigningKeyPassword != null) {
+			setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_PASSWORD.key(), smimeSigningKeyPassword);
+		} else {
+			setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_PASSWORD.key(), smimeSigningKeyPasswordSpringBoot);
+		}
 		setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_CERTIFICATE.key(), smimeEncryptionCertificate);
-		setNullableProperty(emailProperties, Property.DKIM_PRIVATE_KEY_FILE_OR_DATA.key(), dkimSigningPrivateKeyFileOrData);
+		if (dkimSigningPrivateKeyFileOrData != null) {
+			setNullableProperty(emailProperties, Property.DKIM_PRIVATE_KEY_FILE_OR_DATA.key(), dkimSigningPrivateKeyFileOrData);
+		} else {
+			setNullableProperty(emailProperties, Property.DKIM_PRIVATE_KEY_FILE_OR_DATA.key(), dkimSigningPrivateKeyFileOrDataSpringBoot);
+		}
 		setNullableProperty(emailProperties, Property.DKIM_SELECTOR.key(), dkimSigningSelector);
-		setNullableProperty(emailProperties, Property.DKIM_SIGNING_DOMAIN.key(), dkimSigningDomain);
-		setNullableProperty(emailProperties, Property.DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST.key(), dkimSigningExcludedHeadersFromDefaultSigningList);
+		if (dkimSigningDomain != null) {
+			setNullableProperty(emailProperties, Property.DKIM_SIGNING_DOMAIN.key(), dkimSigningDomain);
+		} else {
+			setNullableProperty(emailProperties, Property.DKIM_SIGNING_DOMAIN.key(), dkimSigningDomainSpringBoot);
+		}
+		if (dkimSigningExcludedHeadersFromDefaultSigningList != null) {
+			setNullableProperty(emailProperties, Property.DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST.key(), dkimSigningExcludedHeadersFromDefaultSigningList);
+		} else {
+			setNullableProperty(emailProperties, Property.DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST.key(), dkimSigningExcludedHeadersFromDefaultSigningListSpringBoot);
+		}
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR.key(), embeddedimagesDynamicresolutionEnableDir);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH.key(), embeddedimagesDynamicresolutionEnableClassPath);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL.key(), embeddedimagesDynamicresolutionEnableUrl);
