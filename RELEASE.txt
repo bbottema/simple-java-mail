@@ -3,8 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.2.0</version>
+    <version>8.3.0</version>
 </dependency>
+
+v8.3.0 (09-October-2023)
+
+- #475: Enhancement: Add configuration metadata for Spring Boot application properties
+
 
 v8.2.0 (02-October-2023)
 
