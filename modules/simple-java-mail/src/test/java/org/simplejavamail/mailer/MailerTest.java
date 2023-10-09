@@ -426,7 +426,7 @@ public class MailerTest {
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
 		final Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 		
-		TestDataHelper.fixDresscodeAttachment(emailFromMimeMessage);
+		TestDataHelper.retrofitLostOriginalAttachmentNames(emailFromMimeMessage);
 
 		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
 	}

@@ -8,6 +8,7 @@ import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.util.ByteArrayDataSource;
+import lombok.SneakyThrows;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -441,5 +443,12 @@ public final class MiscUtil {
 			collectedHeaders.get(headerKey).clear();
 			collectedHeaders.get(headerKey).addAll(headerValues);
 		});
+	}
+
+	@SneakyThrows
+	public static void assignToInstanceField(Object subject, String fieldName, Object newValue) {
+		Field field = subject.getClass().getDeclaredField(fieldName);
+		field.setAccessible(true);
+		field.set(subject, newValue);
 	}
 }

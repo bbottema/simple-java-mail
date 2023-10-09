@@ -1,7 +1,6 @@
 package org.simplejavamail.converter;
 
 import jakarta.mail.util.ByteArrayDataSource;
-import org.apache.commons.codec.binary.Base64;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -23,7 +22,9 @@ import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.nio.charset.Charset.defaultCharset;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
+import static org.apache.commons.codec.binary.Base64.encodeBase64Chunked;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
@@ -194,19 +195,26 @@ public class EmailConverterTest {
 		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
 		final String emlRoundtrip = normalizeNewlines(EmailConverter.emailToEML(EmailConverter.emlToEmail(EmailConverter.emailToEML(email))));
 
-		assertThat(eml).contains("Content-Transfer-Encoding: base64\n"
-				+ "\n"
-				+ new String(Base64.encodeBase64("We should meet up!".getBytes())));
-		assertThat(eml).contains("Content-Transfer-Encoding: base64\n"
-				+ "\n"
-				+ new String(Base64.encodeBase64("<b>We should meet up!</b><img src='cid:thumbsup'>".getBytes())));
+		assertThat(eml).contains("Content-Transfer-Encoding: base64\n\n"
+				+ asBase64("We should meet up!"));
+		assertThat(eml).contains("Content-Transfer-Encoding: base64\n\n"
+				+ asBase64("<b>We should meet up!</b><img src='cid:thumbsup'><img src='cid:fixedNameWithoutFileExtensionForNamedEmbeddedImage'>"));
 
-		assertThat(emlRoundtrip).contains("Content-Transfer-Encoding: base64\n"
-				+ "\n"
-				+ new String(Base64.encodeBase64("We should meet up!".getBytes())));
-		assertThat(emlRoundtrip).contains("Content-Transfer-Encoding: base64\n"
-				+ "\n"
-				+ new String(Base64.encodeBase64("<b>We should meet up!</b><img src='cid:thumbsup'>".getBytes())));
+		assertThat(emlRoundtrip).contains("Content-Transfer-Encoding: base64\n\n"
+				+ asBase64("We should meet up!"));
+		assertThat(emlRoundtrip).contains("Content-Transfer-Encoding: base64\n\n"
+				+ asBase64("<b>We should meet up!</b><img src='cid:thumbsup'><img src='cid:fixedNameWithoutFileExtensionForNamedEmbeddedImage'>"));
+
+		assertThat(eml).contains("Content-ID: <dresscode.txt>");
+		assertThat(eml).contains("Content-ID: <location.txt>");
+		assertThat(eml).contains("Content-ID: <thumbsup>");
+		assertThat(eml).contains("Content-ID: <fixedNameWithoutFileExtensionForNamedAttachment.txt>");
+		assertThat(eml).contains("Content-ID: <fixedNameWithoutFileExtensionForNamedEmbeddedImage>");
+	}
+
+	@NotNull
+	private static String asBase64(String content) {
+		return normalizeNewlines(new String(encodeBase64Chunked(content.getBytes(UTF_8)), UTF_8));
 	}
 
 	@Test

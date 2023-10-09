@@ -63,7 +63,7 @@ public class EmailHelper {
 			builder = builder
 					.withSubject("hey")
 					.withPlainText("We should meet up!")
-					.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'>");
+					.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'><img src='cid:fixedNameWithoutFileExtensionForNamedEmbeddedImage'>");
 		}
 		if (useDynamicImageEmbedding) {
 			builder = builder
@@ -88,15 +88,21 @@ public class EmailHelper {
 			builder = builder.fixingSentDate(CUSTOM_SENT_DATE);
 		}
 
+		final String base64StringOfThumbsupImage = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABeElEQVRYw2NgoAAYGxu3GxkZ7TY1NZVloDcAWq4MxH+B+D8Qv3FwcOCgtwM6oJaDMTAUXOhmuYqKCjvQ0pdoDrCnmwNMTEwakC0H4u8GBgYC9Ap6DSD+iewAoIPm0ctyLqBlp9F8/x+YE4zpYT8T0LL16JYD8U26+B7oyz4sloPwenpYno3DchCeROsUbwa05A8eB3wB4kqgIxOAuArIng7EW4H4EhC/B+JXQLwDaI4ryZaDSjeg5mt4LCcFXyIn1fdSyXJQVt1OtMWGhoai0OD8T0W8GohZifE1PxD/o7LlsPLiFNAKRrwOABWptLAcqc6QGDAHQEOAYaAc8BNotsJAOgAUAosG1AFA/AtUoY3YEFhKMAvS2AE7iC1+WaG1H6gY3gzE36hUFJ8mqzbU1dUVBBqQBzTgIDQRkWo5qCZdpaenJ0Zx1aytrc0DDB0foIG1oAYKqC0IZK8D4n1AfA6IzwPxXpCFoGoZVEUDaRGGUTAKRgEeAAA2eGJC+ETCiAAAAABJRU5ErkJggg==";
+
 		// add two text files in different ways and a black thumbs up embedded image ->
 		ByteArrayDataSource namedAttachment = new ByteArrayDataSource("Black Tie Optional", "text/plain");
 		namedAttachment.setName("dresscode-ignored-because-of-override.txt");
-		String base64String = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABeElEQVRYw2NgoAAYGxu3GxkZ7TY1NZVloDcAWq4MxH+B+D8Qv3FwcOCgtwM6oJaDMTAUXOhmuYqKCjvQ0pdoDrCnmwNMTEwakC0H4u8GBgYC9Ap6DSD+iewAoIPm0ctyLqBlp9F8/x+YE4zpYT8T0LL16JYD8U26+B7oyz4sloPwenpYno3DchCeROsUbwa05A8eB3wB4kqgIxOAuArIng7EW4H4EhC/B+JXQLwDaI4ryZaDSjeg5mt4LCcFXyIn1fdSyXJQVt1OtMWGhoai0OD8T0W8GohZifE1PxD/o7LlsPLiFNAKRrwOABWptLAcqc6QGDAHQEOAYaAc8BNotsJAOgAUAosG1AFA/AtUoY3YEFhKMAvS2AE7iC1+WaG1H6gY3gzE36hUFJ8mqzbU1dUVBBqQBzTgIDQRkWo5qCZdpaenJ0Zx1aytrc0DDB0foIG1oAYKqC0IZK8D4n1AfA6IzwPxXpCFoGoZVEUDaRGGUTAKRgEeAAA2eGJC+ETCiAAAAABJRU5ErkJggg==";
+		ByteArrayDataSource namedEmbeddedImage = new ByteArrayDataSource(parseBase64Binary(base64StringOfThumbsupImage), "image/png");
+		namedEmbeddedImage.setName("thumbsupNamed-ignored-because-of-override.png");
 
 		InternalEmailPopulatingBuilder internalBuilder = ((InternalEmailPopulatingBuilder) builder
 				.withAttachment("dresscode.txt", namedAttachment)
 				.withAttachment("location.txt", "On the moon!".getBytes(Charset.defaultCharset()), "text/plain")
-				.withEmbeddedImage("thumbsup", parseBase64Binary(base64String), "image/png"))
+				.withEmbeddedImage("thumbsup", parseBase64Binary(base64StringOfThumbsupImage), "image/png")
+				// attachment name tests when producing MimeMessage ->
+				.withAttachment("fixedNameWithoutFileExtensionForNamedAttachment", namedAttachment) // this should be overridden by appending file extension
+				.withEmbeddedImage("fixedNameWithoutFileExtensionForNamedEmbeddedImage", namedEmbeddedImage)) // this should not be overridden
 				.withDecryptedAttachments(builder.getAttachments());
 
 		if (useSmimeDetailsImplFromSmimeModule) {
