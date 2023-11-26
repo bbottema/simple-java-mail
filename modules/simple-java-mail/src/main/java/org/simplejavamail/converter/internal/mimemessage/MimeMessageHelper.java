@@ -205,8 +205,8 @@ public class MimeMessageHelper {
 	 * Sets all headers on the {@link Message} instance. Since we're not using a high-level JavaMail method, the JavaMail library says we need to do
 	 * some encoding and 'folding' manually, to get the value right for the headers (see {@link MimeUtility}.
 	 * <p>
-	 * Furthermore sets the notification flags <code>Disposition-Notification-To</code> and <code>Return-Receipt-To</code> if provided. It used
-	 * JavaMail's built in method for producing an RFC compliant email address (see {@link InternetAddress#toString()}).
+	 * Furthermore, sets the notification flags <code>Disposition-Notification-To</code> and <code>Return-Receipt-To</code> if provided. It used
+	 * JavaMail's built-in method for producing an RFC compliant email address (see {@link InternetAddress#toString()}).
 	 *
 	 * @param email   The message in which the headers are defined.
 	 * @param message The {@link Message} on which to set the raw, encoded and folded headers.
@@ -261,8 +261,8 @@ public class MimeMessageHelper {
 			throws MessagingException {
 		final BodyPart attachmentPart = new MimeBodyPart();
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
-		final String resourceName = determineResourceName(attachmentResource, dispositionType, true);
-		final String fileName = determineResourceName(attachmentResource, dispositionType, false);
+		final String fileName = determineResourceName(attachmentResource, dispositionType, false, false);
+		final String contentID = determineResourceName(attachmentResource, dispositionType, true, true);
 		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(fileName, attachmentResource.getDataSource())));
 		attachmentPart.setFileName(fileName);
 		final String contentType = attachmentResource.getDataSource().getContentType();
@@ -270,7 +270,7 @@ public class MimeMessageHelper {
 		pl.set("filename", fileName);
 		pl.set("name", fileName);
 		attachmentPart.setHeader("Content-Type", contentType + pl);
-		attachmentPart.setHeader("Content-ID", format("<%s>", resourceName));
+		attachmentPart.setHeader("Content-ID", format("<%s>", contentID));
 
 		attachmentPart.setHeader("Content-Description", determineAttachmentDescription(attachmentResource));
 		if (!valueNullOrEmpty(attachmentResource.getContentTransferEncoding())) {
@@ -283,7 +283,7 @@ public class MimeMessageHelper {
 	/**
 	 * Determines the right resource name and optionally attaches the correct extension to the name. The result is mime encoded.
 	 */
-	static String determineResourceName(final AttachmentResource attachmentResource, String dispositionType, final boolean encodeResourceName) {
+	static String determineResourceName(final AttachmentResource attachmentResource, String dispositionType, final boolean encodeResourceName, final boolean isContentID) {
 		final String datasourceName = attachmentResource.getDataSource().getName();
 
 		String resourceName;
@@ -295,6 +295,13 @@ public class MimeMessageHelper {
 		} else {
 			resourceName = "resource" + UUID.randomUUID();
 		}
+
+		// if ATTACHMENT, then add UUID to the name to prevent attachments with the same name to reference the same attachment content
+		if (isContentID && dispositionType.equals(Part.ATTACHMENT)) {
+			resourceName +=  "@" + UUID.randomUUID();
+		}
+
+		// if there is no extension on the name, but there is on the datasource name, then add it to the name
 		if (!valueNullOrEmpty(datasourceName) && dispositionType.equals(Part.ATTACHMENT)) {
 			resourceName = possiblyAddExtension(datasourceName, resourceName);
 		}

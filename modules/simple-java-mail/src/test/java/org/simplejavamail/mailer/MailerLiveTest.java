@@ -556,9 +556,9 @@ public class MailerLiveTest {
 		assertThat(receivedReplyToReply.getHeaders()).contains(entry("References", singletonList(references)));
 	}
 	
-	private void assertAttachmentMetadata(AttachmentResource embeddedImg, String mimeType, String filename) {
-		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo(mimeType);
-		assertThat(embeddedImg.getName()).isEqualTo(filename);
+	private void assertAttachmentMetadata(AttachmentResource attachment, String mimeType, String filename) {
+		assertThat(attachment.getDataSource().getContentType()).isEqualTo(mimeType);
+		assertThat(attachment.getName()).isEqualTo(filename);
 	}
 
 	@Test

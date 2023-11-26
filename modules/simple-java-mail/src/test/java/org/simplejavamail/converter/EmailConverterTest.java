@@ -17,17 +17,21 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
+import static java.lang.String.format;
 import static java.nio.charset.Charset.defaultCharset;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
+import static java.util.regex.Pattern.compile;
 import static org.apache.commons.codec.binary.Base64.encodeBase64Chunked;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
+import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 public class EmailConverterTest {
 
@@ -205,10 +209,10 @@ public class EmailConverterTest {
 		assertThat(emlRoundtrip).contains("Content-Transfer-Encoding: base64\n\n"
 				+ asBase64("<b>We should meet up!</b><img src='cid:thumbsup'><img src='cid:fixedNameWithoutFileExtensionForNamedEmbeddedImage'>"));
 
-		assertThat(eml).contains("Content-ID: <dresscode.txt>");
-		assertThat(eml).contains("Content-ID: <location.txt>");
+		assertThat(eml).contains("Content-ID: <dresscode.txt@" + contentIDExtractor(eml, "dresscode.txt") + ">");
+		assertThat(eml).contains("Content-ID: <location.txt@" + contentIDExtractor(eml, "location.txt") + ">");
 		assertThat(eml).contains("Content-ID: <thumbsup>");
-		assertThat(eml).contains("Content-ID: <fixedNameWithoutFileExtensionForNamedAttachment.txt>");
+		assertThat(eml).contains("Content-ID: <fixedNameWithoutFileExtensionForNamedAttachment@" + contentIDExtractor(eml, "fixedNameWithoutFileExtensionForNamedAttachment") + ".txt>");
 		assertThat(eml).contains("Content-ID: <fixedNameWithoutFileExtensionForNamedEmbeddedImage>");
 	}
 
@@ -239,28 +243,28 @@ public class EmailConverterTest {
 		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text1.txt\"; name=\"dummy text1.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text1.txt\"\n"
-				+ "Content-ID: <dummy text1.txt>\n"
+				+ "Content-ID: <dummy text1.txt@" + contentIDExtractor(eml, "dummy text1.txt") + ">\n"
 				+ "Content-Description: This is dummy text1\n"
 				+ "\n"
 				+ "Cupcake ipsum dolor sit amet donut. Apple pie caramels oat cake fruitcake sesame snaps. Bear claw cotton candy toffee danish sweet roll.");
 		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text2.txt\"; name=\"dummy text2.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text2.txt\"\n"
-				+ "Content-ID: <dummy text2.txt>\n"
+				+ "Content-ID: <dummy text2.txt@" + contentIDExtractor(eml, "dummy text2.txt") + ">\n"
 				+ "Content-Description: This is dummy text2\n"
 				+ "\n"
 				+ "I love pie I love donut sugar plum. I love halvah topping bonbon fruitcake brownie chocolate. Sweet tootsie roll wafer caramels sesame snaps.");
 		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text3.txt\"; name=\"dummy text3.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text3.txt\"\n"
-				+ "Content-ID: <dummy text3.txt>\n"
+				+ "Content-ID: <dummy text3.txt@" + contentIDExtractor(eml, "dummy text3.txt") + ">\n"
 				+ "Content-Description: This is dummy text3\n"
 				+ "\n"
 				+ "Danish chocolate pudding cake bonbon powder bonbon. I love cookie jelly beans cake oat cake. I love I love sweet roll sweet pudding topping icing.");
 		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text4.txt\"; name=\"dummy text4.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text4.txt\"\n"
-				+ "Content-ID: <dummy text4.txt>\n"
+				+ "Content-ID: <dummy text4.txt@" + contentIDExtractor(eml, "dummy text4.txt") + ">\n"
 				+ "\n"
 				+ "this should not have a Content-Description header");
 
@@ -269,30 +273,36 @@ public class EmailConverterTest {
 		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text1.txt\"; name=\"dummy text1.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text1.txt\"\n"
-				+ "Content-ID: <dummy text1.txt>\n"
+				+ "Content-ID: <dummy text1.txt@" + contentIDExtractor(emlRoundtrip, "dummy text1.txt") + ">\n"
 				+ "Content-Description: This is dummy text1\n"
 				+ "\n"
 				+ "Cupcake ipsum dolor sit amet donut. Apple pie caramels oat cake fruitcake sesame snaps. Bear claw cotton candy toffee danish sweet roll.");
 		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text2.txt\"; name=\"dummy text2.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text2.txt\"\n"
-				+ "Content-ID: <dummy text2.txt>\n"
+				+ "Content-ID: <dummy text2.txt@" + contentIDExtractor(emlRoundtrip, "dummy text2.txt") + ">\n"
 				+ "Content-Description: This is dummy text2\n"
 				+ "\n"
 				+ "I love pie I love donut sugar plum. I love halvah topping bonbon fruitcake brownie chocolate. Sweet tootsie roll wafer caramels sesame snaps.");
 		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text3.txt\"; name=\"dummy text3.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text3.txt\"\n"
-				+ "Content-ID: <dummy text3.txt>\n"
+				+ "Content-ID: <dummy text3.txt@" + contentIDExtractor(emlRoundtrip, "dummy text3.txt") + ">\n"
 				+ "Content-Description: This is dummy text3\n"
 				+ "\n"
 				+ "Danish chocolate pudding cake bonbon powder bonbon. I love cookie jelly beans cake oat cake. I love I love sweet roll sweet pudding topping icing.");
 		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text4.txt\"; name=\"dummy text4.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text4.txt\"\n"
-				+ "Content-ID: <dummy text4.txt>\n"
+				+ "Content-ID: <dummy text4.txt@" + contentIDExtractor(emlRoundtrip, "dummy text4.txt") + ">\n"
 				+ "\n"
 				+ "this should not have a Content-Description header");
+	}
+
+	private static String contentIDExtractor(String eml, String filename) {
+		final Matcher matcher = compile(format("Content-ID: <%s@(?<uuid>.+?)(?<optionalExtension>\\..{3})?>", filename)).matcher(eml);
+		assertThat(matcher.find()).as(format("Found UUID in EML's Content-ID for filename '%s'", filename)).isTrue();
+		return matcher.group("uuid");
 	}
 
 	@NotNull
