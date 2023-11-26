@@ -64,8 +64,8 @@ public class MimeMessageParserTest {
 		receiveWindowStart.add(Calendar.SECOND, -5);
 		assertThat(mimeMessageParts.getSentDate()).isBetween(receiveWindowStart.getTime(), new Date());
 
-		assertThat(mimeMessageParts.getCidMap()).containsOnlyKeys("<thumbsup>");
-		assertThat(mimeMessageParts.getAttachmentList()).extracting("name").containsOnly("dresscode.txt", "location.txt");
+		assertThat(mimeMessageParts.getCidMap()).containsOnlyKeys("<thumbsup>", "<fixedNameWithoutFileExtensionForNamedEmbeddedImage>");
+		assertThat(mimeMessageParts.getAttachmentList()).extracting("name").containsOnly("dresscode.txt", "location.txt", "fixedNameWithoutFileExtensionForNamedAttachment.txt");
 	}
 
 	@Test

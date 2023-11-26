@@ -441,7 +441,7 @@ public class MailerLiveTest {
 		}
 
 		if (compensateForDresscodeAttachmentNameOverrideErasure) {
-			TestDataHelper.fixDresscodeAttachment(receivedEmail);
+			TestDataHelper.retrofitLostOriginalAttachmentNames(receivedEmail);
 		}
 
 		assertThat(receivedEmail.getHeaders()).containsEntry("governanceDefaultTest1", singletonList("defaulted"));
