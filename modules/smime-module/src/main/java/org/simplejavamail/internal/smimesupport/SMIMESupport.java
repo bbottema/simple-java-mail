@@ -10,7 +10,6 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimePart;
 import jakarta.mail.util.ByteArrayDataSource;
-import lombok.val;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
@@ -65,12 +64,7 @@ import java.util.Map;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT;
-import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DETERMINING_SMIME_SIGNER;
-import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT;
-import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SUBJECT_FROM_CERTIFICATE;
-import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_READING_SMIME_CONTENT_TYPE;
-import static org.simplejavamail.internal.smimesupport.SmimeException.MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED;
+import static org.simplejavamail.internal.smimesupport.SmimeException.*;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isSmimeContentType;
 
@@ -439,8 +433,7 @@ public class SMIMESupport implements SMIMEModule {
 	@NotNull
 	@Override
 	public MimeMessage signMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final Pkcs12Config pkcs12Config) {
-		val smimeKey = retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config);
-		return SmimeUtil.sign(session, email.getId(), messageToProtect, smimeKey);
+		return SmimeUtil.sign(session, email.getId(), messageToProtect, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
 	}
 
 	@NotNull
@@ -454,13 +447,19 @@ public class SMIMESupport implements SMIMEModule {
 		return message instanceof SmimeMessageIdFixingMimeMessage || message instanceof SmimeMessageIdFixingSMTPMessage;
 	}
 
-	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12) {
-		if (!SIMPLE_SMIMESTORE_CACHE.containsKey(pkcs12)) {
-			SIMPLE_SMIMESTORE_CACHE.put(pkcs12, produceSmimeKey(pkcs12));
+	@NotNull
+	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12Config) {
+		if (!SIMPLE_SMIMESTORE_CACHE.containsKey(pkcs12Config)) {
+			SmimeKey smimeKey = produceSmimeKey(pkcs12Config);
+			if (smimeKey == null) {
+				throw new SmimeException(ERROR_OBTAINING_SMIME_KEY);
+			}
+			SIMPLE_SMIMESTORE_CACHE.put(pkcs12Config, smimeKey);
 		}
-		return SIMPLE_SMIMESTORE_CACHE.get(pkcs12);
+        return SIMPLE_SMIMESTORE_CACHE.get(pkcs12Config);
 	}
 
+	@Nullable
 	private SmimeKey produceSmimeKey(final @NotNull Pkcs12Config pkcs12) {
 		return new SmimeKeyStore(new ByteArrayInputStream(pkcs12.getPkcs12StoreData()), pkcs12.getStorePassword())
 				.getPrivateKey(pkcs12.getKeyAlias(), pkcs12.getKeyPassword());
