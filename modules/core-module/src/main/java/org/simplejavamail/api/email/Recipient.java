@@ -1,16 +1,21 @@
 package org.simplejavamail.api.email;
 
+import jakarta.mail.Message;
 import jakarta.mail.Message.RecipientType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
+import java.security.cert.X509Certificate;
 import java.util.Objects;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
- * An immutable recipient object, with a name, emailaddress and recipient type (eg {@link RecipientType#BCC}).
+ * An immutable recipient object, with a name, emailaddress and recipient type (eg {@link Message.RecipientType#BCC}),
+ * and optionally an S/MIME certificate for encrypting messages on a per-user basis.
+ *
+ * @see IRecipientBuilder
  */
 public final class Recipient implements Serializable {
 
@@ -22,21 +27,29 @@ public final class Recipient implements Serializable {
 	private final String address;
 	@Nullable
 	private final RecipientType type;
+	@Nullable
+	private final X509Certificate smimeCertificate;
 
 	/**
 	 * Constructor; initializes this recipient object.
 	 * 
-	 * @param name The name of the recipient, optional in which just the address is shown.
-	 * @param address The email address of the recipient.
+	 * @param name Optional explicit name of the recipient, otherwise taken from inside the address (if provided) (for example "Joe Sixpack &lt;joesixpack@beerme.com&gt;").
+	 * @param address The email address of the recipient, can contain a name, but is ignored if a name was seperately provided.
 	 * @param type The recipient type (e.g. {@link RecipientType#TO}), optional for {@code from} and {@code replyTo} fields.
-	 * @see RecipientType
+	 * @param smimeCertificate Optional S/MIME certificate for this recipient, used for encrypting messages on a per-user basis. Overrides certificate provided
+	 *                         on {@link Email} level and {@link org.simplejavamail.api.mailer.Mailer} level (if provided).
+	 * @see IRecipientBuilder
 	 */
-	public Recipient(@Nullable final String name, @NotNull final String address, @Nullable final RecipientType type) {
+	public Recipient(@Nullable final String name, @NotNull final String address, @Nullable final RecipientType type, @Nullable final X509Certificate smimeCertificate) {
 		this.name = name;
 		this.address = checkNonEmptyArgument(address, "address");
 		this.type = type;
+		this.smimeCertificate = smimeCertificate;
 	}
 
+	/**
+	 * Checks equality based on {@link #name}, {@link #address} and {@link #type}.
+	 */
 	@Override
 	public boolean equals(@Nullable final Object o) {
 		if (this == o) {
@@ -62,11 +75,12 @@ public final class Recipient implements Serializable {
 				"name='" + name + '\'' +
 				", address='" + address + '\'' +
 				", type=" + type +
+				", smimeCertificate=" + smimeCertificate +
 				'}';
 	}
 
 	/**
-	 * Bean getter for {@link #name};
+	 * @see IRecipientBuilder#withName(String)
 	 */
 	@Nullable
 	public String getName() {
@@ -74,7 +88,7 @@ public final class Recipient implements Serializable {
 	}
 
 	/**
-	 * Bean getter for {@link #address};
+	 * @see IRecipientBuilder#withAddress(String)
 	 */
 	@NotNull
 	public String getAddress() {
@@ -82,10 +96,18 @@ public final class Recipient implements Serializable {
 	}
 
 	/**
-	 * Bean getter for {@link #type};
+	 * @see IRecipientBuilder#withType(RecipientType)
 	 */
 	@Nullable
 	public RecipientType getType() {
 		return type;
+	}
+
+	/**
+	 * @see IRecipientBuilder#withSmimeCertificate(X509Certificate)
+	 */
+	@Nullable
+	public X509Certificate getSmimeCertificate() {
+		return smimeCertificate;
 	}
 }
