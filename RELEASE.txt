@@ -3,11 +3,12 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.3.3</version>
+    <version>8.3.4</version>
 </dependency>
 
-v8.3.0 - v8.3.3
+v8.3.0 - v8.3.4
 
+- v8.3.4 (08-December-2023): #481: Enhancement: don't crash on invalid empty attachments when parsing Outlook messages
 - v8.3.3 (03-December-2023): #477: Enhancement: Support Exchange proprietary addresses (X.500 DAP)
 - v8.3.2 (26-November-2023): #480: Bug: Multiple attachments with same name get the same Content-ID, causing them to refer to the same file content
 - v8.3.1 (09-October-2023): #440: Bug: names manually specified for embedded images are overridden and have extension added, breaking cid: references in HTML body
