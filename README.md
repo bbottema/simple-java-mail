@@ -26,7 +26,7 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 
 v8.3.0 - [v8.3.4](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.3.4/)
 
-- v8.3.4 (08-December-2023): [#481](https://github.com/bbottema/simple-java-mail/pull/481) Enhancement: don't crash on invalid empty attachments when parsing Outlook messages
+- v8.3.4 (08-December-2023): [#481](https://github.com/bbottema/simple-java-mail/pull/481) Enhancement: don't crash on invalid empty embedded images when parsing Outlook messages
 - v8.3.3 (03-December-2023): [#477](https://github.com/bbottema/simple-java-mail/pull/477) Enhancement: Support Exchange proprietary addresses (X.500 DAP)
 - v8.3.2 (26-November-2023): [#480](https://github.com/bbottema/simple-java-mail/pull/480) Bug: Multiple attachments with same name get the same Content-ID, causing them to refer to the same file content
 - v8.3.1 (09-October-2023): [#440](https://github.com/bbottema/simple-java-mail/pull/440) Bug: names manually specified for embedded images are overridden and have extension added, breaking cid: references in HTML body
