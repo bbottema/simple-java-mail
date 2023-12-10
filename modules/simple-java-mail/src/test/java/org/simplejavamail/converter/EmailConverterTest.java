@@ -31,7 +31,6 @@ import static org.apache.commons.codec.binary.Base64.encodeBase64Chunked;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
-import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 public class EmailConverterTest {
 
@@ -53,6 +52,18 @@ public class EmailConverterTest {
 		assertThat(msg.getPlainText()).isNotEmpty();
 		assertThat(normalizeNewlines(msg.getHTMLText())).isEqualTo("<div dir=\"auto\">Just a test to get an email with one cc recipient.</div>\n");
 		assertThat(normalizeNewlines(msg.getPlainText())).isEqualTo("Just a test to get an email with one cc recipient.\n");
+	}
+
+	@Test
+	public void testOutlookBasicConversionsGithubIssue482() {
+		final Recipient ramonFrom = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", null);
+		final Recipient ramonTo = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", TO);
+
+		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#482 emailAddressList_is_required.msg"));
+		EmailAssert.assertThat(msg).hasFromRecipient(ramonFrom);
+		EmailAssert.assertThat(msg).hasSubject("subj");
+		EmailAssert.assertThat(msg).hasOnlyRecipients(ramonTo);
+		EmailAssert.assertThat(msg).hasNoAttachments();
 	}
 
 	@Test
