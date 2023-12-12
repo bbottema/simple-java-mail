@@ -77,7 +77,7 @@ public class TransportRunner {
 		delegatingTransport.signalTransportUsed();
 	}
 
-	public interface TransportRunnable {
+	private interface TransportRunnable {
 		void run(Transport transport, Session actualSessionUsed)
 				throws MessagingException;
 	}
