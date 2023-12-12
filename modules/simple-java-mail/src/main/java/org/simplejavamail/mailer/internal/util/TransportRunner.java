@@ -32,7 +32,7 @@ public class TransportRunner {
 	private static final Logger LOGGER = getLogger(TransportRunner.class);
 
 	/**
-	 * NOTE: only in case batch-module is *not* in use, the {@link Session} passed in here is garuanteed to be used to send this message.
+	 * NOTE: only in case batch-module is *not* in use, the {@link Session} passed in here is guaranteed to be used to send this message.
 	 *
 	 * @param clusterKey The cluster key to use for the connection pool, which was randomly generated in the Mailer builder if not provided.
 	 */
