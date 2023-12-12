@@ -311,6 +311,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private Recipient returnReceiptTo;
 
 	/**
+	 * @see #withOverrideReceivers(Recipient...)
+	 */
+	private final List<Recipient> overrideReceivers = new ArrayList<>();
+
+	/**
 	 * @see EmailBuilder#forwarding(MimeMessage)
 	 */
 	private MimeMessage emailToForward;
@@ -2080,6 +2085,25 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
+	 */
+	@Override
+	public EmailPopulatingBuilder withOverrideReceivers(@NotNull Recipient ...recipients) {
+		checkNonEmptyArgument(recipients, "recipients");
+		return withOverrideReceivers(asList(recipients));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withOverrideReceivers(List)
+	 */
+	@Override
+	public EmailPopulatingBuilder withOverrideReceivers(@NotNull List<Recipient> recipients) {
+		checkNonEmptyArgument(recipients, "recipients");
+		this.overrideReceivers.addAll(recipients);
+		return this;
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
 	@NotNull
@@ -2524,7 +2548,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public Boolean getUseReturnReceiptTo() {
 		return useReturnReceiptTo;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#getReturnReceiptTo()
 	 */
@@ -2532,6 +2556,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public Recipient getReturnReceiptTo() {
 		return returnReceiptTo;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getOverrideReceivers()
+	 */
+	@Override
+	@NotNull
+	public List<Recipient> getOverrideReceivers() {
+		return overrideReceivers;
 	}
 	
 	/**

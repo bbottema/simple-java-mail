@@ -1,6 +1,7 @@
 package org.simplejavamail.api.email;
 
 import jakarta.activation.DataSource;
+import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -1454,6 +1455,18 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull Recipient recipient);
 
 	/**
+	 * Delegates to {@link #withOverrideReceivers(List<Recipient>)}.
+	 */
+	EmailPopulatingBuilder withOverrideReceivers(@NotNull Recipient ...recipients);
+
+	/**
+	 * When provided, Simple Java Mail will ignore all recipients set on the email and instead send to the provided recipients only (when calling
+	 * {@link jakarta.mail.Transport#sendMessage(Message, Address[])}). The actual Message will still contain the original recipients, but won't receive a
+	 * copy. This is useful for testing purposes.
+	 */
+	EmailPopulatingBuilder withOverrideReceivers(@NotNull List<Recipient> recipients);
+
+	/**
 	 * When an email is sent it is converted to a MimeMessage at which time the sent-date is filled with the current date. With this method
 	 * this can be fixed to a date of choice.
 	 * <p>
@@ -1746,13 +1759,19 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Nullable
 	Boolean getUseReturnReceiptTo();
-	
+
 	/**
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
 	 */
 	@Nullable
 	Recipient getReturnReceiptTo();
+
+	/**
+	 * @see #withOverrideReceivers(Recipient...)
+	 */
+	@NotNull
+	List<Recipient> getOverrideReceivers();
 	
 	/**
 	 * @see EmailStartingBuilder#forwarding(MimeMessage)

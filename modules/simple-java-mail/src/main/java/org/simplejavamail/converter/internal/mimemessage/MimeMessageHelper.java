@@ -25,6 +25,7 @@ import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Map;
@@ -32,6 +33,7 @@ import java.util.UUID;
 
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -45,22 +47,18 @@ public class MimeMessageHelper {
 	/**
 	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@link StandardCharsets#UTF_8}).
 	 */
-	private static final String CHARACTER_ENCODING = StandardCharsets.UTF_8.name();
+	private static final Charset CHARACTER_ENCODING = UTF_8;
 
 	private static final String HEADER_CONTENT_TRANSFER_ENCODING = "Content-Transfer-Encoding";
 
-	private MimeMessageHelper() {
-
-	}
-
 	static void setSubject(@NotNull final Email email, final MimeMessage message) throws MessagingException {
-		message.setSubject(email.getSubject(), CHARACTER_ENCODING);
+		message.setSubject(email.getSubject(), CHARACTER_ENCODING.name());
 	}
 
-	static void setFrom(@NotNull final Email email, final MimeMessage message) throws UnsupportedEncodingException, MessagingException {
+	static void setFrom(@NotNull final Email email, final MimeMessage message) throws MessagingException {
 		val fromRecipient = email.getFromRecipient();
 		if (fromRecipient != null) {
-			message.setFrom(new InternetAddress(fromRecipient.getAddress(), fromRecipient.getName(), CHARACTER_ENCODING));
+			message.setFrom(MiscUtil.asInternetAddress(fromRecipient, CHARACTER_ENCODING));
 		}
 	}
 	
@@ -69,13 +67,12 @@ public class MimeMessageHelper {
 	 *
 	 * @param email   The message in which the recipients are defined.
 	 * @param message The javax message that needs to be filled with recipients.
-	 * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.
 	 * @throws MessagingException           See {@link Message#addRecipient(Message.RecipientType, Address)}
 	 */
 	static void setRecipients(final Email email, final Message message)
-			throws UnsupportedEncodingException, MessagingException {
+			throws MessagingException {
 		for (final Recipient recipient : email.getRecipients()) {
-				message.addRecipient(recipient.getType(), new InternetAddress(recipient.getAddress(), recipient.getName(), CHARACTER_ENCODING));
+			message.addRecipient(recipient.getType(), MiscUtil.asInternetAddress(recipient, CHARACTER_ENCODING));
 		}
 	}
 
@@ -84,16 +81,15 @@ public class MimeMessageHelper {
 	 *
 	 * @param email   The message in which the recipients are defined.
 	 * @param message The javax message that needs to be filled with reply-to addresses.
-	 * @throws UnsupportedEncodingException See {@link InternetAddress#InternetAddress(String, String)}.
 	 * @throws MessagingException           See {@link Message#setReplyTo(Address[])}
 	 */
 	static void setReplyTo(@NotNull final Email email, final Message message)
-			throws UnsupportedEncodingException, MessagingException {
+			throws MessagingException {
 		if (!email.getReplyToRecipients().isEmpty()) {
 			val replyToAddresses = new Address[email.getReplyToRecipients().size()];
 			int i = 0;
 			for (val replyToRecipient : email.getReplyToRecipients()) {
-				replyToAddresses[i++] = new InternetAddress(replyToRecipient.getAddress(), replyToRecipient.getName(), CHARACTER_ENCODING);
+				replyToAddresses[i++] = MiscUtil.asInternetAddress(replyToRecipient, CHARACTER_ENCODING);
 			}
 			message.setReplyTo(replyToAddresses);
 		}
@@ -110,20 +106,20 @@ public class MimeMessageHelper {
 			throws MessagingException {
 		if (email.getPlainText() != null) {
 			val messagePart = new MimeBodyPart();
-			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING);
+			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING.name());
 			messagePart.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
 			multipartAlternativeMessages.addBodyPart(messagePart);
 		}
 		if (email.getHTMLText() != null) {
 			val messagePartHTML = new MimeBodyPart();
-			messagePartHTML.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING));
+			messagePartHTML.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING.name()));
 			messagePartHTML.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
 		}
 		if (email.getCalendarText() != null) {
 			val calendarMethod = requireNonNull(email.getCalendarMethod(), "calendarMethod is required when calendarText is set");
 			val messagePartCalendar = new MimeBodyPart();
-			messagePartCalendar.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING, calendarMethod));
+			messagePartCalendar.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING.name(), calendarMethod));
 			messagePartCalendar.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
 			multipartAlternativeMessages.addBodyPart(messagePartCalendar);
 		}
@@ -146,14 +142,14 @@ public class MimeMessageHelper {
 	static void setTexts(@NotNull final Email email, final MimePart messagePart)
 			throws MessagingException {
 		if (email.getPlainText() != null) {
-			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING);
+			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING.name());
 		}
 		if (email.getHTMLText() != null) {
-			messagePart.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING));
+			messagePart.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING.name()));
 		}
 		if (email.getCalendarText() != null) {
 			val calendarMethod = requireNonNull(email.getCalendarMethod(), "CalendarMethod must be set when CalendarText is set");
-			messagePart.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING, calendarMethod));
+			messagePart.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING.name(), calendarMethod));
 		}
 		messagePart.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
 	}
@@ -225,13 +221,13 @@ public class MimeMessageHelper {
 
 		if (TRUE.equals(email.getUseDispositionNotificationTo())) {
 			final Recipient dispositionTo = checkNonEmptyArgument(email.getDispositionNotificationTo(), "dispositionNotificationTo");
-			final Address address = new InternetAddress(dispositionTo.getAddress(), dispositionTo.getName(), CHARACTER_ENCODING);
+			final Address address = MiscUtil.asInternetAddress(dispositionTo, CHARACTER_ENCODING);
 			message.setHeader("Disposition-Notification-To", address.toString());
 		}
 
 		if (TRUE.equals(email.getUseReturnReceiptTo())) {
 			final Recipient returnReceiptTo = checkNonEmptyArgument(email.getReturnReceiptTo(), "returnReceiptTo");
-			final Address address = new InternetAddress(returnReceiptTo.getAddress(), returnReceiptTo.getName(), CHARACTER_ENCODING);
+			final Address address = MiscUtil.asInternetAddress(returnReceiptTo, CHARACTER_ENCODING);
 			message.setHeader("Return-Receipt-To", address.toString());
 		}
 	}
@@ -239,7 +235,7 @@ public class MimeMessageHelper {
 	private static void setHeader(Message message, Map.Entry<String, Collection<String>> header) throws UnsupportedEncodingException, MessagingException {
 		for (final String headerValue : header.getValue()) {
 			final String headerName = header.getKey();
-			final String headerValueEncoded = MimeUtility.encodeText(headerValue, CHARACTER_ENCODING, null);
+			final String headerValueEncoded = MimeUtility.encodeText(headerValue, CHARACTER_ENCODING.name(), null);
 			final String foldedHeaderValue = MimeUtility.fold(headerName.length() + 2, headerValueEncoded);
 			message.addHeader(header.getKey(), foldedHeaderValue);
 		}

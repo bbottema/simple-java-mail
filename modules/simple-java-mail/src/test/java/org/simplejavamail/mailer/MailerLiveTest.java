@@ -109,6 +109,14 @@ public class MailerLiveTest {
 	}
 
 	@Test
+	public void createMailSession_TestOverrideReceivers()
+			throws MessagingException, ExecutionException, InterruptedException {
+        val dummyEmailBuilder = EmailHelper.createDummyEmailBuilder(true, true, false, true, false, false)
+				.withOverrideReceivers(new Recipient("override", "override@override.com", null));
+		assertSendingEmail(dummyEmailBuilder, true, false, false, false, false);
+	}
+
+	@Test
 	public void createMailSession_StandardDummyMailBasicFields()
 			throws MessagingException, ExecutionException, InterruptedException {
 		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, true, false, true, false, false), true, false, false, false, false);
@@ -380,6 +388,12 @@ public class MailerLiveTest {
 		}
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());
+
+		if (!originalEmail.getOverrideReceivers().isEmpty()) {
+			assertThat(receivedMimeMessage.getEnvelopeReceiver()).isEqualTo(originalEmail.getOverrideReceivers().get(0).getAddress());
+		} else {
+			assertThat(receivedMimeMessage.getEnvelopeReceiver()).isEqualTo(originalEmail.getRecipients().get(0).getAddress());
+		}
 
 		if (originalEmail.getBounceToRecipient() != null) {
 			assertThat(receivedMimeMessage.getEnvelopeSender()).isEqualTo(originalEmail.getBounceToRecipient().getAddress());

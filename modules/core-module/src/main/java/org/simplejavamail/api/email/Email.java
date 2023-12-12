@@ -166,12 +166,17 @@ public class Email implements Serializable {
 	 */
 	@Nullable
 	private final Boolean useReturnReceiptTo;
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
 	private final Recipient returnReceiptTo;
+
+	/**
+	 * @see EmailPopulatingBuilder#withOverrideReceivers(Recipient...)
+	 */
+	private final List<Recipient> overrideReceivers;
 	
 	/**
 	 * @see EmailStartingBuilder#forwarding(MimeMessage)
@@ -265,6 +270,7 @@ public class Email implements Serializable {
 		dispositionNotificationTo = builder.getDispositionNotificationTo();
 		useReturnReceiptTo = builder.getUseReturnReceiptTo();
 		returnReceiptTo = builder.getReturnReceiptTo();
+		overrideReceivers = builder.getOverrideReceivers();
 		emailToForward = builder.getEmailToForward();
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
 		sentDate = builder.getSentDate();
@@ -308,6 +314,10 @@ public class Email implements Serializable {
 		if (TRUE.equals(useReturnReceiptTo)) {
 			s += ",\n\tuseReturnReceiptTo=" + true +
 					",\n\t\treturnReceiptTo=" + returnReceiptTo;
+		}
+		if (!overrideReceivers.isEmpty()) {
+			s += ",\n\toverrideReceivers=" + true +
+					",\n\t\toverrideReceivers=" + overrideReceivers;
 		}
 		if (!headers.isEmpty()) {
 			s += ",\n\theaders=" + headers;
@@ -442,7 +452,7 @@ public class Email implements Serializable {
 	public Recipient getDispositionNotificationTo() {
 		return dispositionNotificationTo;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
@@ -450,6 +460,14 @@ public class Email implements Serializable {
 	@Nullable
 	public Boolean getUseReturnReceiptTo() {
 		return useReturnReceiptTo;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withOverrideReceivers(Recipient...)
+	 */
+	@NotNull
+	public List<Recipient> getOverrideReceivers() {
+		return overrideReceivers;
 	}
 	
 	/**

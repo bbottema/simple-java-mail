@@ -36,6 +36,7 @@ public enum EmailProperty {
     TO_RECIPIENTS(Email::getToRecipients, true),
     CC_RECIPIENTS(Email::getCcRecipients, true),
     BCC_RECIPIENTS(Email::getBccRecipients, true),
+    OVERRIDE_RECEIVERS(Email::getOverrideReceivers, true),
     SMIME_SIGNING_CONFIG(Email::getPkcs12ConfigForSmimeSigning, false),
     SMIME_ENCRYPTION_CONFIG(Email::getX509CertificateForSmimeEncryption, false),
     DKIM_SIGNING_CONFIG(Email::getDkimConfig, false),

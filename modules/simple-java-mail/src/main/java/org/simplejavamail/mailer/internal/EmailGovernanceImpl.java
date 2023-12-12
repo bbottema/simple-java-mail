@@ -240,6 +240,10 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			}
 		}
 
+		val overrideReceivers = this.<Recipient>resolveEmailCollectionProperty(provided, EmailProperty.OVERRIDE_RECEIVERS);
+		if (!overrideReceivers.isEmpty()) {
+			builder.withOverrideReceivers(overrideReceivers);
+		}
 		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withContentTransferEncoding);
 		ofNullable(this.<Pkcs12Config>resolveEmailProperty(provided, EmailProperty.SMIME_SIGNING_CONFIG)).ifPresent(builder::signWithSmime);
 		ofNullable(this.<X509Certificate>resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG)).ifPresent(builder::encryptWithSmime);
