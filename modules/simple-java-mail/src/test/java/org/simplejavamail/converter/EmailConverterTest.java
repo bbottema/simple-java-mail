@@ -162,6 +162,13 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testProblematic8BitContentTransferEncoding() {
+		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#485 Email with 8Bit Content Transfer Encoding.eml"));
+		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("TeleCash", "noreply@telecash.de", null));
+		EmailAssert.assertThat(s1).hasOnlyRecipients(new Recipient(null, "abc@abcdefgh.de", TO));
+	}
+
+	@Test
 	public void testProblematicCommasInRecipeints() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#444 Email with encoded comma in recipients.eml"));
 		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("Some Name, Jane Doe", "jane.doe@example.de", null));
