@@ -3,8 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.3.5</version>
+    <version>8.4.0</version>
 </dependency>
+
+v8.4.0 (12-December-2023)
+
+- #483: Enhancement: add native support for overriding envelope-level receiver(s)
+
 
 v8.3.0 - v8.3.5
 
