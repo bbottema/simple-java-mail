@@ -116,6 +116,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		this.maximumEmailSize = maximumEmailSize;
 	}
 
+	// FIXME default notificationTo is missing
 	// The name is a bit cryptic, but succinct (and it's only used internally)
 	private Email newDefaultsEmailWithDefaultDefaults() {
 		final EmailPopulatingBuilder allDefaults = EmailBuilder.startingBlank();

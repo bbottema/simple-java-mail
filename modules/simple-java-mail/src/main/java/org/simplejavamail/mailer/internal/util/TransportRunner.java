@@ -30,6 +30,8 @@ public class TransportRunner {
 
 	/**
 	 * NOTE: only in case batch-module is *not* in use, the {@link Session} passed in here is garuanteed to be used to send this message.
+	 *
+	 * @param clusterKey The cluster key to use for the connection pool, which was randomly generated in the Mailer builder if not provided.
 	 */
 	public static void sendMessage(@NotNull final UUID clusterKey, final Session session, @NotNull Email email)
 			throws MessagingException {
