@@ -3,8 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.4.0</version>
+    <version>8.5.0</version>
 </dependency>
+
+v8.5.0 (13-December-2023)
+
+- #484: [bug] Addresses passed as string are not always interpreted correctly
+
 
 v8.4.0 (12-December-2023)
 
