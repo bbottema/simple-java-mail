@@ -467,6 +467,9 @@ public class MailerLiveTest {
 				.withHeader("governanceOverrideTest1", "overridden", true)
 				.withHeader("governanceOverrideTest2", "also overridden", true);
 
+		// envelope-level receivers would have been lost in the received Message, so we need to compensate for that
+		originalEmailPopulatingBuilder.clearOverrideReceivers();
+
 		if (!skipChecksDueToSmime) { // reading a signed mail is different from building a new one
 			assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());
 		} else {

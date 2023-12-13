@@ -1533,6 +1533,13 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearRecipients();
 
 	/**
+	 * Resets <em>overrideReceivers</em> to empty.
+	 *
+	 * @see #withOverrideReceivers(List)
+	 */
+	EmailPopulatingBuilder clearOverrideReceivers();
+
+	/**
 	 * Resets base dir for embedded images to {@code null}.
 	 */
 	EmailPopulatingBuilder clearEmbeddedImageBaseDir();

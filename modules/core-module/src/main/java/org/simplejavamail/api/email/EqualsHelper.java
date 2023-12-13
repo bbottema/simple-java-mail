@@ -55,8 +55,10 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getSubject(), email2.getSubject(), "subject")) {
             return false;
         }
-
         if (!isEqualRecipientList(email1.getRecipients(), email2.getRecipients())) {
+            return false;
+        }
+        if (!isEqualRecipientList(email1.getOverrideReceivers(), email2.getOverrideReceivers())) {
             return false;
         }
         if (!email1.getEmbeddedImages().containsAll(email2.getEmbeddedImages()) || !email2.getEmbeddedImages().containsAll(email1.getEmbeddedImages())) {

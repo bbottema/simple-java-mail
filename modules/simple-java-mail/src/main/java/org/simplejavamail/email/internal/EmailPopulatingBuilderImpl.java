@@ -2233,6 +2233,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#clearOverrideReceivers()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearOverrideReceivers() {
+		this.overrideReceivers.clear();
+		return this;
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#clearEmbeddedImageBaseDir()
 	 */
 	public EmailPopulatingBuilder clearEmbeddedImageBaseDir() {
