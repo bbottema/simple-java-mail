@@ -67,6 +67,18 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testOutlookBasicConversionsGithubIssue484() {
+		final Recipient ramonFrom = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", null);
+		final Recipient ramonTo = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", TO);
+
+		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#484 Email with problematic disposition_notification_to.msg"));
+		EmailAssert.assertThat(msg).hasFromRecipient(ramonFrom);
+		EmailAssert.assertThat(msg).hasSubject("subject");
+		EmailAssert.assertThat(msg).hasOnlyRecipients(ramonTo);
+		EmailAssert.assertThat(msg).hasDispositionNotificationTo(ramonFrom);
+	}
+
+	@Test
 	public void testOutlookUnicode() {
 		final Recipient kalejs = new Recipient("m.kalejs@outlook.com", "m.kalejs@outlook.com", null);
 		final Recipient dummy = new Recipient("doesnotexist@doesnt.com", "doesnotexist@doesnt.com", TO);

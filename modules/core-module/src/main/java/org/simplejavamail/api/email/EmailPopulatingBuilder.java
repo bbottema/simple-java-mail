@@ -1455,7 +1455,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull Recipient recipient);
 
 	/**
-	 * Delegates to {@link #withOverrideReceivers(List<Recipient>)}.
+	 * Delegates to {@link #withOverrideReceivers(List)}
 	 */
 	EmailPopulatingBuilder withOverrideReceivers(@NotNull Recipient ...recipients);
 

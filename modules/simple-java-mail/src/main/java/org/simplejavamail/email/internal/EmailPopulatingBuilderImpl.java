@@ -80,6 +80,7 @@ import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_
 import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
+import static org.simplejavamail.internal.util.MiscUtil.interpretRecipient;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSourceFromClassPath;
@@ -527,8 +528,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#from(String, String)
 	 */
 	@Override
-	public EmailPopulatingBuilder from(@Nullable final String name, @NotNull final String fromAddress) {
-		return from(new Recipient(name, checkNonEmptyArgument(fromAddress, "fromAddress"), null));
+	public EmailPopulatingBuilder from(@Nullable final String fixedName, @NotNull final String fromAddress) {
+		checkNonEmptyArgument(fromAddress, "fromAddress");
+		return from(interpretRecipient(fixedName, true, fromAddress, null));
 	}
 	
 	/**
@@ -565,7 +567,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReplyTo(@NotNull final String replyToAddress) {
-		return withReplyTo(new Recipient(null, replyToAddress, null));
+		return withReplyTo(interpretRecipient(null, false, replyToAddress, null));
 	}
 	
 	/**
@@ -574,7 +576,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String fixedName, @NotNull final String replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(new Recipient(fixedName, replyToAddress, null));
+		return withReplyTo(interpretRecipient(fixedName, true, replyToAddress, null));
 	}
 	
 	/**
@@ -621,7 +623,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String bounceToAddress) {
-		return withBounceTo(bounceToAddress != null ? new Recipient(null, bounceToAddress, null) : null);
+		return withBounceTo(bounceToAddress != null ? interpretRecipient(null, false, bounceToAddress, null) : null);
 	}
 	
 	/**
@@ -629,7 +631,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String name, @NotNull final String bounceToAddress) {
-		return withBounceTo(new Recipient(name, checkNonEmptyArgument(bounceToAddress, "bounceToAddress"), null));
+		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
+		return withBounceTo(interpretRecipient(name, true, bounceToAddress, null));
 	}
 	
 	/**
@@ -1984,7 +1987,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(new Recipient(null, address, null));
+		return withDispositionNotificationTo(interpretRecipient(null, false, address, null));
 	}
 	
 	/**
@@ -1993,7 +1996,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nullable final String name, @NotNull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(new Recipient(name, address, null));
+		return withDispositionNotificationTo(interpretRecipient(name, true, address, null));
 	}
 	
 	/**
@@ -2043,7 +2046,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final String address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(new Recipient(null, address, null));
+		return withReturnReceiptTo(interpretRecipient(null, false, address, null));
 	}
 	
 	/**
@@ -2052,7 +2055,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nullable final String name, @NotNull final String address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(new Recipient(name, address, null));
+		return withReturnReceiptTo(interpretRecipient(name, true, address, null));
 	}
 	
 	/**
