@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.5.0%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-8.5.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.5.1%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-8.5.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -18,15 +18,16 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.5.0</version>
+    <version>8.5.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-[v8.5.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.5.0%7Cjar) (13-December-2023)
+v8.5.0 - [v8.5.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.5.1/)
 
-- [#484](https://github.com/bbottema/simple-java-mail/pull/484): [bug] Addresses passed as string are not always interpreted correctly
+- v8.5.1 (15-December-2023): [#486](https://github.com/bbottema/simple-java-mail/pull/486): [dependency] Handle Outlook's Non-Standard S/MIME Signed Messages
+- v8.5.0 (13-December-2023): [#484](https://github.com/bbottema/simple-java-mail/pull/484): [bug] Addresses passed as string are not always interpreted correctly
 
 
 [v8.4.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.4.0%7Cjar) (12-December-2023)

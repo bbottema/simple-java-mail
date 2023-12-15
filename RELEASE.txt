@@ -3,12 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.5.0</version>
+    <version>8.5.1</version>
 </dependency>
 
-v8.5.0 (13-December-2023)
+v8.5.0 - v8.5.1
 
-- #484: [bug] Addresses passed as string are not always interpreted correctly
+- v8.5.1 (15-December-2023): #486: [dependency] Handle Outlook's Non-Standard S/MIME Signed Messages
+- v8.5.0 (13-December-2023): #484: [bug] Addresses passed as string are not always interpreted correctly
 
 
 v8.4.0 (12-December-2023)
@@ -18,7 +19,7 @@ v8.4.0 (12-December-2023)
 
 v8.3.0 - v8.3.5
 
-- v8.3.5 (10-December-2023):[#482: Bug: 'IllegalArgumentException: emailAddressList is required' when  parsing mail with incorrect recipients from Outlook message
+- v8.3.5 (10-December-2023): #482: Bug: 'IllegalArgumentException: emailAddressList is required' when  parsing mail with incorrect recipients from Outlook message
 - v8.3.4 (08-December-2023): #481: Enhancement: don't crash on invalid empty attachments when parsing Outlook messages
 - v8.3.3 (03-December-2023): #477: Enhancement: Support Exchange proprietary addresses (X.500 DAP)
 - v8.3.2 (26-November-2023): #480: Bug: Multiple attachments with same name get the same Content-ID, causing them to refer to the same file content
