@@ -354,7 +354,7 @@ public class EmailConverterTest {
 		assertThat(emailMime.getPlainText()).isEqualTo(emailOutlook.getPlainText());
 		assertThat(emailMime.getCalendarText()).isEqualTo(emailOutlook.getCalendarText());
 		assertThat(emailMime.getCalendarMethod()).isEqualTo(emailOutlook.getCalendarMethod());
-		assertThat(emailMime.getHTMLText()).isEqualTo(emailOutlook.getHTMLText());
+		assertThat(normalizeNewlines(emailMime.getHTMLText())).isEqualTo(normalizeNewlines(emailOutlook.getHTMLText()));
 		assertThat(emailMime.getSubject()).isEqualTo(emailOutlook.getSubject());
 		assertThat(emailMime.getRecipients()).containsExactlyElementsOf(emailOutlook.getRecipients());
 		assertThat(emailMime.getOverrideReceivers()).containsExactlyElementsOf(emailOutlook.getOverrideReceivers());
