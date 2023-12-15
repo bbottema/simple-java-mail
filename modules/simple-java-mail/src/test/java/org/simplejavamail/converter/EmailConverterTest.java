@@ -1,6 +1,7 @@
 package org.simplejavamail.converter;
 
 import jakarta.mail.util.ByteArrayDataSource;
+import org.assertj.core.api.Condition;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -8,6 +9,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -333,6 +335,36 @@ public class EmailConverterTest {
 		final Matcher matcher = compile(format("Content-ID: <%s@(?<uuid>.+?)(?<optionalExtension>\\..{3})?>", filename)).matcher(eml);
 		assertThat(matcher.find()).as(format("Found UUID in EML's Content-ID for filename '%s'", filename)).isTrue();
 		return matcher.group("uuid");
+	}
+
+	@Test
+	public void testGithub486_InvalidSignedOutlookMessage() {
+		Email emailMime = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#486 TestValidSignedMimeMessage.eml"));
+		Email emailOutlook = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#486 TestInvalidSignedOutlookMessage.msg"));
+
+        assertThat(emailMime.getEmbeddedImages()).areExactly(1, new Condition<>(at -> at.getName().contains(".jpg"), null));
+        assertThat(emailMime.getAttachments()).areExactly(1, new Condition<>(at -> at.getName().contains(".jpg"), null));
+
+		assertThat(emailMime.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
+		assertThat(emailOutlook.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
+		assertThat(emailMime.getFromRecipient()).isEqualTo(emailOutlook.getFromRecipient());
+		assertThat(emailMime.getId()).isEqualTo(emailOutlook.getId());
+		assertThat(emailMime.getSentDate()).isEqualTo(emailOutlook.getSentDate());
+		assertThat(emailMime.getBounceToRecipient()).isEqualTo(emailOutlook.getBounceToRecipient());
+		assertThat(emailMime.getPlainText()).isEqualTo(emailOutlook.getPlainText());
+		assertThat(emailMime.getCalendarText()).isEqualTo(emailOutlook.getCalendarText());
+		assertThat(emailMime.getCalendarMethod()).isEqualTo(emailOutlook.getCalendarMethod());
+		assertThat(emailMime.getHTMLText()).isEqualTo(emailOutlook.getHTMLText());
+		assertThat(emailMime.getSubject()).isEqualTo(emailOutlook.getSubject());
+		assertThat(emailMime.getRecipients()).containsExactlyElementsOf(emailOutlook.getRecipients());
+		assertThat(emailMime.getOverrideReceivers()).containsExactlyElementsOf(emailOutlook.getOverrideReceivers());
+		assertThat(emailMime.getEmbeddedImages()).containsExactlyElementsOf(emailOutlook.getEmbeddedImages());
+		assertThat(emailMime.getUseDispositionNotificationTo()).isEqualTo(emailOutlook.getUseDispositionNotificationTo());
+		assertThat(emailMime.getUseReturnReceiptTo()).isEqualTo(emailOutlook.getUseReturnReceiptTo());
+		assertThat(emailMime.getDispositionNotificationTo()).isEqualTo(emailOutlook.getDispositionNotificationTo());
+		assertThat(emailMime.getPkcs12ConfigForSmimeSigning()).isEqualTo(emailOutlook.getPkcs12ConfigForSmimeSigning());
+		assertThat(emailMime.getX509CertificateForSmimeEncryption()).isEqualTo(emailOutlook.getX509CertificateForSmimeEncryption());
+		assertThat(emailMime.getReturnReceiptTo()).isEqualTo(emailOutlook.getReturnReceiptTo());
 	}
 
 	@NotNull

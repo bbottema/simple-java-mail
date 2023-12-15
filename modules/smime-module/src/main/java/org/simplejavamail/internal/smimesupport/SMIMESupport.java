@@ -247,6 +247,8 @@ public class SMIMESupport implements SMIMEModule {
 				liberatedContent = getEncryptedContent(pkcs12Config, mimeBodyPart);
 			} else if (smimeState == SmimeState.SIGNED) {
 				liberatedContent = getSignedContent(mimeBodyPart);
+			} else if (smimeState == SmimeState.PROBABLY_SIGNED) {
+				liberatedContent = tryGetSignedContent(liberatedContent, mimeBodyPart);
 			}
 
 			return liberatedContent != null ? liberatedContent : new AttachmentDecryptionResultImpl(SmimeMode.PLAIN, attachment);
@@ -282,6 +284,21 @@ public class SMIMESupport implements SMIMEModule {
 		}
 		LOGGER.warn("Content is S/MIME signed, but signature is not valid; skipping S/MIME interpeter...");
 		return null;
+	}
+
+	@Nullable
+	private AttachmentDecryptionResult tryGetSignedContent(AttachmentDecryptionResult possiblySignedContent, final MimeBodyPart mimeBodyPart)
+			throws MessagingException, IOException {
+		try {
+			if (SmimeUtil.checkSignature(mimeBodyPart)) {
+				MimeBodyPart liberatedBodyPart = SmimeUtil.getSignedContent(mimeBodyPart);
+				return new AttachmentDecryptionResultImpl(SmimeMode.SIGNED, handleLiberatedContent(liberatedBodyPart.getContent()));
+			}
+		} catch (MessagingException | IOException e) {
+			// ignore, apparently not S/SMIME after all
+		}
+        LOGGER.warn("Content classified as signed, but apparently not using S/MIME (or it was and the signature was not valid); skipping S/MIME interpeter...");
+		return possiblySignedContent;
 	}
 
 	private String restoreSmimeContentType(@NotNull final AttachmentResource attachment, final OriginalSmimeDetails originalSmimeDetails) {
