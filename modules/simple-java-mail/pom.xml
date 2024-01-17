@@ -80,7 +80,7 @@
         <dependency><!-- SMTP test server -->
             <groupId>com.github.davidmoten</groupId>
             <artifactId>subethasmtp</artifactId>
-            <version>6.0.1</version>
+            <version>6.0.7</version>
             <scope>test</scope>
         </dependency>
         <!-- required for java 9+ compatibility with assertj-assertions-generator-maven-plugin, which uses javax.annotation.Generated -->

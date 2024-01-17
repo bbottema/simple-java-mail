@@ -1,6 +1,6 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import com.sun.mail.handlers.text_plain;
+import org.eclipse.angus.mail.handlers.text_plain;
 import jakarta.activation.ActivationDataFlavor;
 import jakarta.activation.CommandMap;
 import jakarta.activation.DataHandler;
@@ -719,7 +719,7 @@ public final class MimeMessageParser {
 	}
 
 	/**
-	 * DataContentHandler for text/calendar, based on {@link com.sun.mail.handlers.text_html}.
+	 * DataContentHandler for text/calendar, based on {@link org.eclipse.angus.mail.handlers.text_html}.
 	 * <p>
 	 * The unfortunate class name matches Java Mail's handler naming convention.
 	 */
