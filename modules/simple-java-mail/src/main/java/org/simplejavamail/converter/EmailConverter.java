@@ -14,6 +14,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
+import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
@@ -644,7 +645,15 @@ public final class EmailConverter {
 		if (parsed.getReplyToAddresses() != null) {
 			builder.withReplyTo(parsed.getReplyToAddresses().getPersonal(), parsed.getReplyToAddresses().getAddress());
 		}
-		builder.withHeaders(parsed.getHeaders());
+
+		for (val headerEntry : parsed.getHeaders().entrySet()) {
+			if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerEntry.getKey())) {
+				for (Object headerValue : headerEntry.getValue()) {
+					builder.withHeader(headerEntry.getKey(), headerValue);
+				}
+			}
+		}
+
 		if (parsed.getDispositionNotificationTo() != null) {
 			builder.withDispositionNotificationTo(parsed.getDispositionNotificationTo());
 		}

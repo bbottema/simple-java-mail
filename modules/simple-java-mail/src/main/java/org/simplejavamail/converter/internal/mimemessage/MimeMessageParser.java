@@ -152,7 +152,6 @@ public final class MimeMessageParser {
 				.build();
 	}
 
-	@SuppressWarnings("StatementWithEmptyBody")
 	private static void parseHeader(final DecodedHeader header, @NotNull final ParsedMimeMessageComponents parsedComponents) {
 		val headerValue = decodeText(header.getValue());
 		val headerName = decodeText(header.getName());
@@ -163,13 +162,11 @@ public final class MimeMessageParser {
 			parsedComponents.returnReceiptTo = createAddress(headerValue, "Return-Receipt-To");
 		} else if (isEmailHeader(header, "Return-Path")) {
 			parsedComponents.bounceToAddress = createAddress(headerValue, "Return-Path");
-		} else if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerName)) {
+		} else {
 			if (!parsedComponents.headers.containsKey(headerName)) {
 				parsedComponents.headers.put(headerName, new ArrayList<>());
 			}
 			parsedComponents.headers.get(headerName).add(MimeUtility.unfold(headerValue));
-		} else {
-			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}
 	}
 
