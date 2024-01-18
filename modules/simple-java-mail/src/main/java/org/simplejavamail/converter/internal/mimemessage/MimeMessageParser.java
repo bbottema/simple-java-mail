@@ -1,11 +1,12 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import jakarta.activation.CommandMap;
+import jakarta.activation.MailcapCommandMap;
+import lombok.Getter;
 import org.eclipse.angus.mail.handlers.text_plain;
 import jakarta.activation.ActivationDataFlavor;
-import jakarta.activation.CommandMap;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
-import jakarta.activation.MailcapCommandMap;
 import jakarta.mail.Address;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.MessagingException;
@@ -23,6 +24,7 @@ import jakarta.mail.util.ByteArrayDataSource;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 import org.simplejavamail.internal.util.Preconditions;
@@ -60,57 +62,8 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  */
 public final class MimeMessageParser {
 
-	/**
-	 * Contains the headers we will ignore, because either we set the information differently (such as Subject) or we recognize the header as
-	 * interfering or obsolete for new emails).
-	 */
-	private static final List<String> HEADERS_TO_IGNORE = new ArrayList<>();
-
 	static {
-		// taken from: protected jakarta.mail.internet.InternetHeaders constructor
-		/*
-		 * When extracting information to create an Email, we're NOT interested in the following headers:
-         */
-		// HEADERS_TO_IGNORE.add("Return-Path"); // bounceTo address
-		HEADERS_TO_IGNORE.add("Received");
-		HEADERS_TO_IGNORE.add("Resent-Date");
-		HEADERS_TO_IGNORE.add("Resent-From");
-		HEADERS_TO_IGNORE.add("Resent-Sender");
-		HEADERS_TO_IGNORE.add("Resent-To");
-		HEADERS_TO_IGNORE.add("Resent-Cc");
-		HEADERS_TO_IGNORE.add("Resent-Bcc");
-		HEADERS_TO_IGNORE.add("Resent-Message-Id");
-		HEADERS_TO_IGNORE.add("Date");
-		HEADERS_TO_IGNORE.add("From");
-		HEADERS_TO_IGNORE.add("Sender");
-		HEADERS_TO_IGNORE.add("Reply-To");
-		HEADERS_TO_IGNORE.add("To");
-		HEADERS_TO_IGNORE.add("Cc");
-		HEADERS_TO_IGNORE.add("Bcc");
-		HEADERS_TO_IGNORE.add("Message-Id");
-		// The next two are needed for replying to
-		// HEADERS_TO_IGNORE.add("In-Reply-To");
-		// HEADERS_TO_IGNORE.add("References");
-		HEADERS_TO_IGNORE.add("Subject");
-		HEADERS_TO_IGNORE.add("Comments");
-		HEADERS_TO_IGNORE.add("Keywords");
-		HEADERS_TO_IGNORE.add("Errors-To");
-		HEADERS_TO_IGNORE.add("MIME-Version");
-		HEADERS_TO_IGNORE.add("Content-Type");
-		HEADERS_TO_IGNORE.add("Content-Transfer-Encoding");
-		HEADERS_TO_IGNORE.add("Content-MD5");
-		HEADERS_TO_IGNORE.add(":");
-		HEADERS_TO_IGNORE.add("Content-Length");
-		HEADERS_TO_IGNORE.add("Status");
-		// extra headers that should be ignored, which may originate from nested attachments
-		HEADERS_TO_IGNORE.add("Content-Disposition");
-		HEADERS_TO_IGNORE.add("size");
-		HEADERS_TO_IGNORE.add("filename");
-		HEADERS_TO_IGNORE.add("Content-ID");
-		HEADERS_TO_IGNORE.add("name");
-		HEADERS_TO_IGNORE.add("From");
-
-		MailcapCommandMap mc = (MailcapCommandMap)CommandMap.getDefaultCommandMap();
+		MailcapCommandMap mc = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
 		mc.addMailcap("text/calendar;; x-java-content-handler=" + text_calendar.class.getName());
 		CommandMap.setDefaultCommandMap(mc);
 	}
@@ -210,7 +163,7 @@ public final class MimeMessageParser {
 			parsedComponents.returnReceiptTo = createAddress(headerValue, "Return-Receipt-To");
 		} else if (isEmailHeader(header, "Return-Path")) {
 			parsedComponents.bounceToAddress = createAddress(headerValue, "Return-Path");
-		} else if (!HEADERS_TO_IGNORE.contains(headerName)) {
+		} else if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerName)) {
 			if (!parsedComponents.headers.containsKey(headerName)) {
 				parsedComponents.headers.put(headerName, new ArrayList<>());
 			}
@@ -439,8 +392,7 @@ public final class MimeMessageParser {
 		return !valueNullOrEmpty(result) ? decodeText(result) : null;
 	}
 
-	@NotNull
-	private static byte[] readContent(@NotNull final InputStream is) {
+	private static byte @NotNull [] readContent(@NotNull final InputStream is) {
 		try {
 			return MiscUtil.readInputStreamToBytes(is);
 		} catch (final IOException e) {
@@ -606,86 +558,27 @@ public final class MimeMessageParser {
 		}
 	}
 
+	@Getter
 	public static class ParsedMimeMessageComponents {
-		@SuppressWarnings("unchecked")
 		final Set<MimeDataSource> attachmentList = new TreeSet<>();
 		final Map<String, DataSource> cidMap = new TreeMap<>();
 		private final Map<String, Collection<Object>> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
 		private final List<InternetAddress> ccAddresses = new ArrayList<>();
 		private final List<InternetAddress> bccAddresses = new ArrayList<>();
-		private String messageId;
-		private String subject;
-		private InternetAddress fromAddress;
-		private InternetAddress replyToAddresses;
-		private InternetAddress dispositionNotificationTo;
-		private InternetAddress returnReceiptTo;
-		private InternetAddress bounceToAddress;
-		private String contentTransferEncoding;
+		@Nullable private String messageId;
+		@Nullable private String subject;
+		@Nullable private InternetAddress fromAddress;
+		@Nullable private InternetAddress replyToAddresses;
+		@Nullable private InternetAddress dispositionNotificationTo;
+		@Nullable private InternetAddress returnReceiptTo;
+		@Nullable private InternetAddress bounceToAddress;
+		@Nullable private String contentTransferEncoding;
 		private final StringBuilder plainContent = new StringBuilder();
 		final StringBuilder htmlContent = new StringBuilder();
-		private String calendarMethod;
-		private String calendarContent;
-		private Date sentDate;
-
-		@Nullable
-		public String getMessageId() {
-			return messageId;
-		}
-
-		public Set<MimeDataSource> getAttachmentList() {
-			return attachmentList;
-		}
-
-		public Map<String, DataSource> getCidMap() {
-			return cidMap;
-		}
-
-		public Map<String, Collection<Object>> getHeaders() {
-			return headers;
-		}
-
-		public List<InternetAddress> getToAddresses() {
-			return toAddresses;
-		}
-
-		public List<InternetAddress> getCcAddresses() {
-			return ccAddresses;
-		}
-
-		public List<InternetAddress> getBccAddresses() {
-			return bccAddresses;
-		}
-
-		@Nullable
-		public String getSubject() {
-			return subject;
-		}
-
-		@Nullable
-		public InternetAddress getFromAddress() {
-			return fromAddress;
-		}
-
-		@Nullable
-		public InternetAddress getReplyToAddresses() {
-			return replyToAddresses;
-		}
-
-		@Nullable
-		public InternetAddress getDispositionNotificationTo() {
-			return dispositionNotificationTo;
-		}
-
-		@Nullable
-		public InternetAddress getReturnReceiptTo() {
-			return returnReceiptTo;
-		}
-
-		@Nullable
-		public InternetAddress getBounceToAddress() {
-			return bounceToAddress;
-		}
+		@Nullable private String calendarMethod;
+		@Nullable private String calendarContent;
+		@Nullable private Date sentDate;
 
 		@Nullable
 		public String getPlainContent() {
@@ -695,21 +588,6 @@ public final class MimeMessageParser {
 		@Nullable
 		public String getHtmlContent() {
 			return htmlContent.length() == 0 ? null : htmlContent.toString();
-		}
-
-		@Nullable
-		public String getCalendarContent() {
-			return calendarContent;
-		}
-
-		@Nullable
-		public String getContentTransferEncoding() {
-			return contentTransferEncoding;
-		}
-
-		@Nullable
-		public String getCalendarMethod() {
-			return calendarMethod;
 		}
 
 		@Nullable

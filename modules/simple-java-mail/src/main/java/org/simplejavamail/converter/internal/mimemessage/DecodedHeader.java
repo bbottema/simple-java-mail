@@ -5,14 +5,15 @@ import lombok.Value;
 import lombok.val;
 
 @Value
-class DecodedHeader {
+public class DecodedHeader {
 
     String name;
     String value;
 
     public static DecodedHeader of(Header h) {
-        val decodedName = MimeMessageParser.decodeText(h.getName());
-        val decodedValue = MimeMessageParser.decodeText(h.getValue());
-        return new DecodedHeader(decodedName, decodedValue);
+        return new DecodedHeader(
+                MimeMessageParser.decodeText(h.getName()),
+                MimeMessageParser.decodeText(h.getValue())
+        );
     }
 }

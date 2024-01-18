@@ -1,15 +1,20 @@
-package org.simplejavamail.internal.outlooksupport.converter;
+package org.simplejavamail.api.internal.general;
 
 import java.util.ArrayList;
 import java.util.List;
 
-class HeadersToIgnore {
+public class HeadersToIgnoreWhenParsingExternalEmails {
+
+	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
+	public static boolean shouldIgnoreHeader(final String headerName) {
+		return HEADERS_TO_IGNORE.contains(headerName);
+	}
 
 	/**
 	 * Contains the headers we will ignore, because either we set the information differently (such as Subject) or we recognize the header as
-	 * interfering or obsolete for new emails).
+	 * interfering or obsolete for new emails.
 	 */
-	static final List<String> HEADERS_TO_IGNORE = new ArrayList<>();
+	private static final List<String> HEADERS_TO_IGNORE = new ArrayList<>();
 
 	static {
 		// taken from: protected jakarta.mail.internet.InternetHeaders constructor
