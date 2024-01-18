@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
+import java.util.Base64;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -25,7 +26,6 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
-import static jakarta.xml.bind.DatatypeConverter.parseBase64Binary;
 import static java.util.Calendar.SEPTEMBER;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
@@ -93,13 +93,13 @@ public class EmailHelper {
 		// add two text files in different ways and a black thumbs up embedded image ->
 		ByteArrayDataSource namedAttachment = new ByteArrayDataSource("Black Tie Optional", "text/plain");
 		namedAttachment.setName("dresscode-ignored-because-of-override.txt");
-		ByteArrayDataSource namedEmbeddedImage = new ByteArrayDataSource(parseBase64Binary(base64StringOfThumbsupImage), "image/png");
+		ByteArrayDataSource namedEmbeddedImage = new ByteArrayDataSource(Base64.getDecoder().decode(base64StringOfThumbsupImage), "image/png");
 		namedEmbeddedImage.setName("thumbsupNamed-ignored-because-of-override.png");
 
 		InternalEmailPopulatingBuilder internalBuilder = ((InternalEmailPopulatingBuilder) builder
 				.withAttachment("dresscode.txt", namedAttachment)
 				.withAttachment("location.txt", "On the moon!".getBytes(Charset.defaultCharset()), "text/plain")
-				.withEmbeddedImage("thumbsup", parseBase64Binary(base64StringOfThumbsupImage), "image/png")
+				.withEmbeddedImage("thumbsup", Base64.getDecoder().decode(base64StringOfThumbsupImage), "image/png")
 				// attachment name tests when producing MimeMessage ->
 				.withAttachment("fixedNameWithoutFileExtensionForNamedAttachment", namedAttachment) // this should be overridden by appending file extension
 				.withEmbeddedImage("fixedNameWithoutFileExtensionForNamedEmbeddedImage", namedEmbeddedImage)) // this should not be overridden
