@@ -3,12 +3,14 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.6.0</version>
+    <version>8.6.1</version>
 </dependency>
 
-v8.6.0 (17-January-2024)
+v8.6.0 - v8.6.1
 
-- #489: Update to Angus Mail
+- v8.6.1 (18-January-2024): #487: Move header filtering from MimeMessageParser to EmailConverter, thereby enabling access to all parsed headers when using MimeMessageParser directly
+- v8.6.1 (18-January-2024): #489: Finished update to Angus Mail by updating activation dependency
+- v8.6.0 (17-January-2024): #489: Update to Angus Mail
 
 
 v8.5.0 - v8.5.1
