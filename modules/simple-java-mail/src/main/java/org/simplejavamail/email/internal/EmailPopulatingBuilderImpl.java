@@ -24,6 +24,7 @@ import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.config.EmailProperty;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.CertificationUtil;
 import org.simplejavamail.internal.util.FileUtil;
 import org.simplejavamail.internal.util.MiscUtil;
@@ -1710,9 +1711,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public <T> InternalEmailPopulatingBuilder withHeaders(@NotNull final Map<String, Collection<T>> headers, final boolean ignoreSmimeMessageId) {
 		for (Map.Entry<String, Collection<T>> headerEntry : headers.entrySet()) {
 			for (final T headerValue : headerEntry.getValue()) {
-				if (!ignoreSmimeMessageId || !isGeneratedSmimeMessageId(headerEntry.getKey(), headerValue)) {
+				if (!ignoreSmimeMessageId || !ModuleLoader.smimeModuleAvailable() || !isGeneratedSmimeMessageId(headerEntry.getKey(), headerValue)) {
 					withHeader(headerEntry.getKey(), headerValue);
-				}
+                }
 			}
 		}
 		return this;
