@@ -78,7 +78,6 @@ import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FRO
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_SMIME_FROM_INPUTSTREAM;
 import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_IMAGE_DATASOURCE;
 import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE;
-import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.interpretRecipient;
@@ -1711,7 +1710,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public <T> InternalEmailPopulatingBuilder withHeaders(@NotNull final Map<String, Collection<T>> headers, final boolean ignoreSmimeMessageId) {
 		for (Map.Entry<String, Collection<T>> headerEntry : headers.entrySet()) {
 			for (final T headerValue : headerEntry.getValue()) {
-				if (!ignoreSmimeMessageId || !ModuleLoader.smimeModuleAvailable() || !isGeneratedSmimeMessageId(headerEntry.getKey(), headerValue)) {
+				if (!ignoreSmimeMessageId ||
+						!ModuleLoader.smimeModuleAvailable() ||
+						!ModuleLoader.loadSmimeModule().isGeneratedSmimeMessageId(headerEntry.getKey(), headerValue)) {
 					withHeader(headerEntry.getKey(), headerValue);
                 }
 			}

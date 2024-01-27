@@ -65,8 +65,6 @@ import java.util.Map;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static org.simplejavamail.internal.smimesupport.SmimeException.*;
-import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID;
-import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isSmimeContentType;
 
 
 /**
@@ -127,7 +125,7 @@ public class SMIMESupport implements SMIMEModule {
 		try {
 			if (mimeMessage.getHeader("Content-Type", null) != null) {
 				ContentType ct = new ContentType(mimeMessage.getHeader("Content-Type", null));
-				if (isSmimeContentType(ct)) {
+				if (SmimeRecognitionUtil.isSmimeContentType(ct)) {
 					smimeBuilder.getOriginalSmimeDetails()
 							.completeWith(OriginalSmimeDetailsImpl.builder()
 									.smimeMime(ct.getBaseType())
@@ -320,7 +318,7 @@ public class SMIMESupport implements SMIMEModule {
 			final MimeMessage decryptedMessage = new MimeMessage((Session) null) {
 				@Override
 				protected void updateMessageID() throws MessagingException {
-					setHeader("Message-ID", SMIME_ATTACHMENT_MESSAGE_ID);
+					setHeader("Message-ID", SmimeRecognitionUtil.SMIME_ATTACHMENT_MESSAGE_ID);
 				}
 			};
 			decryptedMessage.setContent((Multipart) content);
@@ -480,5 +478,10 @@ public class SMIMESupport implements SMIMEModule {
 	private SmimeKey produceSmimeKey(final @NotNull Pkcs12Config pkcs12) {
 		return new SmimeKeyStore(new ByteArrayInputStream(pkcs12.getPkcs12StoreData()), pkcs12.getStorePassword())
 				.getPrivateKey(pkcs12.getKeyAlias(), pkcs12.getKeyPassword());
+	}
+
+	@Override
+	public <T> boolean isGeneratedSmimeMessageId(String key, T headerValue) {
+		return SmimeRecognitionUtil.isGeneratedSmimeMessageId(key, headerValue);
 	}
 }

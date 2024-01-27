@@ -81,4 +81,9 @@ public interface SMIMEModule {
 	 * {@link org.simplejavamail.api.email.EmailPopulatingBuilder#fixingMessageId(String)}.
 	 */
     boolean isMessageIdFixingMessage(MimeMessage message);
+
+	/**
+	 * @return Whether the given attachment is S/MIME signed / encrypted. Defers to {@code SmimeRecognitionUtil.isGeneratedSmimeMessageId(..)}.
+	 */
+    <T> boolean isGeneratedSmimeMessageId(String key, T headerValue);
 }
