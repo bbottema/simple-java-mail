@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.6.1%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-8.6.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.6.2%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-8.6.2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -18,14 +18,15 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.6.1</version>
+    <version>8.6.2</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v8.6.0 - [v8.6.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.6.1/)
+v8.6.0 - [v8.6.2](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.6.2/)
 
+- v8.6.2 (27-January-2024): [#493](https://github.com/bbottema/simple-java-mail/pull/493): [bug] don't require smime-module when adding collection of headers (also used when copying email)
 - v8.6.1 (18-January-2024): [#487](https://github.com/bbottema/simple-java-mail/pull/487): Move header filtering from MimeMessageParser to EmailConverter, thereby enabling access to all parsed headers when using MimeMessageParser directly
 - v8.6.1 (18-January-2024): [#489](https://github.com/bbottema/simple-java-mail/pull/489): Finished update to Angus Mail by updating activation dependency
 - v8.6.0 (17-January-2024): [#489](https://github.com/bbottema/simple-java-mail/pull/489): Update to Angus Mail
