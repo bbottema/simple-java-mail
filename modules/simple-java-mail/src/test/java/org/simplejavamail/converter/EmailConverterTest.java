@@ -342,8 +342,8 @@ public class EmailConverterTest {
 		Email emailMime = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#486 TestValidSignedMimeMessage.eml"));
 		Email emailOutlook = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#486 TestInvalidSignedOutlookMessage.msg"));
 
-        assertThat(emailMime.getEmbeddedImages()).areExactly(1, new Condition<>(at -> at.getName().contains(".jpg"), null));
-        assertThat(emailMime.getAttachments()).areExactly(1, new Condition<>(at -> at.getName().contains(".jpg"), null));
+		assertThat(emailMime.getEmbeddedImages()).areExactly(1, new Condition<>(at -> at.getName().contains(".jpg"), null));
+		assertThat(emailMime.getAttachments()).areExactly(2, new Condition<>(at -> at.getName().contains(".jpg"), null));
 
 		assertThat(emailMime.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
 		assertThat(emailOutlook.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
@@ -365,6 +365,21 @@ public class EmailConverterTest {
 		assertThat(emailMime.getPkcs12ConfigForSmimeSigning()).isEqualTo(emailOutlook.getPkcs12ConfigForSmimeSigning());
 		assertThat(emailMime.getX509CertificateForSmimeEncryption()).isEqualTo(emailOutlook.getX509CertificateForSmimeEncryption());
 		assertThat(emailMime.getReturnReceiptTo()).isEqualTo(emailOutlook.getReturnReceiptTo());
+	}
+
+	@Test
+	public void testGithub491_EmailWithMultiPurposeAttachments() {
+		Email emailMime = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#491 Email with dual purpose datasources.eml"));
+
+        assertThat(emailMime.getEmbeddedImages()).satisfiesExactly(
+				at -> {
+                    at.getName().equals("ii_lrkua30a0");
+                    at.getDataSource().getName().equals("doclife.jpg");
+                });
+		assertThat(emailMime.getAttachments()).satisfiesExactlyInAnyOrder(
+				at -> at.getName().equals("Il Viaggio delle Ombre.pdf"),
+				at -> at.getName().equals("Nyan Cat! [Official]-(480p).mp4"),
+				at -> at.getName().equals("doclife.jpg"));
 	}
 
 	@NotNull

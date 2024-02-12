@@ -1,49 +1,27 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import jakarta.activation.CommandMap;
-import jakarta.activation.MailcapCommandMap;
-import lombok.Getter;
-import org.eclipse.angus.mail.handlers.text_plain;
-import jakarta.activation.ActivationDataFlavor;
-import jakarta.activation.DataHandler;
-import jakarta.activation.DataSource;
+import jakarta.activation.*;
 import jakarta.mail.Address;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
 import jakarta.mail.Part;
-import jakarta.mail.internet.AddressException;
-import jakarta.mail.internet.ContentType;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeBodyPart;
-import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.internet.MimePart;
-import jakarta.mail.internet.MimeUtility;
-import jakarta.mail.internet.ParseException;
+import jakarta.mail.internet.*;
 import jakarta.mail.util.ByteArrayDataSource;
+import lombok.Getter;
 import lombok.val;
+import org.eclipse.angus.mail.handlers.text_plain;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 import org.simplejavamail.internal.util.Preconditions;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -54,6 +32,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Parses a MimeMessage and stores the individual parts such a plain text, HTML text and attachments.
@@ -61,6 +40,8 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * @version current: MimeMessageParser.java 2016-02-25 Benny Bottema
  */
 public final class MimeMessageParser {
+
+	private static final Logger LOGGER = getLogger(MimeMessageParser.class);
 
 	static {
 		MailcapCommandMap mc = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
@@ -116,20 +97,26 @@ public final class MimeMessageParser {
 				parseMimePartTree(getBodyPartAtIndex(mp, i), parsedComponents, fetchAttachmentData);
 			}
 		} else {
-			final DataSource ds = createDataSource(currentPart, fetchAttachmentData);
-			// if the diposition is not provided, for now the part should be treated as inline (later non-embedded inline attachments are moved)
-			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-				parsedComponents.attachmentList.add(parseAttachment(parseContentID(currentPart), currentPart, ds));
-			} else if (disposition == null || Part.INLINE.equalsIgnoreCase(disposition)) {
-				if (parseContentID(currentPart) != null) {
-					parsedComponents.cidMap.put(parseContentID(currentPart), ds);
-				} else {
-					// contentID missing -> treat as standard attachment
-					parsedComponents.attachmentList.add(parseAttachment(null, currentPart, ds));
-				}
-			} else {
-				throw new IllegalStateException("invalid attachment type");
-			}
+			parseDataSource(currentPart, parsedComponents, fetchAttachmentData, disposition);
+		}
+	}
+
+	private static void parseDataSource(@NotNull MimePart currentPart, @NotNull ParsedMimeMessageComponents parsedComponents, boolean fetchAttachmentData, String disposition) {
+        final String contentID = parseContentID(currentPart);
+		final MimeDataSource mimeDataSource = parseAttachment(contentID, currentPart, createDataSource(currentPart, fetchAttachmentData));
+		final boolean isAttachment = Part.ATTACHMENT.equalsIgnoreCase(disposition);
+		final boolean isInline = Part.INLINE.equalsIgnoreCase(disposition);
+
+		if (disposition != null && !isAttachment && !isInline) {
+			LOGGER.warn("Content-Disposition '{}' for data source not recognized (it should be either 'attachment' or 'inline'). Skipping body part", disposition);
+		}
+
+		if (!isInline || contentID == null) {
+			parsedComponents.attachmentList.add(mimeDataSource);
+		}
+		if (contentID != null) {
+			parsedComponents.cidMap.put(contentID, mimeDataSource);
+			// when parsing is done, we'll move any sources from cidMap that are not referenced in HTML, to attachments (or remove if already there)
 		}
 	}
 
@@ -545,11 +532,11 @@ public final class MimeMessageParser {
 
 	static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
 		final String htmlContent = parsedComponents.htmlContent.toString();
-		for (Iterator<Map.Entry<String, DataSource>> it = parsedComponents.cidMap.entrySet().iterator(); it.hasNext(); ) {
-			Map.Entry<String, DataSource> cidEntry = it.next();
+		for (Iterator<Map.Entry<String, MimeDataSource>> it = parsedComponents.cidMap.entrySet().iterator(); it.hasNext(); ) {
+			Map.Entry<String, MimeDataSource> cidEntry = it.next();
 			String cid = extractCID(cidEntry.getKey());
 			if (!htmlContent.contains("cid:" + cid)) {
-				parsedComponents.attachmentList.add(new MimeDataSource(cid, cidEntry.getValue(), null, null));
+				parsedComponents.attachmentList.add(cidEntry.getValue());
 				it.remove();
 			}
 		}
@@ -558,7 +545,7 @@ public final class MimeMessageParser {
 	@Getter
 	public static class ParsedMimeMessageComponents {
 		final Set<MimeDataSource> attachmentList = new TreeSet<>();
-		final Map<String, DataSource> cidMap = new TreeMap<>();
+		final Map<String, MimeDataSource> cidMap = new TreeMap<>();
 		private final Map<String, Collection<Object>> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
 		private final List<InternetAddress> ccAddresses = new ArrayList<>();

@@ -1,6 +1,5 @@
 package org.simplejavamail.converter;
 
-import jakarta.activation.DataSource;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
@@ -8,11 +7,7 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.email.CalendarMethod;
-import org.simplejavamail.api.email.ContentTransferEncoding;
-import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.*;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
@@ -32,15 +27,7 @@ import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.util.Map;
 import java.util.Properties;
 
@@ -48,9 +35,7 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
 import static org.simplejavamail.internal.moduleloader.ModuleLoader.loadSmimeModule;
-import static org.simplejavamail.internal.util.MiscUtil.extractCID;
-import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
-import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.MiscUtil.*;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNANCE;
@@ -685,9 +670,9 @@ public final class EmailConverter {
 			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), verifyNonnullOrEmpty(parsed.getCalendarContent()));
 		}
 		
-		for (final Map.Entry<String, DataSource> cid : parsed.getCidMap().entrySet()) {
+		for (final Map.Entry<String, MimeDataSource> cid : parsed.getCidMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
-			builder.withEmbeddedImage(extractCID(cidName), cid.getValue());
+			builder.withEmbeddedImage(extractCID(cidName), cid.getValue().getDataSource());
 		}
 		for (final MimeDataSource attachment : parsed.getAttachmentList()) {
 			final ContentTransferEncoding encoding = !valueNullOrEmpty(attachment.getContentTransferEncoding())
