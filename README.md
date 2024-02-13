@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.6.2%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-8.6.2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.6.3%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-8.6.3-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -18,39 +18,40 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.6.2</version>
+    <version>8.6.3</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-v8.6.0 - [v8.6.2](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.6.2/)
+v8.6.0 - [v8.6.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.6.3/)
 
-- v8.6.2 (27-January-2024): [#493](https://github.com/bbottema/simple-java-mail/pull/493): [bug] don't require smime-module when adding collection of headers (also used when copying email)
-- v8.6.1 (18-January-2024): [#487](https://github.com/bbottema/simple-java-mail/pull/487): Move header filtering from MimeMessageParser to EmailConverter, thereby enabling access to all parsed headers when using MimeMessageParser directly
-- v8.6.1 (18-January-2024): [#489](https://github.com/bbottema/simple-java-mail/pull/489): Finished update to Angus Mail by updating activation dependency
-- v8.6.0 (17-January-2024): [#489](https://github.com/bbottema/simple-java-mail/pull/489): Update to Angus Mail
+- v8.6.3 (13-February-2024): [#491](https://github.com/bbottema/simple-java-mail/issues/491): [bug] Attachment body parts should separately parse Content-Disposition and ContentID, possible resulting in an downloadable attachment that is also embedded
+- v8.6.2 (27-January-2024): [#493](https://github.com/bbottema/simple-java-mail/issues/493): [bug] don't require smime-module when adding collection of headers (also used when copying email)
+- v8.6.1 (18-January-2024): [#487](https://github.com/bbottema/simple-java-mail/issues/487): Move header filtering from MimeMessageParser to EmailConverter, thereby enabling access to all parsed headers when using MimeMessageParser directly
+- v8.6.1 (18-January-2024): [#489](https://github.com/bbottema/simple-java-mail/issues/489): Finished update to Angus Mail by updating activation dependency
+- v8.6.0 (17-January-2024): [#489](https://github.com/bbottema/simple-java-mail/issues/489): Update to Angus Mail
 
 
 v8.5.0 - [v8.5.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.5.1/)
 
-- v8.5.1 (15-December-2023): [#486](https://github.com/bbottema/simple-java-mail/pull/486): [dependency] Handle Outlook's Non-Standard S/MIME Signed Messages
-- v8.5.0 (13-December-2023): [#484](https://github.com/bbottema/simple-java-mail/pull/484): [bug] Addresses passed as string are not always interpreted correctly
+- v8.5.1 (15-December-2023): [#486](https://github.com/bbottema/simple-java-mail/issues/486): [dependency] Handle Outlook's Non-Standard S/MIME Signed Messages
+- v8.5.0 (13-December-2023): [#484](https://github.com/bbottema/simple-java-mail/issues/484): [bug] Addresses passed as string are not always interpreted correctly
 
 
 [v8.4.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.4.0%7Cjar) (12-December-2023)
 
-- [#483](https://github.com/bbottema/simple-java-mail/pull/483): Enhancement: add native support for overriding envelope-level receiver(s)
+- [#483](https://github.com/bbottema/simple-java-mail/issues/483): Enhancement: add native support for overriding envelope-level receiver(s)
 
 
 v8.3.0 - [v8.3.5](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.3.5/)
 
-- v8.3.5 (10-December-2023): [#482](https://github.com/bbottema/simple-java-mail/pull/482) Bug: 'IllegalArgumentException: emailAddressList is required' when  parsing mail with incorrect recipients from Outlook message
-- v8.3.4 (08-December-2023): [#481](https://github.com/bbottema/simple-java-mail/pull/481) Enhancement: don't crash on invalid empty embedded images when parsing Outlook messages
-- v8.3.3 (03-December-2023): [#477](https://github.com/bbottema/simple-java-mail/pull/477) Enhancement: Support Exchange proprietary addresses (X.500 DAP)
-- v8.3.2 (26-November-2023): [#480](https://github.com/bbottema/simple-java-mail/pull/480) Bug: Multiple attachments with same name get the same Content-ID, causing them to refer to the same file content
-- v8.3.1 (09-October-2023): [#440](https://github.com/bbottema/simple-java-mail/pull/440) Bug: names manually specified for embedded images are overridden and have extension added, breaking cid: references in HTML body
-- v8.3.0 (09-October-2023): [#475](https://github.com/bbottema/simple-java-mail/pull/475) Enhancement: Add configuration metadata for Spring Boot application properties
+- v8.3.5 (10-December-2023): [#482](https://github.com/bbottema/simple-java-mail/issues/482) Bug: 'IllegalArgumentException: emailAddressList is required' when  parsing mail with incorrect recipients from Outlook message
+- v8.3.4 (08-December-2023): [#481](https://github.com/bbottema/simple-java-mail/issues/481) Enhancement: don't crash on invalid empty embedded images when parsing Outlook messages
+- v8.3.3 (03-December-2023): [#477](https://github.com/bbottema/simple-java-mail/issues/477) Enhancement: Support Exchange proprietary addresses (X.500 DAP)
+- v8.3.2 (26-November-2023): [#480](https://github.com/bbottema/simple-java-mail/issues/480) Bug: Multiple attachments with same name get the same Content-ID, causing them to refer to the same file content
+- v8.3.1 (09-October-2023): [#440](https://github.com/bbottema/simple-java-mail/issues/440) Bug: names manually specified for embedded images are overridden and have extension added, breaking cid: references in HTML body
+- v8.3.0 (09-October-2023): [#475](https://github.com/bbottema/simple-java-mail/issues/475) Enhancement: Add configuration metadata for Spring Boot application properties
 
 
 [v8.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.2.0%7Cjar) (02-October-2023)
@@ -60,10 +61,10 @@ v8.3.0 - [v8.3.5](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-
 
 v8.1.0 - [v8.1.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.1.3/)
 
-- v8.1.3 (14-July-2023): [#467](https://github.com/bbottema/simple-java-mail/pull/467) Security: Medium severity vulnerability is detected in org.bouncycastle transitive dependency
-- v8.1.3 (14-July-2023): [#466](https://github.com/bbottema/simple-java-mail/pull/466) Maintenance: Let Mailer implement AutoCloseable, so it shuts down the connection pool automatically when disposed of by Spring
-- v8.1.2 (23-June-2023): [#465](https://github.com/bbottema/simple-java-mail/pull/465) Regression bug #461: Simple Java Mail always requires DKIM/SMIME modules
-- v8.1.1 (07-June-2023): [#461](https://github.com/bbottema/simple-java-mail/pull/461) Bugfix: Fixed MessageID not preserved when signing/encrypting with S/MIME and/or DKIM
+- v8.1.3 (14-July-2023): [#467](https://github.com/bbottema/simple-java-mail/issues/467) Security: Medium severity vulnerability is detected in org.bouncycastle transitive dependency
+- v8.1.3 (14-July-2023): [#466](https://github.com/bbottema/simple-java-mail/issues/466) Maintenance: Let Mailer implement AutoCloseable, so it shuts down the connection pool automatically when disposed of by Spring
+- v8.1.2 (23-June-2023): [#465](https://github.com/bbottema/simple-java-mail/issues/465) Regression bug #461: Simple Java Mail always requires DKIM/SMIME modules
+- v8.1.1 (07-June-2023): [#461](https://github.com/bbottema/simple-java-mail/issues/461) Bugfix: Fixed MessageID not preserved when signing/encrypting with S/MIME and/or DKIM
 - v8.1.0 (15-April-2023): [#458](https://github.com/bbottema/simple-java-mail/pull/458) Missing osgi headers (#288) and added support for Apache Karaf
 - v8.1.0 (15-April-2023): [#288](https://github.com/bbottema/simple-java-mail/issues/288) Maintenance: missing OSGI package-exports from core-module
 

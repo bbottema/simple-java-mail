@@ -3,11 +3,12 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.6.2</version>
+    <version>8.6.3</version>
 </dependency>
 
-v8.6.0 - v8.6.2
+v8.6.0 - v8.6.3
 
+- v8.6.3 (13-February-2024): #491: [bug] Attachment body parts should separately parse Content-Disposition and ContentID, possible resulting in an downloadable attachment that is also embedded
 - v8.6.2 (27-January-2024): #493: [bug] don't require smime-module when adding collection of headers (also used when copying email)
 - v8.6.1 (18-January-2024): #487: Move header filtering from MimeMessageParser to EmailConverter, thereby enabling access to all parsed headers when using MimeMessageParser directly
 - v8.6.1 (18-January-2024): #489: Finished update to Angus Mail by updating activation dependency
