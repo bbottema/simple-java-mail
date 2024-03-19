@@ -544,7 +544,7 @@ public final class MimeMessageParser {
 
 	@Getter
 	public static class ParsedMimeMessageComponents {
-		final Set<MimeDataSource> attachmentList = new TreeSet<>();
+		final Set<MimeDataSource> attachmentList = new LinkedHashSet<>();
 		final Map<String, MimeDataSource> cidMap = new TreeMap<>();
 		private final Map<String, Collection<Object>> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
