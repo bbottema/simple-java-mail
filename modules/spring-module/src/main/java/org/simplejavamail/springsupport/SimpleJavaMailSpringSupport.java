@@ -75,6 +75,9 @@ import java.util.Properties;
  * <li>simplejavamail.smime.signing.key_password</li>
  * <li>simplejavamail.smime.signing.key-password</li>
  * <li>simplejavamail.smime.encryption.certificate</li>
+ * <li>simplejavamail.smime.signing.algorithm</li>
+ * <li>simplejavamail.smime.encryption.key_encapsulation_algorithm</li>
+ * <li>simplejavamail.smime.encryption.cipher</li>
  * <li>simplejavamail.dkim.signing.private_key_file_or_data</li>
  * <li>simplejavamail.dkim.signing.private-key-file-or-data</li>
  * <li>simplejavamail.dkim.signing.selector</li>
@@ -158,6 +161,9 @@ public class SimpleJavaMailSpringSupport {
 			@Nullable @Value("${simplejavamail.smime.signing.key_password:#{null}}") final String smimeSigningKeyPassword,
 			@Nullable @Value("${simplejavamail.smime.signing.key-password:#{null}}") final String smimeSigningKeyPasswordSpringBoot,
 			@Nullable @Value("${simplejavamail.smime.encryption.certificate:#{null}}") final String smimeEncryptionCertificate,
+			@Nullable @Value("${simplejavamail.smime.signing.algorithm:#{null}}") final String smimeSigningAlgorithm,
+			@Nullable @Value("${simplejavamail.smime.encryption.key_encapsulation_algorithm:#{null}}") final String smimeEncryptionKeyEncapsulationAlgorithm,
+			@Nullable @Value("${simplejavamail.smime.encryption.cipher:#{null}}") final String smimeEncryptionCipher,
 			@Nullable @Value("${simplejavamail.dkim.signing.private_key_file_or_data:#{null}}") final String dkimSigningPrivateKeyFileOrData,
 			@Nullable @Value("${simplejavamail.dkim.signing.private-key-file-or-data:#{null}}") final String dkimSigningPrivateKeyFileOrDataSpringBoot,
 			@Nullable @Value("${simplejavamail.dkim.signing.selector:#{null}}") final String dkimSigningSelector,
@@ -240,6 +246,15 @@ public class SimpleJavaMailSpringSupport {
 			setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_PASSWORD.key(), smimeSigningKeyPassword);
 		} else {
 			setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_PASSWORD.key(), smimeSigningKeyPasswordSpringBoot);
+		}
+		if (smimeSigningAlgorithm != null) {
+			setNullableProperty(emailProperties, Property.SMIME_SIGNING_ALGORITHM.key(), smimeSigningAlgorithm);
+		}
+		if (smimeEncryptionKeyEncapsulationAlgorithm != null) {
+			setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM.key(), smimeEncryptionKeyEncapsulationAlgorithm);
+		}
+		if (smimeEncryptionCipher != null) {
+			setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_CIPHER.key(), smimeEncryptionCipher);
 		}
 		setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_CERTIFICATE.key(), smimeEncryptionCertificate);
 		if (dkimSigningPrivateKeyFileOrData != null) {

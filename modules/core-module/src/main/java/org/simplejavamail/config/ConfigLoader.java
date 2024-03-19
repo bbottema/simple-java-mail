@@ -79,6 +79,9 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * <li>simplejavamail.smime.signing.key_alias</li>
  * <li>simplejavamail.smime.signing.key_password</li>
  * <li>simplejavamail.smime.encryption.certificate</li>
+ * <li>simplejavamail.smime.signing.algorithm</li>
+ * <li>simplejavamail.smime.encryption.key_encapsulation_algorithm</li>
+ * <li>simplejavamail.smime.encryption.cipher</li>
  * <li>simplejavamail.dkim.signing.private_key_file_or_data</li>
  * <li>simplejavamail.dkim.signing.selector</li>
  * <li>simplejavamail.dkim.signing.signing_domain</li>
@@ -175,6 +178,9 @@ public final class ConfigLoader {
 		SMIME_SIGNING_KEYSTORE_PASSWORD("simplejavamail.smime.signing.keystore_password"),
 		SMIME_SIGNING_KEY_ALIAS("simplejavamail.smime.signing.key_alias"),
 		SMIME_SIGNING_KEY_PASSWORD("simplejavamail.smime.signing.key_password"),
+		SMIME_SIGNING_ALGORITHM("simplejavamail.smime.signing.algorithm"),
+		SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM("simplejavamail.smime.encryption.key_encapsulation_algorithm"),
+		SMIME_ENCRYPTION_CIPHER("simplejavamail.smime.encryption.cipher"),
 		DKIM_PRIVATE_KEY_FILE_OR_DATA("simplejavamail.dkim.signing.private_key_file_or_data"),
 		DKIM_SELECTOR("simplejavamail.dkim.signing.selector"),
 		DKIM_SIGNING_DOMAIN("simplejavamail.dkim.signing.signing_domain"),
