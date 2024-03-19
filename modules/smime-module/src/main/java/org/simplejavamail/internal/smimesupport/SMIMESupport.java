@@ -448,13 +448,16 @@ public class SMIMESupport implements SMIMEModule {
 	@NotNull
 	@Override
 	public MimeMessage signMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final Pkcs12Config pkcs12Config) {
-		return SmimeUtil.sign(session, email.getId(), messageToProtect, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
+		return SmimeUtil.sign(session, email.getId(), messageToProtect, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config),
+				SmimeUtil.DEFAULT_SIGNATURE_ALGORITHM_NAME);
 	}
 
 	@NotNull
 	@Override
 	public MimeMessage encryptMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final X509Certificate x509Certificate) {
-		return SmimeUtil.encrypt(session, email.getId(), messageToProtect, x509Certificate);
+        return SmimeUtil.encrypt(session, messageToProtect, email.getId(), x509Certificate,
+				SmimeUtil.DEFAULT_KEY_ENCAPSULATION_ALGORITHM,
+				SmimeUtil.DEFAULT_CIPHER);
 	}
 
 	@Override
