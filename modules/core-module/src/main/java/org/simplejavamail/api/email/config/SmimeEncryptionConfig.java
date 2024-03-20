@@ -21,6 +21,11 @@ import java.security.cert.X509Certificate;
 
 import static java.lang.String.format;
 
+/**
+ * @see #getKeyEncapsulationAlgorithm()
+ * @see #getCipherAlgorithm()
+ * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
+ */
 @ToString
 @Getter
 @EqualsAndHashCode
@@ -58,6 +63,8 @@ public class SmimeEncryptionConfig implements Serializable {
      * <p><strong>Note:</strong> While the default RSA is widely compatible, the move towards RSA with OAEP padding
      * is encouraged to ensure a higher level of security against modern cryptographic attacks. The choice of SHA-256
      * or higher as the hashing algorithm for OAEP provides a good balance between security and performance.</p>
+     *
+     * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
      */
     @Nullable
     final String keyEncapsulationAlgorithm;
@@ -83,6 +90,8 @@ public class SmimeEncryptionConfig implements Serializable {
      *
      * <p><strong>Note:</strong> While DES_EDE3_CBC is supported for backward compatibility, AES (128, 192, 256)
      * is strongly recommended for new applications due to its enhanced security and efficiency.</p>
+     *
+     * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
      */
     @Nullable
     final String cipherAlgorithm;

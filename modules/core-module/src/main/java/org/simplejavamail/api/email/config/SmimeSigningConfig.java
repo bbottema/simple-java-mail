@@ -18,6 +18,10 @@ import java.io.InputStream;
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 
+/**
+ * @see #getSignatureAlgorithm()
+ * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
+ */
 @ToString
 @Getter
 @EqualsAndHashCode
