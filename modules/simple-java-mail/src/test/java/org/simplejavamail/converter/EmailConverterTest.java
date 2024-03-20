@@ -362,8 +362,8 @@ public class EmailConverterTest {
 		assertThat(emailMime.getUseDispositionNotificationTo()).isEqualTo(emailOutlook.getUseDispositionNotificationTo());
 		assertThat(emailMime.getUseReturnReceiptTo()).isEqualTo(emailOutlook.getUseReturnReceiptTo());
 		assertThat(emailMime.getDispositionNotificationTo()).isEqualTo(emailOutlook.getDispositionNotificationTo());
-		assertThat(emailMime.getPkcs12ConfigForSmimeSigning()).isEqualTo(emailOutlook.getPkcs12ConfigForSmimeSigning());
-		assertThat(emailMime.getX509CertificateForSmimeEncryption()).isEqualTo(emailOutlook.getX509CertificateForSmimeEncryption());
+		assertThat(emailMime.getSmimeSigningConfig()).isEqualTo(emailOutlook.getSmimeSigningConfig());
+		assertThat(emailMime.getSmimeEncryptionConfig()).isEqualTo(emailOutlook.getSmimeEncryptionConfig());
 		assertThat(emailMime.getReturnReceiptTo()).isEqualTo(emailOutlook.getReturnReceiptTo());
 	}
 

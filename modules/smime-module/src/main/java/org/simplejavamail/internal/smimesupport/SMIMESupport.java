@@ -32,6 +32,8 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeApplicationSmime;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeMultipartSigned;
@@ -42,6 +44,7 @@ import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.internal.smimesupport.builder.SmimeParseResultBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.smimesupport.model.SmimeDetailsImpl;
+import org.simplejavamail.utils.mail.smime.KeyEncapsulationAlgorithm;
 import org.simplejavamail.utils.mail.smime.SmimeKey;
 import org.simplejavamail.utils.mail.smime.SmimeKeyStore;
 import org.simplejavamail.utils.mail.smime.SmimeMessageIdFixingMimeMessage;
@@ -64,7 +67,15 @@ import java.util.Map;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static org.simplejavamail.internal.smimesupport.SmimeException.*;
+import static java.util.Optional.ofNullable;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DETERMINING_SMIME_SIGNER;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SUBJECT_FROM_CERTIFICATE;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_OBTAINING_SMIME_KEY;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_READING_SMIME_CONTENT_TYPE;
+import static org.simplejavamail.internal.smimesupport.SmimeException.MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED;
+import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 
 
 /**
@@ -246,7 +257,7 @@ public class SMIMESupport implements SMIMEModule {
 			} else if (smimeState == SmimeState.SIGNED) {
 				liberatedContent = getSignedContent(mimeBodyPart);
 			} else if (smimeState == SmimeState.PROBABLY_SIGNED) {
-				liberatedContent = tryGetSignedContent(liberatedContent, mimeBodyPart);
+				liberatedContent = tryGetSignedContent(mimeBodyPart);
 			}
 
 			return liberatedContent != null ? liberatedContent : new AttachmentDecryptionResultImpl(SmimeMode.PLAIN, attachment);
@@ -285,7 +296,7 @@ public class SMIMESupport implements SMIMEModule {
 	}
 
 	@Nullable
-	private AttachmentDecryptionResult tryGetSignedContent(AttachmentDecryptionResult possiblySignedContent, final MimeBodyPart mimeBodyPart)
+	private AttachmentDecryptionResult tryGetSignedContent(final MimeBodyPart mimeBodyPart)
 			throws MessagingException, IOException {
 		try {
 			if (SmimeUtil.checkSignature(mimeBodyPart)) {
@@ -296,7 +307,7 @@ public class SMIMESupport implements SMIMEModule {
 			// ignore, apparently not S/SMIME after all
 		}
         LOGGER.warn("Content classified as signed, but apparently not using S/MIME (or it was and the signature was not valid); skipping S/MIME interpeter...");
-		return possiblySignedContent;
+		return null;
 	}
 
 	private String restoreSmimeContentType(@NotNull final AttachmentResource attachment, final OriginalSmimeDetails originalSmimeDetails) {
@@ -447,17 +458,21 @@ public class SMIMESupport implements SMIMEModule {
 
 	@NotNull
 	@Override
-	public MimeMessage signMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final Pkcs12Config pkcs12Config) {
-		return SmimeUtil.sign(session, email.getId(), messageToProtect, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config),
-				SmimeUtil.DEFAULT_SIGNATURE_ALGORITHM_NAME);
+	public MimeMessage signMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final SmimeSigningConfig smimeSigningConfig) {
+		return SmimeUtil.sign(session, email.getId(), messageToProtect, retrieveSmimeKeyFromPkcs12Keystore(smimeSigningConfig.getPkcs12Config()),
+				defaultTo(smimeSigningConfig.getSignatureAlgorithm(), SmimeUtil.DEFAULT_SIGNATURE_ALGORITHM_NAME));
 	}
 
 	@NotNull
 	@Override
-	public MimeMessage encryptMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final X509Certificate x509Certificate) {
-        return SmimeUtil.encrypt(session, messageToProtect, email.getId(), x509Certificate,
-				SmimeUtil.DEFAULT_KEY_ENCAPSULATION_ALGORITHM,
-				SmimeUtil.DEFAULT_CIPHER);
+	public MimeMessage encryptMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final SmimeEncryptionConfig smimeEncryptionConfige) {
+        return SmimeUtil.encrypt(session, messageToProtect, email.getId(), smimeEncryptionConfige.getX509Certificate(),
+                ofNullable(smimeEncryptionConfige.getKeyEncapsulationAlgorithm())
+                        .map(KeyEncapsulationAlgorithm::valueOf)
+                        .orElse(SmimeUtil.DEFAULT_KEY_ENCAPSULATION_ALGORITHM),
+                ofNullable(smimeEncryptionConfige.getCipherAlgorithm())
+                        .map(CMSAlgorithmResolver::resolve)
+                        .orElse(SmimeUtil.DEFAULT_CIPHER));
 	}
 
 	@Override

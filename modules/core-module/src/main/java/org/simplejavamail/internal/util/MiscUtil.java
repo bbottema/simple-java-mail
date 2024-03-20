@@ -180,7 +180,7 @@ public final class MiscUtil {
 	
 	@Nullable
 	public static <T> T defaultTo(@Nullable final T value, @Nullable final T defaultValue) {
-		return value != null ? value : defaultValue;
+		return ofNullable(value).orElse(defaultValue);
 	}
 	
 	public static boolean classAvailable(@NotNull String className) {

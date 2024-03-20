@@ -46,7 +46,7 @@ public class TestDataHelper {
 		return Pkcs12Config.builder()
 				.pkcs12Store(RESOURCES_PKCS + "/smime_keystore.pkcs12")
 				.storePassword("letmein")
-				.keyAlias("smime_test_user_alias")
+				.keyAlias("smime_test_user_alias_rsa")
 				.keyPassword("letmein")
 				.build();
 	}

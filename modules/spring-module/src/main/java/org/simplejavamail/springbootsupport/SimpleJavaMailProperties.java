@@ -202,6 +202,7 @@ public class SimpleJavaMailProperties {
             private String keystorePassword;
             private String keyAlias;
             private String keyPassword;
+            private String algorithm;
         }
 
         /**
@@ -211,6 +212,8 @@ public class SimpleJavaMailProperties {
         @Setter
         public static class Encryption {
             private String certificate;
+            private String keyEncapsulationAlgorithm;
+            private String cipher;
         }
     }
 

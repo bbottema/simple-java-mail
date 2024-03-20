@@ -89,10 +89,10 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getOriginalSmimeDetails(), email2.getOriginalSmimeDetails(), "originalSmimeDetails")) {
             return false;
         }
-        if (!fieldIsEqual(email1.getPkcs12ConfigForSmimeSigning(), email2.getPkcs12ConfigForSmimeSigning(), "pkcs12ConfigForSmimeSigning")) {
+        if (!fieldIsEqual(email1.getSmimeSigningConfig(), email2.getSmimeSigningConfig(), "smimeSigningConfig")) {
             return false;
         }
-        if (!fieldIsEqual(email1.getX509CertificateForSmimeEncryption(), email2.getX509CertificateForSmimeEncryption(), "x509CertificateForSmimeEncryption")) {
+        if (!fieldIsEqual(email1.getSmimeEncryptionConfig(), email2.getSmimeEncryptionConfig(), "smimeEncryptionConfig")) {
             return false;
         }
         return fieldIsEqual(email1.getReturnReceiptTo(), email2.getReturnReceiptTo(), "returnReceiptTo");

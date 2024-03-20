@@ -7,7 +7,11 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.email.*;
+import org.simplejavamail.api.email.CalendarMethod;
+import org.simplejavamail.api.email.ContentTransferEncoding;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
@@ -27,7 +31,15 @@ import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.Properties;
 
@@ -35,7 +47,9 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
 import static org.simplejavamail.internal.moduleloader.ModuleLoader.loadSmimeModule;
-import static org.simplejavamail.internal.util.MiscUtil.*;
+import static org.simplejavamail.internal.util.MiscUtil.extractCID;
+import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNANCE;
@@ -232,6 +246,7 @@ public final class EmailConverter {
 		return emailBuilder;
 	}
 
+	@NotNull
 	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder, final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
 		if (ModuleLoader.smimeModuleAvailable()) {
 			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config);

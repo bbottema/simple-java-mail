@@ -13,6 +13,8 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
@@ -21,7 +23,6 @@ import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.config.EmailProperty;
 
 import java.io.File;
-import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -49,6 +50,9 @@ import static org.simplejavamail.config.ConfigLoader.Property.DKIM_PRIVATE_KEY_F
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SELECTOR;
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SIGNING_DOMAIN;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CIPHER;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_ALGORITHM;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
@@ -158,16 +162,23 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			allDefaults.withSubject(getProperty(DEFAULT_SUBJECT));
 		}
 
-		if (allDefaults.getPkcs12ConfigForSmimeSigning() == null && hasProperty(SMIME_SIGNING_KEYSTORE)) {
-			allDefaults.signWithSmime(Pkcs12Config.builder()
-					.pkcs12Store(verifyNonnullOrEmpty(getStringProperty(SMIME_SIGNING_KEYSTORE)))
-					.storePassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEYSTORE_PASSWORD), "Keystore password property"))
-					.keyAlias(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_ALIAS), "Key alias property"))
-					.keyPassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_PASSWORD), "Key password property"))
+		if (allDefaults.getSmimeSignedEmail() == null && hasProperty(SMIME_SIGNING_KEYSTORE)) {
+			allDefaults.signWithSmime(SmimeSigningConfig.builder()
+					.pkcs12Config(Pkcs12Config.builder()
+							.pkcs12Store(verifyNonnullOrEmpty(getStringProperty(SMIME_SIGNING_KEYSTORE)))
+							.storePassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEYSTORE_PASSWORD), "Keystore password property"))
+							.keyAlias(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_ALIAS), "Key alias property"))
+							.keyPassword(checkNonEmptyArgument(getStringProperty(SMIME_SIGNING_KEY_PASSWORD), "Key password property"))
+							.build())
+					.signatureAlgorithm(hasProperty(SMIME_SIGNING_ALGORITHM) ? getStringProperty(SMIME_SIGNING_ALGORITHM) : null)
 					.build());
 		}
-		if (allDefaults.getX509CertificateForSmimeEncryption() == null && hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
-			allDefaults.encryptWithSmime(verifyNonnullOrEmpty(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)));
+		if (allDefaults.getSmimeEncryptionConfig() == null && hasProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
+			allDefaults.encryptWithSmime(SmimeEncryptionConfig.builder()
+					.x509Certificate(verifyNonnullOrEmpty(getStringProperty(SMIME_ENCRYPTION_CERTIFICATE)))
+					.keyEncapsulationAlgorithm(hasProperty(SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM) ? getStringProperty(SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM) : null)
+					.cipherAlgorithm(hasProperty(SMIME_ENCRYPTION_CIPHER) ? getStringProperty(SMIME_ENCRYPTION_CIPHER) : null)
+					.build());
 		}
 		if (allDefaults.getDkimConfig() == null && hasProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA)) {
 			val dkimConfigBuilder = DkimConfig.builder()
@@ -245,8 +256,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			builder.withOverrideReceivers(overrideReceivers);
 		}
 		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withContentTransferEncoding);
-		ofNullable(this.<Pkcs12Config>resolveEmailProperty(provided, EmailProperty.SMIME_SIGNING_CONFIG)).ifPresent(builder::signWithSmime);
-		ofNullable(this.<X509Certificate>resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG)).ifPresent(builder::encryptWithSmime);
+		ofNullable(this.<SmimeSigningConfig>resolveEmailProperty(provided, EmailProperty.SMIME_SIGNING_CONFIG)).ifPresent(builder::signWithSmime);
+		ofNullable(this.<SmimeEncryptionConfig>resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG)).ifPresent(builder::encryptWithSmime);
 		ofNullable(this.<DkimConfig>resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG)).ifPresent(builder::signWithDomainKey);
 		builder.withBounceTo(this.<Recipient>resolveEmailProperty(provided, EmailProperty.BOUNCETO_RECIPIENT));
 		ofNullable(this.<Date>resolveEmailProperty(provided, EmailProperty.SENT_DATE)).ifPresent(builder::fixingSentDate);

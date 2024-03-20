@@ -13,6 +13,8 @@ import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -25,11 +27,8 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.security.cert.X509Certificate;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1213,7 +1212,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
-	public void testClearingValues() throws IOException {
+	public void testClearingValues() {
 		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false, false)
 				.notMergingSingleSMIMESignedAttachment()
 				.signWithDomainKey(DkimConfig.builder()
@@ -1221,8 +1220,10 @@ public class EmailPopulatingBuilderImpl1Test {
 						.dkimSigningDomain("dkim_domain")
 						.dkimSelector("dkim_selector")
 						.build())
-				.signWithSmime(new ByteArrayInputStream(new byte[]{}), "storePassword", "keyAlias", "keyPassword")
-				.encryptWithSmime(mock(X509Certificate.class));
+				.signWithSmime(SmimeSigningConfig.builder()
+						.pkcs12Config(new ByteArrayInputStream(new byte[]{}), "storePassword", "keyAlias", "keyPassword")
+						.build())
+				.encryptWithSmime(mock(SmimeEncryptionConfig.class));
 
 		assertThat(emailBuilder.isMergeSingleSMIMESignedAttachment()).isFalse();
 
@@ -1246,8 +1247,8 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailNormal.getReplyToRecipients()).isNotEmpty();
 		assertThat(emailNormal.getReturnReceiptTo()).isNotNull();
 		assertThat(emailNormal.getSentDate()).isNotNull();
-		assertThat(emailNormal.getPkcs12ConfigForSmimeSigning()).isNotNull();
-		assertThat(emailNormal.getX509CertificateForSmimeEncryption()).isNotNull();
+		assertThat(emailNormal.getSmimeSigningConfig()).isNotNull();
+		assertThat(emailNormal.getSmimeEncryptionConfig()).isNotNull();
 
 		emailBuilder
 				.clearId()
@@ -1287,8 +1288,8 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailCleared.getReplyToRecipients()).isEmpty();
 		assertThat(emailCleared.getReturnReceiptTo()).isNull();
 		assertThat(emailCleared.getSentDate()).isNull();
-		assertThat(emailCleared.getPkcs12ConfigForSmimeSigning()).isNull();
-		assertThat(emailCleared.getX509CertificateForSmimeEncryption()).isNull();
+		assertThat(emailCleared.getSmimeSigningConfig()).isNull();
+		assertThat(emailCleared.getSmimeEncryptionConfig()).isNull();
 	}
 
 	@Test

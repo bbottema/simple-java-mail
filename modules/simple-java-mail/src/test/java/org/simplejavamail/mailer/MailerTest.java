@@ -404,8 +404,8 @@ public class MailerTest {
 				.dkimSigningDomain("somemail.com")
 				.dkimSelector("select")
 				.build());
-		emailPopulatingBuilder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
-		emailPopulatingBuilder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
+		emailPopulatingBuilder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein", null);
+		emailPopulatingBuilder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"), null, null);
 
 		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, signing did not produce an error
