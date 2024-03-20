@@ -1260,6 +1260,9 @@ public interface EmailPopulatingBuilder {
 	 * @param storePassword The store's password
      * @param keyAlias The name of the certificate in the key store to use
      * @param keyPassword The password of the certificate
+	 * @param signatureAlgorithm The signature algorithm to use for signing. If omitted, the default algorithm is used.
+	 *                           See {@link SmimeSigningConfig} for details.
+	 *
      * @see SmimeSigningConfig
      */
 	EmailPopulatingBuilder signWithSmime(@NotNull File pkcs12StoreFile, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword, @Nullable String signatureAlgorithm);
@@ -1282,6 +1285,10 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #encryptWithSmime(SmimeEncryptionConfig)} using the provided PEM file.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 *
+	 * @param pemFile The recipient's public key to use for encryption.
+	 * @param keyEncapsulationAlgorithm The key encapsulation algorithm to use for encryption. See {@link SmimeEncryptionConfig} for available values.
+	 * @param cipherAlgorithm The cipher algorithm to use for encryption. See {@link SmimeEncryptionConfig} for available values.
 	 *
 	 * @see SmimeEncryptionConfig
 	 */
