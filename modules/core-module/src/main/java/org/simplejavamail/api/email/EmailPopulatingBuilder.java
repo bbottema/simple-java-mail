@@ -1228,6 +1228,8 @@ public interface EmailPopulatingBuilder {
 	 * Primes this email for signing with a DKIM domain key. Actual signing is done when sending using a <code>Mailer</code>.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
+	 * <p>
+	 * <strong>Note:</strong> for more fine-grained control over the DKIM signing process, use {@link #signWithDomainKey(DkimConfig)} instead.
 	 *
 	 * @param dkimPrivateKey                            De key content used to sign for the sending party.
 	 * @param signingDomain                             The domain being authorized to send.
@@ -1245,6 +1247,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder signWithDomainKey(byte@NotNull[] dkimPrivateKey, @NotNull String signingDomain, @NotNull String dkimSelector, @Nullable Set<String> excludedHeadersFromDkimDefaultSigningList);
 
 	/**
+	 * Allows for more customization of the DKIM signing process by providing a {@link DkimConfig} instance. Added config includes: <em>useLengthParam</em>,
+	 * <em>signingAlgorithm</em>, <em>headerCanonicalization</em> and <em>bodyCanonicalizationAlgorithm</em>.
+	 *
+	 * @see DkimConfig
 	 * @see #signWithDomainKey(byte[], String, String, Set)
 	 */
 	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")

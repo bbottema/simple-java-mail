@@ -116,7 +116,7 @@ public class EmailTest {
 				+ "	contentTransferEncoding='quoted-printable',\n"
 				+ "	subject='hey',\n"
 				+ "	recipients=[Recipient{name='C.Cane', address='candycane@candyshop.org', type=To}],\n"
-				+ "	dkimConfig=DkimConfig(dkimSigningDomain=dkim_domain, dkimSelector=dkim_selector, excludedHeadersFromDkimDefaultSigningList=null),\n"
+				+ "	dkimConfig=DkimConfig(dkimSigningDomain=dkim_domain, dkimSelector=dkim_selector, useLengthParam=null, excludedHeadersFromDkimDefaultSigningList=null, headerCanonicalization=null, bodyCanonicalization=null, signingAlgorithm=null),\n"
 				+ "	useDispositionNotificationTo=true,\n"
 				+ "		dispositionNotificationTo=Recipient{name='dispo to', address='simple@address.com', type=null},\n"
 				+ "	useReturnReceiptTo=true,\n"

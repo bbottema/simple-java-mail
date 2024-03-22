@@ -83,8 +83,12 @@ import java.util.Properties;
  * <li>simplejavamail.dkim.signing.selector</li>
  * <li>simplejavamail.dkim.signing.signing_domain</li>
  * <li>simplejavamail.dkim.signing.signing-domain</li>
+ * <li>simplejavamail.dkim.signing.use_length_param</li>
  * <li>simplejavamail.dkim.signing.excluded_headers_from_default_signing_list</li>
  * <li>simplejavamail.dkim.signing.excluded-headers-from-default-signing-list</li>
+ * <li>simplejavamail.dkim.signing.header_canonicalization</li>
+ * <li>simplejavamail.dkim.signing.body_canonicalization</li>
+ * <li>simplejavamail.dkim.signing.algorithm</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.dir</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.url</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.classpath</li>
@@ -169,8 +173,12 @@ public class SimpleJavaMailSpringSupport {
 			@Nullable @Value("${simplejavamail.dkim.signing.selector:#{null}}") final String dkimSigningSelector,
 			@Nullable @Value("${simplejavamail.dkim.signing.signing_domain:#{null}}") final String dkimSigningDomain,
 			@Nullable @Value("${simplejavamail.dkim.signing.signing-domain:#{null}}") final String dkimSigningDomainSpringBoot,
+			@Nullable @Value("${simplejavamail.dkim.signing.use_length_param:#{null}}") final String dkimSigningUseLengthParam,
 			@Nullable @Value("${simplejavamail.dkim.signing.excluded_headers_from_default_signing_list:#{null}}") final String dkimSigningExcludedHeadersFromDefaultSigningList,
 			@Nullable @Value("${simplejavamail.dkim.signing.excluded-headers-from-default-signing-list:#{null}}") final String dkimSigningExcludedHeadersFromDefaultSigningListSpringBoot,
+			@Nullable @Value("${simplejavamail.dkim.signing.header_canonicalization:#{null}}") final String dkimSigningHeaderCanonicalization,
+			@Nullable @Value("${simplejavamail.dkim.signing.body_canonicalization:#{null}}") final String dkimSigningBodyCanonicalization,
+			@Nullable @Value("${simplejavamail.dkim.signing.algorithm:#{null}}") final String dkimSigningAlgorithm,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.dir:#{null}}") final String embeddedimagesDynamicresolutionEnableDir,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.url:#{null}}") final String embeddedimagesDynamicresolutionEnableUrl,
 			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.classpath:#{null}}") final String embeddedimagesDynamicresolutionEnableClassPath,
@@ -247,15 +255,9 @@ public class SimpleJavaMailSpringSupport {
 		} else {
 			setNullableProperty(emailProperties, Property.SMIME_SIGNING_KEY_PASSWORD.key(), smimeSigningKeyPasswordSpringBoot);
 		}
-		if (smimeSigningAlgorithm != null) {
-			setNullableProperty(emailProperties, Property.SMIME_SIGNING_ALGORITHM.key(), smimeSigningAlgorithm);
-		}
-		if (smimeEncryptionKeyEncapsulationAlgorithm != null) {
-			setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM.key(), smimeEncryptionKeyEncapsulationAlgorithm);
-		}
-		if (smimeEncryptionCipher != null) {
-			setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_CIPHER.key(), smimeEncryptionCipher);
-		}
+		setNullableProperty(emailProperties, Property.SMIME_SIGNING_ALGORITHM.key(), smimeSigningAlgorithm);
+		setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM.key(), smimeEncryptionKeyEncapsulationAlgorithm);
+		setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_CIPHER.key(), smimeEncryptionCipher);
 		setNullableProperty(emailProperties, Property.SMIME_ENCRYPTION_CERTIFICATE.key(), smimeEncryptionCertificate);
 		if (dkimSigningPrivateKeyFileOrData != null) {
 			setNullableProperty(emailProperties, Property.DKIM_PRIVATE_KEY_FILE_OR_DATA.key(), dkimSigningPrivateKeyFileOrData);
@@ -268,11 +270,15 @@ public class SimpleJavaMailSpringSupport {
 		} else {
 			setNullableProperty(emailProperties, Property.DKIM_SIGNING_DOMAIN.key(), dkimSigningDomainSpringBoot);
 		}
+		setNullableProperty(emailProperties, Property.DKIM_SIGNING_USE_LENGTH_PARAM.key(), dkimSigningUseLengthParam);
 		if (dkimSigningExcludedHeadersFromDefaultSigningList != null) {
 			setNullableProperty(emailProperties, Property.DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST.key(), dkimSigningExcludedHeadersFromDefaultSigningList);
 		} else {
 			setNullableProperty(emailProperties, Property.DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST.key(), dkimSigningExcludedHeadersFromDefaultSigningListSpringBoot);
 		}
+		setNullableProperty(emailProperties, Property.DKIM_SIGNING_HEADER_CANONICALIZATION.key(), dkimSigningHeaderCanonicalization);
+		setNullableProperty(emailProperties, Property.DKIM_SIGNING_BODY_CANONICALIZATION.key(), dkimSigningBodyCanonicalization);
+		setNullableProperty(emailProperties, Property.DKIM_SIGNING_ALGORITHM.key(), dkimSigningAlgorithm);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR.key(), embeddedimagesDynamicresolutionEnableDir);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH.key(), embeddedimagesDynamicresolutionEnableClassPath);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL.key(), embeddedimagesDynamicresolutionEnableUrl);

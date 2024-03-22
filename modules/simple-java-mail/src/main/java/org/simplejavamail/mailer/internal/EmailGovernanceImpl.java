@@ -48,7 +48,11 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST;
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_PRIVATE_KEY_FILE_OR_DATA;
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SELECTOR;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SIGNING_ALGORITHM;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SIGNING_BODY_CANONICALIZATION;
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SIGNING_DOMAIN;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SIGNING_HEADER_CANONICALIZATION;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SIGNING_USE_LENGTH_PARAM;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CIPHER;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM;
@@ -57,6 +61,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYS
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
+import static org.simplejavamail.config.ConfigLoader.getBooleanProperty;
 import static org.simplejavamail.config.ConfigLoader.getProperty;
 import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
@@ -184,7 +189,11 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			val dkimConfigBuilder = DkimConfig.builder()
 					.dkimSelector(verifyNonnullOrEmpty(getStringProperty(DKIM_SELECTOR)))
 					.dkimSigningDomain(verifyNonnullOrEmpty(getStringProperty(DKIM_SIGNING_DOMAIN)))
-					.excludedHeadersFromDkimDefaultSigningList(verifyNonnullOrEmpty(getStringProperty(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST)));
+					.useLengthParam(hasProperty(DKIM_SIGNING_USE_LENGTH_PARAM) ? getBooleanProperty(DKIM_SIGNING_USE_LENGTH_PARAM) : null)
+					.excludedHeadersFromDkimDefaultSigningList(verifyNonnullOrEmpty(getStringProperty(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST)))
+					.headerCanonicalization(hasProperty(DKIM_SIGNING_HEADER_CANONICALIZATION) ? getProperty(DKIM_SIGNING_HEADER_CANONICALIZATION) : null)
+					.bodyCanonicalization(hasProperty(DKIM_SIGNING_BODY_CANONICALIZATION) ? getProperty(DKIM_SIGNING_BODY_CANONICALIZATION) : null)
+					.signingAlgorithm(hasProperty(DKIM_SIGNING_ALGORITHM) ? getStringProperty(DKIM_SIGNING_ALGORITHM) : null);
 			val dkimPrivateKeyFileOrData = verifyNonnullOrEmpty(getStringProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA));
 			if (new File(dkimPrivateKeyFileOrData).exists()) {
 				dkimConfigBuilder.dkimPrivateKeyPath(dkimPrivateKeyFileOrData);

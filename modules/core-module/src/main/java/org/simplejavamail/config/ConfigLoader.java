@@ -3,6 +3,7 @@ package org.simplejavamail.config;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.ContentTransferEncoding;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.util.SimpleConversions;
@@ -85,7 +86,11 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * <li>simplejavamail.dkim.signing.private_key_file_or_data</li>
  * <li>simplejavamail.dkim.signing.selector</li>
  * <li>simplejavamail.dkim.signing.signing_domain</li>
+ * <li>simplejavamail.dkim.signing.use_length_param</li>
  * <li>simplejavamail.dkim.signing.excluded_headers_from_default_signing_list</li>
+ * <li>simplejavamail.dkim.signing.header_canonicalization</li>
+ * <li>simplejavamail.dkim.signing.body_canonicalization</li>
+ * <li>simplejavamail.dkim.signing.algorithm</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.dir</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.url</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.enable.classpath</li>
@@ -184,7 +189,11 @@ public final class ConfigLoader {
 		DKIM_PRIVATE_KEY_FILE_OR_DATA("simplejavamail.dkim.signing.private_key_file_or_data"),
 		DKIM_SELECTOR("simplejavamail.dkim.signing.selector"),
 		DKIM_SIGNING_DOMAIN("simplejavamail.dkim.signing.signing_domain"),
+		DKIM_SIGNING_USE_LENGTH_PARAM("simplejavamail.dkim.signing.use_length_param"),
 		DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST("simplejavamail.dkim.signing.excluded_headers_from_default_signing_list"),
+		DKIM_SIGNING_HEADER_CANONICALIZATION("simplejavamail.dkim.signing.header_canonicalization"),
+		DKIM_SIGNING_BODY_CANONICALIZATION("simplejavamail.dkim.signing.body_canonicalization"),
+		DKIM_SIGNING_ALGORITHM("simplejavamail.dkim.signing.algorithm"),
 		SMIME_ENCRYPTION_CERTIFICATE("simplejavamail.smime.encryption.certificate"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR("simplejavamail.embeddedimages.dynamicresolution.enable.dir"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH("simplejavamail.embeddedimages.dynamicresolution.enable.classpath"),
@@ -470,6 +479,12 @@ public final class ConfigLoader {
 			return ContentTransferEncoding.valueOf(propertyValue);
 		} catch (final IllegalArgumentException nfe2) {
 			// ok, so not a ContentTransferEncoding either
+		}
+		// read ContentTransferEncoding value
+		try {
+			return DkimConfig.Canonicalization.valueOf(propertyValue);
+		} catch (final IllegalArgumentException nfe2) {
+			// ok, so not a Canonicalization either
 		}
 		// read LoadBalancingStrategy value
 		try {
