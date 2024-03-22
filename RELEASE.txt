@@ -3,13 +3,20 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.7.1</version>
+    <version>8.8.0</version>
 </dependency>
+
+v8.8.0 (22-March-2024)
+
+- #499: [Enhancement] Expose finer-grained DKIM configuration through the builder api and disable 'l-param' by default
+
+NOTE: this release changes the default for DKIM signing from 'l-param' true to false. If you rely on this feature, you need to enable it explicitly (see the updated https://www.simplejavamail.org/security.html#section-sending-dkim).
+
 
 v8.7.0 - v8.7.1
 
-- v8.7.1 (20-March-2024): #498: Make S/MIME algorithms configurable (signature algorithm for signing, key encapsulation and cipher algorithms for encryption)
-- v8.7.1 (20-March-2024): #497: Order of attachments is lost when converting a MimeMessage to an Email
+- v8.7.1 (20-March-2024): #498: [Enhancement] Make S/MIME algorithms configurable (signature algorithm for signing, key encapsulation and cipher algorithms for encryption)
+- v8.7.1 (20-March-2024): #497: [Bug] Order of attachments is lost when converting a MimeMessage to an Email
 - v8.7.0 (20-March-2024): don't use this version: versioning messed up
 
 NOTE: this breaks the API for S/MIME related builder methods. Refer to the [S/MIME documentation](https://www.simplejavamail.org/security.html#section-sending-smime) for the new API.
