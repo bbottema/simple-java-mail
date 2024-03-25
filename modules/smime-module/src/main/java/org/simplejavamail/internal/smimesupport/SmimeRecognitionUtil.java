@@ -20,7 +20,7 @@ public final class SmimeRecognitionUtil {
 	/**
 	 * Used internally to recognize when we should ignore message ID header when starting a new email as a copy.
 	 */
-	public static final String SMIME_ATTACHMENT_MESSAGE_ID = "<generated-for-smime-signed-attachment@simple-java-mail>";
+	static final String SMIME_ATTACHMENT_MESSAGE_ID = "<generated-for-smime-signed-attachment@simple-java-mail>";
 
 	/**
 	 * @return Whether the given attachment is S/MIME signed / encrypted.
@@ -30,7 +30,7 @@ public final class SmimeRecognitionUtil {
 				isSmimeMultiPartSigned(ct.getBaseType(), ct.getParameter("protocol"));
 	}
 
-	public static <T> boolean isGeneratedSmimeMessageId(@NotNull String headerKey, @NotNull T headerValue) {
+	static <T> boolean isGeneratedSmimeMessageId(@NotNull String headerKey, @NotNull T headerValue) {
 		return headerKey.equals("Message-ID") && headerValue.equals(SMIME_ATTACHMENT_MESSAGE_ID);
 	}
 

@@ -1,6 +1,7 @@
 package org.simplejavamail.converter;
 
 import jakarta.mail.util.ByteArrayDataSource;
+import org.assertj.core.api.Condition;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -8,6 +9,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -17,13 +19,16 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
+import static java.lang.String.format;
 import static java.nio.charset.Charset.defaultCharset;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
+import static java.util.regex.Pattern.compile;
 import static org.apache.commons.codec.binary.Base64.encodeBase64Chunked;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
@@ -49,6 +54,30 @@ public class EmailConverterTest {
 		assertThat(msg.getPlainText()).isNotEmpty();
 		assertThat(normalizeNewlines(msg.getHTMLText())).isEqualTo("<div dir=\"auto\">Just a test to get an email with one cc recipient.</div>\n");
 		assertThat(normalizeNewlines(msg.getPlainText())).isEqualTo("Just a test to get an email with one cc recipient.\n");
+	}
+
+	@Test
+	public void testOutlookBasicConversionsGithubIssue482() {
+		final Recipient ramonFrom = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", null);
+		final Recipient ramonTo = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", TO);
+
+		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#482 emailAddressList_is_required.msg"));
+		EmailAssert.assertThat(msg).hasFromRecipient(ramonFrom);
+		EmailAssert.assertThat(msg).hasSubject("subj");
+		EmailAssert.assertThat(msg).hasOnlyRecipients(ramonTo);
+		EmailAssert.assertThat(msg).hasNoAttachments();
+	}
+
+	@Test
+	public void testOutlookBasicConversionsGithubIssue484() {
+		final Recipient ramonFrom = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", null);
+		final Recipient ramonTo = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", TO);
+
+		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#484 Email with problematic disposition_notification_to.msg"));
+		EmailAssert.assertThat(msg).hasFromRecipient(ramonFrom);
+		EmailAssert.assertThat(msg).hasSubject("subject");
+		EmailAssert.assertThat(msg).hasOnlyRecipients(ramonTo);
+		EmailAssert.assertThat(msg).hasDispositionNotificationTo(ramonFrom);
 	}
 
 	@Test
@@ -147,6 +176,13 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testProblematic8BitContentTransferEncoding() {
+		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#485 Email with 8Bit Content Transfer Encoding.eml"));
+		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("TeleCash", "noreply@telecash.de", null));
+		EmailAssert.assertThat(s1).hasOnlyRecipients(new Recipient(null, "abc@abcdefgh.de", TO));
+	}
+
+	@Test
 	public void testProblematicCommasInRecipeints() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#444 Email with encoded comma in recipients.eml"));
 		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("Some Name, Jane Doe", "jane.doe@example.de", null));
@@ -205,10 +241,10 @@ public class EmailConverterTest {
 		assertThat(emlRoundtrip).contains("Content-Transfer-Encoding: base64\n\n"
 				+ asBase64("<b>We should meet up!</b><img src='cid:thumbsup'><img src='cid:fixedNameWithoutFileExtensionForNamedEmbeddedImage'>"));
 
-		assertThat(eml).contains("Content-ID: <dresscode.txt>");
-		assertThat(eml).contains("Content-ID: <location.txt>");
+		assertThat(eml).contains("Content-ID: <dresscode.txt@" + contentIDExtractor(eml, "dresscode.txt") + ">");
+		assertThat(eml).contains("Content-ID: <location.txt@" + contentIDExtractor(eml, "location.txt") + ">");
 		assertThat(eml).contains("Content-ID: <thumbsup>");
-		assertThat(eml).contains("Content-ID: <fixedNameWithoutFileExtensionForNamedAttachment.txt>");
+		assertThat(eml).contains("Content-ID: <fixedNameWithoutFileExtensionForNamedAttachment@" + contentIDExtractor(eml, "fixedNameWithoutFileExtensionForNamedAttachment") + ".txt>");
 		assertThat(eml).contains("Content-ID: <fixedNameWithoutFileExtensionForNamedEmbeddedImage>");
 	}
 
@@ -239,28 +275,28 @@ public class EmailConverterTest {
 		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text1.txt\"; name=\"dummy text1.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text1.txt\"\n"
-				+ "Content-ID: <dummy text1.txt>\n"
+				+ "Content-ID: <dummy text1.txt@" + contentIDExtractor(eml, "dummy text1.txt") + ">\n"
 				+ "Content-Description: This is dummy text1\n"
 				+ "\n"
 				+ "Cupcake ipsum dolor sit amet donut. Apple pie caramels oat cake fruitcake sesame snaps. Bear claw cotton candy toffee danish sweet roll.");
 		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text2.txt\"; name=\"dummy text2.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text2.txt\"\n"
-				+ "Content-ID: <dummy text2.txt>\n"
+				+ "Content-ID: <dummy text2.txt@" + contentIDExtractor(eml, "dummy text2.txt") + ">\n"
 				+ "Content-Description: This is dummy text2\n"
 				+ "\n"
 				+ "I love pie I love donut sugar plum. I love halvah topping bonbon fruitcake brownie chocolate. Sweet tootsie roll wafer caramels sesame snaps.");
 		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text3.txt\"; name=\"dummy text3.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text3.txt\"\n"
-				+ "Content-ID: <dummy text3.txt>\n"
+				+ "Content-ID: <dummy text3.txt@" + contentIDExtractor(eml, "dummy text3.txt") + ">\n"
 				+ "Content-Description: This is dummy text3\n"
 				+ "\n"
 				+ "Danish chocolate pudding cake bonbon powder bonbon. I love cookie jelly beans cake oat cake. I love I love sweet roll sweet pudding topping icing.");
 		assertThat(eml).contains("Content-Type: text/plain; filename=\"dummy text4.txt\"; name=\"dummy text4.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text4.txt\"\n"
-				+ "Content-ID: <dummy text4.txt>\n"
+				+ "Content-ID: <dummy text4.txt@" + contentIDExtractor(eml, "dummy text4.txt") + ">\n"
 				+ "\n"
 				+ "this should not have a Content-Description header");
 
@@ -269,30 +305,81 @@ public class EmailConverterTest {
 		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text1.txt\"; name=\"dummy text1.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text1.txt\"\n"
-				+ "Content-ID: <dummy text1.txt>\n"
+				+ "Content-ID: <dummy text1.txt@" + contentIDExtractor(emlRoundtrip, "dummy text1.txt") + ">\n"
 				+ "Content-Description: This is dummy text1\n"
 				+ "\n"
 				+ "Cupcake ipsum dolor sit amet donut. Apple pie caramels oat cake fruitcake sesame snaps. Bear claw cotton candy toffee danish sweet roll.");
 		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text2.txt\"; name=\"dummy text2.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text2.txt\"\n"
-				+ "Content-ID: <dummy text2.txt>\n"
+				+ "Content-ID: <dummy text2.txt@" + contentIDExtractor(emlRoundtrip, "dummy text2.txt") + ">\n"
 				+ "Content-Description: This is dummy text2\n"
 				+ "\n"
 				+ "I love pie I love donut sugar plum. I love halvah topping bonbon fruitcake brownie chocolate. Sweet tootsie roll wafer caramels sesame snaps.");
 		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text3.txt\"; name=\"dummy text3.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text3.txt\"\n"
-				+ "Content-ID: <dummy text3.txt>\n"
+				+ "Content-ID: <dummy text3.txt@" + contentIDExtractor(emlRoundtrip, "dummy text3.txt") + ">\n"
 				+ "Content-Description: This is dummy text3\n"
 				+ "\n"
 				+ "Danish chocolate pudding cake bonbon powder bonbon. I love cookie jelly beans cake oat cake. I love I love sweet roll sweet pudding topping icing.");
 		assertThat(emlRoundtrip).contains("Content-Type: text/plain; filename=\"dummy text4.txt\"; name=\"dummy text4.txt\"\n"
 				+ "Content-Transfer-Encoding: 7bit\n"
 				+ "Content-Disposition: attachment; filename=\"dummy text4.txt\"\n"
-				+ "Content-ID: <dummy text4.txt>\n"
+				+ "Content-ID: <dummy text4.txt@" + contentIDExtractor(emlRoundtrip, "dummy text4.txt") + ">\n"
 				+ "\n"
 				+ "this should not have a Content-Description header");
+	}
+
+	private static String contentIDExtractor(String eml, String filename) {
+		final Matcher matcher = compile(format("Content-ID: <%s@(?<uuid>.+?)(?<optionalExtension>\\..{3})?>", filename)).matcher(eml);
+		assertThat(matcher.find()).as(format("Found UUID in EML's Content-ID for filename '%s'", filename)).isTrue();
+		return matcher.group("uuid");
+	}
+
+	@Test
+	public void testGithub486_InvalidSignedOutlookMessage() {
+		Email emailMime = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#486 TestValidSignedMimeMessage.eml"));
+		Email emailOutlook = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#486 TestInvalidSignedOutlookMessage.msg"));
+
+		assertThat(emailMime.getEmbeddedImages()).areExactly(1, new Condition<>(at -> at.getName().contains(".jpg"), null));
+		assertThat(emailMime.getAttachments()).areExactly(2, new Condition<>(at -> at.getName().contains(".jpg"), null));
+
+		assertThat(emailMime.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
+		assertThat(emailOutlook.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
+		assertThat(emailMime.getFromRecipient()).isEqualTo(emailOutlook.getFromRecipient());
+		assertThat(emailMime.getId()).isEqualTo(emailOutlook.getId());
+		assertThat(emailMime.getSentDate()).isEqualTo(emailOutlook.getSentDate());
+		assertThat(emailMime.getBounceToRecipient()).isEqualTo(emailOutlook.getBounceToRecipient());
+		assertThat(normalizeNewlines(emailMime.getPlainText())).isEqualTo(normalizeNewlines(emailOutlook.getPlainText()));
+		assertThat(emailMime.getCalendarText()).isEqualTo(emailOutlook.getCalendarText());
+		assertThat(emailMime.getCalendarMethod()).isEqualTo(emailOutlook.getCalendarMethod());
+		assertThat(normalizeNewlines(emailMime.getHTMLText())).isEqualTo(normalizeNewlines(emailOutlook.getHTMLText()));
+		assertThat(emailMime.getSubject()).isEqualTo(emailOutlook.getSubject());
+		assertThat(emailMime.getRecipients()).containsExactlyElementsOf(emailOutlook.getRecipients());
+		assertThat(emailMime.getOverrideReceivers()).containsExactlyElementsOf(emailOutlook.getOverrideReceivers());
+		assertThat(emailMime.getEmbeddedImages()).containsExactlyElementsOf(emailOutlook.getEmbeddedImages());
+		assertThat(emailMime.getUseDispositionNotificationTo()).isEqualTo(emailOutlook.getUseDispositionNotificationTo());
+		assertThat(emailMime.getUseReturnReceiptTo()).isEqualTo(emailOutlook.getUseReturnReceiptTo());
+		assertThat(emailMime.getDispositionNotificationTo()).isEqualTo(emailOutlook.getDispositionNotificationTo());
+		assertThat(emailMime.getSmimeSigningConfig()).isEqualTo(emailOutlook.getSmimeSigningConfig());
+		assertThat(emailMime.getSmimeEncryptionConfig()).isEqualTo(emailOutlook.getSmimeEncryptionConfig());
+		assertThat(emailMime.getReturnReceiptTo()).isEqualTo(emailOutlook.getReturnReceiptTo());
+	}
+
+	@Test
+	public void testGithub491_EmailWithMultiPurposeAttachments() {
+		Email emailMime = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#491 Email with dual purpose datasources.eml"));
+
+        assertThat(emailMime.getEmbeddedImages()).satisfiesExactly(
+				at -> {
+                    at.getName().equals("ii_lrkua30a0");
+                    at.getDataSource().getName().equals("doclife.jpg");
+                });
+		assertThat(emailMime.getAttachments()).satisfiesExactlyInAnyOrder(
+				at -> at.getName().equals("Il Viaggio delle Ombre.pdf"),
+				at -> at.getName().equals("Nyan Cat! [Official]-(480p).mp4"),
+				at -> at.getName().equals("doclife.jpg"));
 	}
 
 	@NotNull

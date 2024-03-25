@@ -204,7 +204,7 @@ public class ConfigLoaderTest {
 
 		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEYSTORE)).isEqualTo("src/test/resources/pkcs12/smime_keystore.pkcs12");
 		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEYSTORE_PASSWORD)).isEqualTo("letmein");
-		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEY_ALIAS)).isEqualTo("smime_test_user_alias");
+		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEY_ALIAS)).isEqualTo("smime_test_user_alias_rsa");
 		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("letmein");
 		assertThat(ConfigLoader.<String>getProperty(SMIME_ENCRYPTION_CERTIFICATE)).isEqualTo("src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
 

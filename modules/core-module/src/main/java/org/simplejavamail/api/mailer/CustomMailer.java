@@ -8,7 +8,8 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 /**
  * By default, Simple Java Mail handles the ultimate connection and sending of emails. However, it is possible to replace this last step
- * by a custom implementation.
+ * by a custom implementation. Note this is not meant to 'override' the default behavior, but to provide a custom implementation for
+ * specific use cases (for example sending using MailChimp or SendGrid, or logging to your own database).
  * <p>
  * The benefit of this is that Simple Java Mail acts as an accelarator, providing thread pool, applying email content-validation, address validations,
  * configuring a {@code Session} instance, producing a {@code MimeMessage}, all with full S/MIME, DKIM support and everything else.

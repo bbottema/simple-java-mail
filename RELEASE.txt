@@ -3,11 +3,51 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.3.1</version>
+    <version>8.8.0</version>
 </dependency>
 
-v8.3.0 - v8.3.1
+v8.8.0 (22-March-2024)
 
+- #499: [Enhancement] Expose finer-grained DKIM configuration through the builder api and disable 'l-param' by default
+
+NOTE: this release changes the default for DKIM signing from 'l-param' true to false. If you rely on this feature, you need to enable it explicitly (see the updated https://www.simplejavamail.org/security.html#section-sending-dkim).
+
+
+v8.7.0 - v8.7.1
+
+- v8.7.1 (20-March-2024): #498: [Enhancement] Make S/MIME algorithms configurable (signature algorithm for signing, key encapsulation and cipher algorithms for encryption)
+- v8.7.1 (20-March-2024): #497: [Bug] Order of attachments is lost when converting a MimeMessage to an Email
+- v8.7.0 (20-March-2024): don't use this version: versioning messed up
+
+NOTE: this breaks the API for S/MIME related builder methods. Refer to the [S/MIME documentation](https://www.simplejavamail.org/security.html#section-sending-smime) for the new API.
+
+
+v8.6.0 - v8.6.3
+
+- v8.6.3 (13-February-2024): #491: [bug] Attachment body parts should separately parse Content-Disposition and ContentID, possible resulting in an downloadable attachment that is also embedded
+- v8.6.2 (27-January-2024): #493: [bug] don't require smime-module when adding collection of headers (also used when copying email)
+- v8.6.1 (18-January-2024): #487: Move header filtering from MimeMessageParser to EmailConverter, thereby enabling access to all parsed headers when using MimeMessageParser directly
+- v8.6.1 (18-January-2024): #489: Finished update to Angus Mail by updating activation dependency
+- v8.6.0 (17-January-2024): #489: Update to Angus Mail
+
+
+v8.5.0 - v8.5.1
+
+- v8.5.1 (15-December-2023): #486: [dependency] Handle Outlook's Non-Standard S/MIME Signed Messages
+- v8.5.0 (13-December-2023): #484: [bug] Addresses passed as string are not always interpreted correctly
+
+
+v8.4.0 (12-December-2023)
+
+- #483: Enhancement: add native support for overriding envelope-level receiver(s)
+
+
+v8.3.0 - v8.3.5
+
+- v8.3.5 (10-December-2023): #482: Bug: 'IllegalArgumentException: emailAddressList is required' when  parsing mail with incorrect recipients from Outlook message
+- v8.3.4 (08-December-2023): #481: Enhancement: don't crash on invalid empty attachments when parsing Outlook messages
+- v8.3.3 (03-December-2023): #477: Enhancement: Support Exchange proprietary addresses (X.500 DAP)
+- v8.3.2 (26-November-2023): #480: Bug: Multiple attachments with same name get the same Content-ID, causing them to refer to the same file content
 - v8.3.1 (09-October-2023): #440: Bug: names manually specified for embedded images are overridden and have extension added, breaking cid: references in HTML body
 - v8.3.0 (09-October-2023): #475: Enhancement: Add configuration metadata for Spring Boot application properties
 

@@ -3,17 +3,20 @@ package org.simplejavamail.mailer.internal.util;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.BatchModule;
+import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import org.slf4j.Logger;
 
 import java.util.UUID;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -29,13 +32,18 @@ public class TransportRunner {
 	private static final Logger LOGGER = getLogger(TransportRunner.class);
 
 	/**
-	 * NOTE: only in case batch-module is *not* in use, the {@link Session} passed in here is garuanteed to be used to send this message.
+	 * NOTE: only in case batch-module is *not* in use, the {@link Session} passed in here is guaranteed to be used to send this message.
+	 *
+	 * @param clusterKey The cluster key to use for the connection pool, which was randomly generated in the Mailer builder if not provided.
 	 */
 	public static void sendMessage(@NotNull final UUID clusterKey, final Session session, @NotNull Email email)
 			throws MessagingException {
 		runOnSessionTransport(clusterKey, session, false, (transport, actualSessionUsed) -> {
 			val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(actualSessionUsed, email);
-			transport.sendMessage(message, message.getAllRecipients());
+			val actualRecipients = email.getOverrideReceivers().isEmpty()
+					? message.getAllRecipients()
+					: MiscUtil.asInternetAddresses(email.getOverrideReceivers(), UTF_8).toArray(new InternetAddress[0]);
+			transport.sendMessage(message, actualRecipients);
 			LOGGER.trace("...email sent");
 		});
 	}
@@ -75,7 +83,7 @@ public class TransportRunner {
 		delegatingTransport.signalTransportUsed();
 	}
 
-	public interface TransportRunnable {
+	private interface TransportRunnable {
 		void run(Transport transport, Session actualSessionUsed)
 				throws MessagingException;
 	}

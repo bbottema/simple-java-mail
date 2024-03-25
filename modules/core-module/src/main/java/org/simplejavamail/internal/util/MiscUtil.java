@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.lang.Integer.toHexString;
 import static java.lang.String.format;
@@ -179,7 +180,7 @@ public final class MiscUtil {
 	
 	@Nullable
 	public static <T> T defaultTo(@Nullable final T value, @Nullable final T defaultValue) {
-		return value != null ? value : defaultValue;
+		return ofNullable(value).orElse(defaultValue);
 	}
 	
 	public static boolean classAvailable(@NotNull String className) {
@@ -450,5 +451,18 @@ public final class MiscUtil {
 		Field field = subject.getClass().getDeclaredField(fieldName);
 		field.setAccessible(true);
 		field.set(subject, newValue);
+	}
+
+	@NotNull
+	public static List<InternetAddress> asInternetAddresses(@NotNull List<Recipient> recipient, @NotNull Charset charset) {
+		return recipient.stream()
+				.map(r -> asInternetAddress(r, charset))
+				.collect(Collectors.toList());
+	}
+
+	@NotNull
+	@SneakyThrows
+	public static InternetAddress asInternetAddress(@NotNull Recipient recipient, @NotNull Charset charset) {
+		return new InternetAddress(recipient.getAddress(), recipient.getName(), charset.name());
 	}
 }

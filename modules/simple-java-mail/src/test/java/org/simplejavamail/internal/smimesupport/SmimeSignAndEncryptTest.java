@@ -6,6 +6,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.CertificationUtil;
 import testutil.ConfigLoaderTestHelper;
@@ -32,42 +34,69 @@ public class SmimeSignAndEncryptTest {
         builder = EmailBuilder.startingBlank();
     }
 
-
-
     @Test
     public void testSignWithSmime_WithConfigObject() {
-        builder.signWithSmime(loadPkcs12KeyStore());
+        builder.signWithSmime(SmimeSigningConfig.builder()
+                .pkcs12Config(loadPkcs12KeyStore())
+                .build());
 
         final Email email = builder.buildEmail();
 
-        assertThat(email.getPkcs12ConfigForSmimeSigning()).isNotNull();
-        assertThat(email.getPkcs12ConfigForSmimeSigning().getPkcs12StoreData()).isNotNull();
-        assertThat(email.getPkcs12ConfigForSmimeSigning().getStorePassword()).isEqualTo("letmein".toCharArray());
-        assertThat(email.getPkcs12ConfigForSmimeSigning().getKeyAlias()).isEqualTo("smime_test_user_alias");
-        assertThat(email.getPkcs12ConfigForSmimeSigning().getKeyPassword()).isEqualTo("letmein".toCharArray());
+        assertThat(email.getSmimeSigningConfig()).isNotNull();
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config()).isNotNull();
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getPkcs12StoreData()).isNotNull();
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getStorePassword()).isEqualTo("letmein".toCharArray());
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getKeyAlias()).isEqualTo("smime_test_user_alias_rsa");
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getKeyPassword()).isEqualTo("letmein".toCharArray());
     }
 
     @Test
     public void testSignWithSmime_WithConfigParameters() {
-        builder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
+        builder.signWithSmime(SmimeSigningConfig.builder()
+                .pkcs12Config(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein")
+                .build());
 
         final Email email = builder.buildEmail();
 
-        assertThat(email.getPkcs12ConfigForSmimeSigning()).isNotNull();
-        assertThat(email.getPkcs12ConfigForSmimeSigning().getPkcs12StoreData()).isNotNull();
-        assertThat(email.getPkcs12ConfigForSmimeSigning().getStorePassword()).isEqualTo("letmein".toCharArray());
-        assertThat(email.getPkcs12ConfigForSmimeSigning().getKeyAlias()).isEqualTo("smime_test_user_alias");
-        assertThat(email.getPkcs12ConfigForSmimeSigning().getKeyPassword()).isEqualTo("letmein".toCharArray());
+        assertThat(email.getSmimeSigningConfig()).isNotNull();
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config()).isNotNull();
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getPkcs12StoreData()).isNotNull();
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getStorePassword()).isEqualTo("letmein".toCharArray());
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getKeyAlias()).isEqualTo("smime_test_user_alias_rsa");
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getKeyPassword()).isEqualTo("letmein".toCharArray());
+        assertThat(email.getSmimeSigningConfig().getSignatureAlgorithm()).isNull();
+    }
+
+    @Test
+    public void testSignWithSmime_WithConfigObject_AlternativeSignatureAlgorithm() {
+        builder.signWithSmime(SmimeSigningConfig.builder()
+                .pkcs12Config(loadPkcs12KeyStore())
+                .signatureAlgorithm("SHA384withDSA")
+                .build());
+
+        final Email email = builder.buildEmail();
+
+        assertThat(email.getSmimeSigningConfig()).isNotNull();
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config()).isNotNull();
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getPkcs12StoreData()).isNotNull();
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getStorePassword()).isEqualTo("letmein".toCharArray());
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getKeyAlias()).isEqualTo("smime_test_user_alias_rsa");
+        assertThat(email.getSmimeSigningConfig().getPkcs12Config().getKeyPassword()).isEqualTo("letmein".toCharArray());
+        assertThat(email.getSmimeSigningConfig().getSignatureAlgorithm()).isEqualTo("SHA384withDSA");
     }
 
     @Test
     public void testEncryptWithSmime_FromFile() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
 
-        builder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
+        builder.encryptWithSmime(SmimeEncryptionConfig.builder()
+                .x509Certificate(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"))
+                .build());
 
-        final X509Certificate certificateOut = builder.buildEmail().getX509CertificateForSmimeEncryption();
+        final SmimeEncryptionConfig smimeEncryptionConfig = builder.buildEmail().getSmimeEncryptionConfig();
+        assertThat(smimeEncryptionConfig).isNotNull();
 
+        final X509Certificate certificateOut = smimeEncryptionConfig.getX509Certificate();
         assertThat(certificateOut).isNotNull();
         assertSignedBy(certificateOut, "Benny Bottema");
     }
@@ -76,10 +105,14 @@ public class SmimeSignAndEncryptTest {
     public void testEncryptWithSmime_FromFilePath() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
 
-        builder.encryptWithSmime(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt");
+        builder.encryptWithSmime(SmimeEncryptionConfig.builder()
+                .x509Certificate(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt")
+                .build());
 
-        final X509Certificate certificateOut = builder.buildEmail().getX509CertificateForSmimeEncryption();
+        final SmimeEncryptionConfig smimeEncryptionConfig = builder.buildEmail().getSmimeEncryptionConfig();
+        assertThat(smimeEncryptionConfig).isNotNull();
 
+        final X509Certificate certificateOut = smimeEncryptionConfig.getX509Certificate();
         assertThat(certificateOut).isNotNull();
         assertSignedBy(certificateOut, "Benny Bottema");
     }
@@ -90,10 +123,14 @@ public class SmimeSignAndEncryptTest {
 
         X509Certificate certificateIn = CertificationUtil.readFromPem(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
 
-        builder.encryptWithSmime(certificateIn);
+        builder.encryptWithSmime(SmimeEncryptionConfig.builder()
+                .x509Certificate(certificateIn)
+                .build());
 
-        final X509Certificate certificateOut = builder.buildEmail().getX509CertificateForSmimeEncryption();
+        final SmimeEncryptionConfig smimeEncryptionConfig = builder.buildEmail().getSmimeEncryptionConfig();
+        assertThat(smimeEncryptionConfig).isNotNull();
 
+        final X509Certificate certificateOut = smimeEncryptionConfig.getX509Certificate();
         assertThat(certificateOut).isNotNull();
         assertSignedBy(certificateOut, "Benny Bottema");
     }

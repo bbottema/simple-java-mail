@@ -1,6 +1,5 @@
 package org.simplejavamail.converter;
 
-import jakarta.activation.DataSource;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
@@ -14,6 +13,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
+import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
@@ -246,6 +246,7 @@ public final class EmailConverter {
 		return emailBuilder;
 	}
 
+	@NotNull
 	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder, final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
 		if (ModuleLoader.smimeModuleAvailable()) {
 			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config);
@@ -644,7 +645,15 @@ public final class EmailConverter {
 		if (parsed.getReplyToAddresses() != null) {
 			builder.withReplyTo(parsed.getReplyToAddresses().getPersonal(), parsed.getReplyToAddresses().getAddress());
 		}
-		builder.withHeaders(parsed.getHeaders());
+
+		for (val headerEntry : parsed.getHeaders().entrySet()) {
+			if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerEntry.getKey())) {
+				for (Object headerValue : headerEntry.getValue()) {
+					builder.withHeader(headerEntry.getKey(), headerValue);
+				}
+			}
+		}
+
 		if (parsed.getDispositionNotificationTo() != null) {
 			builder.withDispositionNotificationTo(parsed.getDispositionNotificationTo());
 		}
@@ -676,9 +685,9 @@ public final class EmailConverter {
 			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), verifyNonnullOrEmpty(parsed.getCalendarContent()));
 		}
 		
-		for (final Map.Entry<String, DataSource> cid : parsed.getCidMap().entrySet()) {
+		for (final Map.Entry<String, MimeDataSource> cid : parsed.getCidMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
-			builder.withEmbeddedImage(extractCID(cidName), cid.getValue());
+			builder.withEmbeddedImage(extractCID(cidName), cid.getValue().getDataSource());
 		}
 		for (final MimeDataSource attachment : parsed.getAttachmentList()) {
 			final ContentTransferEncoding encoding = !valueNullOrEmpty(attachment.getContentTransferEncoding())

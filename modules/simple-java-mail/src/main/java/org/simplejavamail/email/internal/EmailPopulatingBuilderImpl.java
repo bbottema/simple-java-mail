@@ -18,27 +18,22 @@ import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.config.EmailProperty;
-import org.simplejavamail.internal.util.CertificationUtil;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.FileUtil;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -70,18 +65,14 @@ import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYN
 import static org.simplejavamail.config.ConfigLoader.getBooleanProperty;
 import static org.simplejavamail.config.ConfigLoader.getStringProperty;
 import static org.simplejavamail.config.ConfigLoader.hasProperty;
-import static org.simplejavamail.email.internal.EmailException.ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT;
 import static org.simplejavamail.email.internal.EmailException.ERROR_PARSING_URL;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_FILE;
-import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_PEM_INPUTSTREAM;
-import static org.simplejavamail.email.internal.EmailException.ERROR_READING_SMIME_FROM_INPUTSTREAM;
 import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_IMAGE_DATASOURCE;
 import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE;
-import static org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil.isGeneratedSmimeMessageId;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
+import static org.simplejavamail.internal.util.MiscUtil.interpretRecipient;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
-import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSourceFromClassPath;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveImageFileDataSourceFromDisk;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveUrlDataSource;
@@ -265,22 +256,22 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private DkimConfig dkimConfig;
 
 	/**
-	 * @see #signWithSmime(Pkcs12Config)
-	 * @see #signWithSmime(InputStream, String, String, String)
-	 * @see #encryptWithSmime(X509Certificate)
-	 * @see #encryptWithSmime(InputStream)
+	 * @see #signWithSmime(SmimeSigningConfig)
+	 * @see #signWithSmime(File, String, String, String, String)
+	 * @see #encryptWithSmime(SmimeEncryptionConfig)
+	 * @see #encryptWithSmime(File, String, String)
 	 */
 	@Nullable
-	private Pkcs12Config pkcs12ConfigForSmimeSigning;
+	private SmimeSigningConfig smimeSigningConfig;
 
 	/**
-	 * @see #encryptWithSmime(X509Certificate)
-	 * @see #encryptWithSmime(InputStream)
-	 * @see #signWithSmime(Pkcs12Config)
-	 * @see #signWithSmime(InputStream, String, String, String)
+	 * @see #encryptWithSmime(SmimeEncryptionConfig)
+	 * @see #encryptWithSmime(File, String, String)
+	 * @see #signWithSmime(SmimeSigningConfig)
+	 * @see #signWithSmime(File, String, String, String, String)
 	 */
 	@Nullable
-	private X509Certificate x509CertificateForSmimeEncryption;
+	private SmimeEncryptionConfig smimeEncryptionConfig;
 
 	/**
 	 * @see #withDispositionNotificationTo()
@@ -309,6 +300,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Nullable
 	private Recipient returnReceiptTo;
+
+	/**
+	 * @see #withOverrideReceivers(Recipient...)
+	 */
+	private final List<Recipient> overrideReceivers = new ArrayList<>();
 
 	/**
 	 * @see EmailBuilder#forwarding(MimeMessage)
@@ -522,8 +518,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#from(String, String)
 	 */
 	@Override
-	public EmailPopulatingBuilder from(@Nullable final String name, @NotNull final String fromAddress) {
-		return from(new Recipient(name, checkNonEmptyArgument(fromAddress, "fromAddress"), null));
+	public EmailPopulatingBuilder from(@Nullable final String fixedName, @NotNull final String fromAddress) {
+		checkNonEmptyArgument(fromAddress, "fromAddress");
+		return from(interpretRecipient(fixedName, true, fromAddress, null));
 	}
 	
 	/**
@@ -560,7 +557,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReplyTo(@NotNull final String replyToAddress) {
-		return withReplyTo(new Recipient(null, replyToAddress, null));
+		return withReplyTo(interpretRecipient(null, false, replyToAddress, null));
 	}
 	
 	/**
@@ -569,7 +566,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String fixedName, @NotNull final String replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(new Recipient(fixedName, replyToAddress, null));
+		return withReplyTo(interpretRecipient(fixedName, true, replyToAddress, null));
 	}
 	
 	/**
@@ -616,7 +613,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String bounceToAddress) {
-		return withBounceTo(bounceToAddress != null ? new Recipient(null, bounceToAddress, null) : null);
+		return withBounceTo(bounceToAddress != null ? interpretRecipient(null, false, bounceToAddress, null) : null);
 	}
 	
 	/**
@@ -624,7 +621,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String name, @NotNull final String bounceToAddress) {
-		return withBounceTo(new Recipient(name, checkNonEmptyArgument(bounceToAddress, "bounceToAddress"), null));
+		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
+		return withBounceTo(interpretRecipient(name, true, bounceToAddress, null));
 	}
 	
 	/**
@@ -1702,9 +1700,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public <T> InternalEmailPopulatingBuilder withHeaders(@NotNull final Map<String, Collection<T>> headers, final boolean ignoreSmimeMessageId) {
 		for (Map.Entry<String, Collection<T>> headerEntry : headers.entrySet()) {
 			for (final T headerValue : headerEntry.getValue()) {
-				if (!ignoreSmimeMessageId || !isGeneratedSmimeMessageId(headerEntry.getKey(), headerValue)) {
+				if (!ignoreSmimeMessageId ||
+						!ModuleLoader.smimeModuleAvailable() ||
+						!ModuleLoader.loadSmimeModule().isGeneratedSmimeMessageId(headerEntry.getKey(), headerValue)) {
 					withHeader(headerEntry.getKey(), headerValue);
-				}
+                }
 			}
 		}
 		return this;
@@ -1854,110 +1854,45 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @param keyAlias The key we need for signing
 	 * @param keyPassword The password for the key
 	 *
-	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String)
+	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
 	 */
 	@Override
 	@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
-	public EmailPopulatingBuilder signWithSmime(@NotNull final File pkcs12StoreFile, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword) {
-		try {
-			return signWithSmime(new FileInputStream(pkcs12StoreFile), storePassword, keyAlias, keyPassword);
-		} catch (IOException e) {
-			throw new EmailException(format(ERROR_READING_FROM_FILE, pkcs12StoreFile), e);
-		}
-	}
-
-	/**
-	 * @param pkcs12StoreStream The data (file) input stream containing the keystore
-	 * @param storePassword  The password to get keys from the store
-	 * @param keyAlias The key we need for signing
-	 * @param keyPassword The password for the key
-	 *
-	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)
-	 */
-	@Override
-	public EmailPopulatingBuilder signWithSmime(@NotNull final InputStream pkcs12StoreStream, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword) {
-		final byte[] pkcs12StoreData;
-		try {
-			pkcs12StoreData = readInputStreamToBytes(pkcs12StoreStream);
-		} catch (IOException e) {
-			throw new EmailException(ERROR_READING_SMIME_FROM_INPUTSTREAM, e);
-		}
-		return signWithSmime(pkcs12StoreData, storePassword, keyAlias, keyPassword);
-	}
-
-	/**
-	 * @param pkcs12StoreData The data (file) input stream containing the keystore
-	 * @param storePassword  The password to get keys from the store
-	 * @param keyAlias The key we need for signing
-	 * @param keyPassword The password for the key
-	 *
-	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)
-	 */
-	@Override
-	public EmailPopulatingBuilder signWithSmime(final byte@NotNull[] pkcs12StoreData, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword) {
-		return signWithSmime(Pkcs12Config.builder()
-				.pkcs12Store(pkcs12StoreData)
-				.storePassword(storePassword)
-				.keyAlias(keyAlias)
-				.keyPassword(keyPassword)
+	public EmailPopulatingBuilder signWithSmime(@NotNull final File pkcs12StoreFile, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword, @Nullable final String signatureAlgorithm) {
+		return signWithSmime(SmimeSigningConfig.builder()
+				.pkcs12Config(pkcs12StoreFile, storePassword, keyAlias, keyPassword)
+				.signatureAlgorithm(signatureAlgorithm)
 				.build());
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
+	 * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
 	 */
 	@Override
-	public EmailPopulatingBuilder signWithSmime(@NotNull final Pkcs12Config pkcs12Config) {
-		this.pkcs12ConfigForSmimeSigning = pkcs12Config;
+	public EmailPopulatingBuilder signWithSmime(@NotNull final SmimeSigningConfig smimeSigningConfig) {
+		this.smimeSigningConfig = smimeSigningConfig;
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#encryptWithSmime(String)
+	 * @see EmailPopulatingBuilder#encryptWithSmime(File, String, String)
 	 */
 	@Override
 	@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
-	public EmailPopulatingBuilder encryptWithSmime(@NotNull final String pemFile) {
-		try {
-			return encryptWithSmime(new FileInputStream(pemFile));
-		} catch (FileNotFoundException e) {
-			throw new EmailException(format(ERROR_READING_FROM_FILE, pemFile), e);
-		}
+	public EmailPopulatingBuilder encryptWithSmime(@NotNull final File pemFile, @Nullable final String keyEncapsulationAlgorithm, @Nullable final String cipherAlgorithm) {
+		return encryptWithSmime(SmimeEncryptionConfig.builder()
+				.x509Certificate(pemFile)
+				.keyEncapsulationAlgorithm(keyEncapsulationAlgorithm)
+				.cipherAlgorithm(cipherAlgorithm)
+				.build());
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#encryptWithSmime(File)
+	 * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
 	 */
 	@Override
-	@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
-	public EmailPopulatingBuilder encryptWithSmime(@NotNull final File pemFile) {
-		try {
-			return encryptWithSmime(new FileInputStream(pemFile));
-		} catch (FileNotFoundException e) {
-			throw new EmailException(format(ERROR_READING_FROM_FILE, pemFile), e);
-		}
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#encryptWithSmime(InputStream)
-	 */
-	@Override
-	public EmailPopulatingBuilder encryptWithSmime(@NotNull final InputStream pemStream) {
-		try {
-			return encryptWithSmime(CertificationUtil.readFromPem(pemStream));
-		} catch (CertificateException e) {
-			throw new EmailException(ERROR_READING_FROM_PEM_INPUTSTREAM, e);
-		} catch (NoSuchProviderException e) {
-			throw new EmailException(ERROR_LOADING_PROVIDER_FOR_SMIME_SUPPORT, e);
-		}
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#encryptWithSmime(X509Certificate)
-	 */
-	@Override
-	public EmailPopulatingBuilder encryptWithSmime(@NotNull final X509Certificate x509Certificate) {
-		this.x509CertificateForSmimeEncryption = x509Certificate;
+	public EmailPopulatingBuilder encryptWithSmime(@NotNull final SmimeEncryptionConfig smimeEncryptionConfig) {
+		this.smimeEncryptionConfig = smimeEncryptionConfig;
 		return this;
 	}
 
@@ -1979,7 +1914,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(new Recipient(null, address, null));
+		return withDispositionNotificationTo(interpretRecipient(null, false, address, null));
 	}
 	
 	/**
@@ -1988,7 +1923,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nullable final String name, @NotNull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(new Recipient(name, address, null));
+		return withDispositionNotificationTo(interpretRecipient(name, true, address, null));
 	}
 	
 	/**
@@ -2038,7 +1973,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final String address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(new Recipient(null, address, null));
+		return withReturnReceiptTo(interpretRecipient(null, false, address, null));
 	}
 	
 	/**
@@ -2047,7 +1982,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nullable final String name, @NotNull final String address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(new Recipient(name, address, null));
+		return withReturnReceiptTo(interpretRecipient(name, true, address, null));
 	}
 	
 	/**
@@ -2076,6 +2011,25 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
 		this.useReturnReceiptTo = true;
 		this.returnReceiptTo = new Recipient(recipient.getName(), recipient.getAddress(), null);
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
+	 */
+	@Override
+	public EmailPopulatingBuilder withOverrideReceivers(@NotNull Recipient ...recipients) {
+		checkNonEmptyArgument(recipients, "recipients");
+		return withOverrideReceivers(asList(recipients));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withOverrideReceivers(List)
+	 */
+	@Override
+	public EmailPopulatingBuilder withOverrideReceivers(@NotNull List<Recipient> recipients) {
+		checkNonEmptyArgument(recipients, "recipients");
+		this.overrideReceivers.addAll(recipients);
 		return this;
 	}
 
@@ -2209,6 +2163,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#clearOverrideReceivers()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearOverrideReceivers() {
+		this.overrideReceivers.clear();
+		return this;
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#clearEmbeddedImageBaseDir()
 	 */
 	public EmailPopulatingBuilder clearEmbeddedImageBaseDir() {
@@ -2273,8 +2236,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder clearSmime() {
-		this.pkcs12ConfigForSmimeSigning = null;
-		this.x509CertificateForSmimeEncryption = null;
+		this.smimeSigningConfig = null;
+		this.smimeEncryptionConfig = null;
 		return this;
 	}
 
@@ -2524,7 +2487,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public Boolean getUseReturnReceiptTo() {
 		return useReturnReceiptTo;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#getReturnReceiptTo()
 	 */
@@ -2532,6 +2495,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public Recipient getReturnReceiptTo() {
 		return returnReceiptTo;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getOverrideReceivers()
+	 */
+	@Override
+	@NotNull
+	public List<Recipient> getOverrideReceivers() {
+		return overrideReceivers;
 	}
 	
 	/**
@@ -2570,21 +2542,21 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getPkcs12ConfigForSmimeSigning()
+	 * @see EmailPopulatingBuilder#getSmimeSigningConfig()
 	 */
 	@Override
 	@Nullable
-	public Pkcs12Config getPkcs12ConfigForSmimeSigning() {
-		return pkcs12ConfigForSmimeSigning;
+	public SmimeSigningConfig getSmimeSigningConfig() {
+		return smimeSigningConfig;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getX509CertificateForSmimeEncryption()
+	 * @see EmailPopulatingBuilder#getSmimeEncryptionConfig()
 	 */
 	@Override
 	@Nullable
-	public X509Certificate getX509CertificateForSmimeEncryption() {
-		return x509CertificateForSmimeEncryption;
+	public SmimeEncryptionConfig getSmimeEncryptionConfig() {
+		return smimeEncryptionConfig;
 	}
 
 	/**
