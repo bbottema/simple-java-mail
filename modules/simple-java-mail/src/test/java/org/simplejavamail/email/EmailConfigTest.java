@@ -49,15 +49,15 @@ public class EmailConfigTest {
 	@Test
 	public void emailConstructor_WithConfig() {
 		val email = EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides();
-		assertThat(email.getFromRecipient()).isEqualToComparingFieldByField(new Recipient("From Default", "from@default.com", null));
+		assertThat(email.getFromRecipient()).isEqualToComparingFieldByField(new Recipient("From Default", "from@default.com", null, null));
 		assertThat(email.getReplyToRecipients()).hasSize(1);
-		assertThat(email.getReplyToRecipients().get(0)).isEqualToComparingFieldByField(new Recipient("Reply-To Default", "reply-to@default.com", null));
-		assertThat(email.getBounceToRecipient()).isEqualToComparingFieldByField(new Recipient("Bounce-To Default", "bounce-to@default.com", null));
+		assertThat(email.getReplyToRecipients().get(0)).isEqualToComparingFieldByField(new Recipient("Reply-To Default", "reply-to@default.com", null, null));
+		assertThat(email.getBounceToRecipient()).isEqualToComparingFieldByField(new Recipient("Bounce-To Default", "bounce-to@default.com", null, null));
 		assertThat(email.getRecipients()).isNotEmpty();
 		assertThat(email.getRecipients()).hasSize(3);
-		assertThat(email.getRecipients()).usingFieldByFieldElementComparator().contains(new Recipient("To Default", "to@default.com", TO));
-		assertThat(email.getRecipients()).usingFieldByFieldElementComparator().contains(new Recipient("CC Default", "cc@default.com", CC));
-		assertThat(email.getRecipients()).usingFieldByFieldElementComparator().contains(new Recipient("BCC Default", "bcc@default.com", BCC));
+		assertThat(email.getRecipients()).usingFieldByFieldElementComparator().contains(new Recipient("To Default", "to@default.com", TO, null));
+		assertThat(email.getRecipients()).usingFieldByFieldElementComparator().contains(new Recipient("CC Default", "cc@default.com", CC, null));
+		assertThat(email.getRecipients()).usingFieldByFieldElementComparator().contains(new Recipient("BCC Default", "bcc@default.com", BCC, null));
 	}
 
 	@Test

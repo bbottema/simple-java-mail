@@ -529,7 +529,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder from(@Nullable final String fixedName, @NotNull final InternetAddress fromAddress) {
 		checkNonEmptyArgument(fromAddress, "fromAddress");
-		return from(new Recipient(fixedName, fromAddress.getAddress(), null));
+		return from(new Recipient(fixedName, fromAddress.getAddress(), null, null));
 	}
 	
 	/**
@@ -538,7 +538,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder from(@NotNull final InternetAddress fromAddress) {
 		checkNonEmptyArgument(fromAddress, "fromAddress");
-		return from(new Recipient(fromAddress.getPersonal(), fromAddress.getAddress(), null));
+		return from(new Recipient(fromAddress.getPersonal(), fromAddress.getAddress(), null, null));
 	}
 	
 	/**
@@ -547,7 +547,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder from(@NotNull final Recipient recipient) {
 		checkNonEmptyArgument(recipient, "from recipient");
-		this.fromRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
+		this.fromRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null, null);
 		return this;
 	}
 	
@@ -575,7 +575,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@NotNull final InternetAddress replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(new Recipient(replyToAddress.getPersonal(), replyToAddress.getAddress(), null));
+		return withReplyTo(new Recipient(replyToAddress.getPersonal(), replyToAddress.getAddress(), null, null));
 	}
 	
 	/**
@@ -584,7 +584,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String fixedName, @NotNull final InternetAddress replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(new Recipient(fixedName, replyToAddress.getAddress(), null));
+		return withReplyTo(new Recipient(fixedName, replyToAddress.getAddress(), null, null));
 	}
 
 	/**
@@ -592,7 +592,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@NotNull final Recipient recipient) {
-		this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null));
+		this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null, null));
 		return this;
 	}
 
@@ -602,7 +602,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@NotNull final List<Recipient> recipients) {
 		for (Recipient recipient : recipients) {
-			this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null));
+			this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null, null));
 		}
 		return this;
 	}
@@ -631,7 +631,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withBounceTo(@NotNull final InternetAddress bounceToAddress) {
 		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
-		return withBounceTo(new Recipient(bounceToAddress.getPersonal(), bounceToAddress.getAddress(), null));
+		return withBounceTo(new Recipient(bounceToAddress.getPersonal(), bounceToAddress.getAddress(), null, null));
 	}
 	
 	/**
@@ -641,7 +641,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "Method is not detailed enough for CLI")
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String name, @NotNull final InternetAddress bounceToAddress) {
 		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
-		return withBounceTo(new Recipient(name, bounceToAddress.getAddress(), null));
+		return withBounceTo(new Recipient(name, bounceToAddress.getAddress(), null, null));
 	}
 	
 	/**
@@ -649,7 +649,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withBounceTo(@Nullable final Recipient recipient) {
-		this.bounceToRecipient = recipient != null ? new Recipient(recipient.getName(), recipient.getAddress(), null) : null;
+		this.bounceToRecipient = recipient != null ? new Recipient(recipient.getName(), recipient.getAddress(), null, null) : null;
 		return this;
 	}
 
@@ -1537,7 +1537,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withRecipient(@NotNull final Recipient recipient) {
-		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType()));
+		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), null));
 		return this;
 	}
 
@@ -1932,7 +1932,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(new Recipient(address.getPersonal(), address.getAddress(), null));
+		return withDispositionNotificationTo(new Recipient(address.getPersonal(), address.getAddress(), null, null));
 	}
 	
 	/**
@@ -1941,7 +1941,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nullable final String fixedName, @NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(new Recipient(fixedName, address.getAddress(), null));
+		return withDispositionNotificationTo(new Recipient(fixedName, address.getAddress(), null, null));
 	}
 	
 	/**
@@ -1951,7 +1951,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final Recipient recipient) {
 		checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
 		this.useDispositionNotificationTo = true;
-		this.dispositionNotificationTo = new Recipient(recipient.getName(), recipient.getAddress(), null);
+		this.dispositionNotificationTo = new Recipient(recipient.getName(), recipient.getAddress(), null, null);
 		return this;
 	}
 	
@@ -1991,7 +1991,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(new Recipient(address.getPersonal(), address.getAddress(), null));
+		return withReturnReceiptTo(new Recipient(address.getPersonal(), address.getAddress(), null, null));
 	}
 	
 	/**
@@ -2000,7 +2000,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nullable final String fixedName, @NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(new Recipient(fixedName, address.getAddress(), null));
+		return withReturnReceiptTo(new Recipient(fixedName, address.getAddress(), null, null));
 	}
 	
 	/**
@@ -2010,7 +2010,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final Recipient recipient) {
 		checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
 		this.useReturnReceiptTo = true;
-		this.returnReceiptTo = new Recipient(recipient.getName(), recipient.getAddress(), null);
+		this.returnReceiptTo = new Recipient(recipient.getName(), recipient.getAddress(), null, null);
 		return this;
 	}
 

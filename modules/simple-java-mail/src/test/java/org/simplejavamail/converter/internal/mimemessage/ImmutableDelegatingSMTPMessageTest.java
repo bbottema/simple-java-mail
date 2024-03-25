@@ -12,7 +12,6 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.search.HeaderTerm;
-import org.assertj.core.api.iterable.Extractor;
 import org.junit.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.config.EmailProperty;
@@ -23,6 +22,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Date;
 import java.util.Properties;
+import java.util.function.Function;
 
 import static jakarta.mail.Flags.Flag.ANSWERED;
 import static jakarta.mail.Message.RecipientType.BCC;
@@ -41,7 +41,7 @@ import static testutil.EmailHelper.createDummyEmailBuilder;
 
 public class ImmutableDelegatingSMTPMessageTest {
 
-	private static final HeaderExtractor HEADER_EXTRACTOR = new HeaderExtractor();
+	private static final Function<Header, String> HEADER_EXTRACTOR = input -> input.getName() + ": " + input.getValue();
 
 	@Test
 	public void testSMTPMessageMethodsShouldBeDelegated() {
@@ -63,7 +63,7 @@ public class ImmutableDelegatingSMTPMessageTest {
 	}
 
 	@Test
-	public void testSMTPMessageMethodsShouldReturnFalseInAbsenceOfAProperDelegate() throws IOException {
+	public void testSMTPMessageMethodsShouldReturnFalseInAbsenceOfAProperDelegate() {
 		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false, false).buildEmail();
 		ImmutableDelegatingSMTPMessage subject = new ImmutableDelegatingSMTPMessage(emailToMimeMessage(email), "envelop@from.com");
 
@@ -175,9 +175,8 @@ public class ImmutableDelegatingSMTPMessageTest {
 		verify(mockMmessage).saveChanges();
 	}
 	
-	@SuppressWarnings("Convert2MethodRef")
 	@Test
-	public void testImmutability() throws IOException {
+	public void testImmutability() {
 		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false, false).buildEmail();
 		final ImmutableDelegatingSMTPMessage subject = new ImmutableDelegatingSMTPMessage(emailToMimeMessage(email), "envelop@from.com");
 		
@@ -198,6 +197,7 @@ public class ImmutableDelegatingSMTPMessageTest {
 		assertThatThrownBy(() -> subject.setMailExtension("ext")).hasMessage("Further mutation is not allowed: setMailExtension(String)");
 		assertThatThrownBy(() -> subject.setFrom(new InternetAddress())).hasMessage("Further mutation is not allowed: setFrom(Address)");
 		assertThatThrownBy(() -> subject.setFrom("value")).hasMessage("Further mutation is not allowed: setFrom(String)");
+		//noinspection Convert2MethodRef
 		assertThatThrownBy(() -> subject.setFrom()).hasMessage("Further mutation is not allowed: setFrom()");
 		assertThatThrownBy(() -> subject.addFrom(new Address[]{})).hasMessage("Further mutation is not allowed: addFrom(Address[])");
 		assertThatThrownBy(() -> subject.setSender(new InternetAddress())).hasMessage("Further mutation is not allowed: setSender(Address)");
@@ -232,10 +232,4 @@ public class ImmutableDelegatingSMTPMessageTest {
 		assertThatThrownBy(() -> subject.setFlag(ANSWERED, true)).hasMessage("Further mutation is not allowed: setFlag(Flag, boolean)");
 	}
 
-	private static class HeaderExtractor implements Extractor<Header, String> {
-		@Override
-		public String extract(Header input) {
-			return input.getName() + ": " + input.getValue();
-		}
-	}
 }

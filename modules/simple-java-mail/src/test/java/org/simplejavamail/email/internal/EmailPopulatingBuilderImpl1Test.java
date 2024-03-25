@@ -59,7 +59,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testBuilderFromAddress() {
 		final Email email = builder
-				.from(new Recipient("lollypop", "lol.pop@somemail.com", null))
+				.from(new Recipient("lollypop", "lol.pop@somemail.com", null, null))
 				.buildEmail();
 
 		assertThat(email.getFromRecipient().getName()).isEqualTo("lollypop");
@@ -71,7 +71,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testBuilderFromAddressOverwriteWithAlternativeBuilderMethod() {
 		final Email email = builder
 				.from("lollypop", "lol.pop@somemail.com") // should be overwritted
-				.from(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
+				.from(new Recipient("lollypop2", "lol.pop2@somemail.com", null, null))
 				.buildEmail();
 
 		assertThat(email.getFromRecipient().getName()).isEqualTo("lollypop2");
@@ -82,7 +82,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testBuilderReplyToAddress() {
 		final Email email = builder
-				.withReplyTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
+				.withReplyTo(new Recipient("lollypop", "lol.pop@somemail.com", null, null))
 				.buildEmail();
 
 		assertThat(email.getReplyToRecipients()).hasSize(1);
@@ -94,7 +94,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testBuilderBounceToAddress() {
 		final Email email = builder
-				.withBounceTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
+				.withBounceTo(new Recipient("lollypop", "lol.pop@somemail.com", null, null))
 				.buildEmail();
 
 		assertThat(email.getBounceToRecipient().getName()).isEqualTo("lollypop");
@@ -116,7 +116,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testBuilderReturnReceiptToAddress() {
 		final Email email = builder
-				.withReturnReceiptTo(new Recipient("lollypop", "lol.pop@somemail.com", null))
+				.withReturnReceiptTo(new Recipient("lollypop", "lol.pop@somemail.com", null, null))
 				.buildEmail();
 
 		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop");
@@ -150,19 +150,19 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testBuilderReplyToAddressOverwriteWithAlternativeBuilderMethod() {
 		final Email email = builder
 				.withReplyTo("lollypop", "lol.pop@somemail.com") // should be overwritted
-				.withReplyTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
+				.withReplyTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null, null))
 				.buildEmail();
 
 		assertThat(email.getReplyToRecipients()).containsExactlyInAnyOrder(
-				new Recipient("lollypop", "lol.pop@somemail.com", null),
-				new Recipient("lollypop2", "lol.pop2@somemail.com", null));
+				new Recipient("lollypop", "lol.pop@somemail.com", null, null),
+				new Recipient("lollypop2", "lol.pop2@somemail.com", null, null));
 	}
 
 	@Test
 	public void testBuilderBounceToAddressOverwriteWithAlternativeBuilderMethod() {
 		final Email email = builder
 				.withBounceTo("lollypop", "lol.pop@somemail.com") // should be overwritted
-				.withBounceTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
+				.withBounceTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null, null))
 				.buildEmail();
 
 		assertThat(email.getBounceToRecipient().getName()).isEqualTo("lollypop2");
@@ -174,7 +174,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testBuilderReturnReceiptToAddressOverwriteWithAlternativeBuilderMethod() {
 		final Email email = builder
 				.withReturnReceiptTo("lollypop", "lol.pop@somemail.com") // should be overwritted
-				.withReturnReceiptTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null))
+				.withReturnReceiptTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null, null))
 				.buildEmail();
 
 		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop2");
@@ -187,13 +187,13 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.to("1", "1@candyshop.org")
 				.to(null, "2@candyshop.org")
-				.to(new Recipient("3", "3@candyshop.org", null))
-				.to(new Recipient(null, "4@candyshop.org", null))
+				.to(new Recipient("3", "3@candyshop.org", null, null))
+				.to(new Recipient(null, "4@candyshop.org", null, null))
 				.to("5@candyshop.org")
 				.to("6@candyshop.org,7@candyshop.org")
 				.to("8@candyshop.org;9@candyshop.org")
 				.to("10@candyshop.org;11@candyshop.org,12@candyshop.org")
-				.to(new Recipient("13", "13@candyshop.org", null), new Recipient("14", "14@candyshop.org", null))
+				.to(new Recipient("13", "13@candyshop.org", null, null), new Recipient("14", "14@candyshop.org", null, null))
 				.to("15", "15a@candyshop.org,15b@candyshop.org")
 				.to("16", "16a@candyshop.org;16b@candyshop.org")
 				.buildEmail();
@@ -248,13 +248,13 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.cc("1", "1@candyshop.org")
 				.cc(null, "2@candyshop.org")
-				.cc(new Recipient("3", "3@candyshop.org", null))
-				.cc(new Recipient(null, "4@candyshop.org", null))
+				.cc(new Recipient("3", "3@candyshop.org", null, null))
+				.cc(new Recipient(null, "4@candyshop.org", null, null))
 				.cc("5@candyshop.org")
 				.cc("6@candyshop.org,7@candyshop.org")
 				.cc("8@candyshop.org;9@candyshop.org")
 				.cc("10@candyshop.org;11@candyshop.org,12@candyshop.org")
-				.cc(new Recipient("13", "13@candyshop.org", null), new Recipient("14", "14@candyshop.org", null))
+				.cc(new Recipient("13", "13@candyshop.org", null, null), new Recipient("14", "14@candyshop.org", null, null))
 				.cc("15", "15a@candyshop.org,15b@candyshop.org")
 				.cc("16", "16a@candyshop.org;16b@candyshop.org")
 				.buildEmail();
@@ -309,13 +309,13 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.bcc("1", "1@candyshop.org")
 				.bcc(null, "2@candyshop.org")
-				.bcc(new Recipient("3", "3@candyshop.org", null))
-				.bcc(new Recipient(null, "4@candyshop.org", null))
+				.bcc(new Recipient("3", "3@candyshop.org", null, null))
+				.bcc(new Recipient(null, "4@candyshop.org", null, null))
 				.bcc("5@candyshop.org")
 				.bcc("6@candyshop.org,7@candyshop.org")
 				.bcc("8@candyshop.org;9@candyshop.org")
 				.bcc("10@candyshop.org;11@candyshop.org,12@candyshop.org")
-				.bcc(new Recipient("13", "13@candyshop.org", null), new Recipient("14", "14@candyshop.org", null))
+				.bcc(new Recipient("13", "13@candyshop.org", null, null), new Recipient("14", "14@candyshop.org", null, null))
 				.bcc("15", "15a@candyshop.org,15b@candyshop.org")
 				.bcc("16", "16a@candyshop.org;16b@candyshop.org")
 				.buildEmail();
@@ -391,8 +391,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		assertThat(email.getUseDispositionNotificationTo()).isTrue();
 		assertThat(email.getUseReturnReceiptTo()).isTrue();
-		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
-		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
+		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null, null));
+		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null, null));
 	}
 
 	@Test
@@ -406,8 +406,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		assertThat(email.getUseDispositionNotificationTo()).isTrue();
 		assertThat(email.getUseReturnReceiptTo()).isTrue();
-		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
-		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null));
+		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null, null));
+		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null, null));
 	}
 
 	@Test
@@ -421,8 +421,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		assertThat(email.getUseDispositionNotificationTo()).isTrue();
 		assertThat(email.getUseReturnReceiptTo()).isTrue();
-		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient(null, "customa@candyshop.org", null));
-		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient(null, "customb@candyshop.org", null));
+		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient(null, "customa@candyshop.org", null, null));
+		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient(null, "customb@candyshop.org", null, null));
 	}
 
 	@Test
@@ -545,14 +545,14 @@ public class EmailPopulatingBuilderImpl1Test {
 		builder.to("name4", "6@domain.com;7@domain.com,8@domain.com");
 
 		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
-				new Recipient("name1", "1@domain.com", TO),
-				new Recipient("name2", "2@domain.com", CC),
-				new Recipient("name2", "3@domain.com", CC),
-				new Recipient("name3", "4@domain.com", BCC),
-				new Recipient("name3", "5@domain.com", BCC),
-				new Recipient("name4", "6@domain.com", TO),
-				new Recipient("name4", "7@domain.com", TO),
-				new Recipient("name4", "8@domain.com", TO)
+				new Recipient("name1", "1@domain.com", TO, null),
+				new Recipient("name2", "2@domain.com", CC, null),
+				new Recipient("name2", "3@domain.com", CC, null),
+				new Recipient("name3", "4@domain.com", BCC, null),
+				new Recipient("name3", "5@domain.com", BCC, null),
+				new Recipient("name4", "6@domain.com", TO, null),
+				new Recipient("name4", "7@domain.com", TO, null),
+				new Recipient("name4", "8@domain.com", TO, null)
 		);
 	}
 
@@ -564,14 +564,14 @@ public class EmailPopulatingBuilderImpl1Test {
 		builder.toWithDefaultName("name4", "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
 
 		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
-				new Recipient("name1b", "1@domain.com", TO),
-				new Recipient("name2b", "2@domain.com", CC),
-				new Recipient("name2", "3@domain.com", CC),
-				new Recipient("name3", "4@domain.com", BCC),
-				new Recipient("name3b", "5@domain.com", BCC),
-				new Recipient("name4b", "6@domain.com", TO),
-				new Recipient("name5b", "7@domain.com", TO),
-				new Recipient("name6b", "8@domain.com", TO)
+				new Recipient("name1b", "1@domain.com", TO, null),
+				new Recipient("name2b", "2@domain.com", CC, null),
+				new Recipient("name2", "3@domain.com", CC, null),
+				new Recipient("name3", "4@domain.com", BCC, null),
+				new Recipient("name3b", "5@domain.com", BCC, null),
+				new Recipient("name4b", "6@domain.com", TO, null),
+				new Recipient("name5b", "7@domain.com", TO, null),
+				new Recipient("name6b", "8@domain.com", TO, null)
 		);
 	}
 
@@ -581,9 +581,9 @@ public class EmailPopulatingBuilderImpl1Test {
 		builder.cc("name2", "2@domain.com", "3@domain.com");
 
 		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
-				new Recipient("name1", "1@domain.com", TO),
-				new Recipient("name2", "2@domain.com", CC),
-				new Recipient("name2", "3@domain.com", CC)
+				new Recipient("name1", "1@domain.com", TO, null),
+				new Recipient("name2", "2@domain.com", CC, null),
+				new Recipient("name2", "3@domain.com", CC, null)
 		);
 	}
 
@@ -608,23 +608,23 @@ public class EmailPopulatingBuilderImpl1Test {
 		builder.bcc("bcc_fixed", "bcc included <bcc5@domain.com>");
 
 		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
-				new Recipient(null, "to1@domain.com", TO),
-				new Recipient("to included", "to2@domain.com", TO),
-				new Recipient("to_default", "to3@domain.com", TO),
-				new Recipient("to_fixed", "to4@domain.com", TO),
-				new Recipient("to_fixed", "to5@domain.com", TO),
+				new Recipient(null, "to1@domain.com", TO, null),
+				new Recipient("to included", "to2@domain.com", TO, null),
+				new Recipient("to_default", "to3@domain.com", TO, null),
+				new Recipient("to_fixed", "to4@domain.com", TO, null),
+				new Recipient("to_fixed", "to5@domain.com", TO, null),
 
-				new Recipient(null, "cc1@domain.com", CC),
-				new Recipient("cc included", "cc2@domain.com", CC),
-				new Recipient("cc_default", "cc3@domain.com", CC),
-				new Recipient("cc_fixed", "cc4@domain.com", CC),
-				new Recipient("cc_fixed", "cc5@domain.com", CC),
+				new Recipient(null, "cc1@domain.com", CC, null),
+				new Recipient("cc included", "cc2@domain.com", CC, null),
+				new Recipient("cc_default", "cc3@domain.com", CC, null),
+				new Recipient("cc_fixed", "cc4@domain.com", CC, null),
+				new Recipient("cc_fixed", "cc5@domain.com", CC, null),
 
-				new Recipient(null, "bcc1@domain.com", BCC),
-				new Recipient("bcc included", "bcc2@domain.com", BCC),
-				new Recipient("bcc_default", "bcc3@domain.com", BCC),
-				new Recipient("bcc_fixed", "bcc4@domain.com", BCC),
-				new Recipient("bcc_fixed", "bcc5@domain.com", BCC)
+				new Recipient(null, "bcc1@domain.com", BCC, null),
+				new Recipient("bcc included", "bcc2@domain.com", BCC, null),
+				new Recipient("bcc_default", "bcc3@domain.com", BCC, null),
+				new Recipient("bcc_fixed", "bcc4@domain.com", BCC, null),
+				new Recipient("bcc_fixed", "bcc5@domain.com", BCC, null)
 		);
 	}
 
@@ -635,12 +635,12 @@ public class EmailPopulatingBuilderImpl1Test {
 		builder.bccWithDefaultName("bcc_default", "bcc_included <5@domain.com>", "6@domain.com");
 
 		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
-				new Recipient("to_included", "1@domain.com", TO),
-				new Recipient("to_default", "2@domain.com", TO),
-				new Recipient("cc_included", "3@domain.com", CC),
-				new Recipient("cc_default", "4@domain.com", CC),
-				new Recipient("bcc_included", "5@domain.com", BCC),
-				new Recipient("bcc_default", "6@domain.com", BCC)
+				new Recipient("to_included", "1@domain.com", TO, null),
+				new Recipient("to_default", "2@domain.com", TO, null),
+				new Recipient("cc_included", "3@domain.com", CC, null),
+				new Recipient("cc_default", "4@domain.com", CC, null),
+				new Recipient("bcc_included", "5@domain.com", BCC, null),
+				new Recipient("bcc_default", "6@domain.com", BCC, null)
 		);
 	}
 
@@ -650,9 +650,9 @@ public class EmailPopulatingBuilderImpl1Test {
 		builder.ccWithDefaultName("name2", "name2b <2@domain.com>", "name3b <3@domain.com>");
 
 		assertThat(builder.getRecipients()).containsExactlyInAnyOrder(
-				new Recipient("name1b", "1@domain.com", TO),
-				new Recipient("name2b", "2@domain.com", CC),
-				new Recipient("name3b", "3@domain.com", CC)
+				new Recipient("name1b", "1@domain.com", TO, null),
+				new Recipient("name2b", "2@domain.com", CC, null),
+				new Recipient("name3b", "3@domain.com", CC, null)
 		);
 	}
 
@@ -662,9 +662,9 @@ public class EmailPopulatingBuilderImpl1Test {
 		builder.ccMultiple("2@domain.com", "3@domain.com");
 
 		assertThat(builder.getRecipients()).containsExactlyInAnyOrder(
-				new Recipient(null, "1@domain.com", TO),
-				new Recipient(null, "2@domain.com", CC),
-				new Recipient(null, "3@domain.com", CC)
+				new Recipient(null, "1@domain.com", TO, null),
+				new Recipient(null, "2@domain.com", CC, null),
+				new Recipient(null, "3@domain.com", CC, null)
 		);
 	}
 
@@ -674,9 +674,9 @@ public class EmailPopulatingBuilderImpl1Test {
 		builder.ccMultiple("name2b <2@domain.com>", "name3b <3@domain.com>");
 
 		assertThat(builder.getRecipients()).containsExactlyInAnyOrder(
-				new Recipient("name1b", "1@domain.com", TO),
-				new Recipient("name2b", "2@domain.com", CC),
-				new Recipient("name3b", "3@domain.com", CC)
+				new Recipient("name1b", "1@domain.com", TO, null),
+				new Recipient("name2b", "2@domain.com", CC, null),
+				new Recipient("name3b", "3@domain.com", CC, null)
 		);
 	}
 
@@ -688,14 +688,14 @@ public class EmailPopulatingBuilderImpl1Test {
 		builder.to("6@domain.com;7@domain.com,8@domain.com");
 
 		assertThat(builder.getRecipients()).containsExactlyInAnyOrder(
-				new Recipient(null, "1@domain.com", TO),
-				new Recipient(null, "2@domain.com", CC),
-				new Recipient(null, "3@domain.com", CC),
-				new Recipient(null, "4@domain.com", BCC),
-				new Recipient(null, "5@domain.com", BCC),
-				new Recipient(null, "6@domain.com", TO),
-				new Recipient(null, "7@domain.com", TO),
-				new Recipient(null, "8@domain.com", TO)
+				new Recipient(null, "1@domain.com", TO, null),
+				new Recipient(null, "2@domain.com", CC, null),
+				new Recipient(null, "3@domain.com", CC, null),
+				new Recipient(null, "4@domain.com", BCC, null),
+				new Recipient(null, "5@domain.com", BCC, null),
+				new Recipient(null, "6@domain.com", TO, null),
+				new Recipient(null, "7@domain.com", TO, null),
+				new Recipient(null, "8@domain.com", TO, null)
 		);
 	}
 
@@ -707,14 +707,14 @@ public class EmailPopulatingBuilderImpl1Test {
 		builder.to("name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
 
 		assertThat(builder.getRecipients()).containsExactlyInAnyOrder(
-				new Recipient("name1b", "1@domain.com", TO),
-				new Recipient("name2b", "2@domain.com", CC),
-				new Recipient(null, "3@domain.com", CC),
-				new Recipient(null, "4@domain.com", BCC),
-				new Recipient("name3b", "5@domain.com", BCC),
-				new Recipient("name4b", "6@domain.com", TO),
-				new Recipient("name5b", "7@domain.com", TO),
-				new Recipient("name6b", "8@domain.com", TO)
+				new Recipient("name1b", "1@domain.com", TO, null),
+				new Recipient("name2b", "2@domain.com", CC, null),
+				new Recipient(null, "3@domain.com", CC, null),
+				new Recipient(null, "4@domain.com", BCC, null),
+				new Recipient("name3b", "5@domain.com", BCC, null),
+				new Recipient("name4b", "6@domain.com", TO, null),
+				new Recipient("name5b", "7@domain.com", TO, null),
+				new Recipient("name6b", "8@domain.com", TO, null)
 		);
 	}
 
@@ -1317,7 +1317,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	private Recipient createRecipient(final @Nullable String name, final String emailAddress, final Message.RecipientType recipientType) {
-		return new Recipient(name, emailAddress, recipientType);
+		return new Recipient(name, emailAddress, recipientType, null);
 	}
 
 	private static class DataSourceWithDummyName implements DataSource {
