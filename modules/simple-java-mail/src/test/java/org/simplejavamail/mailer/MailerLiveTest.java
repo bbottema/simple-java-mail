@@ -113,7 +113,7 @@ public class MailerLiveTest {
 	public void createMailSession_TestOverrideReceivers()
 			throws MessagingException, ExecutionException, InterruptedException {
         val dummyEmailBuilder = EmailHelper.createDummyEmailBuilder(true, true, false, true, false, false)
-				.withOverrideReceivers(new Recipient("override", "override@override.com", null));
+				.withOverrideReceivers(new Recipient("override", "override@override.com", null, null));
 		assertSendingEmail(dummyEmailBuilder, true, false, false, false, false);
 	}
 
@@ -247,7 +247,7 @@ public class MailerLiveTest {
 		EmailAssert.assertThat(nestedEmail).hasSubject("This msg file is an attachment");
 		assertThat(normalizeNewlines(nestedEmail.getPlainText()))
 				.isEqualTo("This is an email that will be attached to another email.\n");
-		EmailAssert.assertThat(nestedEmail).hasOnlyRecipients(new Recipient("atmcquillen@gmail.com", "atmcquillen@gmail.com", TO));
+		EmailAssert.assertThat(nestedEmail).hasOnlyRecipients(new Recipient("atmcquillen@gmail.com", "atmcquillen@gmail.com", TO, null));
 	}
 
 	@Test
@@ -264,7 +264,7 @@ public class MailerLiveTest {
 		EmailAssert.assertThat(nestedEmail).hasSubject("This msg file is an attachment");
 		assertThat(normalizeNewlines(nestedEmail.getPlainText()))
 				.isEqualTo("This is an email that will be attached to another email.\n");
-		EmailAssert.assertThat(nestedEmail).hasOnlyRecipients(new Recipient("atmcquillen@gmail.com", "atmcquillen@gmail.com", TO));
+		EmailAssert.assertThat(nestedEmail).hasOnlyRecipients(new Recipient("atmcquillen@gmail.com", "atmcquillen@gmail.com", TO, null));
 		assertThat(nestedEmail.getAttachments()).hasSize(1);
 		assertThat(nestedEmail.getAttachments().get(0).getName()).isEqualTo("Something.docx");
 		assertThat(nestedEmail.getAttachments().get(0).getDataSource()).isNotNull();
@@ -375,11 +375,11 @@ public class MailerLiveTest {
 
 	private void verifyReceivedOutlookEmail(final Email email, final boolean smimeSigned, final boolean smimeEncrypted) throws IOException {
 		// Google SMTP overrode this, Outlook recognized it as: Benny Bottema <b.bottema@gmail.com>; on behalf of; lollypop <b.bottema@projectnibble.org>
-		EmailAssert.assertThat(email).hasFromRecipient(new Recipient("lollypop", "b.bottema@projectnibble.org", null));
+		EmailAssert.assertThat(email).hasFromRecipient(new Recipient("lollypop", "b.bottema@projectnibble.org", null, null));
 		EmailAssert.assertThat(email).hasSubject("hey");
 		// Outlook overrode this when saving the .email to match the mail account
-		EmailAssert.assertThat(email).hasRecipients(new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO));
-		EmailAssert.assertThat(email).hasReplyToRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", null));
+		EmailAssert.assertThat(email).hasRecipients(new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO, null));
+		EmailAssert.assertThat(email).hasReplyToRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", null, null));
 		assertThat(normalizeNewlines(email.getPlainText())).isEqualTo("We should meet up!\n");
 		// Outlook overrode this value too OR converted the original HTML to RTF, from which OutlookMessageParser derived this HTML
 		assertThat(normalizeNewlines(email.getHTMLText())).isEqualTo(
@@ -571,8 +571,8 @@ public class MailerLiveTest {
 		assertThat(receivedReply1).isEqualTo(receivedReply2);
 		EmailAssert.assertThat(receivedReply1).hasSubject("Re: hey");
 		EmailAssert.assertThat(receivedReply1).hasOnlyRecipients(
-				new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO),
-				new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO)
+				new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO, null),
+				new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO, null)
 		);
 		assertThat(receivedReply1.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailPopulatingBuilder.getId())));
 		assertThat(receivedReply1.getHeaders()).contains(entry("References", singletonList(receivedEmailPopulatingBuilder.getId())));
@@ -599,7 +599,7 @@ public class MailerLiveTest {
 		Email receivedReply = mimeMessageToEmail(receivedMimeMessageReply);
 		
 		EmailAssert.assertThat(receivedReply).hasSubject("Re: hey");
-		EmailAssert.assertThat(receivedReply).hasOnlyRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO));
+		EmailAssert.assertThat(receivedReply).hasOnlyRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO, null));
 		assertThat(receivedReply.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailPopulatingBuilder.getId())));
 		assertThat(receivedReply.getHeaders()).contains(entry("References", singletonList(receivedEmailPopulatingBuilder.getId())));
 
@@ -617,7 +617,7 @@ public class MailerLiveTest {
 		Email receivedReplyToReply = mimeMessageToEmail(receivedMimeMessageReplyToReply);
 
 		EmailAssert.assertThat(receivedReplyToReply).hasSubject("Re: hey");
-		EmailAssert.assertThat(receivedReplyToReply).hasOnlyRecipients(new Recipient("Moo Shmoo", "dummy@domain.com", TO));
+		EmailAssert.assertThat(receivedReplyToReply).hasOnlyRecipients(new Recipient("Moo Shmoo", "dummy@domain.com", TO, null));
 		assertThat(receivedReplyToReply.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailReplyPopulatingBuilder.getId())));
 
 		val references = format("%s %s", receivedEmailPopulatingBuilder.getId(), receivedEmailReplyPopulatingBuilder.getId());

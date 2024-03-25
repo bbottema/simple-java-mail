@@ -32,9 +32,9 @@ public class ReadSmimeSelfSignedTest {
 	public void testSignedMessageMsg() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message signed.msg"));
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
+		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null, null));
 		EmailAssert.assertThat(emailParsedFromMsg).hasSubject("S/MIME test message signed");
-		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO));
+		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO, null));
 
 		assertThat(normalizeNewlines(emailParsedFromMsg.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
 				+ "attachment.\n"
@@ -68,9 +68,9 @@ public class ReadSmimeSelfSignedTest {
 	public void testSignedMessageEml() {
 		Email emailParsedFromEml = EmailConverter.emlToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message signed.eml"));
 
-		EmailAssert.assertThat(emailParsedFromEml).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
+		EmailAssert.assertThat(emailParsedFromEml).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null, null));
 		EmailAssert.assertThat(emailParsedFromEml).hasSubject("S/MIME test message signed");
-		EmailAssert.assertThat(emailParsedFromEml).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO));
+		EmailAssert.assertThat(emailParsedFromEml).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO, null));
 
 		assertThat(normalizeNewlines(emailParsedFromEml.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
 				+ "attachment.\n"
@@ -104,9 +104,9 @@ public class ReadSmimeSelfSignedTest {
 	public void testEncryptedMessageMsg() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message encrypted.msg"), loadPkcs12KeyStore());
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
+		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null, null));
 		EmailAssert.assertThat(emailParsedFromMsg).hasSubject("S/MIME test message encrypted");
-		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO));
+		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO, null));
 
 		assertThat(normalizeNewlines(emailParsedFromMsg.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
 				+ "attachment.\n"
@@ -138,9 +138,9 @@ public class ReadSmimeSelfSignedTest {
 	public void testEncryptedMessageEml() {
 		Email emailParsedFromEml = EmailConverter.emlToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message encrypted.eml"), loadPkcs12KeyStore());
 
-		EmailAssert.assertThat(emailParsedFromEml).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
+		EmailAssert.assertThat(emailParsedFromEml).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null, null));
 		EmailAssert.assertThat(emailParsedFromEml).hasSubject("S/MIME test message encrypted");
-		EmailAssert.assertThat(emailParsedFromEml).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO));
+		EmailAssert.assertThat(emailParsedFromEml).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO, null));
 
 		assertThat(normalizeNewlines(emailParsedFromEml.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
 				+ "attachment.\n"
@@ -225,9 +225,9 @@ public class ReadSmimeSelfSignedTest {
 	public void testSignedAndEncryptedMessageMsg() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message signed & encrypted.msg"), loadPkcs12KeyStore());
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null));
+		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null, null));
 		EmailAssert.assertThat(emailParsedFromMsg).hasSubject("S/MIME test message signed & encrypted");
-		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO));
+		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO, null));
 
 		assertThat(normalizeNewlines(emailParsedFromMsg.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
 				+ "attachment.\n"

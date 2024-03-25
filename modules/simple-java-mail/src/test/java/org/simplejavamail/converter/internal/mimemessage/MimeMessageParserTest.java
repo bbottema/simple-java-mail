@@ -197,6 +197,6 @@ public class MimeMessageParserTest {
 
 		final Email fixedEmail = EmailConverter.emlToEmail(corruptedEML);
 
-		EmailAssert.assertThat(fixedEmail).hasOnlyRecipients(new Recipient("C.Cane", "candycane@candyshop.org", TO));
+		EmailAssert.assertThat(fixedEmail).hasOnlyRecipients(new Recipient("C.Cane", "candycane@candyshop.org", TO, null));
 	}
 }

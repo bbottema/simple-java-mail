@@ -111,13 +111,13 @@ public class EmailPopulatingBuilderImpl2Test {
 				.hasDkimConfig(null);
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
-				.hasFromRecipient(new Recipient("Test From", "test_from@domain.com", null))
-				.hasReplyToRecipients(new Recipient("Test Replyto", "test_replyto@domain.com", null))
-				.hasBounceToRecipient(new Recipient("Test Bounceto", "test_boundeto@domain.com", null))
+				.hasFromRecipient(new Recipient("Test From", "test_from@domain.com", null, null))
+				.hasReplyToRecipients(new Recipient("Test Replyto", "test_replyto@domain.com", null, null))
+				.hasBounceToRecipient(new Recipient("Test Bounceto", "test_boundeto@domain.com", null, null))
 				.hasRecipients(
-						new Recipient("test TO name", "test_to1@domain.com", TO), new Recipient("test TO name", "test_to2@domain.com", TO),
-						new Recipient("test CC name", "test_cc1@domain.com", CC), new Recipient("test CC name", "test_cc2@domain.com", CC),
-						new Recipient("test BCC name", "test_bcc1@domain.com", BCC), new Recipient("test BCC name", "test_bcc2@domain.com", BCC)
+						new Recipient("test TO name", "test_to1@domain.com", TO, null), new Recipient("test TO name", "test_to2@domain.com", TO, null),
+						new Recipient("test CC name", "test_cc1@domain.com", CC, null), new Recipient("test CC name", "test_cc2@domain.com", CC, null),
+						new Recipient("test BCC name", "test_bcc1@domain.com", BCC, null), new Recipient("test BCC name", "test_bcc2@domain.com", BCC, null)
 				)
 				.hasSubject("test subject")
 				.hasSmimeSigningConfig(SmimeSigningConfig.builder()
@@ -160,13 +160,13 @@ public class EmailPopulatingBuilderImpl2Test {
 						.build());
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
-				.hasFromRecipient(new Recipient(null, "test_from@domain.com", null))
-				.hasReplyToRecipients(new Recipient(null, "test_replyto@domain.com", null))
-				.hasBounceToRecipient(new Recipient(null, "test_boundeto@domain.com", null))
+				.hasFromRecipient(new Recipient(null, "test_from@domain.com", null, null))
+				.hasReplyToRecipients(new Recipient(null, "test_replyto@domain.com", null, null))
+				.hasBounceToRecipient(new Recipient(null, "test_boundeto@domain.com", null, null))
 				.hasRecipients(
-						new Recipient(null, "test_to1@domain.com", TO), new Recipient(null, "test_to2@domain.com", TO),
-						new Recipient(null, "test_cc1@domain.com", CC), new Recipient(null, "test_cc2@domain.com", CC),
-						new Recipient(null, "test_bcc1@domain.com", BCC), new Recipient(null, "test_bcc2@domain.com", BCC)
+						new Recipient(null, "test_to1@domain.com", TO, null), new Recipient(null, "test_to2@domain.com", TO, null),
+						new Recipient(null, "test_cc1@domain.com", CC, null), new Recipient(null, "test_cc2@domain.com", CC, null),
+						new Recipient(null, "test_bcc1@domain.com", BCC, null), new Recipient(null, "test_bcc2@domain.com", BCC, null)
 				)
 				.hasSmimeEncryptionConfig(SmimeEncryptionConfig.builder()
 						.x509Certificate(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")))

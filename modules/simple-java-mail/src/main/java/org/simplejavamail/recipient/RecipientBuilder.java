@@ -17,7 +17,6 @@ public class RecipientBuilder implements IRecipientBuilder {
 
     /**
      * @see IRecipientBuilder#withName(String)
-     * @see IRecipientBuilder#clearingName()
      */
     @Nullable
     private String name;
@@ -41,9 +40,7 @@ public class RecipientBuilder implements IRecipientBuilder {
     private X509Certificate smimeCertificate;
 
     /**
-     * Creates a new builder instance, but first checks if address is set and throws an exception if not.
-     *
-     * @see Recipient#Recipient(String, String, RecipientType, X509Certificate)
+     * @see IRecipientBuilder#build()
      */
     @Override
     @NotNull
@@ -60,15 +57,6 @@ public class RecipientBuilder implements IRecipientBuilder {
     @Override
     public IRecipientBuilder withName(@NotNull String name) {
         this.name = name;
-        return this;
-    }
-
-    /**
-     * @see IRecipientBuilder#clearingName()
-     */
-    @Override
-    public IRecipientBuilder clearingName() {
-        this.name = null;
         return this;
     }
 

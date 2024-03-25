@@ -158,9 +158,9 @@ public class EmailTest {
 	public void testEqualsEmail_EqualityFieldByField() throws IOException {
 		// From recipient
 		assertEmailEqual(b().from("a@b.c").buildEmail(), b().from("a@b.c").buildEmail(), true);
-		assertEmailEqual(b().from("name", "a@b.c").buildEmail(), b().from(new Recipient("name", "a@b.c", null)).buildEmail(), true);
+		assertEmailEqual(b().from("name", "a@b.c").buildEmail(), b().from(new Recipient("name", "a@b.c", null, null)).buildEmail(), true);
 		assertEmailEqual(b().from("a@b.c").buildEmail(), b().from("some@thing.else").buildEmail(), false);
-		assertEmailEqual(b().from("name", "a@b.c").buildEmail(), b().from(new Recipient("different name", "a@b.c", null)).buildEmail(), false);
+		assertEmailEqual(b().from("name", "a@b.c").buildEmail(), b().from(new Recipient("different name", "a@b.c", null, null)).buildEmail(), false);
 		assertEmailEqual(b().from("a@b.c").buildEmail(), b().buildEmail(), false);
 		// ID
 		assertEmailEqual(b().fixingMessageId(null).buildEmail(), b().fixingMessageId(null).buildEmail(), true);
@@ -181,27 +181,27 @@ public class EmailTest {
 		assertEmailEqual(b().fixingSentDate(now).buildEmail(), b().buildEmail(), false);
 		// replyTo recipient
 		assertEmailEqual(b().withReplyTo("a@b.c").buildEmail(), b().withReplyTo("a@b.c").buildEmail(), true);
-		assertEmailEqual(b().withReplyTo("name", "a@b.c").buildEmail(), b().withReplyTo(new Recipient("name", "a@b.c", null)).buildEmail(), true);
+		assertEmailEqual(b().withReplyTo("name", "a@b.c").buildEmail(), b().withReplyTo(new Recipient("name", "a@b.c", null, null)).buildEmail(), true);
 		assertEmailEqual(b().withReplyTo("a@b.c").buildEmail(), b().withReplyTo("some@thing.else").buildEmail(), false);
-		assertEmailEqual(b().withReplyTo("name", "a@b.c").buildEmail(), b().withReplyTo(new Recipient("different name", "a@b.c", null)).buildEmail(), false);
+		assertEmailEqual(b().withReplyTo("name", "a@b.c").buildEmail(), b().withReplyTo(new Recipient("different name", "a@b.c", null, null)).buildEmail(), false);
 		assertEmailEqual(b().withReplyTo("a@b.c").buildEmail(), b().buildEmail(), false);
 		// bounceTo recipient
 		assertEmailEqual(b().withBounceTo("a@b.c").buildEmail(), b().withBounceTo("a@b.c").buildEmail(), true);
-		assertEmailEqual(b().withBounceTo("name", "a@b.c").buildEmail(), b().withBounceTo(new Recipient("name", "a@b.c", null)).buildEmail(), true);
+		assertEmailEqual(b().withBounceTo("name", "a@b.c").buildEmail(), b().withBounceTo(new Recipient("name", "a@b.c", null, null)).buildEmail(), true);
 		assertEmailEqual(b().withBounceTo("a@b.c").buildEmail(), b().withBounceTo("some@thing.else").buildEmail(), false);
-		assertEmailEqual(b().withBounceTo("name", "a@b.c").buildEmail(), b().withBounceTo(new Recipient("different name", "a@b.c", null)).buildEmail(), false);
+		assertEmailEqual(b().withBounceTo("name", "a@b.c").buildEmail(), b().withBounceTo(new Recipient("different name", "a@b.c", null, null)).buildEmail(), false);
 		assertEmailEqual(b().withBounceTo("a@b.c").buildEmail(), b().buildEmail(), false);
 		// dispositionNotificationTo recipient
 		assertEmailEqual(b().withDispositionNotificationTo("a@b.c").buildEmail(), b().withDispositionNotificationTo("a@b.c").buildEmail(), true);
-		assertEmailEqual(b().withDispositionNotificationTo("name", "a@b.c").buildEmail(), b().withDispositionNotificationTo(new Recipient("name", "a@b.c", null)).buildEmail(), true);
+		assertEmailEqual(b().withDispositionNotificationTo("name", "a@b.c").buildEmail(), b().withDispositionNotificationTo(new Recipient("name", "a@b.c", null, null)).buildEmail(), true);
 		assertEmailEqual(b().withDispositionNotificationTo("a@b.c").buildEmail(), b().withDispositionNotificationTo("some@thing.else").buildEmail(), false);
-		assertEmailEqual(b().withDispositionNotificationTo("name", "a@b.c").buildEmail(), b().withDispositionNotificationTo(new Recipient("different name", "a@b.c", null)).buildEmail(), false);
+		assertEmailEqual(b().withDispositionNotificationTo("name", "a@b.c").buildEmail(), b().withDispositionNotificationTo(new Recipient("different name", "a@b.c", null, null)).buildEmail(), false);
 		assertEmailEqual(b().withDispositionNotificationTo("a@b.c").buildEmail(), b().buildEmail(), false);
 		// returnReceiptTo recipient
 		assertEmailEqual(b().withReturnReceiptTo("a@b.c").buildEmail(), b().withReturnReceiptTo("a@b.c").buildEmail(), true);
-		assertEmailEqual(b().withReturnReceiptTo("name", "a@b.c").buildEmail(), b().withReturnReceiptTo(new Recipient("name", "a@b.c", null)).buildEmail(), true);
+		assertEmailEqual(b().withReturnReceiptTo("name", "a@b.c").buildEmail(), b().withReturnReceiptTo(new Recipient("name", "a@b.c", null, null)).buildEmail(), true);
 		assertEmailEqual(b().withReturnReceiptTo("a@b.c").buildEmail(), b().withReturnReceiptTo("some@thing.else").buildEmail(), false);
-		assertEmailEqual(b().withReturnReceiptTo("name", "a@b.c").buildEmail(), b().withReturnReceiptTo(new Recipient("different name", "a@b.c", null)).buildEmail(), false);
+		assertEmailEqual(b().withReturnReceiptTo("name", "a@b.c").buildEmail(), b().withReturnReceiptTo(new Recipient("different name", "a@b.c", null, null)).buildEmail(), false);
 		assertEmailEqual(b().withReturnReceiptTo("a@b.c").buildEmail(), b().buildEmail(), false);
 		// plainText
 		assertEmailEqual(b().withPlainText((String) null).buildEmail(), b().withPlainText((String) null).buildEmail(), true);

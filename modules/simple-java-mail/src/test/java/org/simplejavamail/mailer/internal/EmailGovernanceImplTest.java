@@ -38,23 +38,23 @@ public class EmailGovernanceImplTest {
 
         EmailAssert.assertThat(new EmailGovernanceImpl(null, null, null, null).produceEmailApplyingDefaultsAndOverrides(userEmail))
                 .hasUseDispositionNotificationTo(true)
-                .hasDispositionNotificationTo(new Recipient(null, "from@domain.com", null));
+                .hasDispositionNotificationTo(new Recipient(null, "from@domain.com", null, null));
 
         EmailAssert.assertThat(new EmailGovernanceImpl(null, defaults, null, null).produceEmailApplyingDefaultsAndOverrides(userEmail))
                 .hasUseDispositionNotificationTo(true)
-                .hasDispositionNotificationTo(new Recipient(null, "disposition.notificationTo@domain.com", null));
+                .hasDispositionNotificationTo(new Recipient(null, "disposition.notificationTo@domain.com", null, null));
 
         EmailAssert.assertThat(new EmailGovernanceImpl(null, defaults, overrides1, null).produceEmailApplyingDefaultsAndOverrides(userEmail))
                 .hasUseReturnReceiptTo(true)
-                .hasDispositionNotificationTo(new Recipient(null, "disposition.notificationTo.override@domain.com", null));
+                .hasDispositionNotificationTo(new Recipient(null, "disposition.notificationTo.override@domain.com", null, null));
 
         EmailAssert.assertThat(new EmailGovernanceImpl(null, defaults, overrides2, null).produceEmailApplyingDefaultsAndOverrides(userEmail))
                 .hasUseReturnReceiptTo(true)
-                .hasDispositionNotificationTo(new Recipient(null, "disposition.notificationTo@domain.com", null));
+                .hasDispositionNotificationTo(new Recipient(null, "disposition.notificationTo@domain.com", null, null));
 
         EmailAssert.assertThat(new EmailGovernanceImpl(null, null, overrides2, null).produceEmailApplyingDefaultsAndOverrides(userEmail))
                 .hasUseDispositionNotificationTo(true)
-                .hasDispositionNotificationTo(new Recipient(null, "replyto@domain.com", null));
+                .hasDispositionNotificationTo(new Recipient(null, "replyto@domain.com", null, null));
     }
 
     @Test
@@ -86,22 +86,22 @@ public class EmailGovernanceImplTest {
 
         EmailAssert.assertThat(new EmailGovernanceImpl(null, null, null, null).produceEmailApplyingDefaultsAndOverrides(userEmail))
                 .hasUseReturnReceiptTo(true)
-                .hasReturnReceiptTo(new Recipient(null, "from@domain.com", null));
+                .hasReturnReceiptTo(new Recipient(null, "from@domain.com", null, null));
 
         EmailAssert.assertThat(new EmailGovernanceImpl(null, defaults, null, null).produceEmailApplyingDefaultsAndOverrides(userEmail))
                 .hasUseReturnReceiptTo(true)
-                .hasReturnReceiptTo(new Recipient(null, "return.receiptTo@domain.com", null));
+                .hasReturnReceiptTo(new Recipient(null, "return.receiptTo@domain.com", null, null));
 
         EmailAssert.assertThat(new EmailGovernanceImpl(null, defaults, overrides1, null).produceEmailApplyingDefaultsAndOverrides(userEmail))
                 .hasUseReturnReceiptTo(true)
-                .hasReturnReceiptTo(new Recipient(null, "return.receiptTo.override@domain.com", null));
+                .hasReturnReceiptTo(new Recipient(null, "return.receiptTo.override@domain.com", null, null));
 
         EmailAssert.assertThat(new EmailGovernanceImpl(null, defaults, overrides2, null).produceEmailApplyingDefaultsAndOverrides(userEmail))
                 .hasUseReturnReceiptTo(true)
-                .hasReturnReceiptTo(new Recipient(null, "return.receiptTo@domain.com", null));
+                .hasReturnReceiptTo(new Recipient(null, "return.receiptTo@domain.com", null, null));
 
         EmailAssert.assertThat(new EmailGovernanceImpl(null, null, overrides2, null).produceEmailApplyingDefaultsAndOverrides(userEmail))
                 .hasUseReturnReceiptTo(true)
-                .hasReturnReceiptTo(new Recipient(null, "replyto@domain.com", null));
+                .hasReturnReceiptTo(new Recipient(null, "replyto@domain.com", null, null));
     }
 }

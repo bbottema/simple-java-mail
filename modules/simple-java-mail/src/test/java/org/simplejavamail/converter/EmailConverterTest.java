@@ -41,9 +41,9 @@ public class EmailConverterTest {
 
 	@Test
 	public void testOutlookBasicConversions() {
-		final Recipient elias = new Recipient("Elias Laugher", "elias.laugher@gmail.com", null);
-		final Recipient sven = new Recipient("Sven Sielenkemper", "sielenkemper@otris.de", TO);
-		final Recipient niklas = new Recipient("niklas.lindson@gmail.com", "niklas.lindson@gmail.com", CC);
+		final Recipient elias = new Recipient("Elias Laugher", "elias.laugher@gmail.com", null, null);
+		final Recipient sven = new Recipient("Sven Sielenkemper", "sielenkemper@otris.de", TO, null);
+		final Recipient niklas = new Recipient("niklas.lindson@gmail.com", "niklas.lindson@gmail.com", CC, null);
 
 		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/simple email with TO and CC.msg"));
 		EmailAssert.assertThat(msg).hasFromRecipient(elias);
@@ -58,8 +58,8 @@ public class EmailConverterTest {
 
 	@Test
 	public void testOutlookBasicConversionsGithubIssue482() {
-		final Recipient ramonFrom = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", null);
-		final Recipient ramonTo = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", TO);
+		final Recipient ramonFrom = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", null, null);
+		final Recipient ramonTo = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", TO, null);
 
 		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#482 emailAddressList_is_required.msg"));
 		EmailAssert.assertThat(msg).hasFromRecipient(ramonFrom);
@@ -70,8 +70,8 @@ public class EmailConverterTest {
 
 	@Test
 	public void testOutlookBasicConversionsGithubIssue484() {
-		final Recipient ramonFrom = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", null);
-		final Recipient ramonTo = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", TO);
+		final Recipient ramonFrom = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", null, null);
+		final Recipient ramonTo = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", TO, null);
 
 		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#484 Email with problematic disposition_notification_to.msg"));
 		EmailAssert.assertThat(msg).hasFromRecipient(ramonFrom);
@@ -82,8 +82,8 @@ public class EmailConverterTest {
 
 	@Test
 	public void testOutlookUnicode() {
-		final Recipient kalejs = new Recipient("m.kalejs@outlook.com", "m.kalejs@outlook.com", null);
-		final Recipient dummy = new Recipient("doesnotexist@doesnt.com", "doesnotexist@doesnt.com", TO);
+		final Recipient kalejs = new Recipient("m.kalejs@outlook.com", "m.kalejs@outlook.com", null, null);
+		final Recipient dummy = new Recipient("doesnotexist@doesnt.com", "doesnotexist@doesnt.com", TO, null);
 
 		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/tst_unicode.msg"));
 		EmailAssert.assertThat(msg).hasFromRecipient(kalejs);
@@ -109,10 +109,10 @@ public class EmailConverterTest {
 
 	@Test
 	public void testOutlookUnsentDraft() {
-		final Recipient time2talk = new Recipient("time2talk@online-convert.com", "time2talk@online-convert.com", TO);
+		final Recipient time2talk = new Recipient("time2talk@online-convert.com", "time2talk@online-convert.com", TO, null);
 
 		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/unsent draft.msg"));
-		EmailAssert.assertThat(msg).hasFromRecipient(new Recipient(null, "donotreply@unknown-from-address.net", null));
+		EmailAssert.assertThat(msg).hasFromRecipient(new Recipient(null, "donotreply@unknown-from-address.net", null, null));
 		EmailAssert.assertThat(msg).hasSubject("MSG Test File");
 		EmailAssert.assertThat(msg).hasOnlyRecipients(time2talk);
 		EmailAssert.assertThat(msg).hasNoAttachments();
@@ -178,15 +178,15 @@ public class EmailConverterTest {
 	@Test
 	public void testProblematic8BitContentTransferEncoding() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#485 Email with 8Bit Content Transfer Encoding.eml"));
-		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("TeleCash", "noreply@telecash.de", null));
-		EmailAssert.assertThat(s1).hasOnlyRecipients(new Recipient(null, "abc@abcdefgh.de", TO));
+		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("TeleCash", "noreply@telecash.de", null, null));
+		EmailAssert.assertThat(s1).hasOnlyRecipients(new Recipient(null, "abc@abcdefgh.de", TO, null));
 	}
 
 	@Test
 	public void testProblematicCommasInRecipeints() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#444 Email with encoded comma in recipients.eml"));
-		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("Some Name, Jane Doe", "jane.doe@example.de", null));
-		EmailAssert.assertThat(s1).hasOnlyRecipients(new Recipient("Some Name 2, John Doe", "john.doe@example.de", TO));
+		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("Some Name, Jane Doe", "jane.doe@example.de", null, null));
+		EmailAssert.assertThat(s1).hasOnlyRecipients(new Recipient("Some Name 2, John Doe", "john.doe@example.de", TO, null));
 	}
 
 	@Test

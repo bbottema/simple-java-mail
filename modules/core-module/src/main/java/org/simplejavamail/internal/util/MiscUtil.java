@@ -169,12 +169,12 @@ public final class MiscUtil {
 			final String relevantName = (fixedName || parsedAddress.getPersonal() == null)
 					? defaultTo(name, parsedAddress.getPersonal())
 					: defaultTo(parsedAddress.getPersonal(), name);
-			return new Recipient(relevantName, parsedAddress.getAddress(), type);
+			return new Recipient(relevantName, parsedAddress.getAddress(), type, null);
 		} catch (final AddressException e) {
 			// InternetAddress failed to parse the email address even in non-strict mode
 			// just assume the address was too complex rather than plain wrong, and let our own email validation
 			// library take care of it when sending the email
-			return new Recipient(name, emailAddress, type);
+			return new Recipient(name, emailAddress, type, null);
 		}
 	}
 	
