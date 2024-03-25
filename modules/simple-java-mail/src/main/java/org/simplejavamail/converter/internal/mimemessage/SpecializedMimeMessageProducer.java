@@ -62,12 +62,12 @@ public abstract class SpecializedMimeMessageProducer {
 			3. DKIM signing
 		 */
 
-		if (email.getPkcs12ConfigForSmimeSigning() != null) {
-			message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, email, message, email.getPkcs12ConfigForSmimeSigning());
+		if (email.getSmimeSigningConfig() != null) {
+			message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, email, message, email.getSmimeSigningConfig());
 		}
 
-		if (email.getX509CertificateForSmimeEncryption() != null) {
-			message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, email, message, email.getX509CertificateForSmimeEncryption());
+		if (email.getSmimeEncryptionConfig() != null) {
+			message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, email, message, email.getSmimeEncryptionConfig());
 		}
 
 		if (email.getDkimConfig() != null) {

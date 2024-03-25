@@ -12,11 +12,11 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.slf4j.Logger;
 
-import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Map;
 
@@ -255,14 +255,14 @@ public class MailerHelper {
 	/**
 	 * Depending on the Email configuration, signs and then encrypts message (both steps optional), using the S/MIME module.
 	 *
-	 * @see org.simplejavamail.internal.modules.SMIMEModule#signMessageWithSmime(Session, Email, MimeMessage, Pkcs12Config)
-	 * @see org.simplejavamail.internal.modules.SMIMEModule#encryptMessageWithSmime(Session, Email, MimeMessage, X509Certificate)
+	 * @see org.simplejavamail.internal.modules.SMIMEModule#signMessageWithSmime(Session, Email, MimeMessage, SmimeSigningConfig)
+	 * @see org.simplejavamail.internal.modules.SMIMEModule#encryptMessageWithSmime(Session, Email, MimeMessage, SmimeEncryptionConfig)
 	 */
 	@SuppressWarnings("unused")
 	public static MimeMessage signAndOrEncryptMessageWithSmime(@NotNull final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails) {
 		MimeMessage message = messageToProtect;
-		message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, emailContainingSmimeDetails, message, requireNonNull(emailContainingSmimeDetails.getPkcs12ConfigForSmimeSigning(), "Pkcs12Config"));
-		message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, emailContainingSmimeDetails, message, requireNonNull(emailContainingSmimeDetails.getX509CertificateForSmimeEncryption(), "X509Certificate"));
+		message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, emailContainingSmimeDetails, message, requireNonNull(emailContainingSmimeDetails.getSmimeSigningConfig(), "SmimeSigningConfig"));
+		message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, emailContainingSmimeDetails, message, requireNonNull(emailContainingSmimeDetails.getSmimeEncryptionConfig(), "SmimeEncryptionConfig"));
 		return message;
 	}
 }

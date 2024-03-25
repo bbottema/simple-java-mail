@@ -1,6 +1,6 @@
 package testutil;
 
-import static jakarta.xml.bind.DatatypeConverter.parseBase64Binary;
+import java.util.Base64;
 
 public class ThumbsUpImage {
     public static byte[] produceThumbsUpImage() {
@@ -10,6 +10,6 @@ public class ThumbsUpImage {
                 "ryZaDSjeg5mt4LCcFXyIn1fdSyXJQVt1OtMWGhoai0OD8T0W8GohZifE1PxD/o7LlsPLiFNAKRrwOABWptLAcqc6QGDAHQEOAYaA" +
                 "c8BNotsJAOgAUAosG1AFA/AtUoY3YEFhKMAvS2AE7iC1+WaG1H6gY3gzE36hUFJ8mqzbU1dUVBBqQBzTgIDQRkWo5qCZdpaenJ0Z" +
                 "x1aytrc0DDB0foIG1oAYKqC0IZK8D4n1AfA6IzwPxXpCFoGoZVEUDaRGGUTAKRgEeAAA2eGJC+ETCiAAAAABJRU5ErkJggg==";
-        return parseBase64Binary(base64String);
+        return Base64.getDecoder().decode(base64String);
     }
 }

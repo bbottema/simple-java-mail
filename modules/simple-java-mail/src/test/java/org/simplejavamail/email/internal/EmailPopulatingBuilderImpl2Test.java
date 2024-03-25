@@ -8,6 +8,8 @@ import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.CertificationUtil;
@@ -88,7 +90,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(DEFAULT_CONTENT_TRANSFER_ENCODING, BASE_64);
 		value.put(SMIME_SIGNING_KEYSTORE, "src/test/resources/pkcs12/smime_keystore.pkcs12");
 		value.put(SMIME_SIGNING_KEYSTORE_PASSWORD, "letmein");
-		value.put(SMIME_SIGNING_KEY_ALIAS, "smime_test_user_alias");
+		value.put(SMIME_SIGNING_KEY_ALIAS, "smime_test_user_alias_rsa");
 		value.put(SMIME_SIGNING_KEY_PASSWORD, "letmein");
 		value.put(SMIME_ENCRYPTION_CERTIFICATE, "src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
 		value.put(DKIM_PRIVATE_KEY_FILE_OR_DATA, "src/test/resources/dkim/dkim_dummy_key.der");
@@ -104,8 +106,8 @@ public class EmailPopulatingBuilderImpl2Test {
 				.hasBounceToRecipient(null)
 				.hasNoRecipients()
 				.hasSubject(null)
-				.hasPkcs12ConfigForSmimeSigning(null)
-				.hasX509CertificateForSmimeEncryption(null)
+				.hasSmimeSigningConfig(null)
+				.hasSmimeEncryptionConfig(null)
 				.hasDkimConfig(null);
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
@@ -118,8 +120,12 @@ public class EmailPopulatingBuilderImpl2Test {
 						new Recipient("test BCC name", "test_bcc1@domain.com", BCC), new Recipient("test BCC name", "test_bcc2@domain.com", BCC)
 				)
 				.hasSubject("test subject")
-				.hasPkcs12ConfigForSmimeSigning(loadPkcs12KeyStore())
-				.hasX509CertificateForSmimeEncryption(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")))
+				.hasSmimeSigningConfig(SmimeSigningConfig.builder()
+						.pkcs12Config(loadPkcs12KeyStore())
+						.build())
+				.hasSmimeEncryptionConfig(SmimeEncryptionConfig.builder()
+						.x509Certificate(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")))
+						.build())
 				.hasDkimConfig(DkimConfig.builder()
 						.dkimPrivateKeyPath(RESOURCES_PATH + "/dkim/dkim_dummy_key.der")
 						.dkimSigningDomain("ignore.com")
@@ -146,10 +152,12 @@ public class EmailPopulatingBuilderImpl2Test {
 				.hasNoReplyToRecipients()
 				.hasBounceToRecipient(null)
 				.hasNoRecipients()
-				.hasX509CertificateForSmimeEncryption(null);
+				.hasSmimeEncryptionConfig(null);
 
-		assertThat(NO_GOVERNANCE().produceEmailApplyingDefaultsAndOverrides(null).getX509CertificateForSmimeEncryption())
-				.isEqualTo(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")));
+		assertThat(NO_GOVERNANCE().produceEmailApplyingDefaultsAndOverrides(null).getSmimeEncryptionConfig())
+				.isEqualTo(SmimeEncryptionConfig.builder()
+						.x509Certificate(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")))
+						.build());
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
 				.hasFromRecipient(new Recipient(null, "test_from@domain.com", null))
@@ -160,7 +168,9 @@ public class EmailPopulatingBuilderImpl2Test {
 						new Recipient(null, "test_cc1@domain.com", CC), new Recipient(null, "test_cc2@domain.com", CC),
 						new Recipient(null, "test_bcc1@domain.com", BCC), new Recipient(null, "test_bcc2@domain.com", BCC)
 				)
-				.hasX509CertificateForSmimeEncryption(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")));
+				.hasSmimeEncryptionConfig(SmimeEncryptionConfig.builder()
+						.x509Certificate(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")))
+						.build());
 	}
 
 	@Test

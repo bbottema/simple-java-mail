@@ -30,7 +30,7 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getSentDate(), email2.getSentDate(), "sendDate")) {
             return false;
         }
-        if (!isEqualRecipientList(email1.getReplyToRecipients(), email2.getReplyToRecipients())) {
+        if (!isEqualRecipientList("ReplyTo", email1.getReplyToRecipients(), email2.getReplyToRecipients())) {
             return false;
         }
         if (!fieldIsEqual(email1.getBounceToRecipient(), email2.getBounceToRecipient(), "bounceToRecipient")) {
@@ -47,31 +47,40 @@ public final class EqualsHelper {
         }
         //noinspection SimplifiableConditionalExpression
         if (email1.getEmailToForward() != null ? email2.getEmailToForward() == null : email2.getEmailToForward() != null) {
+            log.debug("Email unqual for emailToForward: {} vs {}", email1.getEmailToForward(), email2.getEmailToForward());
             return false;
         }
         if (email1.getHTMLText() != null ? !normalizeNewlines(email1.getHTMLText()).equals(normalizeNewlines(email2.getHTMLText())) : email2.getHTMLText() != null) {
+            log.debug("Email unqual for HTML text: {} vs {}", email1.getHTMLText(), email2.getHTMLText());
             return false;
         }
         if (!fieldIsEqual(email1.getSubject(), email2.getSubject(), "subject")) {
             return false;
         }
-
-        if (!isEqualRecipientList(email1.getRecipients(), email2.getRecipients())) {
+        if (!isEqualRecipientList("TO/CC/BCC", email1.getRecipients(), email2.getRecipients())) {
+            return false;
+        }
+        if (!isEqualRecipientList("Override receivers", email1.getOverrideReceivers(), email2.getOverrideReceivers())) {
             return false;
         }
         if (!email1.getEmbeddedImages().containsAll(email2.getEmbeddedImages()) || !email2.getEmbeddedImages().containsAll(email1.getEmbeddedImages())) {
+            log.debug("Email unqual for embedded images: {} vs {}", email1.getEmbeddedImages(), email2.getEmbeddedImages());
             return false;
         }
         if (!email1.getAttachments().containsAll(email2.getAttachments()) || !email2.getAttachments().containsAll(email1.getAttachments())) {
+            log.debug("Email unqual for attachments: {} vs {}", email1.getAttachments(), email2.getAttachments());
             return false;
         }
         if (!email1.getHeaders().equals(email2.getHeaders())) {
+            log.debug("Email unqual for headers: {} vs {}", email1.getHeaders(), email2.getHeaders());
             return false;
         }
         if (!Objects.equals(email1.getUseDispositionNotificationTo(), email2.getUseDispositionNotificationTo())) {
+            log.debug("Email unqual for useDispositionNotificationTo: {} vs {}", email1.getUseDispositionNotificationTo(), email2.getUseDispositionNotificationTo());
             return false;
         }
         if (!Objects.equals(email1.getUseReturnReceiptTo(), email2.getUseReturnReceiptTo())) {
+            log.debug("Email unqual for useReturnReceiptTo: {} vs {}", email1.getUseReturnReceiptTo(), email2.getUseReturnReceiptTo());
             return false;
         }
         if (!fieldIsEqual(email1.getDispositionNotificationTo(), email2.getDispositionNotificationTo(), "dispositionNotificationTo")) {
@@ -80,17 +89,18 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getOriginalSmimeDetails(), email2.getOriginalSmimeDetails(), "originalSmimeDetails")) {
             return false;
         }
-        if (!fieldIsEqual(email1.getPkcs12ConfigForSmimeSigning(), email2.getPkcs12ConfigForSmimeSigning(), "pkcs12ConfigForSmimeSigning")) {
+        if (!fieldIsEqual(email1.getSmimeSigningConfig(), email2.getSmimeSigningConfig(), "smimeSigningConfig")) {
             return false;
         }
-        if (!fieldIsEqual(email1.getX509CertificateForSmimeEncryption(), email2.getX509CertificateForSmimeEncryption(), "x509CertificateForSmimeEncryption")) {
+        if (!fieldIsEqual(email1.getSmimeEncryptionConfig(), email2.getSmimeEncryptionConfig(), "smimeEncryptionConfig")) {
             return false;
         }
         return fieldIsEqual(email1.getReturnReceiptTo(), email2.getReturnReceiptTo(), "returnReceiptTo");
     }
 
-    private static boolean isEqualRecipientList(final List<Recipient> recipients, final List<Recipient> otherRecipients) {
+    private static boolean isEqualRecipientList(final String recipientType, final List<Recipient> recipients, final List<Recipient> otherRecipients) {
         if (recipients.size() != otherRecipients.size()) {
+            log.debug("Email unqual for [{}] recipients: {} vs {}", recipientType, recipients, otherRecipients);
             return false;
         }
         for (final Recipient otherRecipient : otherRecipients) {

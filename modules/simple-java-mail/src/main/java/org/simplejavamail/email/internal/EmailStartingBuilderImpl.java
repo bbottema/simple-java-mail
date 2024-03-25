@@ -230,11 +230,11 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getSentDate() != null) {
 			builder.fixingSentDate(email.getSentDate());
 		}
-		if (email.getPkcs12ConfigForSmimeSigning() != null) {
-			builder.signWithSmime(email.getPkcs12ConfigForSmimeSigning());
+		if (email.getSmimeSigningConfig() != null) {
+			builder.signWithSmime(email.getSmimeSigningConfig());
 		}
-		if (email.getX509CertificateForSmimeEncryption() != null) {
-			builder.encryptWithSmime(email.getX509CertificateForSmimeEncryption());
+		if (email.getSmimeEncryptionConfig() != null) {
+			builder.encryptWithSmime(email.getSmimeEncryptionConfig());
 		}
 		if (email.getDkimConfig() != null) {
 			builder.signWithDomainKey(email.getDkimConfig());

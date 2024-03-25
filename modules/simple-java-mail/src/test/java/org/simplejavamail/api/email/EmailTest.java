@@ -4,6 +4,7 @@ import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.NamedDataSource;
@@ -115,7 +116,7 @@ public class EmailTest {
 				+ "	contentTransferEncoding='quoted-printable',\n"
 				+ "	subject='hey',\n"
 				+ "	recipients=[Recipient{name='C.Cane', address='candycane@candyshop.org', type=To}],\n"
-				+ "	dkimConfig=DkimConfig(dkimSigningDomain=dkim_domain, dkimSelector=dkim_selector, excludedHeadersFromDkimDefaultSigningList=null),\n"
+				+ "	dkimConfig=DkimConfig(dkimSigningDomain=dkim_domain, dkimSelector=dkim_selector, useLengthParam=null, excludedHeadersFromDkimDefaultSigningList=null, headerCanonicalization=null, bodyCanonicalization=null, signingAlgorithm=null),\n"
 				+ "	useDispositionNotificationTo=true,\n"
 				+ "		dispositionNotificationTo=Recipient{name='dispo to', address='simple@address.com', type=null},\n"
 				+ "	useReturnReceiptTo=true,\n"
@@ -301,12 +302,12 @@ public class EmailTest {
 
 	@Test
 	public void testEqualsEmail_EqualityPkcs12Config() {
-		final Pkcs12Config pkcs12KeyStore = loadPkcs12KeyStore();
-		final Pkcs12Config pkcs12KeyStoreOther = Pkcs12Config.builder()
+		final SmimeSigningConfig pkcs12KeyStore = SmimeSigningConfig.builder().pkcs12Config(loadPkcs12KeyStore()).build();
+		final SmimeSigningConfig pkcs12KeyStoreOther = SmimeSigningConfig.builder().pkcs12Config(Pkcs12Config.builder()
 				.pkcs12Store("src/test/resources/pkcs12/smime_keystore.pkcs12")
 				.storePassword("password")
 				.keyAlias("alias")
-				.keyPassword("password").build();
+				.keyPassword("password").build()).build();;
 		assertEmailEqual(b().signWithSmime(pkcs12KeyStore).buildEmail(), b().signWithSmime(pkcs12KeyStore).buildEmail(), true);
 		assertEmailEqual(b().signWithSmime(pkcs12KeyStore).buildEmail(), b().signWithSmime(pkcs12KeyStoreOther).buildEmail(), false);
 		assertEmailEqual(b().signWithSmime(pkcs12KeyStore).buildEmail(), b().buildEmail(), false);

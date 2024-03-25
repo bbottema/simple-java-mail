@@ -9,11 +9,11 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.internal.general.EmailPopulatingBuilderFactory;
+import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.internal.outlooksupport.internal.model.OutlookMessageProxy;
 import org.simplejavamail.internal.util.InternalEmailConverter;
-import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.outlookmessageparser.model.OutlookAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookMessage;
@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.util.Map;
 
 import static java.util.Optional.ofNullable;
-import static org.simplejavamail.internal.outlooksupport.converter.HeadersToIgnore.HEADERS_TO_IGNORE;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -140,7 +139,7 @@ public class OutlookEmailConverter implements OutlookModule {
 			builder.withReturnReceiptTo(headerValue);
 		} else if (isEmailHeader(headerName, headerValue, "Return-Path")) {
 			builder.withBounceTo(headerValue);
-		} else if (!HEADERS_TO_IGNORE.contains(headerName)) {
+		} else if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerName)) {
 			builder.withHeader(headerName, headerValue);
 		} else {
 			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)

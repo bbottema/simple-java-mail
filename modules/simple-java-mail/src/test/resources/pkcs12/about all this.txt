@@ -5,9 +5,12 @@ https://knowledge.digicert.com/solution/SO26449.html
 smime.cnf
     -> openssl config file from the how-to.html
 
-smime_keystore.pkcs12 with key "smime_test_user_alias"
+smime_keystore.pkcs12 with key "smime_test_user_alias_rsa"
     -> created following https://stackoverflow.com/a/22647106/441662:
-        - openssl pkcs12 -export -in smime_test_user.pem.crt -inkey smime_test_user.key -out smime_keystore.pkcs12 -name smime_test_user_alias -noiter -nomaciter
+        - openssl pkcs12 -export -in smime_test_user.pem.crt -inkey smime_test_user.key -out smime_keystore.pkcs12 -name smime_test_user_alias_rsa -noiter -nomaciter
+Also with key "smime_test_user_alias_dsa", created with help from ChatGPT, using a command like this:
+    -> keytool -genkeypair -alias smime_test_user_alias_dsa -keyalg DSA -keysize 2048 -keystore new-temporary-keystore.p12 -storetype PKCS12 -storepass letmein -validity 3650 -dname "EMAILADDRESS=emailaddress, CN=Some Name, O=Simple Java Mail, ST=Province, C=NL" -ext san=dns:simplejavamail.org,dns:www.simplejavamail.org
+        - then with KeyStore Explorer, copy/paste this key from new-temporary-keystore.p12 to smime_keystore.pkcs12
 
 smime_test_user.pem.openssl.crt is the openssl nonstandard format
     - https://stackoverflow.com/questions/55550299/java-can-not-load-begin-trusted-certificate-format-certificate

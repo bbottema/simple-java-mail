@@ -1,6 +1,6 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import com.sun.mail.smtp.SMTPMessage;
+import org.eclipse.angus.mail.smtp.SMTPMessage;
 import jakarta.activation.DataHandler;
 import jakarta.mail.Address;
 import jakarta.mail.Flags;

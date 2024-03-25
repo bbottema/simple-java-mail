@@ -94,7 +94,7 @@ public class SmtpServerRule extends ExternalResource {
 		List<WiserMessage> messages = getMessages();
 		assertThat(messages).hasSize(1);
 		WiserMessage wiserMessage = messages.remove(0);
-		return new MimeMessageAndEnvelope(wiserMessage.getMimeMessage(), wiserMessage.getEnvelopeSender());
+		return new MimeMessageAndEnvelope(wiserMessage.getMimeMessage(), wiserMessage.getEnvelopeSender(), wiserMessage.getEnvelopeReceiver());
 	}
 	
 	@NotNull

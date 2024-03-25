@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -116,19 +117,22 @@ public class MailerImplTest {
 	@Test
 	public void testSignWithSmime_WithConfigObject() {
 		final Email emailWithDefaultPkcs12KeyStoreDefault = EmailBuilder.startingBlank()
-				.signWithSmime(loadPkcs12KeyStore())
+				.signWithSmime(SmimeSigningConfig.builder()
+						.pkcs12Config(loadPkcs12KeyStore())
+						.build())
 				.buildEmail();
 
 		final EmailGovernance emailGovernance = new EmailGovernanceImpl(null, emailWithDefaultPkcs12KeyStoreDefault, null, null);
 		final Mailer mailer = new MailerImpl(null, SMTP, emailGovernance, createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, true, false));
 
-		val actual = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(null).getPkcs12ConfigForSmimeSigning();
+		val actual = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(null).getSmimeSigningConfig();
 
 		assertThat(actual).isNotNull();
-		assertThat(actual.getPkcs12StoreData()).isNotNull();
-		assertThat(actual.getStorePassword()).isEqualTo("letmein".toCharArray());
-		assertThat(actual.getKeyAlias()).isEqualTo("smime_test_user_alias");
-		assertThat(actual.getKeyPassword()).isEqualTo("letmein".toCharArray());
+		assertThat(actual.getPkcs12Config()).isNotNull();
+		assertThat(actual.getPkcs12Config().getPkcs12StoreData()).isNotNull();
+		assertThat(actual.getPkcs12Config().getStorePassword()).isEqualTo("letmein".toCharArray());
+		assertThat(actual.getPkcs12Config().getKeyAlias()).isEqualTo("smime_test_user_alias_rsa");
+		assertThat(actual.getPkcs12Config().getKeyPassword()).isEqualTo("letmein".toCharArray());
 	}
 
 	@NotNull

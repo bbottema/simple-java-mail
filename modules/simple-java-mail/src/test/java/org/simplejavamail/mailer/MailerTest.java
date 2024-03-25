@@ -27,13 +27,13 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.Base64;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
-import static jakarta.xml.bind.DatatypeConverter.parseBase64Binary;
 import static java.util.Calendar.APRIL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -305,7 +305,7 @@ public class MailerTest {
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
 
 		emailPopulatingBuilder.signWithDomainKey(DkimConfig.builder()
-						.dkimPrivateKeyData(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)))
+						.dkimPrivateKeyData(new ByteArrayInputStream(Base64.getDecoder().decode(privateDERkeyBase64)))
 						.dkimSigningDomain("supersecret-testing-domain.com")
 						.dkimSelector("dkim1")
 						.excludedHeadersFromDkimDefaultSigningList("Reply-To")
@@ -400,12 +400,12 @@ public class MailerTest {
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
 
 		emailPopulatingBuilder.signWithDomainKey(DkimConfig.builder()
-				.dkimPrivateKeyData(new ByteArrayInputStream(parseBase64Binary(privateDERkeyBase64)))
+				.dkimPrivateKeyData(new ByteArrayInputStream(Base64.getDecoder().decode(privateDERkeyBase64)))
 				.dkimSigningDomain("somemail.com")
 				.dkimSelector("select")
 				.build());
-		emailPopulatingBuilder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias", "letmein");
-		emailPopulatingBuilder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"));
+		emailPopulatingBuilder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein", null);
+		emailPopulatingBuilder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"), null, null);
 
 		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, signing did not produce an error

@@ -5,14 +5,14 @@ import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.config.EmailProperty;
 import org.simplejavamail.internal.util.MiscUtil;
 
-import java.io.InputStream;
+import java.io.File;
 import java.io.Serializable;
-import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
@@ -166,12 +166,17 @@ public class Email implements Serializable {
 	 */
 	@Nullable
 	private final Boolean useReturnReceiptTo;
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
 	private final Recipient returnReceiptTo;
+
+	/**
+	 * @see EmailPopulatingBuilder#withOverrideReceivers(Recipient...)
+	 */
+	private final List<Recipient> overrideReceivers;
 	
 	/**
 	 * @see EmailStartingBuilder#forwarding(MimeMessage)
@@ -187,17 +192,17 @@ public class Email implements Serializable {
 	private final DkimConfig dkimConfig;
 
 	/**
-	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
-	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)
+	 * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
+	 * @see EmailPopulatingBuilder#encryptWithSmime(File, String, String)
 	 */
-	private final X509Certificate x509CertificateForSmimeEncryption;
+	private final SmimeEncryptionConfig smimeEncryptionConfig;
 
 	/**
-	 * @see EmailPopulatingBuilder#encryptWithSmime(X509Certificate)
-	 * @see EmailPopulatingBuilder#encryptWithSmime(InputStream)
+	 * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
+	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
 	 */
 	// data source is not serializable, so transient
-	private final transient Pkcs12Config pkcs12ConfigForSmimeSigning;
+	private transient final SmimeSigningConfig smimeSigningConfig;
 
 	/**
 	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
@@ -265,11 +270,12 @@ public class Email implements Serializable {
 		dispositionNotificationTo = builder.getDispositionNotificationTo();
 		useReturnReceiptTo = builder.getUseReturnReceiptTo();
 		returnReceiptTo = builder.getReturnReceiptTo();
+		overrideReceivers = builder.getOverrideReceivers();
 		emailToForward = builder.getEmailToForward();
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
 		sentDate = builder.getSentDate();
-		x509CertificateForSmimeEncryption = builder.getX509CertificateForSmimeEncryption();
-		pkcs12ConfigForSmimeSigning = builder.getPkcs12ConfigForSmimeSigning();
+		smimeEncryptionConfig = builder.getSmimeEncryptionConfig();
+		smimeSigningConfig = builder.getSmimeSigningConfig();
 		dkimConfig = builder.getDkimConfig();
 	}
 
@@ -309,6 +315,10 @@ public class Email implements Serializable {
 			s += ",\n\tuseReturnReceiptTo=" + true +
 					",\n\t\treturnReceiptTo=" + returnReceiptTo;
 		}
+		if (!overrideReceivers.isEmpty()) {
+			s += ",\n\toverrideReceivers=" + true +
+					",\n\t\toverrideReceivers=" + overrideReceivers;
+		}
 		if (!headers.isEmpty()) {
 			s += ",\n\theaders=" + headers;
 		}
@@ -325,18 +335,18 @@ public class Email implements Serializable {
 			s += ",\n\tforwardingEmail=true";
 		}
 
-		if (smimeSignedEmail != null || pkcs12ConfigForSmimeSigning != null
-				|| x509CertificateForSmimeEncryption != null || !(originalSmimeDetails instanceof PlainSmimeDetails)) {
+		if (smimeSignedEmail != null || smimeSigningConfig != null
+				|| smimeEncryptionConfig != null || !(originalSmimeDetails instanceof PlainSmimeDetails)) {
 			s += ",\n\tsmime details: {\n";
 			s += "\t----------------------\n";
 			if (smimeSignedEmail != null) {
 				s += "\t\tsmimeSignedEmail=" + smimeSignedEmail + ",\n";
 			}
-			if (pkcs12ConfigForSmimeSigning != null) {
-				s += "\t\tpkcs12ConfigForSmimeSigning=" + pkcs12ConfigForSmimeSigning + ",\n";
+			if (smimeSigningConfig != null) {
+				s += "\t\tsmimeSigningConfig=" + smimeSigningConfig + ",\n";
 			}
-			if (x509CertificateForSmimeEncryption != null) {
-				s += "\t\tx509CertificateForSmimeEncryption=" + x509CertificateForSmimeEncryption;
+			if (smimeEncryptionConfig != null) {
+				s += "\t\tsmimeEncryptionConfig=" + smimeEncryptionConfig;
 			}
 			s += "\t\toriginalSmimeDetails=" + originalSmimeDetails + "\n";
 			s += "\t----------------------\n\t}";
@@ -442,7 +452,7 @@ public class Email implements Serializable {
 	public Recipient getDispositionNotificationTo() {
 		return dispositionNotificationTo;
 	}
-	
+
 	/**
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
@@ -450,6 +460,14 @@ public class Email implements Serializable {
 	@Nullable
 	public Boolean getUseReturnReceiptTo() {
 		return useReturnReceiptTo;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withOverrideReceivers(Recipient...)
+	 */
+	@NotNull
+	public List<Recipient> getOverrideReceivers() {
+		return overrideReceivers;
 	}
 	
 	/**
@@ -582,23 +600,22 @@ public class Email implements Serializable {
 	public DkimConfig getDkimConfig() {
 		return dkimConfig;
 	}
-	
 	/**
-	 * @see EmailPopulatingBuilder#signWithSmime(Pkcs12Config)
-	 * @see EmailPopulatingBuilder#signWithSmime(InputStream, String, String, String)
+	 * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
+	 * @see EmailPopulatingBuilder#encryptWithSmime(File, String, String)
 	 */
 	@Nullable
-	public X509Certificate getX509CertificateForSmimeEncryption() {
-		return x509CertificateForSmimeEncryption;
+	public SmimeEncryptionConfig getSmimeEncryptionConfig() {
+		return smimeEncryptionConfig;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#encryptWithSmime(X509Certificate)
-	 * @see EmailPopulatingBuilder#encryptWithSmime(InputStream)
+	 * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
+	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
 	 */
 	@Nullable
-	public Pkcs12Config getPkcs12ConfigForSmimeSigning() {
-		return pkcs12ConfigForSmimeSigning;
+	public SmimeSigningConfig getSmimeSigningConfig() {
+		return smimeSigningConfig;
 	}
 
 	/**
