@@ -151,10 +151,10 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
 	 *
-	 * @param name The name that will be visible to the receivers of this email.
+	 * @param fixedName The name that will be visible to the receivers of this email (if empty, the name part of the address will be used, if any).
 	 * @param fromAddress The address that will be visible to the receivers of this email.
 	 */
-	EmailPopulatingBuilder from(@Nullable String name, @NotNull String fromAddress);
+	EmailPopulatingBuilder from(@Nullable String fixedName, @NotNull String fromAddress);
 
 	/**
 	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and email address.
