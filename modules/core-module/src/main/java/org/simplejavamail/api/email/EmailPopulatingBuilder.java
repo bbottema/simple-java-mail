@@ -75,7 +75,7 @@ public interface EmailPopulatingBuilder {
 	 * or just want to call a helper method that only accepts {@link EmailWithDefaultsAndOverridesApplied}. For regular cases of just sending with a {@link Mailer}, this
 	 * completion stage happens automatically when converting to MimeMessage. In that case use {@link #buildEmail()} instead.
 	 * <p>
-	 * Why not always apply defaults and overrides? Because it would be a waste of resources to do so, especially when you are sending multiple emails resuing a mailer instance.
+	 * Why not always apply defaults and overrides? Because it would be a waste of resources to do so, especially when you are sending multiple emails reusing a mailer instance.
 	 * Another use case is that when using a server cluster with the batch-module (multiple mailer instances), defaults set during sending ensure that the defaults set for a
 	 * specific mailer are used. This is sometimes important if an SMTP server needs a specific sender address, or if you want to use a specific DKIM signature bound to that server.
 	 *
