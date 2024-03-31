@@ -104,7 +104,7 @@ public class MimeMessageHelperTest {
 	
 	@Test
 	public void testSignMessageWithDKIM_ShouldFailSpecificallyBecauseItWillTryToSign()
-			throws IOException, ClassNotFoundException {
+			throws ClassNotFoundException {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 				.signWithDomainKey(DkimConfig.builder()
 						.dkimPrivateKeyData("dummykey")

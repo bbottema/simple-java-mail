@@ -5,7 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
-import java.security.cert.X509Certificate;
 import java.util.List;
 
 /**
@@ -33,9 +32,4 @@ public class Recipients implements Serializable {
      * @see IRecipientsBuilder#withOverridingName(String)
      */
     @Nullable String overridingName;
-
-    /**
-     * @see IRecipientsBuilder#withDefaultSmimeCertificate(X509Certificate)
-     */
-    @Nullable X509Certificate defaultSmimeCertificate;
 }

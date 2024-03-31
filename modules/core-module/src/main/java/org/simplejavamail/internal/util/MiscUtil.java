@@ -161,7 +161,10 @@ public final class MiscUtil {
 	 *                     is <code>null</code>, the other one will be used.
 	 * @param fixedName    Determines if the given name should be used as override.
 	 * @param emailAddress An RFC2822 compliant email address, which can contain a name inside as well.
+	 *
+	 * @deprecated this needs to be replaced with a version that only returns a pair with the name and email address
 	 */
+	@Deprecated
 	@NotNull
 	public static Recipient interpretRecipient(@Nullable final String name, boolean fixedName, @NotNull final String emailAddress, @Nullable final RecipientType type) {
 		try {
