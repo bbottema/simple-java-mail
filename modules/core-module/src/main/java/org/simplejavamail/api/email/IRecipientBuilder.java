@@ -1,6 +1,7 @@
 package org.simplejavamail.api.email;
 
 import jakarta.mail.Message;
+import jakarta.mail.internet.InternetAddress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -13,11 +14,16 @@ import java.security.cert.X509Certificate;
 public interface IRecipientBuilder {
 
     /**
+     * @param type The recipient type (e.g. {@link Message.RecipientType#TO}), optional for {@code from} and {@code replyTo} fields.
+     */
+    IRecipientBuilder withType(@NotNull Message.RecipientType type);
+
+    /**
      * @param name Optional explicit name of the recipient, otherwise taken from inside the address (if provided, for example "Joe Sixpack
      *             &lt;joesixpack@beerme.com&gt;"). Note that in {@link Recipients}, this can still be overridden by the {@code defaultName} and
      *             {@code overridingName} fields.
      */
-    IRecipientBuilder withName(@NotNull String name);
+    IRecipientBuilder withName(@Nullable String name);
 
     /**
      * @param address The email address of the recipient, can contain a name, but is ignored if a name was seperately provided, this includes names possibly
@@ -26,9 +32,38 @@ public interface IRecipientBuilder {
     IRecipientBuilder withAddress(@NotNull String address);
 
     /**
-     * @param type The recipient type (e.g. {@link Message.RecipientType#TO}), optional for {@code from} and {@code replyTo} fields.
+     * Delegates to {@link #withAddress(String)}, using the {@link InternetAddress} to set the address field, ignoring the name part.
      */
-    IRecipientBuilder withType(@NotNull Message.RecipientType type);
+    IRecipientBuilder withAddressOnlyFrom(@NotNull InternetAddress address);
+
+    /**
+     * Delegates to {@link #withAddress(String)}, using the provided address to set the address field, extracting only the email address part.
+     */
+    IRecipientBuilder withAddressOnlyFrom(@NotNull String address);
+
+    /**
+     * Delegates to {@link #withName(String)} and {@link #withAddress(String)}, using the {@link InternetAddress} to set both fields and if no name is provided,
+     * uses the provided default name.
+     */
+    IRecipientBuilder withAddressAndNameOrDefault(@NotNull InternetAddress address, @Nullable String defaultName);
+
+    /**
+     * Delegates to {@link #withName(String)} and {@link #withAddress(String)}, using the provided address to set both fields and if no name is provided, uses
+     * the provided default name.
+     */
+    IRecipientBuilder withAddressAndNameOrDefault(@NotNull String address, @Nullable String defaultName);
+
+    /**
+     * Delegates to {@link #withName(String)} and {@link #withAddress(String)}, using the {@link InternetAddress} to set both fields. If a name is provided, it
+     * will override the name part of the address. If no name is provided, the name part of the address is used.
+     */
+    IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull InternetAddress address, @Nullable String fixedName);
+
+    /**
+     * Delegates to {@link #withName(String)} and {@link #withAddress(String)}, using the provided address to set both fields. If a name is provided, it will
+     * override the name part of the address. If no name is provided, the name part of the address is used.
+     */
+    IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull String address, @Nullable String fixedName);
 
     /**
      * @param smimeCertificate Optional S/MIME certificate for this recipient, used for encrypting S/MIME messages on a per-user basis. Overrides certificate
