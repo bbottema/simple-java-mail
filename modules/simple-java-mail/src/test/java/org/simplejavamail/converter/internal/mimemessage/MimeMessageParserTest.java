@@ -2,6 +2,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 
 import jakarta.activation.DataHandler;
 import jakarta.mail.BodyPart;
+import jakarta.mail.Header;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Part;
 import jakarta.mail.Session;
@@ -177,7 +178,7 @@ public class MimeMessageParserTest {
 
 	@Nullable
 	private InternetAddress interpretRecipient(String address) {
-		return MimeMessageParser.createAddress(address, "TO");
+        return MimeMessageParser.createAddressFromEncodedHeader(new Header("ignored", address), "TO");
 	}
 	
 	@Test

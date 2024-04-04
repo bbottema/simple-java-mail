@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -14,6 +15,7 @@ import java.util.function.Function;
  */
 @RequiredArgsConstructor
 @Getter
+@SuppressFBWarnings("SE_BAD_FIELD")
 public enum EmailProperty {
 
     HEADERS(Email::getHeaders, true),

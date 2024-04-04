@@ -176,6 +176,13 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testProblematicUmlautInDispositionNotificationTo() {
+		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#500 Email with problematic umlaut in Disposition-Notification-To.eml"));
+		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("Könok, Danny [Fake Company & Co. KG]", "test@fakedomain.de", null));
+		EmailAssert.assertThat(s1).hasDispositionNotificationTo(new Recipient("Könok, Danny [Fake Company & Co. KG]", "test@fakedomain.de", null));
+	}
+
+	@Test
 	public void testProblematic8BitContentTransferEncoding() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#485 Email with 8Bit Content Transfer Encoding.eml"));
 		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("TeleCash", "noreply@telecash.de", null));
