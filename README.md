@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.8.0%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-8.8.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.8.1%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-8.8.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -18,17 +18,18 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.8.0</version>
+    <version>8.8.1</version>
 </dependency>
 ```
 
 ### Latest Progress ###
 
-[v8.8.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.8.0%7Cjar) (22-March-2024)
+v8.8.0 - [v8.8.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.8.1/)
 
-- [#499](https://github.com/bbottema/simple-java-mail/issues/499): [Enhancement] Expose finer-grained DKIM configuration through the builder api and disable 'l-param' by default)
+- v8.8.1 (04-April-2024): [#500](https://github.com/bbottema/simple-java-mail/issues/500): [bug] Fix parsing addresses from headers in EML files, like a Disposition-Notification-To with umlaut
+- v8.8.0 (22-March-2024): [#499](https://github.com/bbottema/simple-java-mail/issues/499): [Enhancement] Expose finer-grained DKIM configuration through the builder api and disable 'l-param' by default)
 
-NOTE: this release changes the default for DKIM signing from 'l-param' true to false. If you rely on this feature, you need to enable it explicitly. Refer to the [DKIM documentation](https://www.simplejavamail.org/security.html#section-sending-dkim) for the update.
+NOTE: release 8.8.0 changes the default for DKIM signing from 'l-param' true to false. If you rely on this feature, you need to enable it explicitly. Refer to the [DKIM documentation](https://www.simplejavamail.org/security.html#section-sending-dkim) for the update.
 
 
 v8.7.0 - [v8.7.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.7.1/)
