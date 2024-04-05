@@ -28,6 +28,7 @@ v8.8.0 - [v8.8.2](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-
 
 - v8.8.2 (05-April-2024): [#495](https://github.com/bbottema/simple-java-mail/issues/495): Add config support for 'verifyingServerIdentity' with SMTP, also: since Angus 1.1.0 (8.6.0) server identity checks are on by default and can be countered by mailerBuilder.verifyingServerIdentity(false)
 - v8.8.2 (05-April-2024): [#501](https://github.com/bbottema/simple-java-mail/issues/501): [dependency] Update outlook-message-parser dependency, which has improved support for X500 addresses
+- v8.8.2 (05-April-2024): [#499 (fix)](https://github.com/bbottema/simple-java-mail/issues/499): [maintenance] Added missing finer-grained DKIM Spring Boot properties
 - v8.8.1 (04-April-2024): [#500](https://github.com/bbottema/simple-java-mail/issues/500): [bug] Fix parsing addresses from headers in EML files, like a Disposition-Notification-To with umlaut
 - v8.8.0 (22-March-2024): [#499](https://github.com/bbottema/simple-java-mail/issues/499): [Enhancement] Expose finer-grained DKIM configuration through the builder api and disable 'l-param' by default)
 
