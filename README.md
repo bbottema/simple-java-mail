@@ -10,7 +10,7 @@ Simple Java Mail is the simplest to use lightweight mailing library for Java, wh
 
 Just send your emails without dealing with [RFCs](https://www.simplejavamail.org/rfc-compliant.html#navigation).
 
-The Simple Java Mail library is a thin layer on top of [Angus Mail](https://eclipse-ee4j.github.io/angus-mail/) (previously [Jakarta Mail](https://eclipse-ee4j.github.io/mail/)) that allows users to define emails on a high abstraction level without having to deal with mumbo jumbo such as 'multipart' and 'mimemessage'.
+The Simple Java Mail library is a thin layer on top of [Angus Mail](https://eclipse-ee4j.github.io/angus-mail/) (previously [Jakarta Mail](https://jakartaee.github.io/mail-api/README-JakartaMail)) that allows users to define emails on a high abstraction level without having to deal with mumbo jumbo such as 'multipart' and 'mimemessage'.
 
 ### [simplejavamail.org](https://www.simplejavamail.org) ###
 
