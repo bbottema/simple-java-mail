@@ -14,7 +14,7 @@ The Simple Java Mail library is a thin layer on top of [Angus Mail](https://ecli
 
 ### [simplejavamail.org](https://www.simplejavamail.org) ###
 
-Simple Java Mail is also available in [Maven Central](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22):
+Simple Java Mail is available in [Maven Central](https://search.maven.org/search?q=g:org.simplejavamail):
 
 ```xml
 <dependency>
@@ -23,6 +23,8 @@ Simple Java Mail is also available in [Maven Central](https://search.maven.org/#
     <version>8.8.2</version>
 </dependency>
 ```
+
+Read about additional modules you can add here: [simplejavamail.org/modules](https://www.simplejavamail.org/modules.html). 
 
 ### Latest Progress ###
 
