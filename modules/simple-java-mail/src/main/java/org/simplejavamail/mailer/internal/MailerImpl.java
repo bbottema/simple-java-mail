@@ -239,7 +239,7 @@ public class MailerImpl implements Mailer {
 	}
 
 	static private void configureServerIdentityVerification(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
-		if (transportStrategy != null && transportStrategy != TransportStrategy.SMTP) {
+		if (transportStrategy != null) {
 			session.getProperties().setProperty(transportStrategy.propertyNameCheckServerIdentity(),
 					Boolean.toString(operationalConfig.isVerifyingServerIdentity()));
 		}

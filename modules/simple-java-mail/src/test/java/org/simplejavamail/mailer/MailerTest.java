@@ -87,7 +87,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
 		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
+		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		
 		assertThat(session.getProperty("mail.smtp.user")).isNull();
 		assertThat(session.getProperty("mail.smtp.auth")).isNull();
@@ -209,7 +209,7 @@ public class MailerTest {
 		
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isNull();
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isNull();
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
+		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
@@ -239,7 +239,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
 		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
+		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
