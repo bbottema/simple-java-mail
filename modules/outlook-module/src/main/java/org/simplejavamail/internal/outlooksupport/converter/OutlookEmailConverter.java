@@ -123,7 +123,7 @@ public class OutlookEmailConverter implements OutlookModule {
 					boolean reasonIsEmptyMessage = e.getCause() instanceof MessagingException && e.getCause().getMessage().equals("No MimeMessage content");
 					if (!reasonIsEmptyMessage) throw e;
 					// :sadface: nested message attachment is actually invalid (possibly empty because of #396),
-					// so we're justgoing to ignore it
+					// so we're just going to ignore it
 				}
 			}
 		}

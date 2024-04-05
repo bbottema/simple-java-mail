@@ -354,24 +354,27 @@ public class EmailConverterTest {
 
 		assertThat(emailMime.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
 		assertThat(emailOutlook.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
-		assertThat(emailMime.getFromRecipient()).isEqualTo(emailOutlook.getFromRecipient());
-		assertThat(emailMime.getId()).isEqualTo(emailOutlook.getId());
-		assertThat(emailMime.getSentDate()).isEqualTo(emailOutlook.getSentDate());
-		assertThat(emailMime.getBounceToRecipient()).isEqualTo(emailOutlook.getBounceToRecipient());
-		assertThat(normalizeNewlines(emailMime.getPlainText())).isEqualTo(normalizeNewlines(emailOutlook.getPlainText()));
-		assertThat(emailMime.getCalendarText()).isEqualTo(emailOutlook.getCalendarText());
-		assertThat(emailMime.getCalendarMethod()).isEqualTo(emailOutlook.getCalendarMethod());
-		assertThat(normalizeNewlines(emailMime.getHTMLText())).isEqualTo(normalizeNewlines(emailOutlook.getHTMLText()));
-		assertThat(emailMime.getSubject()).isEqualTo(emailOutlook.getSubject());
-		assertThat(emailMime.getRecipients()).containsExactlyElementsOf(emailOutlook.getRecipients());
-		assertThat(emailMime.getOverrideReceivers()).containsExactlyElementsOf(emailOutlook.getOverrideReceivers());
-		assertThat(emailMime.getEmbeddedImages()).containsExactlyElementsOf(emailOutlook.getEmbeddedImages());
-		assertThat(emailMime.getUseDispositionNotificationTo()).isEqualTo(emailOutlook.getUseDispositionNotificationTo());
-		assertThat(emailMime.getUseReturnReceiptTo()).isEqualTo(emailOutlook.getUseReturnReceiptTo());
-		assertThat(emailMime.getDispositionNotificationTo()).isEqualTo(emailOutlook.getDispositionNotificationTo());
-		assertThat(emailMime.getSmimeSigningConfig()).isEqualTo(emailOutlook.getSmimeSigningConfig());
-		assertThat(emailMime.getSmimeEncryptionConfig()).isEqualTo(emailOutlook.getSmimeEncryptionConfig());
-		assertThat(emailMime.getReturnReceiptTo()).isEqualTo(emailOutlook.getReturnReceiptTo());
+
+		assertThat(emailOutlook.getFromRecipient()).isEqualTo(emailMime.getFromRecipient());
+		assertThat(emailOutlook.getId()).isEqualTo(emailMime.getId());
+		assertThat(emailOutlook.getSentDate()).isEqualTo(emailMime.getSentDate());
+		assertThat(emailOutlook.getBounceToRecipient()).isEqualTo(emailMime.getBounceToRecipient());
+		assertThat(normalizeNewlines(emailOutlook.getPlainText())).isEqualTo(normalizeNewlines(emailMime.getPlainText()));
+		assertThat(emailOutlook.getCalendarText()).isEqualTo(emailMime.getCalendarText());
+		assertThat(emailOutlook.getCalendarMethod()).isEqualTo(emailMime.getCalendarMethod());
+		assertThat(normalizeNewlines(emailOutlook.getHTMLText())).isEqualTo(normalizeNewlines(emailMime.getHTMLText()));
+		assertThat(emailOutlook.getSubject()).isEqualTo(emailMime.getSubject());
+		assertThat(emailOutlook.getRecipients())
+				.extracting(r -> new Recipient(r.getName(), r.getAddress(), TO))
+				.containsExactlyElementsOf(emailMime.getRecipients());
+		assertThat(emailOutlook.getOverrideReceivers()).containsExactlyElementsOf(emailMime.getOverrideReceivers());
+		assertThat(emailOutlook.getEmbeddedImages()).containsExactlyElementsOf(emailMime.getEmbeddedImages());
+		assertThat(emailOutlook.getUseDispositionNotificationTo()).isEqualTo(emailMime.getUseDispositionNotificationTo());
+		assertThat(emailOutlook.getUseReturnReceiptTo()).isEqualTo(emailMime.getUseReturnReceiptTo());
+		assertThat(emailOutlook.getDispositionNotificationTo()).isEqualTo(emailMime.getDispositionNotificationTo());
+		assertThat(emailOutlook.getSmimeSigningConfig()).isEqualTo(emailMime.getSmimeSigningConfig());
+		assertThat(emailOutlook.getSmimeEncryptionConfig()).isEqualTo(emailMime.getSmimeEncryptionConfig());
+		assertThat(emailOutlook.getReturnReceiptTo()).isEqualTo(emailMime.getReturnReceiptTo());
 	}
 
 	@Test
