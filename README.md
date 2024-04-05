@@ -52,6 +52,9 @@ v8.6.0 - [v8.6.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-
 - v8.6.1 (18-January-2024): [#489](https://github.com/bbottema/simple-java-mail/issues/489): Finished update to Angus Mail by updating activation dependency
 - v8.6.0 (17-January-2024): [#489](https://github.com/bbottema/simple-java-mail/issues/489): Update to Angus Mail
 
+NOTE: this release switches to Angus Mail which should be a transparent change, but if you encounter any issues, please report them. 
+      One known issue is that Angus, since 1.1.0, performs server identity checks by default, which was previously disabled for SMTP. If you encounter issues with this, you can disable it with `mailerBuilder.verifyingServerIdentity(false)` and starting from 8.8.2, this also works with SMTP transport strategy (see [#495](https://github.com/bbottema/simple-java-mail/issues/495)).
+
 
 v8.5.0 - [v8.5.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.5.1/)
 
