@@ -441,7 +441,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T trustingAllHosts(boolean trustAllHosts);
 
 	/**
-	 * Configures the current session to not verify the server's identity on an SSL connection. Defaults to true.
+	 * Configures the current session to not verify the server's identity on an SSL connection. Defaults to true, even for SMTP which makes sense since
+	 * opportunistic TLS is also enabled by default (also see {@link TransportStrategy#setOpportunisticTLS(Boolean)}).
 	 * <p>
 	 * Note that this is <em>not</em> the same as {@link #trustingAllHosts(boolean)} or {@link #trustingSSLHosts(String...)}.<br>
 	 * It would be prudent to have at least one of these features turned on, lest you be vulnerable to man-in-the-middle attacks.
