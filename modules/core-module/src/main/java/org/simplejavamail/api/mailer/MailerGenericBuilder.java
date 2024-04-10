@@ -427,7 +427,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T trustingSSLHosts(String... sslHostsToTrust);
 
 	/**
-	 * Configures the current session to trust all hosts. Defaults to true, but this allows you to white list <em>only</em> certain hosts.
+	 * Configures the current session to trust all hosts. Defaults to true, but this allows you to whitelist <em>only</em> certain hosts.
 	 * <p>
 	 * Note that this is <em>not</em> the same as server identity verification, which is enabled through {@link #verifyingServerIdentity(boolean)}.
 	 * It would be prudent to have at least one of these features turned on, lest you be vulnerable to man-in-the-middle attacks.
