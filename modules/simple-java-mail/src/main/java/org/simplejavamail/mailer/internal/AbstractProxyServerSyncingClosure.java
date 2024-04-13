@@ -12,6 +12,9 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Starts and stops the authenticated proxy server when needed.
+ * <p>
+ * Note that this Runnable implementation is <strong>not</strong> thread related, it is just to encapsulate the code to
+ * be run directly or from a <em>real</em> Runnable.
  */
 public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 
@@ -50,7 +53,7 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 		if (proxyServer != null) {
 			synchronized (proxyServer) {
 				if (!proxyServer.isRunning()) {
-					LOGGER.trace("starting proxy bridge");
+					LOGGER.trace("starting proxy bridge...");
 					proxyServer.start();
 				}
 			}

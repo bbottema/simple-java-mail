@@ -1,34 +1,42 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.8.0%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-8.8.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.8.2%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-8.8.2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
 # Simple Java Mail #
 
-Simple Java Mail is the simplest to use lightweight mailing library for Java, while being able to send complex emails including **[CLI support](https://www.simplejavamail.org/cli.html#navigation)**, **[authenticated socks proxy](https://www.simplejavamail.org/features.html#section-proxy)**(!), **[attachments](https://www.simplejavamail.org/features.html#section-attachments)**, **[embedded images](https://www.simplejavamail.org/features.html#section-embedding)**, **[custom headers and properties](https://www.simplejavamail.org/features.html#section-custom-headers)**, **[robust address validation](https://www.simplejavamail.org/features.html#section-email-validation)**, **[build pattern](https://www.simplejavamail.org/features.html#section-builder-api)** and even **[DKIM signing](https://www.simplejavamail.org/features.html#section-dkim)**, **[S/MIME support](https://www.simplejavamail.org/features.html#section-sending-smime)** and **[external configuration files](https://www.simplejavamail.org/configuration.html#section-config-properties)** with **property overriding**, **[Spring support](https://www.simplejavamail.org/configuration.html#section-spring-support)** and **[Email conversion](https://www.simplejavamail.org/features.html#section-converting)** tools. Just send your emails without dealing with [RFCs](https://www.simplejavamail.org/rfc-compliant.html#navigation).
+Simple Java Mail is the simplest to use lightweight mailing library for Java, while being able to send complex emails including **[Batch processing and server clusters](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering)**, **[CLI support](https://www.simplejavamail.org/cli.html#navigation)**, **[authenticated socks proxy](https://www.simplejavamail.org/features.html#section-proxy)**(!), **[attachments](https://www.simplejavamail.org/features.html#section-attachments)**, **[embedded images](https://www.simplejavamail.org/features.html#section-embedding)**, **[custom headers and properties](https://www.simplejavamail.org/features.html#section-custom-headers)**, **[robust address validation](https://www.simplejavamail.org/features.html#section-email-validation)**, **[build pattern](https://www.simplejavamail.org/features.html#section-builder-api)** and even **[DKIM signing](https://www.simplejavamail.org/features.html#section-dkim)**, **[S/MIME support](https://www.simplejavamail.org/features.html#section-sending-smime)** and **[external configuration files](https://www.simplejavamail.org/configuration.html#section-config-properties)**, **[Spring support](https://www.simplejavamail.org/configuration.html#section-spring-support)** and **[Email conversion](https://www.simplejavamail.org/features.html#section-converting)** tools (including support for Outlook).
 
-The Simple Java Mail library is a thin layer on top of [Jakarta Mail](https://eclipse-ee4j.github.io/mail/) that allows users to define emails on a high abstraction level without having to deal with mumbo jumbo such as 'multipart' and 'mimemessage'.
+Just send your emails without dealing with [RFCs](https://www.simplejavamail.org/rfc-compliant.html#navigation).
+
+The Simple Java Mail library is a thin layer on top of [Angus Mail](https://eclipse-ee4j.github.io/angus-mail/) (previously [Jakarta Mail](https://jakartaee.github.io/mail-api/README-JakartaMail)) that allows users to define emails on a high abstraction level without having to deal with mumbo jumbo such as 'multipart' and 'mimemessage'.
 
 ### [simplejavamail.org](https://www.simplejavamail.org) ###
 
-Simple Java Mail is also available in [Maven Central](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20a%3A%22simple-java-mail%22):
+Simple Java Mail is available in [Maven Central](https://search.maven.org/search?q=g:org.simplejavamail):
 
 ```xml
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.8.0</version>
+    <version>8.8.2</version>
 </dependency>
 ```
 
+Read about additional modules you can add here: [simplejavamail.org/modules](https://www.simplejavamail.org/modules.html). 
+
 ### Latest Progress ###
 
-[v8.8.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.8.0%7Cjar) (22-March-2024)
+v8.8.0 - [v8.8.2](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.8.2/)
 
-- [#499](https://github.com/bbottema/simple-java-mail/issues/499): [Enhancement] Expose finer-grained DKIM configuration through the builder api and disable 'l-param' by default)
+- v8.8.2 (05-April-2024): [#495](https://github.com/bbottema/simple-java-mail/issues/495): Add config support for 'verifyingServerIdentity' with SMTP, also: since Angus 1.1.0 (8.6.0) server identity checks are on by default and can be countered by mailerBuilder.verifyingServerIdentity(false)
+- v8.8.2 (05-April-2024): [#501](https://github.com/bbottema/simple-java-mail/issues/501): [dependency] Update outlook-message-parser dependency, which has improved support for X500 addresses
+- v8.8.2 (05-April-2024): [#499 (fix)](https://github.com/bbottema/simple-java-mail/issues/499): [maintenance] Added missing finer-grained DKIM Spring Boot properties
+- v8.8.1 (04-April-2024): [#500](https://github.com/bbottema/simple-java-mail/issues/500): [bug] Fix parsing addresses from headers in EML files, like a Disposition-Notification-To with umlaut
+- v8.8.0 (22-March-2024): [#499](https://github.com/bbottema/simple-java-mail/issues/499): [Enhancement] Expose finer-grained DKIM configuration through the builder api and disable 'l-param' by default)
 
-NOTE: this release changes the default for DKIM signing from 'l-param' true to false. If you rely on this feature, you need to enable it explicitly. Refer to the [DKIM documentation](https://www.simplejavamail.org/security.html#section-sending-dkim) for the update.
+NOTE: release 8.8.0 changes the default for DKIM signing from 'l-param' true to false. If you rely on this feature, you need to enable it explicitly. Refer to the [DKIM documentation](https://www.simplejavamail.org/security.html#section-sending-dkim) for the update.
 
 
 v8.7.0 - [v8.7.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.7.1/)
@@ -47,6 +55,9 @@ v8.6.0 - [v8.6.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-
 - v8.6.1 (18-January-2024): [#487](https://github.com/bbottema/simple-java-mail/issues/487): Move header filtering from MimeMessageParser to EmailConverter, thereby enabling access to all parsed headers when using MimeMessageParser directly
 - v8.6.1 (18-January-2024): [#489](https://github.com/bbottema/simple-java-mail/issues/489): Finished update to Angus Mail by updating activation dependency
 - v8.6.0 (17-January-2024): [#489](https://github.com/bbottema/simple-java-mail/issues/489): Update to Angus Mail
+
+NOTE: this release switches to Angus Mail which should be a transparent change, but if you encounter any issues, please report them. 
+      One known issue is that Angus, since 1.1.0, performs server identity checks by default, which was previously disabled for SMTP. If you encounter issues with this, you can disable it with `mailerBuilder.verifyingServerIdentity(false)` and starting from 8.8.2, this also works with SMTP transport strategy (see [#495](https://github.com/bbottema/simple-java-mail/issues/495)).
 
 
 v8.5.0 - [v8.5.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.5.1/)

@@ -169,11 +169,11 @@ public enum TransportStrategy {
 		}
 		
 		/**
-		 * @return "mail.smtp.ssl.checkserveridentity"
+		 * @return "mail.smtp.ssl.checkserveridentity", which is only relevant for SMTP + opportunistic TLS
 		 */
 		@Override
 		public String propertyNameCheckServerIdentity() {
-			throw new IllegalStateException("This property is not relevant for plain SMTP");
+			return "mail.smtp.ssl.checkserveridentity";
 		}
 
 		/**

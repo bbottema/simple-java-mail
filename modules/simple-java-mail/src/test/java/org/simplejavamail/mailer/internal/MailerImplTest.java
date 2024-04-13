@@ -45,11 +45,11 @@ public class MailerImplTest {
 	public void trustAllHosts_PLAIN() {
 		new MailerImpl(null, SMTP, NO_GOVERNANCE(), createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, true, false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
-		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
+		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("false");
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
 		new MailerImpl(null, SMTP, NO_GOVERNANCE(), createEmptyProxyConfig(), session, createDummyOperationalConfig(EMPTY_LIST, false, true));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
-		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
+		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
 	}
 	
@@ -98,19 +98,19 @@ public class MailerImplTest {
 	public void trustHosts() {
 		new MailerImpl(null, SMTP, NO_GOVERNANCE(), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList(), false, false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isNull();
-		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
+		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("false");
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
 		new MailerImpl(null, SMTP, NO_GOVERNANCE(), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList("a"), false, false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a");
-		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
+		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("false");
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
 		new MailerImpl(null, SMTP, NO_GOVERNANCE(), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList("a", "b"), false, false));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b");
-		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
+		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("false");
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
 		new MailerImpl(null, SMTP, NO_GOVERNANCE(), createEmptyProxyConfig(), session, createDummyOperationalConfig(asList("a", "b", "c"), false, true));
 		assertThat(session.getProperties().getProperty("mail.smtp.ssl.trust")).isEqualTo("a b c");
-		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isNull();
+		assertThat(session.getProperties().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		assertThat(session.getProperties().getProperty("mail.smtps.ssl.checkserveridentity")).isNull();
 	}
 

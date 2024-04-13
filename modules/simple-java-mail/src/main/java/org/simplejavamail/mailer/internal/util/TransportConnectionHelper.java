@@ -16,7 +16,7 @@ public class TransportConnectionHelper {
      * providing password. Instead, <em>mail.smtp.auth.mechanisms</em> is set to {@code "XOAUTH2"} and the built-in OAuth2 Security Provider should take over and use the
      * token as the password, and that is only possible using the alternative {@link Transport#connect(String, String)}.
      *
-     * @see <a href="https://javaee.github.io/javamail/OAuth2">https://javaee.github.io/javamail/OAuth2</a>
+     * @see <a href="https://eclipse-ee4j.github.io/angus-mail/OAuth2">https://eclipse-ee4j.github.io/angus-mail/OAuth2</a>
      */
     public static void connectTransport(Transport transport, Session session) throws MessagingException {
         if (session.getProperties().containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY)) {
