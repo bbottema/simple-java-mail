@@ -2,6 +2,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 
 import jakarta.activation.*;
 import jakarta.mail.Address;
+import jakarta.mail.Header;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
@@ -29,7 +30,6 @@ import static com.pivovarit.function.ThrowingFunction.unchecked;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -75,7 +75,7 @@ public final class MimeMessageParser {
 	}
 
 	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents, final boolean fetchAttachmentData) {
-		for (final DecodedHeader header : retrieveAllHeaders(currentPart)) {
+		for (final Header header : retrieveAllHeaders(currentPart)) {
 			parseHeader(header, parsedComponents);
 		}
 
@@ -122,8 +122,8 @@ public final class MimeMessageParser {
 
 	private static void checkContentTransferEncoding(final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents) {
 		if (parsedComponents.contentTransferEncoding == null) {
-			for (final DecodedHeader header : retrieveAllHeaders(currentPart)) {
-				if (isEmailHeader(header, "Content-Transfer-Encoding")) {
+			for (final Header header : retrieveAllHeaders(currentPart)) {
+				if (isEmailHeader(DecodedHeader.of(header), "Content-Transfer-Encoding")) {
 					parsedComponents.contentTransferEncoding = header.getValue();
 				}
 			}
@@ -139,21 +139,20 @@ public final class MimeMessageParser {
 				.build();
 	}
 
-	private static void parseHeader(final DecodedHeader header, @NotNull final ParsedMimeMessageComponents parsedComponents) {
-		val headerValue = decodeText(header.getValue());
-		val headerName = decodeText(header.getName());
+	private static void parseHeader(final Header header, @NotNull final ParsedMimeMessageComponents parsedComponents) {
+		val decodedHeader = DecodedHeader.of(header);
 
-		if (isEmailHeader(header, "Disposition-Notification-To")) {
-			parsedComponents.dispositionNotificationTo = createAddress(headerValue, "Disposition-Notification-To");
-		} else if (isEmailHeader(header, "Return-Receipt-To")) {
-			parsedComponents.returnReceiptTo = createAddress(headerValue, "Return-Receipt-To");
-		} else if (isEmailHeader(header, "Return-Path")) {
-			parsedComponents.bounceToAddress = createAddress(headerValue, "Return-Path");
+		if (isEmailHeader(decodedHeader, "Disposition-Notification-To")) {
+			parsedComponents.dispositionNotificationTo = createAddressFromEncodedHeader(header, "Disposition-Notification-To");
+		} else if (isEmailHeader(decodedHeader, "Return-Receipt-To")) {
+			parsedComponents.returnReceiptTo = createAddressFromEncodedHeader(header, "Return-Receipt-To");
+		} else if (isEmailHeader(decodedHeader, "Return-Path")) {
+			parsedComponents.bounceToAddress = createAddressFromEncodedHeader(header, "Return-Path");
 		} else {
-			if (!parsedComponents.headers.containsKey(headerName)) {
-				parsedComponents.headers.put(headerName, new ArrayList<>());
+			if (!parsedComponents.headers.containsKey(decodedHeader.getName())) {
+				parsedComponents.headers.put(decodedHeader.getName(), new ArrayList<>());
 			}
-			parsedComponents.headers.get(headerName).add(MimeUtility.unfold(headerValue));
+			parsedComponents.headers.get(decodedHeader.getName()).add(MimeUtility.unfold(decodedHeader.getValue()));
 		}
 	}
 
@@ -280,25 +279,24 @@ public final class MimeMessageParser {
 
 	@SuppressWarnings("WeakerAccess")
 	@NotNull
-	public static List<DecodedHeader> retrieveAllHeaders(@NotNull final MimePart part) {
+	public static List<Header> retrieveAllHeaders(@NotNull final MimePart part) {
 		try {
-			return Collections.list(part.getAllHeaders()).stream()
-					.map(DecodedHeader::of)
-					.collect(toList());
+			return Collections.list(part.getAllHeaders());
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_ALL_HEADERS, e);
 		}
 	}
 
 	@Nullable
-	static InternetAddress createAddress(final String address, final String typeOfAddress) {
+	static InternetAddress createAddressFromEncodedHeader(final Header headerWithAddress, final String typeOfAddress) {
+		val encodedAddress = headerWithAddress.getValue();
 		try {
-			return address.trim().isEmpty() ? null : new InternetAddress(address);
+			return encodedAddress.trim().isEmpty() ? null : InternetAddress.parseHeader(encodedAddress, true)[0];
 		} catch (final AddressException e) {
 			if (e.getMessage().equals("Empty address")) {
 				return null;
 			}
-			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_PARSING_ADDRESS, typeOfAddress, address), e);
+			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_PARSING_ADDRESS, typeOfAddress, encodedAddress), e);
 		}
 	}
 

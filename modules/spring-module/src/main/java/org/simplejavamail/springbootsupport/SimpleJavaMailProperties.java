@@ -234,7 +234,11 @@ public class SimpleJavaMailProperties {
             private String privateKeyFileOrData;
             private String selector;
             private String signingDomain;
+            private String useLengthParam;
             private String excludedHeadersFromDefaultSigningList;
+            private String headerCanonicalization;
+            private String bodyCanonicalization;
+            private String algorithm;
         }
     }
 
