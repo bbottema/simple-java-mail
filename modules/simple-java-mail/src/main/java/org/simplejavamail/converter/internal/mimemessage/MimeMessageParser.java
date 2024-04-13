@@ -14,6 +14,7 @@ import lombok.val;
 import org.eclipse.angus.mail.handlers.text_plain;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 import org.simplejavamail.internal.util.Preconditions;
@@ -123,7 +124,7 @@ public final class MimeMessageParser {
 	private static void checkContentTransferEncoding(final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents) {
 		if (parsedComponents.contentTransferEncoding == null) {
 			for (final Header header : retrieveAllHeaders(currentPart)) {
-				if (isEmailHeader(DecodedHeader.of(header), "Content-Transfer-Encoding")) {
+				if (isEmailHeader(DecodedHeader.of(header), MessageHeader.CONTENT_TRANSFER_ENCODING.getName())) {
 					parsedComponents.contentTransferEncoding = header.getValue();
 				}
 			}
@@ -142,12 +143,12 @@ public final class MimeMessageParser {
 	private static void parseHeader(final Header header, @NotNull final ParsedMimeMessageComponents parsedComponents) {
 		val decodedHeader = DecodedHeader.of(header);
 
-		if (isEmailHeader(decodedHeader, "Disposition-Notification-To")) {
-			parsedComponents.dispositionNotificationTo = createAddressFromEncodedHeader(header, "Disposition-Notification-To");
-		} else if (isEmailHeader(decodedHeader, "Return-Receipt-To")) {
-			parsedComponents.returnReceiptTo = createAddressFromEncodedHeader(header, "Return-Receipt-To");
-		} else if (isEmailHeader(decodedHeader, "Return-Path")) {
-			parsedComponents.bounceToAddress = createAddressFromEncodedHeader(header, "Return-Path");
+		if (isEmailHeader(decodedHeader, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName())) {
+			parsedComponents.dispositionNotificationTo = createAddressFromEncodedHeader(header, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName());
+		} else if (isEmailHeader(decodedHeader, MessageHeader.RETURN_RECEIPT_TO.getName())) {
+			parsedComponents.returnReceiptTo = createAddressFromEncodedHeader(header, MessageHeader.RETURN_RECEIPT_TO.getName());
+		} else if (isEmailHeader(decodedHeader, MessageHeader.RETURN_PATH.getName())) {
+			parsedComponents.bounceToAddress = createAddressFromEncodedHeader(header, MessageHeader.RETURN_PATH.getName());
 		} else {
 			if (!parsedComponents.headers.containsKey(decodedHeader.getName())) {
 				parsedComponents.headers.put(decodedHeader.getName(), new ArrayList<>());
@@ -170,7 +171,7 @@ public final class MimeMessageParser {
 				return decodeText(currentPart.getFileName());
 			} else {
 				// replicate behavior from Thunderbird
-				if (Arrays.asList(currentPart.getHeader("Content-Type")).contains("message/rfc822")) {
+				if (Arrays.asList(currentPart.getHeader(MessageHeader.CONTENT_TYPE.getName())).contains("message/rfc822")) {
 					return "ForwardedMessage.eml";
 				}
 			}
@@ -421,12 +422,12 @@ public final class MimeMessageParser {
 
 	private static String getHeaderName(RecipientType recipientType) {
 		if (recipientType == RecipientType.TO) {
-			return "To";
+			return MessageHeader.TO.getName();
 		} else if (recipientType == RecipientType.CC) {
-			return "Cc";
+			return MessageHeader.CC.getName();
 		} else {
 			Preconditions.assumeTrue(recipientType == RecipientType.BCC, "invalid recipient type: " + recipientType);
-			return "Bcc";
+			return MessageHeader.BCC.getName();
 		}
 	}
 
@@ -448,7 +449,7 @@ public final class MimeMessageParser {
 	@Nullable
 	public static String parseContentTransferEncoding(@NotNull final MimePart mimePart) {
 		try {
-			return ofNullable(mimePart.getHeader("Content-Transfer-Encoding", ","))
+			return ofNullable(mimePart.getHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), ","))
 					.map(MimeMessageParser::decodeText)
 					.orElse(null);
 		} catch (final MessagingException e) {

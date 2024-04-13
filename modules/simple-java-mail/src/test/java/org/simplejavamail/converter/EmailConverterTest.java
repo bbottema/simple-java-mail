@@ -18,12 +18,12 @@ import testutil.SecureTestDataHelper;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
-import static jakarta.mail.Message.RecipientType.CC;
-import static jakarta.mail.Message.RecipientType.TO;
+import static jakarta.mail.Message.RecipientType.*;
 import static java.lang.String.format;
 import static java.nio.charset.Charset.defaultCharset;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -51,6 +51,7 @@ public class EmailConverterTest {
 		EmailAssert.assertThat(msg).hasOnlyRecipients(sven, niklas);
 		EmailAssert.assertThat(msg).hasNoAttachments();
 		assertThat(msg.getHeaders()).containsEntry("x-pmx-scanned", singletonList("Mail was scanned by Sophos Pure Message"));
+		assertThat(msg.getHeaders()).doesNotContainKeys("CC", "Cc", "cc", "BCC", "Bcc", "bcc", "TO", "To", "to");
 		assertThat(msg.getPlainText()).isNotEmpty();
 		assertThat(normalizeNewlines(msg.getHTMLText())).isEqualTo("<div dir=\"auto\">Just a test to get an email with one cc recipient.</div>\n");
 		assertThat(normalizeNewlines(msg.getPlainText())).isEqualTo("Just a test to get an email with one cc recipient.\n");
@@ -190,10 +191,27 @@ public class EmailConverterTest {
 	}
 
 	@Test
-	public void testProblematicCommasInRecipeints() {
+	public void testProblematicCommasInRecipients() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#444 Email with encoded comma in recipients.eml"));
 		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("Some Name, Jane Doe", "jane.doe@example.de", null));
 		EmailAssert.assertThat(s1).hasOnlyRecipients(new Recipient("Some Name 2, John Doe", "john.doe@example.de", TO));
+	}
+
+	@Test
+	public void testProblematicCcHeader() {
+		Email recipientsCamelcase = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#502 Recipients camelcase header.eml"));
+		EmailAssert.assertThat(recipientsCamelcase).hasFromRecipient(new Recipient("from someone", "from@example.com", null));
+		EmailAssert.assertThat(recipientsCamelcase).hasOnlyRecipients(
+				new Recipient("to person", "to@example.com", TO),
+				new Recipient("cc person", "cc@example.com", CC),
+				new Recipient("bcc person", "bcc@example.com", BCC));
+		EmailAssert.assertThat(recipientsCamelcase).hasHeaders(new HashMap<>());
+
+		Email recipientsCapitals = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#502 Recipients capitals header.eml"));
+		Email recipientsLowercase = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#502 Recipients lowercase header.eml"));
+
+		assertThat(recipientsCapitals).isEqualTo(recipientsCamelcase);
+		assertThat(recipientsLowercase).isEqualTo(recipientsCamelcase);
 	}
 
 	@Test

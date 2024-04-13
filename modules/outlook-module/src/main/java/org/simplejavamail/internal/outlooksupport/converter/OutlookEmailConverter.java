@@ -10,6 +10,7 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.internal.general.EmailPopulatingBuilderFactory;
 import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
+import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.internal.outlooksupport.internal.model.OutlookMessageProxy;
@@ -133,11 +134,11 @@ public class OutlookEmailConverter implements OutlookModule {
 
 	@SuppressWarnings("StatementWithEmptyBody")
 	private static void parseHeader(final String headerName, final String headerValue, final EmailPopulatingBuilder builder) {
-		if (isEmailHeader(headerName, headerValue, "Disposition-Notification-To")) {
+		if (isEmailHeader(headerName, headerValue, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName())) {
 			builder.withDispositionNotificationTo(headerValue);
-		} else if (isEmailHeader(headerName, headerValue, "Return-Receipt-To")) {
+		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_RECEIPT_TO.getName())) {
 			builder.withReturnReceiptTo(headerValue);
-		} else if (isEmailHeader(headerName, headerValue, "Return-Path")) {
+		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_PATH.getName())) {
 			builder.withBounceTo(headerValue);
 		} else if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerName)) {
 			builder.withHeader(headerName, headerValue);
