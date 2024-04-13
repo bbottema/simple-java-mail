@@ -78,7 +78,6 @@ public interface IRecipientBuilder {
      *                         <li>Mailer level (default value)</li>
      *                         </ol>
      * @see #clearingSmimeCertificate()
-     * @see IRecipientsBuilder#withDefaultSmimeCertificate(X509Certificate)
      */
     IRecipientBuilder withSmimeCertificate(@NotNull X509Certificate smimeCertificate);
 
