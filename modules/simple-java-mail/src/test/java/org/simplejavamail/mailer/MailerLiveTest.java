@@ -574,6 +574,7 @@ public class MailerLiveTest {
 				new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO),
 				new Recipient("Bottema, Benny", "benny.bottema@aegon.nl", TO)
 		);
+
 		assertThat(receivedReply1.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailPopulatingBuilder.getId())));
 		assertThat(receivedReply1.getHeaders()).contains(entry("References", singletonList(receivedEmailPopulatingBuilder.getId())));
 	}
