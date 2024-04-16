@@ -11,6 +11,6 @@ import java.io.InputStream;
 
 public interface OutlookModule {
 	EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull File msgFile, @NotNull EmailStartingBuilder emailStartingBuilder, @NotNull EmailPopulatingBuilderFactory builderFactory, @NotNull InternalEmailConverter internalEmailConverter);
-	EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull String msgData, @NotNull EmailStartingBuilder emailStartingBuilder, @NotNull EmailPopulatingBuilderFactory builderFactory, @NotNull InternalEmailConverter internalEmailConverter);
+	EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull String msgFileName, @NotNull EmailStartingBuilder emailStartingBuilder, @NotNull EmailPopulatingBuilderFactory builderFactory, @NotNull InternalEmailConverter internalEmailConverter);
 	EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull InputStream msgInputStream, @NotNull EmailStartingBuilder emailStartingBuilder, @NotNull EmailPopulatingBuilderFactory builderFactory, @NotNull InternalEmailConverter internalEmailConverter);
 }

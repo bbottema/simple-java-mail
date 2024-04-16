@@ -128,25 +128,25 @@ public final class EmailConverter {
 	/**
 	 * Delegates to {@link #outlookMsgToEmail(String, Pkcs12Config)}.
 	 *
-	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param msgFileName The file name of an Outlook (.msg) message from which to create the {@link Email}.
 	 */
 	@SuppressWarnings("unused")
 	@NotNull
-	public static Email outlookMsgToEmail(@NotNull final String msgData) {
-		return outlookMsgToEmail(msgData, null);
+	public static Email outlookMsgToEmail(@NotNull final String msgFileName) {
+		return outlookMsgToEmail(msgFileName, null);
 	}
 
 	/**
-	 * @param msgData The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param msgFileName The file name of an Outlook (.msg) message from which to create the {@link Email}.
 	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
 	 *                        (only needed when the message is encrypted rather than just signed).
 	 */
 	@SuppressWarnings("deprecation")
 	@NotNull
-	public static Email outlookMsgToEmail(@NotNull final String msgData, @Nullable final Pkcs12Config pkcs12Config) {
-		checkNonEmptyArgument(msgData, "msgFile");
+	public static Email outlookMsgToEmail(@NotNull final String msgFileName, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(msgFileName, "msgFile");
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
-				.outlookMsgToEmailBuilder(msgData, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl(), InternalEmailConverterImpl.INSTANCE);
+				.outlookMsgToEmailBuilder(msgFileName, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl(), InternalEmailConverterImpl.INSTANCE);
 		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config)
 				.buildEmail();
 	}
