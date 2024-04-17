@@ -5,8 +5,8 @@ import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
@@ -50,7 +50,7 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	private EmailPopulatingBuilder builder;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		builder = EmailBuilder.startingBlank();

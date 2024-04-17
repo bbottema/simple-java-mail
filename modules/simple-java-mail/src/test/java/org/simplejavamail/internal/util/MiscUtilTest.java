@@ -1,7 +1,7 @@
 package org.simplejavamail.internal.util;
 
 import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Recipient;
 
 import java.io.ByteArrayInputStream;
@@ -24,14 +24,16 @@ public class MiscUtilTest {
 		assertThat(MiscUtil.checkArgumentNotEmpty(234, null)).isEqualTo(234);
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void checkArgumentNotEmptyWithEmptyString() {
-		MiscUtil.checkArgumentNotEmpty("", null);
+		assertThatThrownBy(() -> MiscUtil.checkArgumentNotEmpty("", null))
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void checkArgumentNotEmptyWithNullString() {
-		MiscUtil.checkArgumentNotEmpty(null, null);
+		assertThatThrownBy(() -> MiscUtil.checkArgumentNotEmpty(null, null))
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 	
 	@Test
@@ -69,14 +71,16 @@ public class MiscUtilTest {
 		assertThat(MiscUtil.encodeText("<html><body>\u0207</body></html>")).isEqualTo("=?UTF-8?B?PGh0bWw+PGJvZHk+yIc8L2JvZHk+PC9odG1sPg==?=");
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExtractEmailAddresses_MissingAddress() {
-		MiscUtil.extractEmailAddresses(null);
+		assertThatThrownBy(() -> MiscUtil.extractEmailAddresses(null))
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExtractEmailAddresses_EmptyAddress() {
-		MiscUtil.extractEmailAddresses("");
+		assertThatThrownBy(() -> MiscUtil.extractEmailAddresses(""))
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 
 	@Test

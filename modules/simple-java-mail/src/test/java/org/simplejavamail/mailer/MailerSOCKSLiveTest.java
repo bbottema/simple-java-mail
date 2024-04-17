@@ -1,17 +1,16 @@
 package org.simplejavamail.mailer;
 
-import org.bbottema.javasocksproxyserver.junit.SockServerRule;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.bbottema.javasocksproxyserver.junit.SockServerExtension;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.Mailer;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 import testutil.testrules.MimeMessageAndEnvelope;
-import testutil.testrules.SmtpServerRule;
+import testutil.testrules.SmtpServerExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
@@ -20,12 +19,12 @@ public class MailerSOCKSLiveTest {
 	private static final Integer SMTP_SERVER_PORT = 252;
 	private static final Integer PROXY_SERVER_PORT = 253;
 
-	@Rule
-	public final SmtpServerRule smtpServerRule = new SmtpServerRule(SMTP_SERVER_PORT, null, null);
-	@ClassRule
-	public static final SockServerRule sockServerRule = new SockServerRule(PROXY_SERVER_PORT);
+	@RegisterExtension
+	static SmtpServerExtension smtpServerRule = new SmtpServerExtension(SMTP_SERVER_PORT, "usey", "passy");
+	@RegisterExtension
+	static SockServerExtension sockServerRule = new SockServerExtension(PROXY_SERVER_PORT);
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 	}

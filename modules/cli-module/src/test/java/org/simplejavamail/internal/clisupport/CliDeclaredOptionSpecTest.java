@@ -1,7 +1,7 @@
 package org.simplejavamail.internal.clisupport;
 
 import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 
 import java.lang.reflect.Method;

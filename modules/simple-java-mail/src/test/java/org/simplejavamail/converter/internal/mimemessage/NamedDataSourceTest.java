@@ -1,11 +1,12 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import jakarta.activation.DataSource;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.simplejavamail.internal.util.NamedDataSource;
 
 import java.io.ByteArrayInputStream;
@@ -13,28 +14,27 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.verifyZeroInteractions;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class NamedDataSourceTest {
 
     @Mock
     private DataSource dataSource;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
-        when(dataSource.getInputStream()).thenReturn(new ByteArrayInputStream("".getBytes()));
-        when(dataSource.getOutputStream()).thenReturn(new ByteArrayOutputStream());
-        when(dataSource.getContentType()).thenReturn("");
+        lenient().when(dataSource.getInputStream()).thenReturn(new ByteArrayInputStream("".getBytes()));
+        lenient().when(dataSource.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+        lenient().when(dataSource.getContentType()).thenReturn("");
     }
 
     @Test
     public void renameWillWork() {
         DataSource testDataSource = new NamedDataSource("newName", dataSource);
         assertThat(testDataSource.getName()).isEqualTo("newName");
-        verifyZeroInteractions(dataSource);
+        Mockito.verifyNoInteractions(dataSource);
     }
 
     @Test

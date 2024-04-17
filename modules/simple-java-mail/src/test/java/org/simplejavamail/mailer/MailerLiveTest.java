@@ -5,9 +5,9 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
@@ -30,7 +30,7 @@ import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 import testutil.testrules.MimeMessageAndEnvelope;
-import testutil.testrules.SmtpServerRule;
+import testutil.testrules.SmtpServerExtension;
 
 import java.io.File;
 import java.io.IOException;
@@ -77,8 +77,9 @@ public class MailerLiveTest {
 	private static final String USERNAME = "usey";
 	private static final String PASSWORD = "passy";
 
-	@Rule
-	public final SmtpServerRule smtpServerRule = new SmtpServerRule(SERVER_PORT, "usey", "passy");
+	@RegisterExtension
+	static SmtpServerExtension smtpServerExtension = new SmtpServerExtension(SERVER_PORT, "usey", "passy");
+
 
 	private Mailer mailer;
 
@@ -94,7 +95,7 @@ public class MailerLiveTest {
 				.withHeader("governanceOverrideTest2", "also overridden"); // overrides header from in-mail
 	}
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		mailer = MailerBuilder.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
@@ -200,7 +201,7 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_OutlookMessageDefaultSmimeSignTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
-		// override the default from the @Before test
+		// override the default from the @BeforeEach test
 		mailer = MailerBuilder
 				.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
 				.withEmailDefaults(EMAIL_DEFAULTS()
@@ -437,7 +438,7 @@ public class MailerLiveTest {
 		} else {
 			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, true)).get();
 		}
-		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		MimeMessageAndEnvelope receivedMimeMessage = smtpServerExtension.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());
 
 		if (!originalEmail.getOverrideReceivers().isEmpty()) {
@@ -551,7 +552,7 @@ public class MailerLiveTest {
 			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
-		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		MimeMessageAndEnvelope receivedMimeMessage = smtpServerExtension.getOnlyMessage();
 		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
 		// send reply to initial mail
@@ -563,8 +564,8 @@ public class MailerLiveTest {
 		
 		// test received reply to initial mail
 		mailer.sendMail(reply);
-		MimeMessage receivedMimeMessageReply1 = smtpServerRule.getMessage("lo.pop.replyto@somemail.com");
-		MimeMessage receivedMimeMessageReply2 = smtpServerRule.getMessage("benny.bottema@aegon.nl");
+		MimeMessage receivedMimeMessageReply1 = smtpServerExtension.getMessage("lo.pop.replyto@somemail.com");
+		MimeMessage receivedMimeMessageReply2 = smtpServerExtension.getMessage("benny.bottema@aegon.nl");
 		Email receivedReply1 = mimeMessageToEmail(receivedMimeMessageReply1);
 		Email receivedReply2 = mimeMessageToEmail(receivedMimeMessageReply2);
 		
@@ -584,7 +585,7 @@ public class MailerLiveTest {
 			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
 		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
-		MimeMessageAndEnvelope receivedMimeMessage = smtpServerRule.getOnlyMessage();
+		MimeMessageAndEnvelope receivedMimeMessage = smtpServerExtension.getOnlyMessage();
 		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
 		// send reply to initial mail
@@ -596,7 +597,7 @@ public class MailerLiveTest {
 		
 		// test received reply to initial mail
 		mailer.sendMail(reply);
-		MimeMessage receivedMimeMessageReply = smtpServerRule.getOnlyMessage("lo.pop.replyto@somemail.com");
+		MimeMessage receivedMimeMessageReply = smtpServerExtension.getOnlyMessage("lo.pop.replyto@somemail.com");
 		Email receivedReply = mimeMessageToEmail(receivedMimeMessageReply);
 		
 		EmailAssert.assertThat(receivedReply).hasSubject("Re: hey");
@@ -614,7 +615,7 @@ public class MailerLiveTest {
 
 		// test received reply to initial mail
 		mailer.sendMail(replyToReply);
-		MimeMessage receivedMimeMessageReplyToReply = smtpServerRule.getOnlyMessage("dummy@domain.com");
+		MimeMessage receivedMimeMessageReplyToReply = smtpServerExtension.getOnlyMessage("dummy@domain.com");
 		Email receivedReplyToReply = mimeMessageToEmail(receivedMimeMessageReplyToReply);
 
 		EmailAssert.assertThat(receivedReplyToReply).hasSubject("Re: hey");
@@ -691,7 +692,7 @@ public class MailerLiveTest {
 
 		mailer.sendMail(email);
 
-		val receivedEmail = mimeMessageToEmail(smtpServerRule.getOnlyMessage().getMimeMessage());
+		val receivedEmail = mimeMessageToEmail(smtpServerExtension.getOnlyMessage().getMimeMessage());
 
 		assertThat(receivedEmail.getAttachments()).hasSize(1);
 
