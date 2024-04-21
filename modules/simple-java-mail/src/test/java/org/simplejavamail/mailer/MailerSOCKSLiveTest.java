@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer;
 
 import org.bbottema.javasocksproxyserver.junit.SockServerExtension;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -20,13 +21,18 @@ public class MailerSOCKSLiveTest {
 	private static final Integer PROXY_SERVER_PORT = 253;
 
 	@RegisterExtension
-	static SmtpServerExtension smtpServerRule = new SmtpServerExtension(SMTP_SERVER_PORT, "usey", "passy");
+	static SmtpServerExtension smtpServerRule = new SmtpServerExtension(SMTP_SERVER_PORT, null, null);
 	@RegisterExtension
 	static SockServerExtension sockServerRule = new SockServerExtension(PROXY_SERVER_PORT);
 
 	@BeforeEach
 	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
+	}
+
+	@AfterEach
+	public void tearDown() {
+		smtpServerRule.getWiser().stop();
 	}
 
 	@Test

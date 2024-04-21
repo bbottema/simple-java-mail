@@ -3,6 +3,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.converter.EmailConverter;
@@ -33,7 +34,7 @@ public class MimeMessageHelper2Test {
 						.build())
 				.buildEmail();
 
-		try (MockedStatic<MiscUtil> miscUtilMockedStatic = mockStatic(MiscUtil.class)) {
+		try (MockedStatic<MiscUtil> miscUtilMockedStatic = mockStatic(MiscUtil.class, Mockito.CALLS_REAL_METHODS)) {
 			miscUtilMockedStatic.when(() -> MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner")).thenReturn(false);
 
 			assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))

@@ -26,7 +26,10 @@ import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class SmtpServerExtension implements BeforeEachCallback, AfterEachCallback {
-	private final Wiser wiser;
+	@NotNull final Integer port;
+	@Nullable final String username;
+	@Nullable final String password;
+	private Wiser wiser;
 
 	@RequiredArgsConstructor
 	static class RequiredUsernamePasswordValidator implements UsernamePasswordValidator {
@@ -42,13 +45,17 @@ public class SmtpServerExtension implements BeforeEachCallback, AfterEachCallbac
 	}
 
 	public SmtpServerExtension(@NotNull Integer port, @Nullable String username, @Nullable String password) {
-		this.wiser = Wiser.create(SMTPServer.port(port)
-				.authenticationHandlerFactory(new EasyAuthenticationHandlerFactory(new RequiredUsernamePasswordValidator(username, password)))
-				.requireAuth(password != null));
+		this.port = port;
+		this.username = username;
+		this.password = password;
 	}
 
 	@Override
 	public void beforeEach(ExtensionContext context) {
+		this.wiser = Wiser.create(SMTPServer.port(port)
+				.authenticationHandlerFactory(new EasyAuthenticationHandlerFactory(new RequiredUsernamePasswordValidator(username, password)))
+				.requireAuth(password != null));
+
 		this.wiser.start();
 	}
 
