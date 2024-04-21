@@ -9,7 +9,7 @@
         <artifactId>maven-master-project</artifactId>
         <!--suppress MavenPropertyInParent -->
         <version>8.8.2</version>
-        <relativePath>../../</relativePath>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>core-test-module</artifactId>
