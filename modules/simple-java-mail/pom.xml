@@ -73,8 +73,8 @@
         </dependency>
         <dependency>
             <groupId>org.mnode.ical4j</groupId>
-            <artifactId>ical4j</artifactId>
-            <version>2.2.4</version>
+            <artifactId>ical4j-vcard</artifactId>
+            <version>2.0.0-beta2</version>
             <scope>test</scope>
         </dependency>
         <dependency><!-- SMTP test server -->
