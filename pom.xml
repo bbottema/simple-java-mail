@@ -265,5 +265,26 @@
                 </pluginManagement>
             </build>
         </profile>
+
+        <profile>
+            <id>oss-scan-fail</id>
+            <activation>
+                <property>
+                    <name>oss-scan-warn</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.ossindex.maven</groupId>
+                        <artifactId>ossindex-maven-plugin</artifactId>
+                        <configuration>
+                            <fail>false</fail>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
