@@ -30,7 +30,7 @@ public class DemoAppBase {
 
 		//noinspection ConstantConditions
 		if (YOUR_GMAIL_ADDRESS.equals("your_gmail_user@gmail.com")) {
-			throw new AssertionError("For these demo's to work, please provide your Gnail credentials in DemoAppBase.java first (or change the SMTP config)");
+			throw new AssertionError("For these demo's to work, please provide your Gmail credentials in DemoAppBase.java first (or change the SMTP config)");
 		}
 	}
 
