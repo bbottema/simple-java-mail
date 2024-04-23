@@ -3,12 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.8.3</version>
+    <version>8.8.4</version>
 </dependency>
 
-v8.8.0 - v8.8.3
+v8.8.0 - v8.8.4
 
-- v8.8.3 (13-April-2024): #502 : [Bug] Message headers not treated with case insensitivity as per RFC, causing deviating headers to slip through the filters
+- v8.8.4 (23-April-2024): #506: Upgrade utils-mail-smime dependency to 2.3.2, to resolve CVE issue in bouncycastle
+- v8.8.3 (13-April-2024): #502: [Bug] Message headers not treated with case insensitivity as per RFC, causing deviating headers to slip through the filters
 - v8.8.2 (05-April-2024): #495: Add config support for 'verifyingServerIdentity' with SMTP, also: since Angus 1.1.0 server identity checks are on by default and can be countered by mailerBuilder.verifyingServerIdentity(false)
 - v8.8.2 (05-April-2024): #501: [dependency] Update outlook-message-parser dependency, which has improved support for X500 addresses
 - v8.8.1 (04-April-2024): #500: [bug] Fix parsing addresses from headers in EML files, like a Disposition-Notification-To with umlaut
