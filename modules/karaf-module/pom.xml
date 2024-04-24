@@ -7,7 +7,6 @@
 	<parent>
 		<groupId>org.simplejavamail</groupId>
 		<artifactId>maven-master-project</artifactId>
-		<!--suppress MavenPropertyInParent -->
 		<version>8.8.4</version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
