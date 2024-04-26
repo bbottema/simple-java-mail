@@ -1,8 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
 import org.jetbrains.annotations.Nullable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.mailer.MailerBuilder;
@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.fail;
 
 public class MailerBuilderProxyConfigTest {
 
-	@Before
+	@BeforeEach
 	public void restoreOriginalStaticProperties() {
 		String s = "simplejavamail.proxy.host=proxy.default.com\n"
 				+ "simplejavamail.proxy.port=1080\n"

@@ -3,8 +3,8 @@ package org.simplejavamail.mailer;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -28,7 +28,7 @@ public class MailerInjectionScanTest {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 
-	@Before
+	@BeforeEach
 	public void restoreOriginalStaticProperties() {
 		ConfigLoader.loadProperties(new ByteArrayInputStream("simplejavamail.javaxmail.debug=true".getBytes()), false);
 	}

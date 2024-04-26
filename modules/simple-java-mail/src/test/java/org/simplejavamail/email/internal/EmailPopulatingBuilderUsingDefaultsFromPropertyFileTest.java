@@ -2,8 +2,8 @@ package org.simplejavamail.email.internal;
 
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 
-	@Before
+	@BeforeEach
 	// normally not needed, but IntelliJ test coverage doesn't work with JVM forking (which normally solves static mutation issues)
 	public void setup() {
 		ConfigLoaderTestHelper.restoreOriginalConfigProperties();

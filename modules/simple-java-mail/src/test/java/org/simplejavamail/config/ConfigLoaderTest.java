@@ -1,7 +1,7 @@
 package org.simplejavamail.config;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader.Property;
@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BINARY;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
@@ -53,7 +54,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY
 
 public class ConfigLoaderTest {
 
-	@Before
+	@BeforeEach
 	public void restoreOriginalStaticProperties() {
 		ConfigLoader.loadProperties("simplejavamail.properties", false);
 		System.getProperties().clear();
@@ -303,9 +304,10 @@ public class ConfigLoaderTest {
 		// success: no error occurred while config file was missing
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void loadPropertiesFileMalformed() {
-		ConfigLoader.loadProperties("malformed.properties", false);
-		// error: unknown properties should cause an illegal argument exception
+		assertThatThrownBy(() -> ConfigLoader.loadProperties("malformed.properties", false))
+				.describedAs("error: malformed properties file should cause an illegal argument exception")
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 }

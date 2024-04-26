@@ -1,6 +1,6 @@
 package org.simplejavamail.mailer;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import testutil.ConfigLoaderTestHelper;
 
 public class MailerBuilderTest {

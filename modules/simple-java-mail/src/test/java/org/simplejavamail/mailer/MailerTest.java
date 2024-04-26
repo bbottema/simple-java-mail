@@ -3,8 +3,8 @@ package org.simplejavamail.mailer;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DkimConfig;
@@ -49,7 +49,7 @@ public class MailerTest {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 
-	@Before
+	@BeforeEach
 	public void restoreOriginalStaticProperties() {
 		String s = "simplejavamail.javaxmail.debug=true\n"
 				+ "simplejavamail.transportstrategy=SMTP_TLS\n"

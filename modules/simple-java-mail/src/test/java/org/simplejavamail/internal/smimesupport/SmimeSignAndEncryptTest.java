@@ -2,8 +2,8 @@ package org.simplejavamail.internal.smimesupport;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
@@ -28,7 +28,7 @@ public class SmimeSignAndEncryptTest {
 
     private EmailPopulatingBuilder builder;
 
-    @Before
+    @BeforeEach
     public void setup() {
         ConfigLoaderTestHelper.clearConfigProperties();
         builder = EmailBuilder.startingBlank();

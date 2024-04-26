@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.bbottema</groupId>
         <artifactId>modular-project-parent</artifactId>
-        <version>1.0.23</version>
+        <version>1.0.30</version>
     </parent>
 
     <groupId>org.simplejavamail</groupId>
@@ -58,7 +58,7 @@
         <dependency><!-- gives us @NotNull annotations-->
             <groupId>com.github.bbottema</groupId>
             <artifactId>jetbrains-runtime-annotations</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.2</version>
             <scope>compile</scope><!-- SimpleJavaMail uses the annotation using java reflection -->
         </dependency>
         <dependency>
@@ -76,21 +76,9 @@
 
         <!-- testing -->
         <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-module-junit4</artifactId>
-            <version>2.0.9</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-api-mockito2</artifactId>
-            <version>2.0.9</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.github.bbottema</groupId>
             <artifactId>java-socks-proxy-server</artifactId>
-            <version>3.0.0</version>
+            <version>4.0.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -104,29 +92,9 @@
                 <version>2.6</version>
             </dependency>
             <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>1.7.36</version>
-            </dependency>
-            <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
                 <version>3.0.2</version>
-            </dependency>
-            <dependency>
-                <groupId>net.bytebuddy</groupId>
-                <artifactId>byte-buddy-agent</artifactId>
-                <version>1.10.14</version>
-            </dependency>
-            <dependency>
-                <groupId>net.bytebuddy</groupId>
-                <artifactId>byte-buddy</artifactId>
-                <version>1.10.14</version>
-            </dependency>
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>4.13.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -143,7 +111,6 @@
                     </excludes>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
@@ -165,7 +132,6 @@
                                         <!-- tests seem to work fine with the version Maven's dependency resolution defaults to -->
                                         <exclude>org.objenesis:objenesis</exclude>
                                         <exclude>commons-codec:commons-codec</exclude>
-                                        <exclude>org.apache.logging.log4j:log4j-api</exclude>
                                     </excludes>
                                 </requireUpperBoundDeps>
                             </rules>
@@ -263,6 +229,27 @@
                         </plugin>
                     </plugins>
                 </pluginManagement>
+            </build>
+        </profile>
+
+        <profile>
+            <id>oss-scan-fail</id>
+            <activation>
+                <property>
+                    <name>oss-scan-warn</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.ossindex.maven</groupId>
+                        <artifactId>ossindex-maven-plugin</artifactId>
+                        <configuration>
+                            <fail>false</fail>
+                        </configuration>
+                    </plugin>
+                </plugins>
             </build>
         </profile>
     </profiles>

@@ -1,8 +1,8 @@
 package org.simplejavamail.internal.clisupport;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -12,14 +12,14 @@ public class GenerateCliHelpTest {
 	private PrintStream sysOut;
 	private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
-	@Before
+	@BeforeEach
 	public void setUpStreams() {
 		System.out.println("GenerateCliHelpTest.setUpStreams(): DISABLING System.out during CLI debug logging");
 		sysOut = System.out;
 		System.setOut(new PrintStream(outContent));
 	}
 
-	@After
+	@AfterEach
 	public void revertStreams() {
 		System.setOut(sysOut);
 	}

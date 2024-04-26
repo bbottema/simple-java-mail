@@ -1,7 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
 import lombok.val;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.Recipient;
 import testutil.ConfigLoaderTestHelper;
