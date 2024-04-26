@@ -3,8 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.8.4</version>
+    <version>8.9.0</version>
 </dependency>
+
+v8.9.0 (26-April-2024)
+
+- #507: [security] Update 3rd party dependencies to get rid of all currently known CVE issues (see issue for details)
+
 
 v8.8.0 - v8.8.4
 
