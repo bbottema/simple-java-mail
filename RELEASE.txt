@@ -3,8 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.9.0</version>
+    <version>8.10.0</version>
 </dependency>
+
+v8.10.0 (30-April-2024)
+
+- #508: [enhancement+bug] Make EmailConverter API more consistent regarding Session parameter, don't use `Session.getDefaultInstance` anymore and fix bug where `emlToEmailBuilder` used `emlToMimeMessage`
+
 
 v8.9.0 (26-April-2024)
 
