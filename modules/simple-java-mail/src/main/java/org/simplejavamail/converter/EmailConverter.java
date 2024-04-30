@@ -290,11 +290,19 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link #emlToEmailBuilder(InputStream, Pkcs12Config)} with the full string value read from the given <code>InputStream</code>.
+	 * Delegates to {@link #emlToEmail(InputStream, Pkcs12Config, Session)} using a dummy {@link Session} instance.
 	 */
 	@NotNull
 	public static Email emlToEmail(@NotNull final InputStream emlInputStream, @Nullable final Pkcs12Config pkcs12Config) {
-		return emlToEmailBuilder(emlInputStream, pkcs12Config).buildEmail();
+		return emlToEmail(emlInputStream, pkcs12Config, createDummySession());
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(InputStream, Pkcs12Config)} with the full string value read from the given <code>InputStream</code>.
+	 */
+	@NotNull
+	public static Email emlToEmail(@NotNull final InputStream emlInputStream, @Nullable final Pkcs12Config pkcs12Config, @NotNull final Session session) {
+		return emlToEmailBuilder(emlInputStream, pkcs12Config, session).buildEmail();
 	}
 
 	/**
@@ -306,11 +314,19 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link #emlToEmailBuilder(String, Pkcs12Config)}.
+	 * Delegates to {@link #emlToEmail(String, Pkcs12Config, Session)} using a dummy {@link Session} instance.
 	 */
 	@NotNull
 	public static Email emlToEmail(@NotNull final String eml, @Nullable final Pkcs12Config pkcs12Config) {
-		return emlToEmailBuilder(eml, pkcs12Config).buildEmail();
+		return emlToEmail(eml, pkcs12Config, createDummySession());
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(String, Pkcs12Config, Session)}.
+	 */
+	@NotNull
+	public static Email emlToEmail(@NotNull final String eml, @Nullable final Pkcs12Config pkcs12Config, @NotNull final Session session) {
+		return emlToEmailBuilder(eml, pkcs12Config, session).buildEmail();
 	}
 
 	/**
@@ -322,56 +338,116 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link #emlToEmailBuilder(File, Pkcs12Config)}.
+	 * Delegates to {@link #emlToEmail(File, Pkcs12Config, Session)} using a dummy {@link Session} instance.
 	 */
 	@NotNull
 	public static Email emlToEmail(@NotNull final File emlFile, @Nullable final Pkcs12Config pkcs12Config) {
-		return emlToEmailBuilder(emlFile, pkcs12Config).buildEmail();
+		return emlToEmail(emlFile, pkcs12Config, createDummySession());
 	}
 
 	/**
-	 * Delegates to {@link #emlToEmailBuilder(File, Pkcs12Config)}.
+	 * Delegates to {@link #emlToEmailBuilder(File, Pkcs12Config, Session)}.
+	 */
+	@NotNull
+	public static Email emlToEmail(@NotNull final File emlFile, @Nullable final Pkcs12Config pkcs12Config, @NotNull final Session session) {
+		return emlToEmailBuilder(emlFile, pkcs12Config, session).buildEmail();
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(File, Session)} using a dummy {@link Session} instance.
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final File emlFile) {
-		return emlToEmailBuilder(emlFile, null);
+		return emlToEmailBuilder(emlFile, createDummySession());
 	}
 
 	/**
-	 * Delegates to {@link #emlToMimeMessage(File)} and then {@link #mimeMessageToEmailBuilder(MimeMessage, Pkcs12Config)}.
+	 * Delegates to {@link #emlToEmailBuilder(File, Pkcs12Config, Session)}.
+	 */
+	@NotNull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final File emlFile, @NotNull final Session session) {
+		return emlToEmailBuilder(emlFile, null, session);
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(File, Pkcs12Config, Session)} using a dummy {@link Session} instance.
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final File emlFile, @Nullable final Pkcs12Config pkcs12Config) {
-		return mimeMessageToEmailBuilder(emlToMimeMessage(emlFile), pkcs12Config);
+		return emlToEmailBuilder(emlFile, pkcs12Config, createDummySession());
 	}
 
 	/**
-	 * Delegates to {@link #emlToEmailBuilder(InputStream, Pkcs12Config)}.
+	 * Delegates to {@link #emlToEmailBuilder(InputStream, Pkcs12Config, Session)}.
+	 */
+	@NotNull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final File emlFile, @Nullable final Pkcs12Config pkcs12Config, @NotNull final Session session) {
+		try {
+			return emlToEmailBuilder(new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile")), pkcs12Config, session);
+		} catch (final FileNotFoundException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_FILE, e.getMessage()), e);
+		}
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(InputStream, Session)} using a dummy {@link Session} instance.
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final InputStream emlInputStream) {
-		return emlToEmailBuilder(emlInputStream, null);
+		return emlToEmailBuilder(emlInputStream, createDummySession());
 	}
 
 	/**
-	 * Delegates to {@link #emlToEmail(String)} with the full string value read from the given <code>InputStream</code>.
+	 * Delegates to {@link #emlToEmailBuilder(InputStream, Pkcs12Config, Session)}.
+	 */
+	@NotNull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final InputStream emlInputStream, @NotNull final Session session) {
+		return emlToEmailBuilder(emlInputStream, null, session);
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(InputStream, Pkcs12Config, Session)} using a dummy {@link Session} instance.
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final InputStream emlInputStream, @Nullable final Pkcs12Config pkcs12Config) {
+		return emlToEmailBuilder(emlInputStream, pkcs12Config, createDummySession());
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(String, Pkcs12Config, Session)} with the full string value read from the given <code>InputStream</code>.
+	 */
+	@NotNull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final InputStream emlInputStream, @Nullable final Pkcs12Config pkcs12Config, @NotNull final Session session) {
 		try {
 			String emlStr = readInputStreamToString(checkNonEmptyArgument(emlInputStream, "emlInputStream"), UTF_8);
-			return emlToEmailBuilder(emlStr, pkcs12Config);
+			return emlToEmailBuilder(emlStr, pkcs12Config, session);
 		} catch (IOException e) {
 			throw new EmailConverterException(EmailConverterException.ERROR_READING_EML_INPUTSTREAM, e);
 		}
 	}
 
 	/**
-	 * Delegates to {@link #emlToEmailBuilder(String, Pkcs12Config)}.
+	 * Delegates to {@link #emlToEmailBuilder(String, Session)} using a dummy {@link Session} instance.
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final String eml) {
-		return emlToEmailBuilder(eml, null);
+		return emlToEmailBuilder(eml, createDummySession());
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(String, Pkcs12Config, Session)}.
+	 */
+	@NotNull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final String eml, @NotNull final Session session) {
+		return emlToEmailBuilder(eml, null, session);
+	}
+
+	/**
+	 * Delegates to {@link #emlToEmailBuilder(String, Pkcs12Config, Session)} using a dummy {@link Session} instance.
+	 */
+	@NotNull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final String eml, @Nullable final Pkcs12Config pkcs12Config) {
+		return emlToEmailBuilder(eml, pkcs12Config, createDummySession());
 	}
 
 	/**
@@ -379,8 +455,8 @@ public final class EmailConverter {
 	 * #mimeMessageToEmailBuilder(MimeMessage, Pkcs12Config)}.
 	 */
 	@NotNull
-	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final String eml, @Nullable final Pkcs12Config pkcs12Config) {
-		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), createDummySession());
+	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final String eml, @Nullable final Pkcs12Config pkcs12Config, @NotNull final Session session) {
+		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), session);
 		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config);
 	}
 
@@ -698,7 +774,7 @@ public final class EmailConverter {
 	}
 
 	private static Session createDummySession() {
-		return Session.getDefaultInstance(new Properties());
+		return Session.getInstance(new Properties());
 	}
 
 }
