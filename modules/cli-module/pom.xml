@@ -46,7 +46,7 @@
         <dependency><!-- Runtime library -->
             <groupId>com.github.therapi</groupId>
             <artifactId>therapi-runtime-javadoc</artifactId>
-            <version>0.13.0</version>
+            <version>0.15.0</version>
         </dependency>
 
         <!-- dependencies that should be included in the assembly for the stand-alone jar -->
