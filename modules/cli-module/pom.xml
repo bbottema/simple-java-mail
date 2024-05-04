@@ -39,7 +39,7 @@
         <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
-            <version>3.9.0</version>
+            <version>4.7.5</version>
         </dependency>
 
         <!-- read Javadoc back from the jar for use with CLI documentation -->
