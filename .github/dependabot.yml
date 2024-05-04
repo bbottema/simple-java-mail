@@ -7,3 +7,12 @@ updates:
     schedule:
       interval: "weekly"
     target-branch: "develop"
+    ignore:
+      - dependency-name: "info.picocli:picocli"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
+      - dependency-name: "org.springframework:spring-framework-bom"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
