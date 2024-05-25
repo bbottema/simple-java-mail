@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.10.1%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-8.10.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.11.0%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-8.11.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -20,13 +20,30 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.10.1</version>
+    <version>8.11.0</version>
 </dependency>
 ```
 
 Read about additional modules you can add here: [simplejavamail.org/modules](https://www.simplejavamail.org/modules.html). 
 
 ### Latest Progress ###
+
+[v8.11.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.11.0%7Cjar) (25-May-2024)
+
+- [#526](https://github.com/bbottema/simple-java-mail/pull/526): When reading .msg files the RTF converted to HTML is garbled in some cases where the appropriate charset is not detected properly
+
+NOTE: this release contains many (minor) dependency updates to resolve CVE issues, including:
+  - parent POM upgrade: Upgrades test dependencies as well as SLF4J versions
+  - outlook-message-parser 1.13.2 -> 1.14.0
+  - java-reflection 4.0.1 -> 4.0.2
+  - smtp-connection-pool 2.3.1 -> 2.3.2
+  - utils-mail-dkim 3.1.0 -> 3.2.0
+  - jakarta.mail-api 2.1.2 -> 2.1.3
+  - angus-mail 2.0.2 -> 2.0.3
+  - therapi-runtime-javadoc 0.13.0 -> 0.15.0
+  - kryo 5.0.0-RC1 -> 5.6.0
+  - maven-assembly-plugin 3.1.0 -> 3.7.1 (only for the CLI module during build)
+
 
 v8.10.0 - [v8.10.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.10.1/)
 
