@@ -8,9 +8,14 @@ https://www.simplejavamail.org
 
 v8.11.0 (25-May-2024)
 
-- #526: When reading .msg files the RTF converted to HTML is garbled in some cases where the appropriate charset is not detected properly
+v8.11.0 - v8.11.1
 
-NOTE: this release contains many (minor) dependency updates to resolve CVE issues, including:
+- v8.11.1 (28-May-2024): #529: Bump smtp-connection-pool from 2.3.2 to 2.3.3 which improves performance and fixes a rare ConcurrentModificationException
+- v8.11.1 (28-May-2024): #527: Bump org.slf4j:slf4j-api from 2.0.9 to 2.0.13
+- v8.11.1 (28-May-2024): #523: Bump org.jacoco:jacoco-maven-plugin from 0.8.5 to 0.8.12
+- v8.11.0 (25-May-2024): #526: When reading .msg files the RTF converted to HTML is garbled in some cases where the appropriate charset is not detected properly
+
+NOTE: v8.11.0 contains many (minor) dependency updates to resolve CVE issues, including:
     - parent POM upgrade: Upgrades test dependencies as well as SLF4J versions
     - outlook-message-parser 1.13.2 -> 1.14.0
     - java-reflection 4.0.1 -> 4.0.2
