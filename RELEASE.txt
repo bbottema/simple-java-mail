@@ -3,13 +3,14 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.11.0</version>
+    <version>8.11.2</version>
 </dependency>
 
 v8.11.0 (25-May-2024)
 
-v8.11.0 - v8.11.1
+v8.11.0 - v8.11.2
 
+- v8.11.2 (08-June-2024): #530: [Bug] After converting Outlook .msg to EML, bullet lists have duplicate numbering HTML converted from RTF
 - v8.11.1 (28-May-2024): #529: Bump smtp-connection-pool from 2.3.2 to 2.3.3 which improves performance and fixes a rare ConcurrentModificationException
 - v8.11.1 (28-May-2024): #527: Bump org.slf4j:slf4j-api from 2.0.9 to 2.0.13
 - v8.11.1 (28-May-2024): #523: Bump org.jacoco:jacoco-maven-plugin from 0.8.5 to 0.8.12
