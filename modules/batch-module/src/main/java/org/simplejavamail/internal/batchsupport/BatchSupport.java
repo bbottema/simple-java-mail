@@ -111,8 +111,8 @@ public class BatchSupport implements BatchModule {
 			return stickySession
 					? smtpConnectionPool.claimResourceFromPool(new ResourceClusterAndPoolKey<>(clusterKey, session))
 					: smtpConnectionPool.claimResourceFromCluster(clusterKey);
-		} catch (InterruptedException e) {
-			throw new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session), e);
+		} catch (Exception e) {
+			return null;
 		}
 	}
 
