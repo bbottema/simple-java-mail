@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.11.2%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-8.11.2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.11.3%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-8.11.3-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -20,7 +20,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.11.2</version>
+    <version>8.11.3</version>
 </dependency>
 ```
 
@@ -28,8 +28,9 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 
 ### Latest Progress ###
 
-v8.11.0 - [v8.11.2](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.11.2/)
+v8.11.0 - [v8.11.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.11.3/)
 
+- v8.11.3 (15-September-2024): [#543](https://github.com/bbottema/simple-java-mail/issues/543): [Enhancement] reduce log spam from the batch-module
 - v8.11.2 (08-June-2024): [#530](https://github.com/bbottema/simple-java-mail/pull/530): [Bug] After converting Outlook .msg to EML, bullet lists have duplicate numbering HTML converted from RTF
 - v8.11.1 (28-May-2024): [#529](https://github.com/bbottema/simple-java-mail/pull/529): Bump smtp-connection-pool from 2.3.2 to 2.3.3 which improves performance and fixes a rare ConcurrentModificationException
 - v8.11.1 (28-May-2024): [#527](https://github.com/bbottema/simple-java-mail/pull/527): Bump org.slf4j:slf4j-api from 2.0.9 to 2.0.13
