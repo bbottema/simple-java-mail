@@ -32,10 +32,10 @@ public enum ContentTransferEncoding {
 
 	public static ContentTransferEncoding byEncoder(@NotNull final String encoder) {
 		try {
-			return ContentTransferEncoding.valueOf(encoder.replaceAll("-", "_").toUpperCase());
+			return ContentTransferEncoding.valueOf(encoder.trim().replaceAll("-", "_").toUpperCase());
 		} catch (IllegalArgumentException e) {
 			return Arrays.stream(values())
-					.filter(c -> c.encoder.equalsIgnoreCase(encoder.replaceAll("_", "-")))
+					.filter(c -> c.encoder.equalsIgnoreCase(encoder.trim().replaceAll("_", "-")))
 					.findFirst()
 					.orElseThrow(() -> new IllegalArgumentException("unknown content transfer encoder: " + encoder));
 		}
