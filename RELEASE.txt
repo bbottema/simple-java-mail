@@ -3,8 +3,14 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.11.3</version>
+    <version>8.12.0</version>
 </dependency>
+
+v8.12.0 (26-September-2024)
+- #550: [bug] Environment variables are not being loaded properly
+- #538: [bug] System properties are only read if configuration file exists in class path
+- #546: [Enhancement] Trim whitespace in encoder values for Content-Encoding
+
 
 v8.11.0 - v8.11.3
 
