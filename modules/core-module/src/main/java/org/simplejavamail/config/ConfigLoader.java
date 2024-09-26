@@ -10,9 +10,6 @@ import org.simplejavamail.internal.util.SimpleConversions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -106,7 +103,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 public final class ConfigLoader {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
-	
+
 	/**
 	 * By default, the optional file {@value} will be loaded from classpath to load initial defaults.
 	 */
@@ -131,7 +128,7 @@ public final class ConfigLoader {
 		// RESOLVED_PROPERTIES = loadProperties(DEFAULT_CONFIG_FILENAME); <-- not possible
 		loadProperties(DEFAULT_CONFIG_FILENAME, false);
 	}
-	
+
 	/**
 	 * List of all the properties recognized by Simple Java Mail. Can be used to programmatically get, set or remove default values.
 	 *
@@ -217,10 +214,10 @@ public final class ConfigLoader {
 			return key;
 		}
 	}
-	
+
 	private ConfigLoader() {
 	}
-	
+
 	/**
 	 * @return The value if not null or else the value from config file if provided or else <code>null</code>.
 	 */
@@ -236,7 +233,7 @@ public final class ConfigLoader {
 	public static String valueOrPropertyAsString(@Nullable final String value, @NotNull final Property property, @Nullable final String defaultValue) {
 		return SimpleConversions.convertToString(valueOrProperty(value, property, defaultValue));
 	}
-	
+
 	/**
 	 * See {@link #valueOrProperty(Object, Property, Object)}.
 	 */
@@ -244,7 +241,7 @@ public final class ConfigLoader {
 	public static Boolean valueOrPropertyAsBoolean(@Nullable final Boolean value, @NotNull final Property property, @Nullable final Boolean defaultValue) {
 		return SimpleConversions.convertToBoolean(valueOrProperty(value, property, defaultValue));
 	}
-	
+
 	/**
 	 * See {@link #valueOrProperty(Object, Property, Object)}.
 	 */
@@ -252,7 +249,7 @@ public final class ConfigLoader {
 	public static Integer valueOrPropertyAsInteger(@Nullable final Integer value, @NotNull final Property property, @Nullable final Integer defaultValue) {
 		return SimpleConversions.convertToInteger(valueOrProperty(value, property, defaultValue));
 	}
-	
+
 	/**
 	 * Returns the given value if not null and not empty, otherwise tries to resolve the given property and if still not found resort to the default value if
 	 * provided.
@@ -279,13 +276,13 @@ public final class ConfigLoader {
 	public static synchronized boolean hasProperty(final Property property) {
 		return !valueNullOrEmpty(RESOLVED_PROPERTIES.get(property));
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Nullable
 	public static synchronized <T> T getProperty(final Property property) {
 		return (T) RESOLVED_PROPERTIES.get(property);
 	}
-	
+
 	@Nullable
 	public static synchronized String getStringProperty(final Property property) {
 		return SimpleConversions.convertToString(RESOLVED_PROPERTIES.get(property));
@@ -312,10 +309,12 @@ public final class ConfigLoader {
 	public static Map<Property, Object> loadProperties(final String filename, final boolean addProperties) {
 		final InputStream input = ConfigLoader.class.getClassLoader().getResourceAsStream(filename);
 		if (input != null) {
+			LOGGER.debug("Property file {} found on classpath, loading System properties and environment variables", filename);
 			return loadProperties(input, addProperties);
+		} else {
+			LOGGER.debug("Property file not found on classpath, loading System properties and environment variables");
+			return loadProperties(new Properties(), addProperties);
 		}
-		LOGGER.debug("Property file not found on classpath, skipping config file");
-		return new HashMap<>();
 	}
 
 	/**
@@ -331,21 +330,6 @@ public final class ConfigLoader {
 		}
 		RESOLVED_PROPERTIES.putAll(readProperties(properties));
 		return unmodifiableMap(RESOLVED_PROPERTIES);
-	}
-
-	/**
-	 * Loads properties from property {@link File}, if provided. Calling this method only has effect on new Email and Mailer instances after this.
-	 *
-	 * @param filename      Any file reference that holds a properties list.
-	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
-	 * @return The updated properties map that is used internally.
-	 */
-	public static Map<Property, Object> loadProperties(final File filename, final boolean addProperties) {
-		try {
-			return loadProperties(new FileInputStream(filename), addProperties);
-		} catch (final FileNotFoundException e) {
-			throw new IllegalStateException("error reading properties file from File", e);
-		}
 	}
 
 	/**
@@ -380,33 +364,33 @@ public final class ConfigLoader {
 	}
 
 	/**
-	 * @return All properties in priority of System property {@code >} File properties.
+	 * @return All properties in priority of System property {@code >} Environment variable {@code >} File properties.
 	 */
 	private static Map<Property, Object> readProperties(final @NotNull Properties fileProperties) {
 		final Properties filePropertiesLeft = new Properties();
 		filePropertiesLeft.putAll(fileProperties);
 		final Map<Property, Object> resolvedProps = new HashMap<>();
 		for (final Property prop : Property.values()) {
-			if (System.getProperty(prop.key) != null) {
-				LOGGER.debug(prop.key + ": " + System.getProperty(prop.key));
-			}
-			final Object asSystemProperty = parsePropertyValue(System.getProperty(prop.key));
-			if (asSystemProperty != null) {
-				resolvedProps.put(prop, asSystemProperty);
+			String systemValue = System.getProperty(prop.key);
+			String envValue = System.getenv(prop.key.replace('.', '_').toUpperCase());
+
+			if (!valueNullOrEmpty(systemValue)) {
+				LOGGER.debug("{}: {}", prop.key, systemValue);
+				final Object parsedValue = parsePropertyValue(systemValue);
+				resolvedProps.put(prop, parsedValue);
+				filePropertiesLeft.remove(prop.key);
+			} else if (!valueNullOrEmpty(envValue)) {
+				LOGGER.debug("{}: {}", prop.key, envValue);
+				final Object parsedValue = parsePropertyValue(envValue);
+				resolvedProps.put(prop, parsedValue);
 				filePropertiesLeft.remove(prop.key);
 			} else {
-				final Object asEnvProperty = parsePropertyValue(System.getenv().get(prop.key));
-				if (asEnvProperty != null) {
-					resolvedProps.put(prop, asEnvProperty);
-					filePropertiesLeft.remove(prop.key);
-				} else {
-					final Object rawValue = filePropertiesLeft.remove(prop.key);
-					if (rawValue != null) {
-						if (rawValue instanceof String) {
-							resolvedProps.put(prop, parsePropertyValue((String) rawValue));
-						} else {
-							resolvedProps.put(prop, rawValue);
-						}
+				final Object rawValue = filePropertiesLeft.remove(prop.key);
+				if (rawValue != null) {
+					if (rawValue instanceof String) {
+						resolvedProps.put(prop, parsePropertyValue((String) rawValue));
+					} else {
+						resolvedProps.put(prop, rawValue);
 					}
 				}
 			}
@@ -420,7 +404,7 @@ public final class ConfigLoader {
 		resolvedProps.put(Property.EXTRA_PROPERTIES, extraProperties);
 
 		if (!filePropertiesLeft.isEmpty()) {
-			throw new IllegalArgumentException("unknown properties provided " + filePropertiesLeft);
+			throw new IllegalStateException("unknown properties provided " + filePropertiesLeft);
 		}
 
 		return resolvedProps;
@@ -444,7 +428,7 @@ public final class ConfigLoader {
 	}
 
 	/**
-	 * @return The property value in boolean, integer or as original string value.
+	 * @return The property value in boolean, integer, enum, or as the original string value.
 	 */
 	@Nullable
 	static Object parsePropertyValue(final @Nullable String propertyValue) {
@@ -459,40 +443,37 @@ public final class ConfigLoader {
 		booleanConversionMap.put("true", true);
 		booleanConversionMap.put("no", false);
 		booleanConversionMap.put("yes", true);
-		if (booleanConversionMap.containsKey(propertyValue)) {
+		if (booleanConversionMap.containsKey(propertyValue.toLowerCase())) {
 			return booleanConversionMap.get(propertyValue.toLowerCase());
 		}
 		// read number value
 		try {
 			return Integer.valueOf(propertyValue);
 		} catch (final NumberFormatException nfe) {
-			// ok, so not a number
+			// Not a number
 		}
-		// read TransportStrategy value
+		// read enum values
 		try {
 			return TransportStrategy.valueOf(propertyValue);
 		} catch (final IllegalArgumentException nfe) {
-			// ok, so not a TransportStrategy either
+			// Not a TransportStrategy
 		}
-		// read ContentTransferEncoding value
 		try {
 			return ContentTransferEncoding.valueOf(propertyValue);
-		} catch (final IllegalArgumentException nfe2) {
-			// ok, so not a ContentTransferEncoding either
+		} catch (final IllegalArgumentException nfe) {
+			// Not a ContentTransferEncoding
 		}
-		// read ContentTransferEncoding value
 		try {
 			return DkimConfig.Canonicalization.valueOf(propertyValue);
-		} catch (final IllegalArgumentException nfe2) {
-			// ok, so not a Canonicalization either
+		} catch (final IllegalArgumentException nfe) {
+			// Not a Canonicalization
 		}
-		// read LoadBalancingStrategy value
 		try {
 			return LoadBalancingStrategy.valueOf(propertyValue);
 		} catch (final IllegalArgumentException nfe) {
-			// ok, so not a TransportStrategy either
+			// Not a LoadBalancingStrategy
 		}
-		// return value as is (which should be string)
+		// return value as is (string)
 		return propertyValue;
 	}
 }
