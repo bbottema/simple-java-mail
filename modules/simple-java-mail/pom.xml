@@ -90,6 +90,12 @@
             <version>1.3.5</version>
             <scope>test</scope>
         </dependency>
+        <dependency><!-- used to test loading of Environment properties in ConfigLoaderTest -->
+            <groupId>org.junit-pioneer</groupId>
+            <artifactId>junit-pioneer</artifactId>
+            <version>1.9.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
