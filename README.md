@@ -33,7 +33,8 @@ v8.12.0 - [v8.12.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-jav
 - v8.12.1 (02-October-2024): [#533](https://github.com/bbottema/simple-java-mail/pull/533): [maintenance] Bump com.github.therapi:therapi-runtime-javadoc-scribe from 0.13.0 to 0.15.0
 - v8.12.1 (02-October-2024): [#532](https://github.com/bbottema/simple-java-mail/pull/532): [maintenance] Bump com.sanctionco.jmail:jmail from 1.4.1 to 1.6.3
 - v8.12.1 (02-October-2024): [#531](https://github.com/bbottema/simple-java-mail/pull/531): [maintenance] Bump com.github.bbottema:java-socks-proxy-server from 4.0.0 to 4.1.2
-- v8.12.1 (02-October-2024): [#528](https://github.com/bbottema/simple-java-mail/pull/528): [maintenance] Bump com.github.davidmoten:subethasmtp from 7.0.1 to 7.1.1
+- v8.12.1 (02-October-2024): [#528](https://github.com/bbottema/simple-java-mail/pull/528): [maintenance] Buump com.github.davidmoten:subethasmtp from 7.0.1 to 7.1.1
+- v8.12.1 (02-October-2024): [#522](https://github.com/bbottema/simple-java-mail/pull/522): [maintenance] Bump jakarta.annotation:jakarta.annotation-api from 1.3.5 to 3.0.0
 - v8.12.0 (26-September-2024): [#550](https://github.com/bbottema/simple-java-mail/issues/550): [bug] Environment variables are not being loaded properly
 - v8.12.0 (26-September-2024): [#538](https://github.com/bbottema/simple-java-mail/issues/538): [bug] System properties are only read if configuration file exists in class path
 - v8.12.0 (26-September-2024): [#546](https://github.com/bbottema/simple-java-mail/pull/546): [Enhancement] Trim whitespace in encoder values for Content-Encoding

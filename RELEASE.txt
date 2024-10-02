@@ -12,6 +12,7 @@ v8.12.0 - v8.12.1
 - v8.12.1 (02-October-2024): #532: [maintenance] Bump com.sanctionco.jmail:jmail from 1.4.1 to 1.6.3
 - v8.12.1 (02-October-2024): #531: [maintenance] Bump com.github.bbottema:java-socks-proxy-server from 4.0.0 to 4.1.2
 - v8.12.1 (02-October-2024): #528: [maintenance] Bump com.github.davidmoten:subethasmtp from 7.0.1 to 7.1.1
+- v8.12.1 (02-October-2024): #522: [maintenance] Bump jakarta.annotation:jakarta.annotation-api from 1.3.5 to 3.0.0
 - v8.12.0 (26-September-2024): #550: [bug] Environment variables are not being loaded properly
 - v8.12.0 (26-September-2024): #538: [bug] System properties are only read if configuration file exists in class path
 - v8.12.0 (26-September-2024): #546: [Enhancement] Trim whitespace in encoder values for Content-Encoding
