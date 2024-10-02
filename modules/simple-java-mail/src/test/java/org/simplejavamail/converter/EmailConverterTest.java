@@ -160,7 +160,7 @@ public class EmailConverterTest {
 		assertThat(email.getAttachments()).hasSize(2);
 		assertThat(email.getAttachments()).extracting("name").containsExactly("ForwardedMessage.eml", "ForwardedMessage.eml");
 	}
-	
+
 	@Test
 	public void testOutlookMessageWithEmptyAttachments() {
 		Email s1 = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#318 Email with nodata-attachment.msg"));
@@ -401,15 +401,22 @@ public class EmailConverterTest {
 	public void testGithub491_EmailWithMultiPurposeAttachments() {
 		Email emailMime = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#491 Email with dual purpose datasources.eml"));
 
-        assertThat(emailMime.getEmbeddedImages()).satisfiesExactly(
+		assertThat(emailMime.getEmbeddedImages()).satisfiesExactly(
 				at -> {
-                    at.getName().equals("ii_lrkua30a0");
-                    at.getDataSource().getName().equals("doclife.jpg");
-                });
+					at.getName().equals("ii_lrkua30a0");
+					at.getDataSource().getName().equals("doclife.jpg");
+				});
 		assertThat(emailMime.getAttachments()).satisfiesExactlyInAnyOrder(
 				at -> at.getName().equals("Il Viaggio delle Ombre.pdf"),
 				at -> at.getName().equals("Nyan Cat! [Official]-(480p).mp4"),
 				at -> at.getName().equals("doclife.jpg"));
+	}
+
+	@Test
+	public void testGithub551_ContentTransferEncodingEndsWithSpaceBug() {
+		Email emailMime = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#551 Email with extra space in Content-Transfer-Encoding.eml"));
+
+		assertThat(emailMime.getContentTransferEncoding()).isEqualTo(BIT7);
 	}
 
 	@NotNull
