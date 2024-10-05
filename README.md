@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.12.1%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-8.12.1-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.12.2%22) 
+[![Javadocs](https://img.shields.io/badge/javadoc-8.12.2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -20,7 +20,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.12.1</version>
+    <version>8.12.2</version>
 </dependency>
 ```
 
@@ -28,8 +28,9 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 
 ### Latest Progress ###
 
-v8.12.0 - [v8.12.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.12.1/)
+v8.12.0 - [v8.12.2](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.12.2/)
 
+- v8.12.2 (05-October-2024): [#552](https://github.com/bbottema/simple-java-mail/pull/552): [bug] support iCalendar events with METHOD defined in body instead of Content-Type
 - v8.12.1 (02-October-2024): [#533](https://github.com/bbottema/simple-java-mail/pull/533): [maintenance] Bump com.github.therapi:therapi-runtime-javadoc-scribe from 0.13.0 to 0.15.0
 - v8.12.1 (02-October-2024): [#532](https://github.com/bbottema/simple-java-mail/pull/532): [maintenance] Bump com.sanctionco.jmail:jmail from 1.4.1 to 1.6.3
 - v8.12.1 (02-October-2024): [#531](https://github.com/bbottema/simple-java-mail/pull/531): [maintenance] Bump com.github.bbottema:java-socks-proxy-server from 4.0.0 to 4.1.2
