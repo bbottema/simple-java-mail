@@ -1,0 +1,217 @@
+Received: from postback5b.mail.yandex.net (postback5b.mail.yandex.net [2a02:6b8:c02:900:1:45:d181:da05])
+	by v5nxqzqbmwqqbvvs.sas.yp-c.yandex.net (notsolitesrv/Yandex) with LMTPS id VO02EiIuvKy0-AJ4vJzMz
+	for <ipopov@yandex.ru>; Tue, 13 Aug 2024 16:50:31 +0300
+Received: from mail-nwsmtp-yaback-production-main-40.myt.yp-c.yandex.net (mail-nwsmtp-yaback-production-main-40.myt.yp-c.yandex.net [IPv6:2a02:6b8:c12:4a20:0:640:e2e3:0])
+	by postback5b.mail.yandex.net (Yandex) with ESMTPS id 7AF9A60021
+	for <ipopov@yandex.ru>; Tue, 13 Aug 2024 16:50:31 +0300 (MSK)
+Received: from calendar-public-production-worker-69.sas.yp-c.yandex.net (calendar-public-production-worker-69.sas.yp-c.yandex.net [2a02:6b8:c37:7429:0:4601:454c:0])
+	by mail-nwsmtp-yaback-production-main-40.myt.yp-c.yandex.net (yaback/Yandex) with ESMTP id VojWVD72OKo0-lzOxjGlf;
+	Tue, 13 Aug 2024 16:50:31 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=calendar.yandex.ru;
+	s=mail; t=1723557031;
+	bh=CEyW8sOohhXuv5RbVsE81QgjCrs4IWyKm0jOoFJ9Jrc=;
+	h=Date:Subject:Message-Id:Reply-To:To:From;
+	b=rdu2g963MOecGWqlshWEJIWKZYYE4Ox48A0s5YlB5qOYeEcdLBbsiSLCxPhhbmxvj
+	 CNnnY/LRwYDdh/jEeaj0CGNgHTVTyf9yYk8+P7vsjM/bvndCnd52fUnMdvrta9tZz7
+	 LgmfeJxcUn0CamA59w+Q0/RISVasoh/MmfZ/avEU=
+Authentication-Results: mail-nwsmtp-yaback-production-main-40.myt.yp-c.yandex.net; dkim=pass header.i=@calendar.yandex.ru
+X-Yandex-Spam: 1
+Date: Tue, 13 Aug 2024 13:50:30 +0000 (UTC)
+From: =?utf-8?B?0J/QvtC/0L7QsiDQmNCy0LDQvQ==?= <info@calendar.yandex.ru>
+Reply-To: =?utf-8?B?0J/QvtC/0L7QsiDQmNCy0LDQvQ==?= <ipopov@citc.ru>
+To: ipopov@yandex.ru
+Message-Id: <ee4061b8-54ff-48f0-b816-3bef329be30d@calendar.yandex.ru>
+Subject: TestYandex
+MIME-Version: 1.0
+Content-Type: multipart/mixed;
+	boundary="----=_Part_3583_1813202275.1723557031026"
+X-Mailer: Yandex Calendar
+X-Calendar-Env: production
+X-Calendar-Domain: public
+X-Calendar-Request-Id: 1723557030568169-4803765656386115486_calendar-public-production-web-core-66.vla/ee4061b8-54ff-48f0-b816-3bef329be30d_calendar-public-production-worker-69.sas
+X-Calendar-Server-Host: calendar-public-production-worker-69.sas.yp-c.yandex.net
+X-Calendar-Action-Source: WEB_MAYA
+X-Calendar-Mail-Type: event_invitation
+Return-Path: info@calendar.yandex.ru
+X-Yandex-Forward: dee54417419565c4dc3fb71ed671183a
+
+------=_Part_3583_1813202275.1723557031026
+Content-Type: multipart/alternative;
+	boundary="----=_Part_3584_696930174.1723557031026"
+
+------=_Part_3584_696930174.1723557031026
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+=C2=ABTestYandex=C2=BB
+=D0=A1=D0=B5=D0=B3=D0=BE=D0=B4=D0=BD=D1=8F, 13-=D0=B3=D0=BE =D0=B0=D0=B2=D0=
+=B3=D1=83=D1=81=D1=82=D0=B0, =D1=81 17:00 =D0=B4=D0=BE 17:30 (Europe/Moscow=
+, GMT+03:00)
+
+=D0=9F=D0=BE=D0=B9=D0=B4=D1=83:=C2=A0https://calendar.yandex.ru/api/add-eve=
+nt-invitation?uid=3D791336428&private_token=3D5d50b0903d12264dd54c44b88a92a=
+cc9cf62d4a3&event_id=3D2182739972&decision=3Dyes&from_mail=3D1
+=D0=92=D0=BE=D0=B7=D0=BC=D0=BE=D0=B6=D0=BD=D0=BE,=C2=A0=D0=BF=D0=BE=D0=B9=
+=D0=B4=D1=83:=C2=A0https://calendar.yandex.ru/api/add-event-invitation?uid=
+=3D791336428&private_token=3D5d50b0903d12264dd54c44b88a92acc9cf62d4a3&event=
+_id=3D2182739972&decision=3Dmaybe&from_mail=3D1
+=D0=9D=D0=B5=C2=A0=D0=BF=D0=BE=D0=B9=D0=B4=D1=83:=C2=A0https://calendar.yan=
+dex.ru/api/add-event-invitation?uid=3D791336428&private_token=3D5d50b0903d1=
+2264dd54c44b88a92acc9cf62d4a3&event_id=3D2182739972&decision=3Dno
+
+
+=D0=9E=D1=80=D0=B3=D0=B0=D0=BD=D0=B8=D0=B7=D0=B0=D1=82=D0=BE=D1=80:=C2=A0ip=
+opov@citc.ru
+=D0=9F=D1=80=D0=B8=D0=B3=D0=BB=D0=B0=D1=88=D0=B5=D0=BD=D1=8B:
+
+=D0=9F=D0=BE=D1=81=D0=BC=D0=BE=D1=82=D1=80=D0=B5=D1=82=D1=8C, =D0=BA=D1=82=
+=D0=BE =D0=BF=D0=BE=D0=B9=D0=B4=D1=91=D1=82:
+https://calendar.yandex.ru/event/?uid=3D791336428&private_token=3D5d50b0903=
+d12264dd54c44b88a92acc9cf62d4a3&event_id=3D2182739972&show_date=3D2024-08-1=
+3
+
+--=20
+=D0=A3=D0=B2=D0=B5=D0=B4=D0=BE=D0=BC=D0=BB=D0=B5=D0=BD=D0=B8=D0=B5 =D0=BE=
+=D1=82=D0=BF=D1=80=D0=B0=D0=B2=D0=BB=D0=B5=D0=BD=D0=BE =D1=87=D0=B5=D1=80=
+=D0=B5=D0=B7=C2=A0=D0=AF=D0=BD=D0=B4=D0=B5=D0=BA=D1=81.=D0=9A=D0=B0=D0=BB=
+=D0=B5=D0=BD=D0=B4=D0=B0=D1=80=D1=8C (https://calendar.yandex.ru?uid=3D7913=
+36428).=C2=A0=D0=95=D1=81=D0=BB=D0=B8 =D0=B2=D1=8B =D0=BD=D0=B5 =D1=85=D0=
+=BE=D1=82=D0=B8=D1=82=D0=B5 =D0=BF=D0=BE=D0=BB=D1=83=D1=87=D0=B0=D1=82=D1=
+=8C =D1=82=D0=B0=D0=BA=D0=B8=D0=B5 =D0=BF=D0=B8=D1=81=D1=8C=D0=BC=D0=B0,=C2=
+=A0=D0=BE=D1=82=D0=BA=D0=B0=D0=B6=D0=B8=D1=82=D0=B5=D1=81=D1=8C =D0=BE=D1=
+=82 =D0=BD=D0=B8=D1=85 (https://yandex.ru/support/calendar/event-notificati=
+on.html#turn-off-notifications).=C2=A0=C2=A0=C2=A9=C2=A02007=E2=80=942024=
+=C2=A0=C2=AB=D0=AF=D0=BD=D0=B4=D0=B5=D0=BA=D1=81=C2=BB
+------=_Part_3584_696930174.1723557031026
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><head><meta http-equiv=3D"Content-type" content=3D"text/html; charset=
+=3Dutf-8" /></head><body link=3D"#1952ce" alink=3D"red" style=3D"line-heigh=
+t: 1.4"><table cellpadding=3D"4" width=3D"100%"><tr><td><font face=3D"Arial=
+,sans-serif" size=3D"4">=C2=AB<a href=3D"https://calendar.yandex.ru/api/add=
+-event-invitation?uid=3D791336428&amp;private_token=3D5d50b0903d12264dd54c4=
+4b88a92acc9cf62d4a3&amp;event_id=3D2182739972&amp;from_mail=3D1">TestYandex=
+</a>=C2=BB</font><br /></td></tr><tr><td><font face=3D"Arial,sans-serif" si=
+ze=3D"3">=D0=A1=D0=B5=D0=B3=D0=BE=D0=B4=D0=BD=D1=8F, 13-=D0=B3=D0=BE =D0=B0=
+=D0=B2=D0=B3=D1=83=D1=81=D1=82=D0=B0, =D1=81 17:00 =D0=B4=D0=BE 17:30 (Euro=
+pe/Moscow, GMT+03:00)</font></td></tr></table><table cellpadding=3D"4" widt=
+h=3D"100%"><tr><td bgcolor=3D"#e3eafd"><table cellspacing=3D"0" cellpadding=
+=3D"5"><tr><td style=3D"padding: 0 7px 1px"><font size=3D"3" face=3D"Arial,=
+sans-serif"><b><a href=3D"https://calendar.yandex.ru/api/add-event-invitati=
+on?uid=3D791336428&amp;private_token=3D5d50b0903d12264dd54c44b88a92acc9cf62=
+d4a3&amp;event_id=3D2182739972&amp;decision=3Dyes&amp;from_mail=3D1">=D0=9F=
+=D0=BE=D0=B9=D0=B4=D1=83</a></b></font></td><td style=3D"padding: 0 7px 1px=
+"><font size=3D"3" face=3D"Arial,sans-serif"><b><a href=3D"https://calendar=
+.yandex.ru/api/add-event-invitation?uid=3D791336428&amp;private_token=3D5d5=
+0b0903d12264dd54c44b88a92acc9cf62d4a3&amp;event_id=3D2182739972&amp;decisio=
+n=3Dmaybe&amp;from_mail=3D1">=D0=92=D0=BE=D0=B7=D0=BC=D0=BE=D0=B6=D0=BD=D0=
+=BE,=C2=A0=D0=BF=D0=BE=D0=B9=D0=B4=D1=83</a></b></font></td><td style=3D"pa=
+dding: 0 7px 1px"><font size=3D"3" face=3D"Arial,sans-serif"><b><a href=3D"=
+https://calendar.yandex.ru/api/add-event-invitation?uid=3D791336428&amp;pri=
+vate_token=3D5d50b0903d12264dd54c44b88a92acc9cf62d4a3&amp;event_id=3D218273=
+9972&amp;decision=3Dno">=D0=9D=D0=B5=C2=A0=D0=BF=D0=BE=D0=B9=D0=B4=D1=83</a=
+></b></font></td></tr></table></td></tr></table><table cellpadding=3D"4"><t=
+r><td valign=3D"top"><font color=3D"#a2a2a2" face=3D"Arial,sans-serif" size=
+=3D"3"><b>=D0=9E=D1=80=D0=B3=D0=B0=D0=BD=D0=B8=D0=B7=D0=B0=D1=82=D0=BE=D1=
+=80</b></font></td><td width=3D"5" /><td><font face=3D"Arial,sans-serif" si=
+ze=3D"3">ipopov@citc.ru</font></td></tr><tr><td valign=3D"top"><font color=
+=3D"#a2a2a2" face=3D"Arial,sans-serif" size=3D"3"><b>=D0=9F=D1=80=D0=B8=D0=
+=B3=D0=BB=D0=B0=D1=88=D0=B5=D0=BD=D1=8B</b></font></td><td width=3D"5" /><t=
+d><font face=3D"Arial,sans-serif" size=3D"3">skyvv1sp@yandex.ru<br /></font=
+><a href=3D"https://calendar.yandex.ru/event/?uid=3D791336428&amp;private_t=
+oken=3D5d50b0903d12264dd54c44b88a92acc9cf62d4a3&amp;event_id=3D2182739972&a=
+mp;show_date=3D2024-08-13"><font face=3D"Verdana,sans-serif" size=3D"1">=D0=
+=9F=D0=BE=D1=81=D0=BC=D0=BE=D1=82=D1=80=D0=B5=D1=82=D1=8C, =D0=BA=D1=82=D0=
+=BE =D0=BF=D0=BE=D0=B9=D0=B4=D1=91=D1=82</font></a></td></tr></table><table=
+ cellpadding=3D"4" width=3D"100%"><tr><td><hr size=3D"1" noshade=3D"noshade=
+" color=3D"#cccccc" style=3D"border: 0 hidden; border-top: 1px solid #ccccc=
+c; height: 0; margin-top: 30px;" /><font size=3D"1" face=3D"Verdana, sans-s=
+erif" color=3D"#9a9a9a">=D0=A3=D0=B2=D0=B5=D0=B4=D0=BE=D0=BC=D0=BB=D0=B5=D0=
+=BD=D0=B8=D0=B5 =D0=BE=D1=82=D0=BF=D1=80=D0=B0=D0=B2=D0=BB=D0=B5=D0=BD=D0=
+=BE =D1=87=D0=B5=D1=80=D0=B5=D0=B7=C2=A0<a style=3D"color: #9a9a9a" href=3D=
+"https://calendar.yandex.ru?uid=3D791336428">=D0=AF=D0=BD=D0=B4=D0=B5=D0=BA=
+=D1=81.=D0=9A=D0=B0=D0=BB=D0=B5=D0=BD=D0=B4=D0=B0=D1=80=D1=8C</a>.=C2=A0=D0=
+=95=D1=81=D0=BB=D0=B8 =D0=B2=D1=8B =D0=BD=D0=B5 =D1=85=D0=BE=D1=82=D0=B8=D1=
+=82=D0=B5 =D0=BF=D0=BE=D0=BB=D1=83=D1=87=D0=B0=D1=82=D1=8C =D1=82=D0=B0=D0=
+=BA=D0=B8=D0=B5 =D0=BF=D0=B8=D1=81=D1=8C=D0=BC=D0=B0,=C2=A0<a style=3D"colo=
+r: #9a9a9a" href=3D"https://yandex.ru/support/calendar/event-notification.h=
+tml#turn-off-notifications">=D0=BE=D1=82=D0=BA=D0=B0=D0=B6=D0=B8=D1=82=D0=
+=B5=D1=81=D1=8C =D0=BE=D1=82 =D0=BD=D0=B8=D1=85</a>.=C2=A0=C2=A0=C2=A9=C2=
+=A02007=E2=80=942024=C2=A0=C2=AB<a style=3D"color: #9a9a9a" href=3D"https:/=
+/ya.ru">=D0=AF=D0=BD=D0=B4=D0=B5=D0=BA=D1=81</a>=C2=BB</font></td></tr></ta=
+ble></body></html>
+------=_Part_3584_696930174.1723557031026
+Content-Type: text/calendar; charset=utf-8;
+Content-Transfer-Encoding: quoted-printable
+
+BEGIN:VCALENDAR
+PRODID:-//Yandex LLC//Yandex Calendar//EN
+VERSION:2.0
+CALSCALE:GREGORIAN
+METHOD:REQUEST
+X-YANDEX_MAIL_TYPE:event_invitation
+BEGIN:VTIMEZONE
+TZID:Europe/Volgograd
+LAST-MODIFIED:20231222T233358Z
+TZURL:https://www.tzurl.org/zoneinfo-outlook/Europe/Volgograd
+X-LIC-LOCATION:Europe/Volgograd
+BEGIN:STANDARD
+TZNAME:MSK
+TZOFFSETFROM:+0300
+TZOFFSETTO:+0300
+DTSTART:19700101T000000
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART;TZID=3DEurope/Volgograd:20240813T170000
+DTEND;TZID=3DEurope/Volgograd:20240813T173000
+SUMMARY:TestYandex
+UID:141zhi60x8914s7bzxzq27i0syandex.ru
+SEQUENCE:0
+DTSTAMP:20240813T135030Z
+CREATED:20240813T135030Z
+LOCATION:
+DESCRIPTION:
+URL:https://calendar.yandex.ru/event?event_id=3D2182739972
+TRANSP:OPAQUE
+CATEGORIES:=D0=9C=D0=BE=D0=B8 =D1=81=D0=BE=D0=B1=D1=8B=D1=82=D0=B8=D1=8F
+ORGANIZER;CN=3Dipopov:mailto:ipopov@citc.ru
+LAST-MODIFIED:20240813T135030Z
+CLASS:PRIVATE
+ATTENDEE;PARTSTAT=3DACCEPTED;CN=3Dipopov;ROLE=3DREQ-PARTICIPANT:mailto:ipop=
+ov@citc.ru
+ATTENDEE;PARTSTAT=3DNEEDS-ACTION;CN=3D"=D0=9F=D0=BE=D0=BF=D0=BE=D0=B2 =D0=
+=98=D0=B2=D0=B0=D0=BD";ROLE=3DREQ-PARTICIPANT:mailto:skyvv1sp@yandex.ru
+END:VEVENT
+END:VCALENDAR
+
+------=_Part_3584_696930174.1723557031026--
+
+------=_Part_3583_1813202275.1723557031026
+Content-Type: application/ics; charset=utf-8; name=event.ics
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename=event.ics
+
+QkVHSU46VkNBTEVOREFSDQpQUk9ESUQ6LS8vWWFuZGV4IExMQy8vWWFuZGV4IENhbGVuZGFyLy9F
+Tg0KVkVSU0lPTjoyLjANCkNBTFNDQUxFOkdSRUdPUklBTg0KTUVUSE9EOlJFUVVFU1QNClgtWUFO
+REVYX01BSUxfVFlQRTpldmVudF9pbnZpdGF0aW9uDQpCRUdJTjpWVElNRVpPTkUNClRaSUQ6RXVy
+b3BlL1ZvbGdvZ3JhZA0KTEFTVC1NT0RJRklFRDoyMDIzMTIyMlQyMzMzNThaDQpUWlVSTDpodHRw
+czovL3d3dy50enVybC5vcmcvem9uZWluZm8tb3V0bG9vay9FdXJvcGUvVm9sZ29ncmFkDQpYLUxJ
+Qy1MT0NBVElPTjpFdXJvcGUvVm9sZ29ncmFkDQpCRUdJTjpTVEFOREFSRA0KVFpOQU1FOk1TSw0K
+VFpPRkZTRVRGUk9NOiswMzAwDQpUWk9GRlNFVFRPOiswMzAwDQpEVFNUQVJUOjE5NzAwMTAxVDAw
+MDAwMA0KRU5EOlNUQU5EQVJEDQpFTkQ6VlRJTUVaT05FDQpCRUdJTjpWRVZFTlQNCkRUU1RBUlQ7
+VFpJRD1FdXJvcGUvVm9sZ29ncmFkOjIwMjQwODEzVDE3MDAwMA0KRFRFTkQ7VFpJRD1FdXJvcGUv
+Vm9sZ29ncmFkOjIwMjQwODEzVDE3MzAwMA0KU1VNTUFSWTpUZXN0WWFuZGV4DQpVSUQ6MTQxemhp
+NjB4ODkxNHM3Ynp4enEyN2kwc3lhbmRleC5ydQ0KU0VRVUVOQ0U6MA0KRFRTVEFNUDoyMDI0MDgx
+M1QxMzUwMzBaDQpDUkVBVEVEOjIwMjQwODEzVDEzNTAzMFoNCkxPQ0FUSU9OOg0KREVTQ1JJUFRJ
+T046DQpVUkw6aHR0cHM6Ly9jYWxlbmRhci55YW5kZXgucnUvZXZlbnQ/ZXZlbnRfaWQ9MjE4Mjcz
+OTk3Mg0KVFJBTlNQOk9QQVFVRQ0KQ0FURUdPUklFUzrQnNC+0Lgg0YHQvtCx0YvRgtC40Y8NCk9S
+R0FOSVpFUjtDTj1pcG9wb3Y6bWFpbHRvOmlwb3BvdkBjaXRjLnJ1DQpMQVNULU1PRElGSUVEOjIw
+MjQwODEzVDEzNTAzMFoNCkNMQVNTOlBSSVZBVEUNCkFUVEVOREVFO1BBUlRTVEFUPUFDQ0VQVEVE
+O0NOPWlwb3BvdjtST0xFPVJFUS1QQVJUSUNJUEFOVDptYWlsdG86aXBvcG92QGNpdGMucnUNCkFU
+VEVOREVFO1BBUlRTVEFUPU5FRURTLUFDVElPTjtDTj0i0J/QvtC/0L7QsiDQmNCy0LDQvSI7Uk9M
+RT1SRVEtUEFSVElDSVBBTlQ6bWFpbHRvOnNreXZ2MXNwQHlhbmRleC5ydQ0KRU5EOlZFVkVOVA0K
+RU5EOlZDQUxFTkRBUg0K
+------=_Part_3583_1813202275.1723557031026--

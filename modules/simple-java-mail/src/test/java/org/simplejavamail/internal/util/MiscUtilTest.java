@@ -13,8 +13,10 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.regex.Pattern.compile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.simplejavamail.internal.util.MiscUtil.findFirstMatch;
 
 public class MiscUtilTest {
 
@@ -233,5 +235,15 @@ public class MiscUtilTest {
 		assertThat(MiscUtil.interpretRecipient(null, false, " \"  m oo  \"< a@b.com   > ", null)).isEqualTo(new Recipient("  m oo  ", "a@b.com", null));
 		// next one is unparsable by InternetAddress#parse(), so it should be taken as is
 		assertThat(MiscUtil.interpretRecipient(null, false, " \"  m oo  \" a@b.com    ", null)).isEqualTo(new Recipient(null, " \"  m oo  \" a@b.com    ", null));
+	}
+
+	@Test
+	public void testFindFirstMatch() {
+		assertThat(findFirstMatch(compile("method=(\\w+)"), "Content-Type: text/calendar; method=REQUEST; charset=UTF-8")).hasValue("REQUEST");
+        assertThat(findFirstMatch(compile("method=(\\w+)"), "Content-Type: text/calendar; charset=UTF-8")).isEmpty();
+        assertThat(findFirstMatch(compile("method=(\\w+)"), "")).isEmpty();
+        assertThat(findFirstMatch(compile("method=(\\w+)"), "Content-Type: text/calendar; method=RE$QUEST; charset=UTF-8")).isNotEmpty();
+        assertThat(findFirstMatch(compile("method=(\\w+)"), "method=REJECT; method=REQUEST")).hasValue("REJECT");
+        assertThat(findFirstMatch(compile("(?i)method=(\\w+)"), "Content-Type: text/calendar; METHOD=REQUEST; charset=UTF-8")).hasValue("REQUEST");
 	}
 }
