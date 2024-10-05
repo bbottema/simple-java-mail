@@ -31,8 +31,7 @@ import static com.pivovarit.function.ThrowingFunction.unchecked;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.ofNullable;
-import static org.simplejavamail.internal.util.MiscUtil.extractCID;
-import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.MiscUtil.*;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -43,6 +42,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 public final class MimeMessageParser {
 
 	private static final Logger LOGGER = getLogger(MimeMessageParser.class);
+	private static final Pattern CONTENT_TYPE_METHOD_PATTERN = Pattern.compile("method=\"?(\\w+)");
+	private static final Pattern CALENDAR_BODY_METHOD_PATTERN = Pattern.compile("(?i)^METHOD:(\\w+)", Pattern.MULTILINE);
 
 	static {
 		MailcapCommandMap mc = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
@@ -90,7 +91,7 @@ public final class MimeMessageParser {
 			checkContentTransferEncoding(currentPart, parsedComponents);
 		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.calendarContent = parseCalendarContent(currentPart);
-			parsedComponents.calendarMethod = parseCalendarMethod(currentPart);
+			parsedComponents.calendarMethod = parseCalendarMethod(currentPart, parsedComponents.calendarContent);
 			checkContentTransferEncoding(currentPart, parsedComponents);
 		} else if (isMimeType(currentPart, "multipart/*")) {
 			final Multipart mp = parseContent(currentPart);
@@ -165,6 +166,7 @@ public final class MimeMessageParser {
 	}
 
 	@SuppressWarnings("WeakerAccess")
+	@NotNull
 	public static String parseFileName(@NotNull final Part currentPart) {
 		try {
 			if (currentPart.getFileName() != null) {
@@ -184,6 +186,7 @@ public final class MimeMessageParser {
 	/**
      * @return Returns the "content" part as String from the Calendar content type
      */
+	@NotNull
     public static String parseCalendarContent(@NotNull MimePart currentPart) {
         Object content = parseContent(currentPart);
         if (content instanceof InputStream) {
@@ -201,18 +204,18 @@ public final class MimeMessageParser {
 	 * @return Returns the "method" part from the Calendar content type (such as "{@code text/calendar; charset="UTF-8"; method="REQUEST"}").
 	 */
 	@SuppressWarnings("WeakerAccess")
-	public static String parseCalendarMethod(@NotNull MimePart currentPart) {
-		Pattern compile = Pattern.compile("method=\"?(\\w+)");
-		final String contentType;
+	public static String parseCalendarMethod(@NotNull MimePart currentPart, @NotNull String calendarContent) {
+        final String contentType;
 		try {
 			contentType = currentPart.getDataHandler().getContentType();
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CALENDAR_CONTENTTYPE, e);
 		}
-		Matcher matcher = compile.matcher(contentType);
-		Preconditions.assumeTrue(matcher.find(), "Calendar METHOD not found in bodypart content type");
-		return matcher.group(1);
-	}
+
+		return findFirstMatch(CONTENT_TYPE_METHOD_PATTERN, contentType)
+				.orElseGet(() -> findFirstMatch(CALENDAR_BODY_METHOD_PATTERN, calendarContent)
+						.orElseThrow(() -> new IllegalArgumentException("Calendar METHOD not found in bodypart's content type or calendar content itself")));
+    }
 
 	@SuppressWarnings("WeakerAccess")
 	@Nullable

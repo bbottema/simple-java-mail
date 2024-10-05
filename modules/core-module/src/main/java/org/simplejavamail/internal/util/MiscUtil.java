@@ -27,13 +27,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -464,5 +459,11 @@ public final class MiscUtil {
 	@SneakyThrows
 	public static InternetAddress asInternetAddress(@NotNull Recipient recipient, @NotNull Charset charset) {
 		return new InternetAddress(recipient.getAddress(), recipient.getName(), charset.name());
+	}
+
+	@NotNull
+	public static Optional<String> findFirstMatch(@NotNull Pattern pattern, @NotNull String input) {
+		Matcher matcher = pattern.matcher(input);
+		return matcher.find() ? Optional.of(matcher.group(1)) : Optional.empty();
 	}
 }
