@@ -9,7 +9,6 @@ https://www.simplejavamail.org
 v8.12.0 - v8.12.3
 
 - v8.12.3 (25-November-2024): #563: [enhancement] Add getter for Authenticated SOCKS server port
-- v8.12.3 (25-November-2024): CVE-2024-38820
 - v8.12.2 (05-October-2024): #552: [bug] support iCalendar events with METHOD defined in body instead of Content-Type
 - v8.12.1 (02-October-2024): #533: [maintenance] Bump com.github.therapi:therapi-runtime-javadoc-scribe from 0.13.0 to 0.15.0
 - v8.12.1 (02-October-2024): #532: [maintenance] Bump com.sanctionco.jmail:jmail from 1.4.1 to 1.6.3

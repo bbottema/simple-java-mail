@@ -31,7 +31,6 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 v8.12.0 - [v8.12.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.12.3/)
 
 - v8.12.3 (25-November-2024): [#563](https://github.com/bbottema/simple-java-mail/pull/563): [enhancement] Add getter for Authenticated SOCKS server port
-- v8.12.3 (25-November-2024): CVE-2024-38820
 - v8.12.2 (05-October-2024): [#552](https://github.com/bbottema/simple-java-mail/pull/552): [bug] support iCalendar events with METHOD defined in body instead of Content-Type
 - v8.12.1 (02-October-2024): [#533](https://github.com/bbottema/simple-java-mail/pull/533): [maintenance] Bump com.github.therapi:therapi-runtime-javadoc-scribe from 0.13.0 to 0.15.0
 - v8.12.1 (02-October-2024): [#532](https://github.com/bbottema/simple-java-mail/pull/532): [maintenance] Bump com.sanctionco.jmail:jmail from 1.4.1 to 1.6.3
