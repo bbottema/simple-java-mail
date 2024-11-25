@@ -164,6 +164,19 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.sonatype.ossindex.maven</groupId>
+                <artifactId>ossindex-maven-plugin</artifactId>
+                <configuration>
+                    <excludeVulnerabilityIds>
+                        <!-- Cannot be fixed:
+                            1. fix version is only available in a Spring commercial version
+                            2. the next OSS version requires minimum Java 17
+                            3. Spring is a 'provided' dependency anyway, so not shipped with this library -->
+                        <excludeVulnerabilityId>CVE-2024-38820</excludeVulnerabilityId>
+                    </excludeVulnerabilityIds>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
