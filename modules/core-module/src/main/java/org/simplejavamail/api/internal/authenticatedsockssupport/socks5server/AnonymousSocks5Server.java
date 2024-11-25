@@ -17,4 +17,12 @@ public interface AnonymousSocks5Server extends Runnable {
 	boolean isStopping();
 	
 	boolean isRunning();
+
+	/**
+	 * Returns the port number on which this server is listening.
+	 *
+	 * @return  the port number to which this server is listening or
+	 *          -1 if the server is not started yet.
+	 */
+	int getLocalPort();
 }

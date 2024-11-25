@@ -1,17 +1,17 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5server;
 
-import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
-import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
-import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
+import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @see AnonymousSocks5Server
@@ -101,5 +101,13 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 	@Override
 	public boolean isRunning() {
 		return running;
+	}
+
+	@Override
+	public int getLocalPort() {
+		if (serverSocket == null) {
+			return -1;
+		}
+		return serverSocket.getLocalPort();
 	}
 }
