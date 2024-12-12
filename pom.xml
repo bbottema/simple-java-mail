@@ -70,7 +70,7 @@
         <dependency>
             <groupId>com.pivovarit</groupId>
             <artifactId>throwing-function</artifactId>
-            <version>1.5.1</version>
+            <version>1.6.1</version>
             <scope>compile</scope>
         </dependency>
 
