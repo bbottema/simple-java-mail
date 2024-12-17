@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -246,7 +247,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	@NotNull
-	private final Map<String, Collection<String>> headers = new HashMap<>();
+	private final Map<String, Collection<String>> headers = new LinkedHashMap<>();
 
 	/**
 	 * @see #signWithDomainKey(DkimConfig)
@@ -2449,7 +2450,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@NotNull
 	@Override
 	public Map<String, Collection<String>> getHeaders() {
-		return new HashMap<>(headers);
+		return new LinkedHashMap<>(headers);
 	}
 	
 	/**
