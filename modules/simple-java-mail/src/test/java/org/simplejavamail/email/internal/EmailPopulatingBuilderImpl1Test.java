@@ -741,9 +741,9 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testWithEmbeddedImages() throws IOException {
 		List<AttachmentResource> embeddedImages = new ArrayList<>();
-		embeddedImages.add(new AttachmentResource("attachment1", getDataSource("blahblah.txt")));
-		embeddedImages.add(new AttachmentResource(null, getDataSource("blahblah.txt")));
-		embeddedImages.add(new AttachmentResource("attachment1", new ByteArrayDataSource("", "text/text")));
+		embeddedImages.add(new AttachmentResource("attachment1", null,getDataSource("blahblah.txt")));
+		embeddedImages.add(new AttachmentResource(null, null, getDataSource("blahblah.txt")));
+		embeddedImages.add(new AttachmentResource("attachment1", null, new ByteArrayDataSource("", "text/text")));
 
 		Email email = builder.withEmbeddedImages(embeddedImages).buildEmail();
 

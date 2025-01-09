@@ -298,7 +298,7 @@ public class EmailConverterTest {
 				.clearAttachments()
 				.withAttachment("dummy text1.txt", dummyAttachment1.getBytes(defaultCharset()), "text/plain", "This is dummy text1", BIT7)
 				.withAttachment("dummy text2.txt", new ByteArrayDataSource(dummyAttachment2, "text/plain"), "This is dummy text2", BIT7)
-				.withAttachments(asList(new AttachmentResource("dummy text3.txt", new ByteArrayDataSource(dummyAttachment3, "text/plain"), "This is dummy text3", BIT7)))
+				.withAttachments(asList(new AttachmentResource("dummy text3.txt", null, new ByteArrayDataSource(dummyAttachment3, "text/plain"), "This is dummy text3", BIT7)))
 				.withAttachment("dummy text4.txt", new ByteArrayDataSource("this should not have a Content-Description header", "text/plain"), null, BIT7)
 				.buildEmail();
 
