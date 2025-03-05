@@ -543,7 +543,7 @@ public class MailerLiveTest {
 	@NotNull
 	private List<AttachmentResource> fixAttachmentResourcesWith7Bit(final List<AttachmentResource> originalEmailPopulatingBuilder) {
 		return originalEmailPopulatingBuilder.stream()
-				.map(att -> new AttachmentResource(att.getName(), att.getDataSource(), att.getDescription(), ofNullable(att.getContentTransferEncoding()).orElse(BIT7)))
+				.map(att -> new AttachmentResource(att.getName(), null, att.getDataSource(), att.getDescription(), ofNullable(att.getContentTransferEncoding()).orElse(BIT7)))
 				.collect(toList());
 	}
 

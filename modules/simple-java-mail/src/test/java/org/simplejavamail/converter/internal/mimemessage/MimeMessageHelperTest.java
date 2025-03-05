@@ -34,7 +34,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void determineResourceName1()
 			throws IOException {
-		AttachmentResource resource1 = new AttachmentResource(null, getDataSource("blahblah"));
+		AttachmentResource resource1 = new AttachmentResource(null, null,getDataSource("blahblah"));
 		assertThat(MimeMessageHelper.determineResourceName(resource1, Part.ATTACHMENT, true, false)).isEqualTo("blahblah");
 		assertThat(MimeMessageHelper.determineResourceName(resource1, Part.INLINE, true, false)).isEqualTo("blahblah");
 	}
@@ -42,7 +42,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void determineResourceName2()
 			throws IOException {
-		AttachmentResource resource2 = new AttachmentResource(null, getDataSource("blahblah.txt"));
+		AttachmentResource resource2 = new AttachmentResource(null, null, getDataSource("blahblah.txt"));
 		assertThat(MimeMessageHelper.determineResourceName(resource2, Part.ATTACHMENT, true, false)).isEqualTo("blahblah.txt");
 		assertThat(MimeMessageHelper.determineResourceName(resource2, Part.INLINE, true, false)).isEqualTo("blahblah.txt");
 	}
@@ -50,7 +50,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void determineResourceName3()
 			throws IOException {
-		AttachmentResource resource3 = new AttachmentResource("the resource", getDataSource(null));
+		AttachmentResource resource3 = new AttachmentResource("the resource", null, getDataSource(null));
 		assertThat(MimeMessageHelper.determineResourceName(resource3, Part.ATTACHMENT, true, false)).isEqualTo("the resource");
 		assertThat(MimeMessageHelper.determineResourceName(resource3, Part.INLINE, true, false)).isEqualTo("the resource");
 	}
@@ -58,7 +58,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void determineResourceName4()
 			throws IOException {
-		AttachmentResource resource4 = new AttachmentResource("the resource", getDataSource("blahblah.txt"));
+		AttachmentResource resource4 = new AttachmentResource("the resource", null, getDataSource("blahblah.txt"));
 		assertThat(MimeMessageHelper.determineResourceName(resource4, Part.ATTACHMENT, true, false)).isEqualTo("the resource.txt");
 		assertThat(MimeMessageHelper.determineResourceName(resource4, Part.INLINE, true, false)).isEqualTo("the resource");
 	}
@@ -66,7 +66,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void determineResourceName5()
 			throws IOException {
-		AttachmentResource resource5 = new AttachmentResource("the resource", getDataSource("blahblah"));
+		AttachmentResource resource5 = new AttachmentResource("the resource", null, getDataSource("blahblah"));
 		assertThat(MimeMessageHelper.determineResourceName(resource5, Part.ATTACHMENT, true, false)).isEqualTo("the resource");
 		assertThat(MimeMessageHelper.determineResourceName(resource5, Part.INLINE, true, false)).isEqualTo("the resource");
 	}
@@ -74,7 +74,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void determineResourceName6()
 			throws IOException {
-		AttachmentResource resource6 = new AttachmentResource("the resource.txt", getDataSource("blahblah.txt"));
+		AttachmentResource resource6 = new AttachmentResource("the resource.txt", null, getDataSource("blahblah.txt"));
 		assertThat(MimeMessageHelper.determineResourceName(resource6, Part.ATTACHMENT, true, false)).isEqualTo("the resource.txt");
 		assertThat(MimeMessageHelper.determineResourceName(resource6, Part.INLINE, true, false)).isEqualTo("the resource.txt");
 	}
@@ -82,7 +82,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void determineResourceName7()
 			throws IOException {
-		AttachmentResource resource7 = new AttachmentResource("the resource.txt", getDataSource("blahblah"));
+		AttachmentResource resource7 = new AttachmentResource("the resource.txt", null, getDataSource("blahblah"));
 		assertThat(MimeMessageHelper.determineResourceName(resource7, Part.ATTACHMENT, true, false)).isEqualTo("the resource.txt");
 		assertThat(MimeMessageHelper.determineResourceName(resource7, Part.INLINE, true, false)).isEqualTo("the resource.txt");
 	}
@@ -90,7 +90,7 @@ public class MimeMessageHelperTest {
 	@Test
 	public void determineResourceName_ignoreExtensionFromResource()
 			throws IOException {
-		AttachmentResource resource7 = new AttachmentResource("the resource.txt", getDataSource("blahblah.1/www/get?id=3"));
+		AttachmentResource resource7 = new AttachmentResource("the resource.txt", null, getDataSource("blahblah.1/www/get?id=3"));
 		assertThat(MimeMessageHelper.determineResourceName(resource7, Part.ATTACHMENT, true, false)).isEqualTo("the resource.txt");
 		assertThat(MimeMessageHelper.determineResourceName(resource7, Part.INLINE, true, false)).isEqualTo("the resource.txt");
 	}

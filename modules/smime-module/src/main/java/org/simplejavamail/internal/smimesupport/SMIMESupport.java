@@ -335,7 +335,7 @@ public class SMIMESupport implements SMIMEModule {
 			};
 			decryptedMessage.setContent((Multipart) content);
 			decryptedMessage.writeTo(os);
-			return new AttachmentResource("signed-email.eml", new ByteArrayDataSource(os.toByteArray(), "message/rfc822"));
+			return new AttachmentResource("signed-email.eml", null, new ByteArrayDataSource(os.toByteArray(), "message/rfc822"));
 		}
         LOGGER.warn("S/MIME signed content type not recognized, please raise an issue for {}", content.getClass());
 		return null;

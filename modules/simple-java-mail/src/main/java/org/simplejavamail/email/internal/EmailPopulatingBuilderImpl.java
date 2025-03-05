@@ -1666,7 +1666,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName())) {
 			throw new EmailException(NAME_MISSING_FOR_EMBEDDED_IMAGE);
 		}
-		embeddedImages.add(new AttachmentResource(name, imagedata, null));
+		embeddedImages.add(new AttachmentResource(name, null, imagedata, null));
 		return this;
 	}
 	
@@ -1742,6 +1742,13 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, final byte@NotNull[] data, @NotNull final String mimetype) {
 		return withAttachment(name, data, mimetype, null, null);
 	}
+	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, String, byte[], String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final String contentId, final byte@NotNull[] data, @NotNull final String mimetype) {
+		return withAttachment(name, contentId, data, mimetype, null, null);
+	}
 
 	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, byte[], String, String)
@@ -1749,6 +1756,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, final byte@NotNull[] data, @NotNull final String mimetype, @Nullable final String description) {
 		return withAttachment(name, data, mimetype, description, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, String, byte[], String, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final String contentId, final byte@NotNull[] data, @NotNull final String mimetype, @Nullable final String description) {
+		return withAttachment(name, contentId, data, mimetype, description, null);
 	}
 
 	/**
@@ -1765,11 +1780,32 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, String, byte[], String, String, ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final String contentId, final byte@NotNull[] data, @NotNull final String mimetype, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
+		requireNonNull(data, "data");
+		checkNonEmptyArgument(mimetype, "mimetype");
+		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
+		dataSource.setName(name);
+		withAttachment(name, contentId, dataSource, description, contentTransferEncoding);
+		return this;
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata) {
 		return withAttachment(name, filedata, null, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, String, DataSource)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final String contentId, @NotNull final DataSource filedata) {
+		return withAttachment(name, contentId, filedata, null, null);
 	}
 
 	/**
@@ -1781,14 +1817,33 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, String, DataSource, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final String contentId, @NotNull final DataSource filedata, @Nullable final String description) {
+		return withAttachment(name, contentId, filedata, description, null);
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource, String, ContentTransferEncoding)
 	 */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
 		checkNonEmptyArgument(filedata, "filedata");
-		attachments.add(new AttachmentResource(name, filedata, description, contentTransferEncoding));
+		attachments.add(new AttachmentResource(name, null, filedata, description, contentTransferEncoding));
 		return this;
 	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, String, DataSource, String, ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final String contentId, @NotNull final DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
+		checkNonEmptyArgument(filedata, "filedata");
+		attachments.add(new AttachmentResource(name, contentId, filedata, description, contentTransferEncoding));
+		return this;
+	}
+
 
 	/**
 	 * @see EmailPopulatingBuilder#withAttachments(List)
@@ -1796,7 +1851,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withAttachments(@NotNull final List<AttachmentResource> attachments) {
 		for (final AttachmentResource attachment : attachments) {
-			withAttachment(attachment.getName(), attachment.getDataSource(), attachment.getDescription(), attachment.getContentTransferEncoding());
+			if (valueNullOrEmpty(attachment.getContentId())) {
+				withAttachment(attachment.getName(), attachment.getDataSource(), attachment.getDescription(), attachment.getContentTransferEncoding());
+			}
+			else {
+				withAttachment(attachment.getName(), attachment.getContentId(), attachment.getDataSource(), attachment.getDescription(), attachment.getContentTransferEncoding());
+			}
 		}
 		return this;
 	}
