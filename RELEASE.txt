@@ -3,11 +3,12 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.12.4</version>
+    <version>8.12.5</version>
 </dependency>
 
-v8.12.0 - v8.12.4
+v8.12.0 - v8.12.5
 
+- v8.12.5 (05-March-2025): Bumped PATCH versions of various dependencies (#553, #554, #555, #562, #567)
 - v8.12.4 (12-December-2024): #558: [bug] Mailer.close() exception because it attempts to shutdown batch-module connection pools, even if not available on the classpath
 - v8.12.3 (25-November-2024): #563: [enhancement] Add getter for Authenticated SOCKS server port
 - v8.12.2 (05-October-2024): #552: [bug] support iCalendar events with METHOD defined in body instead of Content-Type
