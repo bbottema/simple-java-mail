@@ -147,7 +147,7 @@
                         <!-- always trigger CliListAllSupportedOptionsDemoApp when packaging CLI artifacts, generating cli data files -->
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.0.0</version>
+                        <version>3.5.0</version>
                         <executions>
                             <execution>
                                 <id>generateCliData</id>
