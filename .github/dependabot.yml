@@ -8,6 +8,11 @@ updates:
       interval: "weekly"
     target-branch: "develop"
     ignore:
+      - dependency-name: "org.mnode.ical4j:ical4j-vcard"
+        update-types:
+          - "version-update:semver-patch"
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
       - dependency-name: "info.picocli:picocli"
         update-types:
           - "version-update:semver-minor"
