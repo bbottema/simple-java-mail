@@ -57,5 +57,5 @@ public interface BatchModule {
 	 * Shuts down connection pool(s) and closes remaining open connections. Waits until all connections still in use become available again to deallocate them as well.
 	 */
 	@NotNull
-	Future<?> shutdownConnectionPools(@NotNull Session session);
+	Future<Void> shutdownConnectionPools(@NotNull Session session);
 }
