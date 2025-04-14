@@ -103,7 +103,7 @@
             <dependency><!--solve clash from junit-pioneer -->
                 <groupId>org.junit.platform</groupId>
                 <artifactId>junit-platform-engine</artifactId>
-                <version>1.10.2</version>
+                <version>1.12.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
