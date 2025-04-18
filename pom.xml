@@ -23,6 +23,7 @@
         <automaticModuleName>org.simplejavamail.undefined</automaticModuleName> <!-- update in individual modules -->
         <license.owner.name>Benny Bottema</license.owner.name>
         <license.owner.email>benny@bennybottema.com</license.owner.email>
+        <lombok.version>1.18.36</lombok.version>
     </properties>
 
     <!-- to skip some steps: -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -Denforcer.skip=true -Djacoco.skip=true -Dlicense.skip=true -->
@@ -64,7 +65,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.36</version>
+            <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
