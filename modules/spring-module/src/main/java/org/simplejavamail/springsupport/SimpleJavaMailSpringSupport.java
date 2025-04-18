@@ -9,6 +9,9 @@ import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.EnumerablePropertySource;
+import org.springframework.core.env.PropertySource;
 
 import java.util.Properties;
 
@@ -99,10 +102,18 @@ import java.util.Properties;
  * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.url</li>
  * <li>simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful</li>
+ * <li>simplejavamail.extraproperties.*</li>
  * </ul>
  */
 @Configuration
 public class SimpleJavaMailSpringSupport {
+
+	private final ConfigurableEnvironment environment;
+
+	// for unknown reason @RequiredArgsConstructor doesn't work for this class
+	public SimpleJavaMailSpringSupport(ConfigurableEnvironment environment) {
+		this.environment = environment;
+	}
 
 	@Bean
 	public Mailer defaultMailer(MailerGenericBuilder<?> defaultMailerBuilder) {
@@ -112,83 +123,83 @@ public class SimpleJavaMailSpringSupport {
 	@SuppressWarnings("deprecation")
 	@Bean("defaultMailerBuilder")
 	public MailerGenericBuilder<?> loadGlobalConfigAndCreateDefaultMailer(
-			// now obviously there are easier ways to do this, but this is the only way
-			// I can think of that actually works across Spring versions
-			@Nullable @Value("${simplejavamail.javaxmail.debug:#{null}}") final String javaxmailDebug,
-			@Nullable @Value("${simplejavamail.transportstrategy:#{null}}") final String transportstrategy,
-			@Nullable @Value("${simplejavamail.smtp.host:#{null}}") final String smtpHost,
-			@Nullable @Value("${simplejavamail.smtp.port:#{null}}") final String smtpPort,
-			@Nullable @Value("${simplejavamail.smtp.username:#{null}}") final String smtpUsername,
-			@Nullable @Value("${simplejavamail.smtp.password:#{null}}") final String smtpPassword,
-			@Nullable @Value("${simplejavamail.disable.all.clientvalidation:#{null}}") final String disableAllClientValidation,
-			@Nullable @Value("${simplejavamail.custom.sslfactory.class:#{null}}") final String customSSLFactoryClass,
-			@Nullable @Value("${simplejavamail.custom.sslfactory.clazz:#{null}}") final String customSSLFactoryClassSpringBoot,
-			@Nullable @Value("${simplejavamail.proxy.host:#{null}}") final String proxyHost,
-			@Nullable @Value("${simplejavamail.proxy.port:#{null}}") final String proxyPort,
-			@Nullable @Value("${simplejavamail.proxy.username:#{null}}") final String proxyUsername,
-			@Nullable @Value("${simplejavamail.proxy.password:#{null}}") final String proxyPassword,
-			@Nullable @Value("${simplejavamail.proxy.socks5bridge.port:#{null}}") final String proxySocks5bridgePort,
-			@Nullable @Value("${simplejavamail.defaults.content.transfer.encoding:#{null}}") final String defaultContentTransferEncoding,
-			@Nullable @Value("${simplejavamail.defaults.subject:#{null}}") final String defaultSubject,
-			@Nullable @Value("${simplejavamail.defaults.from.name:#{null}}") final String defaultFromName,
-			@Nullable @Value("${simplejavamail.defaults.from.address:#{null}}") final String defaultFromAddress,
-			@Nullable @Value("${simplejavamail.defaults.replyto.name:#{null}}") final String defaultReplytoName,
-			@Nullable @Value("${simplejavamail.defaults.replyto.address:#{null}}") final String defaultReplytoAddress,
-			@Nullable @Value("${simplejavamail.defaults.bounceto.name:#{null}}") final String defaultBouncetoName,
-			@Nullable @Value("${simplejavamail.defaults.bounceto.address:#{null}}") final String defaultBouncetoAddress,
-			@Nullable @Value("${simplejavamail.defaults.to.name:#{null}}") final String defaultToName,
-			@Nullable @Value("${simplejavamail.defaults.to.address:#{null}}") final String defaultToAddress,
-			@Nullable @Value("${simplejavamail.defaults.cc.name:#{null}}") final String defaultCcName,
-			@Nullable @Value("${simplejavamail.defaults.cc.address:#{null}}") final String defaultCcAddress,
-			@Nullable @Value("${simplejavamail.defaults.bcc.name:#{null}}") final String defaultBccName,
-			@Nullable @Value("${simplejavamail.defaults.bcc.address:#{null}}") final String defaultBccAddress,
-			@Nullable @Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
-			@Nullable @Value("${simplejavamail.defaults.poolsize.keepalivetime:#{null}}") final String defaultPoolKeepAlivetime,
-			@Nullable @Value("${simplejavamail.defaults.poolsize-more.keepalivetime:#{null}}") final String defaultPoolKeepAlivetimeSpringBoot,
-			@Nullable @Value("${simplejavamail.defaults.connectionpool.clusterkey.uuid:#{null}}") final String defaultConnectionPoolCluterKey,
-			@Nullable @Value("${simplejavamail.defaults.connectionpool.coresize:#{null}}") final String defaultConnectionPoolCoreSize,
-			@Nullable @Value("${simplejavamail.defaults.connectionpool.maxsize:#{null}}") final String defaultConnectionPoolMaxSize,
-			@Nullable @Value("${simplejavamail.defaults.connectionpool.claimtimeout.millis:#{null}}") final String defaultConnectionPoolClaimTimeoutMillis,
-			@Nullable @Value("${simplejavamail.defaults.connectionpool.expireafter.millis:#{null}}") final String defaultConnectionPoolExpireAfterMillis,
-			@Nullable @Value("${simplejavamail.defaults.connectionpool.loadbalancing.strategy:#{null}}") final String defaultConnectionPoolLoadBalancingStrategy,
-			@Nullable @Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
-			@Nullable @Value("${simplejavamail.defaults.trustallhosts:#{null}}") final String defaultTrustAllHosts,
-			@Nullable @Value("${simplejavamail.defaults.trustedhosts:#{null}}") final String defaultTrustedHosts,
-			@Nullable @Value("${simplejavamail.defaults.verifyserveridentity:#{null}}") final String defaultVerifyServerIdentity,
-			@Nullable @Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String transportModeLoggingOnly,
-			@Nullable @Value("${simplejavamail.opportunistic.tls:#{null}}") final String opportunisticTls,
-			@Nullable @Value("${simplejavamail.smime.signing.keystore:#{null}}") final String smimeSigningKeyStore,
-			@Nullable @Value("${simplejavamail.smime.signing.keystore_password:#{null}}") final String smimeSigningKeyStorePassword,
-			@Nullable @Value("${simplejavamail.smime.signing.keystore-password:#{null}}") final String smimeSigningKeyStorePasswordSpringBoot,
-			@Nullable @Value("${simplejavamail.smime.signing.key_alias:#{null}}") final String smimeSigningKeyAlias,
-			@Nullable @Value("${simplejavamail.smime.signing.key-alias:#{null}}") final String smimeSigningKeyAliasSpringBoot,
-			@Nullable @Value("${simplejavamail.smime.signing.key_password:#{null}}") final String smimeSigningKeyPassword,
-			@Nullable @Value("${simplejavamail.smime.signing.key-password:#{null}}") final String smimeSigningKeyPasswordSpringBoot,
-			@Nullable @Value("${simplejavamail.smime.encryption.certificate:#{null}}") final String smimeEncryptionCertificate,
-			@Nullable @Value("${simplejavamail.smime.signing.algorithm:#{null}}") final String smimeSigningAlgorithm,
-			@Nullable @Value("${simplejavamail.smime.encryption.key_encapsulation_algorithm:#{null}}") final String smimeEncryptionKeyEncapsulationAlgorithm,
-			@Nullable @Value("${simplejavamail.smime.encryption.cipher:#{null}}") final String smimeEncryptionCipher,
-			@Nullable @Value("${simplejavamail.dkim.signing.private_key_file_or_data:#{null}}") final String dkimSigningPrivateKeyFileOrData,
-			@Nullable @Value("${simplejavamail.dkim.signing.private-key-file-or-data:#{null}}") final String dkimSigningPrivateKeyFileOrDataSpringBoot,
-			@Nullable @Value("${simplejavamail.dkim.signing.selector:#{null}}") final String dkimSigningSelector,
-			@Nullable @Value("${simplejavamail.dkim.signing.signing_domain:#{null}}") final String dkimSigningDomain,
-			@Nullable @Value("${simplejavamail.dkim.signing.signing-domain:#{null}}") final String dkimSigningDomainSpringBoot,
-			@Nullable @Value("${simplejavamail.dkim.signing.use_length_param:#{null}}") final String dkimSigningUseLengthParam,
-			@Nullable @Value("${simplejavamail.dkim.signing.excluded_headers_from_default_signing_list:#{null}}") final String dkimSigningExcludedHeadersFromDefaultSigningList,
-			@Nullable @Value("${simplejavamail.dkim.signing.excluded-headers-from-default-signing-list:#{null}}") final String dkimSigningExcludedHeadersFromDefaultSigningListSpringBoot,
-			@Nullable @Value("${simplejavamail.dkim.signing.header_canonicalization:#{null}}") final String dkimSigningHeaderCanonicalization,
-			@Nullable @Value("${simplejavamail.dkim.signing.body_canonicalization:#{null}}") final String dkimSigningBodyCanonicalization,
-			@Nullable @Value("${simplejavamail.dkim.signing.algorithm:#{null}}") final String dkimSigningAlgorithm,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.dir:#{null}}") final String embeddedimagesDynamicresolutionEnableDir,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.url:#{null}}") final String embeddedimagesDynamicresolutionEnableUrl,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.classpath:#{null}}") final String embeddedimagesDynamicresolutionEnableClassPath,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.base.dir:#{null}}") final String embeddedimagesDynamicresolutionBaseDir,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.base.url:#{null}}") final String embeddedimagesDynamicresolutionBaseUrl,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.base.classpath:#{null}}") final String embeddedimagesDynamicresolutionBaseClassPath,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.outside.base.dir:#{null}}") final String embeddedimagesDynamicresolutionOutsideBaseDir,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath:#{null}}") final String embeddedimagesDynamicresolutionOutsideBaseClassPath,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.outside.base.url:#{null}}") final String embeddedimagesDynamicresolutionOutsideBaseUrl,
-			@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful:#{null}}") final String embeddedimagesDynamicresolutionMustBeSuccesful) {
+				// now obviously there are easier ways to do this, but this is the only way
+				// I can think of that actually works across Spring versions
+				@Nullable @Value("${simplejavamail.javaxmail.debug:#{null}}") final String javaxmailDebug,
+				@Nullable @Value("${simplejavamail.transportstrategy:#{null}}") final String transportstrategy,
+				@Nullable @Value("${simplejavamail.smtp.host:#{null}}") final String smtpHost,
+				@Nullable @Value("${simplejavamail.smtp.port:#{null}}") final String smtpPort,
+				@Nullable @Value("${simplejavamail.smtp.username:#{null}}") final String smtpUsername,
+				@Nullable @Value("${simplejavamail.smtp.password:#{null}}") final String smtpPassword,
+				@Nullable @Value("${simplejavamail.disable.all.clientvalidation:#{null}}") final String disableAllClientValidation,
+				@Nullable @Value("${simplejavamail.custom.sslfactory.class:#{null}}") final String customSSLFactoryClass,
+				@Nullable @Value("${simplejavamail.custom.sslfactory.clazz:#{null}}") final String customSSLFactoryClassSpringBoot,
+				@Nullable @Value("${simplejavamail.proxy.host:#{null}}") final String proxyHost,
+				@Nullable @Value("${simplejavamail.proxy.port:#{null}}") final String proxyPort,
+				@Nullable @Value("${simplejavamail.proxy.username:#{null}}") final String proxyUsername,
+				@Nullable @Value("${simplejavamail.proxy.password:#{null}}") final String proxyPassword,
+				@Nullable @Value("${simplejavamail.proxy.socks5bridge.port:#{null}}") final String proxySocks5bridgePort,
+				@Nullable @Value("${simplejavamail.defaults.content.transfer.encoding:#{null}}") final String defaultContentTransferEncoding,
+				@Nullable @Value("${simplejavamail.defaults.subject:#{null}}") final String defaultSubject,
+				@Nullable @Value("${simplejavamail.defaults.from.name:#{null}}") final String defaultFromName,
+				@Nullable @Value("${simplejavamail.defaults.from.address:#{null}}") final String defaultFromAddress,
+				@Nullable @Value("${simplejavamail.defaults.replyto.name:#{null}}") final String defaultReplytoName,
+				@Nullable @Value("${simplejavamail.defaults.replyto.address:#{null}}") final String defaultReplytoAddress,
+				@Nullable @Value("${simplejavamail.defaults.bounceto.name:#{null}}") final String defaultBouncetoName,
+				@Nullable @Value("${simplejavamail.defaults.bounceto.address:#{null}}") final String defaultBouncetoAddress,
+				@Nullable @Value("${simplejavamail.defaults.to.name:#{null}}") final String defaultToName,
+				@Nullable @Value("${simplejavamail.defaults.to.address:#{null}}") final String defaultToAddress,
+				@Nullable @Value("${simplejavamail.defaults.cc.name:#{null}}") final String defaultCcName,
+				@Nullable @Value("${simplejavamail.defaults.cc.address:#{null}}") final String defaultCcAddress,
+				@Nullable @Value("${simplejavamail.defaults.bcc.name:#{null}}") final String defaultBccName,
+				@Nullable @Value("${simplejavamail.defaults.bcc.address:#{null}}") final String defaultBccAddress,
+				@Nullable @Value("${simplejavamail.defaults.poolsize:#{null}}") final String defaultPoolsize,
+				@Nullable @Value("${simplejavamail.defaults.poolsize.keepalivetime:#{null}}") final String defaultPoolKeepAlivetime,
+				@Nullable @Value("${simplejavamail.defaults.poolsize-more.keepalivetime:#{null}}") final String defaultPoolKeepAlivetimeSpringBoot,
+				@Nullable @Value("${simplejavamail.defaults.connectionpool.clusterkey.uuid:#{null}}") final String defaultConnectionPoolCluterKey,
+				@Nullable @Value("${simplejavamail.defaults.connectionpool.coresize:#{null}}") final String defaultConnectionPoolCoreSize,
+				@Nullable @Value("${simplejavamail.defaults.connectionpool.maxsize:#{null}}") final String defaultConnectionPoolMaxSize,
+				@Nullable @Value("${simplejavamail.defaults.connectionpool.claimtimeout.millis:#{null}}") final String defaultConnectionPoolClaimTimeoutMillis,
+				@Nullable @Value("${simplejavamail.defaults.connectionpool.expireafter.millis:#{null}}") final String defaultConnectionPoolExpireAfterMillis,
+				@Nullable @Value("${simplejavamail.defaults.connectionpool.loadbalancing.strategy:#{null}}") final String defaultConnectionPoolLoadBalancingStrategy,
+				@Nullable @Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
+				@Nullable @Value("${simplejavamail.defaults.trustallhosts:#{null}}") final String defaultTrustAllHosts,
+				@Nullable @Value("${simplejavamail.defaults.trustedhosts:#{null}}") final String defaultTrustedHosts,
+				@Nullable @Value("${simplejavamail.defaults.verifyserveridentity:#{null}}") final String defaultVerifyServerIdentity,
+				@Nullable @Value("${simplejavamail.transport.mode.logging.only:#{null}}") final String transportModeLoggingOnly,
+				@Nullable @Value("${simplejavamail.opportunistic.tls:#{null}}") final String opportunisticTls,
+				@Nullable @Value("${simplejavamail.smime.signing.keystore:#{null}}") final String smimeSigningKeyStore,
+				@Nullable @Value("${simplejavamail.smime.signing.keystore_password:#{null}}") final String smimeSigningKeyStorePassword,
+				@Nullable @Value("${simplejavamail.smime.signing.keystore-password:#{null}}") final String smimeSigningKeyStorePasswordSpringBoot,
+				@Nullable @Value("${simplejavamail.smime.signing.key_alias:#{null}}") final String smimeSigningKeyAlias,
+				@Nullable @Value("${simplejavamail.smime.signing.key-alias:#{null}}") final String smimeSigningKeyAliasSpringBoot,
+				@Nullable @Value("${simplejavamail.smime.signing.key_password:#{null}}") final String smimeSigningKeyPassword,
+				@Nullable @Value("${simplejavamail.smime.signing.key-password:#{null}}") final String smimeSigningKeyPasswordSpringBoot,
+				@Nullable @Value("${simplejavamail.smime.encryption.certificate:#{null}}") final String smimeEncryptionCertificate,
+				@Nullable @Value("${simplejavamail.smime.signing.algorithm:#{null}}") final String smimeSigningAlgorithm,
+				@Nullable @Value("${simplejavamail.smime.encryption.key_encapsulation_algorithm:#{null}}") final String smimeEncryptionKeyEncapsulationAlgorithm,
+				@Nullable @Value("${simplejavamail.smime.encryption.cipher:#{null}}") final String smimeEncryptionCipher,
+				@Nullable @Value("${simplejavamail.dkim.signing.private_key_file_or_data:#{null}}") final String dkimSigningPrivateKeyFileOrData,
+				@Nullable @Value("${simplejavamail.dkim.signing.private-key-file-or-data:#{null}}") final String dkimSigningPrivateKeyFileOrDataSpringBoot,
+				@Nullable @Value("${simplejavamail.dkim.signing.selector:#{null}}") final String dkimSigningSelector,
+				@Nullable @Value("${simplejavamail.dkim.signing.signing_domain:#{null}}") final String dkimSigningDomain,
+				@Nullable @Value("${simplejavamail.dkim.signing.signing-domain:#{null}}") final String dkimSigningDomainSpringBoot,
+				@Nullable @Value("${simplejavamail.dkim.signing.use_length_param:#{null}}") final String dkimSigningUseLengthParam,
+				@Nullable @Value("${simplejavamail.dkim.signing.excluded_headers_from_default_signing_list:#{null}}") final String dkimSigningExcludedHeadersFromDefaultSigningList,
+				@Nullable @Value("${simplejavamail.dkim.signing.excluded-headers-from-default-signing-list:#{null}}") final String dkimSigningExcludedHeadersFromDefaultSigningListSpringBoot,
+				@Nullable @Value("${simplejavamail.dkim.signing.header_canonicalization:#{null}}") final String dkimSigningHeaderCanonicalization,
+				@Nullable @Value("${simplejavamail.dkim.signing.body_canonicalization:#{null}}") final String dkimSigningBodyCanonicalization,
+				@Nullable @Value("${simplejavamail.dkim.signing.algorithm:#{null}}") final String dkimSigningAlgorithm,
+				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.dir:#{null}}") final String embeddedimagesDynamicresolutionEnableDir,
+				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.url:#{null}}") final String embeddedimagesDynamicresolutionEnableUrl,
+				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.enable.classpath:#{null}}") final String embeddedimagesDynamicresolutionEnableClassPath,
+				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.base.dir:#{null}}") final String embeddedimagesDynamicresolutionBaseDir,
+				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.base.url:#{null}}") final String embeddedimagesDynamicresolutionBaseUrl,
+				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.base.classpath:#{null}}") final String embeddedimagesDynamicresolutionBaseClassPath,
+				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.outside.base.dir:#{null}}") final String embeddedimagesDynamicresolutionOutsideBaseDir,
+				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath:#{null}}") final String embeddedimagesDynamicresolutionOutsideBaseClassPath,
+				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.outside.base.url:#{null}}") final String embeddedimagesDynamicresolutionOutsideBaseUrl,
+				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful:#{null}}") final String embeddedimagesDynamicresolutionMustBeSuccesful) {
 		final Properties emailProperties = new Properties();
 		setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG.key(), javaxmailDebug);
 		setNullableProperty(emailProperties, Property.TRANSPORT_STRATEGY.key(), transportstrategy);
@@ -197,12 +208,12 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.SMTP_USERNAME.key(), smtpUsername);
 		setNullableProperty(emailProperties, Property.SMTP_PASSWORD.key(), smtpPassword);
 		setNullableProperty(emailProperties, Property.DISABLE_ALL_CLIENTVALIDATION.key(), disableAllClientValidation);
-        if (customSSLFactoryClass != null) {
-            setNullableProperty(emailProperties, Property.CUSTOM_SSLFACTORY_CLASS.key(), customSSLFactoryClass);
-        } else {
-            setNullableProperty(emailProperties, Property.CUSTOM_SSLFACTORY_CLASS.key(), customSSLFactoryClassSpringBoot); // can still be null
-        }
-        setNullableProperty(emailProperties, Property.PROXY_HOST.key(), proxyHost);
+		if (customSSLFactoryClass != null) {
+			setNullableProperty(emailProperties, Property.CUSTOM_SSLFACTORY_CLASS.key(), customSSLFactoryClass);
+		} else {
+			setNullableProperty(emailProperties, Property.CUSTOM_SSLFACTORY_CLASS.key(), customSSLFactoryClassSpringBoot); // can still be null
+		}
+		setNullableProperty(emailProperties, Property.PROXY_HOST.key(), proxyHost);
 		setNullableProperty(emailProperties, Property.PROXY_PORT.key(), proxyPort);
 		setNullableProperty(emailProperties, Property.PROXY_USERNAME.key(), proxyUsername);
 		setNullableProperty(emailProperties, Property.PROXY_PASSWORD.key(), proxyPassword);
@@ -289,6 +300,16 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH.key(), embeddedimagesDynamicresolutionOutsideBaseClassPath);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL.key(), embeddedimagesDynamicresolutionOutsideBaseUrl);
 		setNullableProperty(emailProperties, Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL.key(), embeddedimagesDynamicresolutionMustBeSuccesful);
+
+		for (PropertySource<?> source : environment.getPropertySources()) {
+			if (source instanceof EnumerablePropertySource) {
+				for (String name : ((EnumerablePropertySource<?>) source).getPropertyNames()) {
+					if (name.startsWith("simplejavamail.extraproperties.")) {
+						emailProperties.setProperty(name, environment.getProperty(name));
+					}
+				}
+			}
+		}
 
 		ConfigLoader.loadProperties(emailProperties, true);
 

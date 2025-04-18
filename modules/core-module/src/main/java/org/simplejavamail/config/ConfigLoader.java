@@ -1,5 +1,6 @@
 package org.simplejavamail.config;
 
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.ContentTransferEncoding;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -396,11 +398,16 @@ public final class ConfigLoader {
 			}
 		}
 
-		final Map<String, String> extraProperties = new HashMap<>();
+		@SuppressWarnings("unchecked")
+		val extraProperties = RESOLVED_PROPERTIES.containsKey(Property.EXTRA_PROPERTIES)
+					? new HashMap<>((Map<String, String>) RESOLVED_PROPERTIES.get(Property.EXTRA_PROPERTIES))
+					: new HashMap<String, String>();
+
 		extraProperties.putAll(filterExtraJavaMailProperties(null, System.getProperties().entrySet()));
 		//noinspection unchecked,rawtypes
 		extraProperties.putAll(filterExtraJavaMailProperties(null, (Set) System.getenv().entrySet()));
 		extraProperties.putAll(filterExtraJavaMailProperties(filePropertiesLeft, fileProperties.entrySet()));
+
 		resolvedProps.put(Property.EXTRA_PROPERTIES, extraProperties);
 
 		if (!filePropertiesLeft.isEmpty()) {
