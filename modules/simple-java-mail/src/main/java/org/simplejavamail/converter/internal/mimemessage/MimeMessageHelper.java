@@ -257,7 +257,7 @@ public class MimeMessageHelper {
 		final BodyPart attachmentPart = new MimeBodyPart();
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
 		final String fileName = determineResourceName(attachmentResource, dispositionType, false, false);
-		final String contentID = determineResourceName(attachmentResource, dispositionType, true, true);
+		final String contentID = determineResourceContentId(attachmentResource, dispositionType);
 		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(fileName, attachmentResource.getDataSource())));
 		attachmentPart.setFileName(fileName);
 		final String contentType = attachmentResource.getDataSource().getContentType();
@@ -301,6 +301,14 @@ public class MimeMessageHelper {
 			resourceName = possiblyAddExtension(datasourceName, resourceName);
 		}
 		return encodeResourceName ? MiscUtil.encodeText(resourceName) : resourceName;
+	}
+
+	private static String determineResourceContentId(final AttachmentResource attachmentResource, String dispositionType) {
+		if (dispositionType.equals(Part.ATTACHMENT) && attachmentResource.getContentId() != null) {
+			return attachmentResource.getContentId();
+		} else {
+			return determineResourceName(attachmentResource, dispositionType, true, true);
+		}
 	}
 
 	@NotNull
