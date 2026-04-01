@@ -25,7 +25,6 @@ public class CliDemoApp extends DemoAppBase {
 
 		demoTestConnection(serverConfig);
 		demoSend(serverConfig);
-		demoSendAsync(serverConfig);
 		demoSendUsingFileAsHTMLBody(serverConfig);
 	}
 	
@@ -44,18 +43,6 @@ public class CliDemoApp extends DemoAppBase {
 				"--email:from", "Test sender", DemoAppBase.YOUR_GMAIL_ADDRESS,
 				"--email:to", "Test Receiver", DemoAppBase.YOUR_GMAIL_ADDRESS,
 				"--email:fixingSentDate", "2011-5-10 11:15",
-				"--mailer:withSMTPServer", "smtp.gmail.com", "587", serverConfig.getUsername(), serverConfig.getPassword(),
-				"--mailer:withTransportStrategy", "SMTP_TLS"
-		});
-	}
-	
-	private static void demoSendAsync(ServerConfig serverConfig) {
-		CliSupport.runCLI(new String[]{
-				"send",
-				"--email:forwarding", SOURCE_FOLDER + "/test/resources/test-messages/HTML mail with replyto and attachment and embedded image.msg",
-				"--email:from", "Test sender", DemoAppBase.YOUR_GMAIL_ADDRESS,
-				"--email:to", "Test Receiver", DemoAppBase.YOUR_GMAIL_ADDRESS,
-				"--mailer:async",
 				"--mailer:withSMTPServer", "smtp.gmail.com", "587", serverConfig.getUsername(), serverConfig.getPassword(),
 				"--mailer:withTransportStrategy", "SMTP_TLS"
 		});

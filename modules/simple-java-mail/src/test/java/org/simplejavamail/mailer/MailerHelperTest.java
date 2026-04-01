@@ -3,7 +3,7 @@ package org.simplejavamail.mailer;
 import com.sanctionco.jmail.JMail;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import testutil.EmailHelper;

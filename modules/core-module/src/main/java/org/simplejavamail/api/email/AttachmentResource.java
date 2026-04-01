@@ -14,6 +14,7 @@ import java.util.Objects;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
 
 /**
  * A named immutable email attachment information object. The name can be a simple name, a filename or a named embedded image (eg.
@@ -116,7 +117,7 @@ public class AttachmentResource implements Serializable {
 	@NotNull
 	public InputStream getDataSourceInputStream() {
 		try {
-			return dataSource.getInputStream();
+			return getDataSource().getInputStream();
 		} catch (IOException e) {
 			throw new AttachmentResourceException("Error getting input stream from attachment's data source", e);
 		}
@@ -127,7 +128,7 @@ public class AttachmentResource implements Serializable {
 	 */
 	@NotNull
 	public DataSource getDataSource() {
-		return dataSource;
+		return verifyNonnull(dataSource);
 	}
 
 	/**

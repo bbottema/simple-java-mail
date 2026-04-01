@@ -13,8 +13,8 @@ import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.ParameterList;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
@@ -41,7 +41,7 @@ import static org.simplejavamail.converter.internal.mimemessage.MimeMessageParse
 
 public class MimeMessageParserTest {
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 	}

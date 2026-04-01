@@ -10,6 +10,7 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.internal.general.EmailPopulatingBuilderFactory;
 import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
+import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.internal.outlooksupport.internal.model.OutlookMessageProxy;
@@ -53,13 +54,13 @@ public class OutlookEmailConverter implements OutlookModule {
 
 	@Override
 	public EmailFromOutlookMessage outlookMsgToEmailBuilder(
-			@NotNull final String msgFile,
+			@NotNull final String msgFileName,
 			@NotNull final EmailStartingBuilder emailStartingBuilder,
 			@NotNull final EmailPopulatingBuilderFactory builderFactory,
 			@NotNull final InternalEmailConverter internalEmailConverter) {
 		return buildEmailFromOutlookMessage(
 				emailStartingBuilder.ignoringDefaults().startingBlank(),
-				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")),
+				parseOutlookMsg(checkNonEmptyArgument(msgFileName, "msgFile")),
 				builderFactory,
 				internalEmailConverter);
 	}
@@ -92,7 +93,8 @@ public class OutlookEmailConverter implements OutlookModule {
 		String fromEmail = ofNullable(outlookMessage.getFromEmail()).orElse("donotreply@unknown-from-address.net");
 		builder.from(outlookMessage.getFromName(), fromEmail);
 		builder.fixingMessageId(outlookMessage.getMessageId());
-		builder.fixingSentDate(ofNullable(outlookMessage.getClientSubmitTime()).orElse(outlookMessage.getDate())); // TODO creation date?
+		builder.fixingSentDate(ofNullable(outlookMessage.getClientSubmitTime())
+				.orElse(outlookMessage.getDate())); // TODO creation date?
 		if (!valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
 			builder.withReplyTo(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
 		}
@@ -133,11 +135,11 @@ public class OutlookEmailConverter implements OutlookModule {
 
 	@SuppressWarnings("StatementWithEmptyBody")
 	private static void parseHeader(final String headerName, final String headerValue, final EmailPopulatingBuilder builder) {
-		if (isEmailHeader(headerName, headerValue, "Disposition-Notification-To")) {
+		if (isEmailHeader(headerName, headerValue, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName())) {
 			builder.withDispositionNotificationTo(headerValue);
-		} else if (isEmailHeader(headerName, headerValue, "Return-Receipt-To")) {
+		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_RECEIPT_TO.getName())) {
 			builder.withReturnReceiptTo(headerValue);
-		} else if (isEmailHeader(headerName, headerValue, "Return-Path")) {
+		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_PATH.getName())) {
 			builder.withBounceTo(headerValue);
 		} else if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerName)) {
 			builder.withHeader(headerName, headerValue);
@@ -185,9 +187,9 @@ public class OutlookEmailConverter implements OutlookModule {
 	}
 	
 	@NotNull
-	private static OutlookMessage parseOutlookMsg(@NotNull final String msgFile) {
+	private static OutlookMessage parseOutlookMsg(@NotNull final String msgFileName) {
 		try {
-			return new org.simplejavamail.outlookmessageparser.OutlookMessageParser().parseMsg(msgFile);
+			return new org.simplejavamail.outlookmessageparser.OutlookMessageParser().parseMsg(msgFileName);
 		} catch (final IOException e) {
 			throw new OutlookMessageException(OutlookMessageException.ERROR_PARSING_OUTLOOK_MSG, e);
 		}

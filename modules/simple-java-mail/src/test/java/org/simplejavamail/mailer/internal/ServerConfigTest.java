@@ -1,7 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
 import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import testutil.ConfigLoaderTestHelper;
 

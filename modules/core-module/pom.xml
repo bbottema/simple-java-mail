@@ -7,9 +7,8 @@
     <parent>
         <groupId>org.simplejavamail</groupId>
         <artifactId>maven-master-project</artifactId>
-        <!--suppress MavenPropertyInParent -->
-        <version>8.8.2</version>
-        <relativePath>../../</relativePath>
+        <version>8.12.6</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>core-module</artifactId>
@@ -47,25 +46,23 @@
         <dependency>
             <groupId>jakarta.mail</groupId>
             <artifactId>jakarta.mail-api</artifactId>
-            <version>2.1.2</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.angus</groupId>
             <artifactId>angus-mail</artifactId>
-            <version>2.0.2</version>
             <scope>runtime</scope>
         </dependency>
 
         <dependency><!-- email validation framework -->
             <groupId>com.sanctionco.jmail</groupId>
             <artifactId>jmail</artifactId>
-            <version>1.4.1</version>
+            <version>1.6.3</version>
         </dependency>
 
         <dependency><!-- Annotation processor -->
             <groupId>com.github.therapi</groupId>
             <artifactId>therapi-runtime-javadoc-scribe</artifactId>
-            <version>0.13.0</version>
+            <version>0.15.0</version>
             <scope>provided</scope><!-- makes library mandatory if we should support CLI (even optionally) -->
         </dependency>
     </dependencies>

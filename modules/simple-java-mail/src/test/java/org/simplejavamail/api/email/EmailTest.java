@@ -2,8 +2,8 @@ package org.simplejavamail.api.email;
 
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.email.EmailBuilder;
@@ -37,7 +37,7 @@ import static testutil.ThumbsUpImage.produceThumbsUpImage;
 
 public class EmailTest {
 
-	@Before
+	@BeforeEach
 	public void clearDefaults() {
 		ConfigLoaderTestHelper.clearConfigProperties();
 	}

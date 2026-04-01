@@ -34,6 +34,7 @@ import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
+import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeApplicationSmime;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeMultipartSigned;
@@ -134,8 +135,8 @@ public class SMIMESupport implements SMIMEModule {
 
 	private void initSmimeMetadata(final SmimeParseResultBuilder smimeBuilder, @NotNull final MimeMessage mimeMessage) {
 		try {
-			if (mimeMessage.getHeader("Content-Type", null) != null) {
-				ContentType ct = new ContentType(mimeMessage.getHeader("Content-Type", null));
+			if (mimeMessage.getHeader(MessageHeader.CONTENT_TYPE.getName(), null) != null) {
+				ContentType ct = new ContentType(mimeMessage.getHeader(MessageHeader.CONTENT_TYPE.getName(), null));
 				if (SmimeRecognitionUtil.isSmimeContentType(ct)) {
 					smimeBuilder.getOriginalSmimeDetails()
 							.completeWith(OriginalSmimeDetailsImpl.builder()
@@ -336,7 +337,7 @@ public class SMIMESupport implements SMIMEModule {
 			decryptedMessage.writeTo(os);
 			return new AttachmentResource("signed-email.eml", new ByteArrayDataSource(os.toByteArray(), "message/rfc822"));
 		}
-		LOGGER.warn("S/MIME signed content type not recognized, please raise an issue for " + content.getClass());
+        LOGGER.warn("S/MIME signed content type not recognized, please raise an issue for {}", content.getClass());
 		return null;
 	}
 

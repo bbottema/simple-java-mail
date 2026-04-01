@@ -7,9 +7,8 @@
     <parent>
         <groupId>org.simplejavamail</groupId>
         <artifactId>maven-master-project</artifactId>
-        <!--suppress MavenPropertyInParent -->
-        <version>8.8.2</version>
-        <relativePath>../../</relativePath>
+        <version>8.12.6</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>spring-module</artifactId>
@@ -19,8 +18,8 @@
 
     <properties>
             <automaticModuleName>org.simplejavamail.spring</automaticModuleName>
-            <spring.version>5.3.27</spring.version>
-            <spring.boot.version>2.5.15</spring.boot.version>
+            <spring.version>5.3.39</spring.version>
+            <spring.boot.version>2.7.18</spring.boot.version>
     </properties>
 
     <dependencies>
@@ -36,19 +35,17 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
+        <!--suppress VulnerableLibrariesLocal -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -58,35 +55,46 @@
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
             <version>${spring.boot.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
             <optional>true</optional>
             <version>${spring.boot.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
-
 
         <!-- spring testing -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
-            <version>${spring.version}</version>
             <scope>test</scope>
         </dependency>
+        <!--suppress VulnerableLibrariesLocal -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-to-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>
@@ -100,7 +108,38 @@
                             <artifactId>spring-boot-configuration-processor</artifactId>
                             <version>${spring.boot.version}</version>
                         </path>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
                     </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.ossindex.maven</groupId>
+                <artifactId>ossindex-maven-plugin</artifactId>
+                <configuration>
+                    <excludeVulnerabilityIds>
+                        <!-- Cannot be fixed:
+                            1. fix version is only available in a Spring commercial version
+                            2. the next OSS version requires minimum Java 17
+                            3. Spring is a 'provided' dependency anyway, so not shipped with this library -->
+                        <excludeVulnerabilityId>CVE-2024-38820</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2023-51074</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2024-31573</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2022-1471</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2022-25857</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2022-38749</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2022-38750</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2022-38751</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2022-38752</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2022-41854</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2023-1370</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2023-6378</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2024-12798</excludeVulnerabilityId>
+                        <excludeVulnerabilityId>CVE-2024-12801</excludeVulnerabilityId>
+                    </excludeVulnerabilityIds>
                 </configuration>
             </plugin>
         </plugins>

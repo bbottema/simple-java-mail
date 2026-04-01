@@ -7,9 +7,8 @@
     <parent>
         <groupId>org.simplejavamail</groupId>
         <artifactId>maven-master-project</artifactId>
-        <!--suppress MavenPropertyInParent -->
-        <version>8.8.2</version>
-        <relativePath>../../</relativePath>
+        <version>8.12.6</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>simple-java-mail</artifactId>
@@ -73,14 +72,14 @@
         </dependency>
         <dependency>
             <groupId>org.mnode.ical4j</groupId>
-            <artifactId>ical4j</artifactId>
-            <version>2.2.4</version>
+            <artifactId>ical4j-vcard</artifactId>
+            <version>2.0.0-beta2</version>
             <scope>test</scope>
         </dependency>
         <dependency><!-- SMTP test server -->
             <groupId>com.github.davidmoten</groupId>
             <artifactId>subethasmtp</artifactId>
-            <version>7.0.1</version>
+            <version>7.1.1</version>
             <scope>test</scope>
         </dependency>
         <!-- required for java 9+ compatibility with assertj-assertions-generator-maven-plugin, which uses javax.annotation.Generated -->
@@ -88,17 +87,33 @@
         <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
-            <version>1.3.5</version>
+            <version>3.0.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency><!-- used to test loading of Environment properties in ConfigLoaderTest -->
+            <groupId>org.junit-pioneer</groupId>
+            <artifactId>junit-pioneer</artifactId>
+            <version>2.3.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency><!--solve clash from junit-pioneer -->
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-engine</artifactId>
+                <version>1.10.2</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>
             <plugin>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-assertions-generator-maven-plugin</artifactId>
-                <version>2.1.0</version>
+                <version>2.2.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -117,8 +132,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
+                <version>3.2.5</version>
                 <configuration>
+                    <useSystemClassLoader>false</useSystemClassLoader>
                     <forkCount>8</forkCount><!-- for quad cores with multi-threading -->
                     <reuseForks>false</reuseForks>
                 </configuration>

@@ -1,7 +1,8 @@
 package org.simplejavamail.config;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader.Property;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BINARY;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
@@ -53,15 +55,16 @@ import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY
 
 public class ConfigLoaderTest {
 
-	@Before
+	@BeforeEach
 	public void restoreOriginalStaticProperties() {
-		ConfigLoader.loadProperties("simplejavamail.properties", false);
+		// Reset ConfigLoader to default state before each test
+		ConfigLoader.loadProperties(new Properties(), false);
 		System.getProperties().clear();
 	}
 
 	@Test
 	public void valueOrProperty()
-			throws Exception {
+				throws Exception {
 		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
@@ -73,7 +76,7 @@ public class ConfigLoaderTest {
 
 	@Test
 	public void valueOrPropertyDefaultValue()
-			throws Exception {
+				throws Exception {
 		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
@@ -86,7 +89,7 @@ public class ConfigLoaderTest {
 
 	@Test
 	public void valueOrPropertyEmptyDefaultValue()
-			throws Exception {
+				throws Exception {
 		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "default");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
@@ -99,7 +102,7 @@ public class ConfigLoaderTest {
 
 	@Test
 	public void valueOrPropertyDefaultValueEmptyDefault()
-			throws Exception {
+				throws Exception {
 		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "");
 		ConfigLoaderTestHelper.setResolvedProperties(properties);
@@ -111,23 +114,19 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
-	public void overridefromSystemVariables() {
-		assertThat(ConfigLoader.valueOrPropertyAsString("value", PROXY_USERNAME, "backup")).isEqualTo("value");
-		assertThat(ConfigLoader.valueOrPropertyAsString(null, PROXY_USERNAME, "backup")).isEqualTo("username proxy"); // from config file
-		// cannot be tested:
-		//		System.getenv().put("simplejavamail.proxy.username", "override1");
-		//		restoreOriginalStaticProperties();
-		//		assertThat(ConfigLoader.valueOrProperty(null, PROXY_USERNAME, "backup")).isEqualTo("override1");
-		System.out.println("simplejavamail.proxy.username" + ": " + System.getProperty("simplejavamail.proxy.username"));
+	public void overrideFromSystemProperties() {
 		System.setProperty("simplejavamail.proxy.username", "override2");
-		System.out.println("simplejavamail.proxy.username" + ": " + System.getProperty("simplejavamail.proxy.username"));
-		restoreOriginalStaticProperties();
+		ConfigLoader.loadProperties(new Properties(), false);
+
 		assertThat(ConfigLoader.valueOrPropertyAsString(null, PROXY_USERNAME, "backup")).isEqualTo("override2");
+
+		// Clean up system property
+		System.clearProperty("simplejavamail.proxy.username");
 	}
 
 	@Test
 	public void hasProperty()
-			throws Exception {
+				throws Exception {
 		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue1");
 		properties.put(DEFAULT_FROM_ADDRESS, "preconfiguredValue2");
@@ -142,7 +141,7 @@ public class ConfigLoaderTest {
 
 	@Test
 	public void getProperty()
-			throws Exception {
+				throws Exception {
 		Map<Property, Object> properties = new HashMap<>();
 		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue1");
 		properties.put(DEFAULT_FROM_ADDRESS, "preconfiguredValue2");
@@ -216,9 +215,9 @@ public class ConfigLoaderTest {
 	@Test
 	public void loadPropertiesAddingMode() {
 		String s1 = "simplejavamail.javaxmail.debug=true\n"
-				+ "simplejavamail.transportstrategy=SMTPS";
+					+ "simplejavamail.transportstrategy=SMTPS";
 		String s2 = "simplejavamail.defaults.to.name=To Default\n"
-				+ "simplejavamail.defaults.to.address=to@default.com";
+					+ "simplejavamail.defaults.to.address=to@default.com";
 
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s1.getBytes()), false);
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s2.getBytes()), true);
@@ -234,12 +233,12 @@ public class ConfigLoaderTest {
 	@Test
 	public void loadPropertiesFromInputStream() {
 		String s = "simplejavamail.javaxmail.debug=true\n"
-				+ "simplejavamail.transportstrategy=SMTPS\n"
-				+ "simplejavamail.smtp.host=smtp.default.com\n"
-				+ "simplejavamail.smtp.port=25\n"
-				+ "simplejavamail.smtp.username=username\n"
-				+ "simplejavamail.smtp.password=password\n"
-				+ "simplejavamail.custom.sslfactory.class=teh_class\n";
+				   + "simplejavamail.transportstrategy=SMTPS\n"
+				   + "simplejavamail.smtp.host=smtp.default.com\n"
+				   + "simplejavamail.smtp.port=25\n"
+				   + "simplejavamail.smtp.username=username\n"
+				   + "simplejavamail.smtp.password=password\n"
+				   + "simplejavamail.custom.sslfactory.class=teh_class\n";
 
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
@@ -273,7 +272,7 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
 		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
-				.containsExactly(new SimpleEntry<>("a", "A"), new SimpleEntry<>("b", "B"));
+					.containsExactly(new SimpleEntry<>("a", "A"), new SimpleEntry<>("b", "B"));
 	}
 
 	@Test
@@ -299,13 +298,86 @@ public class ConfigLoaderTest {
 
 	@Test
 	public void loadPropertiesFileNotAvailable() {
+		// Set system properties
+		System.setProperty("simplejavamail.smtp.host", "smtp.systemproperty.com");
+		System.setProperty("simplejavamail.smtp.port", "2525");
+
+		// Load properties from a non-existent file
 		ConfigLoader.loadProperties("non-existent.properties", false);
-		// success: no error occurred while config file was missing
+
+		// Verify that properties are loaded from system properties
+		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.systemproperty.com");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(2525);
+
+		// Clean up system properties
+		System.clearProperty("simplejavamail.smtp.host");
+		System.clearProperty("simplejavamail.smtp.port");
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
+	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_SMTP_HOST", value = "smtp.environment.com")
+	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_SMTP_PORT", value = "2526")
+	public void loadPropertiesFromEnvironmentVariables() {
+		// Ensure no properties are set in system properties
+		System.clearProperty("simplejavamail.smtp.host");
+		System.clearProperty("simplejavamail.smtp.port");
+
+		// Load properties from a non-existent file
+		ConfigLoader.loadProperties("non-existent.properties", false);
+
+		// Verify that properties are loaded from environment variables
+		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.environment.com");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(2526);
+	}
+
+	@Test
+	public void loadPropertiesSystemPropertiesOverrideFileProperties() {
+		// Load properties from a valid file
+		String s = "simplejavamail.smtp.host=smtp.file.com\n"
+				   + "simplejavamail.smtp.port=25";
+		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
+
+		// Set system properties that should override file properties
+		System.setProperty("simplejavamail.smtp.host", "smtp.systemproperty.com");
+		System.setProperty("simplejavamail.smtp.port", "2525");
+
+		// Reload properties to ensure system properties are considered
+		ConfigLoader.loadProperties(new Properties(), false);
+
+		// Verify that system properties override file properties
+		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.systemproperty.com");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(2525);
+
+		// Clean up system properties
+		System.clearProperty("simplejavamail.smtp.host");
+		System.clearProperty("simplejavamail.smtp.port");
+	}
+
+	@Test
+	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_SMTP_HOST", value = "smtp.environment.com")
+	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_SMTP_PORT", value = "2526")
+	public void loadPropertiesEnvironmentVariablesOverrideFileProperties() {
+		// Load properties from a valid file
+		String s = "simplejavamail.smtp.host=smtp.file.com\n"
+				   + "simplejavamail.smtp.port=25";
+		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
+
+		// Ensure no system properties are set
+		System.clearProperty("simplejavamail.smtp.host");
+		System.clearProperty("simplejavamail.smtp.port");
+
+		// Reload properties to ensure environment variables are considered
+		ConfigLoader.loadProperties(new Properties(), false);
+
+		// Verify that environment variables override file properties
+		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.environment.com");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(2526);
+	}
+
+	@Test
 	public void loadPropertiesFileMalformed() {
-		ConfigLoader.loadProperties("malformed.properties", false);
-		// error: unknown properties should cause an illegal argument exception
+		assertThatThrownBy(() -> ConfigLoader.loadProperties("malformed.properties", false))
+					.describedAs("error: malformed properties file should cause an illegal state exception")
+					.isInstanceOf(IllegalStateException.class);
 	}
 }

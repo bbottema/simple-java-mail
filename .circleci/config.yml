@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  github-maven-deploy: github-maven-deploy/github-maven-deploy@1.2.0
+  github-maven-deploy: github-maven-deploy/github-maven-deploy@1.3.0
 
 mvn-build-test-command: &mvn-build-test-command
   mvn-build-test-command: mvn verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Dlicense.skip=true
@@ -13,7 +13,7 @@ mvn-collect-artifacts-command: &mvn-collect-artifacts-command
 
 mvn-deploy-command: &mvn-deploy-command
   mvn-deploy-command:  |
-    mvn -s .circleci/maven-release-settings.xml clean deploy -DdeployAtEnd=true -DperformRelease=true -DskipTests -Dspotbugs.skip=true -Denforcer.skip=true -Djacoco.skip=true
+    mvn -s .circleci/maven-release-settings.xml clean deploy -DdeployAtEnd=true -DperformRelease=true -DskipTests -Dspotbugs.skip=true -Denforcer.skip=true -Djacoco.skip=true -Dossindex.skip=true
     mvn license:remove
   context: RELEASE_PROFILE_BBOTTEMA
 

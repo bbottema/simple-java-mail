@@ -1,7 +1,7 @@
 package org.simplejavamail.internal.util;
 
 import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Recipient;
 
 import java.io.ByteArrayInputStream;
@@ -13,8 +13,10 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.regex.Pattern.compile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.simplejavamail.internal.util.MiscUtil.findFirstMatch;
 
 public class MiscUtilTest {
 
@@ -24,14 +26,16 @@ public class MiscUtilTest {
 		assertThat(MiscUtil.checkArgumentNotEmpty(234, null)).isEqualTo(234);
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void checkArgumentNotEmptyWithEmptyString() {
-		MiscUtil.checkArgumentNotEmpty("", null);
+		assertThatThrownBy(() -> MiscUtil.checkArgumentNotEmpty("", null))
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void checkArgumentNotEmptyWithNullString() {
-		MiscUtil.checkArgumentNotEmpty(null, null);
+		assertThatThrownBy(() -> MiscUtil.checkArgumentNotEmpty(null, null))
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 	
 	@Test
@@ -69,14 +73,16 @@ public class MiscUtilTest {
 		assertThat(MiscUtil.encodeText("<html><body>\u0207</body></html>")).isEqualTo("=?UTF-8?B?PGh0bWw+PGJvZHk+yIc8L2JvZHk+PC9odG1sPg==?=");
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExtractEmailAddresses_MissingAddress() {
-		MiscUtil.extractEmailAddresses(null);
+		assertThatThrownBy(() -> MiscUtil.extractEmailAddresses(null))
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExtractEmailAddresses_EmptyAddress() {
-		MiscUtil.extractEmailAddresses("");
+		assertThatThrownBy(() -> MiscUtil.extractEmailAddresses(""))
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 
 	@Test
@@ -229,5 +235,15 @@ public class MiscUtilTest {
 		assertThat(MiscUtil.interpretRecipient(null, false, " \"  m oo  \"< a@b.com   > ", null)).isEqualTo(new Recipient("  m oo  ", "a@b.com", null, null));
 		// next one is unparsable by InternetAddress#parse(), so it should be taken as is
 		assertThat(MiscUtil.interpretRecipient(null, false, " \"  m oo  \" a@b.com    ", null)).isEqualTo(new Recipient(null, " \"  m oo  \" a@b.com    ", null, null));
+	}
+
+	@Test
+	public void testFindFirstMatch() {
+		assertThat(findFirstMatch(compile("method=(\\w+)"), "Content-Type: text/calendar; method=REQUEST; charset=UTF-8")).hasValue("REQUEST");
+        assertThat(findFirstMatch(compile("method=(\\w+)"), "Content-Type: text/calendar; charset=UTF-8")).isEmpty();
+        assertThat(findFirstMatch(compile("method=(\\w+)"), "")).isEmpty();
+        assertThat(findFirstMatch(compile("method=(\\w+)"), "Content-Type: text/calendar; method=RE$QUEST; charset=UTF-8")).isNotEmpty();
+        assertThat(findFirstMatch(compile("method=(\\w+)"), "method=REJECT; method=REQUEST")).hasValue("REJECT");
+        assertThat(findFirstMatch(compile("(?i)method=(\\w+)"), "Content-Type: text/calendar; METHOD=REQUEST; charset=UTF-8")).hasValue("REQUEST");
 	}
 }

@@ -30,11 +30,10 @@ public class DemoAppBase {
 
 		//noinspection ConstantConditions
 		if (YOUR_GMAIL_ADDRESS.equals("your_gmail_user@gmail.com")) {
-			throw new AssertionError("For these demo's to work, please provide your Gnail credentials in DemoAppBase.java first (or change the SMTP config)");
+			throw new AssertionError("For these demo's to work, please provide your Gmail credentials in DemoAppBase.java first (or change the SMTP config)");
 		}
 	}
 
-	static final MailerRegularBuilder<?> mailerSMTPBuilder = buildMailer("smtp.gmail.com", 25, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP);
 	static final MailerRegularBuilder<?> mailerTLSBuilder = buildMailer("smtp.gmail.com", 587, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTP_TLS);
 	static final MailerRegularBuilder<?> mailerSSLBuilder = buildMailer("smtp.gmail.com", 465, YOUR_GMAIL_ADDRESS, YOUR_GMAIL_PASSWORD, TransportStrategy.SMTPS);
 

@@ -1,6 +1,6 @@
 package org.simplejavamail.api.email;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -13,6 +13,7 @@ public class ContentTransferEncodingTest {
         assertThat(ContentTransferEncoding.byEncoder("B")).isEqualTo(ContentTransferEncoding.B);
         assertThat(ContentTransferEncoding.byEncoder("b")).isEqualTo(ContentTransferEncoding.B);
         assertThat(ContentTransferEncoding.byEncoder("8bit")).isEqualTo(ContentTransferEncoding.BIT8);
+        assertThat(ContentTransferEncoding.byEncoder("7bit        ")).isEqualTo(ContentTransferEncoding.BIT7);
         assertThat(ContentTransferEncoding.byEncoder("x-uuencode")).isEqualTo(ContentTransferEncoding.X_UU);
         assertThat(ContentTransferEncoding.byEncoder("x_uuencode")).isEqualTo(ContentTransferEncoding.X_UU);
         assertThat(ContentTransferEncoding.byEncoder("QUOTED-PRINTABLE")).isEqualTo(ContentTransferEncoding.QUOTED_PRINTABLE);

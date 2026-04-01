@@ -1,6 +1,5 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import org.eclipse.angus.mail.smtp.SMTPMessage;
 import jakarta.activation.DataHandler;
 import jakarta.mail.Address;
 import jakarta.mail.Flags;
@@ -12,7 +11,8 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.search.HeaderTerm;
-import org.junit.Test;
+import org.eclipse.angus.mail.smtp.SMTPMessage;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.internal.config.EmailProperty;
 
@@ -174,7 +174,7 @@ public class ImmutableDelegatingSMTPMessageTest {
 		subject.saveChanges();
 		verify(mockMmessage).saveChanges();
 	}
-	
+
 	@Test
 	public void testImmutability() {
 		Email email = createDummyEmailBuilder("<id>", true, false, true, true, true, false, false).buildEmail();

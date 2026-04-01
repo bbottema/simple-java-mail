@@ -1,7 +1,7 @@
 package org.simplejavamail.email.internal;
 
 import org.apache.commons.collections4.map.HashedMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;

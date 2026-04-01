@@ -1,6 +1,6 @@
 package org.simplejavamail.api.internal.clisupport.model;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType.EMAIL;

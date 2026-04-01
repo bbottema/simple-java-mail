@@ -1,0 +1,8 @@
+from: from someone <from@example.com>
+to: to person <to@example.com>
+cc: cc person <cc@example.com>
+bcc: bcc person <bcc@example.com>
+Subject: An RFC 822 formatted message
+
+This is the plain text body of the message. Note the blank line
+between the header information and the body of the message.

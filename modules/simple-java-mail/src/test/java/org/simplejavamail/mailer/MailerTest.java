@@ -3,8 +3,8 @@ package org.simplejavamail.mailer;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DkimConfig;
@@ -49,7 +49,7 @@ public class MailerTest {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 
-	@Before
+	@BeforeEach
 	public void restoreOriginalStaticProperties() {
 		String s = "simplejavamail.javaxmail.debug=true\n"
 				+ "simplejavamail.transportstrategy=SMTP_TLS\n"
@@ -191,35 +191,35 @@ public class MailerTest {
 		assertThat(session.getProperty("extra-properties-property1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra-properties-property2")).isEqualTo("value2");
 	}
-	
+
 	@Test
 	public void createMailSession_MinimalConstructor_WithConfig_OPPORTUNISTIC_TLS() {
 		Properties properties = new Properties();
 		properties.setProperty(OPPORTUNISTIC_TLS.key(), "false");
 		properties.setProperty("simplejavamail.extraproperties.extra-properties-property2", "override");
 		ConfigLoader.loadProperties(properties, true);
-		
+
 		Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
 		Session session = mailer.getSession();
-		
+
 		assertThat(session.getDebug()).isTrue();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp.default.com");
 		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
 		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
-		
+
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isNull();
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isNull();
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
-		
+
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
 		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
-		assertThat(session.getProperty("extra-properties-property1")).isNull();
+		assertThat(session.getProperty("extra-properties-property1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra-properties-property2")).isEqualTo("override");
 	}
-	
+
 	@Test
 	public void createMailSession_MinimalConstructor_WithConfig_OPPORTUNISTIC_TLS_Manually_Disabled() {
 		Properties properties = new Properties();

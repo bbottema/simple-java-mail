@@ -7,9 +7,8 @@
 	<parent>
 		<groupId>org.simplejavamail</groupId>
 		<artifactId>maven-master-project</artifactId>
-		<!--suppress MavenPropertyInParent -->
-		<version>8.8.2</version>
-		<relativePath>../../</relativePath>
+		<version>8.12.6</version>
+		<relativePath>../../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>jacoco-aggregator-module</artifactId>
@@ -83,7 +82,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.5</version>
+				<version>0.8.12</version>
 				<executions>
 					<execution>
 						<id>report-aggregate</id>

@@ -131,7 +131,7 @@ public class BatchSupport implements BatchModule {
 	 */
 	@NotNull
 	@Override
-	public Future<?> shutdownConnectionPools(@NotNull Session session) {
+	public Future<Void> shutdownConnectionPools(@NotNull Session session) {
 		if (smtpConnectionPool == null) {
 			LOGGER.warn("user requested connection pool shutdown, but there is no connection pool to shut down (yet)");
 			return completedFuture(null);

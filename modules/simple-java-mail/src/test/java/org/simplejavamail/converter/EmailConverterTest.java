@@ -1,9 +1,13 @@
 package org.simplejavamail.converter;
 
 import jakarta.mail.util.ByteArrayDataSource;
+import net.fortuna.ical4j.data.CalendarBuilder;
+import net.fortuna.ical4j.data.ParserException;
+import net.fortuna.ical4j.model.Calendar;
+import net.fortuna.ical4j.model.Property;
 import org.assertj.core.api.Condition;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
@@ -17,11 +21,15 @@ import testutil.SecureTestDataHelper;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
@@ -51,6 +59,7 @@ public class EmailConverterTest {
 		EmailAssert.assertThat(msg).hasOnlyRecipients(sven, niklas);
 		EmailAssert.assertThat(msg).hasNoAttachments();
 		assertThat(msg.getHeaders()).containsEntry("x-pmx-scanned", singletonList("Mail was scanned by Sophos Pure Message"));
+		assertThat(msg.getHeaders()).doesNotContainKeys("CC", "Cc", "cc", "BCC", "Bcc", "bcc", "TO", "To", "to");
 		assertThat(msg.getPlainText()).isNotEmpty();
 		assertThat(normalizeNewlines(msg.getHTMLText())).isEqualTo("<div dir=\"auto\">Just a test to get an email with one cc recipient.</div>\n");
 		assertThat(normalizeNewlines(msg.getPlainText())).isEqualTo("Just a test to get an email with one cc recipient.\n");
@@ -157,7 +166,7 @@ public class EmailConverterTest {
 		assertThat(email.getAttachments()).hasSize(2);
 		assertThat(email.getAttachments()).extracting("name").containsExactly("ForwardedMessage.eml", "ForwardedMessage.eml");
 	}
-	
+
 	@Test
 	public void testOutlookMessageWithEmptyAttachments() {
 		Email s1 = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#318 Email with nodata-attachment.msg"));
@@ -190,10 +199,27 @@ public class EmailConverterTest {
 	}
 
 	@Test
-	public void testProblematicCommasInRecipeints() {
+	public void testProblematicCommasInRecipients() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#444 Email with encoded comma in recipients.eml"));
 		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("Some Name, Jane Doe", "jane.doe@example.de", null, null));
 		EmailAssert.assertThat(s1).hasOnlyRecipients(new Recipient("Some Name 2, John Doe", "john.doe@example.de", TO, null));
+	}
+
+	@Test
+	public void testProblematicCcHeader() {
+		Email recipientsCamelcase = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#502 Recipients camelcase header.eml"));
+		EmailAssert.assertThat(recipientsCamelcase).hasFromRecipient(new Recipient("from someone", "from@example.com", null));
+		EmailAssert.assertThat(recipientsCamelcase).hasOnlyRecipients(
+				new Recipient("to person", "to@example.com", TO),
+				new Recipient("cc person", "cc@example.com", CC),
+				new Recipient("bcc person", "bcc@example.com", BCC));
+		EmailAssert.assertThat(recipientsCamelcase).hasHeaders(new HashMap<>());
+
+		Email recipientsCapitals = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#502 Recipients capitals header.eml"));
+		Email recipientsLowercase = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#502 Recipients lowercase header.eml"));
+
+		assertThat(recipientsCapitals).isEqualTo(recipientsCamelcase);
+		assertThat(recipientsLowercase).isEqualTo(recipientsCamelcase);
 	}
 
 	@Test
@@ -381,15 +407,72 @@ public class EmailConverterTest {
 	public void testGithub491_EmailWithMultiPurposeAttachments() {
 		Email emailMime = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#491 Email with dual purpose datasources.eml"));
 
-        assertThat(emailMime.getEmbeddedImages()).satisfiesExactly(
+		assertThat(emailMime.getEmbeddedImages()).satisfiesExactly(
 				at -> {
-                    at.getName().equals("ii_lrkua30a0");
-                    at.getDataSource().getName().equals("doclife.jpg");
-                });
+					at.getName().equals("ii_lrkua30a0");
+					at.getDataSource().getName().equals("doclife.jpg");
+				});
 		assertThat(emailMime.getAttachments()).satisfiesExactlyInAnyOrder(
 				at -> at.getName().equals("Il Viaggio delle Ombre.pdf"),
 				at -> at.getName().equals("Nyan Cat! [Official]-(480p).mp4"),
 				at -> at.getName().equals("doclife.jpg"));
+	}
+
+	@Test
+	public void testGithub551_ContentTransferEncodingEndsWithSpaceBug() {
+		Email emailMime = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#551 Email with extra space in Content-Transfer-Encoding.eml"));
+
+		assertThat(emailMime.getContentTransferEncoding()).isEqualTo(BIT7);
+	}
+
+	@Test
+	public void testGithub552_BrokenCalendarMethod() throws ParserException, IOException {
+		Email emailMime = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#552 broken calendar method.eml"));
+
+		assertThat(emailMime.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
+		assertThat(emailMime.getCalendarText()).isNotEmpty();
+
+        Calendar calendar = new CalendarBuilder()
+				.build(new StringReader(emailMime.getCalendarText()));
+
+		assertThat(getPropertyValue(calendar, "SUMMARY")).contains("TestYandex");
+		assertThat(getPropertyValue(calendar, "DTSTART")).contains("20240813T170000");
+		assertThat(getPropertyValue(calendar, "DTEND")).contains("20240813T173000");
+		assertThat(getPropertyValue(calendar, "UID")).contains("141zhi60x8914s7bzxzq27i0syandex.ru");
+		assertThat(getPropertyValue(calendar, "SEQUENCE")).contains("0");
+		assertThat(getPropertyValue(calendar, "DTSTAMP")).contains("20240813T135030Z");
+		assertThat(getPropertyValue(calendar, "CREATED")).contains("20240813T135030Z");
+		assertThat(getPropertyValue(calendar, "LAST-MODIFIED")).contains("20240813T135030Z");
+		assertThat(getPropertyValue(calendar, "ORGANIZER"))
+				.hasValueSatisfying(org -> assertThat(org).contains("mailto:"))
+				.hasValueSatisfying(org -> assertThat(org).contains("ipopov"));
+		assertThat(calendar.getComponent("VEVENT")
+				.map(e -> e.getProperties("ATTENDEE")))
+				.hasValueSatisfying(
+						attendees -> assertThat(attendees).satisfiesExactlyInAnyOrder(
+								attendeeProp -> assertThat(attendeeProp.getValue()).satisfies(attendee -> {
+									assertThat(attendee).contains("mailto:");
+									assertThat(attendee).contains("ipopov");
+								}),
+								attendeeProp -> assertThat(attendeeProp.getValue()).satisfies(attendee -> {
+									assertThat(attendee).contains("mailto:");
+									assertThat(attendee).contains("skyvv1sp");
+								})
+						)
+				);
+		assertThat(getPropertyValue(calendar, "URL")).contains("https://calendar.yandex.ru/event?event_id=2182739972");
+		assertThat(getPropertyValue(calendar, "TRANSP")).contains("OPAQUE");
+		assertThat(getPropertyValue(calendar, "CATEGORIES")).contains("Мои события");
+		assertThat(getPropertyValue(calendar, "CLASS")).contains("PRIVATE");
+		assertThat(getPropertyValue(calendar, "DESCRIPTION")).contains("");
+		assertThat(getPropertyValue(calendar, "LOCATION")).contains("");
+	}
+
+	private static @NotNull Optional<String> getPropertyValue(Calendar calendar, String propertyName) {
+		return calendar
+				.getComponent("VEVENT")
+				.flatMap(e -> e.getProperty(propertyName))
+				.map(Property::getValue);
 	}
 
 	@NotNull

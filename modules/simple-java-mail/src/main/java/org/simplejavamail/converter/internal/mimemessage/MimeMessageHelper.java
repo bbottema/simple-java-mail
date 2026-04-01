@@ -21,6 +21,7 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 
@@ -48,8 +49,6 @@ public class MimeMessageHelper {
 	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@link StandardCharsets#UTF_8}).
 	 */
 	private static final Charset CHARACTER_ENCODING = UTF_8;
-
-	private static final String HEADER_CONTENT_TRANSFER_ENCODING = "Content-Transfer-Encoding";
 
 	static void setSubject(@NotNull final Email email, final MimeMessage message) throws MessagingException {
 		message.setSubject(email.getSubject(), CHARACTER_ENCODING.name());
@@ -107,20 +106,20 @@ public class MimeMessageHelper {
 		if (email.getPlainText() != null) {
 			val messagePart = new MimeBodyPart();
 			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING.name());
-			messagePart.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
+			messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
 			multipartAlternativeMessages.addBodyPart(messagePart);
 		}
 		if (email.getHTMLText() != null) {
 			val messagePartHTML = new MimeBodyPart();
 			messagePartHTML.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING.name()));
-			messagePartHTML.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
+			messagePartHTML.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
 		}
 		if (email.getCalendarText() != null) {
 			val calendarMethod = requireNonNull(email.getCalendarMethod(), "calendarMethod is required when calendarText is set");
 			val messagePartCalendar = new MimeBodyPart();
 			messagePartCalendar.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING.name(), calendarMethod));
-			messagePartCalendar.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
+			messagePartCalendar.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
 			multipartAlternativeMessages.addBodyPart(messagePartCalendar);
 		}
 	}
@@ -151,7 +150,7 @@ public class MimeMessageHelper {
 			val calendarMethod = requireNonNull(email.getCalendarMethod(), "CalendarMethod must be set when CalendarText is set");
 			messagePart.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING.name(), calendarMethod));
 		}
-		messagePart.addHeader(HEADER_CONTENT_TRANSFER_ENCODING, determineContentTransferEncoder(email));
+		messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
 	}
 	
 	/**
@@ -222,13 +221,13 @@ public class MimeMessageHelper {
 		if (TRUE.equals(email.getUseDispositionNotificationTo())) {
 			final Recipient dispositionTo = checkNonEmptyArgument(email.getDispositionNotificationTo(), "dispositionNotificationTo");
 			final Address address = MiscUtil.asInternetAddress(dispositionTo, CHARACTER_ENCODING);
-			message.setHeader("Disposition-Notification-To", address.toString());
+			message.setHeader(MessageHeader.DISPOSITION_NOTIFICATION_TO.getName(), address.toString());
 		}
 
 		if (TRUE.equals(email.getUseReturnReceiptTo())) {
 			final Recipient returnReceiptTo = checkNonEmptyArgument(email.getReturnReceiptTo(), "returnReceiptTo");
 			final Address address = MiscUtil.asInternetAddress(returnReceiptTo, CHARACTER_ENCODING);
-			message.setHeader("Return-Receipt-To", address.toString());
+			message.setHeader(MessageHeader.RETURN_RECEIPT_TO.getName(), address.toString());
 		}
 	}
 

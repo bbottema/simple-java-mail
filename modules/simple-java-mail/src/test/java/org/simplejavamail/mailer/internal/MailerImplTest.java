@@ -3,8 +3,8 @@ package org.simplejavamail.mailer.internal;
 import jakarta.mail.Session;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
@@ -36,7 +36,7 @@ public class MailerImplTest {
 	
 	private static final List<String> EMPTY_LIST = Collections.emptyList();
 	
-	@Before
+	@BeforeEach
 	public void setup() {
 		session = Session.getInstance(new Properties());
 	}

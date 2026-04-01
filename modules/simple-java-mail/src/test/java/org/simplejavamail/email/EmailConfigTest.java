@@ -1,8 +1,8 @@
 package org.simplejavamail.email;
 
 import lombok.val;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.config.ConfigLoader;
@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SuppressWarnings("unused")
 public class EmailConfigTest {
 
-	@Before
+	@BeforeEach
 	public void restoreOriginalStaticProperties() {
 		String s = "simplejavamail.defaults.from.name=From Default\n"
 				+ "simplejavamail.defaults.from.address=from@default.com\n"

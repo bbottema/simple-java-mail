@@ -120,7 +120,7 @@ public interface Mailer extends AutoCloseable {
 	 * <p>
 	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 */
-	Future<?> shutdownConnectionPool();
+	Future<Void> shutdownConnectionPool();
 
 	/**
 	 * @return The server connection details. Will be {@code null} in case a custom fixed {@link Session} instance is used.
