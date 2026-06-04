@@ -39,4 +39,16 @@ public class Recipient implements Serializable {
      * @see IRecipientBuilder#withSmimeCertificate(X509Certificate)
      */
     @Nullable X509Certificate smimeCertificate;
+
+    /**
+     * Custom toString to maintain backwards-compatible format and exclude the verbose X509Certificate.
+     */
+    @Override
+    public String toString() {
+        return "Recipient{" +
+                "name='" + name + "'" +
+                ", address='" + address + "'" +
+                ", type=" + type +
+                '}';
+    }
 }
