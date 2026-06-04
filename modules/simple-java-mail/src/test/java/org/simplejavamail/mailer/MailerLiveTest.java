@@ -113,7 +113,7 @@ public class MailerLiveTest {
 	@Test
 	public void createMailSession_TestOverrideReceivers()
 			throws MessagingException, ExecutionException, InterruptedException {
-        val dummyEmailBuilder = EmailHelper.createDummyEmailBuilder(true, true, false, true, false, false)
+        EmailPopulatingBuilder dummyEmailBuilder = EmailHelper.createDummyEmailBuilder(true, true, false, true, false, false)
 				.withOverrideReceivers(new Recipient("override", "override@override.com", null, null));
 		assertSendingEmail(dummyEmailBuilder, true, false, false, false, false);
 	}
@@ -372,6 +372,75 @@ public class MailerLiveTest {
 				.smimeSignatureValid(null)
 				.smimeSignedBy(null)
 				.build());
+	}
+
+	/**
+	 * Tests that a per-recipient S/MIME certificate set directly on a {@link Recipient} is used to encrypt the message,
+	 * even when no email-level {@code encryptWithSmime()} config is present.
+	 * This exercises the new {@code encryptMessageWithSmimeForRecipients} code path.
+	 */
+	@Test
+	public void createMailSession_SmimePerRecipientCert_encryptsWithRecipientCert()
+			throws MessagingException, ExecutionException, InterruptedException {
+		val recipientCert = SmimeEncryptionConfig.builder()
+				.x509Certificate(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"))
+				.build().getX509Certificate();
+
+		// Build email with per-recipient cert only — no email-level encrypt config
+		mailer.sendMail(EmailBuilder.startingBlank()
+				.from("sender@test.com")
+				.to(new Recipient("Benny", "benny.bottema@aegon.nl", TO, recipientCert))
+				.withPlainText("Hello, this is per-recipient encrypted!")
+				.withHTMLText("<html><body>Hello, this is per-recipient encrypted!</body></html>")
+				.withSubject("Per-recipient S/MIME encryption test")
+				.buildEmail());
+
+		val received = smtpServerExtension.getOnlyMessage();
+		// Decrypt using the matching PKCS12 keystore — must succeed, proving the recipient cert was used
+		val decryptedEmail = mimeMessageToEmailBuilder(received.getMimeMessage(), loadPkcs12KeyStore()).buildEmail();
+
+		assertThat(normalizeNewlines(decryptedEmail.getPlainText()).trim()).isEqualTo("Hello, this is per-recipient encrypted!");
+		EmailAssert.assertThat(decryptedEmail).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.ENCRYPTED)
+				.smimeMime("application/pkcs7-mime")
+				.smimeType("enveloped-data")
+				.smimeName("smime.p7m")
+				.build());
+	}
+
+	/**
+	 * Tests that the per-recipient certificate (level 2) takes precedence over the email-level default cert (levels 4/5).
+	 * <p>
+	 * Strategy: the email-level config carries the CA certificate (which does not match our PKCS12 decryption keystore),
+	 * while the TO recipient carries the correct user certificate.  If the recipient cert wins, decryption succeeds.
+	 * If the email-level cert had been used instead, decryption would fail (wrong key).
+	 */
+	@Test
+	public void createMailSession_SmimePerRecipientCert_recipientCertTakesPrecedenceOverEmailLevelCert()
+			throws MessagingException, ExecutionException, InterruptedException {
+		// Correct cert — matches the PKCS12 decryption keystore
+		val correctCert = SmimeEncryptionConfig.builder()
+				.x509Certificate(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"))
+				.build().getX509Certificate();
+		// Wrong cert (CA cert) — encrypting with this would make our PKCS12 key unable to decrypt
+		val wrongCert = SmimeEncryptionConfig.builder()
+				.x509Certificate(new File(RESOURCES_PKCS + "/ca.crt"))
+				.build().getX509Certificate();
+
+		mailer.sendMail(EmailBuilder.startingBlank()
+				.from("sender@test.com")
+				.to(new Recipient("Benny", "benny.bottema@aegon.nl", TO, correctCert))
+				.encryptWithSmime(SmimeEncryptionConfig.builder().x509Certificate(wrongCert).build()) // email-level: wrong cert
+				.withPlainText("Precedence test body")
+				.withHTMLText("<html><body>Precedence test body</body></html>")
+				.withSubject("Per-recipient S/MIME precedence test")
+				.buildEmail());
+
+		val received = smtpServerExtension.getOnlyMessage();
+		// If recipient cert (correct) took precedence → decryption succeeds.
+		// If email-level cert (wrong CA cert) had been used instead → decryption would fail.
+		val decryptedEmail = mimeMessageToEmailBuilder(received.getMimeMessage(), loadPkcs12KeyStore()).buildEmail();
+		assertThat(normalizeNewlines(decryptedEmail.getPlainText()).trim()).isEqualTo("Precedence test body");
 	}
 
 	private void verifyReceivedOutlookEmail(final Email email, final boolean smimeSigned, final boolean smimeEncrypted) throws IOException {

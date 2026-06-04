@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.smimesupport;
 
+import jakarta.mail.Header;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
 import jakarta.mail.Session;
@@ -10,6 +11,9 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimePart;
 import jakarta.mail.util.ByteArrayDataSource;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
@@ -20,11 +24,16 @@ import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.SignerId;
 import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.SignerInformationVerifier;
+import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
+import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.mail.smime.SMIMEEnvelopedGenerator;
 import org.bouncycastle.mail.smime.SMIMEException;
 import org.bouncycastle.mail.smime.SMIMESigned;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.OutputEncryptor;
+import org.bouncycastle.operator.jcajce.JcaAlgorithmParametersConverter;
 import org.bouncycastle.util.Store;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,17 +67,25 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.Security;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.spec.MGF1ParameterSpec;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
+import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_ENCRYPTING_SMIME_FOR_RECIPIENTS;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_DETERMINING_SMIME_SIGNER;
 import static org.simplejavamail.internal.smimesupport.SmimeException.ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT;
@@ -474,6 +491,82 @@ public class SMIMESupport implements SMIMEModule {
                 ofNullable(smimeEncryptionConfige.getCipherAlgorithm())
                         .map(CMSAlgorithmResolver::resolve)
                         .orElse(SmimeUtil.DEFAULT_CIPHER));
+	}
+
+	@NotNull
+	@Override
+	public MimeMessage encryptMessageWithSmimeForRecipients(@Nullable final Session session, @NotNull final Email email,
+			@NotNull final MimeMessage messageToProtect, @NotNull final Collection<X509Certificate> recipientCerts,
+			@Nullable final String keyEncapsulationAlgorithmStr, @Nullable final String cipherAlgorithmStr) {
+		try {
+			final KeyEncapsulationAlgorithm keyEncapsulationAlgorithm = ofNullable(keyEncapsulationAlgorithmStr)
+					.map(KeyEncapsulationAlgorithm::valueOf)
+					.orElse(SmimeUtil.DEFAULT_KEY_ENCAPSULATION_ALGORITHM);
+			final ASN1ObjectIdentifier cmsAlgorithm = ofNullable(cipherAlgorithmStr)
+					.map(CMSAlgorithmResolver::resolve)
+					.orElse(SmimeUtil.DEFAULT_CIPHER);
+
+			final SMIMEEnvelopedGenerator generator = new SMIMEEnvelopedGenerator();
+			for (X509Certificate cert : recipientCerts) {
+				generator.addRecipientInfoGenerator(createRecipientInfoGenerator(cert, keyEncapsulationAlgorithm));
+			}
+
+			final OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(cmsAlgorithm)
+					.setProvider(BouncyCastleProvider.PROVIDER_NAME).build();
+
+			final MimeMessage encryptedMessage = new SmimeMessageIdFixingMimeMessage(session, email.getId());
+			copyAllHeaders(messageToProtect, encryptedMessage);
+
+			final MimeBodyPart encryptedBodyPart = generator.generate(messageToProtect, encryptor);
+			encryptedMessage.setContent(encryptedBodyPart.getContent(), encryptedBodyPart.getContentType());
+			copyAllHeaders(encryptedBodyPart, encryptedMessage);
+			encryptedMessage.saveChanges();
+			return encryptedMessage;
+		} catch (Exception e) {
+			throw new SmimeException(ERROR_ENCRYPTING_SMIME_FOR_RECIPIENTS, e);
+		}
+	}
+
+	private static JceKeyTransRecipientInfoGenerator createRecipientInfoGenerator(@NotNull final X509Certificate certificate,
+			@NotNull final KeyEncapsulationAlgorithm keyEncapsulationAlgorithm)
+			throws CertificateEncodingException, InvalidAlgorithmParameterException {
+		final JceKeyTransRecipientInfoGenerator infoGenerator;
+		if (keyEncapsulationAlgorithm == KeyEncapsulationAlgorithm.RSA) {
+			infoGenerator = new JceKeyTransRecipientInfoGenerator(certificate);
+		} else {
+			final String digestName = determineDigestNameForOaep(keyEncapsulationAlgorithm);
+			final AlgorithmIdentifier oaepParams = new JcaAlgorithmParametersConverter().getAlgorithmIdentifier(
+					PKCSObjectIdentifiers.id_RSAES_OAEP,
+					new OAEPParameterSpec(digestName, "MGF1", new MGF1ParameterSpec(digestName), PSource.PSpecified.DEFAULT));
+			infoGenerator = new JceKeyTransRecipientInfoGenerator(certificate, oaepParams);
+		}
+		infoGenerator.setProvider(BouncyCastleProvider.PROVIDER_NAME);
+		return infoGenerator;
+	}
+
+	@NotNull
+	private static String determineDigestNameForOaep(@NotNull final KeyEncapsulationAlgorithm alg) throws InvalidAlgorithmParameterException {
+		if (alg == KeyEncapsulationAlgorithm.RSA_OAEP_SHA224) return "SHA-224";
+		if (alg == KeyEncapsulationAlgorithm.RSA_OAEP_SHA256) return "SHA-256";
+		if (alg == KeyEncapsulationAlgorithm.RSA_OAEP_SHA384) return "SHA-384";
+		if (alg == KeyEncapsulationAlgorithm.RSA_OAEP_SHA512) return "SHA-512";
+		throw new InvalidAlgorithmParameterException("Unknown S/MIME key encapsulation algorithm: " + alg.name());
+	}
+
+	private static void copyAllHeaders(@NotNull final MimeMessage from, @NotNull final MimeMessage to) throws MessagingException {
+		final Enumeration<Header> headers = from.getAllHeaders();
+		while (headers.hasMoreElements()) {
+			final Header h = headers.nextElement();
+			to.setHeader(h.getName(), h.getValue());
+		}
+	}
+
+	private static void copyAllHeaders(@NotNull final MimeBodyPart from, @NotNull final MimeMessage to) throws MessagingException {
+		final Enumeration<Header> headers = from.getAllHeaders();
+		while (headers.hasMoreElements()) {
+			final Header h = headers.nextElement();
+			to.setHeader(h.getName(), h.getValue());
+		}
 	}
 
 	@Override

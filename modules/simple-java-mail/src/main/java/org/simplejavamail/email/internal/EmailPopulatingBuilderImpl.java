@@ -1500,7 +1500,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@NotNull
 	public EmailPopulatingBuilder withRecipients(@NotNull Collection<Recipient> recipients, @Nullable RecipientType fixedRecipientType) {
 		for (Recipient recipient : recipients) {
-			withRecipient(recipient.getName(), recipient.getAddress(), defaultTo(fixedRecipientType, recipient.getType()));
+			// Preserve the smimeCertificate from the source Recipient so that per-recipient S/MIME encryption survives governance copy
+			this.recipients.add(new Recipient(recipient.getName(), recipient.getAddress(),
+					defaultTo(fixedRecipientType, recipient.getType()), recipient.getSmimeCertificate()));
 		}
 		return this;
 	}
@@ -1539,7 +1541,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withRecipient(@NotNull final Recipient recipient) {
-		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), null));
+		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), recipient.getSmimeCertificate()));
 		return this;
 	}
 
