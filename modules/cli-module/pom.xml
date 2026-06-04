@@ -109,7 +109,7 @@
         <!-- Logging -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId>
+            <artifactId>log4j-slf4j2-impl</artifactId><!-- replaces log4j-slf4j-impl: slf4j 2.x requires slf4j2 bridge -->
             <scope>runtime</scope>
         </dependency>
         <dependency>

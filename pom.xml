@@ -122,11 +122,58 @@
                 <artifactId>slf4j-api</artifactId>
                 <version>2.0.13</version>
             </dependency>
+            <!-- log4j-slf4j2-impl is the SLF4J 2.x bridge; log4j-slf4j-impl only works with SLF4J 1.x -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j2-impl</artifactId>
+                <version>2.22.1</version>
+            </dependency>
+            <!-- junit-pioneer 2.3.0 requires JUnit 5.11.2 / platform 1.11.2 -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>5.11.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>5.11.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>5.11.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-engine</artifactId>
+                <version>1.11.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-commons</artifactId>
+                <version>1.11.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-launcher</artifactId>
+                <version>1.11.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.sonatype.ossindex.maven</groupId>
+                <artifactId>ossindex-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>audit-dependencies</id>
+                        <phase/><!-- unbind inherited execution to remove ossindex from build -->
+                    </execution>
+                </executions>
+            </plugin>
             <plugin><!-- this plugin must come after jacoco instrument -->
                 <groupId>se.eris</groupId>
                 <artifactId>notnull-instrumenter-maven-plugin</artifactId>
@@ -258,25 +305,6 @@
             </build>
         </profile>
 
-        <profile>
-            <id>oss-scan-fail</id>
-            <activation>
-                <property>
-                    <name>oss-scan-warn</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.sonatype.ossindex.maven</groupId>
-                        <artifactId>ossindex-maven-plugin</artifactId>
-                        <configuration>
-                            <fail>false</fail>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
+
     </profiles>
 </project>

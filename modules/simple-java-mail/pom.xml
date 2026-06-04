@@ -84,10 +84,11 @@
         </dependency>
         <!-- required for java 9+ compatibility with assertj-assertions-generator-maven-plugin, which uses javax.annotation.Generated -->
         <!-- see https://github.com/assertj/assertj-assertions-generator-maven-plugin/issues/93 -->
+        <!-- jakarta.annotation-api 1.x still ships javax.annotation.* (namespace migration happened in 2.0) -->
         <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
-            <version>3.0.0</version>
+            <version>1.3.5</version>
             <scope>test</scope>
         </dependency>
         <dependency><!-- used to test loading of Environment properties in ConfigLoaderTest -->
