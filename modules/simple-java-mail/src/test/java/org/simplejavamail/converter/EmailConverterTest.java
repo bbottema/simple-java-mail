@@ -4,6 +4,7 @@ import jakarta.mail.util.ByteArrayDataSource;
 import net.fortuna.ical4j.data.CalendarBuilder;
 import net.fortuna.ical4j.data.ParserException;
 import net.fortuna.ical4j.model.Calendar;
+import net.fortuna.ical4j.model.Content;
 import net.fortuna.ical4j.model.Property;
 import org.assertj.core.api.Condition;
 import org.jetbrains.annotations.NotNull;
@@ -187,8 +188,8 @@ public class EmailConverterTest {
 	@Test
 	public void testProblematicUmlautInDispositionNotificationTo() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#500 Email with problematic umlaut in Disposition-Notification-To.eml"));
-		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("Könok, Danny [Fake Company & Co. KG]", "test@fakedomain.de", null));
-		EmailAssert.assertThat(s1).hasDispositionNotificationTo(new Recipient("Könok, Danny [Fake Company & Co. KG]", "test@fakedomain.de", null));
+		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("Könok, Danny [Fake Company & Co. KG]", "test@fakedomain.de", null, null));
+		EmailAssert.assertThat(s1).hasDispositionNotificationTo(new Recipient("Könok, Danny [Fake Company & Co. KG]", "test@fakedomain.de", null, null));
 	}
 
 	@Test
@@ -208,11 +209,11 @@ public class EmailConverterTest {
 	@Test
 	public void testProblematicCcHeader() {
 		Email recipientsCamelcase = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#502 Recipients camelcase header.eml"));
-		EmailAssert.assertThat(recipientsCamelcase).hasFromRecipient(new Recipient("from someone", "from@example.com", null));
+		EmailAssert.assertThat(recipientsCamelcase).hasFromRecipient(new Recipient("from someone", "from@example.com", null, null));
 		EmailAssert.assertThat(recipientsCamelcase).hasOnlyRecipients(
-				new Recipient("to person", "to@example.com", TO),
-				new Recipient("cc person", "cc@example.com", CC),
-				new Recipient("bcc person", "bcc@example.com", BCC));
+				new Recipient("to person", "to@example.com", TO, null),
+				new Recipient("cc person", "cc@example.com", CC, null),
+				new Recipient("bcc person", "bcc@example.com", BCC, null));
 		EmailAssert.assertThat(recipientsCamelcase).hasHeaders(new HashMap<>());
 
 		Email recipientsCapitals = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#502 Recipients capitals header.eml"));
@@ -391,7 +392,7 @@ public class EmailConverterTest {
 		assertThat(normalizeNewlines(emailOutlook.getHTMLText())).isEqualTo(normalizeNewlines(emailMime.getHTMLText()));
 		assertThat(emailOutlook.getSubject()).isEqualTo(emailMime.getSubject());
 		assertThat(emailOutlook.getRecipients())
-				.extracting(r -> new Recipient(r.getName(), r.getAddress(), TO))
+				.extracting(r -> new Recipient(r.getName(), r.getAddress(), TO, null))
 				.containsExactlyElementsOf(emailMime.getRecipients());
 		assertThat(emailOutlook.getOverrideReceivers()).containsExactlyElementsOf(emailMime.getOverrideReceivers());
 		assertThat(emailOutlook.getEmbeddedImages()).containsExactlyElementsOf(emailMime.getEmbeddedImages());
@@ -469,9 +470,9 @@ public class EmailConverterTest {
 	}
 
 	private static @NotNull Optional<String> getPropertyValue(Calendar calendar, String propertyName) {
-		return calendar
-				.getComponent("VEVENT")
-				.flatMap(e -> e.getProperty(propertyName))
+        return calendar
+                .getComponent("VEVENT")
+                .<Property>flatMap(e -> e.getProperty(propertyName))
 				.map(Property::getValue);
 	}
 
