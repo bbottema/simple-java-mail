@@ -84,7 +84,8 @@
         </dependency>
         <!-- required for java 9+ compatibility with assertj-assertions-generator-maven-plugin, which uses javax.annotation.Generated -->
         <!-- see https://github.com/assertj/assertj-assertions-generator-maven-plugin/issues/93 -->
-        <!-- jakarta.annotation-api 1.x still ships javax.annotation.* (namespace migration happened in 2.0) -->
+        <!-- Note: jakarta.annotation-api 2.0+ migrated to jakarta.* namespace, dropping javax.annotation.Generated -->
+        <!-- 1.3.5 is the highest version that still ships javax.annotation.* as required by assertj-assertions-generator -->
         <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
