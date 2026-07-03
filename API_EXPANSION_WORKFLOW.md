@@ -60,7 +60,9 @@ If the feature relates to a specific module, update that module.
 
 ## 6. Defaults & Overrides (EmailGovernance)
 
-When a new field should participate in the defaults/overrides system (a source Email used to provide defaults and/or overrides), integrate it with the governance layer.
+Public API configuration should have parity across the Java builder API and the Java defaults/overrides mechanism. When a new user-facing field is added to `Email` or a related model and that value can be represented on a source object, integrate it with the governance layer. This allows projects that centralize behavior through default or override `Email` objects to use the same feature without per-message Java code.
+
+Only skip defaults/overrides integration when the value cannot sensibly be represented on the source model, when it depends on runtime state that cannot be copied, or when it is a per-recipient sub-field that should be set while constructing recipients instead. Document the reason in the implementing issue or PR.
 
 - Add EmailProperty entry (core-module)
   - If the field is on Email and needs default/override resolution, add a corresponding constant to org.simplejavamail.internal.config.EmailProperty.
@@ -78,10 +80,13 @@ When a new field should participate in the defaults/overrides system (a source E
 
 ## 7. Configuration Support (`core-module`)
 
-If the new field should be configurable via system properties or environment variables:
+Public API configuration should also have parity with property-backed configuration. When a Java API option represents configurable behavior and can be expressed as strings, booleans, numbers, enums, files, or other property-friendly values, expose it through configuration properties as well. This keeps property-file driven projects from needing a Java-only escape hatch for the same feature.
+
+Only skip property configuration when the value cannot be expressed safely or clearly in properties, has no sensible global default, or would require complex object construction that belongs in Java code. Document the reason in the implementing issue or PR.
 
 - **ConfigLoader**: Add a new entry to the `Property` enum.
 - **Data Resolution**: Ensure the new property is used in `EmailGovernanceImpl` or wherever defaults are applied.
+- **Spring Mapping**: If the property belongs to the public configuration surface, add the corresponding Spring property and map it through `SimpleJavaMailSpringSupport`.
 
 ## 8. Verification Surface Areas
 
