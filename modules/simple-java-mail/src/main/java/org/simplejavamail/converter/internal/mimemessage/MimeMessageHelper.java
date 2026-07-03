@@ -14,6 +14,7 @@ import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimePart;
 import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.internet.ParameterList;
+import jakarta.mail.internet.PreencodedMimeBodyPart;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -263,7 +264,7 @@ public class MimeMessageHelper {
 	 */
 	private static BodyPart getBodyPartFromDatasource(final AttachmentResource attachmentResource, final String dispositionType)
 			throws MessagingException {
-		final BodyPart attachmentPart = new MimeBodyPart();
+		final BodyPart attachmentPart = createMimeBodyPart(attachmentResource);
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
 		final ResourcePartMetadata resourcePartMetadata = determineResourcePartMetadata(attachmentResource, dispositionType);
 		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(resourcePartMetadata.fileName, attachmentResource.getDataSource())));
@@ -276,11 +277,27 @@ public class MimeMessageHelper {
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourcePartMetadata.contentId));
 
 		attachmentPart.setHeader("Content-Description", determineAttachmentDescription(attachmentResource));
-		if (!valueNullOrEmpty(attachmentResource.getContentTransferEncoding())) {
-			attachmentPart.setHeader("Content-Transfer-Encoding", attachmentResource.getContentTransferEncoding().getEncoder());
+		final ContentTransferEncoding contentTransferEncoding = determineResourceContentTransferEncoding(attachmentResource);
+		if (contentTransferEncoding != null) {
+			attachmentPart.setHeader("Content-Transfer-Encoding", contentTransferEncoding.getEncoder());
 		}
 		attachmentPart.setDisposition(dispositionType);
 		return attachmentPart;
+	}
+
+	private static BodyPart createMimeBodyPart(final AttachmentResource attachmentResource) {
+		final ContentTransferEncoding preEncodedContentTransferEncoding = attachmentResource.getPreEncodedContentTransferEncoding();
+		if (preEncodedContentTransferEncoding != null) {
+			return new PreencodedMimeBodyPart(preEncodedContentTransferEncoding.getEncoder());
+		}
+		return new MimeBodyPart();
+	}
+
+	@Nullable
+	private static ContentTransferEncoding determineResourceContentTransferEncoding(final AttachmentResource attachmentResource) {
+		return attachmentResource.getPreEncodedContentTransferEncoding() != null
+				? attachmentResource.getPreEncodedContentTransferEncoding()
+				: attachmentResource.getContentTransferEncoding();
 	}
 
 	/**

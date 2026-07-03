@@ -47,6 +47,7 @@ import static java.util.Collections.singletonList;
 import static java.util.regex.Pattern.compile;
 import static org.apache.commons.codec.binary.Base64.encodeBase64Chunked;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 
@@ -509,6 +510,50 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testPreEncodedAttachmentIsNotReencoded() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final String rawAttachment = "The stored database payload is already base64 encoded.";
+		final String encodedAttachment = asBase64(rawAttachment);
+		final String reencodedAttachment = asBase64(encodedAttachment);
+
+		final Email email = EmailBuilder.startingBlank()
+				.from("sender@example.com")
+				.to("receiver@example.com")
+				.withPlainText("See attachment")
+				.withPreEncodedAttachment("preencoded.txt", encodedAttachment.getBytes(UTF_8), "text/plain", BASE_64)
+				.buildEmail();
+
+		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
+
+		assertContentTransferEncodingForResource(eml, "preencoded.txt", "base64");
+		assertThat(extractResourceBody(eml, "preencoded.txt")).isEqualTo(encodedAttachment.trim());
+		assertThat(eml).doesNotContain(reencodedAttachment.trim());
+	}
+
+	@Test
+	public void testPreEncodedEmbeddedImageIsNotReencoded() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final String rawImage = "fake image bytes already stored as base64";
+		final String encodedImage = asBase64(rawImage);
+		final String reencodedImage = asBase64(encodedImage);
+
+		final Email email = EmailBuilder.startingBlank()
+				.from("sender@example.com")
+				.to("receiver@example.com")
+				.withHTMLText("<img src='cid:logo'>")
+				.withPreEncodedEmbeddedImage("logo", encodedImage.getBytes(UTF_8), "image/png", BASE_64)
+				.buildEmail();
+
+		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
+
+		assertContentTransferEncodingForResource(eml, "logo", "base64");
+		assertThat(extractResourceBody(eml, "logo")).isEqualTo(encodedImage.trim());
+		assertThat(eml).doesNotContain(reencodedImage.trim());
+	}
+
+	@Test
 	public void testContentDescriptionAndContentTransferEncoding() throws IOException {
 		ConfigLoaderTestHelper.clearConfigProperties();
 
@@ -591,6 +636,18 @@ public class EmailConverterTest {
 		assertThat(matcher.find()).as(format("Found UUID in EML's Content-ID for filename '%s'", filename)).isTrue();
 		assertThat(matcher.group("uuid")).matches("sjm-[A-Za-z0-9-]+@simplejavamail\\.generated");
 		return matcher.group("uuid");
+	}
+
+	private static String extractResourceBody(String eml, String filename) {
+		final Matcher matcher = compile(format("filename=\"?%s\"?[\\s\\S]*?\\n\\n(?<body>[\\s\\S]*?)\\n--", java.util.regex.Pattern.quote(filename))).matcher(eml);
+		assertThat(matcher.find()).as("MIME body for resource %s", filename).isTrue();
+		return matcher.group("body").trim();
+	}
+
+	private static void assertContentTransferEncodingForResource(String eml, String filename, String contentTransferEncoding) {
+		final Matcher matcher = compile(format("Content-Type: [\\s\\S]*?filename=\"?%s\"?[\\s\\S]*?\\n\\n", java.util.regex.Pattern.quote(filename))).matcher(eml);
+		assertThat(matcher.find()).as("MIME header block for resource %s", filename).isTrue();
+		assertThat(matcher.group()).contains("Content-Transfer-Encoding: " + contentTransferEncoding);
 	}
 
 	@Test

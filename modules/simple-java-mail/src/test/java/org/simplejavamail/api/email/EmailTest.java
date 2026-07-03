@@ -135,6 +135,7 @@ public class EmailTest {
 				+ "		dataSource.getContentType=image/png,\n"
 				+ "		description=null,\n"
 				+ "		contentTransferEncoding=null,\n"
+				+ "		preEncodedContentTransferEncoding=null,\n"
 				+ "		contentId=null\n"
 				+ "	}],\n"
 				+ "	attachments=[AttachmentResource{\n"
@@ -143,6 +144,7 @@ public class EmailTest {
 				+ "		dataSource.getContentType=image/png,\n"
 				+ "		description=null,\n"
 				+ "		contentTransferEncoding=null,\n"
+				+ "		preEncodedContentTransferEncoding=null,\n"
 				+ "		contentId=null\n"
 				+ "	}, AttachmentResource{\n"
 				+ "		name='described_attachment',\n"
@@ -150,6 +152,7 @@ public class EmailTest {
 				+ "		dataSource.getContentType=text/plain,\n"
 				+ "		description='cool description',\n"
 				+ "		contentTransferEncoding='base64',\n"
+				+ "		preEncodedContentTransferEncoding=null,\n"
 				+ "		contentId=null\n"
 				+ "	}],\n"
 				+ "	forwardingEmail=true\n"
@@ -240,6 +243,10 @@ public class EmailTest {
 		assertEmailEqual(b().withHTMLTextContentTransferEncoding(BASE_64).buildEmail(), b().withHTMLTextContentTransferEncoding(BIT7).buildEmail(), false);
 		assertEmailEqual(b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), true);
 		assertEmailEqual(b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), b().withCalendarTextContentTransferEncoding(BIT7).buildEmail(), false);
+		assertEmailEqual(b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BASE_64).buildEmail(),
+				b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BASE_64).buildEmail(), true);
+		assertEmailEqual(b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BASE_64).buildEmail(),
+				b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BIT7).buildEmail(), false);
 		// forWardEmail
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, false).buildEmail();
 		final Email emailOther = EmailHelper.createDummyEmailBuilder(false, true, false, false, false, false).buildEmail();

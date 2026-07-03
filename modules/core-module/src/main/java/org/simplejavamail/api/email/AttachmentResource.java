@@ -50,6 +50,12 @@ public class AttachmentResource implements Serializable {
 	private final ContentTransferEncoding contentTransferEncoding;
 
 	/**
+	 * @see #ofPreEncodedData(String, DataSource, String, ContentTransferEncoding, String)
+	 */
+	@Nullable
+	private final ContentTransferEncoding preEncodedContentTransferEncoding;
+
+	/**
 	 * @see #AttachmentResource(String, DataSource, String, ContentTransferEncoding, String)
 	 */
 	@Nullable
@@ -98,11 +104,49 @@ public class AttachmentResource implements Serializable {
 	 */
 	public AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description,
 							  @Nullable final ContentTransferEncoding contentTransferEncoding, @Nullable final String contentId) {
+		this(name, dataSource, description, contentTransferEncoding, contentId, null);
+	}
+
+	/**
+	 * Creates an attachment resource for data that is already encoded using the provided MIME {@code Content-Transfer-Encoding}.
+	 *
+	 * @param name                              The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;).
+	 * @param dataSource                        The already encoded attachment data.
+	 * @param description                       An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
+	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
+	 *
+	 * @see #ofPreEncodedData(String, DataSource, String, ContentTransferEncoding, String)
+	 */
+	public static AttachmentResource ofPreEncodedData(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description,
+													  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+		return ofPreEncodedData(name, dataSource, description, preEncodedContentTransferEncoding, null);
+	}
+
+	/**
+	 * Creates an attachment resource for data that is already encoded using the provided MIME {@code Content-Transfer-Encoding}.
+	 *
+	 * @param name                              The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;).
+	 * @param dataSource                        The already encoded attachment data.
+	 * @param description                       An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
+	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
+	 * @param contentId                         Optional MIME {@code Content-ID} without angle brackets. If omitted, one is derived from the embedded image name or generated for attachments.
+	 *
+	 * @see DataSource
+	 */
+	public static AttachmentResource ofPreEncodedData(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description,
+													  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding, @Nullable final String contentId) {
+		return new AttachmentResource(name, dataSource, description, null, contentId, checkNonEmptyArgument(preEncodedContentTransferEncoding, "preEncodedContentTransferEncoding"));
+	}
+
+	private AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description,
+							   @Nullable final ContentTransferEncoding contentTransferEncoding, @Nullable final String contentId,
+							   @Nullable final ContentTransferEncoding preEncodedContentTransferEncoding) {
 		this.name = name;
 		this.dataSource = checkNonEmptyArgument(dataSource, "dataSource");
 		this.description = description;
 		this.contentTransferEncoding = contentTransferEncoding;
 		this.contentId = contentId;
+		this.preEncodedContentTransferEncoding = preEncodedContentTransferEncoding;
 	}
 
 	/**
@@ -180,6 +224,14 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
+	 * @return The transfer encoding that has already been applied to this resource's data, or {@code null} when the data should be encoded normally.
+	 */
+	@Nullable
+	public ContentTransferEncoding getPreEncodedContentTransferEncoding() {
+		return preEncodedContentTransferEncoding;
+	}
+
+	/**
 	 * @return Optional MIME {@code Content-ID} without angle brackets.
 	 */
 	@Nullable
@@ -202,6 +254,7 @@ public class AttachmentResource implements Serializable {
 				EqualsHelper.isEqualDataSource(dataSource, that.dataSource) &&
 				Objects.equals(description, that.description) &&
 				Objects.equals(contentTransferEncoding, that.contentTransferEncoding) &&
+				Objects.equals(preEncodedContentTransferEncoding, that.preEncodedContentTransferEncoding) &&
 				Objects.equals(contentId, that.contentId);
 	}
 
@@ -214,6 +267,7 @@ public class AttachmentResource implements Serializable {
 				",\n\t\tdataSource.getContentType=" + dataSource.getContentType() +
 				",\n\t\tdescription=" + (description != null ? "'" + description + "'" : "null") +
 				",\n\t\tcontentTransferEncoding=" + (contentTransferEncoding != null ? "'" + contentTransferEncoding + "'" : "null") +
+				",\n\t\tpreEncodedContentTransferEncoding=" + (preEncodedContentTransferEncoding != null ? "'" + preEncodedContentTransferEncoding + "'" : "null") +
 				",\n\t\tcontentId=" + (contentId != null ? "'" + contentId + "'" : "null") +
 				"\n\t}";
 	}

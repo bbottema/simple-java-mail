@@ -1219,6 +1219,20 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImage(@NotNull String name, byte@NotNull[] data, @NotNull String mimetype);
 
 	/**
+	 * Adds already encoded image data to this email with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
+	 * <p>
+	 * Use this when the provided data was already encoded using the given MIME {@code Content-Transfer-Encoding}; Simple Java Mail will preserve the
+	 * payload instead of encoding it again.
+	 *
+	 * @param name                              The name of the image as being referred to from the message content body (e.g. 'signature').
+	 * @param data                              The already encoded image data.
+	 * @param mimetype                          The content type of the given data (e.g. "image/gif" or "image/jpeg").
+	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
+	 */
+	@Cli.ExcludeApi(reason = "pre-encoded MIME payloads are an advanced byte-stream concern")
+	EmailPopulatingBuilder withPreEncodedEmbeddedImage(@NotNull String name, byte@NotNull[] data, @NotNull String mimetype, @NotNull ContentTransferEncoding preEncodedContentTransferEncoding);
+
+	/**
 	 * Adds image data to this email that can be referred to from the email HTML body. For adding images as attachment, refer to {@link
 	 * #withAttachment(String, DataSource)} instead.
 	 * <p>
@@ -1235,6 +1249,20 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImage(@Nullable String name, @NotNull DataSource imagedata);
 
 	/**
+	 * Adds already encoded image data to this email that can be referred to from the email HTML body.
+	 * <p>
+	 * Use this when the provided {@link DataSource} already returns data encoded using the given MIME {@code Content-Transfer-Encoding}; Simple Java Mail
+	 * will preserve the payload instead of encoding it again.
+	 *
+	 * @param name                              The name of the image as being referred to from the message content body (e.g. 'src="cid:yourImageName"'). If not provided, the
+	 *                                          name of the given data source is used instead.
+	 * @param imagedata                         The already encoded image data.
+	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
+	 */
+	@Cli.ExcludeApi(reason = "pre-encoded MIME payloads are an advanced byte-stream concern")
+	EmailPopulatingBuilder withPreEncodedEmbeddedImage(@Nullable String name, @NotNull DataSource imagedata, @NotNull ContentTransferEncoding preEncodedContentTransferEncoding);
+
+	/**
 	 * Adds image data to this email with separate filename/resource name and MIME {@code Content-ID}.
 	 * <p>
 	 * Use this when the HTML body must reference one stable {@code cid:...} value, but the related MIME part should keep a different filename.
@@ -1245,6 +1273,18 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.ExcludeApi(reason = "this is advanced MIME metadata, so let's not crowd the CLI with it")
 	EmailPopulatingBuilder withEmbeddedImage(@Nullable String name, @NotNull DataSource imagedata, @Nullable String contentId);
+
+	/**
+	 * Adds already encoded image data to this email with separate filename/resource name and MIME {@code Content-ID}.
+	 *
+	 * @param name                              The resource name or filename for the MIME part. If not provided, the name of the given data source is used instead.
+	 * @param imagedata                         The already encoded image data.
+	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
+	 * @param contentId                         The {@code Content-ID} value without angle brackets, as referenced from HTML using {@code cid:contentId}.
+	 */
+	@Cli.ExcludeApi(reason = "this is advanced MIME metadata, so let's not crowd the CLI with it")
+	EmailPopulatingBuilder withPreEncodedEmbeddedImage(@Nullable String name, @NotNull DataSource imagedata,
+													   @NotNull ContentTransferEncoding preEncodedContentTransferEncoding, @Nullable String contentId);
 
 	/**
 	 * Delegates to {@link #withEmbeddedImage(String, DataSource)} for each embedded image.
@@ -1302,6 +1342,35 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withAttachment(@Nullable String name, byte@NotNull[] data, @NotNull String mimetype, @Nullable String description, @Nullable ContentTransferEncoding contentTransferEncoding);
 
 	/**
+	 * Adds already encoded attachment data to the email message with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
+	 * <p>
+	 * Use this when the provided data was already encoded using the given MIME {@code Content-Transfer-Encoding}; Simple Java Mail will preserve the
+	 * payload instead of encoding it again.
+	 *
+	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
+	 *                                          using {@link java.util.UUID}.
+	 * @param data                              The already encoded attachment data.
+	 * @param mimetype                          The content type of the given data (e.g. "plain/text", "image/gif" or "application/pdf").
+	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
+	 */
+	@Cli.ExcludeApi(reason = "pre-encoded MIME payloads are an advanced byte-stream concern")
+	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable String name, byte@NotNull[] data, @NotNull String mimetype, @NotNull ContentTransferEncoding preEncodedContentTransferEncoding);
+
+	/**
+	 * Adds already encoded attachment data to the email message with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
+	 *
+	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
+	 *                                          using {@link java.util.UUID}.
+	 * @param data                              The already encoded attachment data.
+	 * @param mimetype                          The content type of the given data (e.g. "plain/text", "image/gif" or "application/pdf").
+	 * @param description                       An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
+	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
+	 */
+	@Cli.ExcludeApi(reason = "pre-encoded MIME payloads are an advanced byte-stream concern")
+	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable String name, byte@NotNull[] data, @NotNull String mimetype, @Nullable String description,
+													@NotNull ContentTransferEncoding preEncodedContentTransferEncoding);
+
+	/**
 	 * Delegates to {@link #withAttachment(String, DataSource, String, ContentTransferEncoding)} with null-description and no forced content transfer encoding.
 	 *
 	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
@@ -1309,6 +1378,20 @@ public interface EmailPopulatingBuilder {
 	 * @param filedata                The attachment data.
 	 */
 	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata);
+
+	/**
+	 * Adds already encoded attachment data to the email message.
+	 * <p>
+	 * Use this when the provided {@link DataSource} already returns data encoded using the given MIME {@code Content-Transfer-Encoding}; Simple Java Mail
+	 * will preserve the payload instead of encoding it again.
+	 *
+	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
+	 *                                          using {@link java.util.UUID}.
+	 * @param filedata                          The already encoded attachment data.
+	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
+	 */
+	@Cli.ExcludeApi(reason = "pre-encoded MIME payloads are an advanced byte-stream concern")
+	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable String name, @NotNull DataSource filedata, @NotNull ContentTransferEncoding preEncodedContentTransferEncoding);
 
 	/**
 	 * Delegates to {@link #withAttachment(String, DataSource, String, ContentTransferEncoding)} with no forced content transfer encoding.
@@ -1340,6 +1423,19 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding);
 
 	/**
+	 * Adds already encoded attachment data to the email message.
+	 *
+	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
+	 *                                          using {@link java.util.UUID}.
+	 * @param filedata                          The already encoded attachment data.
+	 * @param description                       An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
+	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
+	 */
+	@Cli.ExcludeApi(reason = "pre-encoded MIME payloads are an advanced byte-stream concern")
+	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description,
+													@NotNull final ContentTransferEncoding preEncodedContentTransferEncoding);
+
+	/**
 	 * Adds an attachment with separate filename/resource name and MIME {@code Content-ID}.
 	 *
 	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
@@ -1352,6 +1448,20 @@ public interface EmailPopulatingBuilder {
 	@Cli.ExcludeApi(reason = "this is advanced MIME metadata, so let's not crowd the CLI with it")
 	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description,
 										  @Nullable final ContentTransferEncoding contentTransferEncoding, @Nullable final String contentId);
+
+	/**
+	 * Adds already encoded attachment data with separate filename/resource name and MIME {@code Content-ID}.
+	 *
+	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
+	 *                                          using {@link java.util.UUID}.
+	 * @param filedata                          The already encoded attachment data.
+	 * @param description                       An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
+	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
+	 * @param contentId                         Optional {@code Content-ID} value without angle brackets. If omitted, a safe unique value is generated.
+	 */
+	@Cli.ExcludeApi(reason = "this is advanced MIME metadata, so let's not crowd the CLI with it")
+	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description,
+													@NotNull final ContentTransferEncoding preEncodedContentTransferEncoding, @Nullable final String contentId);
 
 	/**
 	 * Delegates to {@link #withAttachment(String, DataSource)} for each attachment.
