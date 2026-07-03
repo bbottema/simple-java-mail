@@ -49,6 +49,7 @@ public class MimeMessageHelper {
 	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@link StandardCharsets#UTF_8}).
 	 */
 	private static final Charset CHARACTER_ENCODING = UTF_8;
+	private static final String GENERATED_CONTENT_ID_DOMAIN = "simplejavamail.generated";
 
 	static void setSubject(@NotNull final Email email, final MimeMessage message) throws MessagingException {
 		message.setSubject(email.getSubject(), CHARACTER_ENCODING.name());
@@ -256,16 +257,15 @@ public class MimeMessageHelper {
 			throws MessagingException {
 		final BodyPart attachmentPart = new MimeBodyPart();
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
-		final String fileName = determineResourceName(attachmentResource, dispositionType, false, false);
-		final String contentID = determineResourceName(attachmentResource, dispositionType, true, true);
-		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(fileName, attachmentResource.getDataSource())));
-		attachmentPart.setFileName(fileName);
+		final ResourcePartMetadata resourcePartMetadata = determineResourcePartMetadata(attachmentResource, dispositionType);
+		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(resourcePartMetadata.fileName, attachmentResource.getDataSource())));
+		attachmentPart.setFileName(resourcePartMetadata.fileName);
 		final String contentType = attachmentResource.getDataSource().getContentType();
 		ParameterList pl = new ParameterList();
-		pl.set("filename", fileName);
-		pl.set("name", fileName);
+		pl.set("filename", resourcePartMetadata.fileName);
+		pl.set("name", resourcePartMetadata.fileName);
 		attachmentPart.setHeader("Content-Type", contentType + pl);
-		attachmentPart.setHeader("Content-ID", format("<%s>", contentID));
+		attachmentPart.setHeader("Content-ID", format("<%s>", resourcePartMetadata.contentId));
 
 		attachmentPart.setHeader("Content-Description", determineAttachmentDescription(attachmentResource));
 		if (!valueNullOrEmpty(attachmentResource.getContentTransferEncoding())) {
@@ -279,6 +279,20 @@ public class MimeMessageHelper {
 	 * Determines the right resource name and optionally attaches the correct extension to the name. The result is mime encoded.
 	 */
 	static String determineResourceName(final AttachmentResource attachmentResource, String dispositionType, final boolean encodeResourceName, final boolean isContentID) {
+		if (isContentID) {
+			return determineResourcePartMetadata(attachmentResource, dispositionType).contentId;
+		}
+		final String resourceName = determineResourceFileName(attachmentResource, dispositionType);
+		return encodeResourceName ? MiscUtil.encodeText(resourceName) : resourceName;
+	}
+
+	private static ResourcePartMetadata determineResourcePartMetadata(final AttachmentResource attachmentResource, final String dispositionType) {
+		return new ResourcePartMetadata(
+				determineResourceFileName(attachmentResource, dispositionType),
+				determineContentId(attachmentResource, dispositionType));
+	}
+
+	private static String determineResourceFileName(final AttachmentResource attachmentResource, String dispositionType) {
 		final String datasourceName = attachmentResource.getDataSource().getName();
 
 		String resourceName;
@@ -291,16 +305,41 @@ public class MimeMessageHelper {
 			resourceName = "resource" + UUID.randomUUID();
 		}
 
-		// if ATTACHMENT, then add UUID to the name to prevent attachments with the same name to reference the same attachment content
-		if (isContentID && dispositionType.equals(Part.ATTACHMENT)) {
-			resourceName +=  "@" + UUID.randomUUID();
-		}
-
 		// if there is no extension on the name, but there is on the datasource name, then add it to the name
 		if (!valueNullOrEmpty(datasourceName) && dispositionType.equals(Part.ATTACHMENT)) {
 			resourceName = possiblyAddExtension(datasourceName, resourceName);
 		}
-		return encodeResourceName ? MiscUtil.encodeText(resourceName) : resourceName;
+		return resourceName;
+	}
+
+	private static String determineContentId(final AttachmentResource attachmentResource, final String dispositionType) {
+		final String explicitContentId = normalizeContentId(attachmentResource.getContentId());
+		if (!valueNullOrEmpty(explicitContentId)) {
+			return explicitContentId;
+		}
+		if (dispositionType.equals(Part.ATTACHMENT)) {
+			return generateAttachmentContentId();
+		}
+		return normalizeContentId(determineResourceFileName(attachmentResource, dispositionType));
+	}
+
+	private static String generateAttachmentContentId() {
+		return "sjm-" + UUID.randomUUID() + "@" + GENERATED_CONTENT_ID_DOMAIN;
+	}
+
+	@Nullable
+	private static String normalizeContentId(@Nullable final String contentId) {
+		if (valueNullOrEmpty(contentId)) {
+			return null;
+		}
+		String normalized = contentId.trim();
+		if (normalized.startsWith("<") && normalized.endsWith(">") && normalized.length() > 1) {
+			normalized = normalized.substring(1, normalized.length() - 1);
+		}
+		if (normalized.contains("\r") || normalized.contains("\n") || normalized.contains("<") || normalized.contains(">")) {
+			throw new IllegalArgumentException("Content-ID must not contain CR/LF or angle brackets inside the value");
+		}
+		return normalized;
 	}
 
 	@NotNull
@@ -319,5 +358,15 @@ public class MimeMessageHelper {
 	@Nullable
 	private static String determineAttachmentDescription(AttachmentResource attachmentResource) {
 		return ofNullable(attachmentResource.getDescription()).map(MiscUtil::encodeText).orElse(null);
+	}
+
+	private static class ResourcePartMetadata {
+		private final String fileName;
+		private final String contentId;
+
+		private ResourcePartMetadata(final String fileName, final String contentId) {
+			this.fileName = fileName;
+			this.contentId = contentId;
+		}
 	}
 }

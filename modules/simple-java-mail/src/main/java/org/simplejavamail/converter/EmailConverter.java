@@ -62,6 +62,8 @@ import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNAN
 @SuppressWarnings("WeakerAccess")
 public final class EmailConverter {
 
+	private static final String GENERATED_ATTACHMENT_CONTENT_ID_PATTERN = "sjm-[A-Za-z0-9-]+@simplejavamail\\.generated";
+
 	private EmailConverter() {
 		// util / helper class
 	}
@@ -763,14 +765,22 @@ public final class EmailConverter {
 		
 		for (final Map.Entry<String, MimeDataSource> cid : parsed.getCidMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
-			builder.withEmbeddedImage(extractCID(cidName), cid.getValue().getDataSource());
+			final String resourceName = extractCID(cid.getValue().getName());
+			final String contentId = extractCID(cidName);
+			builder.withEmbeddedImage(resourceName, cid.getValue().getDataSource(), contentId != null && contentId.equals(resourceName) ? null : contentId);
 		}
 		for (final MimeDataSource attachment : parsed.getAttachmentList()) {
 			final ContentTransferEncoding encoding = !valueNullOrEmpty(attachment.getContentTransferEncoding())
 					? ContentTransferEncoding.byEncoder(attachment.getContentTransferEncoding()) : null;
-			builder.withAttachment(extractCID(attachment.getName()), attachment.getDataSource(), attachment.getContentDescription(), encoding);
+			builder.withAttachment(extractCID(attachment.getName()), attachment.getDataSource(), attachment.getContentDescription(), encoding, userProvidedContentId(attachment));
 		}
 		return builder;
+	}
+
+	@Nullable
+	private static String userProvidedContentId(final MimeDataSource attachment) {
+		final String contentId = extractCID(attachment.getContentId());
+		return contentId != null && contentId.matches(GENERATED_ATTACHMENT_CONTENT_ID_PATTERN) ? null : contentId;
 	}
 
 	private static Session createDummySession() {

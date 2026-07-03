@@ -142,11 +142,11 @@ public class MiscUtilTest {
 
 	@Test
 	@SuppressWarnings("unused")
-	public void testCountMandatoryParameters() {
-		Method methodWithZeroParameters = new Object() {public void methodWithZeroParameters() {}}.getClass().getDeclaredMethods()[0];
-		Method methodWithZeroMandatoryParameters = new Object() {public void methodWithZeroMandatoryParameters(@Nullable Integer optionalInt) {}}.getClass().getDeclaredMethods()[0];
-		Method methodWithOnlyMandatoryParameters = new Object() {public void methodWithOnlyMandatoryParameters(Integer mandatoryInt) {}}.getClass().getDeclaredMethods()[0];
-		Method methodWithMixedMandatoryParameters = new Object() {public void methodWithMixedMandatoryParameters(@Nullable Integer optionalInt, Integer mandatoryInt) {}}.getClass().getDeclaredMethods()[0];
+	public void testCountMandatoryParameters() throws NoSuchMethodException {
+		Method methodWithZeroParameters = new Object() {public void methodWithZeroParameters() {}}.getClass().getDeclaredMethod("methodWithZeroParameters");
+		Method methodWithZeroMandatoryParameters = new Object() {public void methodWithZeroMandatoryParameters(@Nullable Integer optionalInt) {}}.getClass().getDeclaredMethod("methodWithZeroMandatoryParameters", Integer.class);
+		Method methodWithOnlyMandatoryParameters = new Object() {public void methodWithOnlyMandatoryParameters(Integer mandatoryInt) {}}.getClass().getDeclaredMethod("methodWithOnlyMandatoryParameters", Integer.class);
+		Method methodWithMixedMandatoryParameters = new Object() {public void methodWithMixedMandatoryParameters(@Nullable Integer optionalInt, Integer mandatoryInt) {}}.getClass().getDeclaredMethod("methodWithMixedMandatoryParameters", Integer.class, Integer.class);
 
 		assertThat(MiscUtil.countMandatoryParameters(methodWithZeroParameters)).isEqualTo(0);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithZeroMandatoryParameters)).isEqualTo(0);

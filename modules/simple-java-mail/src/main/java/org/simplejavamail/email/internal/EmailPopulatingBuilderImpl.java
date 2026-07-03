@@ -1666,12 +1666,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata) {
+		return withEmbeddedImage(name, imagedata, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata, @Nullable final String contentId) {
+		validateEmbeddedImage(name, imagedata, contentId);
+		embeddedImages.add(new AttachmentResource(name, imagedata, null, null, contentId));
+		return this;
+	}
+
+	private void validateEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata, @Nullable final String contentId) {
 		checkNonEmptyArgument(imagedata, "imagedata");
-		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName())) {
+		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName()) && valueNullOrEmpty(contentId)) {
 			throw new EmailException(NAME_MISSING_FOR_EMBEDDED_IMAGE);
 		}
-		embeddedImages.add(new AttachmentResource(name, imagedata, null));
-		return this;
 	}
 	
 	/**
@@ -1680,7 +1692,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImages(@NotNull final List<AttachmentResource> embeddedImages) {
 		for (final AttachmentResource embeddedImage : embeddedImages) {
-			withEmbeddedImage(embeddedImage.getName(), embeddedImage.getDataSource());
+			validateEmbeddedImage(embeddedImage.getName(), embeddedImage.getDataSource(), embeddedImage.getContentId());
+			this.embeddedImages.add(embeddedImage);
 		}
 		return this;
 	}
@@ -1789,8 +1802,17 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
+		return withAttachment(name, filedata, description, contentTransferEncoding, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource, String, ContentTransferEncoding, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description,
+												@Nullable final ContentTransferEncoding contentTransferEncoding, @Nullable final String contentId) {
 		checkNonEmptyArgument(filedata, "filedata");
-		attachments.add(new AttachmentResource(name, filedata, description, contentTransferEncoding));
+		attachments.add(new AttachmentResource(name, filedata, description, contentTransferEncoding, contentId));
 		return this;
 	}
 
@@ -1800,7 +1822,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withAttachments(@NotNull final List<AttachmentResource> attachments) {
 		for (final AttachmentResource attachment : attachments) {
-			withAttachment(attachment.getName(), attachment.getDataSource(), attachment.getDescription(), attachment.getContentTransferEncoding());
+			withAttachment(attachment.getName(), attachment.getDataSource(), attachment.getDescription(), attachment.getContentTransferEncoding(), attachment.getContentId());
 		}
 		return this;
 	}

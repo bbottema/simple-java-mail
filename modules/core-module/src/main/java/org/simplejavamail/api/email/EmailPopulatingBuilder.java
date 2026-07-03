@@ -1127,6 +1127,18 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImage(@Nullable String name, @NotNull DataSource imagedata);
 
 	/**
+	 * Adds image data to this email with separate filename/resource name and MIME {@code Content-ID}.
+	 * <p>
+	 * Use this when the HTML body must reference one stable {@code cid:...} value, but the related MIME part should keep a different filename.
+	 *
+	 * @param name      The resource name or filename for the MIME part. If not provided, the name of the given data source is used instead.
+	 * @param imagedata The image data.
+	 * @param contentId The {@code Content-ID} value without angle brackets, as referenced from HTML using {@code cid:contentId}.
+	 */
+	@Cli.ExcludeApi(reason = "this is advanced MIME metadata, so let's not crowd the CLI with it")
+	EmailPopulatingBuilder withEmbeddedImage(@Nullable String name, @NotNull DataSource imagedata, @Nullable String contentId);
+
+	/**
 	 * Delegates to {@link #withEmbeddedImage(String, DataSource)} for each embedded image.
 	 */
 	EmailPopulatingBuilder withEmbeddedImages(@NotNull List<AttachmentResource> embeddedImages);
@@ -1218,6 +1230,20 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.OptionNameOverride("withEncodedDescribedAttachment")
 	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding);
+
+	/**
+	 * Adds an attachment with separate filename/resource name and MIME {@code Content-ID}.
+	 *
+	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
+	 *                                using {@link java.util.UUID}.
+	 * @param filedata                The attachment data.
+	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
+	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
+	 * @param contentId               Optional {@code Content-ID} value without angle brackets. If omitted, a safe unique value is generated.
+	 */
+	@Cli.ExcludeApi(reason = "this is advanced MIME metadata, so let's not crowd the CLI with it")
+	EmailPopulatingBuilder withAttachment(@Nullable String name, @NotNull DataSource filedata, @Nullable final String description,
+										  @Nullable final ContentTransferEncoding contentTransferEncoding, @Nullable final String contentId);
 
 	/**
 	 * Delegates to {@link #withAttachment(String, DataSource)} for each attachment.

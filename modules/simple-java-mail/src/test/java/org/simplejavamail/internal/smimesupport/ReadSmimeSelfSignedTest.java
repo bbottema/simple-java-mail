@@ -44,10 +44,8 @@ public class ReadSmimeSelfSignedTest {
 
 		assertThat(emailParsedFromMsg.getEmbeddedImages()).hasSize(1);
 		AttachmentResource embeddedImg = emailParsedFromMsg.getEmbeddedImages().get(0);
-		assertThat(embeddedImg.getName()).isEqualTo("part1.6C435E18.EC121991@bennybottema.com");
-		assertThat(embeddedImg.getDataSource().getName()).isEqualTo("module_architecture.png");
-		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo("image/png");
-		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getName()));
+		assertEmbeddedModuleArchitectureImage(embeddedImg, "part1.6C435E18.EC121991@bennybottema.com");
+		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getContentId()));
 
 		assertThat(emailParsedFromMsg.getAttachments()).hasSize(2);
 		assertThat(emailParsedFromMsg.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "03-07-2005 errata SharnErrata.pdf");
@@ -80,10 +78,8 @@ public class ReadSmimeSelfSignedTest {
 
 		assertThat(emailParsedFromEml.getEmbeddedImages()).hasSize(1);
 		AttachmentResource embeddedImg = emailParsedFromEml.getEmbeddedImages().get(0);
-		assertThat(embeddedImg.getName()).isEqualTo("part1.6C435E18.EC121991@bennybottema.com");
-		assertThat(embeddedImg.getDataSource().getName()).isEqualTo("module_architecture.png");
-		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo("image/png");
-		assertThat(emailParsedFromEml.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getName()));
+		assertEmbeddedModuleArchitectureImage(embeddedImg, "part1.6C435E18.EC121991@bennybottema.com");
+		assertThat(emailParsedFromEml.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getContentId()));
 
 		assertThat(emailParsedFromEml.getAttachments()).hasSize(2);
 		assertThat(emailParsedFromEml.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "03-07-2005 errata SharnErrata.pdf");
@@ -116,10 +112,8 @@ public class ReadSmimeSelfSignedTest {
 
 		assertThat(emailParsedFromMsg.getEmbeddedImages()).hasSize(1);
 		AttachmentResource embeddedImg = emailParsedFromMsg.getEmbeddedImages().get(0);
-		assertThat(embeddedImg.getName()).isEqualTo("part1.EDA02623.55A510EE@bennybottema.com");
-		assertThat(embeddedImg.getDataSource().getName()).isEqualTo("module_architecture.png");
-		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo("image/png");
-		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getName()));
+		assertEmbeddedModuleArchitectureImage(embeddedImg, "part1.EDA02623.55A510EE@bennybottema.com");
+		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getContentId()));
 
 		assertThat(emailParsedFromMsg.getAttachments()).hasSize(2);
 		assertThat(emailParsedFromMsg.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7m", "03-07-2005 errata SharnErrata.pdf");
@@ -150,10 +144,8 @@ public class ReadSmimeSelfSignedTest {
 
 		assertThat(emailParsedFromEml.getEmbeddedImages()).hasSize(1);
 		AttachmentResource embeddedImg = emailParsedFromEml.getEmbeddedImages().get(0);
-		assertThat(embeddedImg.getName()).isEqualTo("part1.EDA02623.55A510EE@bennybottema.com");
-		assertThat(embeddedImg.getDataSource().getName()).isEqualTo("module_architecture.png");
-		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo("image/png");
-		assertThat(emailParsedFromEml.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getName()));
+		assertEmbeddedModuleArchitectureImage(embeddedImg, "part1.EDA02623.55A510EE@bennybottema.com");
+		assertThat(emailParsedFromEml.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getContentId()));
 
 		assertThat(emailParsedFromEml.getAttachments()).hasSize(2);
 		assertThat(emailParsedFromEml.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7m", "03-07-2005 errata SharnErrata.pdf");
@@ -237,10 +229,8 @@ public class ReadSmimeSelfSignedTest {
 
 		assertThat(emailParsedFromMsg.getEmbeddedImages()).hasSize(1);
 		AttachmentResource embeddedImg = emailParsedFromMsg.getEmbeddedImages().get(0);
-		assertThat(embeddedImg.getName()).isEqualTo("part1.0B245DA7.F5872CD5@bennybottema.com");
-		assertThat(embeddedImg.getDataSource().getName()).isEqualTo("module_architecture.png");
-		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo("image/png");
-		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getName()));
+		assertEmbeddedModuleArchitectureImage(embeddedImg, "part1.0B245DA7.F5872CD5@bennybottema.com");
+		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getContentId()));
 
 		assertThat(emailParsedFromMsg.getAttachments()).hasSize(3);
 		assertThat(emailParsedFromMsg.getAttachments()).extracting("name")
@@ -268,5 +258,12 @@ public class ReadSmimeSelfSignedTest {
 		final String systemVariable = System.getenv(name);
 		assumeThat(systemVariable).as("system variable " + name).isNotNull();
 		return systemVariable;
+	}
+
+	private static void assertEmbeddedModuleArchitectureImage(final AttachmentResource embeddedImg, final String contentId) {
+		assertThat(embeddedImg.getName()).isEqualTo("module_architecture.png");
+		assertThat(embeddedImg.getContentId()).isEqualTo(contentId);
+		assertThat(embeddedImg.getDataSource().getName()).isEqualTo("module_architecture.png");
+		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo("image/png");
 	}
 }

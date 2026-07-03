@@ -17,7 +17,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
@@ -198,6 +197,6 @@ public class MimeMessageParserTest {
 
 		final Email fixedEmail = EmailConverter.emlToEmail(corruptedEML);
 
-		EmailAssert.assertThat(fixedEmail).hasOnlyRecipients(new Recipient("C.Cane", "candycane@candyshop.org", TO, null));
+		assertThat(fixedEmail.getRecipients()).containsOnly(new Recipient("C.Cane", "candycane@candyshop.org", TO, null));
 	}
 }

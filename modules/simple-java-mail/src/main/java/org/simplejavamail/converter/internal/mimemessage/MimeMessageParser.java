@@ -138,6 +138,7 @@ public final class MimeMessageParser {
 				.dataSource(ds)
 				.contentDescription(parseContentDescription(mimePart))
 				.contentTransferEncoding(parseContentTransferEncoding(mimePart))
+				.contentId(extractCID(contentId))
 				.build();
 	}
 
@@ -274,8 +275,8 @@ public final class MimeMessageParser {
 
 	@NotNull
 	private static String parseResourceName(@Nullable String possibleWrappedContentID, @NotNull String fileName) {
-		if (valueNullOrEmpty(fileName) && !valueNullOrEmpty(possibleWrappedContentID)) {
-			return possibleWrappedContentID.replaceAll("^<?(.*?)>?$", "$1"); // https://regex101.com/r/46ulb2/1
+		if ((valueNullOrEmpty(fileName) || "UnknownAttachment".equals(fileName)) && !valueNullOrEmpty(possibleWrappedContentID)) {
+			return extractCID(possibleWrappedContentID);
 		} else {
 			return fileName;
 		}
