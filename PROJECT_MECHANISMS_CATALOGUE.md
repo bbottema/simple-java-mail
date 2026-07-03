@@ -11,7 +11,7 @@ This catalogue records project mechanisms that are easy to miss because they spa
 | CLI generation from builder Javadocs | Turn builder API methods and Javadocs into picocli options and committed binary metadata. | [BuilderApiToPicocliCommandsMapper.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/BuilderApiToPicocliCommandsMapper.java), [CliSupport.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java), `modules/cli-module/src/main/resources/cli.data`, `modules/cli-module/src/main/resources/therapi.data` |
 | Async send and batch connection pooling | Reuse SMTP transports when the batch module is present; otherwise fall back to direct session transports. | [MailerImpl.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [TransportRunner.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java), [BatchSupport.java](modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java) |
 | Authenticated SOCKS proxy bridge | Work around JavaMail's anonymous-only SOCKS support by running a local anonymous bridge to an authenticated remote proxy. | [MailerImpl.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [AnonymousSocks5Server.java](modules/core-module/src/main/java/org/simplejavamail/api/internal/authenticatedsockssupport/socks5server/AnonymousSocks5Server.java), [AuthenticatedSocksHelper.java](modules/authenticated-socks-module/src/main/java/org/simplejavamail/internal/authenticatedsockssupport/AuthenticatedSocksHelper.java) |
-| Smart MIME structure selection | Choose the least complex RFC-compatible MIME structure for the actual email contents. | [MimeMessageProducerHelper.java](modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/MimeMessageProducerHelper.java), [SpecializedMimeMessageProducer.java](modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/SpecializedMimeMessageProducer.java) |
+| Smart MIME structure selection | Choose the least complex RFC-compatible MIME structure for the actual email contents. | [MimeMessageProducerHelper.java](modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/MimeMessageProducerHelper.java), [SpecializedMimeMessageProducer.java](modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/SpecializedMimeMessageProducer.java), [MIME_RESOURCE_NAMING_REPORT.md](MIME_RESOURCE_NAMING_REPORT.md) |
 | Runtime non-null instrumentation | Preserve and enforce JetBrains nullability contracts through build-time bytecode instrumentation. | [pom.xml](pom.xml), `org.jetbrains.annotations.NotNull`, `org.jetbrains.annotations.Nullable` |
 
 ## API Expansion Workflow
@@ -128,6 +128,8 @@ The selector computes three content dimensions in [SpecializedMimeMessageProduce
 - Mixed content: attachments or forwarded email.
 - Related content: embedded images.
 - Alternative content: more than one body variant among plain text, HTML, and calendar text.
+
+Resource naming, embedded image `cid:` values, attachment filenames, duplicate attachment names, and parse-side inline/attachment classification have their own focused history report in [MIME_RESOURCE_NAMING_REPORT.md](MIME_RESOURCE_NAMING_REPORT.md).
 
 Those booleans map to eight producers:
 
