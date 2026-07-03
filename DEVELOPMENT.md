@@ -3,6 +3,8 @@
 This document records environment requirements and constraints for building Simple Java Mail.
 It is intended for both human developers and coding agents starting new sessions.
 
+For a catalogue of cross-cutting project mechanisms, see [PROJECT_MECHANISMS_CATALOGUE.md](PROJECT_MECHANISMS_CATALOGUE.md).
+
 ---
 
 ## Java Version
@@ -45,7 +47,7 @@ the rest of the system may need Java 21 — Simple Java Mail is the exception, n
 Standard full build (skipping tests and slow checks):
 
 ```powershell
-mvn verify -DskipTests -Dspotbugs.skip=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Dlicense.skip=true
+mvn verify -DskipTests -Dmaven.javadoc.skip=true
 ```
 
 After any build that ran `license:format`, clean up auto-generated headers before committing:

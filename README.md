@@ -14,6 +14,12 @@ The Simple Java Mail library is a thin layer on top of [Angus Mail](https://ecli
 
 ### [simplejavamail.org](https://www.simplejavamail.org) ###
 
+Developer documentation:
+
+- [Project mechanisms catalogue](PROJECT_MECHANISMS_CATALOGUE.md) for optional module loading, CLI metadata generation, MIME selection, proxy bridging, concurrency, and non-null instrumentation.
+- [API expansion workflow](API_EXPANSION_WORKFLOW.md) for adding public API fields or builder methods.
+- [Developer environment setup](DEVELOPMENT.md) for JDK and build constraints.
+
 Simple Java Mail is available in [Maven Central](https://search.maven.org/search?q=g:org.simplejavamail):
 
 ```xml
