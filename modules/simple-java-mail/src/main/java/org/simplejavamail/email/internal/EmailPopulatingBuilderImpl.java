@@ -18,6 +18,7 @@ import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
@@ -49,6 +50,7 @@ import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static java.util.regex.Matcher.quoteReplacement;
@@ -125,6 +127,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Nullable
 	private Recipient bounceToRecipient;
+
+	/**
+	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Nullable
+	private DeliveryStatusNotification deliveryStatusNotification;
 
 	/**
 	 * @see #withSubject(String)
@@ -669,6 +677,78 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withBounceTo(@Nullable final Recipient recipient) {
 		this.bounceToRecipient = recipient != null ? new Recipient(recipient.getName(), recipient.getAddress(), null, null) : null;
 		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailPopulatingBuilder withDeliveryStatusNotification(@Nullable final DeliveryStatusNotification deliveryStatusNotification) {
+		this.deliveryStatusNotification = deliveryStatusNotification;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification.ReturnOption, DeliveryStatusNotification.NotifyOption...)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailPopulatingBuilder withDeliveryStatusNotification(@Nullable final DeliveryStatusNotification.ReturnOption returnOption,
+			@NotNull final DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) {
+		return withDeliveryStatusNotification(DeliveryStatusNotification.of(returnOption, notifyOptions));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification.NotifyOption...)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailPopulatingBuilder withDeliveryStatusNotification(@NotNull final DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) {
+		return withDeliveryStatusNotificationNotifyOptions(notifyOptions);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(
+			@NotNull final DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) {
+		return withDeliveryStatusNotification(DeliveryStatusNotification.of(
+				deliveryStatusNotification != null ? deliveryStatusNotification.getReturnOption() : null,
+				notifyOptions));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull final String notifyOptions) {
+		final Set<DeliveryStatusNotification.NotifyOption> parsedNotifyOptions = DeliveryStatusNotification.parseNotifyOptions(notifyOptions);
+		return withDeliveryStatusNotificationNotifyOptions(parsedNotifyOptions.toArray(new DeliveryStatusNotification.NotifyOption[parsedNotifyOptions.size()]));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@Nullable final DeliveryStatusNotification.ReturnOption returnOption) {
+		if (returnOption == null && (deliveryStatusNotification == null || deliveryStatusNotification.getNotifyOptions().isEmpty())) {
+			deliveryStatusNotification = null;
+			return this;
+		}
+		return withDeliveryStatusNotification(DeliveryStatusNotification.of(returnOption,
+				deliveryStatusNotification != null ? deliveryStatusNotification.getNotifyOptions() : emptySet()));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@NotNull final String returnOption) {
+		return withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.parseReturnOption(returnOption));
 	}
 
 	/**
@@ -2177,7 +2257,16 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		this.bounceToRecipient = null;
 		return this;
 	}
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#clearDeliveryStatusNotification()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearDeliveryStatusNotification() {
+		this.deliveryStatusNotification = null;
+		return this;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#clearPlainText()
 	 */
@@ -2450,7 +2539,16 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public Recipient getBounceToRecipient() {
 		return bounceToRecipient;
 	}
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#getDeliveryStatusNotification()
+	 */
+	@Override
+	@Nullable
+	public DeliveryStatusNotification getDeliveryStatusNotification() {
+		return deliveryStatusNotification;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#getText()
 	 */

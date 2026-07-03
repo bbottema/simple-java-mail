@@ -3,8 +3,11 @@ package org.simplejavamail.converter.internal.mimemessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import org.eclipse.angus.mail.smtp.SMTPMessage;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.mailer.internal.util.MessageIdFixingMimeMessage;
 
@@ -113,12 +116,57 @@ public abstract class SpecializedMimeMessageProducer {
 			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(email, message, email.getDkimConfig(), checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
 		}
 
-		if (email.getBounceToRecipient() != null) {
+		if (email.getBounceToRecipient() != null || email.getDeliveryStatusNotification() != null) {
 			// display name not applicable: https://tools.ietf.org/html/rfc5321#section-4.1.2
-			message = new ImmutableDelegatingSMTPMessage(message, email.getBounceToRecipient().getAddress());
+			message = new ImmutableDelegatingSMTPMessage(message,
+					email.getBounceToRecipient() != null ? email.getBounceToRecipient().getAddress() : null,
+					toSmtpNotifyOptions(email.getDeliveryStatusNotification()),
+					toSmtpReturnOption(email.getDeliveryStatusNotification()));
 		}
 
 		return message;
+	}
+
+	@Nullable
+	private static Integer toSmtpNotifyOptions(@Nullable final DeliveryStatusNotification deliveryStatusNotification) {
+		if (deliveryStatusNotification == null || deliveryStatusNotification.getNotifyOptions().isEmpty()) {
+			return null;
+		}
+		if (deliveryStatusNotification.getNotifyOptions().contains(DeliveryStatusNotification.NotifyOption.NEVER)) {
+			return SMTPMessage.NOTIFY_NEVER;
+		}
+		int smtpNotifyOptions = 0;
+		for (final DeliveryStatusNotification.NotifyOption notifyOption : deliveryStatusNotification.getNotifyOptions()) {
+			switch (notifyOption) {
+				case SUCCESS:
+					smtpNotifyOptions |= SMTPMessage.NOTIFY_SUCCESS;
+					break;
+				case FAILURE:
+					smtpNotifyOptions |= SMTPMessage.NOTIFY_FAILURE;
+					break;
+				case DELAY:
+					smtpNotifyOptions |= SMTPMessage.NOTIFY_DELAY;
+					break;
+				default:
+					throw new AssertionError("Unsupported DSN notify option: " + notifyOption);
+			}
+		}
+		return smtpNotifyOptions;
+	}
+
+	@Nullable
+	private static Integer toSmtpReturnOption(@Nullable final DeliveryStatusNotification deliveryStatusNotification) {
+		if (deliveryStatusNotification == null || deliveryStatusNotification.getReturnOption() == null) {
+			return null;
+		}
+		switch (deliveryStatusNotification.getReturnOption()) {
+			case FULL_MESSAGE:
+				return SMTPMessage.RETURN_FULL;
+			case HEADERS_ONLY:
+				return SMTPMessage.RETURN_HDRS;
+			default:
+				throw new AssertionError("Unsupported DSN return option: " + deliveryStatusNotification.getReturnOption());
+		}
 	}
 
 	abstract void populateMimeMessageMultipartStructure(MimeMessage  message, Email email) throws MessagingException;

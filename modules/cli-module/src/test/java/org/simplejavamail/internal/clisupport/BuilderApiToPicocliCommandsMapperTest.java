@@ -1,6 +1,8 @@
 package org.simplejavamail.internal.clisupport;
 
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +11,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
+import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.methodIsCliCompatible;
 
 public class BuilderApiToPicocliCommandsMapperTest {
 	
@@ -67,5 +70,14 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		assertThat(BuilderApiToPicocliCommandsMapper.extractJavadocDescription(description + example)).isEqualTo(description);
 		assertThat(BuilderApiToPicocliCommandsMapper.extractJavadocExamples(description)).isEqualTo(new String[0]);
 		assertThat(BuilderApiToPicocliCommandsMapper.extractJavadocExamples(description + example)).containsExactly("lolly.pop@pretzelfun.com");
+	}
+
+	@Test
+	public void deliveryStatusNotificationBuilderApiKeepsOnlyStringMethodsCliCompatible() throws Exception {
+		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", String.class)).isCompatible()).isTrue();
+		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", String.class)).isCompatible()).isTrue();
+		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotification", DeliveryStatusNotification.class)).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", DeliveryStatusNotification.NotifyOption[].class)).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", DeliveryStatusNotification.ReturnOption.class)).isCompatible()).isFalse();
 	}
 }

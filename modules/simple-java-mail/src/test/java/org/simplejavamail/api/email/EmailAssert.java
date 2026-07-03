@@ -3,6 +3,7 @@ package org.simplejavamail.api.email;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 
@@ -40,6 +41,12 @@ public class EmailAssert extends AbstractAssert<EmailAssert, Email> {
 	public EmailAssert hasBounceToRecipient(final Recipient bounceToRecipient) {
 		isNotNull();
 		Assertions.assertThat(actual.getBounceToRecipient()).as("bounceToRecipient").isEqualTo(bounceToRecipient);
+		return this;
+	}
+
+	public EmailAssert hasDeliveryStatusNotification(final DeliveryStatusNotification deliveryStatusNotification) {
+		isNotNull();
+		Assertions.assertThat(actual.getDeliveryStatusNotification()).as("deliveryStatusNotification").isEqualTo(deliveryStatusNotification);
 		return this;
 	}
 

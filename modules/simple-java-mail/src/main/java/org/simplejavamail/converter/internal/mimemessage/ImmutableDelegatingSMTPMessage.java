@@ -47,9 +47,32 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 	private final MimeMessage delegate;
 
 	ImmutableDelegatingSMTPMessage(@NotNull final MimeMessage delegate, @Nullable final String envelopeFrom) {
+		this(delegate, envelopeFrom, null, null);
+	}
+
+	ImmutableDelegatingSMTPMessage(@NotNull final MimeMessage delegate, @Nullable final String envelopeFrom,
+			@Nullable final Integer notifyOptions, @Nullable final Integer returnOption) {
 		super((Session) null);
 		this.delegate = delegate;
 		super.setEnvelopeFrom(envelopeFrom);
+		primeNotifyOptions(notifyOptions);
+		primeReturnOption(returnOption);
+	}
+
+	private void primeNotifyOptions(@Nullable final Integer notifyOptions) {
+		if (notifyOptions != null) {
+			super.setNotifyOptions(notifyOptions);
+		} else if (delegate instanceof SMTPMessage) {
+			super.setNotifyOptions(((SMTPMessage) delegate).getNotifyOptions());
+		}
+	}
+
+	private void primeReturnOption(@Nullable final Integer returnOption) {
+		if (returnOption != null) {
+			super.setReturnOption(returnOption);
+		} else if (delegate instanceof SMTPMessage) {
+			super.setReturnOption(((SMTPMessage) delegate).getReturnOption());
+		}
 	}
 
 	@NotNull
@@ -81,12 +104,12 @@ public class ImmutableDelegatingSMTPMessage extends SMTPMessage {
 
 	@Override
 	public int getNotifyOptions() {
-		return (delegate instanceof SMTPMessage) ? ((SMTPMessage) delegate).getNotifyOptions() : 0;
+		return super.getNotifyOptions();
 	}
 
 	@Override
 	public int getReturnOption() {
-		return (delegate instanceof SMTPMessage) ? ((SMTPMessage) delegate).getReturnOption() : 0;
+		return super.getReturnOption();
 	}
 
 	@Override

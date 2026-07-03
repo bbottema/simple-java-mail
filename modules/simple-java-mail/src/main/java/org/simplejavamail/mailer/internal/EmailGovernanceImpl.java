@@ -13,6 +13,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
@@ -39,6 +40,8 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CALENDAR_T
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING;
@@ -141,6 +144,12 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		}
 		if (hasProperty(DEFAULT_BOUNCETO_ADDRESS)) {
 			allDefaults.withBounceTo(getStringProperty(DEFAULT_BOUNCETO_NAME), verifyNonnullOrEmpty(getStringProperty(DEFAULT_BOUNCETO_ADDRESS)));
+		}
+		if (hasProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)) {
+			allDefaults.withDeliveryStatusNotificationNotifyOptions(verifyNonnullOrEmpty(getStringProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)));
+		}
+		if (hasProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)) {
+			allDefaults.withDeliveryStatusNotificationReturnOption(verifyNonnullOrEmpty(getStringProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)));
 		}
 		if (hasProperty(DEFAULT_TO_ADDRESS)) {
 			if (hasProperty(DEFAULT_TO_NAME)) {
@@ -284,6 +293,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		ofNullable(this.<SmimeEncryptionConfig>resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG)).ifPresent(builder::encryptWithSmime);
 		ofNullable(this.<DkimConfig>resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG)).ifPresent(builder::signWithDomainKey);
 		builder.withBounceTo(this.<Recipient>resolveEmailProperty(provided, EmailProperty.BOUNCETO_RECIPIENT));
+		ofNullable(this.<DeliveryStatusNotification>resolveEmailProperty(provided, EmailProperty.DELIVERY_STATUS_NOTIFICATION)).ifPresent(builder::withDeliveryStatusNotification);
 		ofNullable(this.<Date>resolveEmailProperty(provided, EmailProperty.SENT_DATE)).ifPresent(builder::fixingSentDate);
 		builder.fixingMessageId(resolveEmailProperty(provided, EmailProperty.ID));
 

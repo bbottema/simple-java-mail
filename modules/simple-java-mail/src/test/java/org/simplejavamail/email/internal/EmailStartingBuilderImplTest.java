@@ -6,6 +6,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
@@ -18,6 +19,9 @@ import java.util.Random;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.DELAY;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
 
 public class EmailStartingBuilderImplTest {
 
@@ -66,6 +70,7 @@ public class EmailStartingBuilderImplTest {
 				.withAttachment("mooxt", "attachment content".getBytes(), "text/plain")
 				.withEmbeddedImage("mooxt", "attachment content".getBytes(), "text/plain")
 				.withBounceTo("bounce@bouncy.com")
+				.withDeliveryStatusNotification(HEADERS_ONLY, FAILURE, DELAY)
 				.withDispositionNotificationTo("noti@notify.com")
 				.withHeader("header 1", "value 1")
 				.withHeader("header 2", new Random())
@@ -104,5 +109,7 @@ public class EmailStartingBuilderImplTest {
 
 		EmailAssert.assertThat(copiedEmail).isEqualTo(fullyPopulatedEmail);
 		assertThat(copiedEmail).isEqualToComparingFieldByFieldRecursively(fullyPopulatedEmail);
+		assertThat(copiedEmail.getDeliveryStatusNotification())
+				.isEqualTo(DeliveryStatusNotification.of(HEADERS_ONLY, FAILURE, DELAY));
 	}
 }

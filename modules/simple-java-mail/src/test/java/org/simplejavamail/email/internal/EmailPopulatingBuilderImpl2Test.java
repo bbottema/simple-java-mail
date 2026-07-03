@@ -32,6 +32,9 @@ import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BINARY;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.api.email.ContentTransferEncoding.QUOTED_PRINTABLE;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.DELAY;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
@@ -40,6 +43,8 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CALENDAR_T
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING;
@@ -199,6 +204,19 @@ public class EmailPopulatingBuilderImpl2Test {
 		assertThat(email.getPlainTextContentTransferEncoding()).isEqualTo(BIT7);
 		assertThat(email.getHTMLTextContentTransferEncoding()).isEqualTo(BINARY);
 		assertThat(email.getCalendarTextContentTransferEncoding()).isEqualTo(BIT7);
+	}
+
+	@Test
+	public void testConstructorApplyingPreconfiguredDeliveryStatusNotificationDefaults() throws Exception {
+		Map<Property, Object> value = new HashedMap<>();
+		value.put(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY, "FAILURE,DELAY");
+		value.put(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION, "HEADERS_ONLY");
+
+		ConfigLoaderTestHelper.setResolvedProperties(value);
+
+		assertThat(EmailBuilder.startingBlank().buildEmail().getDeliveryStatusNotification()).isNull();
+		assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides().getDeliveryStatusNotification())
+				.isEqualTo(org.simplejavamail.api.email.config.DeliveryStatusNotification.of(HEADERS_ONLY, FAILURE, DELAY));
 	}
 
 	@Test

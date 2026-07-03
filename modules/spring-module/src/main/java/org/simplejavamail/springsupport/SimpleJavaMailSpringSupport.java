@@ -52,6 +52,8 @@ import java.util.Properties;
  * <li>simplejavamail.defaults.replyto.address</li>
  * <li>simplejavamail.defaults.bounceto.name</li>
  * <li>simplejavamail.defaults.bounceto.address</li>
+ * <li>simplejavamail.defaults.delivery.status.notification.notify</li>
+ * <li>simplejavamail.defaults.delivery.status.notification.return.option</li>
  * <li>simplejavamail.defaults.to.name</li>
  * <li>simplejavamail.defaults.to.address</li>
  * <li>simplejavamail.defaults.cc.name</li>
@@ -153,6 +155,8 @@ public class SimpleJavaMailSpringSupport {
 				@Nullable @Value("${simplejavamail.defaults.replyto.address:#{null}}") final String defaultReplytoAddress,
 				@Nullable @Value("${simplejavamail.defaults.bounceto.name:#{null}}") final String defaultBouncetoName,
 				@Nullable @Value("${simplejavamail.defaults.bounceto.address:#{null}}") final String defaultBouncetoAddress,
+				@Nullable @Value("${simplejavamail.defaults.delivery.status.notification.notify:#{null}}") final String defaultDeliveryStatusNotificationNotify,
+				@Nullable @Value("${simplejavamail.defaults.delivery.status.notification.return.option:#{null}}") final String defaultDeliveryStatusNotificationReturnOption,
 				@Nullable @Value("${simplejavamail.defaults.to.name:#{null}}") final String defaultToName,
 				@Nullable @Value("${simplejavamail.defaults.to.address:#{null}}") final String defaultToAddress,
 				@Nullable @Value("${simplejavamail.defaults.cc.name:#{null}}") final String defaultCcName,
@@ -235,6 +239,8 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_REPLYTO_ADDRESS.key(), defaultReplytoAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_BOUNCETO_NAME.key(), defaultBouncetoName);
 		setNullableProperty(emailProperties, Property.DEFAULT_BOUNCETO_ADDRESS.key(), defaultBouncetoAddress);
+		setNullableProperty(emailProperties, Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY.key(), defaultDeliveryStatusNotificationNotify);
+		setNullableProperty(emailProperties, Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION.key(), defaultDeliveryStatusNotificationReturnOption);
 		setNullableProperty(emailProperties, Property.DEFAULT_TO_NAME.key(), defaultToName);
 		setNullableProperty(emailProperties, Property.DEFAULT_TO_ADDRESS.key(), defaultToAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_CC_NAME.key(), defaultCcName);

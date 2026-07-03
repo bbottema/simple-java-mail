@@ -4,6 +4,7 @@ import jakarta.activation.DataSource;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
@@ -192,6 +193,12 @@ public class Email implements Serializable {
 	private final Recipient returnReceiptTo;
 
 	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Nullable
+	private final DeliveryStatusNotification deliveryStatusNotification;
+
+	/**
 	 * @see EmailPopulatingBuilder#withOverrideReceivers(Recipient...)
 	 */
 	private final List<Recipient> overrideReceivers;
@@ -291,6 +298,7 @@ public class Email implements Serializable {
 		dispositionNotificationTo = builder.getDispositionNotificationTo();
 		useReturnReceiptTo = builder.getUseReturnReceiptTo();
 		returnReceiptTo = builder.getReturnReceiptTo();
+		deliveryStatusNotification = builder.getDeliveryStatusNotification();
 		overrideReceivers = builder.getOverrideReceivers();
 		emailToForward = builder.getEmailToForward();
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
@@ -338,6 +346,9 @@ public class Email implements Serializable {
 		if (TRUE.equals(useReturnReceiptTo)) {
 			s += ",\n\tuseReturnReceiptTo=" + true +
 					",\n\t\treturnReceiptTo=" + returnReceiptTo;
+		}
+		if (!MiscUtil.valueNullOrEmpty(deliveryStatusNotification)) {
+			s += ",\n\tdeliveryStatusNotification=" + deliveryStatusNotification;
 		}
 		if (!overrideReceivers.isEmpty()) {
 			s += ",\n\toverrideReceivers=" + true +
@@ -501,6 +512,14 @@ public class Email implements Serializable {
 	@Nullable
 	public Recipient getReturnReceiptTo() {
 		return returnReceiptTo;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Nullable
+	public DeliveryStatusNotification getDeliveryStatusNotification() {
+		return deliveryStatusNotification;
 	}
 	
 	/**

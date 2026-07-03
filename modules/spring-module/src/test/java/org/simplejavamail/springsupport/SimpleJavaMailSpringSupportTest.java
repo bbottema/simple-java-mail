@@ -17,6 +17,8 @@ public abstract class SimpleJavaMailSpringSupportTest {
         assertThat(getProperty(ConfigLoader.Property.DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)).isEqualTo("7bit"); // from normal simplejavamail.properties
         assertThat(getProperty(ConfigLoader.Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING)).isEqualTo("binary"); // from Spring application.properties
         assertThat(getProperty(ConfigLoader.Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)).isEqualTo("base64"); // from normal simplejavamail.properties
+        assertThat(getProperty(ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)).isEqualTo("FAILURE,DELAY"); // from normal simplejavamail.properties
+        assertThat(getProperty(ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)).isEqualTo("HEADERS_ONLY"); // from Spring application.properties
         assertThat(getProperty(ConfigLoader.Property.DKIM_SELECTOR)).isEqualTo(null); // not set in any properties
 
         Map<String, String> loaded = ConfigLoader.getProperty(EXTRA_PROPERTIES);

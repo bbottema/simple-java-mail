@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.simplejavamail.api.email.ContentTransferEncoding;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader.Property;
 import testutil.ConfigLoaderTestHelper;
@@ -17,6 +18,8 @@ import java.util.Properties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BINARY;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
@@ -24,6 +27,8 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
@@ -168,6 +173,8 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.parsePropertyValue("yesno")).isEqualTo("yesno");
 		assertThat(ConfigLoader.parsePropertyValue("SMTP")).isEqualTo(TransportStrategy.SMTP);
 		assertThat(ConfigLoader.parsePropertyValue("SMTP_TLS")).isEqualTo(TransportStrategy.SMTP_TLS);
+		assertThat(ConfigLoader.parsePropertyValue("FAILURE")).isEqualTo(FAILURE);
+		assertThat(ConfigLoader.parsePropertyValue("HEADERS_ONLY")).isEqualTo(HEADERS_ONLY);
 	}
 
 	@Test
@@ -217,7 +224,9 @@ public class ConfigLoaderTest {
 		String s1 = "simplejavamail.javaxmail.debug=true\n"
 					+ "simplejavamail.transportstrategy=SMTPS";
 		String s2 = "simplejavamail.defaults.to.name=To Default\n"
-					+ "simplejavamail.defaults.to.address=to@default.com";
+					+ "simplejavamail.defaults.to.address=to@default.com\n"
+					+ "simplejavamail.defaults.delivery.status.notification.notify=FAILURE,DELAY\n"
+					+ "simplejavamail.defaults.delivery.status.notification.return.option=HEADERS_ONLY";
 
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s1.getBytes()), false);
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s2.getBytes()), true);
@@ -228,6 +237,8 @@ public class ConfigLoaderTest {
 		// now check if the extra properties were added
 		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
 		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_ADDRESS)).isEqualTo("to@default.com");
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)).isEqualTo("FAILURE,DELAY");
+		assertThat(ConfigLoader.<DeliveryStatusNotification.ReturnOption>getProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)).isEqualTo(HEADERS_ONLY);
 	}
 
 	@Test

@@ -9,6 +9,7 @@ import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
@@ -263,6 +264,86 @@ public interface EmailPopulatingBuilder {
 	 * @see #withBounceTo(String, String)
 	 */
 	EmailPopulatingBuilder withBounceTo(@Nullable Recipient recipient);
+
+	/**
+	 * Sets the SMTP Delivery Status Notification (DSN) options for this email.
+	 * <p>
+	 * These options are passed to the SMTP transport as NOTIFY and RET parameters. They are transport-level options rather
+	 * than message headers, so they only take effect when the receiving SMTP server supports DSN.
+	 *
+	 * @param deliveryStatusNotification DSN options, or {@code null} to clear them.
+	 *
+	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification.ReturnOption, DeliveryStatusNotification.NotifyOption...)
+	 * @see #withDeliveryStatusNotificationNotifyOptions(String)
+	 * @see #withDeliveryStatusNotificationReturnOption(String)
+	 */
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	EmailPopulatingBuilder withDeliveryStatusNotification(@Nullable DeliveryStatusNotification deliveryStatusNotification);
+
+	/**
+	 * Sets the SMTP DSN return option and notification events for this email.
+	 *
+	 * @param returnOption Determines whether the server should return the full message or only headers in the DSN report.
+	 * @param notifyOptions Determines which delivery events should trigger a DSN report.
+	 *
+	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	EmailPopulatingBuilder withDeliveryStatusNotification(@Nullable DeliveryStatusNotification.ReturnOption returnOption,
+			@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions);
+
+	/**
+	 * Sets the SMTP DSN notification events for this email, leaving any already configured return option untouched.
+	 *
+	 * @param notifyOptions Determines which delivery events should trigger a DSN report.
+	 *
+	 * @see #withDeliveryStatusNotificationNotifyOptions(String)
+	 */
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	EmailPopulatingBuilder withDeliveryStatusNotification(@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions);
+
+	/**
+	 * Sets the SMTP DSN notification events for this email, leaving any already configured return option untouched.
+	 *
+	 * @param notifyOptions Determines which delivery events should trigger a DSN report.
+	 *
+	 * @see #withDeliveryStatusNotificationNotifyOptions(String)
+	 */
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions);
+
+	/**
+	 * Sets the SMTP DSN notification events for this email, leaving any already configured return option untouched.
+	 * <p>
+	 * Accepts comma or semicolon separated values. Valid values are {@code SUCCESS}, {@code FAILURE}, {@code DELAY}, and
+	 * {@code NEVER}. {@code NEVER} cannot be combined with other values.
+	 *
+	 * @param notifyOptions String representation of one or more DSN notification events, for example {@code "FAILURE,DELAY"}.
+	 *
+	 * @see DeliveryStatusNotification#parseNotifyOptions(String)
+	 */
+	EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull String notifyOptions);
+
+	/**
+	 * Sets the SMTP DSN return option for this email, leaving any already configured notification events untouched.
+	 *
+	 * @param returnOption Determines whether the server should return the full message or only headers in the DSN report.
+	 *
+	 * @see #withDeliveryStatusNotificationReturnOption(String)
+	 */
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@Nullable DeliveryStatusNotification.ReturnOption returnOption);
+
+	/**
+	 * Sets the SMTP DSN return option for this email, leaving any already configured notification events untouched.
+	 * <p>
+	 * Accepts {@code FULL_MESSAGE}, {@code HEADERS_ONLY}, and their SMTP equivalents {@code FULL} and {@code HDRS}.
+	 *
+	 * @param returnOption String representation of the DSN return option.
+	 *
+	 * @see DeliveryStatusNotification#parseReturnOption(String)
+	 */
+	EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@NotNull String returnOption);
 
 	/**
 	 * Sets the optional subject of this email.
@@ -1529,6 +1610,12 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearBounceTo();
 
 	/**
+	 * Resets <em>deliveryStatusNotification</em> to empty.
+	 */
+	@SuppressWarnings("unused")
+	EmailPopulatingBuilder clearDeliveryStatusNotification();
+
+	/**
 	 * Resets <em>text</em> to empty.
 	 */
 	EmailPopulatingBuilder clearPlainText();
@@ -1707,6 +1794,12 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Nullable
 	Recipient getBounceToRecipient();
+
+	/**
+	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Nullable
+	DeliveryStatusNotification getDeliveryStatusNotification();
 
 	/**
 	 * @see #withPlainText(String)

@@ -98,6 +98,9 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getDispositionNotificationTo(), email2.getDispositionNotificationTo(), "dispositionNotificationTo")) {
             return false;
         }
+        if (!fieldIsEqual(email1.getDeliveryStatusNotification(), email2.getDeliveryStatusNotification(), "deliveryStatusNotification")) {
+            return false;
+        }
         if (!fieldIsEqual(email1.getOriginalSmimeDetails(), email2.getOriginalSmimeDetails(), "originalSmimeDetails")) {
             return false;
         }
