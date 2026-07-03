@@ -9,6 +9,8 @@ import org.apache.poi.ss.formula.functions.T;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
@@ -16,6 +18,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
@@ -26,10 +29,17 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 public class ResultHandlingTest {
 
@@ -163,6 +173,60 @@ public class ResultHandlingTest {
 		assertThat(exceptionHandlerInvoked).hasValue(true);
 	}
 
+	@Test
+	public void testConnectionShouldUseBuilderAsyncDefault() throws Exception {
+		final BlockingTestConnectionMailer blockingMailer = new BlockingTestConnectionMailer();
+		final Mailer mailer = MailerBuilder
+				.withSMTPServer("localhost", 0)
+				.withCustomMailer(blockingMailer)
+				.async()
+				.buildMailer();
+
+		assertNoArgTestConnectionReturnsBeforeCustomConnectionTestCompletes(mailer, blockingMailer);
+	}
+
+	@Test
+	public void testConnectionShouldUseBuiltInAsyncFallbackWithoutBatchModule() throws Exception {
+		try (MockedStatic<ModuleLoader> moduleLoaderMockedStatic = mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+			moduleLoaderMockedStatic.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
+
+			final BlockingTestConnectionMailer blockingMailer = new BlockingTestConnectionMailer();
+			final Mailer mailer = MailerBuilder
+					.withSMTPServer("localhost", 0)
+					.withCustomMailer(blockingMailer)
+					.async()
+					.buildMailer();
+
+			assertNoArgTestConnectionReturnsBeforeCustomConnectionTestCompletes(mailer, blockingMailer);
+
+			moduleLoaderMockedStatic.verify(ModuleLoader::loadBatchModule, never());
+		}
+	}
+
+	private void assertNoArgTestConnectionReturnsBeforeCustomConnectionTestCompletes(final Mailer mailer, final BlockingTestConnectionMailer blockingMailer) throws Exception {
+		final ExecutorService caller = Executors.newSingleThreadExecutor();
+		Future<?> testConnectionCall = null;
+
+		try {
+			testConnectionCall = caller.submit(new Runnable() {
+				@Override
+				public void run() {
+					mailer.testConnection();
+				}
+			});
+
+			assertThat(blockingMailer.awaitConnectionTestStarted()).isTrue();
+			assertThat(testConnectionCall.get(250, TimeUnit.MILLISECONDS)).isNull();
+		} finally {
+			blockingMailer.releaseConnectionTest();
+			if (testConnectionCall != null) {
+				testConnectionCall.get(2, TimeUnit.SECONDS);
+			}
+			caller.shutdownNow();
+			mailer.close();
+		}
+	}
+
 	@NotNull
 	private CompletableFuture<Void> sendAsyncMailUsingMailerAPI(boolean sendSuccesfully) {
 		final boolean async = true;
@@ -205,6 +269,36 @@ public class ResultHandlingTest {
 			if (!shouldSendSuccesfully) {
 				throw new RuntimeException("simulating fail...");
 			}
+		}
+	}
+
+	private static class BlockingTestConnectionMailer implements CustomMailer {
+		private final CountDownLatch connectionTestStarted = new CountDownLatch(1);
+		private final CountDownLatch releaseConnectionTest = new CountDownLatch(1);
+
+		boolean awaitConnectionTestStarted() throws InterruptedException {
+			return connectionTestStarted.await(2, TimeUnit.SECONDS);
+		}
+
+		void releaseConnectionTest() {
+			releaseConnectionTest.countDown();
+		}
+
+		@Override
+		public void testConnection(@NotNull final OperationalConfig operationalConfig, @NotNull final Session session) {
+			connectionTestStarted.countDown();
+			try {
+				if (!releaseConnectionTest.await(5, TimeUnit.SECONDS)) {
+					throw new AssertionError("Timed out waiting to release blocked connection test");
+				}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @NotNull MimeMessage message) {
 		}
 	}
 

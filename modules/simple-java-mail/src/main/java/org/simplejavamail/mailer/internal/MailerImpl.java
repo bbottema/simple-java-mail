@@ -306,7 +306,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	public void testConnection() {
-		this.testConnection(false);
+		this.testConnection(getOperationalConfig().isAsync());
 	}
 
 	/**
@@ -319,10 +319,12 @@ public class MailerImpl implements Mailer {
 		if (!async) {
 			testConnectionClosure.run();
 			return CompletableFuture.completedFuture(null);
-		} else {
-			return ModuleLoader.loadBatchModule()
-					.executeAsync("testSMTPConnection process", testConnectionClosure);
-		}
+		} else
+			return ModuleLoader.batchModuleAvailable()
+					? ModuleLoader.loadBatchModule()
+						.executeAsync(operationalConfig.getExecutorService(), "testSMTPConnection process", testConnectionClosure)
+					: AsyncOperationHelper
+						.executeAsync(operationalConfig.getExecutorService(), "testSMTPConnection process", testConnectionClosure);
 	}
 
 	/**
