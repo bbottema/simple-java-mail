@@ -40,6 +40,7 @@ Unreleased 8.13.0
 
 - [#297](https://github.com/bbottema/simple-java-mail/issues/297): Added per-recipient S/MIME certificates, enabling encrypted mail for multiple recipients with different certificates.
 - [#613](https://github.com/bbottema/simple-java-mail/issues/613): Added a dedicated recipient builder API for constructing single recipients and recipient collections.
+- [#614](https://github.com/bbottema/simple-java-mail/issues/614): Added explicit Outlook conversion result APIs for inspecting source `.msg` headers and metadata without copying structural headers into converted emails, resolving [#609](https://github.com/bbottema/simple-java-mail/issues/609).
 - Dependency maintenance: bumped Kryo to 5.6.2 ([#586](https://github.com/bbottema/simple-java-mail/pull/586)), Zip4j to 2.11.5 ([#587](https://github.com/bbottema/simple-java-mail/pull/587)), SubEthaSMTP to 7.1.7 ([#593](https://github.com/bbottema/simple-java-mail/pull/593)), and Angus Mail to 2.0.4 ([#604](https://github.com/bbottema/simple-java-mail/pull/604)).
 - Build and test maintenance: bumped Maven Surefire Plugin to 3.5.3 ([#592](https://github.com/bbottema/simple-java-mail/pull/592)) and aligned JUnit Platform/Jupiter at 1.13.0/5.13.0 while preserving Java 8 compatibility ([#596](https://github.com/bbottema/simple-java-mail/pull/596)).
 

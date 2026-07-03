@@ -12,6 +12,7 @@ import org.simplejavamail.api.internal.general.EmailPopulatingBuilderFactory;
 import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
+import org.simplejavamail.api.outlook.OutlookMessageData;
 import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.internal.outlooksupport.internal.model.OutlookMessageProxy;
 import org.simplejavamail.internal.util.InternalEmailConverter;
@@ -130,7 +131,25 @@ public class OutlookEmailConverter implements OutlookModule {
 			}
 		}
 
-		return new EmailFromOutlookMessage(builder, new OutlookMessageProxy(outlookMessage));
+		return new EmailFromOutlookMessage(builder, new OutlookMessageProxy(outlookMessage), extractOutlookMessageData(outlookMessage));
+	}
+
+	@NotNull
+	private static OutlookMessageData extractOutlookMessageData(@NotNull final OutlookMessage outlookMessage) {
+		return new OutlookMessageData(
+				outlookMessage.getHeadersMap(),
+				outlookMessage.getHeaders(),
+				outlookMessage.getMessageClass(),
+				outlookMessage.getDisplayTo(),
+				outlookMessage.getDisplayCc(),
+				outlookMessage.getDisplayBcc(),
+				outlookMessage.getDate(),
+				outlookMessage.getClientSubmitTime(),
+				outlookMessage.getCreationDate(),
+				outlookMessage.getLastModificationDate(),
+				outlookMessage.getPropertiesAsHex(),
+				outlookMessage.getPropertyCodes(),
+				outlookMessage.getPropertyListing());
 	}
 
 	@SuppressWarnings("StatementWithEmptyBody")

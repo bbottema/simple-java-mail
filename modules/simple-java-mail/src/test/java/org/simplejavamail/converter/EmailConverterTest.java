@@ -16,13 +16,16 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 import testutil.SecureTestDataHelper;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -65,6 +68,26 @@ public class EmailConverterTest {
 		assertThat(msg.getPlainText()).isNotEmpty();
 		assertThat(normalizeNewlines(msg.getHTMLText())).isEqualTo("<div dir=\"auto\">Just a test to get an email with one cc recipient.</div>\n");
 		assertThat(normalizeNewlines(msg.getPlainText())).isEqualTo("Just a test to get an email with one cc recipient.\n");
+	}
+
+	@Test
+	public void testOutlookConversionWithOutlookDataExposesIgnoredSourceHeaders()
+			throws IOException {
+		final File msgFile = new File(RESOURCE_TEST_MESSAGES + "/simple email with TO and CC.msg");
+
+		final OutlookEmailConversionResult result = EmailConverter.outlookMsgToEmailBuilderWithOutlookData(msgFile);
+		final Email msg = result.buildEmail();
+
+		assertThat(msg.getHeaders()).containsEntry("x-pmx-scanned", singletonList("Mail was scanned by Sophos Pure Message"));
+		assertThat(msg.getHeaders()).doesNotContainKeys("CC", "Cc", "cc", "BCC", "Bcc", "bcc", "TO", "To", "to");
+		assertThat(result.getOutlookMessageData().getHeaderValues("to")).isNotEmpty();
+		assertThat(result.getOutlookMessageData().getHeaderValues("cc")).isNotEmpty();
+		assertThat(result.getOutlookMessageData().getRawHeaders()).contains("To: \"Sven Sielenkemper\"", "niklas.lindson@gmail.com");
+
+		try (InputStream inputStream = new FileInputStream(msgFile)) {
+			final OutlookEmailConversionResult streamResult = EmailConverter.outlookMsgToEmailBuilderWithOutlookData(inputStream);
+			assertThat(streamResult.getOutlookMessageData().getHeaderValues("to")).isNotEmpty();
+		}
 	}
 
 	@Test
