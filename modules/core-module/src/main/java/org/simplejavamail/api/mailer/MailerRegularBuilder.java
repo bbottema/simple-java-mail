@@ -47,7 +47,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @param password Optional SMTP server password or OAUTH2 token (in case of TransportStrategy.SMTP_OAUTH2)
 	 *                    that defaults to pre-configured property if left empty.
 	 */
-	T withSMTPServer(@Nullable String host, @Nullable Integer port, @Nullable String username, @Nullable String password);
+	T withSMTPServer(@Nullable @Cli.Optional String host, @Nullable @Cli.Optional Integer port, @Nullable @Cli.Optional String username, @Nullable @Cli.Optional String password);
 
 	/**
 	 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)} and {@link #withSMTPServerUsername(String)}.
@@ -57,7 +57,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @param username Optional username that defaults to pre-configured property if left empty.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
-	T withSMTPServer(@Nullable String host, @Nullable Integer port, @Nullable String username);
+	T withSMTPServer(@Nullable @Cli.Optional String host, @Nullable @Cli.Optional Integer port, @Nullable @Cli.Optional String username);
 	
 	/**
 	 * Delegates to {@link #withSMTPServerHost(String)} and {@link #withSMTPServerPort(Integer)}.
@@ -66,7 +66,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @param port Optional port number that defaults to pre-configured property if left empty.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
-	T withSMTPServer(@Nullable String host, @Nullable Integer port);
+	T withSMTPServer(@Nullable @Cli.Optional String host, @Nullable @Cli.Optional Integer port);
 	
 	/**
 	 * Sets the optional SMTP host. Will default to pre-configured property if left empty.
@@ -74,7 +74,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @param host Optional host that defaults to pre-configured property if left empty.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
-	T withSMTPServerHost(@Nullable String host);
+	T withSMTPServerHost(@Nullable @Cli.Optional String host);
 	
 	/**
 	 * Sets the optional SMTP port. Will default to pre-configured property if not overridden. If left empty,
@@ -83,7 +83,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @param port Optional port number that defaults to pre-configured property if left empty.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
-	T withSMTPServerPort(@Nullable Integer port);
+	T withSMTPServerPort(@Nullable @Cli.Optional Integer port);
 	
 	/**
 	 * Sets the optional SMTP username. Will default to pre-configured property if left empty.
@@ -91,7 +91,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @param username Optional username that defaults to pre-configured property if left empty.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
-	T withSMTPServerUsername(@Nullable String username);
+	T withSMTPServerUsername(@Nullable @Cli.Optional String username);
 
 	/**
 	 * Sets the optional SMTP password or OAUTH2 token (in case of TransportStrategy.SMTP_OAUTH2). Will default to pre-configured property if left empty.
@@ -99,7 +99,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @param password Optional password or OAUTH2 token that defaults to pre-configured property if left empty.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
-	T withSMTPServerPassword(@Nullable String password);
+	T withSMTPServerPassword(@Nullable @Cli.Optional String password);
 
 	/**
 	 * Configures the session with the right property to use your own factory for obtaining SSL connections.
@@ -116,7 +116,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">Java / Jakarta Mail properties</a>
 	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
 	 */
-	T withCustomSSLFactoryClass(@Nullable String factoryClass);
+	T withCustomSSLFactoryClass(@Nullable @Cli.Optional String factoryClass);
 
 	/**
 	 * Configures the session with the right property to use your own factory for obtaining SSL connections.
@@ -134,7 +134,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @see #withCustomSSLFactoryClass(String)
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-	T withCustomSSLFactoryInstance(@Nullable SSLSocketFactory sslSocketFactoryInstance);
+	T withCustomSSLFactoryInstance(@Nullable @Cli.Optional SSLSocketFactory sslSocketFactoryInstance);
 	
 	/**
 	 * Builds the actual {@link Mailer} instance with everything configured on this builder instance.

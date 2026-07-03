@@ -11,7 +11,6 @@ import org.bbottema.javareflection.model.LookupMode;
 import org.bbottema.javareflection.model.MethodModifier;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
@@ -228,7 +227,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		for (int i = 0; i < declaredParameters.length; i++) {
 			final Class<?> p = declaredParameters[i];
 			final DocumentedMethodParam dP = documentedParameters.get(i);
-			final boolean required = !containsAnnotation(asList(annotations[i]), Nullable.class);
+			final boolean required = !containsAnnotation(asList(annotations[i]), Cli.Optional.class);
 			final String javadocDescription = extractJavadocDescription(dP.getJavadoc());
 			final String[] javadocExamples = extractJavadocExamples(dP.getJavadoc());
 			cliParams.add(new CliDeclaredOptionValue(dP.getName(), determineTypeLabel(p), javadocDescription, required, javadocExamples));

@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.internal.config.EmailProperty;
 
 import java.io.BufferedInputStream;
@@ -213,14 +214,14 @@ public final class MiscUtil {
 	public static int countMandatoryParameters(final @NotNull Method m) {
 		int mandatoryParameterCount = 0;
 		for (Annotation[] annotations : m.getParameterAnnotations()) {
-			mandatoryParameterCount += !containsNullableAnnotation(annotations) ? 1 : 0;
+			mandatoryParameterCount += !containsCliOptionalAnnotation(annotations) ? 1 : 0;
 		}
 		return mandatoryParameterCount;
 	}
 
-	private static boolean containsNullableAnnotation(final Annotation[] annotations) {
+	private static boolean containsCliOptionalAnnotation(final Annotation[] annotations) {
 		for (Annotation annotation : annotations.clone()) {
-			if (annotation.annotationType() == Nullable.class) {
+			if (annotation.annotationType() == Cli.Optional.class) {
 				return true;
 			}
 		}

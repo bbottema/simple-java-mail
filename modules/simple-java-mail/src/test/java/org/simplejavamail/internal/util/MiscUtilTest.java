@@ -3,6 +3,7 @@ package org.simplejavamail.internal.util;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.internal.clisupport.model.Cli;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -144,14 +145,16 @@ public class MiscUtilTest {
 	@SuppressWarnings("unused")
 	public void testCountMandatoryParameters() throws NoSuchMethodException {
 		Method methodWithZeroParameters = new Object() {public void methodWithZeroParameters() {}}.getClass().getDeclaredMethod("methodWithZeroParameters");
-		Method methodWithZeroMandatoryParameters = new Object() {public void methodWithZeroMandatoryParameters(@Nullable Integer optionalInt) {}}.getClass().getDeclaredMethod("methodWithZeroMandatoryParameters", Integer.class);
+		Method methodWithZeroMandatoryParameters = new Object() {public void methodWithZeroMandatoryParameters(@Nullable @Cli.Optional Integer optionalInt) {}}.getClass().getDeclaredMethod("methodWithZeroMandatoryParameters", Integer.class);
 		Method methodWithOnlyMandatoryParameters = new Object() {public void methodWithOnlyMandatoryParameters(Integer mandatoryInt) {}}.getClass().getDeclaredMethod("methodWithOnlyMandatoryParameters", Integer.class);
-		Method methodWithMixedMandatoryParameters = new Object() {public void methodWithMixedMandatoryParameters(@Nullable Integer optionalInt, Integer mandatoryInt) {}}.getClass().getDeclaredMethod("methodWithMixedMandatoryParameters", Integer.class, Integer.class);
+		Method methodWithMixedMandatoryParameters = new Object() {public void methodWithMixedMandatoryParameters(@Nullable @Cli.Optional Integer optionalInt, Integer mandatoryInt) {}}.getClass().getDeclaredMethod("methodWithMixedMandatoryParameters", Integer.class, Integer.class);
+		Method methodWithNullableParameter = new Object() {public void methodWithNullableParameter(@Nullable Integer nullableInt) {}}.getClass().getDeclaredMethod("methodWithNullableParameter", Integer.class);
 
 		assertThat(MiscUtil.countMandatoryParameters(methodWithZeroParameters)).isEqualTo(0);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithZeroMandatoryParameters)).isEqualTo(0);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithOnlyMandatoryParameters)).isEqualTo(1);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithMixedMandatoryParameters)).isEqualTo(1);
+		assertThat(MiscUtil.countMandatoryParameters(methodWithNullableParameter)).isEqualTo(1);
 	}
 
 	@Test

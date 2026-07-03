@@ -27,4 +27,12 @@ public class Cli {
 	public @interface BuilderApiNode {
 		CliBuilderApiType builderApiType();
 	}
+
+	/**
+	 * Marks a builder API method parameter as optional for CLI command-line parsing.
+	 */
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.PARAMETER)
+	public @interface Optional {
+	}
 }

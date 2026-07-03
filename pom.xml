@@ -90,12 +90,6 @@
 
     <dependencies>
         <!-- utility -->
-        <dependency><!-- gives us @NotNull annotations-->
-            <groupId>com.github.bbottema</groupId>
-            <artifactId>jetbrains-runtime-annotations</artifactId>
-            <version>1.0.2</version>
-            <scope>compile</scope><!-- SimpleJavaMail uses the annotation using java reflection -->
-        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -113,10 +107,9 @@
             <artifactId>spotbugs-annotations</artifactId>
             <scope>provided</scope>
         </dependency>
-        <dependency><!-- Gives us @NotNull and @Nullable annotations. -->
+        <dependency><!-- Gives us @NotNull and @Nullable annotations for API nullability. -->
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -289,7 +282,6 @@
                 <groupId>org.jetbrains</groupId>
                 <artifactId>annotations</artifactId>
                 <version>16.0.3</version>
-                <scope>provided</scope>
             </dependency>
             <dependency><!-- Gives us SpotBugs suppression annotations. -->
                 <groupId>com.github.spotbugs</groupId>

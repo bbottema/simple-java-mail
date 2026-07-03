@@ -3,17 +3,35 @@ package org.simplejavamail.internal.clisupport;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.internal.clisupport.model.Cli;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
+import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.getArgumentsForCliOption;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.methodIsCliCompatible;
 
 public class BuilderApiToPicocliCommandsMapperTest {
+
+	private static final List<String> BUILDER_API_SOURCE_FILES = Arrays.asList(
+			"org/simplejavamail/api/email/EmailStartingBuilder.java",
+			"org/simplejavamail/api/email/EmailPopulatingBuilder.java",
+			"org/simplejavamail/api/mailer/MailerGenericBuilder.java",
+			"org/simplejavamail/api/mailer/MailerRegularBuilder.java",
+			"org/simplejavamail/api/mailer/MailerFromSessionBuilder.java");
 	
 	@Test
 	public void testColorizeDescriptions() {
@@ -79,5 +97,61 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotification", DeliveryStatusNotification.class)).isCompatible()).isFalse();
 		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", DeliveryStatusNotification.NotifyOption[].class)).isCompatible()).isFalse();
 		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", DeliveryStatusNotification.ReturnOption.class)).isCompatible()).isFalse();
+	}
+
+	@Test
+	public void cliOptionalParametersAreMappedToOptionalArguments() throws Exception {
+		Method from = EmailPopulatingBuilder.class.getMethod("from", String.class, String.class);
+		assertThat(getArgumentsForCliOption(from)).extracting("required").containsExactly(false, true);
+
+		Method withProxy = MailerGenericBuilder.class.getMethod("withProxy", String.class, Integer.class);
+		assertThat(hasCliOptionalParameter(withProxy, 0)).isTrue();
+		assertThat(hasCliOptionalParameter(withProxy, 1)).isTrue();
+	}
+
+	@Test
+	public void nullableParametersOnBuilderApisDeclareCliOptional() throws IOException {
+		List<String> violations = new ArrayList<>();
+		for (String builderApiSourceFile : BUILDER_API_SOURCE_FILES) {
+			List<String> sourceLines = Files.readAllLines(resolveCoreModuleSource(builderApiSourceFile), UTF_8);
+			for (int lineNumber = 0; lineNumber < sourceLines.size(); lineNumber++) {
+				String sourceLine = sourceLines.get(lineNumber);
+				if (hasNullableParameterWithoutCliOptional(sourceLine)) {
+					violations.add(builderApiSourceFile + ":" + (lineNumber + 1) + ": " + sourceLine.trim());
+				}
+			}
+		}
+
+		assertThat(violations).isEmpty();
+	}
+
+	private static boolean hasCliOptionalParameter(Method method, int parameterIndex) {
+		for (Annotation annotation : method.getParameterAnnotations()[parameterIndex]) {
+			if (annotation.annotationType() == Cli.Optional.class) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean hasNullableParameterWithoutCliOptional(String sourceLine) {
+		int nullableIndex = sourceLine.indexOf("@Nullable");
+		while (nullableIndex >= 0) {
+			int openParenIndex = sourceLine.lastIndexOf('(', nullableIndex);
+			int commaIndex = sourceLine.lastIndexOf(',', nullableIndex);
+			if (Math.max(openParenIndex, commaIndex) >= 0 && !sourceLine.substring(nullableIndex).startsWith("@Nullable @Cli.Optional")) {
+				return true;
+			}
+			nullableIndex = sourceLine.indexOf("@Nullable", nullableIndex + 1);
+		}
+		return false;
+	}
+
+	private static Path resolveCoreModuleSource(String builderApiSourceFile) {
+		Path sourceFile = Paths.get("..", "core-module", "src", "main", "java").resolve(builderApiSourceFile);
+		if (!Files.exists(sourceFile)) {
+			sourceFile = Paths.get("modules", "core-module", "src", "main", "java").resolve(builderApiSourceFile);
+		}
+		return sourceFile;
 	}
 }

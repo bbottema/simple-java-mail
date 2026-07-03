@@ -131,7 +131,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Delegates to {@link #withProxyHost(String)} and {@link #withProxyPort(Integer)}.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more detailed API")
-	T withProxy(@Nullable String proxyHost, @Nullable Integer proxyPort);
+	T withProxy(@Nullable @Cli.Optional String proxyHost, @Nullable @Cli.Optional Integer proxyPort);
 
 	/**
 	 * Sets proxy server settings, by delegating to:
@@ -147,13 +147,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @param proxyUsername See linked documentation above.
 	 * @param proxyPassword See linked documentation above.
 	 */
-	T withProxy(@Nullable String proxyHost, @Nullable Integer proxyPort, @Nullable String proxyUsername, @Nullable String proxyPassword);
+	T withProxy(@Nullable @Cli.Optional String proxyHost, @Nullable @Cli.Optional Integer proxyPort, @Nullable @Cli.Optional String proxyUsername, @Nullable @Cli.Optional String proxyPassword);
 
 	/**
 	 * Sets the optional proxy host, which will override any default that might have been set (through properties file or programmatically).
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
-	T withProxyHost(@Nullable String proxyHost);
+	T withProxyHost(@Nullable @Cli.Optional String proxyHost);
 
 	/**
 	 * Sets the proxy port, which will override any default that might have been set (through properties file or programmatically).
@@ -161,7 +161,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Defaults to {@value DEFAULT_PROXY_PORT} if no custom default property was configured.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
-	T withProxyPort(@Nullable Integer proxyPort);
+	T withProxyPort(@Nullable @Cli.Optional Integer proxyPort);
 
 	/**
 	 * Sets the optional username to authenticate with the proxy. If set, Simple Java Mail will use its built in proxy bridge to
@@ -171,7 +171,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * {@code Simple Java Mail client -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy -> SMTP server}.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
-	T withProxyUsername(@Nullable String proxyUsername);
+	T withProxyUsername(@Nullable @Cli.Optional String proxyUsername);
 
 	/**
 	 * Sets the optional password to authenticate with the proxy.
@@ -181,7 +181,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withProxyUsername(String)
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
-	T withProxyPassword(@Nullable String proxyPassword);
+	T withProxyPassword(@Nullable @Cli.Optional String proxyPassword);
 
 	/**
 	 * Relevant only when using username authentication with a proxy.
@@ -481,7 +481,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withProperties(Properties)
 	 * @see #clearProperties()
 	 */
-	T withProperty(@NotNull String propertyName, @Nullable Object propertyValue);
+	T withProperty(@NotNull String propertyName, @Nullable @Cli.Optional Object propertyValue);
 
 	/**
 	 * @see CustomMailer

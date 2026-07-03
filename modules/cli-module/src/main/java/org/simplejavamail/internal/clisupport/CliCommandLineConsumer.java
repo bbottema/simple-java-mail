@@ -3,7 +3,7 @@ package org.simplejavamail.internal.clisupport;
 import org.bbottema.javareflection.valueconverter.IncompatibleTypeException;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
@@ -81,7 +81,7 @@ class CliCommandLineConsumer {
 		int mandatoryParameters = MiscUtil.countMandatoryParameters(m);
 		
 		for (int i = 0; i < declaredParameters.length; i++) {
-			final boolean required = !containsAnnotation(asList(annotations[i]), Nullable.class);
+			final boolean required = !containsAnnotation(asList(annotations[i]), Cli.Optional.class);
 			Object providedValueConverted = null;
 			if (required || providedStringValues.size() > mandatoryParameters) {
 				providedValueConverted = parseStringInput(providedStringValues.remove(0), declaredParameters[i]);

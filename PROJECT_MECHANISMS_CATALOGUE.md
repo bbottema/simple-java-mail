@@ -8,7 +8,7 @@ This catalogue records project mechanisms that are easy to miss because they spa
 | --- | --- | --- |
 | API expansion workflow | Keep model, builders, CLI, config, conversion, and modules in sync when the public API grows. | [API_EXPANSION_WORKFLOW.md](API_EXPANSION_WORKFLOW.md) |
 | Dynamic module loading | Keep optional features out of the core runtime until their module jars are present and used. | [ModuleLoader.java](modules/simple-java-mail/src/main/java/org/simplejavamail/internal/moduleloader/ModuleLoader.java), [modules package](modules/core-module/src/main/java/org/simplejavamail/internal/modules) |
-| CLI generation from builder Javadocs | Turn builder API methods and Javadocs into picocli options and committed binary metadata. | [BuilderApiToPicocliCommandsMapper.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/BuilderApiToPicocliCommandsMapper.java), [CliSupport.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java), `modules/cli-module/src/main/resources/cli.data`, `modules/cli-module/src/main/resources/therapi.data` |
+| CLI generation from builder Javadocs | Turn builder API methods and Javadocs into picocli options and committed binary metadata. | [Cli.java](modules/core-module/src/main/java/org/simplejavamail/api/internal/clisupport/model/Cli.java), [BuilderApiToPicocliCommandsMapper.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/BuilderApiToPicocliCommandsMapper.java), [CliSupport.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java), `modules/cli-module/src/main/resources/cli.data`, `modules/cli-module/src/main/resources/therapi.data` |
 | Async send and batch connection pooling | Reuse SMTP transports when the batch module is present; otherwise fall back to direct session transports. | [MailerImpl.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [TransportRunner.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java), [BatchSupport.java](modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java) |
 | Authenticated SOCKS proxy bridge | Work around JavaMail's anonymous-only SOCKS support by running a local anonymous bridge to an authenticated remote proxy. | [MailerImpl.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [AnonymousSocks5Server.java](modules/core-module/src/main/java/org/simplejavamail/api/internal/authenticatedsockssupport/socks5server/AnonymousSocks5Server.java), [AuthenticatedSocksHelper.java](modules/authenticated-socks-module/src/main/java/org/simplejavamail/internal/authenticatedsockssupport/AuthenticatedSocksHelper.java) |
 | Smart MIME structure selection | Choose the least complex RFC-compatible MIME structure for the actual email contents. | [MimeMessageProducerHelper.java](modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/MimeMessageProducerHelper.java), [SpecializedMimeMessageProducer.java](modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/SpecializedMimeMessageProducer.java), [MIME_RESOURCE_NAMING_REPORT.md](MIME_RESOURCE_NAMING_REPORT.md) |
@@ -52,7 +52,7 @@ Gotchas:
 
 ## CLI Generation From Builder API Javadocs
 
-The CLI is generated from the builder API rather than maintained as a fully separate option list.
+The CLI is generated from the builder API rather than maintained as a fully separate option list. This gives the CLI near one-to-one feature parity with the Java builder API, including the same method documentation, but it also makes the CLI sensitive to API shape, Javadoc completeness, reflection behavior, and serialized metadata compatibility.
 
 Main flow:
 
@@ -60,9 +60,12 @@ Main flow:
 2. `BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(...)` walks public methods on builder API nodes annotated with `@Cli.BuilderApiNode`.
 3. A method is accepted only if it passes `methodIsCliCompatible(...)`: it must be on a builder API node, must not have `@Cli.ExcludeApi`, must not be a bean accessor, must not take collection parameters, and must be convertible from string arguments.
 4. `@Cli.OptionNameOverride` can resolve name collisions or expose a CLI-specific option name.
-5. Method and parameter Javadocs are read through Therapi Runtime Javadoc and formatted for terminal output by `TherapiJavadocHelper` and `JavadocForCliFormatter`.
-6. Picocli command metadata is serialized with Kryo to `modules/cli-module/src/main/resources/cli.data`.
-7. Therapi lookups are cached to `modules/cli-module/src/main/resources/therapi.data`.
+5. `@Cli.Optional` marks optional CLI parameters explicitly. Java nullability remains expressed with JetBrains `@Nullable`; it no longer drives CLI optionality.
+6. Method and parameter Javadocs are read through Therapi Runtime Javadoc and formatted for terminal output by `TherapiJavadocHelper` and `JavadocForCliFormatter`.
+7. Picocli command metadata is serialized with Kryo to `modules/cli-module/src/main/resources/cli.data`.
+8. Therapi lookups are cached to `modules/cli-module/src/main/resources/therapi.data`.
+
+The Javadoc part is unusual: the build uses Therapi's annotation processor to bake selected Javadoc into runtime-readable classes, then the CLI module reflects over builder methods, resolves those baked Javadocs, formats links and examples for terminal output, and stores the resulting CLI model in `cli.data` for faster startup. The result is clever and convenient, but brittle: Java version changes, bridge/synthetic methods, incomplete `@param` tags, method overload ambiguity, or stale binary metadata can all produce surprising CLI behavior.
 
 Regeneration:
 
@@ -76,6 +79,7 @@ Constraints:
 
 - Use JDK 8 for CLI data regeneration. [DEVELOPMENT.md](DEVELOPMENT.md) documents why Java 12+ breaks this path.
 - Every CLI-exposed method needs complete Javadoc, including `@param` text for every parameter. A parameter count mismatch becomes an assertion error in `TherapiJavadocHelper.getParamDescriptions(...)`.
+- Optional CLI arguments must be annotated with `@Cli.Optional`. Keep `@Nullable` as the Java/API nullability contract; do not use it as CLI metadata.
 - Methods using complex Java-only objects, collection/map parameters, ambiguous overloads, or APIs that are only a subset of a better option should be excluded with `@Cli.ExcludeApi(reason = "...")`.
 - New string-convertible types need a value converter registered in `BuilderApiToPicocliCommandsMapper`.
 
@@ -159,17 +163,16 @@ Gotchas:
 
 ## Runtime Non-Null Instrumentation
 
-The API and implementation use JetBrains `@NotNull` and `@Nullable` annotations heavily. Two dependencies support this:
+The API and implementation use JetBrains `@NotNull` and `@Nullable` annotations heavily.
 
-- `org.jetbrains:annotations` is provided for source-level nullability annotations.
-- `com.github.bbottema:jetbrains-runtime-annotations` is compiled in because Simple Java Mail inspects these annotations at runtime.
+`org.jetbrains:annotations` is compiled in for source-level and public API nullability annotations. Earlier versions also depended on `com.github.bbottema:jetbrains-runtime-annotations`, a runtime-retention fork of the JetBrains annotations, because the CLI inspected `@Nullable` by reflection to detect optional command arguments. CLI optionality is now represented separately with `@Cli.Optional`, so the runtime-retention fork is no longer needed.
 
 The root Maven build configures `se.eris:notnull-instrumenter-maven-plugin` to instrument main and test classes. The current configuration recognizes `org.jetbrains.annotations.Nullable` and `org.jetbrains.annotations.NotNull`, and excludes assertion helpers plus `ServerReply`.
 
 Implications:
 
 - Do not treat nullability annotations as cosmetic. They affect generated bytecode and runtime validation.
-- Adding or changing public API nullability can affect the CLI too: `BuilderApiToPicocliCommandsMapper` marks CLI parameters as required unless the parameter has `@Nullable`.
+- Adding or changing public builder API nullability can still affect the CLI ergonomics, but only when CLI optionality should follow. In that case add both `@Nullable` and `@Cli.Optional`; `BuilderApiToPicocliCommandsMapper` marks CLI parameters as required unless the parameter has `@Cli.Optional`.
 - Generated code or protocol enum-like classes may need explicit instrumenter exclusions if instrumentation changes behavior.
 
 ## Related Mechanisms Worth Checking
