@@ -74,7 +74,7 @@ The `publish-cli` profile runs `demo.CliListAllSupportedOptionsDemoApp`, which c
 
 Constraints:
 
-- Use JDK 11 for CLI data regeneration. [DEVELOPMENT.md](DEVELOPMENT.md) documents why Java 12+ breaks this path.
+- Use JDK 8 for CLI data regeneration. [DEVELOPMENT.md](DEVELOPMENT.md) documents why Java 12+ breaks this path.
 - Every CLI-exposed method needs complete Javadoc, including `@param` text for every parameter. A parameter count mismatch becomes an assertion error in `TherapiJavadocHelper.getParamDescriptions(...)`.
 - Methods using complex Java-only objects, collection/map parameters, ambiguous overloads, or APIs that are only a subset of a better option should be excluded with `@Cli.ExcludeApi(reason = "...")`.
 - New string-convertible types need a value converter registered in `BuilderApiToPicocliCommandsMapper`.

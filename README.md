@@ -6,6 +6,8 @@
 
 # Simple Java Mail #
 
+Simple Java Mail remains Java 8-compatible; Java 8 is the source, target, and minimum supported runtime.
+
 Simple Java Mail is the simplest to use lightweight mailing library for Java, while being able to send complex emails including **[Batch processing and server clusters](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering)**, **[CLI support](https://www.simplejavamail.org/cli.html#navigation)**, **[authenticated socks proxy](https://www.simplejavamail.org/features.html#section-proxy)**(!), **[attachments](https://www.simplejavamail.org/features.html#section-attachments)**, **[embedded images](https://www.simplejavamail.org/features.html#section-embedding)**, **[custom headers and properties](https://www.simplejavamail.org/features.html#section-custom-headers)**, **[robust address validation](https://www.simplejavamail.org/features.html#section-email-validation)**, **[build pattern](https://www.simplejavamail.org/features.html#section-builder-api)** and even **[DKIM signing](https://www.simplejavamail.org/features.html#section-dkim)**, **[S/MIME support](https://www.simplejavamail.org/features.html#section-sending-smime)** and **[external configuration files](https://www.simplejavamail.org/configuration.html#section-config-properties)**, **[Spring support](https://www.simplejavamail.org/configuration.html#section-spring-support)** and **[Email conversion](https://www.simplejavamail.org/features.html#section-converting)** tools (including support for Outlook).
 
 Just send your emails without dealing with [RFCs](https://www.simplejavamail.org/rfc-compliant.html#navigation).
