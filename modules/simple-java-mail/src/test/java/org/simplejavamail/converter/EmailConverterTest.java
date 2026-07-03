@@ -1,5 +1,6 @@
 package org.simplejavamail.converter;
 
+import jakarta.mail.Session;
 import jakarta.mail.util.ByteArrayDataSource;
 import net.fortuna.ical4j.data.CalendarBuilder;
 import net.fortuna.ical4j.data.ParserException;
@@ -22,6 +23,7 @@ import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 import testutil.SecureTestDataHelper;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -31,6 +33,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.regex.Matcher;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -223,6 +226,37 @@ public class EmailConverterTest {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#485 Email with 8Bit Content Transfer Encoding.eml"));
 		EmailAssert.assertThat(s1).hasFromRecipient(new Recipient("TeleCash", "noreply@telecash.de", null, null));
 		EmailAssert.assertThat(s1).hasOnlyRecipients(new Recipient(null, "abc@abcdefgh.de", TO, null));
+	}
+
+	@Test
+	public void testSmtpUtf8HeadersCanBeParsedWithCustomSession() {
+		final String eml = "MIME-Version: 1.0\r\n" +
+				"Message-ID: <1234@mail.gmail.com>\r\n" +
+				"Subject: test\r\n" +
+				"From: Test <tester@test.com.com>\r\n" +
+				"To: Martín Mallea <martín@receiver.com>\r\n" +
+				"Content-Type: multipart/alternative; boundary=\"0000000000004b527e05dbff4a78\"\r\n" +
+				"\r\n" +
+				"--0000000000004b527e05dbff4a78\r\n" +
+				"Content-Type: text/plain; charset=\"UTF-8\"\r\n" +
+				"\r\n" +
+				"This is a test: ñ\r\n" +
+				"\r\n" +
+				"--0000000000004b527e05dbff4a78\r\n" +
+				"Content-Type: text/html; charset=\"UTF-8\"\r\n" +
+				"\r\n" +
+				"<div dir=\"ltr\">This is a test: ñ</div>\r\n" +
+				"\r\n" +
+				"--0000000000004b527e05dbff4a78--\r\n";
+		final Properties properties = new Properties();
+		properties.put("mail.mime.allowutf8", "true");
+		final Session smtpUtf8Session = Session.getInstance(properties);
+
+		final Email email = EmailConverter.emlToEmail(new ByteArrayInputStream(eml.getBytes(UTF_8)), null, smtpUtf8Session);
+
+		EmailAssert.assertThat(email).hasFromRecipient(new Recipient("Test", "tester@test.com.com", null, null));
+		EmailAssert.assertThat(email).hasOnlyRecipients(new Recipient("Martín Mallea", "martín@receiver.com", TO, null));
+		assertThat(email.getPlainText()).isEqualTo("This is a test: ñ\r\n");
 	}
 
 	@Test
