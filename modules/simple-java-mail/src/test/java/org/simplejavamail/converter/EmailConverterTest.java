@@ -286,6 +286,48 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testGithub605_BodyPartContentTransferEncodingsAreIndependent() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final String calendarText = "BEGIN:VCALENDAR\r\n"
+				+ "METHOD:REQUEST\r\n"
+				+ "BEGIN:VEVENT\r\n"
+				+ "UID:body-cte-test\r\n"
+				+ "DTSTAMP:20260703T090000Z\r\n"
+				+ "DTSTART:20260703T100000Z\r\n"
+				+ "DTEND:20260703T103000Z\r\n"
+				+ "SUMMARY:Body CTE test\r\n"
+				+ "END:VEVENT\r\n"
+				+ "END:VCALENDAR";
+		final Email email = EmailBuilder.startingBlank()
+				.from("sender@example.com")
+				.to("recipient@example.com")
+				.withSubject("Body CTE")
+				.withPlainText("plain body")
+				.withHTMLText("<b>html body</b>")
+				.withCalendarText(CalendarMethod.REQUEST, calendarText)
+				.withContentTransferEncoding(BIT7)
+				.withHTMLTextContentTransferEncoding(ContentTransferEncoding.BASE_64)
+				.withCalendarTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE)
+				.buildEmail();
+
+		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
+		final Email roundtripEmail = EmailConverter.emlToEmail(eml);
+		final String roundtripEml = normalizeNewlines(EmailConverter.emailToEML(roundtripEmail));
+
+		assertContentTransferEncodingForContentType(eml, "text/plain", "7bit");
+		assertContentTransferEncodingForContentType(eml, "text/html", "base64");
+		assertContentTransferEncodingForContentType(eml, "text/calendar", "quoted-printable");
+		assertThat(roundtripEmail.getContentTransferEncoding()).isEqualTo(BIT7);
+		assertThat(roundtripEmail.getPlainTextContentTransferEncoding()).isNull();
+		assertThat(roundtripEmail.getHTMLTextContentTransferEncoding()).isEqualTo(ContentTransferEncoding.BASE_64);
+		assertThat(roundtripEmail.getCalendarTextContentTransferEncoding()).isEqualTo(ContentTransferEncoding.QUOTED_PRINTABLE);
+		assertContentTransferEncodingForContentType(roundtripEml, "text/plain", "7bit");
+		assertContentTransferEncodingForContentType(roundtripEml, "text/html", "base64");
+		assertContentTransferEncodingForContentType(roundtripEml, "text/calendar", "quoted-printable");
+	}
+
+	@Test
 	public void testGithub566_AttachmentContentIdSurvivesRoundtrip() throws IOException {
 		ConfigLoaderTestHelper.clearConfigProperties();
 
@@ -398,6 +440,15 @@ public class EmailConverterTest {
 	@NotNull
 	private static String asBase64(String content) {
 		return normalizeNewlines(new String(encodeBase64Chunked(content.getBytes(UTF_8)), UTF_8));
+	}
+
+	private static void assertContentTransferEncodingForContentType(String eml, String contentType, String contentTransferEncoding) {
+		final int contentTypeIndex = eml.indexOf("Content-Type: " + contentType);
+		assertThat(contentTypeIndex).as("Content-Type header for %s", contentType).isNotEqualTo(-1);
+		final int headerEndIndex = eml.indexOf("\n\n", contentTypeIndex);
+		assertThat(headerEndIndex).as("header block end for %s", contentType).isNotEqualTo(-1);
+		assertThat(eml.substring(contentTypeIndex, headerEndIndex))
+				.contains("Content-Transfer-Encoding: " + contentTransferEncoding);
 	}
 
 	@Test

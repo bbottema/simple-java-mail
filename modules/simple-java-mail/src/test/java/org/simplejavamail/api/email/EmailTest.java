@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.CalendarMethod.ADD;
 import static org.simplejavamail.api.email.CalendarMethod.REPLY;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.ThumbsUpImage.produceThumbsUpImage;
 
@@ -76,6 +77,9 @@ public class EmailTest {
 				+ "\ttextHTML='null',\n"
 				+ "\ttextCalendar='null (method: null)',\n"
 				+ "\tcontentTransferEncoding='quoted-printable',\n"
+				+ "\tplainTextContentTransferEncoding='null',\n"
+				+ "\thtmlTextContentTransferEncoding='null',\n"
+				+ "\tcalendarTextContentTransferEncoding='null',\n"
 				+ "\tsubject='null',\n"
 				+ "\trecipients=[]\n"
 				+ "}");
@@ -114,6 +118,9 @@ public class EmailTest {
 				+ "	textHTML='<b>We should meet up!</b><img src='cid:thumbsup'>',\n"
 				+ "	textCalendar='Calendar text (method: ADD)',\n"
 				+ "	contentTransferEncoding='quoted-printable',\n"
+				+ "	plainTextContentTransferEncoding='null',\n"
+				+ "	htmlTextContentTransferEncoding='null',\n"
+				+ "	calendarTextContentTransferEncoding='null',\n"
 				+ "	subject='hey',\n"
 				+ "	recipients=[Recipient{name='C.Cane', address='candycane@candyshop.org', type=To}],\n"
 				+ "	dkimConfig=DkimConfig(dkimSigningDomain=dkim_domain, dkimSelector=dkim_selector, useLengthParam=null, excludedHeadersFromDkimDefaultSigningList=null, headerCanonicalization=null, bodyCanonicalization=null, signingAlgorithm=null),\n"
@@ -224,6 +231,15 @@ public class EmailTest {
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().withCalendarText(ADD, "shmoo").buildEmail(), false);
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().withCalendarText(REPLY, "moo").buildEmail(), false);
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().buildEmail(), false);
+		// contentTransferEncoding
+		assertEmailEqual(b().withContentTransferEncoding(BASE_64).buildEmail(), b().withContentTransferEncoding(BASE_64).buildEmail(), true);
+		assertEmailEqual(b().withContentTransferEncoding(BASE_64).buildEmail(), b().withContentTransferEncoding(BIT7).buildEmail(), false);
+		assertEmailEqual(b().withPlainTextContentTransferEncoding(BASE_64).buildEmail(), b().withPlainTextContentTransferEncoding(BASE_64).buildEmail(), true);
+		assertEmailEqual(b().withPlainTextContentTransferEncoding(BASE_64).buildEmail(), b().withPlainTextContentTransferEncoding(BIT7).buildEmail(), false);
+		assertEmailEqual(b().withHTMLTextContentTransferEncoding(BASE_64).buildEmail(), b().withHTMLTextContentTransferEncoding(BASE_64).buildEmail(), true);
+		assertEmailEqual(b().withHTMLTextContentTransferEncoding(BASE_64).buildEmail(), b().withHTMLTextContentTransferEncoding(BIT7).buildEmail(), false);
+		assertEmailEqual(b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), true);
+		assertEmailEqual(b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), b().withCalendarTextContentTransferEncoding(BIT7).buildEmail(), false);
 		// forWardEmail
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, false).buildEmail();
 		final Email emailOther = EmailHelper.createDummyEmailBuilder(false, true, false, false, false, false).buildEmail();

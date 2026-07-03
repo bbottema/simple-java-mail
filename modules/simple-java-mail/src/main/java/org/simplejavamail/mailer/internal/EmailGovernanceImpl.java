@@ -35,11 +35,14 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRES
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
@@ -163,6 +166,15 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		if (hasProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)) {
 			allDefaults.withContentTransferEncoding(verifyNonnullOrEmpty(getProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)));
 		}
+		if (hasProperty(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)) {
+			allDefaults.withPlainTextContentTransferEncoding(verifyNonnullOrEmpty(getProperty(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)));
+		}
+		if (hasProperty(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING)) {
+			allDefaults.withHTMLTextContentTransferEncoding(verifyNonnullOrEmpty(getProperty(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING)));
+		}
+		if (hasProperty(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)) {
+			allDefaults.withCalendarTextContentTransferEncoding(verifyNonnullOrEmpty(getProperty(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)));
+		}
 		if (hasProperty(DEFAULT_SUBJECT)) {
 			allDefaults.withSubject(getProperty(DEFAULT_SUBJECT));
 		}
@@ -265,6 +277,9 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			builder.withOverrideReceivers(overrideReceivers);
 		}
 		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withContentTransferEncoding);
+		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withPlainTextContentTransferEncoding);
+		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.HTML_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withHTMLTextContentTransferEncoding);
+		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withCalendarTextContentTransferEncoding);
 		ofNullable(this.<SmimeSigningConfig>resolveEmailProperty(provided, EmailProperty.SMIME_SIGNING_CONFIG)).ifPresent(builder::signWithSmime);
 		ofNullable(this.<SmimeEncryptionConfig>resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG)).ifPresent(builder::encryptWithSmime);
 		ofNullable(this.<DkimConfig>resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG)).ifPresent(builder::signWithDomainKey);

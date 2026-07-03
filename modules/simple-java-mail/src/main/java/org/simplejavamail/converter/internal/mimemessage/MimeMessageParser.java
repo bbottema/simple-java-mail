@@ -85,14 +85,20 @@ public final class MimeMessageParser {
 
 		if (isMimeType(currentPart, "text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.plainContent.append((Object) parseContent(currentPart));
-			checkContentTransferEncoding(currentPart, parsedComponents);
+			if (parsedComponents.plainTextContentTransferEncoding == null) {
+				parsedComponents.plainTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
+			}
 		} else if (isMimeType(currentPart, "text/html") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
-			checkContentTransferEncoding(currentPart, parsedComponents);
+			if (parsedComponents.htmlTextContentTransferEncoding == null) {
+				parsedComponents.htmlTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
+			}
 		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.calendarContent = parseCalendarContent(currentPart);
 			parsedComponents.calendarMethod = parseCalendarMethod(currentPart, parsedComponents.calendarContent);
-			checkContentTransferEncoding(currentPart, parsedComponents);
+			if (parsedComponents.calendarTextContentTransferEncoding == null) {
+				parsedComponents.calendarTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
+			}
 		} else if (isMimeType(currentPart, "multipart/*")) {
 			final Multipart mp = parseContent(currentPart);
 			for (int i = 0, count = countBodyParts(mp); i < count; i++) {
@@ -122,14 +128,13 @@ public final class MimeMessageParser {
 		}
 	}
 
-	private static void checkContentTransferEncoding(final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents) {
-		if (parsedComponents.contentTransferEncoding == null) {
-			for (final Header header : retrieveAllHeaders(currentPart)) {
-				if (isEmailHeader(DecodedHeader.of(header), MessageHeader.CONTENT_TRANSFER_ENCODING.getName())) {
-					parsedComponents.contentTransferEncoding = header.getValue();
-				}
-			}
+	@Nullable
+	private static String checkContentTransferEncoding(final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents) {
+		final String contentTransferEncoding = parseContentTransferEncoding(currentPart);
+		if (parsedComponents.contentTransferEncoding == null && contentTransferEncoding != null) {
+			parsedComponents.contentTransferEncoding = contentTransferEncoding;
 		}
+		return contentTransferEncoding;
 	}
 
 	private static MimeDataSource parseAttachment(@Nullable final String contentId, final @NotNull MimePart mimePart, final DataSource ds) {
@@ -561,6 +566,9 @@ public final class MimeMessageParser {
 		@Nullable private InternetAddress returnReceiptTo;
 		@Nullable private InternetAddress bounceToAddress;
 		@Nullable private String contentTransferEncoding;
+		@Nullable private String plainTextContentTransferEncoding;
+		@Nullable private String htmlTextContentTransferEncoding;
+		@Nullable private String calendarTextContentTransferEncoding;
 		private final StringBuilder plainContent = new StringBuilder();
 		final StringBuilder htmlContent = new StringBuilder();
 		@Nullable private String calendarMethod;

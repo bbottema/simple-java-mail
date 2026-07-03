@@ -42,6 +42,9 @@ import java.util.Properties;
  * <li>simplejavamail.proxy.password</li>
  * <li>simplejavamail.proxy.socks5bridge.port</li>
  * <li>simplejavamail.defaults.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.text.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.html.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.calendar.content.transfer.encoding</li>
  * <li>simplejavamail.defaults.subject</li>
  * <li>simplejavamail.defaults.from.name</li>
  * <li>simplejavamail.defaults.from.address</li>
@@ -140,6 +143,9 @@ public class SimpleJavaMailSpringSupport {
 				@Nullable @Value("${simplejavamail.proxy.password:#{null}}") final String proxyPassword,
 				@Nullable @Value("${simplejavamail.proxy.socks5bridge.port:#{null}}") final String proxySocks5bridgePort,
 				@Nullable @Value("${simplejavamail.defaults.content.transfer.encoding:#{null}}") final String defaultContentTransferEncoding,
+				@Nullable @Value("${simplejavamail.defaults.body.text.content.transfer.encoding:#{null}}") final String defaultPlainTextContentTransferEncoding,
+				@Nullable @Value("${simplejavamail.defaults.body.html.content.transfer.encoding:#{null}}") final String defaultHtmlTextContentTransferEncoding,
+				@Nullable @Value("${simplejavamail.defaults.body.calendar.content.transfer.encoding:#{null}}") final String defaultCalendarTextContentTransferEncoding,
 				@Nullable @Value("${simplejavamail.defaults.subject:#{null}}") final String defaultSubject,
 				@Nullable @Value("${simplejavamail.defaults.from.name:#{null}}") final String defaultFromName,
 				@Nullable @Value("${simplejavamail.defaults.from.address:#{null}}") final String defaultFromAddress,
@@ -219,6 +225,9 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.PROXY_PASSWORD.key(), proxyPassword);
 		setNullableProperty(emailProperties, Property.PROXY_SOCKS5BRIDGE_PORT.key(), proxySocks5bridgePort);
 		setNullableProperty(emailProperties, Property.DEFAULT_CONTENT_TRANSFER_ENCODING.key(), defaultContentTransferEncoding);
+		setNullableProperty(emailProperties, Property.DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING.key(), defaultPlainTextContentTransferEncoding);
+		setNullableProperty(emailProperties, Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING.key(), defaultHtmlTextContentTransferEncoding);
+		setNullableProperty(emailProperties, Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING.key(), defaultCalendarTextContentTransferEncoding);
 		setNullableProperty(emailProperties, Property.DEFAULT_SUBJECT.key(), defaultSubject);
 		setNullableProperty(emailProperties, Property.DEFAULT_FROM_NAME.key(), defaultFromName);
 		setNullableProperty(emailProperties, Property.DEFAULT_FROM_ADDRESS.key(), defaultFromAddress);

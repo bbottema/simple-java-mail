@@ -226,6 +226,15 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getContentTransferEncoding() != null) {
 			builder.withContentTransferEncoding(email.getContentTransferEncoding());
 		}
+		if (email.getPlainTextContentTransferEncoding() != null) {
+			builder.withPlainTextContentTransferEncoding(email.getPlainTextContentTransferEncoding());
+		}
+		if (email.getHTMLTextContentTransferEncoding() != null) {
+			builder.withHTMLTextContentTransferEncoding(email.getHTMLTextContentTransferEncoding());
+		}
+		if (email.getCalendarTextContentTransferEncoding() != null) {
+			builder.withCalendarTextContentTransferEncoding(email.getCalendarTextContentTransferEncoding());
+		}
 		((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
 		if (email.getSentDate() != null) {
 			builder.fixingSentDate(email.getSentDate());

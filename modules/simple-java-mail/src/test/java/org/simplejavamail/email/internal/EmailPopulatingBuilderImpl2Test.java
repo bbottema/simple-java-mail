@@ -29,15 +29,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BINARY;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
+import static org.simplejavamail.api.email.ContentTransferEncoding.QUOTED_PRINTABLE;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
@@ -171,6 +177,28 @@ public class EmailPopulatingBuilderImpl2Test {
 				.hasSmimeEncryptionConfig(SmimeEncryptionConfig.builder()
 						.x509Certificate(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")))
 						.build());
+	}
+
+	@Test
+	public void testConstructorApplyingPreconfiguredBodyPartContentTransferEncodingDefaults() throws Exception {
+		Map<Property, Object> value = new HashedMap<>();
+		value.put(DEFAULT_CONTENT_TRANSFER_ENCODING, BASE_64);
+		value.put(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING, BIT7);
+		value.put(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING, QUOTED_PRINTABLE);
+		value.put(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING, BIT7);
+
+		ConfigLoaderTestHelper.setResolvedProperties(value);
+
+		final Email email = EmailBuilder.startingBlank()
+				.withPlainText("plain")
+				.withHTMLText("<b>html</b>")
+				.withHTMLTextContentTransferEncoding(BINARY)
+				.buildEmailCompletedWithDefaultsAndOverrides();
+
+		assertThat(email.getContentTransferEncoding()).isEqualTo(BASE_64);
+		assertThat(email.getPlainTextContentTransferEncoding()).isEqualTo(BIT7);
+		assertThat(email.getHTMLTextContentTransferEncoding()).isEqualTo(BINARY);
+		assertThat(email.getCalendarTextContentTransferEncoding()).isEqualTo(BIT7);
 	}
 
 	@Test

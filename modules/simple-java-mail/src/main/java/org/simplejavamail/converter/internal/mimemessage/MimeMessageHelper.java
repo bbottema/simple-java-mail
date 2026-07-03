@@ -107,28 +107,32 @@ public class MimeMessageHelper {
 		if (email.getPlainText() != null) {
 			val messagePart = new MimeBodyPart();
 			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING.name());
-			messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
+			messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email, email.getPlainTextContentTransferEncoding()));
 			multipartAlternativeMessages.addBodyPart(messagePart);
 		}
 		if (email.getHTMLText() != null) {
 			val messagePartHTML = new MimeBodyPart();
 			messagePartHTML.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING.name()));
-			messagePartHTML.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
+			messagePartHTML.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email, email.getHTMLTextContentTransferEncoding()));
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
 		}
 		if (email.getCalendarText() != null) {
 			val calendarMethod = requireNonNull(email.getCalendarMethod(), "calendarMethod is required when calendarText is set");
 			val messagePartCalendar = new MimeBodyPart();
 			messagePartCalendar.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING.name(), calendarMethod));
-			messagePartCalendar.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
+			messagePartCalendar.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email, email.getCalendarTextContentTransferEncoding()));
 			multipartAlternativeMessages.addBodyPart(messagePartCalendar);
 		}
 	}
 
-	private static String determineContentTransferEncoder(@NotNull Email email) {
-		return (email.getContentTransferEncoding() != null
-				? email.getContentTransferEncoding()
-				: ContentTransferEncoding.getDefault()).getEncoder();
+	private static String determineContentTransferEncoder(@NotNull Email email, @Nullable ContentTransferEncoding bodyPartContentTransferEncoding) {
+		ContentTransferEncoding contentTransferEncoding = bodyPartContentTransferEncoding;
+		if (contentTransferEncoding == null) {
+			contentTransferEncoding = email.getContentTransferEncoding() != null
+					? email.getContentTransferEncoding()
+					: ContentTransferEncoding.getDefault();
+		}
+		return contentTransferEncoding.getEncoder();
 	}
 
 	/**
@@ -141,17 +145,21 @@ public class MimeMessageHelper {
 	 */
 	static void setTexts(@NotNull final Email email, final MimePart messagePart)
 			throws MessagingException {
+		ContentTransferEncoding bodyPartContentTransferEncoding = null;
 		if (email.getPlainText() != null) {
 			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING.name());
+			bodyPartContentTransferEncoding = email.getPlainTextContentTransferEncoding();
 		}
 		if (email.getHTMLText() != null) {
 			messagePart.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING.name()));
+			bodyPartContentTransferEncoding = email.getHTMLTextContentTransferEncoding();
 		}
 		if (email.getCalendarText() != null) {
 			val calendarMethod = requireNonNull(email.getCalendarMethod(), "CalendarMethod must be set when CalendarText is set");
 			messagePart.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING.name(), calendarMethod));
+			bodyPartContentTransferEncoding = email.getCalendarTextContentTransferEncoding();
 		}
-		messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
+		messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email, bodyPartContentTransferEncoding));
 	}
 	
 	/**

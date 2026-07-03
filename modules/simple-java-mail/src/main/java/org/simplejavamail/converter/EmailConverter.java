@@ -741,8 +741,9 @@ public final class EmailConverter {
 		if (parsed.getBounceToAddress() != null) {
 			builder.withBounceTo(parsed.getBounceToAddress());
 		}
-		if (parsed.getContentTransferEncoding() != null) {
-			builder.withContentTransferEncoding(ContentTransferEncoding.byEncoder(parsed.getContentTransferEncoding()));
+		final ContentTransferEncoding contentTransferEncoding = toContentTransferEncoding(parsed.getContentTransferEncoding());
+		if (contentTransferEncoding != null) {
+			builder.withContentTransferEncoding(contentTransferEncoding);
 		}
 		builder.fixingMessageId(parsed.getMessageId());
 		for (final InternetAddress to : parsed.getToAddresses()) {
@@ -757,10 +758,22 @@ public final class EmailConverter {
 		}
 		builder.withSubject(parsed.getSubject() != null ? parsed.getSubject() : "");
 		builder.withPlainText(parsed.getPlainContent());
+		final ContentTransferEncoding plainTextContentTransferEncoding = toContentTransferEncoding(parsed.getPlainTextContentTransferEncoding());
+		if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, plainTextContentTransferEncoding)) {
+			builder.withPlainTextContentTransferEncoding(plainTextContentTransferEncoding);
+		}
 		builder.withHTMLText(parsed.getHtmlContent());
+		final ContentTransferEncoding htmlTextContentTransferEncoding = toContentTransferEncoding(parsed.getHtmlTextContentTransferEncoding());
+		if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, htmlTextContentTransferEncoding)) {
+			builder.withHTMLTextContentTransferEncoding(htmlTextContentTransferEncoding);
+		}
 		
 		if (parsed.getCalendarMethod() != null) {
 			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), verifyNonnullOrEmpty(parsed.getCalendarContent()));
+			final ContentTransferEncoding calendarTextContentTransferEncoding = toContentTransferEncoding(parsed.getCalendarTextContentTransferEncoding());
+			if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, calendarTextContentTransferEncoding)) {
+				builder.withCalendarTextContentTransferEncoding(calendarTextContentTransferEncoding);
+			}
 		}
 		
 		for (final Map.Entry<String, MimeDataSource> cid : parsed.getCidMap().entrySet()) {
@@ -775,6 +788,16 @@ public final class EmailConverter {
 			builder.withAttachment(extractCID(attachment.getName()), attachment.getDataSource(), attachment.getContentDescription(), encoding, userProvidedContentId(attachment));
 		}
 		return builder;
+	}
+
+	private static boolean isBodyPartContentTransferEncodingOverride(@Nullable final ContentTransferEncoding fallbackContentTransferEncoding,
+																	 @Nullable final ContentTransferEncoding bodyPartContentTransferEncoding) {
+		return bodyPartContentTransferEncoding != null && bodyPartContentTransferEncoding != fallbackContentTransferEncoding;
+	}
+
+	@Nullable
+	private static ContentTransferEncoding toContentTransferEncoding(@Nullable final String contentTransferEncoding) {
+		return !valueNullOrEmpty(contentTransferEncoding) ? ContentTransferEncoding.byEncoder(contentTransferEncoding) : null;
 	}
 
 	@Nullable

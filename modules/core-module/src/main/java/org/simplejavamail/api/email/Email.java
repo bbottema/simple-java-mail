@@ -109,6 +109,24 @@ public class Email implements Serializable {
 	private final ContentTransferEncoding contentTransferEncoding;
 
 	/**
+	 * @see EmailPopulatingBuilder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private final ContentTransferEncoding plainTextContentTransferEncoding;
+
+	/**
+	 * @see EmailPopulatingBuilder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private final ContentTransferEncoding htmlTextContentTransferEncoding;
+
+	/**
+	 * @see EmailPopulatingBuilder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private final ContentTransferEncoding calendarTextContentTransferEncoding;
+
+	/**
 	 * @see EmailPopulatingBuilder#withSubject(String)
 	 */
 	private final String subject;
@@ -265,6 +283,9 @@ public class Email implements Serializable {
 		calendarMethod = builder.getCalendarMethod();
 		textCalendar = builder.getTextCalendar();
 		contentTransferEncoding = builder.getContentTransferEncoding();
+		plainTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getPlainTextContentTransferEncoding() : builder.getPlainTextContentTransferEncoding();
+		htmlTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getHTMLTextContentTransferEncoding() : builder.getHTMLTextContentTransferEncoding();
+		calendarTextContentTransferEncoding = builder.getCalendarTextContentTransferEncoding();
 		subject = builder.getSubject();
 		useDispositionNotificationTo = builder.getUseDispositionNotificationTo();
 		dispositionNotificationTo = builder.getDispositionNotificationTo();
@@ -302,6 +323,9 @@ public class Email implements Serializable {
 				",\n\ttextHTML='" + textHTML + '\'' +
 				",\n\ttextCalendar='" + format("%s (method: %s)", textCalendar, calendarMethod) + '\'' +
 				",\n\tcontentTransferEncoding='" + (contentTransferEncoding != null ? contentTransferEncoding : ContentTransferEncoding.getDefault()) + '\'' +
+				",\n\tplainTextContentTransferEncoding='" + plainTextContentTransferEncoding + '\'' +
+				",\n\thtmlTextContentTransferEncoding='" + htmlTextContentTransferEncoding + '\'' +
+				",\n\tcalendarTextContentTransferEncoding='" + calendarTextContentTransferEncoding + '\'' +
 				",\n\tsubject='" + subject + '\'' +
 				",\n\trecipients=" + recipients);
 		if (!MiscUtil.valueNullOrEmpty(dkimConfig)) {
@@ -648,5 +672,29 @@ public class Email implements Serializable {
 	@Nullable
 	public ContentTransferEncoding getContentTransferEncoding() {
 		return contentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	public ContentTransferEncoding getPlainTextContentTransferEncoding() {
+		return plainTextContentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	public ContentTransferEncoding getHTMLTextContentTransferEncoding() {
+		return htmlTextContentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	public ContentTransferEncoding getCalendarTextContentTransferEncoding() {
+		return calendarTextContentTransferEncoding;
 	}
 }

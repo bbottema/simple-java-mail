@@ -412,15 +412,42 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withCalendarText(@NotNull CalendarMethod calendarMethod, @NotNull String textCalendar);
 
 	/**
-	 * Determines what encoding is applied to the text/html/iCalendar encoding in the MimeMessage/EML. Default is {@link ContentTransferEncoding#QUOTED_PRINTABLE}, which basicallt means plain
-	 * text, so you can just read the content of the EML (if not encrypted).
+	 * Determines what encoding is applied to text/html/iCalendar content in the MimeMessage/EML. Default is {@link ContentTransferEncoding#QUOTED_PRINTABLE}, which basically means plain
+	 * text, so you can just read the content of the EML (if not encrypted). This acts as the shared fallback for all body parts unless a body-specific content transfer encoding is set.
 	 * <p>
 	 * However, you can choose another encoding as supported by Jakarta Mail. The list is quite extensive, but the most common alternative is base64. This might be useful for example for obfuscating
 	 * the content to some extent.
 	 *
 	 * @param contentTransferEncoding The encoder to use for the text/html/iCalendar content.
+	 * @see #withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see #withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see #withCalendarTextContentTransferEncoding(ContentTransferEncoding)
 	 */
 	EmailPopulatingBuilder withContentTransferEncoding(@NotNull ContentTransferEncoding contentTransferEncoding);
+
+	/**
+	 * Determines what encoding is applied to the plain text body part in the MimeMessage/EML. If unset,
+	 * {@link #withContentTransferEncoding(ContentTransferEncoding)} is used as fallback.
+	 *
+	 * @param contentTransferEncoding The encoder to use for the plain text content.
+	 */
+	EmailPopulatingBuilder withPlainTextContentTransferEncoding(@NotNull ContentTransferEncoding contentTransferEncoding);
+
+	/**
+	 * Determines what encoding is applied to the HTML body part in the MimeMessage/EML. If unset,
+	 * {@link #withContentTransferEncoding(ContentTransferEncoding)} is used as fallback.
+	 *
+	 * @param contentTransferEncoding The encoder to use for the HTML content.
+	 */
+	EmailPopulatingBuilder withHTMLTextContentTransferEncoding(@NotNull ContentTransferEncoding contentTransferEncoding);
+
+	/**
+	 * Determines what encoding is applied to the iCalendar body part in the MimeMessage/EML. If unset,
+	 * {@link #withContentTransferEncoding(ContentTransferEncoding)} is used as fallback.
+	 *
+	 * @param contentTransferEncoding The encoder to use for the iCalendar content.
+	 */
+	EmailPopulatingBuilder withCalendarTextContentTransferEncoding(@NotNull ContentTransferEncoding contentTransferEncoding);
 
 	/**
 	 * Delegates to {@link #withRecipients(Collection, Message.RecipientType)} with <code>recipientType=</code>{@link Message.RecipientType#TO}.
@@ -1522,6 +1549,21 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearContentTransferEncoding();
 
 	/**
+	 * Resets <em>plainTextContentTransferEncoding</em> to empty, falling back to <em>contentTransferEncoding</em>.
+	 */
+	EmailPopulatingBuilder clearPlainTextContentTransferEncoding();
+
+	/**
+	 * Resets <em>htmlTextContentTransferEncoding</em> to empty, falling back to <em>contentTransferEncoding</em>.
+	 */
+	EmailPopulatingBuilder clearHTMLTextContentTransferEncoding();
+
+	/**
+	 * Resets <em>calendarTextContentTransferEncoding</em> to empty, falling back to <em>contentTransferEncoding</em>.
+	 */
+	EmailPopulatingBuilder clearCalendarTextContentTransferEncoding();
+
+	/**
 	 * Resets <em>subject</em> to empty.
 	 */
 	@SuppressWarnings("unused")
@@ -1696,6 +1738,27 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Nullable
 	ContentTransferEncoding getContentTransferEncoding();
+
+	/**
+	 * @see #withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see #clearPlainTextContentTransferEncoding()
+	 */
+	@Nullable
+	ContentTransferEncoding getPlainTextContentTransferEncoding();
+
+	/**
+	 * @see #withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see #clearHTMLTextContentTransferEncoding()
+	 */
+	@Nullable
+	ContentTransferEncoding getHTMLTextContentTransferEncoding();
+
+	/**
+	 * @see #withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see #clearCalendarTextContentTransferEncoding()
+	 */
+	@Nullable
+	ContentTransferEncoding getCalendarTextContentTransferEncoding();
 
 	/**
 	 * @see #withSubject(String)

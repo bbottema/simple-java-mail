@@ -80,6 +80,7 @@ public class SimpleJavaMailProperties {
     @Setter
     public static class Defaults {
         private Content content;
+        private Body body;
         private String subject;
         private Recipient from;
         private Recipient replyto;
@@ -110,6 +111,44 @@ public class SimpleJavaMailProperties {
             @Setter
             public static class Transfer {
                 private String encoding;
+            }
+        }
+
+        /**
+         * @deprecated See {@link SimpleJavaMailProperties}
+         */
+        @Getter
+        @Setter
+        public static class Body {
+            private BodyPart text;
+            private BodyPart html;
+            private BodyPart calendar;
+
+            /**
+             * @deprecated See {@link SimpleJavaMailProperties}
+             */
+            @Getter
+            @Setter
+            public static class BodyPart {
+                private Content content;
+
+                /**
+                 * @deprecated See {@link SimpleJavaMailProperties}
+                 */
+                @Getter
+                @Setter
+                public static class Content {
+                    private Transfer transfer;
+
+                    /**
+                     * @deprecated See {@link SimpleJavaMailProperties}
+                     */
+                    @Getter
+                    @Setter
+                    public static class Transfer {
+                        private String encoding;
+                    }
+                }
             }
         }
 

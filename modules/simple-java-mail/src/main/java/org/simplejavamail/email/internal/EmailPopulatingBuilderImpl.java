@@ -163,6 +163,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private ContentTransferEncoding contentTransferEncoding;
 
 	/**
+	 * @see #withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private ContentTransferEncoding plainTextContentTransferEncoding;
+
+	/**
+	 * @see #withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private ContentTransferEncoding htmlTextContentTransferEncoding;
+
+	/**
+	 * @see #withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private ContentTransferEncoding calendarTextContentTransferEncoding;
+
+	/**
 	 * @see #to(Recipient...)
 	 * @see #cc(Recipient...)
 	 * @see #bcc(Recipient...)
@@ -819,6 +837,33 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
 		this.contentTransferEncoding = contentTransferEncoding;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withPlainTextContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
+		this.plainTextContentTransferEncoding = contentTransferEncoding;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withHTMLTextContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
+		this.htmlTextContentTransferEncoding = contentTransferEncoding;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withCalendarTextContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
+		this.calendarTextContentTransferEncoding = contentTransferEncoding;
 		return this;
 	}
 	
@@ -2169,6 +2214,33 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		this.contentTransferEncoding = ContentTransferEncoding.QUOTED_PRINTABLE;
 		return this;
 	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearPlainTextContentTransferEncoding()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearPlainTextContentTransferEncoding() {
+		this.plainTextContentTransferEncoding = null;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearHTMLTextContentTransferEncoding()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearHTMLTextContentTransferEncoding() {
+		this.htmlTextContentTransferEncoding = null;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearCalendarTextContentTransferEncoding()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearCalendarTextContentTransferEncoding() {
+		this.calendarTextContentTransferEncoding = null;
+		return this;
+	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#clearSubject()
@@ -2422,6 +2494,33 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public ContentTransferEncoding getContentTransferEncoding() {
 		return contentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getPlainTextContentTransferEncoding()
+	 */
+	@Override
+	@Nullable
+	public ContentTransferEncoding getPlainTextContentTransferEncoding() {
+		return plainTextContentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getHTMLTextContentTransferEncoding()
+	 */
+	@Override
+	@Nullable
+	public ContentTransferEncoding getHTMLTextContentTransferEncoding() {
+		return htmlTextContentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getCalendarTextContentTransferEncoding()
+	 */
+	@Override
+	@Nullable
+	public ContentTransferEncoding getCalendarTextContentTransferEncoding() {
+		return calendarTextContentTransferEncoding;
 	}
 	
 	/**

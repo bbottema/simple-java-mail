@@ -47,6 +47,9 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * <li>simplejavamail.proxy.password</li>
  * <li>simplejavamail.proxy.socks5bridge.port</li>
  * <li>simplejavamail.defaults.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.text.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.html.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.calendar.content.transfer.encoding</li>
  * <li>simplejavamail.defaults.subject</li>
  * <li>simplejavamail.defaults.from.name</li>
  * <li>simplejavamail.defaults.from.address</li>
@@ -152,6 +155,9 @@ public final class ConfigLoader {
 		PROXY_SOCKS5BRIDGE_PORT("simplejavamail.proxy.socks5bridge.port"),
 		DEFAULT_SUBJECT("simplejavamail.defaults.subject"),
 		DEFAULT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.content.transfer.encoding"),
+		DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.body.text.content.transfer.encoding"),
+		DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.body.html.content.transfer.encoding"),
+		DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.body.calendar.content.transfer.encoding"),
 		DEFAULT_FROM_NAME("simplejavamail.defaults.from.name"),
 		DEFAULT_FROM_ADDRESS("simplejavamail.defaults.from.address"),
 		DEFAULT_REPLYTO_NAME("simplejavamail.defaults.replyto.name"),
