@@ -10,26 +10,13 @@ import java.util.Comparator;
 import java.util.Objects;
 
 @Getter
+@Builder
 public class MimeDataSource implements Comparable<MimeDataSource> {
 	private final String name;
 	private final DataSource dataSource;
 	@Nullable private final String contentDescription;
 	@Nullable private final String contentTransferEncoding;
 	@Nullable private final String contentId;
-
-	public MimeDataSource(final String name, final DataSource dataSource, @Nullable final String contentDescription, @Nullable final String contentTransferEncoding) {
-		this(name, dataSource, contentDescription, contentTransferEncoding, null);
-	}
-
-	@Builder
-	public MimeDataSource(final String name, final DataSource dataSource, @Nullable final String contentDescription,
-						  @Nullable final String contentTransferEncoding, @Nullable final String contentId) {
-		this.name = name;
-		this.dataSource = dataSource;
-		this.contentDescription = contentDescription;
-		this.contentTransferEncoding = contentTransferEncoding;
-		this.contentId = contentId;
-	}
 
 	@Override
 	public int compareTo(@NotNull final MimeDataSource o) {

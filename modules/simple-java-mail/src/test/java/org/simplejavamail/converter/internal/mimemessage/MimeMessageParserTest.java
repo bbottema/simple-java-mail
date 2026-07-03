@@ -120,8 +120,8 @@ public class MimeMessageParserTest {
 	@Test
 	public void testMoveInvalidEmbeddedResourcesToAttachments_NoHtmlNoInvalid() throws IOException {
 		ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
-		parsedComponents.cidMap.put("moo1", new MimeDataSource("moomoo1", new ByteArrayDataSource("moomoo", "text/plain"), null, null));
-		parsedComponents.cidMap.put("moo2", new MimeDataSource("moomoo2", new ByteArrayDataSource("moomoo", "text/plain"), null, null));
+		parsedComponents.cidMap.put("moo1", mimeDataSource("moomoo1"));
+		parsedComponents.cidMap.put("moo2", mimeDataSource("moomoo2"));
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).isEmpty();
@@ -132,8 +132,8 @@ public class MimeMessageParserTest {
 	public void testMoveInvalidEmbeddedResourcesToAttachments_HtmlButNoInvalid() throws IOException {
 		ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
 		parsedComponents.htmlContent.append("blah moo1 blah html");
-		parsedComponents.cidMap.put("moo1", new MimeDataSource("moomoo1", new ByteArrayDataSource("moomoo", "text/plain"), null, null));
-		parsedComponents.cidMap.put("moo2", new MimeDataSource("moomoo2", new ByteArrayDataSource("moomoo", "text/plain"), null, null));
+		parsedComponents.cidMap.put("moo1", mimeDataSource("moomoo1"));
+		parsedComponents.cidMap.put("moo2", mimeDataSource("moomoo2"));
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).isEmpty();
@@ -144,12 +144,19 @@ public class MimeMessageParserTest {
 	public void testMoveInvalidEmbeddedResourcesToAttachments_Invalid() throws IOException {
 		ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
 		parsedComponents.htmlContent.append("blah cid:moo1 blah html");
-		parsedComponents.cidMap.put("moo1", new MimeDataSource("moomoo1", new ByteArrayDataSource("moomoo", "text/plain"), null, null));
-		parsedComponents.cidMap.put("moo2", new MimeDataSource("moomoo2", new ByteArrayDataSource("moomoo", "text/plain"), null, null));
+		parsedComponents.cidMap.put("moo1", mimeDataSource("moomoo1"));
+		parsedComponents.cidMap.put("moo2", mimeDataSource("moomoo2"));
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		
 		assertThat(parsedComponents.cidMap).containsOnlyKeys("moo1");
 		assertThat(parsedComponents.attachmentList).extracting(MimeDataSource::getName).containsOnly("moomoo2");
+	}
+
+	private static MimeDataSource mimeDataSource(final String name) throws IOException {
+		return MimeDataSource.builder()
+				.name(name)
+				.dataSource(new ByteArrayDataSource("moomoo", "text/plain"))
+				.build();
 	}
 	
 	@Test
