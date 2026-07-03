@@ -106,7 +106,8 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * <p>
 	 * <strong>Note 1:</strong> Is overridden by custom factory instance if set.
 	 * <p>
-	 * <strong>Note 2:</strong> Sets the property <code>mail.smtp.ssl.socketFactory.class</code> on the Session.
+	 * <strong>Note 2:</strong> Sets the transport-specific socket factory class property on the Session, such as
+	 * <code>mail.smtp.ssl.socketFactory.class</code> or <code>mail.smtps.ssl.socketFactory.class</code>.
 	 * <br>
 	 * <strong>Note 3:</strong> This breaks your setup if you also use authenticated proxy.
 	 *
@@ -122,7 +123,8 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * <p>
 	 * <strong>Note 1:</strong> Overrides custom factory class if set.
 	 * <p>
-	 * <strong>Note 2:</strong> Sets the property <code>mail.smtp.ssl.socketFactory</code> on the Session.
+	 * <strong>Note 2:</strong> Sets the transport-specific socket factory property on the Session, such as
+	 * <code>mail.smtp.ssl.socketFactory</code> or <code>mail.smtps.ssl.socketFactory</code>.
 	 * <br>
 	 * <strong>Note 3:</strong> This breaks your setup if you also use authenticated proxy.
 	 *

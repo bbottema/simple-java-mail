@@ -168,9 +168,9 @@ public class MailerImpl implements Mailer {
 			}
 			// https://archive.ph/VkrwH (https://www.tutorialspoint.com/javamail_api/javamail_api_smtp_servers.htm)
 			if (serverConfig.getCustomSSLFactoryInstance() != null) {
-				props.put("mail.smtp.ssl.socketFactory", serverConfig.getCustomSSLFactoryInstance());
+				props.put(transportStrategy.propertyNameSSLSocketFactory(), serverConfig.getCustomSSLFactoryInstance());
 			} else if (serverConfig.getCustomSSLFactoryClass() != null) {
-				props.put("mail.smtp.ssl.socketFactory.class", serverConfig.getCustomSSLFactoryClass());
+				props.put(transportStrategy.propertyNameSSLSocketFactoryClass(), serverConfig.getCustomSSLFactoryClass());
 			}
 
 			if (transportStrategy == TransportStrategy.SMTP_OAUTH2 && serverConfig.getPassword() == null) {
