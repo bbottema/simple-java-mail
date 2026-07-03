@@ -135,12 +135,6 @@
     <profiles>
         <profile>
             <id>publish-cli</id>
-            <activation>
-                <property>
-                    <name>jacoco.skip</name>
-                    <value>true</value>
-                </property>
-            </activation>
             <build>
                 <plugins>
                     <plugin>
