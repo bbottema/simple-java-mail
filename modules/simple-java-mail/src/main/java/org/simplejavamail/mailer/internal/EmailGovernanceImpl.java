@@ -124,16 +124,33 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	 */
 	@Nullable private final Integer maximumEmailSize;
 
+	/**
+	 * @see MailerGenericBuilder#withDefaultDkimSigning(DkimConfig)
+	 */
+	@Nullable private final DkimConfig defaultDkimSigningConfig;
+
+	/**
+	 * @see MailerGenericBuilder#clearDefaultDkimSigning()
+	 */
+	private final boolean defaultDkimSigningConfigured;
+
 	public EmailGovernanceImpl(@Nullable EmailValidator emailValidator, @Nullable Email emailDefaults, @Nullable Email emailOverrides, @Nullable Integer maximumEmailSize) {
+		this(emailValidator, emailDefaults, emailOverrides, maximumEmailSize, null, false);
+	}
+
+	public EmailGovernanceImpl(@Nullable EmailValidator emailValidator, @Nullable Email emailDefaults, @Nullable Email emailOverrides, @Nullable Integer maximumEmailSize,
+			@Nullable DkimConfig defaultDkimSigningConfig, boolean defaultDkimSigningConfigured) {
 		this.emailValidator = emailValidator;
-		this.emailDefaults = emailDefaults != null ? emailDefaults : newDefaultsEmailWithDefaultDefaults();
+		this.emailDefaults = emailDefaults != null ? emailDefaults : newDefaultsEmailWithDefaultDefaults(defaultDkimSigningConfigured);
 		this.emailOverrides = emailOverrides != null ? emailOverrides : EmailBuilder.startingBlank().buildEmail();
 		this.maximumEmailSize = maximumEmailSize;
+		this.defaultDkimSigningConfig = defaultDkimSigningConfig;
+		this.defaultDkimSigningConfigured = defaultDkimSigningConfigured;
 	}
 
 	// FIXME default notificationTo is missing
 	// The name is a bit cryptic, but succinct (and it's only used internally)
-	private Email newDefaultsEmailWithDefaultDefaults() {
+	private Email newDefaultsEmailWithDefaultDefaults(final boolean suppressDkimSigningDefault) {
 		final EmailPopulatingBuilder allDefaults = EmailBuilder.startingBlank();
 
 		if (hasProperty(DEFAULT_FROM_ADDRESS)) {
@@ -206,7 +223,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 					.cipherAlgorithm(hasProperty(SMIME_ENCRYPTION_CIPHER) ? getStringProperty(SMIME_ENCRYPTION_CIPHER) : null)
 					.build());
 		}
-		if (allDefaults.getDkimConfig() == null && hasProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA)) {
+		if (!suppressDkimSigningDefault && allDefaults.getDkimConfig() == null && hasProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA)) {
 			val dkimConfigBuilder = DkimConfig.builder()
 					.dkimSelector(verifyNonnullOrEmpty(getStringProperty(DKIM_SELECTOR)))
 					.dkimSigningDomain(verifyNonnullOrEmpty(getStringProperty(DKIM_SIGNING_DOMAIN)))
@@ -291,7 +308,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withCalendarTextContentTransferEncoding);
 		ofNullable(this.<SmimeSigningConfig>resolveEmailProperty(provided, EmailProperty.SMIME_SIGNING_CONFIG)).ifPresent(builder::signWithSmime);
 		ofNullable(this.<SmimeEncryptionConfig>resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG)).ifPresent(builder::encryptWithSmime);
-		ofNullable(this.<DkimConfig>resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG)).ifPresent(builder::signWithDomainKey);
+		ofNullable(resolveDkimConfig(provided)).ifPresent(builder::signWithDomainKey);
 		builder.withBounceTo(this.<Recipient>resolveEmailProperty(provided, EmailProperty.BOUNCETO_RECIPIENT));
 		ofNullable(this.<DeliveryStatusNotification>resolveEmailProperty(provided, EmailProperty.DELIVERY_STATUS_NOTIFICATION)).ifPresent(builder::withDeliveryStatusNotification);
 		ofNullable(this.<Date>resolveEmailProperty(provided, EmailProperty.SENT_DATE)).ifPresent(builder::fixingSentDate);
@@ -313,6 +330,32 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	@Nullable
 	private <T> T resolveEmailProperty(@Nullable Email email, @NotNull EmailProperty emailProperty) {
 		return overrideOrProvideOrDefaultProperty(email, emailDefaults, emailOverrides, emailProperty);
+	}
+
+	@Nullable
+	private DkimConfig resolveDkimConfig(@Nullable Email email) {
+		if (overrideAllowedForDkim(email) && emailOverrides.getDkimConfig() != null) {
+			return emailOverrides.getDkimConfig();
+		}
+		if (email != null && email.getDkimConfig() != null) {
+			return email.getDkimConfig();
+		}
+		if (defaultAllowedForDkim(email)) {
+			return defaultDkimSigningConfigured ? defaultDkimSigningConfig : emailDefaults.getDkimConfig();
+		}
+		return null;
+	}
+
+	private static boolean defaultAllowedForDkim(@Nullable Email email) {
+		return email == null || !email.isIgnoreDefaults() &&
+				(email.getPropertiesNotToApplyDefaultValueFor() == null ||
+						!email.getPropertiesNotToApplyDefaultValueFor().contains(EmailProperty.DKIM_SIGNING_CONFIG));
+	}
+
+	private static boolean overrideAllowedForDkim(@Nullable Email email) {
+		return email == null || !email.isIgnoreOverrides() &&
+				(email.getPropertiesNotToApplyOverrideValueFor() == null ||
+						!email.getPropertiesNotToApplyOverrideValueFor().contains(EmailProperty.DKIM_SIGNING_CONFIG));
 	}
 
 	@NotNull

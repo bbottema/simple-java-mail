@@ -66,9 +66,16 @@ public class ResultHandlingTest {
 						+ "YJMRlfXk67lJXCleZL15EpVPrQ34KlA==";
 
 		final MimeMessageExtractingMailer mimeMessageExtractingMailer = new MimeMessageExtractingMailer();
+		final DkimConfig defaultDkimConfig = DkimConfig.builder()
+				.dkimPrivateKeyData(new ByteArrayInputStream(Base64.getDecoder().decode(privateDERkeyBase64)))
+				.dkimSigningDomain("supersecret-testing-domain.com")
+				.dkimSelector("dkim1")
+				.excludedHeadersFromDkimDefaultSigningList("Reply-To")
+				.build();
 
 		try (Mailer mailer = MailerBuilder
                 .withSMTPServer("localhost", 0)
+				.withDefaultDkimSigning(defaultDkimConfig)
                 .withCustomMailer(mimeMessageExtractingMailer)
                 .buildMailer()) {
 
@@ -77,12 +84,6 @@ public class ResultHandlingTest {
 					.from("Simple Java Mail demo", "simplejavamail@supersecret-testing-domain.com")
 					.withSubject("test")
 					.withPlainText("")
-					.signWithDomainKey(DkimConfig.builder()
-							.dkimPrivateKeyData(new ByteArrayInputStream(Base64.getDecoder().decode(privateDERkeyBase64)))
-							.dkimSigningDomain("supersecret-testing-domain.com")
-							.dkimSelector("dkim1")
-							.excludedHeadersFromDkimDefaultSigningList("Reply-To")
-							.build())
 					.buildEmail();
 
 			final CompletableFuture<Void> f = mailer.sendMail(dkimMail);
@@ -94,6 +95,7 @@ public class ResultHandlingTest {
 			final MimeMessage message = mimeMessageExtractingMailer.message;
 			final String s = EmailConverter.mimeMessageToEML(message);
 			final MimeMessage mimeMessage = EmailConverter.emlToMimeMessage(s);
+			assertThat(mimeMessage.getHeader("DKIM-Signature")).hasSize(1);
 			for (Header header : Collections.list(mimeMessage.getAllHeaders())) {
 				System.out.println(header.getName() + ": " + header.getValue());
 			}

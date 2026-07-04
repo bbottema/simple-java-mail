@@ -6,6 +6,7 @@ import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
@@ -16,6 +17,7 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -316,6 +318,43 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #clearEmailDefaults()
 	 */
 	T withEmailDefaults(@NotNull Email emailDefaults);
+
+	/**
+	 * Primes every email sent through this mailer for DKIM signing unless the email provides its own DKIM configuration.
+	 * <p>
+	 * This is a convenience wrapper around {@link #withEmailDefaults(Email)} that only affects the default DKIM configuration. Other default email fields
+	 * from property files or {@link #withEmailDefaults(Email)} are preserved.
+	 * <p>
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}. For property-file
+	 * driven configuration, use {@code simplejavamail.dkim.signing.*} properties.
+	 *
+	 * @param dkimPrivateKey                            The key content used to sign for the sending party.
+	 * @param signingDomain                             The domain being authorized to send.
+	 * @param dkimSelector                              Additional domain specifier.
+	 * @param excludedHeadersFromDkimDefaultSigningList Allows you to exclude headers from the DKIM library's default signing list.
+	 *
+	 * @see #withDefaultDkimSigning(DkimConfig)
+	 * @see #clearDefaultDkimSigning()
+	 * @see org.simplejavamail.api.email.EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+	 */
+	@Cli.ExcludeApi(reason = "DKIM mailer defaults are Java-only; use simplejavamail.dkim.signing.* properties for property-driven configuration")
+	T withDefaultDkimSigning(byte@NotNull[] dkimPrivateKey, @NotNull String signingDomain, @NotNull String dkimSelector, @Nullable @Cli.Optional Set<String> excludedHeadersFromDkimDefaultSigningList);
+
+	/**
+	 * Primes every email sent through this mailer for DKIM signing unless the email provides its own DKIM configuration.
+	 * <p>
+	 * This is a convenience wrapper around {@link #withEmailDefaults(Email)} that only affects the default DKIM configuration. Other default email fields
+	 * from property files or {@link #withEmailDefaults(Email)} are preserved.
+	 *
+	 * @param dkimConfig The DKIM configuration to use by default.
+	 *
+	 * @see DkimConfig
+	 * @see #withDefaultDkimSigning(byte[], String, String, Set)
+	 * @see #clearDefaultDkimSigning()
+	 * @see org.simplejavamail.api.email.EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
+	 */
+	@Cli.ExcludeApi(reason = "DKIM mailer defaults are Java-only; use simplejavamail.dkim.signing.* properties for property-driven configuration")
+	T withDefaultDkimSigning(@NotNull DkimConfig dkimConfig);
 
 	/**
 	 * Sets a reference {@link Email} to be used for default values on all emails coming through this <code>Mailer</code> instance.
@@ -706,6 +745,15 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearEmailDefaults();
 
 	/**
+	 * Clears only the mailer-level default DKIM signing configuration while leaving other default email fields intact.
+	 * <p>
+	 * This also suppresses DKIM defaults from {@code simplejavamail.dkim.signing.*} properties for mailers built from this builder.
+	 *
+	 * @see #withDefaultDkimSigning(DkimConfig)
+	 */
+	T clearDefaultDkimSigning();
+
+	/**
 	 * Makes the reference {@code Email} instance <code>null</code>, meaning no overrides will be applied.
 	 *
 	 * @see #withEmailOverrides(Email)
@@ -827,6 +875,19 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	Email getEmailDefaults();
+
+	/**
+	 * @see #withDefaultDkimSigning(DkimConfig)
+	 */
+	@Nullable
+	DkimConfig getDefaultDkimSigningConfig();
+
+	/**
+	 * @return Whether default DKIM signing was explicitly configured or cleared through this builder.
+	 * @see #withDefaultDkimSigning(DkimConfig)
+	 * @see #clearDefaultDkimSigning()
+	 */
+	boolean isDefaultDkimSigningConfigured();
 
 	/**
 	 * @see #withEmailOverrides(Email)

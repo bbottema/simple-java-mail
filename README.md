@@ -47,6 +47,7 @@ Unreleased 9.0.0
 - [#566](https://github.com/bbottema/simple-java-mail/issues/566), [#597](https://github.com/bbottema/simple-java-mail/issues/597), [#602](https://github.com/bbottema/simple-java-mail/issues/602), [#607](https://github.com/bbottema/simple-java-mail/issues/607): Improved MIME resource `Content-ID` handling for explicit IDs, parsed embedded images, and generated fallback IDs.
 - [#589](https://github.com/bbottema/simple-java-mail/issues/589): Added Jakarta Mail debug output configuration.
 - [#568](https://github.com/bbottema/simple-java-mail/issues/568): Added local bind address configuration for multi-IP SMTP hosts.
+- [#196](https://github.com/bbottema/simple-java-mail/issues/196): Added mailer-level default DKIM signing configuration so DKIM can be configured once per `Mailer`.
 - [#569](https://github.com/bbottema/simple-java-mail/issues/569): Added simple sequential batch sending for reusing one mailer connection without the batch module.
 - [#615](https://github.com/bbottema/simple-java-mail/issues/615): Fixed `MailerGenericBuilder.async()` so no-arg `testConnection()` uses the configured async default.
 - [#611](https://github.com/bbottema/simple-java-mail/issues/611): Fixed custom SSL socket factory configuration for SMTPS mailers.

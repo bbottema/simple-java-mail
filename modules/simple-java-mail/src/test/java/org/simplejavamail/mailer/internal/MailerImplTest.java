@@ -7,11 +7,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
+import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.mailer.MailerBuilder;
+import testutil.ConfigLoaderTestHelper;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,6 +30,12 @@ import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_OAUTH2;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_PRIVATE_KEY_FILE_OR_DATA;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SELECTOR;
+import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SIGNING_DOMAIN;
 import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNANCE;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.EmailHelper.createDummyOperationalConfig;
@@ -135,9 +145,111 @@ public class MailerImplTest {
 		assertThat(actual.getPkcs12Config().getKeyPassword()).isEqualTo("letmein".toCharArray());
 	}
 
+	@Test
+	public void testDefaultDkimSigning_WithConfigObjectPreservesConfigDefaults() throws Exception {
+		final Properties properties = new Properties();
+		properties.setProperty(DEFAULT_FROM_ADDRESS.key(), "default@domain.com");
+		properties.setProperty(DEFAULT_SUBJECT.key(), "default subject");
+
+		try {
+			ConfigLoader.loadProperties(properties, false);
+
+			final DkimConfig dkimConfig = dkimConfig("java-default.com", "java-default");
+			final Mailer mailer = MailerBuilder
+					.withSMTPServer("host", 25, null, null)
+					.withDefaultDkimSigning(dkimConfig)
+					.buildMailer();
+
+			final Email resolved = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(EmailBuilder.startingBlank().buildEmail());
+
+			assertThat(resolved.getFromRecipient().getAddress()).isEqualTo("default@domain.com");
+			assertThat(resolved.getSubject()).isEqualTo("default subject");
+			assertThat(resolved.getDkimConfig()).isEqualTo(dkimConfig);
+		} finally {
+			ConfigLoaderTestHelper.clearConfigProperties();
+		}
+	}
+
+	@Test
+	public void testDefaultDkimSigning_UserEmailTakesPrecedence() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final DkimConfig defaultDkimConfig = dkimConfig("java-default.com", "java-default");
+		final DkimConfig userDkimConfig = dkimConfig("user.com", "user");
+		final Mailer mailer = MailerBuilder
+				.withSMTPServer("host", 25, null, null)
+				.withDefaultDkimSigning(defaultDkimConfig)
+				.buildMailer();
+		final Email userEmail = EmailBuilder.startingBlank()
+				.from("from@user.com")
+				.signWithDomainKey(userDkimConfig)
+				.buildEmail();
+
+		final Email resolved = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(userEmail);
+
+		assertThat(resolved.getDkimConfig()).isEqualTo(userDkimConfig);
+	}
+
+	@Test
+	public void testDefaultDkimSigning_WithInlineArguments() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final Mailer mailer = MailerBuilder
+				.withSMTPServer("host", 25, null, null)
+				.withDefaultDkimSigning("key".getBytes(), "inline-default.com", "inline-default", Collections.singleton("Reply-To"))
+				.buildMailer();
+		final Email userEmail = EmailBuilder.startingBlank()
+				.from("from@inline-default.com")
+				.buildEmail();
+
+		final DkimConfig resolvedDkimConfig = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(userEmail).getDkimConfig();
+
+		assertThat(resolvedDkimConfig).isEqualTo(DkimConfig.builder()
+				.dkimPrivateKeyData("key".getBytes())
+				.dkimSigningDomain("inline-default.com")
+				.dkimSelector("inline-default")
+				.excludedHeadersFromDkimDefaultSigningList("Reply-To")
+				.build());
+	}
+
+	@Test
+	public void testClearDefaultDkimSigning_SuppressesPropertyDefaultOnly() throws Exception {
+		final Properties properties = new Properties();
+		properties.setProperty(DEFAULT_FROM_ADDRESS.key(), "default@domain.com");
+		properties.setProperty(DEFAULT_SUBJECT.key(), "default subject");
+		properties.setProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA.key(), "src/test/resources/dkim/dkim_dummy_key.der");
+		properties.setProperty(DKIM_SIGNING_DOMAIN.key(), "property-default.com");
+		properties.setProperty(DKIM_SELECTOR.key(), "property-default");
+		properties.setProperty(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST.key(), "Reply-To");
+
+		try {
+			ConfigLoader.loadProperties(properties, false);
+
+			final Mailer mailer = MailerBuilder
+					.withSMTPServer("host", 25, null, null)
+					.clearDefaultDkimSigning()
+					.buildMailer();
+			final Email resolved = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(EmailBuilder.startingBlank().buildEmail());
+
+			assertThat(resolved.getFromRecipient().getAddress()).isEqualTo("default@domain.com");
+			assertThat(resolved.getSubject()).isEqualTo("default subject");
+			assertThat(resolved.getDkimConfig()).isNull();
+		} finally {
+			ConfigLoaderTestHelper.clearConfigProperties();
+		}
+	}
+
 	@NotNull
 	private List<String> asList(String... args) {
 		return Arrays.asList(args);
+	}
+
+	private DkimConfig dkimConfig(final String signingDomain, final String selector) {
+		return DkimConfig.builder()
+				.dkimPrivateKeyData("key-" + selector)
+				.dkimSigningDomain(signingDomain)
+				.dkimSelector(selector)
+				.build();
 	}
 
 	@NotNull

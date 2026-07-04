@@ -5,6 +5,7 @@ import com.sanctionco.jmail.JMail;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
@@ -21,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,6 +39,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
@@ -122,6 +125,17 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Nullable
 	private Email emailDefaults;
+
+	/**
+	 * @see MailerGenericBuilder#withDefaultDkimSigning(DkimConfig)
+	 */
+	@Nullable
+	private DkimConfig defaultDkimSigningConfig;
+
+	/**
+	 * @see MailerGenericBuilder#isDefaultDkimSigningConfigured()
+	 */
+	private boolean defaultDkimSigningConfigured;
 
 	/**
 	 * @see MailerGenericBuilder#withEmailOverrides(Email)
@@ -300,7 +314,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getEmailValidator(),
 				getEmailDefaults(),
 				getEmailOverrides(),
-				getMaximumEmailSize());
+				getMaximumEmailSize(),
+				getDefaultDkimSigningConfig(),
+				isDefaultDkimSigningConfigured());
 	}
 	
 	/**
@@ -485,6 +501,30 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withEmailDefaults(@NotNull Email emailDefaults) {
 		this.emailDefaults = emailDefaults;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withDefaultDkimSigning(byte[], String, String, Set)
+	 */
+	@Override
+	public T withDefaultDkimSigning(final byte@NotNull[] dkimPrivateKey, @NotNull final String signingDomain, @NotNull final String dkimSelector,
+			@Nullable final Set<String> excludedHeadersFromDkimDefaultSigningList) {
+		return withDefaultDkimSigning(DkimConfig.builder()
+				.dkimPrivateKeyData(checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey"))
+				.dkimSigningDomain(checkNonEmptyArgument(signingDomain, "dkimSigningDomain"))
+				.dkimSelector(checkNonEmptyArgument(dkimSelector, "dkimSelector"))
+				.excludedHeadersFromDkimDefaultSigningList(excludedHeadersFromDkimDefaultSigningList)
+				.build());
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withDefaultDkimSigning(DkimConfig)
+	 */
+	@Override
+	public T withDefaultDkimSigning(@NotNull final DkimConfig dkimConfig) {
+		this.defaultDkimSigningConfig = checkNonEmptyArgument(dkimConfig, "dkimConfig");
+		this.defaultDkimSigningConfigured = true;
 		return (T) this;
 	}
 
@@ -828,6 +868,16 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	/**
+	 * @see MailerGenericBuilder#clearDefaultDkimSigning()
+	 */
+	@Override
+	public T clearDefaultDkimSigning() {
+		this.defaultDkimSigningConfig = null;
+		this.defaultDkimSigningConfigured = true;
+		return (T) this;
+	}
+
+	/**
 	 * @see MailerGenericBuilder#clearEmailOverrides()
 	 */
 	@Override
@@ -991,6 +1041,23 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	public Email getEmailDefaults() {
 		return emailDefaults;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getDefaultDkimSigningConfig()
+	 */
+	@Override
+	@Nullable
+	public DkimConfig getDefaultDkimSigningConfig() {
+		return defaultDkimSigningConfig;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#isDefaultDkimSigningConfigured()
+	 */
+	@Override
+	public boolean isDefaultDkimSigningConfigured() {
+		return defaultDkimSigningConfigured;
 	}
 
 	/**
