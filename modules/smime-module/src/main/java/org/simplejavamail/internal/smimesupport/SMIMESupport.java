@@ -296,7 +296,7 @@ public class SMIMESupport implements SMIMEModule {
 				}
 				// apparently the sign was invalid, so ignore and continue with the decrypted attachment instead
 			}
-			return new AttachmentDecryptionResultImpl(SmimeMode.ENCRYPTED, handleLiberatedContent(liberatedBodyPart.getContent()));
+			return toAttachmentDecryptionResult(SmimeMode.ENCRYPTED, handleLiberatedContent(liberatedBodyPart.getContent()));
 		}
 		LOGGER.warn("Message was encrypted, but no Pkcs12Config was given to decrypt it with, skipping attachment...");
 		return null;
@@ -307,7 +307,7 @@ public class SMIMESupport implements SMIMEModule {
 			throws MessagingException, IOException {
 		if (SmimeUtil.checkSignature(mimeBodyPart)) {
 			MimeBodyPart liberatedBodyPart = SmimeUtil.getSignedContent(mimeBodyPart);
-			return new AttachmentDecryptionResultImpl(SmimeMode.SIGNED, handleLiberatedContent(liberatedBodyPart.getContent()));
+			return toAttachmentDecryptionResult(SmimeMode.SIGNED, handleLiberatedContent(liberatedBodyPart.getContent()));
 		}
 		LOGGER.warn("Content is S/MIME signed, but signature is not valid; skipping S/MIME interpeter...");
 		return null;
@@ -319,13 +319,18 @@ public class SMIMESupport implements SMIMEModule {
 		try {
 			if (SmimeUtil.checkSignature(mimeBodyPart)) {
 				MimeBodyPart liberatedBodyPart = SmimeUtil.getSignedContent(mimeBodyPart);
-				return new AttachmentDecryptionResultImpl(SmimeMode.SIGNED, handleLiberatedContent(liberatedBodyPart.getContent()));
+				return toAttachmentDecryptionResult(SmimeMode.SIGNED, handleLiberatedContent(liberatedBodyPart.getContent()));
 			}
 		} catch (MessagingException | IOException e) {
 			// ignore, apparently not S/SMIME after all
 		}
         LOGGER.warn("Content classified as signed, but apparently not using S/MIME (or it was and the signature was not valid); skipping S/MIME interpeter...");
 		return null;
+	}
+
+	@Nullable
+	private AttachmentDecryptionResult toAttachmentDecryptionResult(final SmimeMode smimeMode, @Nullable final AttachmentResource attachmentResource) {
+		return attachmentResource != null ? new AttachmentDecryptionResultImpl(smimeMode, attachmentResource) : null;
 	}
 
 	private String restoreSmimeContentType(@NotNull final AttachmentResource attachment, final OriginalSmimeDetails originalSmimeDetails) {
@@ -339,7 +344,7 @@ public class SMIMESupport implements SMIMEModule {
 	}
 
 	@Nullable
-	private AttachmentResource handleLiberatedContent(final Object content)
+	private AttachmentResource handleLiberatedContent(@Nullable final Object content)
 			throws MessagingException, IOException {
 
 		if (content instanceof MimeMultipart) {
@@ -354,7 +359,8 @@ public class SMIMESupport implements SMIMEModule {
 			decryptedMessage.writeTo(os);
 			return new AttachmentResource("signed-email.eml", new ByteArrayDataSource(os.toByteArray(), "message/rfc822"));
 		}
-        LOGGER.warn("S/MIME signed content type not recognized, please raise an issue for {}", content.getClass());
+		LOGGER.warn("S/MIME content could not be converted to an email attachment, keeping the original S/MIME attachment. Content type: {}",
+				content != null ? content.getClass() : null);
 		return null;
 	}
 

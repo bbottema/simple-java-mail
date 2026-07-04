@@ -205,6 +205,17 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testOutlookMessageWithUndecryptableSmimeAttachment() {
+		final Email email = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#572 Nullpointer in SMIMESupport.isMimeMessageAttachment.msg"));
+
+		assertThat(email.getAttachments()).hasSize(1);
+		assertThat(email.getAttachments()).extracting("name").containsExactly("smime.p7m");
+		assertThat(email.getDecryptedAttachments()).hasSize(1);
+		assertThat(email.getDecryptedAttachments()).extracting("name").containsExactly("smime.p7m");
+		assertThat(email.getSmimeSignedEmail()).isNull();
+	}
+
+	@Test
 	public void testProblematicEmbeddedImage() {
 		Email s1 = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#332 Email with problematic embedded image.eml"));
 		assertThat(s1.getAttachments()).isEmpty();
