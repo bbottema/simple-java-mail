@@ -94,11 +94,7 @@ public interface Mailer extends AutoCloseable {
 
 	/**
 	 * Delegates to {@link #sendMailsInSimpleBatch(Iterable, boolean)} using the mailer's configured async default.
-	 * <p>
-	 * Note that the simple batch itself is always sequential: emails are sent one by one over one SMTP connection. The async default only controls
-	 * whether this {@link Mailer} method schedules that whole sequential operation and returns immediately, or blocks until it is done.
 	 *
-	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 * @see MailerGenericBuilder#async()
 	 */
 	@NotNull CompletableFuture<Void> sendMailsInSimpleBatch(Iterable<Email> emails);

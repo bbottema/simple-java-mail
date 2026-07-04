@@ -281,10 +281,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withDeliveryStatusNotification(@Nullable @Cli.Optional DeliveryStatusNotification deliveryStatusNotification);
 
 	/**
-	 * Sets the SMTP DSN return option and notification events for this email.
+	 * Delegates to {@link #withDeliveryStatusNotification(DeliveryStatusNotification)}.
 	 *
-	 * @param returnOption Determines whether the server should return the full message or only headers in the DSN report.
-	 * @param notifyOptions Determines which delivery events should trigger a DSN report.
+	 * @param returnOption See {@link DeliveryStatusNotification.ReturnOption}.
+	 * @param notifyOptions See {@link DeliveryStatusNotification.NotifyOption}.
 	 *
 	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
 	 */
@@ -293,9 +293,9 @@ public interface EmailPopulatingBuilder {
 			@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions);
 
 	/**
-	 * Sets the SMTP DSN notification events for this email, leaving any already configured return option untouched.
+	 * Delegates to {@link #withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)}.
 	 *
-	 * @param notifyOptions Determines which delivery events should trigger a DSN report.
+	 * @param notifyOptions See {@link DeliveryStatusNotification.NotifyOption}.
 	 *
 	 * @see #withDeliveryStatusNotificationNotifyOptions(String)
 	 */
@@ -305,7 +305,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Sets the SMTP DSN notification events for this email, leaving any already configured return option untouched.
 	 *
-	 * @param notifyOptions Determines which delivery events should trigger a DSN report.
+	 * @param notifyOptions See {@link DeliveryStatusNotification.NotifyOption}.
 	 *
 	 * @see #withDeliveryStatusNotificationNotifyOptions(String)
 	 */
@@ -314,9 +314,6 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Sets the SMTP DSN notification events for this email, leaving any already configured return option untouched.
-	 * <p>
-	 * Accepts comma or semicolon separated values. Valid values are {@code SUCCESS}, {@code FAILURE}, {@code DELAY}, and
-	 * {@code NEVER}. {@code NEVER} cannot be combined with other values.
 	 *
 	 * @param notifyOptions String representation of one or more DSN notification events, for example {@code "FAILURE,DELAY"}.
 	 *
@@ -327,7 +324,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Sets the SMTP DSN return option for this email, leaving any already configured notification events untouched.
 	 *
-	 * @param returnOption Determines whether the server should return the full message or only headers in the DSN report.
+	 * @param returnOption See {@link DeliveryStatusNotification.ReturnOption}.
 	 *
 	 * @see #withDeliveryStatusNotificationReturnOption(String)
 	 */
@@ -336,8 +333,6 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Sets the SMTP DSN return option for this email, leaving any already configured notification events untouched.
-	 * <p>
-	 * Accepts {@code FULL_MESSAGE}, {@code HEADERS_ONLY}, and their SMTP equivalents {@code FULL} and {@code HDRS}.
 	 *
 	 * @param returnOption String representation of the DSN return option.
 	 *
@@ -1219,10 +1214,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImage(@NotNull String name, byte@NotNull[] data, @NotNull String mimetype);
 
 	/**
-	 * Adds already encoded image data to this email with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
-	 * <p>
-	 * Use this when the provided data was already encoded using the given MIME {@code Content-Transfer-Encoding}; Simple Java Mail will preserve the
-	 * payload instead of encoding it again.
+	 * Delegates to {@link #withPreEncodedEmbeddedImage(String, DataSource, ContentTransferEncoding)} with a named {@link ByteArrayDataSource} created
+	 * using the provided name, data and mimetype.
 	 *
 	 * @param name                              The name of the image as being referred to from the message content body (e.g. 'signature').
 	 * @param data                              The already encoded image data.
@@ -1250,9 +1243,6 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Adds already encoded image data to this email that can be referred to from the email HTML body.
-	 * <p>
-	 * Use this when the provided {@link DataSource} already returns data encoded using the given MIME {@code Content-Transfer-Encoding}; Simple Java Mail
-	 * will preserve the payload instead of encoding it again.
 	 *
 	 * @param name                              The name of the image as being referred to from the message content body (e.g. 'src="cid:yourImageName"'). If not provided, the
 	 *                                          name of the given data source is used instead.
@@ -1275,7 +1265,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImage(@Nullable @Cli.Optional String name, @NotNull DataSource imagedata, @Nullable @Cli.Optional String contentId);
 
 	/**
-	 * Adds already encoded image data to this email with separate filename/resource name and MIME {@code Content-ID}.
+	 * Delegates to {@link #withPreEncodedEmbeddedImage(String, DataSource, ContentTransferEncoding, String)} with a MIME {@code Content-ID}.
 	 *
 	 * @param name                              The resource name or filename for the MIME part. If not provided, the name of the given data source is used instead.
 	 * @param imagedata                         The already encoded image data.
@@ -1342,10 +1332,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withAttachment(@Nullable @Cli.Optional String name, byte@NotNull[] data, @NotNull String mimetype, @Nullable @Cli.Optional String description, @Nullable @Cli.Optional ContentTransferEncoding contentTransferEncoding);
 
 	/**
-	 * Adds already encoded attachment data to the email message with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
-	 * <p>
-	 * Use this when the provided data was already encoded using the given MIME {@code Content-Transfer-Encoding}; Simple Java Mail will preserve the
-	 * payload instead of encoding it again.
+	 * Delegates to {@link #withPreEncodedAttachment(String, DataSource, ContentTransferEncoding)} with a named {@link ByteArrayDataSource} created
+	 * using the provided name, data and mimetype.
 	 *
 	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
 	 *                                          using {@link java.util.UUID}.
@@ -1357,7 +1345,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable @Cli.Optional String name, byte@NotNull[] data, @NotNull String mimetype, @NotNull ContentTransferEncoding preEncodedContentTransferEncoding);
 
 	/**
-	 * Adds already encoded attachment data to the email message with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
+	 * Delegates to {@link #withPreEncodedAttachment(String, DataSource, String, ContentTransferEncoding)} with a named {@link ByteArrayDataSource}
+	 * created using the provided name, data and mimetype.
 	 *
 	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
 	 *                                          using {@link java.util.UUID}.
@@ -1423,7 +1412,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withAttachment(@Nullable @Cli.Optional String name, @NotNull DataSource filedata, @Nullable @Cli.Optional final String description, @Nullable @Cli.Optional final ContentTransferEncoding contentTransferEncoding);
 
 	/**
-	 * Adds already encoded attachment data to the email message.
+	 * Delegates to {@link #withPreEncodedAttachment(String, DataSource, String, ContentTransferEncoding, String)} with no MIME {@code Content-ID}.
 	 *
 	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
 	 *                                          using {@link java.util.UUID}.

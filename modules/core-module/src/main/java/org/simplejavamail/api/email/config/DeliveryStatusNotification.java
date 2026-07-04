@@ -75,6 +75,10 @@ public final class DeliveryStatusNotification implements Serializable {
 		return new DeliveryStatusNotification(returnOption, notifyOptions);
 	}
 
+	/**
+	 * Parses comma or semicolon separated DSN notify options. Valid values are {@code SUCCESS}, {@code FAILURE}, {@code DELAY}, and
+	 * {@code NEVER}. {@code NEVER} cannot be combined with other values.
+	 */
 	public static Set<NotifyOption> parseNotifyOptions(@NotNull final String notifyOptions) {
 		checkNonEmptyArgument(notifyOptions, "notifyOptions");
 		final Set<NotifyOption> parsedNotifyOptions = new LinkedHashSet<>();
@@ -87,11 +91,17 @@ public final class DeliveryStatusNotification implements Serializable {
 		return parsedNotifyOptions;
 	}
 
+	/**
+	 * Parses a single DSN notify option.
+	 */
 	public static NotifyOption parseNotifyOption(@NotNull final String notifyOption) {
 		return NotifyOption.valueOf(normalizeEnumToken(notifyOption)
 				.replace("NOTIFY_", ""));
 	}
 
+	/**
+	 * Parses a DSN return option. Accepts {@code FULL_MESSAGE}, {@code HEADERS_ONLY}, and their SMTP equivalents {@code FULL} and {@code HDRS}.
+	 */
 	public static ReturnOption parseReturnOption(@NotNull final String returnOption) {
 		final String normalized = normalizeEnumToken(returnOption)
 				.replace("RETURN_", "");

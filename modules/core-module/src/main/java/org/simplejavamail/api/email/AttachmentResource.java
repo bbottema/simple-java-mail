@@ -108,7 +108,7 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
-	 * Creates an attachment resource for data that is already encoded using the provided MIME {@code Content-Transfer-Encoding}.
+	 * Delegates to {@link #ofPreEncodedData(String, DataSource, String, ContentTransferEncoding, String)} with no MIME {@code Content-ID}.
 	 *
 	 * @param name                              The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;).
 	 * @param dataSource                        The already encoded attachment data.
