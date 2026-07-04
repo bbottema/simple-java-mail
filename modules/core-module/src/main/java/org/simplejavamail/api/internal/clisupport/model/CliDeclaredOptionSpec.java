@@ -25,9 +25,9 @@ public class CliDeclaredOptionSpec implements Comparable<CliDeclaredOptionSpec> 
 								 @NotNull List<CliDeclaredOptionValue> possibleArguments, @NotNull CliBuilderApiType fromBuilderApiType,
 								 @NotNull Method sourceMethod) {
 		this.name = name;
-		this.description = Collections.unmodifiableList(description);
+		this.description = new ArrayList<>(description);
 		this.fromBuilderApiType = fromBuilderApiType;
-		this.possibleOptionValues = Collections.unmodifiableList(possibleArguments);
+		this.possibleOptionValues = new ArrayList<>(possibleArguments);
 		this.sourceMethod = sourceMethod;
 	}
 	
@@ -72,12 +72,12 @@ public class CliDeclaredOptionSpec implements Comparable<CliDeclaredOptionSpec> 
 	
 	@NotNull
 	public List<String> getDescription() {
-		return description;
+		return Collections.unmodifiableList(description);
 	}
 	
 	@NotNull
 	public List<CliDeclaredOptionValue> getPossibleOptionValues() {
-		return possibleOptionValues;
+		return Collections.unmodifiableList(possibleOptionValues);
 	}
 	
 	@NotNull

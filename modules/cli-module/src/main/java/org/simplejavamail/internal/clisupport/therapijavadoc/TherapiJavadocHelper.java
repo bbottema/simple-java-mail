@@ -46,6 +46,8 @@ public final class TherapiJavadocHelper {
 				return SerializationUtil.deserialize(FileUtil.readFileBytes(THERAPI_DATAFILE));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
+			} catch (RuntimeException e) {
+				return new HashMap<>();
 			}
 		} else {
 			return new HashMap<>();

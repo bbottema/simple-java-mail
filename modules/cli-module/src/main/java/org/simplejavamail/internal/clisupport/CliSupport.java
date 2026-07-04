@@ -34,12 +34,17 @@ public class CliSupport {
 
 	private static List<CliDeclaredOptionSpec> produceCliDeclaredOptionSpec() {
 		try {
-			if (!CLI_DATAFILE.exists()) {
-				LOGGER.info("Initial cli.data not found, writing to (one time action): {}", CLI_DATAFILE);
-				List<CliDeclaredOptionSpec> declaredOptions = generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
-				FileUtil.writeFileBytes(CLI_DATAFILE, SerializationUtil.serialize(declaredOptions));
+			if (CLI_DATAFILE.exists()) {
+				try {
+					return SerializationUtil.deserialize(FileUtil.readFileBytes(CLI_DATAFILE));
+				} catch (RuntimeException e) {
+					LOGGER.warn("Could not read cli.data, regenerating {}: {}", CLI_DATAFILE, e.toString());
+				}
 			}
-			return SerializationUtil.deserialize(FileUtil.readFileBytes(CLI_DATAFILE));
+			LOGGER.info("Initial cli.data not found or unreadable, writing to (one time action): {}", CLI_DATAFILE);
+			List<CliDeclaredOptionSpec> declaredOptions = generateOptionsFromBuilderApi(RELEVANT_BUILDER_ROOT_API);
+			FileUtil.writeFileBytes(CLI_DATAFILE, SerializationUtil.serialize(declaredOptions));
+			return declaredOptions;
 		} catch (IOException e) {
 			throw new CliExecutionException(ERROR_INVOKING_BUILDER_API, e);
 		}
