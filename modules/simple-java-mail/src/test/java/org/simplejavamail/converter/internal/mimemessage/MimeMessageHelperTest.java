@@ -126,7 +126,8 @@ public class MimeMessageHelperTest {
 		final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(email);
 		final BodyPart bodyPart = ((MimeMultipart) mimeMessage.getContent()).getBodyPart(1);
 		ContentType ct = new ContentType(bodyPart.getHeader("Content-Type")[0]);
-		assertThat(ct.getParameter("filename")).isEqualTo(fileName);
+		assertThat(ct.getParameter("filename")).isNull();
+		assertThat(ct.getParameter("name")).isEqualTo(fileName);
 		assertThat(bodyPart.getFileName()).isEqualTo(fileName);
 	}
 }

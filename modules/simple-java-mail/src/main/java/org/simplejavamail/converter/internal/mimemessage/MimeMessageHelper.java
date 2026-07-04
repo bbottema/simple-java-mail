@@ -271,7 +271,6 @@ public class MimeMessageHelper {
 		attachmentPart.setFileName(resourcePartMetadata.fileName);
 		final String contentType = determineResourceContentType(attachmentResource);
 		ParameterList pl = new ParameterList();
-		pl.set("filename", resourcePartMetadata.fileName);
 		pl.set("name", resourcePartMetadata.fileName);
 		attachmentPart.setHeader("Content-Type", contentType + pl);
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourcePartMetadata.contentId));
