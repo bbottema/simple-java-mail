@@ -193,6 +193,9 @@ public class MailerImpl implements Mailer {
 
 	static private void initSession(@NotNull final Session session, @NotNull OperationalConfig operationalConfig, @NotNull EmailGovernance emailGovernance, @Nullable final TransportStrategy transportStrategy) {
 		session.setDebug(operationalConfig.isDebugLogging());
+		if (operationalConfig.getDebugPrinter() != null) {
+			session.setDebugOut(operationalConfig.getDebugPrinter());
+		}
 		session.getProperties().putAll(operationalConfig.getProperties());
 
 		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);

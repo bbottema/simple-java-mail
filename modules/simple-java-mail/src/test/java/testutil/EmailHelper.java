@@ -15,6 +15,7 @@ import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
@@ -139,13 +140,14 @@ public class EmailHelper {
 				/*10*/ROUND_ROBIN,
 				/*11*/false,
 				/*12*/false,
-				/*13*/false,
-				/*14*/ofNullable(hostsToTrust).orElse(Lists.emptyList()),
-				/*15*/trustAllSSLHost,
-				/*16*/verifyServerIdentity,
-				/*17*/newSingleThreadExecutor(),
-				/*18*/false,
-				/*19*/null);
+				/*13*/null,
+				/*14*/false,
+				/*15*/ofNullable(hostsToTrust).orElse(Lists.emptyList()),
+				/*16*/trustAllSSLHost,
+				/*17*/verifyServerIdentity,
+				/*18*/newSingleThreadExecutor(),
+				/*19*/false,
+				/*20*/null);
 	}
 
 	@NotNull
@@ -164,13 +166,14 @@ public class EmailHelper {
 			/*10*/@NotNull final LoadBalancingStrategy connectionPoolLoadBalancingStrategy,
 			/*11*/final boolean transportModeLoggingOnly,
 			/*12*/final boolean debugLogging,
-			/*13*/final boolean disableAllClientValidation,
-			/*14*/@NotNull final List<String> sslHostsToTrust,
-			/*15*/final boolean trustAllSSLHost,
-			/*16*/final boolean verifyingServerIdentity,
-			/*17*/@NotNull final ExecutorService executorService,
-			/*18*/final boolean isExecutorServiceUserProvided,
-			/*19*/@Nullable final CustomMailer customMailer) {
+			/*13*/@Nullable final PrintStream debugPrinter,
+			/*14*/final boolean disableAllClientValidation,
+			/*15*/@NotNull final List<String> sslHostsToTrust,
+			/*16*/final boolean trustAllSSLHost,
+			/*17*/final boolean verifyingServerIdentity,
+			/*18*/@NotNull final ExecutorService executorService,
+			/*19*/final boolean isExecutorServiceUserProvided,
+			/*20*/@Nullable final CustomMailer customMailer) {
 		try {
 			Constructor<?> constructor = Class.forName("org.simplejavamail.mailer.internal.OperationalConfigImpl").getDeclaredConstructors()[0];
 			constructor.setAccessible(true);
@@ -188,13 +191,14 @@ public class EmailHelper {
 					/*10*/connectionPoolLoadBalancingStrategy,
 					/*11*/transportModeLoggingOnly,
 					/*12*/debugLogging,
-					/*13*/disableAllClientValidation,
-					/*14*/sslHostsToTrust,
-					/*15*/trustAllSSLHost,
-					/*16*/verifyingServerIdentity,
-					/*17*/executorService,
-					/*18*/isExecutorServiceUserProvided,
-					/*19*/customMailer);
+					/*13*/debugPrinter,
+					/*14*/disableAllClientValidation,
+					/*15*/sslHostsToTrust,
+					/*16*/trustAllSSLHost,
+					/*17*/verifyingServerIdentity,
+					/*18*/executorService,
+					/*19*/isExecutorServiceUserProvided,
+					/*20*/customMailer);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

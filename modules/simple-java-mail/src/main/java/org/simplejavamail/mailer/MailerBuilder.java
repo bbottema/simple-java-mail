@@ -6,9 +6,12 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
+import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.MailerFromSessionBuilderImpl;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
+
+import java.io.PrintStream;
 
 /**
  * Entry builder used to start a {@link org.simplejavamail.api.mailer.MailerGenericBuilder} and fully configure a Mailer.
@@ -106,6 +109,28 @@ public class MailerBuilder {
 	@SuppressWarnings({"unused", "deprecation"})
 	public static MailerRegularBuilderImpl withDebugLogging(Boolean debugLogging) {
 		return new MailerRegularBuilderImpl().withDebugLogging(debugLogging);
+	}
+
+	/**
+	 * Delegates to {@link MailerRegularBuilder#withDebugPrinter(PrintStream)}
+	 * <p>
+	 * <strong>Note:</strong> Assumes you don't want to use your own {@link Session} object (otherwise start with {@link #usingSession(Session)}
+	 * instead).
+	 */
+	@SuppressWarnings({"unused", "deprecation"})
+	public static MailerRegularBuilderImpl withDebugPrinter(PrintStream debugPrinter) {
+		return new MailerRegularBuilderImpl().withDebugPrinter(debugPrinter);
+	}
+
+	/**
+	 * Delegates to {@link MailerRegularBuilder#withDebugOutput(SessionDebugOutput)}
+	 * <p>
+	 * <strong>Note:</strong> Assumes you don't want to use your own {@link Session} object (otherwise start with {@link #usingSession(Session)}
+	 * instead).
+	 */
+	@SuppressWarnings({"unused", "deprecation"})
+	public static MailerRegularBuilderImpl withDebugOutput(SessionDebugOutput debugOutput) {
+		return new MailerRegularBuilderImpl().withDebugOutput(debugOutput);
 	}
 
 	/**

@@ -37,6 +37,7 @@ public class SimpleJavaMailProperties {
     @Setter
     public static class Javaxmail {
         private String debug;
+        private String debugOut;
     }
 
     /**

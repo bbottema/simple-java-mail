@@ -11,6 +11,7 @@ import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
@@ -24,8 +25,10 @@ import testutil.EmailHelper;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Base64;
 import java.util.GregorianCalendar;
@@ -57,6 +60,7 @@ public class MailerTest {
 				+ "simplejavamail.smtp.port=25\n"
 				+ "simplejavamail.smtp.username=username smtp\n"
 				+ "simplejavamail.smtp.password=password smtp\n"
+				+ "simplejavamail.javaxmail.debug.out=STDERR\n"
 				+ "simplejavamail.proxy.host=proxy.default.com\n"
 				+ "simplejavamail.proxy.port=1080\n"
 				+ "simplejavamail.proxy.username=username proxy\n"
@@ -80,6 +84,7 @@ public class MailerTest {
 		Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isFalse();
+		assertThat(mailer.getOperationalConfig().getDebugPrinter()).isNull();
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("host");
 		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
 		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
@@ -175,6 +180,7 @@ public class MailerTest {
 				"192.168.1.122", "mymailserver.com", "ix55432y");
 		
 		assertThat(session.getDebug()).isTrue();
+		assertThat(session.getDebugOut()).isSameAs(System.err);
 		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("smtp.default.com");
 		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
 		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
@@ -190,6 +196,50 @@ public class MailerTest {
 		assertThat(session.getProperty("extra2")).isNull();
 		assertThat(session.getProperty("extra-properties-property1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra-properties-property2")).isEqualTo("value2");
+	}
+
+	@Test
+	public void createMailSession_WithJavaDebugPrinter() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		PrintStream debugPrinter = new PrintStream(new ByteArrayOutputStream());
+
+		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null)
+				.withDebugLogging(true)
+				.withDebugPrinter(debugPrinter)
+				.buildMailer();
+
+		assertThat(mailer.getSession().getDebug()).isTrue();
+		assertThat(mailer.getSession().getDebugOut()).isSameAs(debugPrinter);
+		assertThat(mailer.getOperationalConfig().getDebugPrinter()).isSameAs(debugPrinter);
+	}
+
+	@Test
+	public void createMailSession_WithBuiltInDebugOutput() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null)
+				.withDebugLogging(true)
+				.withDebugOutput(SessionDebugOutput.STDERR)
+				.buildMailer();
+
+		assertThat(mailer.getSession().getDebug()).isTrue();
+		assertThat(mailer.getSession().getDebugOut()).isSameAs(System.err);
+		assertThat(mailer.getOperationalConfig().getDebugPrinter()).isSameAs(System.err);
+	}
+
+	@Test
+	public void createMailSession_WithBuiltInSlf4jDebugOutput() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null)
+				.withDebugLogging(true)
+				.withDebugOutput(SessionDebugOutput.SLF4J)
+				.buildMailer();
+
+		assertThat(mailer.getSession().getDebug()).isTrue();
+		assertThat(mailer.getSession().getDebugOut()).isSameAs(mailer.getOperationalConfig().getDebugPrinter());
+		assertThat(mailer.getSession().getDebugOut()).isNotSameAs(System.out);
+		assertThat(mailer.getSession().getDebugOut()).isNotSameAs(System.err);
 	}
 
 	@Test

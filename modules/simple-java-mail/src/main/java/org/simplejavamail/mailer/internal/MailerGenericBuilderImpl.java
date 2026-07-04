@@ -11,9 +11,11 @@ import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
+import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -78,6 +80,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	private boolean debugLogging;
+
+	/**
+	 * @see MailerGenericBuilder#withDebugPrinter(PrintStream)
+	 */
+	@Nullable
+	private PrintStream debugPrinter;
 
 	/**
 	 * @see #disablingAllClientValidation(Boolean)
@@ -224,6 +232,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.proxyBridgePort 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
 		this.disableAllClientValidation				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
 		this.debugLogging 							= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
+		this.debugPrinter							= resolveDebugPrinter(valueOrProperty(null, Property.JAVAXMAIL_DEBUG_OUTPUT, null));
 		this.sessionTimeout 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
 		this.trustAllSSLHost 						= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
 		this.verifyingServerIdentity 				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY));
@@ -297,6 +306,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getConnectionPoolLoadBalancingStrategy(),
 				isTransportModeLoggingOnly(),
 				isDebugLogging(),
+				getDebugPrinter(),
 				isDisableAllClientValidation(),
 				getSslHostsToTrust(),
 				isTrustAllSSLHost(),
@@ -387,6 +397,23 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public T withDebugLogging(@NotNull final Boolean debugLogging) {
 		this.debugLogging = debugLogging;
 		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withDebugPrinter(PrintStream)
+	 */
+	@Override
+	public T withDebugPrinter(@NotNull final PrintStream debugPrinter) {
+		this.debugPrinter = debugPrinter;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withDebugOutput(SessionDebugOutput)
+	 */
+	@Override
+	public T withDebugOutput(@NotNull final SessionDebugOutput debugOutput) {
+		return withDebugPrinter(SessionDebugOutputResolver.resolve(debugOutput));
 	}
 
 	/**
@@ -660,6 +687,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				: Executors.newSingleThreadExecutor();
 	}
 
+	@Nullable
+	private PrintStream resolveDebugPrinter(@Nullable final SessionDebugOutput debugOutput) {
+		return debugOutput != null ? SessionDebugOutputResolver.resolve(debugOutput) : null;
+	}
+
 	/**
 	 * @see MailerGenericBuilder#resetThreadPoolSize()
 	 */
@@ -853,6 +885,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public boolean isDebugLogging() {
 		return debugLogging;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getDebugPrinter()
+	 */
+	@Override
+	@Nullable
+	public PrintStream getDebugPrinter() {
+		return debugPrinter;
 	}
 
 	/**

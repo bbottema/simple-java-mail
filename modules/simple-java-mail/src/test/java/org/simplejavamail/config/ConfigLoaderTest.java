@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader.Property;
 import testutil.ConfigLoaderTestHelper;
@@ -42,6 +43,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYN
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.config.ConfigLoader.Property.JAVAXMAIL_DEBUG;
+import static org.simplejavamail.config.ConfigLoader.Property.JAVAXMAIL_DEBUG_OUTPUT;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PORT;
@@ -173,6 +175,7 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.parsePropertyValue("yesno")).isEqualTo("yesno");
 		assertThat(ConfigLoader.parsePropertyValue("SMTP")).isEqualTo(TransportStrategy.SMTP);
 		assertThat(ConfigLoader.parsePropertyValue("SMTP_TLS")).isEqualTo(TransportStrategy.SMTP_TLS);
+		assertThat(ConfigLoader.parsePropertyValue("STDERR")).isEqualTo(SessionDebugOutput.STDERR);
 		assertThat(ConfigLoader.parsePropertyValue("FAILURE")).isEqualTo(FAILURE);
 		assertThat(ConfigLoader.parsePropertyValue("HEADERS_ONLY")).isEqualTo(HEADERS_ONLY);
 	}
@@ -181,6 +184,7 @@ public class ConfigLoaderTest {
 	public void loadPropertiesFromFileClassPath() {
 		ConfigLoader.loadProperties("simplejavamail.properties", false);
 		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
 		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
 
 		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
@@ -222,6 +226,7 @@ public class ConfigLoaderTest {
 	@Test
 	public void loadPropertiesAddingMode() {
 		String s1 = "simplejavamail.javaxmail.debug=true\n"
+					+ "simplejavamail.javaxmail.debug.out=SLF4J\n"
 					+ "simplejavamail.transportstrategy=SMTPS";
 		String s2 = "simplejavamail.defaults.to.name=To Default\n"
 					+ "simplejavamail.defaults.to.address=to@default.com\n"
@@ -233,6 +238,7 @@ public class ConfigLoaderTest {
 
 		// some checks from the config file
 		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.SLF4J);
 		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTPS);
 		// now check if the extra properties were added
 		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
@@ -244,6 +250,7 @@ public class ConfigLoaderTest {
 	@Test
 	public void loadPropertiesFromInputStream() {
 		String s = "simplejavamail.javaxmail.debug=true\n"
+				   + "simplejavamail.javaxmail.debug.out=STDERR\n"
 				   + "simplejavamail.transportstrategy=SMTPS\n"
 				   + "simplejavamail.smtp.host=smtp.default.com\n"
 				   + "simplejavamail.smtp.port=25\n"
@@ -253,6 +260,7 @@ public class ConfigLoaderTest {
 
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
 		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
 		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
 		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
 		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
@@ -265,6 +273,7 @@ public class ConfigLoaderTest {
 	public void loadPropertiesFromProperties() {
 		Properties source = new Properties();
 		source.put("simplejavamail.javaxmail.debug", "true");
+		source.put("simplejavamail.javaxmail.debug.out", "STDERR");
 		source.put("simplejavamail.transportstrategy", "SMTPS");
 		source.put("simplejavamail.smtp.host", "smtp.default.com");
 		source.put("simplejavamail.smtp.port", "25");
@@ -276,6 +285,7 @@ public class ConfigLoaderTest {
 
 		ConfigLoader.loadProperties(source, false);
 		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
 		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
 		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
 		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
@@ -290,6 +300,7 @@ public class ConfigLoaderTest {
 	public void loadPropertiesFromObjectProperties() {
 		Properties source = new Properties();
 		source.put("simplejavamail.javaxmail.debug", true);
+		source.put("simplejavamail.javaxmail.debug.out", SessionDebugOutput.STDERR);
 		source.put("simplejavamail.transportstrategy", TransportStrategy.SMTPS);
 		source.put("simplejavamail.smtp.host", "smtp.default.com");
 		source.put("simplejavamail.smtp.port", 25);
@@ -299,6 +310,7 @@ public class ConfigLoaderTest {
 
 		ConfigLoader.loadProperties(source, false);
 		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
+		assertThat(ConfigLoader.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
 		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
 		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
 		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);

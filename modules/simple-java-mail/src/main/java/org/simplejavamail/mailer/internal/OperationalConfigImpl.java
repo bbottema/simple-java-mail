@@ -9,6 +9,7 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -90,6 +91,12 @@ class OperationalConfigImpl implements OperationalConfig {
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	private final boolean debugLogging;
+
+	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withDebugPrinter(PrintStream)
+	 */
+	@Nullable
+	private final PrintStream debugPrinter;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#disablingAllClientValidation(Boolean)

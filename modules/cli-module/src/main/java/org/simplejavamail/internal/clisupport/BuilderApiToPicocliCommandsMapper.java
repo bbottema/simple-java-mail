@@ -17,6 +17,7 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
@@ -27,6 +28,7 @@ import org.simplejavamail.internal.clisupport.valueinterpreters.StringToCalendar
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToContentTransferEncodingFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToFileFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToLoadBalancingStrategyFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToSessionDebugOutputFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToTransportStrategyFunction;
 import org.simplejavamail.internal.util.StringUtil;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
@@ -86,6 +88,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(X509Certificate.class, "PEM FILE");
 		put(UUID.class, "UUID");
 		put(LoadBalancingStrategy.class, "NAME");
+		put(SessionDebugOutput.class, "NAME");
 		put(ContentTransferEncoding.class, "NAME");
 		put(Date.class, "yyyy-[M]M-[d]d[ HH:mm]");
 	}};
@@ -97,6 +100,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		ValueConversionHelper.registerValueConverter(new PemFilePathToX509CertificateFunction());
 		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
 		ValueConversionHelper.registerValueConverter(new StringToLoadBalancingStrategyFunction());
+		ValueConversionHelper.registerValueConverter(new StringToSessionDebugOutputFunction());
 		ValueConversionHelper.registerValueConverter(new StringToCalendarMethodFunction());
 		ValueConversionHelper.registerValueConverter(new StringToContentTransferEncodingFunction());
 	}

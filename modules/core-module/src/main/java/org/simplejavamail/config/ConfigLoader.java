@@ -7,6 +7,7 @@ import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.util.SimpleConversions;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * The following properties are allowed:
  * <ul>
  * <li>simplejavamail.javaxmail.debug</li>
+ * <li>simplejavamail.javaxmail.debug.out</li>
  * <li>simplejavamail.transportstrategy</li>
  * <li>simplejavamail.smtp.host</li>
  * <li>simplejavamail.smtp.port</li>
@@ -144,6 +146,7 @@ public final class ConfigLoader {
 	 */
 	public enum Property {
 		JAVAXMAIL_DEBUG("simplejavamail.javaxmail.debug"),
+		JAVAXMAIL_DEBUG_OUTPUT("simplejavamail.javaxmail.debug.out"),
 		TRANSPORT_STRATEGY("simplejavamail.transportstrategy"),
 		SMTP_HOST("simplejavamail.smtp.host"),
 		SMTP_PORT("simplejavamail.smtp.port"),
@@ -475,6 +478,11 @@ public final class ConfigLoader {
 			return TransportStrategy.valueOf(propertyValue);
 		} catch (final IllegalArgumentException nfe) {
 			// Not a TransportStrategy
+		}
+		try {
+			return SessionDebugOutput.valueOf(propertyValue);
+		} catch (final IllegalArgumentException nfe) {
+			// Not a SessionDebugOutput
 		}
 		try {
 			return ContentTransferEncoding.valueOf(propertyValue);

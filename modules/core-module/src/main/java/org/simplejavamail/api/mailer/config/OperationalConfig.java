@@ -7,6 +7,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -74,6 +75,13 @@ public interface OperationalConfig {
 	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
 	boolean isDebugLogging();
+
+	/**
+	 * @see MailerGenericBuilder#withDebugPrinter(PrintStream)
+	 * @see MailerGenericBuilder#withDebugOutput(SessionDebugOutput)
+	 */
+	@Nullable
+	PrintStream getDebugPrinter();
 
 	/**
 	 * @see MailerGenericBuilder#disablingAllClientValidation(Boolean)

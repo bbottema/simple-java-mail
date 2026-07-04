@@ -9,8 +9,10 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -205,6 +207,34 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @param debugLogging Enables or disables debug logging with {@code true} or {@code false}.
 	 */
 	T withDebugLogging(@NotNull Boolean debugLogging);
+
+	/**
+	 * Sets a custom printer for Jakarta Mail debug output.
+	 * <p>
+	 * This is useful when {@link #withDebugLogging(Boolean)} is enabled and Jakarta Mail's default {@link System#out} output should be redirected,
+	 * for example to an SLF4J-backed {@link PrintStream}.
+	 * <p>
+	 * For property files and CLI usage, use {@link #withDebugOutput(SessionDebugOutput)} or configure {@code simplejavamail.javaxmail.debug.out}.
+	 *
+	 * @param debugPrinter The printer that should receive Jakarta Mail debug output.
+	 * @see Session#setDebugOut(PrintStream)
+	 * @see #withDebugOutput(SessionDebugOutput)
+	 */
+	@Cli.ExcludeApi(reason = "PrintStream instances are Java-only; use withDebugOutput(SessionDebugOutput) for CLI-compatible built-in targets")
+	T withDebugPrinter(@NotNull PrintStream debugPrinter);
+
+	/**
+	 * Sets one of the built-in targets for Jakarta Mail debug output.
+	 * <p>
+	 * This is useful when {@link #withDebugLogging(Boolean)} is enabled and Jakarta Mail's default {@link System#out} output should be redirected
+	 * without providing a custom {@link PrintStream}.
+	 *
+	 * @param debugOutput The built-in output target to use for Jakarta Mail debug output.
+	 *                    Supported values: STDOUT, STDERR, SLF4J.
+	 * @see Session#setDebugOut(PrintStream)
+	 * @see #withDebugPrinter(PrintStream)
+	 */
+	T withDebugOutput(@NotNull SessionDebugOutput debugOutput);
 
 	/**
 	 * Controls whether there will be any client-sided validation, including email address validation and CRLF injection attack detection (which will be warning instead).
@@ -710,6 +740,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withDebugLogging(Boolean)
 	 */
 	boolean isDebugLogging();
+
+	/**
+	 * @see #withDebugPrinter(PrintStream)
+	 * @see #withDebugOutput(SessionDebugOutput)
+	 */
+	@Nullable
+	PrintStream getDebugPrinter();
 
 	/**
 	 * @see #disablingAllClientValidation(Boolean)

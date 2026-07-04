@@ -29,6 +29,8 @@ import java.util.Properties;
  * The following properties will be applied
  * <ul>
  * <li>simplejavamail.javaxmail.debug</li>
+ * <li>simplejavamail.javaxmail.debug.out</li>
+ * <li>simplejavamail.javaxmail.debug-out</li>
  * <li>simplejavamail.transportstrategy</li>
  * <li>simplejavamail.smtp.host</li>
  * <li>simplejavamail.smtp.port</li>
@@ -131,6 +133,8 @@ public class SimpleJavaMailSpringSupport {
 				// now obviously there are easier ways to do this, but this is the only way
 				// I can think of that actually works across Spring versions
 				@Nullable @Value("${simplejavamail.javaxmail.debug:#{null}}") final String javaxmailDebug,
+				@Nullable @Value("${simplejavamail.javaxmail.debug.out:#{null}}") final String javaxmailDebugOutput,
+				@Nullable @Value("${simplejavamail.javaxmail.debug-out:#{null}}") final String javaxmailDebugOutputSpringBoot,
 				@Nullable @Value("${simplejavamail.transportstrategy:#{null}}") final String transportstrategy,
 				@Nullable @Value("${simplejavamail.smtp.host:#{null}}") final String smtpHost,
 				@Nullable @Value("${simplejavamail.smtp.port:#{null}}") final String smtpPort,
@@ -212,6 +216,11 @@ public class SimpleJavaMailSpringSupport {
 				@Nullable @Value("${simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful:#{null}}") final String embeddedimagesDynamicresolutionMustBeSuccesful) {
 		final Properties emailProperties = new Properties();
 		setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG.key(), javaxmailDebug);
+		if (javaxmailDebugOutput != null) {
+			setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG_OUTPUT.key(), javaxmailDebugOutput);
+		} else {
+			setNullableProperty(emailProperties, Property.JAVAXMAIL_DEBUG_OUTPUT.key(), javaxmailDebugOutputSpringBoot);
+		}
 		setNullableProperty(emailProperties, Property.TRANSPORT_STRATEGY.key(), transportstrategy);
 		setNullableProperty(emailProperties, Property.SMTP_HOST.key(), smtpHost);
 		setNullableProperty(emailProperties, Property.SMTP_PORT.key(), smtpPort);
