@@ -41,12 +41,22 @@ Unreleased 9.0.0
 - [#297](https://github.com/bbottema/simple-java-mail/issues/297): Added per-recipient S/MIME certificates, enabling encrypted mail for multiple recipients with different certificates.
 - [#613](https://github.com/bbottema/simple-java-mail/issues/613): Added a dedicated recipient builder API for constructing single recipients and recipient collections.
 - [#614](https://github.com/bbottema/simple-java-mail/issues/614): Added explicit Outlook conversion result APIs for inspecting source `.msg` headers and metadata without copying structural headers into converted emails, resolving [#609](https://github.com/bbottema/simple-java-mail/issues/609).
-- [#615](https://github.com/bbottema/simple-java-mail/issues/615): Fixed `MailerGenericBuilder.async()` so no-arg `testConnection()` uses the configured async default, including the built-in async fallback when `batch-module` is absent.
+- [#574](https://github.com/bbottema/simple-java-mail/issues/574): Added Delivery Status Notification (DSN) configuration.
+- [#605](https://github.com/bbottema/simple-java-mail/issues/605): Added per-body `Content-Transfer-Encoding` configuration for plain text, HTML, and calendar content.
+- [#573](https://github.com/bbottema/simple-java-mail/issues/573): Added pre-encoded attachment and embedded-image APIs.
+- [#566](https://github.com/bbottema/simple-java-mail/issues/566), [#597](https://github.com/bbottema/simple-java-mail/issues/597), [#602](https://github.com/bbottema/simple-java-mail/issues/602), [#607](https://github.com/bbottema/simple-java-mail/issues/607): Improved MIME resource `Content-ID` handling for explicit IDs, parsed embedded images, and generated fallback IDs.
+- [#589](https://github.com/bbottema/simple-java-mail/issues/589): Added Jakarta Mail debug output configuration.
 - [#568](https://github.com/bbottema/simple-java-mail/issues/568): Added local bind address configuration for multi-IP SMTP hosts.
+- [#569](https://github.com/bbottema/simple-java-mail/issues/569): Added simple sequential batch sending for reusing one mailer connection without the batch module.
+- [#615](https://github.com/bbottema/simple-java-mail/issues/615): Fixed `MailerGenericBuilder.async()` so no-arg `testConnection()` uses the configured async default.
 - [#611](https://github.com/bbottema/simple-java-mail/issues/611): Fixed custom SSL socket factory configuration for SMTPS mailers.
+- [#572](https://github.com/bbottema/simple-java-mail/issues/572): Tolerate unsupported S/MIME payloads during Outlook conversion instead of failing conversion.
+- [#606](https://github.com/bbottema/simple-java-mail/issues/606): Sanitize malformed resource MIME types before generating attachment and embedded-image headers.
 - [#541](https://github.com/bbottema/simple-java-mail/issues/541): Removed the non-standard `filename` parameter from resource `Content-Type` headers; filenames remain available through `Content-Disposition`.
+- [#583](https://github.com/bbottema/simple-java-mail/issues/583): Fixed CLI startup on Java 25.
+- [#616](https://github.com/bbottema/simple-java-mail/issues/616): Removed the runtime JetBrains annotation fork from CLI optional-argument detection.
 - Dependency maintenance: bumped Kryo to 5.6.2 ([#586](https://github.com/bbottema/simple-java-mail/pull/586)), Zip4j to 2.11.5 ([#587](https://github.com/bbottema/simple-java-mail/pull/587)), SubEthaSMTP to 7.1.7 ([#593](https://github.com/bbottema/simple-java-mail/pull/593)), and Angus Mail to 2.0.4 ([#604](https://github.com/bbottema/simple-java-mail/pull/604)).
-- Build and test maintenance: bumped Maven Surefire Plugin to 3.5.3 ([#592](https://github.com/bbottema/simple-java-mail/pull/592)) and aligned JUnit Platform/Jupiter at 1.13.0/5.13.0 while preserving Java 8 compatibility ([#596](https://github.com/bbottema/simple-java-mail/pull/596)).
+- Build and test maintenance: bumped Maven Surefire Plugin to 3.5.3 ([#592](https://github.com/bbottema/simple-java-mail/pull/592)), aligned JUnit Platform/Jupiter at 1.13.0/5.13.0 while preserving Java 8 compatibility ([#596](https://github.com/bbottema/simple-java-mail/pull/596)), and replaced live embedded-image URL tests with deterministic local coverage ([#617](https://github.com/bbottema/simple-java-mail/issues/617)).
 
 v8.12.0 - [v8.12.6](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.12.6/)
 
