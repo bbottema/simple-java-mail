@@ -269,7 +269,7 @@ public class MimeMessageHelper {
 		final ResourcePartMetadata resourcePartMetadata = determineResourcePartMetadata(attachmentResource, dispositionType);
 		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(resourcePartMetadata.fileName, attachmentResource.getDataSource())));
 		attachmentPart.setFileName(resourcePartMetadata.fileName);
-		final String contentType = attachmentResource.getDataSource().getContentType();
+		final String contentType = determineResourceContentType(attachmentResource);
 		ParameterList pl = new ParameterList();
 		pl.set("filename", resourcePartMetadata.fileName);
 		pl.set("name", resourcePartMetadata.fileName);
@@ -283,6 +283,10 @@ public class MimeMessageHelper {
 		}
 		attachmentPart.setDisposition(dispositionType);
 		return attachmentPart;
+	}
+
+	private static String determineResourceContentType(final AttachmentResource attachmentResource) {
+		return MiscUtil.parseBaseMimeTypeOrDefault(attachmentResource.getDataSource().getContentType());
 	}
 
 	private static BodyPart createMimeBodyPart(final AttachmentResource attachmentResource) {

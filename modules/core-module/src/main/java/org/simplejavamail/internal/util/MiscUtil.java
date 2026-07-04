@@ -5,8 +5,10 @@ import jakarta.activation.FileDataSource;
 import jakarta.activation.URLDataSource;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeUtility;
+import jakarta.mail.internet.ParseException;
 import jakarta.mail.util.ByteArrayDataSource;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -49,6 +51,7 @@ public final class MiscUtil {
 	private static final Pattern COMMA_DELIMITER_PATTERN = compile("(@.*?>?)\\s*[,;]");
 	private static final Pattern TRAILING_TOKEN_DELIMITER_PATTERN = compile("<\\|>$");
 	private static final Pattern TOKEN_DELIMITER_PATTERN = compile("\\s*<\\|>\\s*");
+	private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
 	private static final Random RANDOM = new Random();
 
@@ -370,12 +373,42 @@ public final class MiscUtil {
 	 * @return The real mime type
 	 */
 	@NotNull
-	public static String parseBaseMimeType(@NotNull final String fullMimeType) {
-		final int pos = fullMimeType.indexOf(';');
-		if (pos >= 0) {
-			return fullMimeType.substring(0, pos);
+	public static String parseBaseMimeType(@Nullable final String fullMimeType) {
+		if (valueNullOrEmpty(fullMimeType)) {
+			return "";
 		}
-		return fullMimeType;
+		int end = fullMimeType.length();
+		final int parameterStart = fullMimeType.indexOf(';');
+		if (parameterStart >= 0) {
+			end = Math.min(end, parameterStart);
+		}
+		final int crStart = fullMimeType.indexOf('\r');
+		if (crStart >= 0) {
+			end = Math.min(end, crStart);
+		}
+		final int lfStart = fullMimeType.indexOf('\n');
+		if (lfStart >= 0) {
+			end = Math.min(end, lfStart);
+		}
+		return fullMimeType.substring(0, end).trim();
+	}
+
+	@NotNull
+	public static String parseBaseMimeTypeOrDefault(@Nullable final String fullMimeType) {
+		final String baseMimeType = parseBaseMimeType(fullMimeType);
+		return isValidMimeType(baseMimeType) ? baseMimeType : DEFAULT_CONTENT_TYPE;
+	}
+
+	private static boolean isValidMimeType(final String contentType) {
+		if (valueNullOrEmpty(contentType)) {
+			return false;
+		}
+		try {
+			final ContentType parsedContentType = new ContentType(contentType);
+			return !valueNullOrEmpty(parsedContentType.getPrimaryType()) && !valueNullOrEmpty(parsedContentType.getSubType());
+		} catch (final ParseException e) {
+			return false;
+		}
 	}
 
 	@Nullable

@@ -495,6 +495,47 @@ public class EmailConverterTest {
 		assertThat(eml).contains("filename=\"Attachment %^$(()_()&^&^^:@/\\\\|{}[]#~`- special chars.txt\"");
 	}
 
+	@Test
+	public void testGithub606_AttachmentContentTypeIsNormalizedBeforeSerializing()
+			throws IOException {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final Email email = EmailBuilder.startingBlank()
+				.from("sender@example.com")
+				.to("recipient@example.com")
+				.withSubject("Nested email attachment")
+				.withPlainText("body")
+				.withAttachment("nested.eml", new ByteArrayDataSource("payload", "message/rfc822\r\nX-Bad: yes"))
+				.buildEmail();
+
+		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
+
+		assertThat(extractResourceHeaderBlock(eml, "nested.eml"))
+				.contains("Content-Type: message/rfc822;")
+				.contains("filename=nested.eml")
+				.doesNotContain("X-Bad");
+	}
+
+	@Test
+	public void testGithub606_InvalidEmbeddedImageContentTypeFallsBackBeforeSerializing()
+			throws IOException {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final Email email = EmailBuilder.startingBlank()
+				.from("sender@example.com")
+				.to("recipient@example.com")
+				.withSubject("Embedded image")
+				.withHTMLText("<img src=\"cid:logo\">")
+				.withEmbeddedImage("logo", new ByteArrayDataSource("image content", " "))
+				.buildEmail();
+
+		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
+
+		assertThat(extractResourceHeaderBlock(eml, "logo"))
+				.contains("Content-Type: application/octet-stream;")
+				.contains("filename=logo");
+	}
+
 	@NotNull
 	private static String asBase64(String content) {
 		return normalizeNewlines(new String(encodeBase64Chunked(content.getBytes(UTF_8)), UTF_8));
@@ -644,10 +685,14 @@ public class EmailConverterTest {
 		return matcher.group("body").trim();
 	}
 
-	private static void assertContentTransferEncodingForResource(String eml, String filename, String contentTransferEncoding) {
+	private static String extractResourceHeaderBlock(String eml, String filename) {
 		final Matcher matcher = compile(format("Content-Type: [\\s\\S]*?filename=\"?%s\"?[\\s\\S]*?\\n\\n", java.util.regex.Pattern.quote(filename))).matcher(eml);
 		assertThat(matcher.find()).as("MIME header block for resource %s", filename).isTrue();
-		assertThat(matcher.group()).contains("Content-Transfer-Encoding: " + contentTransferEncoding);
+		return matcher.group();
+	}
+
+	private static void assertContentTransferEncodingForResource(String eml, String filename, String contentTransferEncoding) {
+		assertThat(extractResourceHeaderBlock(eml, filename)).contains("Content-Transfer-Encoding: " + contentTransferEncoding);
 	}
 
 	@Test
