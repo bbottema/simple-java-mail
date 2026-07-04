@@ -1,6 +1,12 @@
 package org.simplejavamail.mailer;
 
+import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Provider;
 import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.URLName;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +21,7 @@ import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.converter.internal.mimemessage.ImmutableDelegatingSMTPMessage;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
@@ -30,6 +37,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -41,6 +50,7 @@ import static java.util.Calendar.APRIL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
@@ -527,6 +537,45 @@ public class MailerTest {
 	}
 
 	@Test
+	public void testSimpleBatch_sendEmails_usesSingleTransportConnection() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		CountingTransport.reset();
+
+		final Properties properties = new Properties();
+		properties.setProperty("mail.transport.protocol", "smtp");
+		properties.setProperty("mail.smtp.host", "localhost");
+		final Session session = Session.getInstance(properties);
+		final Provider provider = new Provider(Provider.Type.TRANSPORT, "smtp", CountingTransport.class.getName(), "Simple Java Mail", "test");
+		session.addProvider(provider);
+		session.setProvider(provider);
+
+		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+			mailer.sendMailsInSimpleBatch(Arrays.asList(
+					createBatchEmail("First batch email", "first@example.com"),
+					createBatchEmail("Second batch email", "second@example.com")), false);
+		}
+
+		assertThat(CountingTransport.connectCount).isEqualTo(1);
+		assertThat(CountingTransport.closeCount).isEqualTo(1);
+		assertThat(CountingTransport.sentMessages).hasSize(2);
+		assertThat(CountingTransport.sentMessages.get(0).getSubject()).isEqualTo("First batch email");
+		assertThat(CountingTransport.sentMessages.get(1).getSubject()).isEqualTo("Second batch email");
+		assertThat(CountingTransport.sentRecipients.get(0)).extracting(Address::toString).containsExactly("first@example.com");
+		assertThat(CountingTransport.sentRecipients.get(1)).extracting(Address::toString).containsExactly("second@example.com");
+	}
+
+	@Test
+	public void testSimpleBatch_sendEmails_usesCustomMailer() {
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false).buildEmail();
+		final CustomMailer customMailerMock = mock(CustomMailer.class);
+
+		getMailerWithCustomMailer(customMailerMock).sendMailsInSimpleBatch(Arrays.asList(email, email), false);
+
+		verify(customMailerMock, times(2)).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
+		verifyNoMoreInteractions(customMailerMock);
+	}
+
+	@Test
 	public void testCustomMailer_testConnection() {
 		final CustomMailer customMailerMock = mock(CustomMailer.class);
 
@@ -540,6 +589,52 @@ public class MailerTest {
 		return createFullyConfiguredMailerBuilder(false, "", null)
 				.withCustomMailer(customMailerMock)
 				.buildMailer();
+	}
+
+	private static Email createBatchEmail(final String subject, final String recipient) {
+		return EmailBuilder.startingBlank()
+				.from("sender@example.com")
+				.to(recipient)
+				.withSubject(subject)
+				.withPlainText("Simple batch body")
+				.buildEmail();
+	}
+
+	public static class CountingTransport extends Transport {
+		private static int connectCount;
+		private static int closeCount;
+		private static final List<MimeMessage> sentMessages = new ArrayList<>();
+		private static final List<Address[]> sentRecipients = new ArrayList<>();
+
+		public CountingTransport(final Session session, final URLName urlName) {
+			super(session, urlName);
+		}
+
+		private static void reset() {
+			connectCount = 0;
+			closeCount = 0;
+			sentMessages.clear();
+			sentRecipients.clear();
+		}
+
+		@Override
+		protected boolean protocolConnect(final String host, final int port, final String user, final String password) {
+			connectCount++;
+			return true;
+		}
+
+		@Override
+		public void sendMessage(final Message message, final Address[] addresses)
+				throws MessagingException {
+			sentMessages.add((MimeMessage) message);
+			sentRecipients.add(addresses);
+		}
+
+		@Override
+		public synchronized void close() {
+			closeCount++;
+			setConnected(false);
+		}
 	}
 
 	public static MailerRegularBuilderImpl createFullyConfiguredMailerBuilder(final boolean authenticateProxy, final String prefix, @Nullable final TransportStrategy transportStrategy) {

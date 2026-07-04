@@ -91,6 +91,42 @@ public interface Mailer extends AutoCloseable {
 	 * @see #validate(Email)
 	 */
 	@NotNull CompletableFuture<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
+
+	/**
+	 * Delegates to {@link #sendMailsInSimpleBatch(Iterable, boolean)} using the mailer's configured async default.
+	 * <p>
+	 * Note that the simple batch itself is always sequential: emails are sent one by one over one SMTP connection. The async default only controls
+	 * whether this {@link Mailer} method schedules that whole sequential operation and returns immediately, or blocks until it is done.
+	 *
+	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
+	 * @see MailerGenericBuilder#async()
+	 */
+	@NotNull CompletableFuture<Void> sendMailsInSimpleBatch(Iterable<Email> emails);
+
+	/**
+	 * Sends multiple emails sequentially over one SMTP connection.
+	 * <p>
+	 * This is a deliberately small "simple batch" API for caller-managed loops where the caller already owns the source queue or iteration and only
+	 * wants to avoid reconnecting for every message. It is <strong>not</strong> the main batch sending API. For queued sending, pooled SMTP
+	 * connections, concurrency, retry-oriented flow control, cluster coordination, or higher throughput workloads, use the
+	 * <a href="https://www.simplejavamail.org/modules.html#batch-module">batch-module</a> instead.
+	 * <p>
+	 * Each {@link Email} is processed exactly like {@link #sendMail(Email, boolean)}: defaults and overrides are applied, validation runs, the email is
+	 * converted to a {@link Message}, and then the message is submitted to the SMTP server. The method stops at the first failure and closes the SMTP
+	 * connection and proxy bridge before propagating the exception, or completing the returned future exceptionally when {@code async} is {@code true}.
+	 * <p>
+	 * The {@code async} flag applies only to this immediate {@link Mailer} API call: {@code false} blocks the caller while the simple batch runs,
+	 * {@code true} schedules the whole simple batch as one asynchronous task and returns immediately. It does <strong>not</strong> make the simple
+	 * batch itself concurrent; emails are still sent one at a time over one SMTP connection.
+	 *
+	 * @param emails The emails to send in order.
+	 * @param async  If false, this method blocks until all emails have been processed by the SMTP server. If true, a new task is started for the whole
+	 *               sequential simple batch and this method returns immediately.
+	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
+	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
+	 * @see #sendMail(Email, boolean)
+	 */
+	@NotNull CompletableFuture<Void> sendMailsInSimpleBatch(Iterable<Email> emails, boolean async);
 	
 	/**
 	 * Validates an {@link Email} instance. Validation fails if the subject is missing, content is missing, or no recipients are defined or that

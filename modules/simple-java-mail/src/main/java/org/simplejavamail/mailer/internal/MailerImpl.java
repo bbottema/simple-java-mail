@@ -36,6 +36,7 @@ import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrateg
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
@@ -345,20 +346,56 @@ public class MailerImpl implements Mailer {
 	@Override
 	@NotNull
 	public final CompletableFuture<Void> sendMail(final Email userProvidedEmail, @SuppressWarnings("SameParameterValue") final boolean async) {
+		val email = prepareEmailForSending(userProvidedEmail);
+
+		SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
+
+		if (!async) {
+			sendMailClosure.run();
+			return CompletableFuture.completedFuture(null);
+		} else
+			return ModuleLoader.batchModuleAvailable()
+					? ModuleLoader.loadBatchModule()
+						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
+					: AsyncOperationHelper
+						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
+	}
+
+	/**
+	 * @see Mailer#sendMailsInSimpleBatch(Iterable)
+	 */
+	@Override
+	@NotNull
+	public final CompletableFuture<Void> sendMailsInSimpleBatch(final Iterable<Email> emails) {
+		return sendMailsInSimpleBatch(emails, getOperationalConfig().isAsync());
+	}
+
+	/**
+	 * @see Mailer#sendMailsInSimpleBatch(Iterable, boolean)
+	 */
+	@Override
+	@NotNull
+	public final CompletableFuture<Void> sendMailsInSimpleBatch(final Iterable<Email> emails, final boolean async) {
+		val checkedEmails = verifyNonnull(emails);
+		SendMailsInSimpleBatchClosure sendMailsInSimpleBatchClosure = new SendMailsInSimpleBatchClosure(operationalConfig, session, checkedEmails,
+				this::prepareEmailForSending, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
+
+		if (!async) {
+			sendMailsInSimpleBatchClosure.run();
+			return CompletableFuture.completedFuture(null);
+		} else
+			return ModuleLoader.batchModuleAvailable()
+					? ModuleLoader.loadBatchModule()
+						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", sendMailsInSimpleBatchClosure)
+					: AsyncOperationHelper
+						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", sendMailsInSimpleBatchClosure);
+	}
+
+	@NotNull
+	private Email prepareEmailForSending(final Email userProvidedEmail) {
 		val email = emailGovernance.produceEmailApplyingDefaultsAndOverrides(userProvidedEmail);
-
 		if (validate(email)) {
-			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
-
-			if (!async) {
-				sendMailClosure.run();
-				return CompletableFuture.completedFuture(null);
-			} else
-				return ModuleLoader.batchModuleAvailable()
-						? ModuleLoader.loadBatchModule()
-							.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
-						: AsyncOperationHelper
-							.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
+			return email;
 		}
 		throw new IllegalStateException("Email not valid, but no MailException was thrown for it");
 	}

@@ -1,10 +1,15 @@
 package org.simplejavamail.internal.clisupport;
 
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
+import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
+import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
+import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -107,6 +112,18 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		Method withProxy = MailerGenericBuilder.class.getMethod("withProxy", String.class, Integer.class);
 		assertThat(hasCliOptionalParameter(withProxy, 0)).isTrue();
 		assertThat(hasCliOptionalParameter(withProxy, 1)).isTrue();
+	}
+
+	@Test
+	public void mailerFacadeSimpleBatchApiIsNotGeneratedAsCliBuilderOption() throws Exception {
+		Method simpleBatchSend = Mailer.class.getMethod("sendMailsInSimpleBatch", Iterable.class);
+		assertThat(methodIsCliCompatible(simpleBatchSend).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(simpleBatchSend).getReason()).contains("@BuilderApiNode missing");
+
+		List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
+				new Class<?>[] { EmailStartingBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class });
+		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
+				.doesNotContain("--mailer:sendMailsInSimpleBatch");
 	}
 
 	@Test

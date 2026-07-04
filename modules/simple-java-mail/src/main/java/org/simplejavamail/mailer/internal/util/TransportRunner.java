@@ -38,14 +38,17 @@ public class TransportRunner {
 	 */
 	public static void sendMessage(@NotNull final UUID clusterKey, final Session session, @NotNull Email email)
 			throws MessagingException {
-		runOnSessionTransport(clusterKey, session, false, (transport, actualSessionUsed) -> {
-			val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(actualSessionUsed, email);
-			val actualRecipients = email.getOverrideReceivers().isEmpty()
-					? message.getAllRecipients()
-					: MiscUtil.asInternetAddresses(email.getOverrideReceivers(), UTF_8).toArray(new InternetAddress[0]);
-			transport.sendMessage(message, actualRecipients);
-			LOGGER.trace("...email sent");
-		});
+		runOnSessionTransport(clusterKey, session, false, (transport, actualSessionUsed) -> sendMessageOnTransport(transport, actualSessionUsed, email));
+	}
+
+	public static void sendMessageOnTransport(@NotNull final Transport transport, @NotNull final Session actualSessionUsed, @NotNull Email email)
+			throws MessagingException {
+		val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(actualSessionUsed, email);
+		val actualRecipients = email.getOverrideReceivers().isEmpty()
+				? message.getAllRecipients()
+				: MiscUtil.asInternetAddresses(email.getOverrideReceivers(), UTF_8).toArray(new InternetAddress[0]);
+		transport.sendMessage(message, actualRecipients);
+		LOGGER.trace("...email sent");
 	}
 
 	public static void connect(@NotNull UUID clusterKey, final Session session)
