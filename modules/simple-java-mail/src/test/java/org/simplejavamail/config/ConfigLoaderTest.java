@@ -55,6 +55,8 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYS
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
+import static org.simplejavamail.config.ConfigLoader.Property.SMTP_LOCAL_ADDRESS;
+import static org.simplejavamail.config.ConfigLoader.Property.SMTP_LOCAL_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_USERNAME;
@@ -191,6 +193,8 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
 		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.<String>getProperty(SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.10");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_LOCAL_PORT)).isEqualTo(25252);
 
 		assertThat(ConfigLoader.<String>getProperty(PROXY_HOST)).isEqualTo("proxy.default.com");
 		assertThat(ConfigLoader.<Integer>getProperty(PROXY_PORT)).isEqualTo(1080);
@@ -256,6 +260,8 @@ public class ConfigLoaderTest {
 				   + "simplejavamail.smtp.port=25\n"
 				   + "simplejavamail.smtp.username=username\n"
 				   + "simplejavamail.smtp.password=password\n"
+				   + "simplejavamail.smtp.localaddress=192.0.2.11\n"
+				   + "simplejavamail.smtp.localport=25253\n"
 				   + "simplejavamail.custom.sslfactory.class=teh_class\n";
 
 		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
@@ -266,6 +272,8 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
 		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.<String>getProperty(SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.11");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_LOCAL_PORT)).isEqualTo(25253);
 		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 	}
 
@@ -279,6 +287,8 @@ public class ConfigLoaderTest {
 		source.put("simplejavamail.smtp.port", "25");
 		source.put("simplejavamail.smtp.username", "username");
 		source.put("simplejavamail.smtp.password", "password");
+		source.put("simplejavamail.smtp.localaddress", "192.0.2.12");
+		source.put("simplejavamail.smtp.localport", "25254");
 		source.put("simplejavamail.custom.sslfactory.class", "teh_class");
 		source.put("simplejavamail.extraproperties.a", "A");
 		source.put("simplejavamail.extraproperties.b", "B");
@@ -291,6 +301,8 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
 		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.<String>getProperty(SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.12");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_LOCAL_PORT)).isEqualTo(25254);
 		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
 					.containsExactly(new SimpleEntry<>("a", "A"), new SimpleEntry<>("b", "B"));
@@ -306,6 +318,8 @@ public class ConfigLoaderTest {
 		source.put("simplejavamail.smtp.port", 25);
 		source.put("simplejavamail.smtp.username", "username");
 		source.put("simplejavamail.smtp.password", "password");
+		source.put("simplejavamail.smtp.localaddress", "192.0.2.13");
+		source.put("simplejavamail.smtp.localport", 25255);
 		source.put("simplejavamail.custom.sslfactory.class", "teh_class");
 
 		ConfigLoader.loadProperties(source, false);
@@ -316,6 +330,8 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
 		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
 		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(ConfigLoader.<String>getProperty(SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.13");
+		assertThat(ConfigLoader.<Integer>getProperty(SMTP_LOCAL_PORT)).isEqualTo(25255);
 		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 	}
 

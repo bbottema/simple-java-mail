@@ -50,6 +50,8 @@ public class SimpleJavaMailProperties {
         private String port;
         private String username;
         private String password;
+        private String localaddress;
+        private String localport;
     }
 
     /**

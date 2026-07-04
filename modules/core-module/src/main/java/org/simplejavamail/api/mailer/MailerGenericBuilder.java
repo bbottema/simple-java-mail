@@ -262,6 +262,43 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withSessionTimeout(@NotNull Integer sessionTimeout);
 
 	/**
+	 * Sets the local/source address without changing the already configured local/source port.
+	 *
+	 * @param localBindAddress Local/source address or host name to bind the SMTP socket to.
+	 *
+	 * @see #withLocalBindAddress(String, Integer)
+	 * @see #clearLocalBindAddress()
+	 * @see TransportStrategy#propertyNameLocalAddress()
+	 */
+	@Cli.ExcludeApi(reason = "API is a subset of a more detailed API")
+	T withLocalBindAddress(@Nullable @Cli.Optional String localBindAddress);
+
+	/**
+	 * Configures the local/source address and optional local/source port that Jakarta Mail should bind the outgoing
+	 * SMTP socket to.
+	 * <p>
+	 * This is useful on machines with multiple local IP addresses when the remote SMTP server expects the connection
+	 * to originate from a specific address. Simple Java Mail applies this to the correct Jakarta Mail Session property
+	 * for the configured {@link TransportStrategy}.
+	 * <p>
+	 * Leave {@code localBindPort} empty unless you specifically need to bind a fixed local port. Binding the local port is
+	 * an advanced setting and can cause conflicts if another connection already uses that port.
+	 * <p>
+	 * If a remote SOCKS proxy is used, the SMTP server usually sees the proxy's outgoing IP address. With Simple Java
+	 * Mail's authenticated SOCKS bridge, this setting binds Jakarta Mail's socket to the local bridge/proxy path, not
+	 * the proxy server's own outbound socket.
+	 *
+	 * @param localBindAddress Local/source address or host name to bind the SMTP socket to.
+	 * @param localBindPort Optional local/source port to bind the SMTP socket to.
+	 *
+	 * @see #clearLocalBindAddress()
+	 * @see TransportStrategy#propertyNameLocalAddress()
+	 * @see TransportStrategy#propertyNameLocalPort()
+	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.localaddress">mail.smtp.localaddress</a>
+	 */
+	T withLocalBindAddress(@Nullable @Cli.Optional String localBindAddress, @Nullable @Cli.Optional Integer localBindPort);
+
+	/**
 	 * Sets the email address validator used when validating and sending emails using the current <code>Mailer</code> instance.
 	 * <p>
 	 * Defaults to {@link JMail#strictValidator()}.
@@ -692,6 +729,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearTrustedSSLHosts();
 
 	/**
+	 * Clears the configured local/source address and port.
+	 *
+	 * @see #withLocalBindAddress(String, Integer)
+	 */
+	T clearLocalBindAddress();
+
+	/**
 	 * Removes all properties.
 	 *
 	 * @see #withProperties(Properties)
@@ -758,6 +802,19 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	Integer getSessionTimeout();
+
+	/**
+	 * @see #withLocalBindAddress(String)
+	 * @see #withLocalBindAddress(String, Integer)
+	 */
+	@Nullable
+	String getLocalBindAddress();
+
+	/**
+	 * @see #withLocalBindAddress(String, Integer)
+	 */
+	@Nullable
+	Integer getLocalBindPort();
 
 	/**
 	 * @see #withEmailValidator(EmailValidator)

@@ -99,6 +99,19 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private Integer sessionTimeout;
 
 	/**
+	 * @see MailerGenericBuilder#withLocalBindAddress(String)
+	 * @see MailerGenericBuilder#withLocalBindAddress(String, Integer)
+	 */
+	@Nullable
+	private String localBindAddress;
+
+	/**
+	 * @see MailerGenericBuilder#withLocalBindAddress(String, Integer)
+	 */
+	@Nullable
+	private Integer localBindPort;
+
+	/**
 	 * @see MailerGenericBuilder#withEmailValidator(EmailValidator)
 	 */
 	@Nullable
@@ -234,6 +247,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.debugLogging 							= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
 		this.debugPrinter							= resolveDebugPrinter(valueOrProperty(null, Property.JAVAXMAIL_DEBUG_OUTPUT, null));
 		this.sessionTimeout 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
+		this.localBindAddress						= valueOrPropertyAsString(null, Property.SMTP_LOCAL_ADDRESS, null);
+		this.localBindPort							= valueOrPropertyAsInteger(null, Property.SMTP_LOCAL_PORT, null);
 		this.trustAllSSLHost 						= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
 		this.verifyingServerIdentity 				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY));
 		this.threadPoolSize 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
@@ -296,6 +311,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				isAsync(),
 				getProperties(),
 				getSessionTimeout(),
+				getLocalBindAddress(),
+				getLocalBindPort(),
 				getThreadPoolSize(),
 				getThreadPoolKeepAliveTime(),
 				getClusterKey(),
@@ -431,6 +448,25 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withSessionTimeout(@NotNull final Integer sessionTimeout) {
 		this.sessionTimeout = sessionTimeout;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withLocalBindAddress(String)
+	 */
+	@Override
+	public T withLocalBindAddress(@Nullable final String localBindAddress) {
+		this.localBindAddress = localBindAddress;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withLocalBindAddress(String, Integer)
+	 */
+	@Override
+	public T withLocalBindAddress(@Nullable final String localBindAddress, @Nullable final Integer localBindPort) {
+		this.localBindAddress = localBindAddress;
+		this.localBindPort = localBindPort;
 		return (T) this;
 	}
 
@@ -816,6 +852,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public T clearTrustedSSLHosts() {
 		return trustingSSLHosts();
 	}
+
+	/**
+	 * @see MailerGenericBuilder#clearLocalBindAddress()
+	 */
+	@Override
+	public T clearLocalBindAddress() {
+		return withLocalBindAddress(null, null);
+	}
 	
 	/**
 	 * @see MailerGenericBuilder#clearProperties()
@@ -911,6 +955,24 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@NotNull
 	public Integer getSessionTimeout() {
 		return sessionTimeout;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getLocalBindAddress()
+	 */
+	@Override
+	@Nullable
+	public String getLocalBindAddress() {
+		return localBindAddress;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getLocalBindPort()
+	 */
+	@Override
+	@Nullable
+	public Integer getLocalBindPort() {
+		return localBindPort;
 	}
 
 	/**

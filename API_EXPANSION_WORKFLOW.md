@@ -78,17 +78,29 @@ Only skip defaults/overrides integration when the value cannot sensibly be repre
 - Per-recipient fields
   - Do not try to default/override sub-fields inside Recipient via governance. Instead, set them when building recipients (through IRecipientsBuilder / RecipientsBuilder) and let module logic act on their presence.
 
-## 7. Configuration Support (`core-module`)
+## 7. Mailer Configuration API Expansion
+
+Mailer configuration API changes are separate from Email model/defaults/overrides governance. Use this path for SMTP/session/runtime behavior such as connection settings, proxy behavior, debug output, transport mode, trust settings, and other Mailer-owned state.
+
+- **Public API**: Add methods to `MailerGenericBuilder`, `MailerRegularBuilder`, or `MailerFromSessionBuilder` based on ownership. Provide complete Javadoc and CLI annotations because the CLI help text is generated from these builder APIs.
+- **Operational Ownership**: Add state to `OperationalConfig`, `ServerConfig`, `ProxyConfig`, or another existing Mailer config interface according to the behavior being configured.
+- **Property Defaults**: If the setting is property-friendly, add a `ConfigLoader.Property` entry and resolve it when creating the builder/config object. This keeps property-file driven projects configurable without Java code.
+- **Transport Strategy Mapping**: When a Mailer setting maps to Jakarta Mail properties, keep the `mail.smtp.*` / `mail.smtps.*` names behind `TransportStrategy` helper methods and apply them only after the effective strategy is known.
+- **Spring Mapping**: If the property belongs to the public configuration surface, add it to Spring support and Spring Boot metadata generation classes.
+- **Verification**: Test the Java builder path, property/config path, Spring mapping when applicable, and the final `Session` properties.
+- **Governance Boundary**: Do not wire Mailer connection/session settings into Email defaults/overrides. That mechanism applies to Email/message state and related model values.
+
+## 8. Configuration Support (`core-module`)
 
 Public API configuration should also have parity with property-backed configuration. When a Java API option represents configurable behavior and can be expressed as strings, booleans, numbers, enums, files, or other property-friendly values, expose it through configuration properties as well. This keeps property-file driven projects from needing a Java-only escape hatch for the same feature.
 
 Only skip property configuration when the value cannot be expressed safely or clearly in properties, has no sensible global default, or would require complex object construction that belongs in Java code. Document the reason in the implementing issue or PR.
 
 - **ConfigLoader**: Add a new entry to the `Property` enum.
-- **Data Resolution**: Ensure the new property is used in `EmailGovernanceImpl` or wherever defaults are applied.
+- **Data Resolution**: Ensure the new property is used in `EmailGovernanceImpl`, the Mailer builder/config object, or wherever defaults are applied.
 - **Spring Mapping**: If the property belongs to the public configuration surface, add the corresponding Spring property and map it through `SimpleJavaMailSpringSupport`.
 
-## 8. Verification Surface Areas
+## 9. Verification Surface Areas
 
 Always verify the following areas:
 

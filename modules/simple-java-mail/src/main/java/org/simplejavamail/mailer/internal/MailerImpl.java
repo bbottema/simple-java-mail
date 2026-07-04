@@ -35,6 +35,7 @@ import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_OAUTH2
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
@@ -200,6 +201,7 @@ public class MailerImpl implements Mailer {
 		session.getProperties().putAll(operationalConfig.getProperties());
 
 		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);
+		configureSessionWithLocalBindAddress(session, operationalConfig, transportStrategy);
 		configureTrustedHosts(session, operationalConfig, transportStrategy);
 		configureServerIdentityVerification(session, operationalConfig, transportStrategy);
 
@@ -218,6 +220,23 @@ public class MailerImpl implements Mailer {
 			sessionProperties.put(transportStrategy.propertyNameWriteTimeout(), String.valueOf(sessionTimeout));
 		} else {
 			LOGGER.debug("No transport strategy provided, skipping defaults for .connectiontimout, .timout and .writetimeout");
+		}
+	}
+
+	/**
+	 * Configures the local/source address and optional local/source port for the outgoing SMTP socket.
+	 */
+	static private void configureSessionWithLocalBindAddress(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
+		if (transportStrategy != null) {
+			final Properties sessionProperties = session.getProperties();
+			if (!valueNullOrEmpty(operationalConfig.getLocalBindAddress())) {
+				sessionProperties.setProperty(transportStrategy.propertyNameLocalAddress(), verifyNonnull(operationalConfig.getLocalBindAddress()));
+			}
+			if (operationalConfig.getLocalBindPort() != null) {
+				sessionProperties.setProperty(transportStrategy.propertyNameLocalPort(), String.valueOf(operationalConfig.getLocalBindPort()));
+			}
+		} else {
+			LOGGER.debug("No transport strategy provided, skipping local bind address configuration");
 		}
 	}
 

@@ -127,6 +127,22 @@ public enum TransportStrategy {
 		public String propertyNameSocksPort() {
 			return "mail.smtp.socks.port";
 		}
+
+		/**
+		 * @return "mail.smtp.localaddress"
+		 */
+		@Override
+		public String propertyNameLocalAddress() {
+			return "mail.smtp.localaddress";
+		}
+
+		/**
+		 * @return "mail.smtp.localport"
+		 */
+		@Override
+		public String propertyNameLocalPort() {
+			return "mail.smtp.localport";
+		}
 		
 		/**
 		 * @return "mail.smtp.connectiontimeout"
@@ -304,6 +320,22 @@ public enum TransportStrategy {
 		public String propertyNameSocksPort() {
 			return "mail.smtps.socks.port";
 		}
+
+		/**
+		 * @return "mail.smtps.localaddress"
+		 */
+		@Override
+		public String propertyNameLocalAddress() {
+			return "mail.smtps.localaddress";
+		}
+
+		/**
+		 * @return "mail.smtps.localport"
+		 */
+		@Override
+		public String propertyNameLocalPort() {
+			return "mail.smtps.localport";
+		}
 		
 		/**
 		 * @return "mail.smtps.connectiontimeout"
@@ -461,6 +493,22 @@ public enum TransportStrategy {
 		}
 
 		/**
+		 * @return "mail.smtp.localaddress"
+		 */
+		@Override
+		public String propertyNameLocalAddress() {
+			return "mail.smtp.localaddress";
+		}
+
+		/**
+		 * @return "mail.smtp.localport"
+		 */
+		@Override
+		public String propertyNameLocalPort() {
+			return "mail.smtp.localport";
+		}
+
+		/**
 		 * @return "mail.smtp.connectiontimeout"
 		 */
 		@Override
@@ -606,6 +654,22 @@ public enum TransportStrategy {
 		}
 
 		/**
+		 * @return "mail.smtp.localaddress"
+		 */
+		@Override
+		public String propertyNameLocalAddress() {
+			return "mail.smtp.localaddress";
+		}
+
+		/**
+		 * @return "mail.smtp.localport"
+		 */
+		@Override
+		public String propertyNameLocalPort() {
+			return "mail.smtp.localport";
+		}
+
+		/**
 		 * @return "mail.smtp.connectiontimeout"
 		 */
 		@Override
@@ -731,6 +795,14 @@ public enum TransportStrategy {
 	 * For internal use only.
 	 */
 	public abstract String propertyNameSocksPort();
+	/**
+	 * For internal use only.
+	 */
+	public abstract String propertyNameLocalAddress();
+	/**
+	 * For internal use only.
+	 */
+	public abstract String propertyNameLocalPort();
 	/**
 	 * For internal use only.
 	 *

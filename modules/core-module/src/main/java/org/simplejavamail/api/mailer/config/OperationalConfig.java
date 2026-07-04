@@ -31,6 +31,19 @@ public interface OperationalConfig {
 	int getSessionTimeout();
 
 	/**
+	 * @see MailerGenericBuilder#withLocalBindAddress(String)
+	 * @see MailerGenericBuilder#withLocalBindAddress(String, Integer)
+	 */
+	@Nullable
+	String getLocalBindAddress();
+
+	/**
+	 * @see MailerGenericBuilder#withLocalBindAddress(String, Integer)
+	 */
+	@Nullable
+	Integer getLocalBindPort();
+
+	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	int getThreadPoolSize();

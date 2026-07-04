@@ -36,6 +36,8 @@ import java.util.Properties;
  * <li>simplejavamail.smtp.port</li>
  * <li>simplejavamail.smtp.username</li>
  * <li>simplejavamail.smtp.password</li>
+ * <li>simplejavamail.smtp.localaddress</li>
+ * <li>simplejavamail.smtp.localport</li>
  * <li>simplejavamail.disable.all.clientvalidation</li>
  * <li>simplejavamail.custom.sslfactory.class</li>
  * <li>simplejavamail.proxy.host</li>
@@ -140,6 +142,8 @@ public class SimpleJavaMailSpringSupport {
 				@Nullable @Value("${simplejavamail.smtp.port:#{null}}") final String smtpPort,
 				@Nullable @Value("${simplejavamail.smtp.username:#{null}}") final String smtpUsername,
 				@Nullable @Value("${simplejavamail.smtp.password:#{null}}") final String smtpPassword,
+				@Nullable @Value("${simplejavamail.smtp.localaddress:#{null}}") final String smtpLocalAddress,
+				@Nullable @Value("${simplejavamail.smtp.localport:#{null}}") final String smtpLocalPort,
 				@Nullable @Value("${simplejavamail.disable.all.clientvalidation:#{null}}") final String disableAllClientValidation,
 				@Nullable @Value("${simplejavamail.custom.sslfactory.class:#{null}}") final String customSSLFactoryClass,
 				@Nullable @Value("${simplejavamail.custom.sslfactory.clazz:#{null}}") final String customSSLFactoryClassSpringBoot,
@@ -226,6 +230,8 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.SMTP_PORT.key(), smtpPort);
 		setNullableProperty(emailProperties, Property.SMTP_USERNAME.key(), smtpUsername);
 		setNullableProperty(emailProperties, Property.SMTP_PASSWORD.key(), smtpPassword);
+		setNullableProperty(emailProperties, Property.SMTP_LOCAL_ADDRESS.key(), smtpLocalAddress);
+		setNullableProperty(emailProperties, Property.SMTP_LOCAL_PORT.key(), smtpLocalPort);
 		setNullableProperty(emailProperties, Property.DISABLE_ALL_CLIENTVALIDATION.key(), disableAllClientValidation);
 		if (customSSLFactoryClass != null) {
 			setNullableProperty(emailProperties, Property.CUSTOM_SSLFACTORY_CLASS.key(), customSSLFactoryClass);
