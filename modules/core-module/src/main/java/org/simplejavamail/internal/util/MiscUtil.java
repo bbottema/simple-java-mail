@@ -5,8 +5,10 @@ import jakarta.activation.FileDataSource;
 import jakarta.activation.URLDataSource;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeUtility;
+import jakarta.mail.internet.ParseException;
 import jakarta.mail.util.ByteArrayDataSource;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -14,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.internal.config.EmailProperty;
 
 import java.io.BufferedInputStream;
@@ -48,6 +51,7 @@ public final class MiscUtil {
 	private static final Pattern COMMA_DELIMITER_PATTERN = compile("(@.*?>?)\\s*[,;]");
 	private static final Pattern TRAILING_TOKEN_DELIMITER_PATTERN = compile("<\\|>$");
 	private static final Pattern TOKEN_DELIMITER_PATTERN = compile("\\s*<\\|>\\s*");
+	private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
 	private static final Random RANDOM = new Random();
 
@@ -156,7 +160,10 @@ public final class MiscUtil {
 	 *                     is <code>null</code>, the other one will be used.
 	 * @param fixedName    Determines if the given name should be used as override.
 	 * @param emailAddress An RFC2822 compliant email address, which can contain a name inside as well.
+	 *
+	 * @deprecated this needs to be replaced with a version that only returns a pair with the name and email address
 	 */
+	@Deprecated
 	@NotNull
 	public static Recipient interpretRecipient(@Nullable final String name, boolean fixedName, @NotNull final String emailAddress, @Nullable final RecipientType type) {
 		try {
@@ -164,12 +171,12 @@ public final class MiscUtil {
 			final String relevantName = (fixedName || parsedAddress.getPersonal() == null)
 					? defaultTo(name, parsedAddress.getPersonal())
 					: defaultTo(parsedAddress.getPersonal(), name);
-			return new Recipient(relevantName, parsedAddress.getAddress(), type);
+			return new Recipient(relevantName, parsedAddress.getAddress(), type, null);
 		} catch (final AddressException e) {
 			// InternetAddress failed to parse the email address even in non-strict mode
 			// just assume the address was too complex rather than plain wrong, and let our own email validation
 			// library take care of it when sending the email
-			return new Recipient(name, emailAddress, type);
+			return new Recipient(name, emailAddress, type, null);
 		}
 	}
 	
@@ -210,14 +217,14 @@ public final class MiscUtil {
 	public static int countMandatoryParameters(final @NotNull Method m) {
 		int mandatoryParameterCount = 0;
 		for (Annotation[] annotations : m.getParameterAnnotations()) {
-			mandatoryParameterCount += !containsNullableAnnotation(annotations) ? 1 : 0;
+			mandatoryParameterCount += !containsCliOptionalAnnotation(annotations) ? 1 : 0;
 		}
 		return mandatoryParameterCount;
 	}
 
-	private static boolean containsNullableAnnotation(final Annotation[] annotations) {
+	private static boolean containsCliOptionalAnnotation(final Annotation[] annotations) {
 		for (Annotation annotation : annotations.clone()) {
-			if (annotation.annotationType() == Nullable.class) {
+			if (annotation.annotationType() == Cli.Optional.class) {
 				return true;
 			}
 		}
@@ -280,7 +287,8 @@ public final class MiscUtil {
 			if (isCorrectlyFormattedUrl(srcLocation) && new URL(srcLocation).getPath().startsWith(baseUrl.getPath())) {
 				dataSource = tryLoadingFromUrl(srcLocation);
 			} else {
-				final String urlPath = (baseUrl.getAuthority() + baseUrl.getPath() + "/" + srcLocation)
+				final String authority = baseUrl.getAuthority() != null ? baseUrl.getAuthority() : "";
+				final String urlPath = (authority + baseUrl.getPath() + "/" + srcLocation)
 						.replaceAll("/\\\\", "/")
 						.replaceAll("//", "/");
 				final String url = format("%s://%s", baseUrl.getProtocol(), urlPath);
@@ -366,12 +374,42 @@ public final class MiscUtil {
 	 * @return The real mime type
 	 */
 	@NotNull
-	public static String parseBaseMimeType(@NotNull final String fullMimeType) {
-		final int pos = fullMimeType.indexOf(';');
-		if (pos >= 0) {
-			return fullMimeType.substring(0, pos);
+	public static String parseBaseMimeType(@Nullable final String fullMimeType) {
+		if (valueNullOrEmpty(fullMimeType)) {
+			return "";
 		}
-		return fullMimeType;
+		int end = fullMimeType.length();
+		final int parameterStart = fullMimeType.indexOf(';');
+		if (parameterStart >= 0) {
+			end = Math.min(end, parameterStart);
+		}
+		final int crStart = fullMimeType.indexOf('\r');
+		if (crStart >= 0) {
+			end = Math.min(end, crStart);
+		}
+		final int lfStart = fullMimeType.indexOf('\n');
+		if (lfStart >= 0) {
+			end = Math.min(end, lfStart);
+		}
+		return fullMimeType.substring(0, end).trim();
+	}
+
+	@NotNull
+	public static String parseBaseMimeTypeOrDefault(@Nullable final String fullMimeType) {
+		final String baseMimeType = parseBaseMimeType(fullMimeType);
+		return isValidMimeType(baseMimeType) ? baseMimeType : DEFAULT_CONTENT_TYPE;
+	}
+
+	private static boolean isValidMimeType(final String contentType) {
+		if (valueNullOrEmpty(contentType)) {
+			return false;
+		}
+		try {
+			final ContentType parsedContentType = new ContentType(contentType);
+			return !valueNullOrEmpty(parsedContentType.getPrimaryType()) && !valueNullOrEmpty(parsedContentType.getSubType());
+		} catch (final ParseException e) {
+			return false;
+		}
 	}
 
 	@Nullable

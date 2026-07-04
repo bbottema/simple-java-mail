@@ -14,6 +14,7 @@ import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimePart;
 import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.internet.ParameterList;
+import jakarta.mail.internet.PreencodedMimeBodyPart;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,6 +50,7 @@ public class MimeMessageHelper {
 	 * Encoding used for setting body text, email address, headers, reply-to fields etc. ({@link StandardCharsets#UTF_8}).
 	 */
 	private static final Charset CHARACTER_ENCODING = UTF_8;
+	private static final String GENERATED_CONTENT_ID_DOMAIN = "simplejavamail.generated";
 
 	static void setSubject(@NotNull final Email email, final MimeMessage message) throws MessagingException {
 		message.setSubject(email.getSubject(), CHARACTER_ENCODING.name());
@@ -106,28 +108,32 @@ public class MimeMessageHelper {
 		if (email.getPlainText() != null) {
 			val messagePart = new MimeBodyPart();
 			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING.name());
-			messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
+			messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email, email.getPlainTextContentTransferEncoding()));
 			multipartAlternativeMessages.addBodyPart(messagePart);
 		}
 		if (email.getHTMLText() != null) {
 			val messagePartHTML = new MimeBodyPart();
 			messagePartHTML.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING.name()));
-			messagePartHTML.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
+			messagePartHTML.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email, email.getHTMLTextContentTransferEncoding()));
 			multipartAlternativeMessages.addBodyPart(messagePartHTML);
 		}
 		if (email.getCalendarText() != null) {
 			val calendarMethod = requireNonNull(email.getCalendarMethod(), "calendarMethod is required when calendarText is set");
 			val messagePartCalendar = new MimeBodyPart();
 			messagePartCalendar.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING.name(), calendarMethod));
-			messagePartCalendar.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
+			messagePartCalendar.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email, email.getCalendarTextContentTransferEncoding()));
 			multipartAlternativeMessages.addBodyPart(messagePartCalendar);
 		}
 	}
 
-	private static String determineContentTransferEncoder(@NotNull Email email) {
-		return (email.getContentTransferEncoding() != null
-				? email.getContentTransferEncoding()
-				: ContentTransferEncoding.getDefault()).getEncoder();
+	private static String determineContentTransferEncoder(@NotNull Email email, @Nullable ContentTransferEncoding bodyPartContentTransferEncoding) {
+		ContentTransferEncoding contentTransferEncoding = bodyPartContentTransferEncoding;
+		if (contentTransferEncoding == null) {
+			contentTransferEncoding = email.getContentTransferEncoding() != null
+					? email.getContentTransferEncoding()
+					: ContentTransferEncoding.getDefault();
+		}
+		return contentTransferEncoding.getEncoder();
 	}
 
 	/**
@@ -140,17 +146,21 @@ public class MimeMessageHelper {
 	 */
 	static void setTexts(@NotNull final Email email, final MimePart messagePart)
 			throws MessagingException {
+		ContentTransferEncoding bodyPartContentTransferEncoding = null;
 		if (email.getPlainText() != null) {
 			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING.name());
+			bodyPartContentTransferEncoding = email.getPlainTextContentTransferEncoding();
 		}
 		if (email.getHTMLText() != null) {
 			messagePart.setContent(email.getHTMLText(), format("text/html; charset=\"%s\"", CHARACTER_ENCODING.name()));
+			bodyPartContentTransferEncoding = email.getHTMLTextContentTransferEncoding();
 		}
 		if (email.getCalendarText() != null) {
 			val calendarMethod = requireNonNull(email.getCalendarMethod(), "CalendarMethod must be set when CalendarText is set");
 			messagePart.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING.name(), calendarMethod));
+			bodyPartContentTransferEncoding = email.getCalendarTextContentTransferEncoding();
 		}
-		messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email));
+		messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email, bodyPartContentTransferEncoding));
 	}
 	
 	/**
@@ -254,31 +264,64 @@ public class MimeMessageHelper {
 	 */
 	private static BodyPart getBodyPartFromDatasource(final AttachmentResource attachmentResource, final String dispositionType)
 			throws MessagingException {
-		final BodyPart attachmentPart = new MimeBodyPart();
+		final BodyPart attachmentPart = createMimeBodyPart(attachmentResource);
 		// setting headers isn't working nicely using the javax mail API, so let's do that manually
-		final String fileName = determineResourceName(attachmentResource, dispositionType, false, false);
-		final String contentID = determineResourceName(attachmentResource, dispositionType, true, true);
-		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(fileName, attachmentResource.getDataSource())));
-		attachmentPart.setFileName(fileName);
-		final String contentType = attachmentResource.getDataSource().getContentType();
+		final ResourcePartMetadata resourcePartMetadata = determineResourcePartMetadata(attachmentResource, dispositionType);
+		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(resourcePartMetadata.fileName, attachmentResource.getDataSource())));
+		attachmentPart.setFileName(resourcePartMetadata.fileName);
+		final String contentType = determineResourceContentType(attachmentResource);
 		ParameterList pl = new ParameterList();
-		pl.set("filename", fileName);
-		pl.set("name", fileName);
+		pl.set("filename", resourcePartMetadata.fileName);
+		pl.set("name", resourcePartMetadata.fileName);
 		attachmentPart.setHeader("Content-Type", contentType + pl);
-		attachmentPart.setHeader("Content-ID", format("<%s>", contentID));
+		attachmentPart.setHeader("Content-ID", format("<%s>", resourcePartMetadata.contentId));
 
 		attachmentPart.setHeader("Content-Description", determineAttachmentDescription(attachmentResource));
-		if (!valueNullOrEmpty(attachmentResource.getContentTransferEncoding())) {
-			attachmentPart.setHeader("Content-Transfer-Encoding", attachmentResource.getContentTransferEncoding().getEncoder());
+		final ContentTransferEncoding contentTransferEncoding = determineResourceContentTransferEncoding(attachmentResource);
+		if (contentTransferEncoding != null) {
+			attachmentPart.setHeader("Content-Transfer-Encoding", contentTransferEncoding.getEncoder());
 		}
 		attachmentPart.setDisposition(dispositionType);
 		return attachmentPart;
+	}
+
+	private static String determineResourceContentType(final AttachmentResource attachmentResource) {
+		return MiscUtil.parseBaseMimeTypeOrDefault(attachmentResource.getDataSource().getContentType());
+	}
+
+	private static BodyPart createMimeBodyPart(final AttachmentResource attachmentResource) {
+		final ContentTransferEncoding preEncodedContentTransferEncoding = attachmentResource.getPreEncodedContentTransferEncoding();
+		if (preEncodedContentTransferEncoding != null) {
+			return new PreencodedMimeBodyPart(preEncodedContentTransferEncoding.getEncoder());
+		}
+		return new MimeBodyPart();
+	}
+
+	@Nullable
+	private static ContentTransferEncoding determineResourceContentTransferEncoding(final AttachmentResource attachmentResource) {
+		return attachmentResource.getPreEncodedContentTransferEncoding() != null
+				? attachmentResource.getPreEncodedContentTransferEncoding()
+				: attachmentResource.getContentTransferEncoding();
 	}
 
 	/**
 	 * Determines the right resource name and optionally attaches the correct extension to the name. The result is mime encoded.
 	 */
 	static String determineResourceName(final AttachmentResource attachmentResource, String dispositionType, final boolean encodeResourceName, final boolean isContentID) {
+		if (isContentID) {
+			return determineResourcePartMetadata(attachmentResource, dispositionType).contentId;
+		}
+		final String resourceName = determineResourceFileName(attachmentResource, dispositionType);
+		return encodeResourceName ? MiscUtil.encodeText(resourceName) : resourceName;
+	}
+
+	private static ResourcePartMetadata determineResourcePartMetadata(final AttachmentResource attachmentResource, final String dispositionType) {
+		return new ResourcePartMetadata(
+				determineResourceFileName(attachmentResource, dispositionType),
+				determineContentId(attachmentResource, dispositionType));
+	}
+
+	private static String determineResourceFileName(final AttachmentResource attachmentResource, String dispositionType) {
 		final String datasourceName = attachmentResource.getDataSource().getName();
 
 		String resourceName;
@@ -291,16 +334,41 @@ public class MimeMessageHelper {
 			resourceName = "resource" + UUID.randomUUID();
 		}
 
-		// if ATTACHMENT, then add UUID to the name to prevent attachments with the same name to reference the same attachment content
-		if (isContentID && dispositionType.equals(Part.ATTACHMENT)) {
-			resourceName +=  "@" + UUID.randomUUID();
-		}
-
 		// if there is no extension on the name, but there is on the datasource name, then add it to the name
 		if (!valueNullOrEmpty(datasourceName) && dispositionType.equals(Part.ATTACHMENT)) {
 			resourceName = possiblyAddExtension(datasourceName, resourceName);
 		}
-		return encodeResourceName ? MiscUtil.encodeText(resourceName) : resourceName;
+		return resourceName;
+	}
+
+	private static String determineContentId(final AttachmentResource attachmentResource, final String dispositionType) {
+		final String explicitContentId = normalizeContentId(attachmentResource.getContentId());
+		if (!valueNullOrEmpty(explicitContentId)) {
+			return explicitContentId;
+		}
+		if (dispositionType.equals(Part.ATTACHMENT)) {
+			return generateAttachmentContentId();
+		}
+		return normalizeContentId(determineResourceFileName(attachmentResource, dispositionType));
+	}
+
+	private static String generateAttachmentContentId() {
+		return "sjm-" + UUID.randomUUID() + "@" + GENERATED_CONTENT_ID_DOMAIN;
+	}
+
+	@Nullable
+	private static String normalizeContentId(@Nullable final String contentId) {
+		if (valueNullOrEmpty(contentId)) {
+			return null;
+		}
+		String normalized = contentId.trim();
+		if (normalized.startsWith("<") && normalized.endsWith(">") && normalized.length() > 1) {
+			normalized = normalized.substring(1, normalized.length() - 1);
+		}
+		if (normalized.contains("\r") || normalized.contains("\n") || normalized.contains("<") || normalized.contains(">")) {
+			throw new IllegalArgumentException("Content-ID must not contain CR/LF or angle brackets inside the value");
+		}
+		return normalized;
 	}
 
 	@NotNull
@@ -319,5 +387,15 @@ public class MimeMessageHelper {
 	@Nullable
 	private static String determineAttachmentDescription(AttachmentResource attachmentResource) {
 		return ofNullable(attachmentResource.getDescription()).map(MiscUtil::encodeText).orElse(null);
+	}
+
+	private static class ResourcePartMetadata {
+		private final String fileName;
+		private final String contentId;
+
+		private ResourcePartMetadata(final String fileName, final String contentId) {
+			this.fileName = fileName;
+			this.contentId = contentId;
+		}
 	}
 }

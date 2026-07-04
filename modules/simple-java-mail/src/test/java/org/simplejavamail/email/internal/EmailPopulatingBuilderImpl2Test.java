@@ -17,7 +17,6 @@ import testutil.ConfigLoaderTestHelper;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -27,17 +26,27 @@ import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BINARY;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
+import static org.simplejavamail.api.email.ContentTransferEncoding.QUOTED_PRINTABLE;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.DELAY;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
@@ -60,16 +69,15 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYS
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
 import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNANCE;
-import static org.simplejavamail.util.TestDataHelper.getUrl;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 public class EmailPopulatingBuilderImpl2Test {
 
 	private static final String RESOURCES_PATH = determineResourceFolder("simple-java-mail") + "/test/resources";
 
-	private static final String DOWNLOAD_SIMPLE_JAVA_MAIL = "Download Simple Java Mail";
 	private static final String CREATE_SELF_SIGNED_S_MIME_CERTIFICATES = "Create Self-Signed S/MIME Certificates";
 	private static final String CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT = "<Console name=\"console\" target=\"SYSTEM_OUT\">";
+	private static final String ABOUT_ALL_THIS = "to generate CA cert, private key and and S/MIME format";
 
 	@Test
 	public void testConstructorApplyingPreconfiguredDefaults1() throws Exception {
@@ -111,13 +119,13 @@ public class EmailPopulatingBuilderImpl2Test {
 				.hasDkimConfig(null);
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
-				.hasFromRecipient(new Recipient("Test From", "test_from@domain.com", null))
-				.hasReplyToRecipients(new Recipient("Test Replyto", "test_replyto@domain.com", null))
-				.hasBounceToRecipient(new Recipient("Test Bounceto", "test_boundeto@domain.com", null))
+				.hasFromRecipient(new Recipient("Test From", "test_from@domain.com", null, null))
+				.hasReplyToRecipients(new Recipient("Test Replyto", "test_replyto@domain.com", null, null))
+				.hasBounceToRecipient(new Recipient("Test Bounceto", "test_boundeto@domain.com", null, null))
 				.hasRecipients(
-						new Recipient("test TO name", "test_to1@domain.com", TO), new Recipient("test TO name", "test_to2@domain.com", TO),
-						new Recipient("test CC name", "test_cc1@domain.com", CC), new Recipient("test CC name", "test_cc2@domain.com", CC),
-						new Recipient("test BCC name", "test_bcc1@domain.com", BCC), new Recipient("test BCC name", "test_bcc2@domain.com", BCC)
+						new Recipient("test TO name", "test_to1@domain.com", TO, null), new Recipient("test TO name", "test_to2@domain.com", TO, null),
+						new Recipient("test CC name", "test_cc1@domain.com", CC, null), new Recipient("test CC name", "test_cc2@domain.com", CC, null),
+						new Recipient("test BCC name", "test_bcc1@domain.com", BCC, null), new Recipient("test BCC name", "test_bcc2@domain.com", BCC, null)
 				)
 				.hasSubject("test subject")
 				.hasSmimeSigningConfig(SmimeSigningConfig.builder()
@@ -160,13 +168,13 @@ public class EmailPopulatingBuilderImpl2Test {
 						.build());
 
 		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
-				.hasFromRecipient(new Recipient(null, "test_from@domain.com", null))
-				.hasReplyToRecipients(new Recipient(null, "test_replyto@domain.com", null))
-				.hasBounceToRecipient(new Recipient(null, "test_boundeto@domain.com", null))
+				.hasFromRecipient(new Recipient(null, "test_from@domain.com", null, null))
+				.hasReplyToRecipients(new Recipient(null, "test_replyto@domain.com", null, null))
+				.hasBounceToRecipient(new Recipient(null, "test_boundeto@domain.com", null, null))
 				.hasRecipients(
-						new Recipient(null, "test_to1@domain.com", TO), new Recipient(null, "test_to2@domain.com", TO),
-						new Recipient(null, "test_cc1@domain.com", CC), new Recipient(null, "test_cc2@domain.com", CC),
-						new Recipient(null, "test_bcc1@domain.com", BCC), new Recipient(null, "test_bcc2@domain.com", BCC)
+						new Recipient(null, "test_to1@domain.com", TO, null), new Recipient(null, "test_to2@domain.com", TO, null),
+						new Recipient(null, "test_cc1@domain.com", CC, null), new Recipient(null, "test_cc2@domain.com", CC, null),
+						new Recipient(null, "test_bcc1@domain.com", BCC, null), new Recipient(null, "test_bcc2@domain.com", BCC, null)
 				)
 				.hasSmimeEncryptionConfig(SmimeEncryptionConfig.builder()
 						.x509Certificate(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")))
@@ -174,48 +182,79 @@ public class EmailPopulatingBuilderImpl2Test {
 	}
 
 	@Test
-	public void testConstructorApplyingPreconfiguredDefaults_EmbeddedImageResolving() throws Exception {
-		assumeThat(getUrl("https://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
+	public void testConstructorApplyingPreconfiguredBodyPartContentTransferEncodingDefaults() throws Exception {
+		Map<Property, Object> value = new HashedMap<>();
+		value.put(DEFAULT_CONTENT_TRANSFER_ENCODING, BASE_64);
+		value.put(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING, BIT7);
+		value.put(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING, QUOTED_PRINTABLE);
+		value.put(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING, BIT7);
 
+		ConfigLoaderTestHelper.setResolvedProperties(value);
+
+		final Email email = EmailBuilder.startingBlank()
+				.withPlainText("plain")
+				.withHTMLText("<b>html</b>")
+				.withHTMLTextContentTransferEncoding(BINARY)
+				.buildEmailCompletedWithDefaultsAndOverrides();
+
+		assertThat(email.getContentTransferEncoding()).isEqualTo(BASE_64);
+		assertThat(email.getPlainTextContentTransferEncoding()).isEqualTo(BIT7);
+		assertThat(email.getHTMLTextContentTransferEncoding()).isEqualTo(BINARY);
+		assertThat(email.getCalendarTextContentTransferEncoding()).isEqualTo(BIT7);
+	}
+
+	@Test
+	public void testConstructorApplyingPreconfiguredDeliveryStatusNotificationDefaults() throws Exception {
+		Map<Property, Object> value = new HashedMap<>();
+		value.put(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY, "FAILURE,DELAY");
+		value.put(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION, "HEADERS_ONLY");
+
+		ConfigLoaderTestHelper.setResolvedProperties(value);
+
+		assertThat(EmailBuilder.startingBlank().buildEmail().getDeliveryStatusNotification()).isNull();
+		assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides().getDeliveryStatusNotification())
+				.isEqualTo(org.simplejavamail.api.email.config.DeliveryStatusNotification.of(HEADERS_ONLY, FAILURE, DELAY));
+	}
+
+	@Test
+	public void testConstructorApplyingPreconfiguredDefaults_EmbeddedImageResolving() throws Exception {
 		HashedMap<Property, Object> value = new HashedMap<>();
 
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR, RESOURCES_PATH);
-		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, "https://www.simplejavamail.org");
-		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/pkcs12");
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, testResourceUrlString("pkcs12"));
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/");
 
 		ConfigLoaderTestHelper.setResolvedProperties(value);
 
 		Email email = EmailBuilder.startingBlank()
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"download.html\"/>") // comes from simplejavamail.org
-				.appendTextHTML("<img src=\"/how-to.html\"/>") // comes from classpath
-				.appendTextHTML("<img src=\"log4j2.xml\"/>") // comes from folder
+				.appendTextHTML("<img src=\"how-to.html\"/>") // comes from URL
+				.appendTextHTML("<img src=\"/log4j2.xml\"/>") // comes from classpath
+				.appendTextHTML("<img src=\"pkcs12/about all this.txt\"/>") // comes from folder
 				.buildEmail();
 
 		assertThat(email.getEmbeddedImages())
 				.extracting(new DatasourceReadingExtractor())
 				.containsExactlyInAnyOrder(
-						DOWNLOAD_SIMPLE_JAVA_MAIL,
 						CREATE_SELF_SIGNED_S_MIME_CERTIFICATES,
-						CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT
+						CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT,
+						ABOUT_ALL_THIS
 				);
 	}
 
 	@Test
 	public void testConstructorApplyingPreconfiguredDefaults_EmbeddedImageResolving_BubbleFailure() throws Exception {
-		assumeThat(getUrl("https://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
-
 		HashedMap<Property, Object> value = new HashedMap<>();
 
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR, RESOURCES_PATH);
-		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, "https://www.simplejavamail.org");
-		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/pkcs12");
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, testResourceUrlString("pkcs12"));
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL, "true");
 
 		ConfigLoaderTestHelper.setResolvedProperties(value);
@@ -231,16 +270,14 @@ public class EmailPopulatingBuilderImpl2Test {
 
 	@Test
 	public void testConstructorApplyingPreconfiguredDefaults_EmbeddedImageResolving_IgnoreFailure() throws Exception {
-		assumeThat(getUrl("https://www.simplejavamail.org")).isEqualTo(HttpURLConnection.HTTP_OK);
-
 		HashedMap<Property, Object> value = new HashedMap<>();
 
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL, "true");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR, RESOURCES_PATH);
-		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, "https://www.simplejavamail.org");
-		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/pkcs12");
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, testResourceUrlString("pkcs12"));
+		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL, "false");
 
 		ConfigLoaderTestHelper.setResolvedProperties(value);
@@ -260,17 +297,22 @@ public class EmailPopulatingBuilderImpl2Test {
 		public String apply(final AttachmentResource input) {
 			try {
 				final String sourceContent = input.readAllData();
-				if (sourceContent.contains(DOWNLOAD_SIMPLE_JAVA_MAIL)) {
-					return DOWNLOAD_SIMPLE_JAVA_MAIL;
-				} else if (sourceContent.contains(CREATE_SELF_SIGNED_S_MIME_CERTIFICATES)) {
+				if (sourceContent.contains(CREATE_SELF_SIGNED_S_MIME_CERTIFICATES)) {
 					return CREATE_SELF_SIGNED_S_MIME_CERTIFICATES;
 				} else if (sourceContent.contains(CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT)) {
 					return CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT;
+				} else if (sourceContent.contains(ABOUT_ALL_THIS)) {
+					return ABOUT_ALL_THIS;
 				}
 				return "";
 			} catch (IOException e) {
 				throw new AssertionError();
 			}
 		}
+	}
+
+	private static String testResourceUrlString(final String resourcePath)
+			throws IOException {
+		return new File(RESOURCES_PATH + "/" + resourcePath).toURI().toURL().toString();
 	}
 }

@@ -82,14 +82,6 @@
             <version>7.1.7</version>
             <scope>test</scope>
         </dependency>
-        <!-- required for java 9+ compatibility with assertj-assertions-generator-maven-plugin, which uses javax.annotation.Generated -->
-        <!-- see https://github.com/assertj/assertj-assertions-generator-maven-plugin/issues/93 -->
-        <dependency>
-            <groupId>jakarta.annotation</groupId>
-            <artifactId>jakarta.annotation-api</artifactId>
-            <version>3.0.0</version>
-            <scope>test</scope>
-        </dependency>
         <dependency><!-- used to test loading of Environment properties in ConfigLoaderTest -->
             <groupId>org.junit-pioneer</groupId>
             <artifactId>junit-pioneer</artifactId>
@@ -100,25 +92,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.assertj</groupId>
-                <artifactId>assertj-assertions-generator-maven-plugin</artifactId>
-                <version>2.2.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate-assertions</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <classes>
-                        <param>org.simplejavamail.api.email.Email</param>
-                    </classes>
-                    <quiet>true</quiet>
-                </configuration>
-            </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

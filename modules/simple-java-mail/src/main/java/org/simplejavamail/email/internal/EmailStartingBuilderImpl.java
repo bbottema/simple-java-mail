@@ -211,6 +211,9 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getBounceToRecipient() != null) {
 			builder.withBounceTo(email.getBounceToRecipient());
 		}
+		if (email.getDeliveryStatusNotification() != null) {
+			builder.withDeliveryStatusNotification(email.getDeliveryStatusNotification());
+		}
 		if (email.getPlainText() != null) {
 			builder.withPlainText(email.getPlainText());
 		}
@@ -225,6 +228,15 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		builder.withAttachments(email.getAttachments());
 		if (email.getContentTransferEncoding() != null) {
 			builder.withContentTransferEncoding(email.getContentTransferEncoding());
+		}
+		if (email.getPlainTextContentTransferEncoding() != null) {
+			builder.withPlainTextContentTransferEncoding(email.getPlainTextContentTransferEncoding());
+		}
+		if (email.getHTMLTextContentTransferEncoding() != null) {
+			builder.withHTMLTextContentTransferEncoding(email.getHTMLTextContentTransferEncoding());
+		}
+		if (email.getCalendarTextContentTransferEncoding() != null) {
+			builder.withCalendarTextContentTransferEncoding(email.getCalendarTextContentTransferEncoding());
 		}
 		((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
 		if (email.getSentDate() != null) {

@@ -354,6 +354,22 @@ public class MailerTest {
 	}
 
 	@Test
+	public void testSSLSocketFactoryClassConfig_SMTPS() {
+		final Mailer mailer = MailerBuilder
+				.withSMTPServer("host", 25, null, null)
+				.withTransportStrategy(SMTPS)
+				.clearProxy()
+				.withCustomSSLFactoryClass("teh_class")
+				.buildMailer();
+
+		final Session session = mailer.getSession();
+
+		assertThat(session.getProperties()).contains(new SimpleEntry<String, Object>("mail.smtps.ssl.socketFactory.class", "teh_class"));
+		assertThat(session.getProperties()).doesNotContainKey("mail.smtps.ssl.socketFactory");
+		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory.class");
+	}
+
+	@Test
 	public void testSSLSocketFactoryInstanceConfig() {
 		final SSLSocketFactory mockFactory = mock(SSLSocketFactory.class);
 
@@ -366,6 +382,24 @@ public class MailerTest {
 
 		assertThat(session.getProperties()).contains(new SimpleEntry<String, Object>("mail.smtp.ssl.socketFactory", mockFactory));
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory.class");
+	}
+
+	@Test
+	public void testSSLSocketFactoryInstanceConfig_SMTPS() {
+		final SSLSocketFactory mockFactory = mock(SSLSocketFactory.class);
+
+		final Mailer mailer = MailerBuilder
+				.withSMTPServer("host", 25, null, null)
+				.withTransportStrategy(SMTPS)
+				.clearProxy()
+				.withCustomSSLFactoryInstance(mockFactory)
+				.buildMailer();
+
+		final Session session = mailer.getSession();
+
+		assertThat(session.getProperties()).contains(new SimpleEntry<String, Object>("mail.smtps.ssl.socketFactory", mockFactory));
+		assertThat(session.getProperties()).doesNotContainKey("mail.smtps.ssl.socketFactory.class");
+		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory");
 	}
 
 	@Test

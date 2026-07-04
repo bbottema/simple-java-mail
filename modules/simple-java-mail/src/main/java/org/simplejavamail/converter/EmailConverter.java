@@ -19,6 +19,7 @@ import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.converter.internal.InternalEmailConverterImpl;
 import org.simplejavamail.converter.internal.mimemessage.MimeDataSource;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
@@ -61,6 +62,8 @@ import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNAN
  */
 @SuppressWarnings("WeakerAccess")
 public final class EmailConverter {
+
+	private static final String GENERATED_ATTACHMENT_CONTENT_ID_PATTERN = "sjm-[A-Za-z0-9-]+@simplejavamail\\.generated";
 
 	private EmailConverter() {
 		// util / helper class
@@ -144,11 +147,33 @@ public final class EmailConverter {
 	@SuppressWarnings("deprecation")
 	@NotNull
 	public static Email outlookMsgToEmail(@NotNull final String msgFileName, @Nullable final Pkcs12Config pkcs12Config) {
+		return outlookMsgToEmailBuilderWithOutlookData(msgFileName, pkcs12Config).buildEmail();
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilderWithOutlookData(String, Pkcs12Config)}.
+	 *
+	 * @param msgFileName The file name of an Outlook (.msg) message from which to create the {@link Email}.
+	 */
+	@NotNull
+	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final String msgFileName) {
+		return outlookMsgToEmailBuilderWithOutlookData(msgFileName, null);
+	}
+
+	/**
+	 * Converts an Outlook {@code .msg} message to an email builder while retaining Outlook-specific source data.
+	 *
+	 * @param msgFileName The file name of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                        (only needed when the message is encrypted rather than just signed).
+	 */
+	@SuppressWarnings("deprecation")
+	@NotNull
+	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final String msgFileName, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgFileName, "msgFile");
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
 				.outlookMsgToEmailBuilder(msgFileName, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl(), InternalEmailConverterImpl.INSTANCE);
-		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config)
-				.buildEmail();
+		return toOutlookEmailConversionResult(result, pkcs12Config);
 	}
 
 	/**
@@ -190,10 +215,33 @@ public final class EmailConverter {
 	@SuppressWarnings({ "deprecation" })
 	@NotNull
 	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@NotNull final File msgFile, @Nullable final Pkcs12Config pkcs12Config) {
+		return outlookMsgToEmailBuilderWithOutlookData(msgFile, pkcs12Config).getEmailBuilder();
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilderWithOutlookData(File, Pkcs12Config)}.
+	 *
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 */
+	@NotNull
+	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final File msgFile) {
+		return outlookMsgToEmailBuilderWithOutlookData(msgFile, null);
+	}
+
+	/**
+	 * Converts an Outlook {@code .msg} message to an email builder while retaining Outlook-specific source data.
+	 *
+	 * @param msgFile The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                        (only needed when the message is encrypted rather than just signed).
+	 */
+	@SuppressWarnings("deprecation")
+	@NotNull
+	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final File msgFile, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgFile, "msgFile");
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
 				.outlookMsgToEmailBuilder(msgFile, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl(), InternalEmailConverterImpl.INSTANCE);
-		return decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config);
+		return toOutlookEmailConversionResult(result, pkcs12Config);
 	}
 
 	/**
@@ -210,13 +258,16 @@ public final class EmailConverter {
 	 */
 	@NotNull
 	public static Email outlookMsgToEmail(@NotNull final InputStream msgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
-		return outlookMsgToEmailBuilder(msgInputStream, pkcs12Config).getEmailBuilder().buildEmail();
+		return outlookMsgToEmailBuilderWithOutlookData(msgInputStream, pkcs12Config).buildEmail();
 	}
 
 	/**
 	 * Delegates to {@link #outlookMsgToEmailBuilder(InputStream, Pkcs12Config)}.
+	 *
+	 * @deprecated use {@link #outlookMsgToEmailBuilderWithOutlookData(InputStream)}.
 	 */
 	@NotNull
+	@Deprecated
 	public static EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull final InputStream msgInputStream) {
 		return outlookMsgToEmailBuilder(msgInputStream, null);
 	}
@@ -227,14 +278,52 @@ public final class EmailConverter {
 	 * to use defaults again.
 	 *
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @deprecated use {@link #outlookMsgToEmailBuilderWithOutlookData(InputStream, Pkcs12Config)}.
 	 */
 	@SuppressWarnings("deprecation")
 	@NotNull
+	@Deprecated
 	public static EmailFromOutlookMessage outlookMsgToEmailBuilder(@NotNull final InputStream msgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
+		return loadOutlookMessage(msgInputStream, pkcs12Config);
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilderWithOutlookData(InputStream, Pkcs12Config)}.
+	 *
+	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 */
+	@NotNull
+	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final InputStream msgInputStream) {
+		return outlookMsgToEmailBuilderWithOutlookData(msgInputStream, null);
+	}
+
+	/**
+	 * Converts an Outlook {@code .msg} message to an email builder while retaining Outlook-specific source data.
+	 *
+	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                        (only needed when the message is encrypted rather than just signed).
+	 */
+	@SuppressWarnings("deprecation")
+	@NotNull
+	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final InputStream msgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
+		return loadOutlookMessage(msgInputStream, pkcs12Config).toOutlookEmailConversionResult();
+	}
+
+	@SuppressWarnings("deprecation")
+	@NotNull
+	private static EmailFromOutlookMessage loadOutlookMessage(@NotNull final InputStream msgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
 		EmailFromOutlookMessage fromMsgBuilder = ModuleLoader.loadOutlookModule()
 				.outlookMsgToEmailBuilder(msgInputStream, new EmailStartingBuilderImpl(), new EmailPopulatingBuilderFactoryImpl(), InternalEmailConverterImpl.INSTANCE);
 		decryptAttachments(fromMsgBuilder.getEmailBuilder(), fromMsgBuilder.getOutlookMessage(), pkcs12Config);
 		return fromMsgBuilder;
+	}
+
+	@SuppressWarnings("deprecation")
+	@NotNull
+	private static OutlookEmailConversionResult toOutlookEmailConversionResult(@NotNull final EmailFromOutlookMessage result, @Nullable final Pkcs12Config pkcs12Config) {
+		decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config);
+		return result.toOutlookEmailConversionResult();
 	}
 
 	private static EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder, final OutlookMessage outlookMessage, @Nullable final Pkcs12Config pkcs12Config) {
@@ -739,8 +828,9 @@ public final class EmailConverter {
 		if (parsed.getBounceToAddress() != null) {
 			builder.withBounceTo(parsed.getBounceToAddress());
 		}
-		if (parsed.getContentTransferEncoding() != null) {
-			builder.withContentTransferEncoding(ContentTransferEncoding.byEncoder(parsed.getContentTransferEncoding()));
+		final ContentTransferEncoding contentTransferEncoding = toContentTransferEncoding(parsed.getContentTransferEncoding());
+		if (contentTransferEncoding != null) {
+			builder.withContentTransferEncoding(contentTransferEncoding);
 		}
 		builder.fixingMessageId(parsed.getMessageId());
 		for (final InternetAddress to : parsed.getToAddresses()) {
@@ -755,22 +845,52 @@ public final class EmailConverter {
 		}
 		builder.withSubject(parsed.getSubject() != null ? parsed.getSubject() : "");
 		builder.withPlainText(parsed.getPlainContent());
+		final ContentTransferEncoding plainTextContentTransferEncoding = toContentTransferEncoding(parsed.getPlainTextContentTransferEncoding());
+		if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, plainTextContentTransferEncoding)) {
+			builder.withPlainTextContentTransferEncoding(plainTextContentTransferEncoding);
+		}
 		builder.withHTMLText(parsed.getHtmlContent());
+		final ContentTransferEncoding htmlTextContentTransferEncoding = toContentTransferEncoding(parsed.getHtmlTextContentTransferEncoding());
+		if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, htmlTextContentTransferEncoding)) {
+			builder.withHTMLTextContentTransferEncoding(htmlTextContentTransferEncoding);
+		}
 		
 		if (parsed.getCalendarMethod() != null) {
 			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), verifyNonnullOrEmpty(parsed.getCalendarContent()));
+			final ContentTransferEncoding calendarTextContentTransferEncoding = toContentTransferEncoding(parsed.getCalendarTextContentTransferEncoding());
+			if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, calendarTextContentTransferEncoding)) {
+				builder.withCalendarTextContentTransferEncoding(calendarTextContentTransferEncoding);
+			}
 		}
 		
 		for (final Map.Entry<String, MimeDataSource> cid : parsed.getCidMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
-			builder.withEmbeddedImage(extractCID(cidName), cid.getValue().getDataSource());
+			final String resourceName = extractCID(cid.getValue().getName());
+			final String contentId = extractCID(cidName);
+			builder.withEmbeddedImage(resourceName, cid.getValue().getDataSource(), contentId != null && contentId.equals(resourceName) ? null : contentId);
 		}
 		for (final MimeDataSource attachment : parsed.getAttachmentList()) {
 			final ContentTransferEncoding encoding = !valueNullOrEmpty(attachment.getContentTransferEncoding())
 					? ContentTransferEncoding.byEncoder(attachment.getContentTransferEncoding()) : null;
-			builder.withAttachment(extractCID(attachment.getName()), attachment.getDataSource(), attachment.getContentDescription(), encoding);
+			builder.withAttachment(extractCID(attachment.getName()), attachment.getDataSource(), attachment.getContentDescription(), encoding, userProvidedContentId(attachment));
 		}
 		return builder;
+	}
+
+	private static boolean isBodyPartContentTransferEncodingOverride(@Nullable final ContentTransferEncoding fallbackContentTransferEncoding,
+																	 @Nullable final ContentTransferEncoding bodyPartContentTransferEncoding) {
+		return bodyPartContentTransferEncoding != null && bodyPartContentTransferEncoding != fallbackContentTransferEncoding;
+	}
+
+	@Nullable
+	private static ContentTransferEncoding toContentTransferEncoding(@Nullable final String contentTransferEncoding) {
+		return !valueNullOrEmpty(contentTransferEncoding) ? ContentTransferEncoding.byEncoder(contentTransferEncoding) : null;
+	}
+
+	@Nullable
+	private static String userProvidedContentId(final MimeDataSource attachment) {
+		final String contentId = extractCID(attachment.getContentId());
+		return contentId != null && contentId.matches(GENERATED_ATTACHMENT_CONTENT_ID_PATTERN) ? null : contentId;
 	}
 
 	private static Session createDummySession() {

@@ -1,0 +1,745 @@
+# Release History
+
+Older Simple Java Mail release notes moved out of [README.md](README.md) to keep the project overview focused on current and recent changes.
+
+[Back to README latest progress](README.md#latest-progress).
+
+v8.11.0 - [v8.11.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.11.3/)
+
+- v8.11.3 (15-September-2024): [#543](https://github.com/bbottema/simple-java-mail/issues/543): [Enhancement] reduce log spam from the batch-module
+- v8.11.2 (08-June-2024): [#530](https://github.com/bbottema/simple-java-mail/pull/530): [Bug] After converting Outlook .msg to EML, bullet lists have duplicate numbering HTML converted from RTF
+- v8.11.1 (28-May-2024): [#529](https://github.com/bbottema/simple-java-mail/pull/529): Bump smtp-connection-pool from 2.3.2 to 2.3.3 which improves performance and fixes a rare ConcurrentModificationException
+- v8.11.1 (28-May-2024): [#527](https://github.com/bbottema/simple-java-mail/pull/527): Bump org.slf4j:slf4j-api from 2.0.9 to 2.0.13
+- v8.11.1 (28-May-2024): [#523](https://github.com/bbottema/simple-java-mail/pull/523): Bump org.jacoco:jacoco-maven-plugin from 0.8.5 to 0.8.12
+- v8.11.0 (25-May-2024): [#526](https://github.com/bbottema/simple-java-mail/pull/526): When reading .msg files the RTF converted to HTML is garbled in some cases where the appropriate charset is not detected properly
+
+NOTE: v8.11.0 contains many (minor) dependency updates to resolve CVE issues, including:
+  - parent POM upgrade: Upgrades test dependencies as well as SLF4J versions
+  - outlook-message-parser 1.13.2 -> 1.14.0
+  - java-reflection 4.0.1 -> 4.0.2
+  - smtp-connection-pool 2.3.1 -> 2.3.2
+  - utils-mail-dkim 3.1.0 -> 3.2.0
+  - jakarta.mail-api 2.1.2 -> 2.1.3
+  - angus-mail 2.0.2 -> 2.0.3
+  - therapi-runtime-javadoc 0.13.0 -> 0.15.0
+  - kryo 5.0.0-RC1 -> 5.6.0
+  - maven-assembly-plugin 3.1.0 -> 3.7.1 (only for the CLI module during build)
+
+
+v8.10.0 - [v8.10.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.10.1/)
+
+- v8.10.1 (04-May-2024): [#510](https://github.com/bbottema/simple-java-mail/pull/510): Update upstream dependency generic-object-pool, which solves a critical bug when there are exceptions during allocation
+- v8.10.0 (30-April-2024): [#508](https://github.com/bbottema/simple-java-mail/pull/508): [enhancement+bug] Make EmailConverter API more consistent regarding Session parameter, don't use `Session.getDefaultInstance` anymore and fix bug where `emlToEmailBuilder` used `emlToMimeMessage`
+
+
+[v8.9.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.9.0%7Cjar) (26-April-2024)
+
+- [#507](https://github.com/bbottema/simple-java-mail/issues/507): [security] Update 3rd party dependencies to get rid of all currently known CVE issues (see issue for details)
+
+
+v8.8.0 - [v8.8.4](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.8.4/)
+
+- v8.8.4 (23-April-2024): [#506](https://github.com/bbottema/simple-java-mail/pull/506): [CVE] Upgrade utils-mail-smime dependency to 2.3.2, to resolve CVE issue in bouncycastle
+- v8.8.3 (13-April-2024): [#502](https://github.com/bbottema/simple-java-mail/issues/502): [Bug] Message headers not treated with case insensitivity as per RFC, causing deviating headers to slip through the filters
+- v8.8.2 (05-April-2024): [#495](https://github.com/bbottema/simple-java-mail/issues/495): Add config support for 'verifyingServerIdentity' with SMTP, also: since Angus 1.1.0 (8.6.0) server identity checks are on by default and can be countered by mailerBuilder.verifyingServerIdentity(false)
+- v8.8.2 (05-April-2024): [#501](https://github.com/bbottema/simple-java-mail/issues/501): [dependency] Update outlook-message-parser dependency, which has improved support for X500 addresses
+- v8.8.2 (05-April-2024): [#499 (fix)](https://github.com/bbottema/simple-java-mail/issues/499): [maintenance] Added missing finer-grained DKIM Spring Boot properties
+- v8.8.1 (04-April-2024): [#500](https://github.com/bbottema/simple-java-mail/issues/500): [bug] Fix parsing addresses from headers in EML files, like a Disposition-Notification-To with umlaut
+- v8.8.0 (22-March-2024): [#499](https://github.com/bbottema/simple-java-mail/issues/499): [Enhancement] Expose finer-grained DKIM configuration through the builder api and disable 'l-param' by default)
+
+NOTE: release 8.8.0 changes the default for DKIM signing from 'l-param' true to false. If you rely on this feature, you need to enable it explicitly. Refer to the [DKIM documentation](https://www.simplejavamail.org/security.html#section-sending-dkim) for the update.
+
+
+v8.7.0 - [v8.7.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.7.1/)
+
+- v8.7.1 (20-March-2024): [#498](https://github.com/bbottema/simple-java-mail/issues/498): Make S/MIME algorithms configurable (signature algorithm for signing, key encapsulation and cipher algorithms for encryption)
+- v8.7.1 (20-March-2024): [#497](https://github.com/bbottema/simple-java-mail/issues/497): Order of attachments is lost when converting a MimeMessage to an Email
+- v8.7.0 (20-March-2024): don't use this version: versioning messed up
+
+NOTE: this breaks the API for S/MIME related builder methods. Refer to the [S/MIME documentation](https://www.simplejavamail.org/security.html#section-sending-smime) for the new API.
+
+
+v8.6.0 - [v8.6.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.6.3/)
+
+- v8.6.3 (13-February-2024): [#491](https://github.com/bbottema/simple-java-mail/issues/491): [bug] Attachment body parts should separately parse Content-Disposition and ContentID, possible resulting in a downloadable attachment that is also embedded
+- v8.6.2 (27-January-2024): [#493](https://github.com/bbottema/simple-java-mail/issues/493): [bug] don't require smime-module when adding collection of headers (also used when copying email)
+- v8.6.1 (18-January-2024): [#487](https://github.com/bbottema/simple-java-mail/issues/487): Move header filtering from MimeMessageParser to EmailConverter, thereby enabling access to all parsed headers when using MimeMessageParser directly
+- v8.6.1 (18-January-2024): [#489](https://github.com/bbottema/simple-java-mail/issues/489): Finished update to Angus Mail by updating activation dependency
+- v8.6.0 (17-January-2024): [#489](https://github.com/bbottema/simple-java-mail/issues/489): Update to Angus Mail
+
+NOTE: this release switches to Angus Mail which should be a transparent change, but if you encounter any issues, please report them.
+      One known issue is that Angus, since 1.1.0, performs server identity checks by default, which was previously disabled for SMTP. If you encounter issues with this, you can disable it with `mailerBuilder.verifyingServerIdentity(false)` and starting from 8.8.2, this also works with SMTP transport strategy (see [#495](https://github.com/bbottema/simple-java-mail/issues/495)).
+
+
+v8.5.0 - [v8.5.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.5.1/)
+
+- v8.5.1 (15-December-2023): [#486](https://github.com/bbottema/simple-java-mail/issues/486): [dependency] Handle Outlook's Non-Standard S/MIME Signed Messages
+- v8.5.0 (13-December-2023): [#484](https://github.com/bbottema/simple-java-mail/issues/484): [bug] Addresses passed as string are not always interpreted correctly
+
+
+[v8.4.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.4.0%7Cjar) (12-December-2023)
+
+- [#483](https://github.com/bbottema/simple-java-mail/issues/483): Enhancement: add native support for overriding envelope-level receiver(s)
+
+
+v8.3.0 - [v8.3.5](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.3.5/)
+
+- v8.3.5 (10-December-2023): [#482](https://github.com/bbottema/simple-java-mail/issues/482) Bug: 'IllegalArgumentException: emailAddressList is required' when  parsing mail with incorrect recipients from Outlook message
+- v8.3.4 (08-December-2023): [#481](https://github.com/bbottema/simple-java-mail/issues/481) Enhancement: don't crash on invalid empty embedded images when parsing Outlook messages
+- v8.3.3 (03-December-2023): [#477](https://github.com/bbottema/simple-java-mail/issues/477) Enhancement: Support Exchange proprietary addresses (X.500 DAP)
+- v8.3.2 (26-November-2023): [#480](https://github.com/bbottema/simple-java-mail/issues/480) Bug: Multiple attachments with same name get the same Content-ID, causing them to refer to the same file content
+- v8.3.1 (09-October-2023): [#440](https://github.com/bbottema/simple-java-mail/issues/440) Bug: names manually specified for embedded images are overridden and have extension added, breaking cid: references in HTML body
+- v8.3.0 (09-October-2023): [#475](https://github.com/bbottema/simple-java-mail/issues/475) Enhancement: Add configuration metadata for Spring Boot application properties
+
+
+[v8.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C8.2.0%7Cjar) (02-October-2023)
+
+- [#473](https://github.com/bbottema/simple-java-mail/issues/473) Bugfix: Add missing support for multiple reply-to addresses
+
+
+v8.1.0 - [v8.1.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.1.3/)
+
+- v8.1.3 (14-July-2023): [#467](https://github.com/bbottema/simple-java-mail/issues/467) Security: Medium severity vulnerability is detected in org.bouncycastle transitive dependency
+- v8.1.3 (14-July-2023): [#466](https://github.com/bbottema/simple-java-mail/issues/466) Maintenance: Let Mailer implement AutoCloseable, so it shuts down the connection pool automatically when disposed of by Spring
+- v8.1.2 (23-June-2023): [#465](https://github.com/bbottema/simple-java-mail/issues/465) Regression bug #461: Simple Java Mail always requires DKIM/SMIME modules
+- v8.1.1 (07-June-2023): [#461](https://github.com/bbottema/simple-java-mail/issues/461) Bugfix: Fixed MessageID not preserved when signing/encrypting with S/MIME and/or DKIM
+- v8.1.0 (15-April-2023): [#458](https://github.com/bbottema/simple-java-mail/pull/458) Missing osgi headers (#288) and added support for Apache Karaf
+- v8.1.0 (15-April-2023): [#288](https://github.com/bbottema/simple-java-mail/issues/288) Maintenance: missing OSGI package-exports from core-module
+
+
+v8.0.0 - [v8.0.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.0.1/)
+
+- v8.0.1 (30-April-2023): [#456](https://github.com/bbottema/simple-java-mail/issues/456): Enhancement: make Content-Transfer encoder detection more lenient, supporting more values from the wild
+- v8.0.0 (08-March-2023): [#451](https://github.com/bbottema/simple-java-mail/issues/451): Feature: Make defaults and overrides a first class feature
+- v8.0.0 (08-March-2023): [#452](https://github.com/bbottema/simple-java-mail/issues/452): Enhancement: with ".disableAllClientValidation(true)", also ignore errors from the completeness check
+- v8.0.0 (08-March-2023): [#450](https://github.com/bbottema/simple-java-mail/issues/450): Bug: when using dispositionNotificationTo or returnReceiptTo mode, when the corresponding emails are not filled, it fails even though it should fall back to replyTo or From
+- v8.0.0 (08-March-2023): [#449](https://github.com/bbottema/simple-java-mail/issues/449): Bug: IllegalArgumentException on parsing empty header name and value (when parsing Outlook message)
+- v8.0.0 (08-March-2023): [#448](https://github.com/bbottema/simple-java-mail/issues/448): Bug: withEmailDefaults and withEmailOverrides does not work with CustomMailer
+- v8.0.0 (08-March-2023): [#447](https://github.com/bbottema/simple-java-mail/issues/447): Enhancement: allow defaults/overrides to ignore individual fields (turn off for specific properties)
+- v8.0.0 (08-March-2023): [#446](https://github.com/bbottema/simple-java-mail/issues/446): Enhancement: add missing defaults properties for DKIM
+
+**This release changes how Email instances are built, or more specifically, when defaults and overrides are applied.
+There are now overloaded build methods that provide similar behaviour as previous versions.**
+
+
+v7.9.0 - [v7.9.1](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/7.9.1/)
+
+- v7.9.1 (22-February-2023): [#444](https://github.com/bbottema/simple-java-mail/issues/444) Bugfix: encoded delimited recipients in EML not parsed properly
+- v7.9.0 (21-February-2023): [#344](https://github.com/bbottema/simple-java-mail/issues/344) Enhancement: make DKIM signing more flexible by allowing header exclusions in DKIM signature
+
+
+v7.8.0 - [v7.8.3](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/7.8.3/)
+
+- v7.8.3 (21-February-2023): [#293](https://github.com/bbottema/simple-java-mail/issues/293) Bugfix: Decoding missing in a few placed when parsing MimeMessage or sending an Email
+- v7.8.2 (09-February-2023): [#442](https://github.com/bbottema/simple-java-mail/issues/442) Enhancement: Simple Java Mail should throw an exception when trying to utilize S/MIME with smime-module on the classpath
+- v7.8.1 (01-February-2023): [#438](https://github.com/bbottema/simple-java-mail/issues/438) Bug: properly Fail-Fast in case of Transport claim timeout in the batch-module, rather than running into NPE further down the line
+- v7.8.0 (24-January-2023): [#436](https://github.com/bbottema/simple-java-mail/issues/436) Enhancement: add mailerBuilder.withTransportModeLoggingOnly() as mailer API entry point
+- v7.8.0 (24-January-2023): [#435](https://github.com/bbottema/simple-java-mail/issues/435) Enhancement: SMTP server config should be optional in case a CustomMailer is used
+- v7.8.0 (24-January-2023): [#427](https://github.com/bbottema/simple-java-mail/issues/427) Feature: set a maximum email size on Mailer level which throws EmailToBig exception when exceeded
+
+
+v7.7.0 - [v7.7.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.7.1%7Cjar)
+
+- v7.7.1 (18-January-2023): [#434](https://github.com/bbottema/simple-java-mail/issues/434) Regression bug in #430: Email parameter missing in CustomMailer interface
+- v7.7.0 (17-January-2023): [#430](https://github.com/bbottema/simple-java-mail/issues/430) Enhancement: auto-reconnect (if needed) when reclaiming a Transport connection from the SMTP connection
+- v7.7.0 (17-January-2023): [#383](https://github.com/bbottema/simple-java-mail/issues/383) Feature: be able to set defaults and overrides on the Mailer level, rather than email or global level
+
+7.7.0 moves the conversion of Email to MimeMessage to after a Transport instance has been selected (in case of a cluster of SMTP servers),
+so we can apply defaults/overrides on the Mailer level, meaning you can configure 'global' values for individual SMTP servers
+(like a fixed FROM per server).
+
+
+[v7.6.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.6.0%7Cjar) (05-January-2023)
+
+- [#421](https://github.com/bbottema/simple-java-mail/issues/421) Enhancement: Add support for OAUTH2 authentication
+
+
+v7.5.0 - [v7.5.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.5.2%7Cjar)
+
+- v7.5.2 (25-December-2022): [#429](https://github.com/bbottema/simple-java-mail/issues/429) Bug: wrong username property used when password authentication is not needed
+- v7.5.1 (12-December-2022): [#416](https://github.com/bbottema/simple-java-mail/issues/416) Bug: Support encoder names regardless of their case ("base64" is the same as "BASE64")
+- v7.5.1 (12-December-2022): [#424](https://github.com/bbottema/simple-java-mail/issues/424) Maintenance: bump JMail dependency from 1.2.1 to 1.4.1
+- v7.5.0 (28-July-2022): [#411](https://github.com/bbottema/simple-java-mail/issues/411) Enhancement: expose validation sub steps in the MailerHelper class for the completeness check, CRLF inject scans and address validations
+- v7.5.0 (28-July-2022): [#410](https://github.com/bbottema/simple-java-mail/issues/410) Bug: CRLF injection scan missing for dispositionNotificationTo and returnReceiptTo
+- v7.5.0 (28-July-2022): [#390](https://github.com/bbottema/simple-java-mail/issues/390) Enhancement: make client sided validation optional, turning off address validation and CRLF injection detection
+
+
+[v7.5.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.5.1%7Cjar) (12-December-2022)
+
+- [#416](https://github.com/bbottema/simple-java-mail/issues/416) Bug: Support encoder names regardless of their case ("base64" is the same as "BASE64")
+- [#424](https://github.com/bbottema/simple-java-mail/issues/424) Maintenance: bump JMail dependency from 1.2.1 to 1.4.1
+
+
+[v7.5.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.5.0%7Cjar) (28-July-2022)
+
+- [#411](https://github.com/bbottema/simple-java-mail/issues/411) Enhancement: expose validation sub steps in the MailerHelper class for the completeness check, CRLF inject scans and address validations
+- [#410](https://github.com/bbottema/simple-java-mail/issues/410) Bug: CRLF injection scan missing for dispositionNotificationTo and returnReceiptTo
+- [#390](https://github.com/bbottema/simple-java-mail/issues/390) Enhancement: make client sided validation optional, turning off address validation and CRLF injection detection
+
+
+[v7.4.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.4.0%7Cjar) (19-July-2022)
+
+- [#407](https://github.com/bbottema/simple-java-mail/issues/407) Enhancement: Process all Outlook message headers, either copying the as-is or translating them to respective Simple Java Mail API calls
+- [#404](https://github.com/bbottema/simple-java-mail/issues/404) Minor bugfix: the new attachment's contentDescription was missing in Email.toString()
+
+
+[v7.3.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.3.0%7Cjar) (15-July-2022)
+
+- [#405](https://github.com/bbottema/simple-java-mail/issues/405) Feature: Expand email builder API to support forced content Content-Transfer-Encoding for attachments, like quoted-printable, base64, 7BIT and others
+- [#404](https://github.com/bbottema/simple-java-mail/issues/404) Feature: Expand email builder API to support Content-Description on attachments
+
+
+v7.2.0 - [v7.2.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.2.1%7Cjar)
+
+- v7.2.1 (13-July-2022): [#396](https://github.com/bbottema/simple-java-mail/issues/396) Enhancement: make Outlook support tolerant of invalid/empty nested Outlook message attachments
+- v7.2.0 (13-July-2022): [#399](https://github.com/bbottema/simple-java-mail/issues/399) Feature: Expand email builder API to support [selective content encoding](https://www.simplejavamail.org/features.html#section-content-transfer-encoding), like quoted-printable, base64, 7BIT and others
+
+
+v7.1.0 - [v7.1.3](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.1.3%7Cjar)
+
+- v7.1.3 (12-July-2022): [#403](https://github.com/bbottema/simple-java-mail/issues/403) Security: Bump zip4j (only used during testing)
+- v7.1.2 (12-July-2022): [#401](https://github.com/bbottema/simple-java-mail/issues/401) Enhancement: Add HEIC and WEBP support when dynamically resolving embedded images from classpath
+- v7.1.2 (12-July-2022): [#402](https://github.com/bbottema/simple-java-mail/issues/402) Security: Update Log4j to 2.17.1
+- v7.1.2 (12-July-2022): [#393](https://github.com/bbottema/simple-java-mail/issues/393) Security: Update Apache POI and POI Scratchpad
+- v7.1.1 (27-March-2022): [#387](https://github.com/bbottema/simple-java-mail/issues/387) Bug: memory leak in SMPT connection pool when 3rd party deallocation failed with exception
+- v7.1.0 (25-January-2022): [#379](https://github.com/bbottema/simple-java-mail/issues/379) Maintenance: Adjust dependencies and make Java 9+ friendly
+
+
+v7.0.1 - [v7.0.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.0.2%7Cjar)
+
+- v7.0.2 (25-January-2022): [#329](https://github.com/bbottema/simple-java-mail/issues/329) Enhancement: Exceptions cause error-level logging in addition to rethrowing the exception, but should just include the message in a custom exception
+- v7.0.2 (25-January-2022): [#378](https://github.com/bbottema/simple-java-mail/issues/378) Bug: package org.simplejavamail.internal.modules causes split package problem in Java9+
+- v7.0.1 (22-January-2022): [#375](https://github.com/bbottema/simple-java-mail/issues/375) Bug: [batch-module](https://www.simplejavamail.org/features.html#section-sending-asynchronously) gives error when there is a [custom mailer](https://www.simplejavamail.org/features.html#section-custom-mailer)
+
+
+[v7.0.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C7.0.0%7Cjar) (2-January-2022)
+
+It has been two years since the last major release, but 7.0.0 finally here!
+
+#### What's new ####
+
+Major features:
+- [#322](https://github.com/bbottema/simple-java-mail/issues/322) Simple Java Mail migrated to Java 8 finally (see notes below)
+- [#295](https://github.com/bbottema/simple-java-mail/issues/295) And also switched to JavaMail's successor Jakarta Mail 2.0.1 (see notes below)
+- [#323](https://github.com/bbottema/simple-java-mail/issues/323) Solved the great CLI performance problem (now executes near instantly)
+- [#319](https://github.com/bbottema/simple-java-mail/issues/319) Replaced the underlying regex-based email-address validation library with the lexer based [JMail](https://github.com/RohanNagar/jmail), which is faster, [correcter](https://www.rohannagar.com/jmail/), documented better and is more up-to-date with RFC's
+- [#367](https://github.com/bbottema/simple-java-mail/issues/367) The sendMail/testConnection methods now have proper support for `CompletableFuture`
+
+Bugfixes:
+- [#352](https://github.com/bbottema/simple-java-mail/issues/352) Bug: names regex groups are not supported in Android JVM
+- [#326](https://github.com/bbottema/simple-java-mail/issues/326) Bug: NullPointer when parsing Outlook Message with nested empty Outlook message
+- [#330](https://github.com/bbottema/simple-java-mail/issues/330) Bug: cli expected --mailer arguments duplicated 3 times
+- [#324](https://github.com/bbottema/simple-java-mail/issues/324) Bug: Add back missing log4j2 for CLI library
+
+Maintenance:
+- [#368](https://github.com/bbottema/simple-java-mail/issues/368) Resolve log4j (Java8) [vulnerability](https://logging.apache.org/log4j/2.x/security.html) in Simple Java Mail's CLI module
+- [#330](https://github.com/bbottema/simple-java-mail/issues/330) Improved feedback from failing CLI commands
+- [#327](https://github.com/bbottema/simple-java-mail/issues/327) Implement toString() for Mailer instances for debugging purposes
+
+#### About the migration ####
+
+Updating to Java8/Jakarta 2.0.1 posed a challenge as the 3rd party S/MIME library [java-utils-mail-smime](https://github.com/markenwerk/java-utils-mail-smime) has been abandoned/archived while developing Simple Java Mail. Furthermore, it was still under LGPL3 license while everything else is ApacheV2.
+
+Thankfully, I obtained permissions from the maintainers -as well as original developers from decades ago on SourceForge- to take both java-utils-mail-smime and java-utils-mail-dkim under my wings at Simple Java Mail and change the licensing model! You can now post issues and pull requests here:
+- [simple-java-mail/java-utils-mail-smime](https://github.com/simple-java-mail/java-utils-mail-smime)
+- [simple-java-mail/java-utils-mail-dkim](https://github.com/simple-java-mail/java-utils-mail-dkim)
+
+
+
+v6.7.0 - [v6.7.6](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.7.6%7Cjar)
+
+- v6.7.6 (22-January-2022): [#375](https://github.com/bbottema/simple-java-mail/issues/375) Bug: [batch-module](https://www.simplejavamail.org/features.html#section-sending-asynchronously) gives error when there is a [custom mailer](https://www.simplejavamail.org/features.html#section-custom-mailer)
+- v6.7.5 (26-December-2021): [#338](https://github.com/bbottema/simple-java-mail/issues/338) Enhancement: Also return AsyncResponse from plain Mailer.sendEmail(singleArgument) as async can be configured through MailerBuilder now
+- v6.7.4 (25-December-2021): [#331](https://github.com/bbottema/simple-java-mail/issues/331) Enhancement: Coalesce empty SMTP server arguments to null to support CLI better
+- v6.7.3 (25-December-2021): [#335](https://github.com/bbottema/simple-java-mail/issues/335) Bugfix: Precondition nonNull check also checks nonEmpty and breaks on clearEmailAddressCriteria
+- v6.7.2 (25-December-2021): [#318](https://github.com/bbottema/simple-java-mail/issues/318) Maintenance: Allow zero data attachments so Outlook message conversions don't crash and burn
+- v6.7.1 (25-December-2021): [#346](https://github.com/bbottema/simple-java-mail/issues/346) Bugfix: Add option to parse MimeMessage without fetching attachment data from server - Properly return named datasource without fetching all the data if unwanted
+- v6.7.0 (25-December-2021): [#356](https://github.com/bbottema/simple-java-mail/issues/356) Enhancement: Improve for support for Android < 8.0 (Fix NoClassDefFoundError)
+- v6.7.0 (25-December-2021): [#351](https://github.com/bbottema/simple-java-mail/issues/351) Bugfix: emlToEmail() and mimeMessageToEmail() break on mesages with duplicate names and legacy empty nested messages
+- v6.7.0 (25-December-2021): [#347](https://github.com/bbottema/simple-java-mail/issues/347) Maintenance: Reduce log-spam and prevent exception on every module availability check
+- v6.7.0 (25-December-2021): [#346](https://github.com/bbottema/simple-java-mail/issues/346) Feature: Add option to parse MimeMessage [without fetching attachment data](https://www.simplejavamail.org/features.html#section-converting) from server
+
+
+v6.6.0 - [v6.6.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.6.2%7Cjar)
+
+- v6.6.2 (23-December-2021): [#365](https://github.com/bbottema/simple-java-mail/issues/365) Security: Resolve log4j vulnerability in Simple Java Mail
+- v6.6.1 (12-June-2021): [#321](https://github.com/bbottema/simple-java-mail/issues/321) Enhancement: Ignore malformed recipient addresses and continue parsing email data
+- v6.6.0 (1-June-2021): [#320](https://github.com/bbottema/simple-java-mail/issues/320) Enhancement: Added [default S/MIME signing](https://www.simplejavamail.org/features.html#section-sending-smime) to Mailer level and fixed crippling performance bug
+
+
+v6.5.0 - [v6.5.4](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.5.4%7Cjar)
+
+- v6.5.4 (22-May-2021): [#315](https://github.com/bbottema/simple-java-mail/issues/315) Enhancement: Nested attachments of Outlook message attachments are now preserved as standard EML MimeMessage attachments
+
+  **NOTE:** This _removes_ the Kryo dependency
+
+- v6.5.3 (4-May-2021): [#314](https://github.com/bbottema/simple-java-mail/issues/314) Bugfix: Nested attachments of Outlook message attachments are now preserved, by utilizing Kryo
+
+  **NOTE:** This add Kryo as extra dependency to the outlook-module (and is subsequently removed in 6.5.4)
+
+- v6.5.2 (15-April-2021): [#311](https://github.com/bbottema/simple-java-mail/issues/311) Bugfix: text/calendar as string -> ClassCastException (if calendar type is not Inputstream)
+- v6.5.1 (10-April-2021): [#307](https://github.com/bbottema/simple-java-mail/issues/307) / [#310](https://github.com/bbottema/simple-java-mail/issues/310) Bugfix: embedded image resource name got mangled
+- v6.5.0 (16-February-2021): [#298](https://github.com/bbottema/simple-java-mail/issues/298) Enhancement: Nested Outlook messages aren't discarded anymore, but parsed to serialized Email objects
+- v6.5.0 (16-February-2021): [#292](https://github.com/bbottema/simple-java-mail/issues/292) Bugfix: NullPointerException in SmimeUtilFixed when protocol is missing (which is valid)
+- v6.5.0 (16-February-2021): [#289](https://github.com/bbottema/simple-java-mail/issues/289) Bugfix: Support multiple headers with same key
+
+This release breaks all GET/SET api regarding headers used as map (Map&lt;String, T&gt; -&gt; Map&lt;String, Collection&lt;T&gt;&gt;)
+This release might break api in the rare case you relied on the attachment list and you have nested Outlook .msg attachments (previously omitted in the results)
+
+
+v6.4.0 - [v6.4.5](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.4.5%7Cjar)
+
+- v6.4.5 (13-Februari-2021): [#306](https://github.com/bbottema/simple-java-mail/issues/306) Maintenance: Update outlook-message-parser to 1.7.9
+- v6.4.5 (13-Februari-2021): [#304](https://github.com/bbottema/simple-java-mail/issues/304) Regression bugfix: batch-module needed for sending mails async, basic version should work without
+- v6.4.5 (13-Februari-2021): [#303](https://github.com/bbottema/simple-java-mail/issues/303) Bugfix: EML Attachments are modified/have the wrong size
+- v6.4.4 (25-October-2020): [#294](https://github.com/bbottema/simple-java-mail/issues/294) Always invoke async success/exception handlers even if set after sending email (behaving more like promises/futures)
+- v6.4.4 (25-October-2020): [#291](https://github.com/bbottema/simple-java-mail/issues/291) On Exception only log the email ID at error level and log the whole email at trace level
+- v6.4.4 (25-October-2020): [#290](https://github.com/bbottema/simple-java-mail/issues/290) Only perform expensive logging logic if respective logging level is enabled
+- v6.4.3 (6-August-2020): [#284](https://github.com/bbottema/simple-java-mail/issues/284) Improved support for Calendar attachments created by gMail
+- v6.4.3 (6-August-2020): [#283](https://github.com/bbottema/simple-java-mail/issues/283) Bugfix: Fix support for reading Calendar attachments with quoted-printable transfer-type
+- v6.4.2 (3-August-2020): [#281](https://github.com/bbottema/simple-java-mail/issues/281) Bugfix: Fix support for reading Calendar attachments
+- v6.4.1 (26-July-2020): [#252](https://github.com/bbottema/simple-java-mail/issues/252) Bugfix: Added missing support for S/MIME enveloped signing
+- v6.4.0 (19-July-2020): [#268](https://github.com/bbottema/simple-java-mail/issues/268) Immediately resolve InputStreams when building emails, don't reuse
+    * This primarily affects the builder api for S/MIME and DKIM signing / encryption.
+
+
+v6.3.0 - [v6.3.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.3.2%7Cjar) (11-July-2020 - 12-July-2020)
+
+- [#271](https://github.com/bbottema/simple-java-mail/issues/271) Bugfix: Attachment (file)names with special characters should not be encoded
+- [#248](https://github.com/bbottema/simple-java-mail/issues/248) Bugfix: MimeMessageHelper: use complete filename as resource name
+- [#279](https://github.com/bbottema/simple-java-mail/issues/279) Allow [extra Session properties](https://www.simplejavamail.org/features.html#section-custom-properties) configured through simplejavamail.properties
+- [#277](https://github.com/bbottema/simple-java-mail/issues/277) Add API for using [custom SSLSocketFactory](http://localhost:3000/features.html#section-ssl-tls)
+
+
+[v6.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.2.0%7Cjar) (9-July-2020)
+
+This release adds the following major new feature:
+
+- [#260](https://github.com/bbottema/simple-java-mail/issues/260) **Add support for [dynamic datasource resolution](https://www.simplejavamail.org/features.html#section-embedding)** (file/url/classpath) for embedded images in HTML body
+
+
+[v6.1.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.1.0%7Cjar) (5-July-2020)
+
+- [#264](https://github.com/bbottema/simple-java-mail/issues/264) Switch from AssertionError to IllegalStateException
+- Bumped outlook-message-parser from 1.7.3 to 1.7.5
+    - bugfix for parsing chinese unsent Outlook messages
+    - bugfix Outlook attachments with special characters in the name
+- Bumped email-rfc2822-validator from 2.1.3 to 2.2.0
+    - bugfix properly handle brackets in email addresses when allowed
+- Bumped log4j-core from 2.6.1 to 2.13.2
+
+
+v6.0.2 - [v6.0.5](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.0.5%7Cjar) (21-January-2020 - 13-June-2020)
+
+- [#270](https://github.com/bbottema/simple-java-mail/issues/270) Bug: CLI module missing Jetbrains @Nullable annotation dependency needed in runtime
+- [#262](https://github.com/bbottema/simple-java-mail/issues/262) Bug: Executor settings passed to the builder are ignored
+- [#249](https://github.com/bbottema/simple-java-mail/issues/249) Bug: MimeMessageParser doesn't handle multiple attachments with the same name correctly
+- [#245](https://github.com/bbottema/simple-java-mail/issues/245) Bug: JDK9+ Incorrect JPMS Automatic-Module-Name
+- [#246](https://github.com/bbottema/simple-java-mail/issues/246) Bug: Sending async emails with and without the Batch module cause lingering threads
+
+
+v6.0.0-rc1 - [v6.0.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C6.0.1%7Cjar) (18-December-2019 - 24-January-2020)
+
+After almost two years of development the next major release 6.0.0 is finally here! And what a doozy it is, with the following major new features:
+
+The core library is now even smaller compared to the 5.x.x series going from 183kb to 134kb!
+
+- [CLI support!!](https://www.simplejavamail.org/cli.html#navigation),
+- major performance improvement with [advanced batch processing](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering) including support for mail server clusters.
+- You can now replace the final sending of emails with [your own logic](https://www.simplejavamail.org/features.html#section-custom-mailer), using a 3rd party service of your choice.
+- 6.0.0 also includes support for [S/MIME signed and encrypted emails](https://www.simplejavamail.org/features.html#section-smime)!
+- All 3rd party dependencies have been made optional by splitting up Simple Java Mail into easy to use [modules](https://www.simplejavamail.org/modules.html#navigation).
+- You can now monitor and [handle async processing](https://www.simplejavamail.org/features.html#section-handling-async-result) using Futures.
+- MimeMessage results are now [structurally matched](https://www.simplejavamail.org/rfc-compliant.html#section-explore-multipart) to specific needs (only using alternative/mixed etc. when needed)
+
+Here's the complete list of changes:
+
+#### New features and enhancements ####
+- [#183](https://github.com/bbottema/simple-java-mail/issues/183) To manage all the optional dependencies and related code, Simple Java Mail should be [split up into modules](https://www.simplejavamail.org/modules.html#navigation)
+- [#156](https://github.com/bbottema/simple-java-mail/issues/156) Add [CLI support](https://www.simplejavamail.org/cli.html#navigation)
+- [#214](https://github.com/bbottema/simple-java-mail/issues/214) Support more [advanced batch processing](https://www.simplejavamail.org/features.html#section-sending-asynchronously) use cases
+- [#187](https://github.com/bbottema/simple-java-mail/issues/187) Simple Java Mail should have optional support for signed [S/MIME attachments](https://www.simplejavamail.org/modules.html#smime-module)
+- [#121](https://github.com/bbottema/simple-java-mail/issues/121) Introduce interfaces for validation and sending, so these steps can be customized
+- [#144](https://github.com/bbottema/simple-java-mail/issues/144) Simple Java Mail should [tailor the MimeMessage structure](https://www.simplejavamail.org/migration-notes-6.0.0.html#mimemessage-structure) to specific needs
+- [#138](https://github.com/bbottema/simple-java-mail/issues/138) Add support for [Calendar events](https://www.simplejavamail.org/features.html#section-icalendar-vevent) (iCalendar vEvent)
+- [#235](https://github.com/bbottema/simple-java-mail/issues/235) Be able to [fix the sent date](https://www.simplejavamail.org/features.html#section-custom-sentdate) for a new email
+- [#232](https://github.com/bbottema/simple-java-mail/issues/232) Improve encoding of attachment file names
+- [#222](https://github.com/bbottema/simple-java-mail/issues/222) Add config property support for trusting hosts and verifying server identity
+- [#212](https://github.com/bbottema/simple-java-mail/issues/212) Authenticated proxy server started even if already running, raising exception
+- [#207](https://github.com/bbottema/simple-java-mail/issues/207) Implement more comprehensive ThreadPoolExecutor and expose config options
+- [#211](https://github.com/bbottema/simple-java-mail/issues/211) SpringSupport should expose the intermediate builder for customization
+- [#193](https://github.com/bbottema/simple-java-mail/issues/193) Simple Java Mail should use default server ports when not provided by the user
+
+#### Bugs solved ####
+- [#242](https://github.com/bbottema/simple-java-mail/issues/242) Renamed log4j2.xml to log4j2_example.xml, so it doesn't clash with project config
+- [#241](https://github.com/bbottema/simple-java-mail/issues/241) EmailConverter.outlookMsgToEmail duplicates recipients
+- [#239](https://github.com/bbottema/simple-java-mail/issues/239) List of Recipients not ordered as added (insertion order not maintained)
+- [#236](https://github.com/bbottema/simple-java-mail/issues/236) Message ID should be mapped from Outlook messages as well
+- [#210](https://github.com/bbottema/simple-java-mail/issues/210) Connection/session timeout properties not set when not sending in batch mode
+- [#201](https://github.com/bbottema/simple-java-mail/issues/201) When parsing Outlook message, FROM address should default to a dummy address when missing
+- [#200](https://github.com/bbottema/simple-java-mail/issues/200) When parsing Outlook message, attachment name doesn't fall back on filename if proper name is empty
+- [#161](https://github.com/bbottema/simple-java-mail/issues/161) When reading (chinese) .msg files, HTML converted from RTF is completely garbled (encoding issue)
+- [#159](https://github.com/bbottema/simple-java-mail/issues/159) Can not parse email with blank email address headers
+- [#139](https://github.com/bbottema/simple-java-mail/issues/139) Multiple Bodyparts of same Content-Type not supported for text/html & text/plain within Multipart/mixed or Multipart/alternative
+- [#151](https://github.com/bbottema/simple-java-mail/issues/151) Attachment's file extension overwritten by resource's invalid extension
+
+#### Maintenance updates ####
+- [#165](https://github.com/bbottema/simple-java-mail/issues/165) Move away from Findbugs (unofficial JSR-305) annotations
+- [#164](https://github.com/bbottema/simple-java-mail/issues/164) The DKIM dependency has been updated to benefit from the newer Apache V2 license
+- [#164](https://github.com/bbottema/simple-java-mail/issues/164) The DKIM dependency has been updated to benefit from the newer Apache V2 license
+- [#184](https://github.com/bbottema/simple-java-mail/issues/184) Update JavaMail dependency to 1.6.2, adding support for UTF-8 charset
+- [#186](https://github.com/bbottema/simple-java-mail/issues/186) Update JavaMail dependency to 1.6.2, adding support for authenticated HTTP web proxy
+- [#146](https://github.com/bbottema/simple-java-mail/issues/146) Added OSGI manifest and switched to spotbugs
+
+#### Included changes from outlook-message-parser ####
+- v6.0.1, v1.7.3: [#27](https://github.com/bbottema/outlook-message-parser/issues/27) When from name/address are not available (unsent emails), these fields are filled with binary garbage
+- v6.0.1, v1.7.2: [#26](https://github.com/bbottema/outlook-message-parser/issues/26) To email address is not handled properly when name is omitted
+- v6.0.0, v1.7.1: [#25](https://github.com/bbottema/outlook-message-parser/issues/25) NPE on ClientSubmitTime when original message has not been sent yet
+- v6.0.0, v1.7.1: [#23](https://github.com/bbottema/outlook-message-parser/issues/23) Bug: __nameid_ directory should not be parsed (and causing invalid HTML body)
+- v6.0.0, v1.7.0: [#18](https://github.com/bbottema/outlook-message-parser/issues/18) Upgrade Apache POI 3.9 -> 4.x (but managed back for Simple Java Mail due to incompatibility with Java 7)
+- v6.0.0, v1.6.0: [#21](https://github.com/bbottema/outlook-message-parser/issues/21) Multiple TO recipients are not handles properly
+- v6.0.0, v1.5.0: [#20](https://github.com/bbottema/outlook-message-parser/issues/20) CC and BCC recipients are not parsed properly
+- v6.0.0, v1.5.0: [#19](https://github.com/bbottema/outlook-message-parser/issues/19) Use real Outlook ContentId Attribute to resolve CID Attachments
+- v6.0.0, v1.4.1: [#17](https://github.com/bbottema/outlook-message-parser/issues/17) Fixed encoding error for UTF-8's Windows legacy name (cp)65001
+- v6.0.0, v1.4.0: [#9](https://github.com/bbottema/outlook-message-parser/issues/9) Replaced the RFC to HTML converter with a brand new RFC-compliant convert! (thanks to @fadeyev!)
+- v6.0.0, v1.3.0: [#14](https://github.com/bbottema/outlook-message-parser/issues/14) Dependency problem with Java9+, missing Jakarta Activation Framework
+- v6.0.0, v1.3.0: [#13](https://github.com/bbottema/outlook-message-parser/issues/13) HTML start tags with extra space not handled correctly
+- v6.0.0, v1.3.0: [#11](https://github.com/bbottema/outlook-message-parser/issues/11) SimpleRTF2HTMLConverter inserts too many <br/> tags
+- v6.0.0, v1.3.0: [#10](https://github.com/bbottema/outlook-message-parser/issues/10) Embedded images with DOS-like names are classified as attachments
+- v6.0.0, v1.3.0: [#9](https://github.com/bbottema/outlook-message-parser/issues/9) SimpleRTF2HTMLConverter removes some valid tags during conversion
+- v6.0.0, v1.2.1: Ignore non S/MIME related content types when extracting S/MIME metadata
+- v6.0.0, v1.2.1: Added toString and equals methods to the S/MIME data classes
+- v6.0.0, v1.1.21: Upgraded mediatype recognition based on file extension for incomplete attachments
+- v6.0.0, v1.1.21: Added / improved support for public S/MIME meta data
+- v6.0.0, v1.1.20: [#7](https://github.com/bbottema/outlook-message-parser/issues/7) Fix missing S/MIME header details that are needed to determine the type of S/MIME application
+- v6.0.0, v1.1.19: Log rtf compression error, but otherwise ignore it and keep going and extract what we can.
+
+**A big shout-out to @dnault ([runtime javadoc](https://github.com/dnault/therapi-runtime-javadoc)), @remkop ([picocli](https://picocli.info/)) and @markenwerk
+([S/MIME](https://github.com/markenwerk/java-utils-mail-smime) and [DKIM](https://github.com/markenwerk/java-utils-mail-dkim)) for working with me to make the
+libraries work with JDK7+ and do what Simple Java Mail needed! Finally, a great many thanks the numerous contributors on Simple Java Mail as well as
+[outlook-message-parser](https://github.com/bbottema/outlook-message-parser) - this release would not be there without you.**
+
+
+v5.5.0 - [v5.5.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.5.1%7Cjar)
+
+- v5.5.1 (20-October-2019): [#230](https://github.com/bbottema/simple-java-mail/issues/230) Bugfix: Missing address value in address headers (i.e. Return-Path) not handled properly, resulting in Exception
+- v5.5.0 (15-October-2019): [#229](https://github.com/bbottema/simple-java-mail/issues/229) Bugfix: Timeouts not working for synchronous sendMail calls.
+
+ If you had connection properties configured for non-async send jobs, only now they will actually start to take effect.
+
+
+[v5.4.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.4.0%7Cjar) (28-August-2019)
+
+- [#221](https://github.com/bbottema/simple-java-mail/issues/221) API bugfix: server identity verification should not be tied to host trusting
+- [#226](https://github.com/bbottema/simple-java-mail/issues/226) Bug fix: Attachments with spaces in name are not handled properly
+- [#218](https://github.com/bbottema/simple-java-mail/issues/218) Enhancement: make Email serializable
+- [#227](https://github.com/bbottema/simple-java-mail/issues/227) Enhancement: Make parsing recipients from EML file more lenient
+- [#225](https://github.com/bbottema/simple-java-mail/issues/225) Enhancement: Clarify dependency on Jakarta Activation: DataSources no longer work on Java 9+
+
+
+[v5.3.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.3.0%7Cjar) (16-August-2019)
+
+- [#215](https://github.com/bbottema/simple-java-mail/issues/215) Bug: Current DKIM header canonicalization can lead to invalid DKIM
+
+Note this release should have no impact, but nonetheless is a minor update, so you can determine for yourself if this update would cause issues.
+The release changes DKIM header canonicalization from SIMPLE to RELAXED.
+
+
+[v5.2.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.2.1%7Cjar) (16-August-2019)
+
+- [#219](https://github.com/bbottema/simple-java-mail/issues/219) Bug: MimeMessageParser rejects attachments with duplicate names
+
+
+[v5.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.2.0%7Cjar) (7-July-2019)
+
+- [#213](https://github.com/bbottema/simple-java-mail/issues/213) Update from javax.mail:1.6.0 to jakarta.mail:1.6.3
+
+Note that dependencies that switched as well have been updated as part of this change. This includes the optional DKIM library and the email validation library:
+- net.markenwerk:utils-mail-dkim (1.1.10 -> 1.2.0)
+- com.github.bbottema:emailaddress-rfc2822 (1.1.2 -> 2.1.3)
+
+
+v5.1.1 - [v5.1.7](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.1.7%7Cjar)
+
+- v5.1.7 (22-May-2019): [#171](https://github.com/bbottema/simple-java-mail/issues/171) Header validation tripping on known safe emails due to References header
+- v5.1.6 (27-April-2019): [#204](https://github.com/bbottema/simple-java-mail/issues/204) A Concurrent exception when an async process starts when the previous connection pool didn't shut down in time
+- v5.1.6 (27-April-2019): [#204](https://github.com/bbottema/simple-java-mail/issues/204) B Exceptions in threads are now caught and logged and don't bubble up anymore. Note that more comprehensive exception handling will be available in 6.0.0 ([#148](https://github.com/bbottema/simple-java-mail/issues/148)).
+- v5.1.5 (24-April-2019): [#202](https://github.com/bbottema/simple-java-mail/issues/202) Fixed ConcurrentModificationException when moving invalid embedded images as regular attachments
+- v5.1.4 (5-April-2019): [#163](https://github.com/bbottema/simple-java-mail/issues/163) Fixed missing mimetype for attachments when parsing Outlook messages where mimeTag was not included
+- v5.1.3 (15-Januari-2019): Updated to newer rfc-validator version, which fixed a regression bug in that library
+- v5.1.2 (9-Januari-2019): [#189](https://github.com/bbottema/simple-java-mail/issues/189) Bugfix for missing timeout config for .testConnection() function
+- v5.1.1 (22-December-2018): [#190](https://github.com/bbottema/simple-java-mail/issues/190) Fix for transitive dependency clash because of emailaddress-rfc2822 library
+
+
+[v5.1.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.1.0%7Cjar) (21-November-2018)
+
+- [#179](https://github.com/bbottema/simple-java-mail/issues/179) You can now [test the connection](https://www.simplejavamail.org/features.html#section-connection-test) to the SMTP server
+
+
+v5.0.1 - [v5.0.8](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.0.8%7Cjar)
+
+- v5.0.8 (27-Oktober-2018): [#178](https://github.com/bbottema/simple-java-mail/issues/178) Fix the annoying vulnerability GitHub report about spring-core
+- v5.0.7 (27-Oktober-2018): [#175](https://github.com/bbottema/simple-java-mail/issues/175) Attachment names are not always parsed properly from MimeMessage
+- v5.0.6 (3-Oktober-2018): [#167](https://github.com/bbottema/simple-java-mail/issues/167) Email addresses validated despite cleared validation criteria
+- v5.0.5 (3-Oktober-2018): [#137](https://github.com/bbottema/simple-java-mail/issues/137) When replying to an email with HTML, the result body is empty
+- v5.0.4 (22-September-2018): [#168](https://github.com/bbottema/simple-java-mail/issues/168) Properties aquired through ConfigLoader should be typed explicitly and converted if necessary
+- v5.0.3 (11-April-2018): [#136](https://github.com/bbottema/simple-java-mail/issues/136) ServerConfig class should be public API
+- v5.0.2 (7-April-2018): [#135](https://github.com/bbottema/simple-java-mail/issues/135) trustingAllHosts should be public on the Builder API
+- v5.0.2 (7-April-2018): [#131](https://github.com/bbottema/simple-java-mail/issues/131) NamedDataSource should implement EncodingAware
+- v5.0.1 (10-March-2018): [#130](https://github.com/bbottema/simple-java-mail/issues/130) java.lang.ClassNotFoundException: net.markenwerk.utils.mail.dkim.DkimMessage. Solves the issue of missing optional class DKIM even when not used
+
+
+[v5.0.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C5.0.0%7Cjar) (14-Februari-2018)
+
+Also see the [migration notes](https://www.simplejavamail.org/migration-notes-5.0.0.html#navigation)
+
+#### New features ####
+- [#116](https://github.com/bbottema/simple-java-mail/issues/116) You can now test the connection to the SMTP server
+- [#115](https://github.com/bbottema/simple-java-mail/issues/115) Create mailers with a very robust MailerBuilder API, able to ignore defaults as well
+- [#114](https://github.com/bbottema/simple-java-mail/issues/114) Create emails with a very robust EmailBuilder API, able to ignore defaults as well. Now includes support for InternetAddress. Also copy emails.
+- [#107](https://github.com/bbottema/simple-java-mail/issues/107) You can now easily forward or reply to emails!
+
+#### Security updates ####
+- [#111](https://github.com/bbottema/simple-java-mail/issues/111) Protocol properties for SMTPS are now applied properly
+- [#105](https://github.com/bbottema/simple-java-mail/issues/105) SMTP tries to upgrade to TLS while SMTP_TLS now enforces it and for both SMTP_TLS and SMTPS, [mail.smtp.ssl.checkserveridentity](https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html) is set to true
+
+#### Maintenance updates ####
+
+Complete [Javadoc](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail) overhaul. Navigating the Javadoc should be much more consistent now (builder API being the single *public* source of truth).
+
+- [#122](https://github.com/bbottema/simple-java-mail/issues/122) The email-rfc2822-validator library has been made a proper Maven dependency (not packaged along anymore)
+- [#120](https://github.com/bbottema/simple-java-mail/issues/120) The DKIM library has been made an optional proper Maven dependency (not packaged along anymore)
+- [#119](https://github.com/bbottema/simple-java-mail/issues/119) Switched optional Spring dependency version to property and now testing with 4.3.11.RELEASE
+- [#113](https://github.com/bbottema/simple-java-mail/issues/113) Updated the underlying JavaMail to 1.6.0
+
+#### Bugfixes ####
+- [#110](https://github.com/bbottema/simple-java-mail/issues/110) Trusted hosts should be space-delimited
+- [#109](https://github.com/bbottema/simple-java-mail/issues/109) Email headers should be allowed to be empty (now conversion errors can occur as well)
+- [#103](https://github.com/bbottema/simple-java-mail/issues/103) Converting to MimeMessage results in an invalid Content-Disposition for attachments
+
+
+[v4.4.5](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.5%7Cjar) (2-September-2017)
+
+- [#101](https://github.com/bbottema/simple-java-mail/issues/101) API backwards compatibility update, reinstate old addRecipient API as deprecated (sorry for removing it abruptly)
+
+
+[v4.4.4](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.4.4%7Cjar) (23-August-2017)
+
+API usability release. **This relase streamlined the recipient setters, breaking backwards compatibility (but straightforward to fix)**
+
+- [#95](https://github.com/bbottema/simple-java-mail/issues/95) Feature: Add support native API for [setting Return-Receipt-To](https://www.simplejavamail.org/features.html#section-return-receipt) header
+- [#93](https://github.com/bbottema/simple-java-mail/issues/93) Feature: Add support native API for setting [Disposition-Notification-To](https://www.simplejavamail.org/features.html#section-return-receipt) header
+- [#91](https://github.com/bbottema/simple-java-mail/issues/91) **Feature: Add support for parsing [preformatted email addresses](https://www.simplejavamail.org/features.html#section-add-recipients) that include both name and address**
+- [#94](https://github.com/bbottema/simple-java-mail/issues/94) Bugfix: A single EmailBuilder would build emails that all share the same collections for recipients, attachments and embedded images
+- [#98](https://github.com/bbottema/simple-java-mail/issues/98) Bugfix: Subject and body content should be optional
+
+
+[v4.3.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.3.0%7Cjar) (12-August-2017)
+
+Security and timeout release.
+
+This version safeguards against SMTP injection attack from external values entering the library through *Email* instance. Also, this release introduces default/configurable timeouts for connecting, reading and writing when sending an email.
+
+- [#89](https://github.com/bbottema/simple-java-mail/issues/89) Support multiple delimited recipient addresses sharing the same TO/CC/BCC name
+- [#88](https://github.com/bbottema/simple-java-mail/issues/88) **Safeguard subject property (and others) against SMTP CRLF injection attacks**
+- [#85](https://github.com/bbottema/simple-java-mail/issues/85) **Apply configurable timeouts when sending emails**
+- [#83](https://github.com/bbottema/simple-java-mail/issues/83) Parse INLINE attachments without ID as regular attachments when converting (mostly applicable to Apple emails)
+
+
+[v4.2.3](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.3%7Cjar) (21-May-2017)
+
+- [#79](https://github.com/bbottema/simple-java-mail/issues/79): Enhancement: define custom message ID on the Email object
+- [#74](https://github.com/bbottema/simple-java-mail/issues/74): v4.2.3-java-6-release: A java6 version with limited capabilities:
+    I've released a customised java6 release with a customised outlook-message-parser 1.1.16-java6-release. **This is the last java6 release** I will do, as it is simply too much manual labor to create a limited second edition.
+
+    For this edition, I've removed the JDK7 Phaser completely which has the following consequences:
+
+    - If authenticated proxy is used, the bridging proxy server will not be shut down automatically (and might not run the second time)
+    - If mails are sent in async mode, the connection pool will not be shut down anymore by itself
+
+    This means your server/application might not stop properly due to lingering processes. To be completely safe, only send emails in sync mode (used by default) and don't use authenticated proxy config.
+
+
+[v4.2.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.2%7Cjar) (10-May-2017)
+
+- [#73](https://github.com/bbottema/simple-java-mail/issues/73): Patch: fix for sending emails in async mode, which makes sure the connection pool is always closed when the last *known* email has been sent. Without this fix, the connection pool keeps any parent process running (main thread or Tomcat for example) until a hard kill.
+
+
+[v4.2.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.1%7Cjar) (12-Feb-2017)
+
+Patch: streamlined convenience methods for adding recipients.
+
+
+[v4.2.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.2.0%7Cjar) (12-Feb-2017)
+
+**Major feature: Using the EmailConverter you can now [convert between](https://www.simplejavamail.org/features.html#section-converting) Outlook .msg, EML, MimeMessage and Email**!
+
+- [#66](https://github.com/bbottema/simple-java-mail/issues/66): Feature: [convert](https://www.simplejavamail.org/features.html#section-converting) email to EML
+- [#65](https://github.com/bbottema/simple-java-mail/issues/65): Feature: [read outlook messages](https://www.simplejavamail.org/modules.html#outlook-module) from .msg file
+- [#64](https://github.com/bbottema/simple-java-mail/issues/64): **Feature: Added support for [logging-only mode](https://www.simplejavamail.org/debugging.html#section-debug-mode) that skips the actual sending of emails**
+- [#63](https://github.com/bbottema/simple-java-mail/issues/63): Feature: Already including in previous patch update: [Spring support](https://www.simplejavamail.org/modules.html#spring-module) (read properties from Spring context)
+- [#69](https://github.com/bbottema/simple-java-mail/issues/69): Enhancement: Expanded EmailBuilder API to inlude more options for setting (multiple) recipients
+- [#70](https://github.com/bbottema/simple-java-mail/issues/70): Enhancement: Most public API now have defensive null-checks for required fields (Fail Fast support)
+- [#68](https://github.com/bbottema/simple-java-mail/issues/68): Bugfix: Name should be required for embedded images (added safeguards)
+- [#67](https://github.com/bbottema/simple-java-mail/issues/67): Bugfix: Error when name was omitted for attachment
+- minor: added methods on AttachmentResource that reads back the content as (encoded) String
+- other: internal testing is now done using Wiser SMTP test server for testing live sending emails
+
+**Note**: Starting this release, there will always be a Java6 compatible release as well versioned: "x.y.z-java6-release"
+
+
+[v4.1.3](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.1.3%7Cjar) (28-Jan-2017)
+
+- [#61](https://github.com/bbottema/simple-java-mail/issues/61): Feature: Add support for [providing your own Properties](https://www.simplejavamail.org/features.html#section-custom-properties) object
+- [#63](https://github.com/bbottema/simple-java-mail/issues/63): **Feature: [Spring support](https://www.simplejavamail.org/modules.html#spring-module) (read properties from Spring context)**
+- [#58](https://github.com/bbottema/simple-java-mail/issues/58): Bugfix: Add support for non-English attachment and embedded image names
+- [#62](https://github.com/bbottema/simple-java-mail/issues/62): Bugfix: Empty properties loaded from config should be considered null
+
+**NOTE**: ConfigLoader moved from `/internal/util` to `/util`
+
+
+[v4.1.2](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.1.2%7Cjar) (07-Nov-2016)
+
+- [#52](https://github.com/bbottema/simple-java-mail/issues/52): bug fix for windows / linux disparity when checking socket status
+- [#56](https://github.com/bbottema/simple-java-mail/issues/56): bug fix for IOException when signing dkim with a File reference
+
+
+[v4.1.1](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.1.1%7Cjar) (30-Jul-2016)
+
+- [#50](https://github.com/bbottema/simple-java-mail/issues/50): bug fix for manual naming datasources
+
+
+[v4.1.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.1.0%7Cjar) (22-Jul-2016)
+
+- [#48](https://github.com/bbottema/simple-java-mail/issues/48): Added programmatic support trusting hosts for SSL connections
+- [#47](https://github.com/bbottema/simple-java-mail/issues/47): Honor given names, deduce extension from datasource name, and more robust support for parsing mimemessages
+
+
+[v4.0.0](https://search.maven.org/#artifactdetails%7Corg.simplejavamail%7Csimple-java-mail%7C4.0.0%7Cjar) (05-Jul-2016)
+
+- [#41](https://github.com/bbottema/simple-java-mail/issues/41): added support for fast parallel batch processing
+- [#42](https://github.com/bbottema/simple-java-mail/issues/42): **added support for config files**
+- [#43](https://github.com/bbottema/simple-java-mail/issues/43): removed logging implementation dependencies from distribution and documented various sample configs
+- [#39](https://github.com/bbottema/simple-java-mail/issues/39): simplified and renamed packages to reflect the domain name of the new website: [simplejavamail.org](https://www.simplejavamail.org)
+- [#38](https://github.com/bbottema/simple-java-mail/issues/38): added support for anonymous proxy
+- [#38](https://github.com/bbottema/simple-java-mail/issues/38): **added support for authenticated proxy**
+
+**NOTE**: All packages have been renamed to "org.simplejavamail.(..)"
+**NOTE**: Switched to Java 7
+
+
+[v3.1.1](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C3.1.1%7Cjar) (11-May-2016)
+
+**Major feature: DKIM support**!
+
+- [#36](https://github.com/bbottema/simple-java-mail/issues/36): Added proper toString and equals methods for the Email classes
+- [#33](https://github.com/bbottema/simple-java-mail/issues/33): Added [support for DKIM](https://www.simplejavamail.org/features.html#section-dkim) domain key signing
+
+*NOTE*: this is the last release still using Java 6. Next release will be using Java 7.
+/edit: starting with 4.2.0 every release will now have a "x.y.z-java6-release" release as well
+
+
+[v3.0.2](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C3.0.2%7Cjar) (07-May-2016)
+
+- [#35](https://github.com/bbottema/simple-java-mail/issues/35): added proper .equals() and .toString() methods
+- [#34](https://github.com/bbottema/simple-java-mail/issues/34): Fixed bug when disposition is missing (assume it is an attachment)
+- other: added findbugs support internally
+
+
+[v3.0.1](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C3.0.1%7Cjar) (29-Feb-2016)
+
+  * [#31](https://github.com/bbottema/simple-java-mail/issues/31): Fixed EmailAddressCriteria.DEFAULT and clarified Javadoc
+
+
+[v3.0.0](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C3.0.0%7Cjar) (26-Feb-2016)
+
+  * [#30](https://github.com/bbottema/simple-java-mail/issues/30): Improved the demonstration class to include attachments and embedded images
+  * [#29](https://github.com/bbottema/simple-java-mail/issues/29): The package has been restructured for future maintenance, breaking backwards compatibility
+  * [#28](https://github.com/bbottema/simple-java-mail/issues/28): Re-added improved email validation facility
+  * [#22](https://github.com/bbottema/simple-java-mail/issues/22): Added conversion to and from MimeMessage. You can now consume and produce MimeMessage objects with simple-java-mail
+
+
+[v2.5.1](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C2.5.1%7Cjar) (19-Jan-2016)
+
+  * [#25](https://github.com/bbottema/simple-java-mail/issues/25): Added finally clause that will always close socket properly in case of an exception
+
+
+[v2.5](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C2.5%7Cjar) (19-Jan-2016)
+
+  * [#24](https://github.com/bbottema/simple-java-mail/issues/24): Updated dependencies SLF4J to 1.7.13 and switched to the updated javax mail package com.sun.mail:javax.mail 1.5.5
+
+
+[v2.4](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C2.4%7Cjar) (12-Aug-2015)
+
+  * [#21](https://github.com/bbottema/simple-java-mail/issues/21): builder API uses CC and BCC recipient types incorrectly
+
+
+[v2.3](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C2.3%7Cjar) (21-Jul-2015)
+
+  * [#19](https://github.com/bbottema/simple-java-mail/issues/19): supporting custom Session Properties now and emergency access to internal Session object.
+
+
+[v2.2](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C2.2%7Cjar) (09-May-2015)
+
+  * [#3](https://github.com/bbottema/simple-java-mail/issues/3): turned off email regex validation by default, with the option to turn it back on
+  * [#7](https://github.com/bbottema/simple-java-mail/issues/7): fixed NullPointerException when using your own Session instance
+  * [#10](https://github.com/bbottema/simple-java-mail/issues/10): properly UTF-8 encode recipient addresses
+  * [#14](https://github.com/bbottema/simple-java-mail/issues/14): switched to [SLF4J](https://www.slf4j.org/), so you can easily use your own selected logging framework
+  * [#17](https://github.com/bbottema/simple-java-mail/issues/17): Added [fluent interface](https://en.wikipedia.org/wiki/Builder_pattern) for building emails (see [here](https://www.simplejavamail.org/#section-builder-api) for an example)
+
+
+[v2.1](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C2.1%7Cjar) (09-Aug-2012)
+
+  * fixed character encoding for reply-to, from, to, body text and headers (to UTF-8)
+  * fixed bug where Recipient was not public resulting in uncompilable code when calling email.getRecipients()
+
+
+[v2.0](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C2.0%7Cjar) (20-Aug-2011)
+
+  * added support for adding open headers, such as 'X-Priority: 2'
+
+
+[v1.9.1](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C1.9.1%7Cjar) (08-Aug-2011)
+
+  * updated for Maven support
+
+
+v1.9 (6-Aug-2011)
+
+  * added support for JavaMail's reply-to address
+  * made port optional as to support port defaulting based on protocol
+  * added transport strategy default in the createSession method
+  * tightened up thrown exceptions (MailException instead of RuntimeException)
+  * added and fixed [Javadoc](https://www.javadoc.io/doc/org.simplejavamail/simple-java-mail)
+
+
+v1.8
+
+  * Added support for TLS (tested with gmail)
+
+
+v1.7 (22-Mar-2011)
+
+Added support for SSL! (tested with gmail)
+
+  * improved argument validation when creating a Mailer without preconfigured Session instance
+
+known possible issue: SSL self-signed certificates might not work (yet). Please let me know by e-mail or create a new issue
+
+
+v1.6
+
+Completed migration to Java Simple Mail project.
+
+  * removed all Vesijama references
+  * updated TestMail demonstration class for clarification
+  * updated readme.txt for test run instructions
+  * included log4j.properties
+
+
+v1.4 (15-Jan-2011)
+
+
+vX.X (26-Apr-2009)
+
+  * Initial upload to Google Code.

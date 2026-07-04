@@ -93,7 +93,7 @@ public class MailerHelperTest {
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid TO address: invalid");
 
-        val emailInvalidToByDefault = newBuilder().withRecipients(new Recipient(null, "invalid", null)).buildEmail();
+        val emailInvalidToByDefault = newBuilder().withRecipients(new Recipient(null, "invalid", null, null)).buildEmail();
         assertThatThrownBy(() -> MailerHelper.validateAddresses(emailInvalidToByDefault, JMail.validator()))
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid TO address: invalid");

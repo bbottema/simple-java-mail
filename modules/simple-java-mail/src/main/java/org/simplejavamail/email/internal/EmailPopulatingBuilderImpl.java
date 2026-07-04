@@ -18,6 +18,7 @@ import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
@@ -49,6 +50,7 @@ import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static java.util.regex.Matcher.quoteReplacement;
@@ -127,6 +129,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private Recipient bounceToRecipient;
 
 	/**
+	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Nullable
+	private DeliveryStatusNotification deliveryStatusNotification;
+
+	/**
 	 * @see #withSubject(String)
 	 */
 	@Nullable
@@ -161,6 +169,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Nullable
 	private ContentTransferEncoding contentTransferEncoding;
+
+	/**
+	 * @see #withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private ContentTransferEncoding plainTextContentTransferEncoding;
+
+	/**
+	 * @see #withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private ContentTransferEncoding htmlTextContentTransferEncoding;
+
+	/**
+	 * @see #withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private ContentTransferEncoding calendarTextContentTransferEncoding;
 
 	/**
 	 * @see #to(Recipient...)
@@ -529,7 +555,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder from(@Nullable final String fixedName, @NotNull final InternetAddress fromAddress) {
 		checkNonEmptyArgument(fromAddress, "fromAddress");
-		return from(new Recipient(fixedName, fromAddress.getAddress(), null));
+		return from(new Recipient(fixedName, fromAddress.getAddress(), null, null));
 	}
 	
 	/**
@@ -538,7 +564,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder from(@NotNull final InternetAddress fromAddress) {
 		checkNonEmptyArgument(fromAddress, "fromAddress");
-		return from(new Recipient(fromAddress.getPersonal(), fromAddress.getAddress(), null));
+		return from(new Recipient(fromAddress.getPersonal(), fromAddress.getAddress(), null, null));
 	}
 	
 	/**
@@ -547,7 +573,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder from(@NotNull final Recipient recipient) {
 		checkNonEmptyArgument(recipient, "from recipient");
-		this.fromRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null);
+		this.fromRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null, null);
 		return this;
 	}
 	
@@ -575,7 +601,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@NotNull final InternetAddress replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(new Recipient(replyToAddress.getPersonal(), replyToAddress.getAddress(), null));
+		return withReplyTo(new Recipient(replyToAddress.getPersonal(), replyToAddress.getAddress(), null, null));
 	}
 	
 	/**
@@ -584,7 +610,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String fixedName, @NotNull final InternetAddress replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(new Recipient(fixedName, replyToAddress.getAddress(), null));
+		return withReplyTo(new Recipient(fixedName, replyToAddress.getAddress(), null, null));
 	}
 
 	/**
@@ -592,7 +618,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@NotNull final Recipient recipient) {
-		this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null));
+		this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null, null));
 		return this;
 	}
 
@@ -602,7 +628,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@NotNull final List<Recipient> recipients) {
 		for (Recipient recipient : recipients) {
-			this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null));
+			this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null, null));
 		}
 		return this;
 	}
@@ -631,7 +657,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withBounceTo(@NotNull final InternetAddress bounceToAddress) {
 		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
-		return withBounceTo(new Recipient(bounceToAddress.getPersonal(), bounceToAddress.getAddress(), null));
+		return withBounceTo(new Recipient(bounceToAddress.getPersonal(), bounceToAddress.getAddress(), null, null));
 	}
 	
 	/**
@@ -641,7 +667,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "Method is not detailed enough for CLI")
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String name, @NotNull final InternetAddress bounceToAddress) {
 		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
-		return withBounceTo(new Recipient(name, bounceToAddress.getAddress(), null));
+		return withBounceTo(new Recipient(name, bounceToAddress.getAddress(), null, null));
 	}
 	
 	/**
@@ -649,8 +675,80 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withBounceTo(@Nullable final Recipient recipient) {
-		this.bounceToRecipient = recipient != null ? new Recipient(recipient.getName(), recipient.getAddress(), null) : null;
+		this.bounceToRecipient = recipient != null ? new Recipient(recipient.getName(), recipient.getAddress(), null, null) : null;
 		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailPopulatingBuilder withDeliveryStatusNotification(@Nullable final DeliveryStatusNotification deliveryStatusNotification) {
+		this.deliveryStatusNotification = deliveryStatusNotification;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification.ReturnOption, DeliveryStatusNotification.NotifyOption...)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailPopulatingBuilder withDeliveryStatusNotification(@Nullable final DeliveryStatusNotification.ReturnOption returnOption,
+			@NotNull final DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) {
+		return withDeliveryStatusNotification(DeliveryStatusNotification.of(returnOption, notifyOptions));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification.NotifyOption...)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailPopulatingBuilder withDeliveryStatusNotification(@NotNull final DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) {
+		return withDeliveryStatusNotificationNotifyOptions(notifyOptions);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(
+			@NotNull final DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) {
+		return withDeliveryStatusNotification(DeliveryStatusNotification.of(
+				deliveryStatusNotification != null ? deliveryStatusNotification.getReturnOption() : null,
+				notifyOptions));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull final String notifyOptions) {
+		final Set<DeliveryStatusNotification.NotifyOption> parsedNotifyOptions = DeliveryStatusNotification.parseNotifyOptions(notifyOptions);
+		return withDeliveryStatusNotificationNotifyOptions(parsedNotifyOptions.toArray(new DeliveryStatusNotification.NotifyOption[parsedNotifyOptions.size()]));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@Nullable final DeliveryStatusNotification.ReturnOption returnOption) {
+		if (returnOption == null && (deliveryStatusNotification == null || deliveryStatusNotification.getNotifyOptions().isEmpty())) {
+			deliveryStatusNotification = null;
+			return this;
+		}
+		return withDeliveryStatusNotification(DeliveryStatusNotification.of(returnOption,
+				deliveryStatusNotification != null ? deliveryStatusNotification.getNotifyOptions() : emptySet()));
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@NotNull final String returnOption) {
+		return withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.parseReturnOption(returnOption));
 	}
 
 	/**
@@ -821,6 +919,33 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		this.contentTransferEncoding = contentTransferEncoding;
 		return this;
 	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withPlainTextContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
+		this.plainTextContentTransferEncoding = contentTransferEncoding;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withHTMLTextContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
+		this.htmlTextContentTransferEncoding = contentTransferEncoding;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withCalendarTextContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
+		this.calendarTextContentTransferEncoding = contentTransferEncoding;
+		return this;
+	}
 	
 	/*
 		TO: Recipient
@@ -841,6 +966,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder to(@NotNull final Collection<Recipient> recipients) {
 		return withRecipients(recipients, TO);
 	}
+
 	/*
 		TO: String
 	 */
@@ -863,19 +989,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#to(String, String...)
+	 * @see EmailPopulatingBuilder#withRecipientsWithFixedName(String, Collection, RecipientType)
 	 */
 	@Override
 	public EmailPopulatingBuilder to(@Nullable final String name, @NotNull final String @NotNull ... oneOrMoreAddressesEach) {
-		return toWithFixedName(name, oneOrMoreAddressesEach);
+		return withRecipientsWithFixedName(name, asList(oneOrMoreAddressesEach), TO);
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#to(String, Collection)
+	 * @see EmailPopulatingBuilder#withRecipientsWithFixedName(String, Collection, RecipientType)
 	 */
 	@Override
 	public EmailPopulatingBuilder to(@Nullable final String name, @NotNull final Collection<String> oneOrMoreAddressesEach) {
-		return toWithFixedName(name, oneOrMoreAddressesEach);
+		return withRecipientsWithFixedName(name, oneOrMoreAddressesEach, TO);
 	}
 	
 	/**
@@ -931,35 +1057,35 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	
 	/**
-	 * @see EmailPopulatingBuilder#to(String, InternetAddress)
+	 * @see EmailPopulatingBuilder#withRecipientsFromAddressesWithFixedName(String, Collection, RecipientType)
 	 */
 	@Override
 	public EmailPopulatingBuilder to(@Nullable final String name, InternetAddress address) {
-		return toAddressesWithFixedName(name, address);
+		return withRecipientsFromAddressesWithFixedName(name, singletonList(address), TO);
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#to(InternetAddress)
+	 * @see EmailPopulatingBuilder#withRecipientsFromAddressesWithDefaultName(String, Collection, RecipientType)
 	 */
 	@Override
 	public EmailPopulatingBuilder to(@NotNull final InternetAddress address) {
-		return withAddressesWithDefaultName(null, singletonList(address), TO);
+		return withRecipientsFromAddressesWithDefaultName(null, singletonList(address), TO);
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#to(String, InternetAddress...)
+	 * @see EmailPopulatingBuilder#withRecipientsFromAddressesWithFixedName(String, Collection, RecipientType)
 	 */
 	@Override
 	public EmailPopulatingBuilder to(@Nullable final String name, @NotNull final InternetAddress @NotNull ... adresses) {
-		return toAddressesWithFixedName(name, adresses);
+		return withRecipientsFromAddressesWithFixedName(name, asList(adresses), TO);
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#toAddresses(String, Collection)
+	 * @see EmailPopulatingBuilder#withRecipientsFromAddressesWithFixedName(String, Collection, RecipientType)
 	 */
 	@Override
 	public EmailPopulatingBuilder toAddresses(@Nullable final String name, @NotNull final Collection<InternetAddress> adresses) {
-		return toAddressesWithFixedName(name, adresses);
+		return withRecipientsFromAddressesWithFixedName(name, adresses, TO);
 	}
 	
 	/**
@@ -967,7 +1093,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder toMultiple(@NotNull final InternetAddress @NotNull ... adresses) {
-		return withAddressesWithDefaultName(null, asList(adresses), TO);
+		return withRecipientsFromAddressesWithDefaultName(null, asList(adresses), TO);
 	}
 	
 	/**
@@ -975,7 +1101,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder toMultipleAddresses(@NotNull final Collection<InternetAddress> adresses) {
-		return withAddressesWithDefaultName(null, adresses, TO);
+		return withRecipientsFromAddressesWithDefaultName(null, adresses, TO);
 	}
 	
 	/**
@@ -983,7 +1109,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder toAddressesWithFixedName(@Nullable final String name, @NotNull final InternetAddress @NotNull ... adresses) {
-		return withAddressesWithFixedName(name, asList(adresses), TO);
+		return withRecipientsFromAddressesWithFixedName(name, asList(adresses), TO);
 	}
 	
 	/**
@@ -991,7 +1117,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder toAddressesWithDefaultName(@NotNull final String name, @NotNull final InternetAddress @NotNull ... adresses) {
-		return withAddressesWithDefaultName(name, asList(adresses), TO);
+		return withRecipientsFromAddressesWithDefaultName(name, asList(adresses), TO);
 	}
 	
 	/**
@@ -999,7 +1125,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder toAddressesWithFixedName(@Nullable final String name, @NotNull final Collection<InternetAddress> adresses) {
-		return withAddressesWithFixedName(name, adresses, TO);
+		return withRecipientsFromAddressesWithFixedName(name, adresses, TO);
 	}
 	
 	/**
@@ -1007,8 +1133,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder toAddressesWithDefaultName(@NotNull final String name, @NotNull final Collection<InternetAddress> adresses) {
-		return withAddressesWithDefaultName(name, adresses, TO);
+		return withRecipientsFromAddressesWithDefaultName(name, adresses, TO);
 	}
+
 	/*
 		CC: Recipient
 	 */
@@ -1130,7 +1257,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder cc(@NotNull final InternetAddress address) {
-		return withAddressesWithDefaultName(null, singletonList(address), CC);
+		return withRecipientsFromAddressesWithDefaultName(null, singletonList(address), CC);
 	}
 	
 	/**
@@ -1154,7 +1281,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder ccMultiple(@NotNull final InternetAddress @NotNull ... adresses) {
-		return withAddressesWithDefaultName(null, asList(adresses), CC);
+		return withRecipientsFromAddressesWithDefaultName(null, asList(adresses), CC);
 	}
 	
 	/**
@@ -1162,7 +1289,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder ccMultipleAddresses(@NotNull final Collection<InternetAddress> adresses) {
-		return withAddressesWithDefaultName(null, adresses, CC);
+		return withRecipientsFromAddressesWithDefaultName(null, adresses, CC);
 	}
 	
 	/**
@@ -1170,7 +1297,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable final String name, @NotNull final InternetAddress @NotNull ... adresses) {
-		return withAddressesWithFixedName(name, asList(adresses), CC);
+		return withRecipientsFromAddressesWithFixedName(name, asList(adresses), CC);
 	}
 	
 	/**
@@ -1178,7 +1305,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder ccAddressesWithDefaultName(@NotNull final String name, @NotNull final InternetAddress @NotNull ... adresses) {
-		return withAddressesWithDefaultName(name, asList(adresses), CC);
+		return withRecipientsFromAddressesWithDefaultName(name, asList(adresses), CC);
 	}
 	
 	/**
@@ -1186,7 +1313,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder ccAddressesWithFixedName(@Nullable final String name, @NotNull final Collection<InternetAddress> adresses) {
-		return withAddressesWithFixedName(name, adresses, CC);
+		return withRecipientsFromAddressesWithFixedName(name, adresses, CC);
 	}
 	
 	/**
@@ -1194,7 +1321,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder ccAddressesWithDefaultName(@NotNull final String name, @NotNull final Collection<InternetAddress> adresses) {
-		return withAddressesWithDefaultName(name, adresses, CC);
+		return withRecipientsFromAddressesWithDefaultName(name, adresses, CC);
 	}
 	/*
 		BCC: Recipient
@@ -1318,7 +1445,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder bcc(@NotNull final InternetAddress address) {
-		return withAddressesWithDefaultName(null, singletonList(address), BCC);
+		return withRecipientsFromAddressesWithDefaultName(null, singletonList(address), BCC);
 	}
 	
 	/**
@@ -1342,7 +1469,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder bccMultiple(@NotNull final InternetAddress @NotNull ... adresses) {
-		return withAddressesWithDefaultName(null, asList(adresses), BCC);
+		return withRecipientsFromAddressesWithDefaultName(null, asList(adresses), BCC);
 	}
 	
 	/**
@@ -1350,7 +1477,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder bccMultipleAddresses(@NotNull final Collection<InternetAddress> adresses) {
-		return withAddressesWithDefaultName(null, adresses, BCC);
+		return withRecipientsFromAddressesWithDefaultName(null, adresses, BCC);
 	}
 	
 	/**
@@ -1358,7 +1485,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable final String name, @NotNull final InternetAddress @NotNull ... adresses) {
-		return withAddressesWithFixedName(name, asList(adresses), BCC);
+		return withRecipientsFromAddressesWithFixedName(name, asList(adresses), BCC);
 	}
 	
 	/**
@@ -1366,7 +1493,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder bccAddressesWithDefaultName(@NotNull final String name, @NotNull final InternetAddress @NotNull ... adresses) {
-		return withAddressesWithDefaultName(name, asList(adresses), BCC);
+		return withRecipientsFromAddressesWithDefaultName(name, asList(adresses), BCC);
 	}
 	
 	/**
@@ -1374,7 +1501,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder bccAddressesWithFixedName(@Nullable final String name, @NotNull final Collection<InternetAddress> adresses) {
-		return withAddressesWithFixedName(name, adresses, BCC);
+		return withRecipientsFromAddressesWithFixedName(name, adresses, BCC);
 	}
 	
 	/**
@@ -1382,7 +1509,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder bccAddressesWithDefaultName(@NotNull final String name, @NotNull final Collection<InternetAddress> adresses) {
-		return withAddressesWithDefaultName(name, adresses, BCC);
+		return withRecipientsFromAddressesWithDefaultName(name, adresses, BCC);
 	}
 	
 	/**
@@ -1445,29 +1572,29 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#withAddressesWithDefaultName(String, Collection, RecipientType)
+	 * @see EmailPopulatingBuilder#withRecipientsFromAddressesWithDefaultName(String, Collection, RecipientType)
 	 */
 	@Override
 	@NotNull
-	public EmailPopulatingBuilder withAddressesWithDefaultName(@Nullable final String defaultName, @NotNull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
-		return withAddresses(defaultName, false, addresses, recipientType);
+	public EmailPopulatingBuilder withRecipientsFromAddressesWithDefaultName(@Nullable final String defaultName, @NotNull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
+		return withRecipientsFromAddresses(defaultName, false, addresses, recipientType);
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#withAddressesWithFixedName(String, Collection, RecipientType)
+	 * @see EmailPopulatingBuilder#withRecipientsFromAddressesWithFixedName(String, Collection, RecipientType)
 	 */
 	@Override
 	@NotNull
-	public EmailPopulatingBuilder withAddressesWithFixedName(@Nullable final String fixedName, @NotNull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
-		return withAddresses(fixedName, true, addresses, recipientType);
+	public EmailPopulatingBuilder withRecipientsFromAddressesWithFixedName(@Nullable final String fixedName, @NotNull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
+		return withRecipientsFromAddresses(fixedName, true, addresses, recipientType);
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#withAddresses(String, boolean, Collection, RecipientType)
+	 * @see EmailPopulatingBuilder#withRecipientsFromAddresses(String, boolean, Collection, RecipientType)
 	 */
 	@Override
 	@NotNull
-	public EmailPopulatingBuilder withAddresses(@Nullable String name, boolean fixedName, @NotNull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
+	public EmailPopulatingBuilder withRecipientsFromAddresses(@Nullable String name, boolean fixedName, @NotNull Collection<InternetAddress> addresses, @Nullable RecipientType recipientType) {
 		for (InternetAddress address : addresses) {
 			String effectiveName = (fixedName || valueNullOrEmpty(address.getPersonal())) ? name : address.getPersonal();
 			withRecipient(effectiveName, address.getAddress(), recipientType);
@@ -1498,7 +1625,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@NotNull
 	public EmailPopulatingBuilder withRecipients(@NotNull Collection<Recipient> recipients, @Nullable RecipientType fixedRecipientType) {
 		for (Recipient recipient : recipients) {
-			withRecipient(recipient.getName(), recipient.getAddress(), defaultTo(fixedRecipientType, recipient.getType()));
+			// Preserve the smimeCertificate from the source Recipient so that per-recipient S/MIME encryption survives governance copy
+			this.recipients.add(new Recipient(recipient.getName(), recipient.getAddress(),
+					defaultTo(fixedRecipientType, recipient.getType()), recipient.getSmimeCertificate()));
 		}
 		return this;
 	}
@@ -1537,7 +1666,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withRecipient(@NotNull final Recipient recipient) {
-		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType()));
+		recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), recipient.getSmimeCertificate()));
 		return this;
 	}
 
@@ -1656,18 +1785,66 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		dataSource.setName(name);
 		return withEmbeddedImage(name, dataSource);
 	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPreEncodedEmbeddedImage(String, byte[], String, ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withPreEncodedEmbeddedImage(@NotNull final String name, final byte@NotNull[] data, @NotNull final String mimetype,
+															 @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+		checkNonEmptyArgument(name, "name");
+		checkNonEmptyArgument(data, "data");
+		checkNonEmptyArgument(mimetype, "mimetype");
+
+		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
+		dataSource.setName(name);
+		return withPreEncodedEmbeddedImage(name, dataSource, preEncodedContentTransferEncoding);
+	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource)
 	 */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata) {
+		return withEmbeddedImage(name, imagedata, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPreEncodedEmbeddedImage(String, DataSource, ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withPreEncodedEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata,
+															 @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+		return withPreEncodedEmbeddedImage(name, imagedata, preEncodedContentTransferEncoding, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata, @Nullable final String contentId) {
+		validateEmbeddedImage(name, imagedata, contentId);
+		embeddedImages.add(new AttachmentResource(name, imagedata, null, null, contentId));
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPreEncodedEmbeddedImage(String, DataSource, ContentTransferEncoding, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withPreEncodedEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata,
+															 @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding,
+															 @Nullable final String contentId) {
+		validateEmbeddedImage(name, imagedata, contentId);
+		embeddedImages.add(AttachmentResource.ofPreEncodedData(name, imagedata, null, preEncodedContentTransferEncoding, contentId));
+		return this;
+	}
+
+	private void validateEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata, @Nullable final String contentId) {
 		checkNonEmptyArgument(imagedata, "imagedata");
-		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName())) {
+		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName()) && valueNullOrEmpty(contentId)) {
 			throw new EmailException(NAME_MISSING_FOR_EMBEDDED_IMAGE);
 		}
-		embeddedImages.add(new AttachmentResource(name, imagedata, null));
-		return this;
 	}
 	
 	/**
@@ -1676,7 +1853,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImages(@NotNull final List<AttachmentResource> embeddedImages) {
 		for (final AttachmentResource embeddedImage : embeddedImages) {
-			withEmbeddedImage(embeddedImage.getName(), embeddedImage.getDataSource());
+			validateEmbeddedImage(embeddedImage.getName(), embeddedImage.getDataSource(), embeddedImage.getContentId());
+			this.embeddedImages.add(embeddedImage);
 		}
 		return this;
 	}
@@ -1765,11 +1943,42 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#withPreEncodedAttachment(String, byte[], String, ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withPreEncodedAttachment(@Nullable final String name, final byte@NotNull[] data, @NotNull final String mimetype,
+														  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+		return withPreEncodedAttachment(name, data, mimetype, null, preEncodedContentTransferEncoding);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPreEncodedAttachment(String, byte[], String, String, ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withPreEncodedAttachment(@Nullable final String name, final byte@NotNull[] data, @NotNull final String mimetype,
+														  @Nullable final String description, @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+		requireNonNull(data, "data");
+		checkNonEmptyArgument(mimetype, "mimetype");
+		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
+		dataSource.setName(name);
+		return withPreEncodedAttachment(name, dataSource, description, preEncodedContentTransferEncoding);
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata) {
 		return withAttachment(name, filedata, null, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPreEncodedAttachment(String, DataSource, ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withPreEncodedAttachment(@Nullable final String name, @NotNull final DataSource filedata,
+														  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+		return withPreEncodedAttachment(name, filedata, null, preEncodedContentTransferEncoding);
 	}
 
 	/**
@@ -1785,8 +1994,38 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
+		return withAttachment(name, filedata, description, contentTransferEncoding, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPreEncodedAttachment(String, DataSource, String, ContentTransferEncoding)
+	 */
+	@Override
+	public EmailPopulatingBuilder withPreEncodedAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description,
+														  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+		return withPreEncodedAttachment(name, filedata, description, preEncodedContentTransferEncoding, null);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource, String, ContentTransferEncoding, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description,
+												@Nullable final ContentTransferEncoding contentTransferEncoding, @Nullable final String contentId) {
 		checkNonEmptyArgument(filedata, "filedata");
-		attachments.add(new AttachmentResource(name, filedata, description, contentTransferEncoding));
+		attachments.add(new AttachmentResource(name, filedata, description, contentTransferEncoding, contentId));
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPreEncodedAttachment(String, DataSource, String, ContentTransferEncoding, String)
+	 */
+	@Override
+	public EmailPopulatingBuilder withPreEncodedAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description,
+														  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding,
+														  @Nullable final String contentId) {
+		checkNonEmptyArgument(filedata, "filedata");
+		attachments.add(AttachmentResource.ofPreEncodedData(name, filedata, description, preEncodedContentTransferEncoding, contentId));
 		return this;
 	}
 
@@ -1796,7 +2035,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withAttachments(@NotNull final List<AttachmentResource> attachments) {
 		for (final AttachmentResource attachment : attachments) {
-			withAttachment(attachment.getName(), attachment.getDataSource(), attachment.getDescription(), attachment.getContentTransferEncoding());
+			checkNonEmptyArgument(attachment.getDataSource(), "filedata");
+			this.attachments.add(attachment);
 		}
 		return this;
 	}
@@ -1932,7 +2172,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(new Recipient(address.getPersonal(), address.getAddress(), null));
+		return withDispositionNotificationTo(new Recipient(address.getPersonal(), address.getAddress(), null, null));
 	}
 	
 	/**
@@ -1941,7 +2181,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nullable final String fixedName, @NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(new Recipient(fixedName, address.getAddress(), null));
+		return withDispositionNotificationTo(new Recipient(fixedName, address.getAddress(), null, null));
 	}
 	
 	/**
@@ -1951,7 +2191,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final Recipient recipient) {
 		checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
 		this.useDispositionNotificationTo = true;
-		this.dispositionNotificationTo = new Recipient(recipient.getName(), recipient.getAddress(), null);
+		this.dispositionNotificationTo = new Recipient(recipient.getName(), recipient.getAddress(), null, null);
 		return this;
 	}
 	
@@ -1991,7 +2231,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(new Recipient(address.getPersonal(), address.getAddress(), null));
+		return withReturnReceiptTo(new Recipient(address.getPersonal(), address.getAddress(), null, null));
 	}
 	
 	/**
@@ -2000,7 +2240,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nullable final String fixedName, @NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(new Recipient(fixedName, address.getAddress(), null));
+		return withReturnReceiptTo(new Recipient(fixedName, address.getAddress(), null, null));
 	}
 	
 	/**
@@ -2010,7 +2250,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final Recipient recipient) {
 		checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
 		this.useReturnReceiptTo = true;
-		this.returnReceiptTo = new Recipient(recipient.getName(), recipient.getAddress(), null);
+		this.returnReceiptTo = new Recipient(recipient.getName(), recipient.getAddress(), null, null);
 		return this;
 	}
 
@@ -2106,7 +2346,16 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		this.bounceToRecipient = null;
 		return this;
 	}
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#clearDeliveryStatusNotification()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearDeliveryStatusNotification() {
+		this.deliveryStatusNotification = null;
+		return this;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#clearPlainText()
 	 */
@@ -2141,6 +2390,33 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearContentTransferEncoding() {
 		this.contentTransferEncoding = ContentTransferEncoding.QUOTED_PRINTABLE;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearPlainTextContentTransferEncoding()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearPlainTextContentTransferEncoding() {
+		this.plainTextContentTransferEncoding = null;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearHTMLTextContentTransferEncoding()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearHTMLTextContentTransferEncoding() {
+		this.htmlTextContentTransferEncoding = null;
+		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearCalendarTextContentTransferEncoding()
+	 */
+	@Override
+	public EmailPopulatingBuilder clearCalendarTextContentTransferEncoding() {
+		this.calendarTextContentTransferEncoding = null;
 		return this;
 	}
 	
@@ -2352,7 +2628,16 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public Recipient getBounceToRecipient() {
 		return bounceToRecipient;
 	}
-	
+
+	/**
+	 * @see EmailPopulatingBuilder#getDeliveryStatusNotification()
+	 */
+	@Override
+	@Nullable
+	public DeliveryStatusNotification getDeliveryStatusNotification() {
+		return deliveryStatusNotification;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#getText()
 	 */
@@ -2396,6 +2681,33 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public ContentTransferEncoding getContentTransferEncoding() {
 		return contentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getPlainTextContentTransferEncoding()
+	 */
+	@Override
+	@Nullable
+	public ContentTransferEncoding getPlainTextContentTransferEncoding() {
+		return plainTextContentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getHTMLTextContentTransferEncoding()
+	 */
+	@Override
+	@Nullable
+	public ContentTransferEncoding getHTMLTextContentTransferEncoding() {
+		return htmlTextContentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getCalendarTextContentTransferEncoding()
+	 */
+	@Override
+	@Nullable
+	public ContentTransferEncoding getCalendarTextContentTransferEncoding() {
+		return calendarTextContentTransferEncoding;
 	}
 	
 	/**

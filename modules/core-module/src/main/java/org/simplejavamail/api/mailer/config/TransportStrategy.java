@@ -167,6 +167,22 @@ public enum TransportStrategy {
 		public String propertyNameSSLTrust() {
 			return "mail.smtp.ssl.trust";
 		}
+
+		/**
+		 * @return "mail.smtp.ssl.socketFactory"
+		 */
+		@Override
+		public String propertyNameSSLSocketFactory() {
+			return "mail.smtp.ssl.socketFactory";
+		}
+
+		/**
+		 * @return "mail.smtp.ssl.socketFactory.class"
+		 */
+		@Override
+		public String propertyNameSSLSocketFactoryClass() {
+			return "mail.smtp.ssl.socketFactory.class";
+		}
 		
 		/**
 		 * @return "mail.smtp.ssl.checkserveridentity", which is only relevant for SMTP + opportunistic TLS
@@ -330,6 +346,22 @@ public enum TransportStrategy {
 		}
 
 		/**
+		 * @return "mail.smtps.ssl.socketFactory"
+		 */
+		@Override
+		public String propertyNameSSLSocketFactory() {
+			return "mail.smtps.ssl.socketFactory";
+		}
+
+		/**
+		 * @return "mail.smtps.ssl.socketFactory.class"
+		 */
+		@Override
+		public String propertyNameSSLSocketFactoryClass() {
+			return "mail.smtps.ssl.socketFactory.class";
+		}
+
+		/**
 		 * @return {@value DEFAULT_SMTPS_PORT}
 		 * @see #DEFAULT_SMTPS_PORT
 		 */
@@ -469,6 +501,22 @@ public enum TransportStrategy {
 		}
 
 		/**
+		 * @return "mail.smtp.ssl.socketFactory"
+		 */
+		@Override
+		public String propertyNameSSLSocketFactory() {
+			return "mail.smtp.ssl.socketFactory";
+		}
+
+		/**
+		 * @return "mail.smtp.ssl.socketFactory.class"
+		 */
+		@Override
+		public String propertyNameSSLSocketFactoryClass() {
+			return "mail.smtp.ssl.socketFactory.class";
+		}
+
+		/**
 		 * @return {@value DEFAULT_SMTP_TLS_PORT}
 		 * @see #DEFAULT_SMTP_TLS_PORT
 		 */
@@ -598,6 +646,22 @@ public enum TransportStrategy {
 		}
 
 		/**
+		 * @return "mail.smtp.ssl.socketFactory"
+		 */
+		@Override
+		public String propertyNameSSLSocketFactory() {
+			return "mail.smtp.ssl.socketFactory";
+		}
+
+		/**
+		 * @return "mail.smtp.ssl.socketFactory.class"
+		 */
+		@Override
+		public String propertyNameSSLSocketFactoryClass() {
+			return "mail.smtp.ssl.socketFactory.class";
+		}
+
+		/**
 		 * @return {@value DEFAULT_SMTP_OAUTH_PORT}
 		 * @see #DEFAULT_SMTP_OAUTH_PORT
 		 */
@@ -699,6 +763,14 @@ public enum TransportStrategy {
 	 * For internal use only.
 	 */
 	public abstract String propertyNameSSLTrust();
+	/**
+	 * For internal use only.
+	 */
+	public abstract String propertyNameSSLSocketFactory();
+	/**
+	 * For internal use only.
+	 */
+	public abstract String propertyNameSSLSocketFactoryClass();
 	/**
 	 * For internal use only.
 	 */

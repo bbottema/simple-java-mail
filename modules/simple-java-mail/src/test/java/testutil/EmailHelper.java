@@ -32,7 +32,7 @@ import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_ROBIN;
 import static org.simplejavamail.converter.EmailConverter.emlToEmailBuilder;
-import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilder;
+import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilderWithOutlookData;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 public class EmailHelper {
@@ -114,7 +114,7 @@ public class EmailHelper {
 
 	public static EmailPopulatingBuilder readOutlookMessage(final String filePath) {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream(filePath);
-		return outlookMsgToEmailBuilder(checkNonEmptyArgument(resourceAsStream, "resourceAsStream")).getEmailBuilder();
+		return outlookMsgToEmailBuilderWithOutlookData(checkNonEmptyArgument(resourceAsStream, "resourceAsStream")).getEmailBuilder();
 	}
 
 	public static EmailPopulatingBuilder readEmlMessage(final String filePath) {

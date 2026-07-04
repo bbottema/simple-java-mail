@@ -6,6 +6,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Comparator;
 import java.util.Objects;
 
 @Getter
@@ -15,10 +16,15 @@ public class MimeDataSource implements Comparable<MimeDataSource> {
 	private final DataSource dataSource;
 	@Nullable private final String contentDescription;
 	@Nullable private final String contentTransferEncoding;
+	@Nullable private final String contentId;
 
 	@Override
 	public int compareTo(@NotNull final MimeDataSource o) {
 		int keyComparison = getName().compareTo(o.getName());
+		if (keyComparison != 0) {
+			return keyComparison;
+		}
+		keyComparison = Comparator.nullsFirst(String::compareTo).compare(getContentId(), o.getContentId());
 		if (keyComparison != 0) {
 			return keyComparison;
 		}
@@ -33,6 +39,6 @@ public class MimeDataSource implements Comparable<MimeDataSource> {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(name, dataSource);
+		return Objects.hash(name, dataSource, contentId);
 	}
 }

@@ -4,6 +4,7 @@ import jakarta.activation.DataSource;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
@@ -109,6 +110,24 @@ public class Email implements Serializable {
 	private final ContentTransferEncoding contentTransferEncoding;
 
 	/**
+	 * @see EmailPopulatingBuilder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private final ContentTransferEncoding plainTextContentTransferEncoding;
+
+	/**
+	 * @see EmailPopulatingBuilder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private final ContentTransferEncoding htmlTextContentTransferEncoding;
+
+	/**
+	 * @see EmailPopulatingBuilder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	private final ContentTransferEncoding calendarTextContentTransferEncoding;
+
+	/**
 	 * @see EmailPopulatingBuilder#withSubject(String)
 	 */
 	private final String subject;
@@ -172,6 +191,12 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
 	private final Recipient returnReceiptTo;
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Nullable
+	private final DeliveryStatusNotification deliveryStatusNotification;
 
 	/**
 	 * @see EmailPopulatingBuilder#withOverrideReceivers(Recipient...)
@@ -265,11 +290,15 @@ public class Email implements Serializable {
 		calendarMethod = builder.getCalendarMethod();
 		textCalendar = builder.getTextCalendar();
 		contentTransferEncoding = builder.getContentTransferEncoding();
+		plainTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getPlainTextContentTransferEncoding() : builder.getPlainTextContentTransferEncoding();
+		htmlTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getHTMLTextContentTransferEncoding() : builder.getHTMLTextContentTransferEncoding();
+		calendarTextContentTransferEncoding = builder.getCalendarTextContentTransferEncoding();
 		subject = builder.getSubject();
 		useDispositionNotificationTo = builder.getUseDispositionNotificationTo();
 		dispositionNotificationTo = builder.getDispositionNotificationTo();
 		useReturnReceiptTo = builder.getUseReturnReceiptTo();
 		returnReceiptTo = builder.getReturnReceiptTo();
+		deliveryStatusNotification = builder.getDeliveryStatusNotification();
 		overrideReceivers = builder.getOverrideReceivers();
 		emailToForward = builder.getEmailToForward();
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
@@ -302,6 +331,9 @@ public class Email implements Serializable {
 				",\n\ttextHTML='" + textHTML + '\'' +
 				",\n\ttextCalendar='" + format("%s (method: %s)", textCalendar, calendarMethod) + '\'' +
 				",\n\tcontentTransferEncoding='" + (contentTransferEncoding != null ? contentTransferEncoding : ContentTransferEncoding.getDefault()) + '\'' +
+				",\n\tplainTextContentTransferEncoding='" + plainTextContentTransferEncoding + '\'' +
+				",\n\thtmlTextContentTransferEncoding='" + htmlTextContentTransferEncoding + '\'' +
+				",\n\tcalendarTextContentTransferEncoding='" + calendarTextContentTransferEncoding + '\'' +
 				",\n\tsubject='" + subject + '\'' +
 				",\n\trecipients=" + recipients);
 		if (!MiscUtil.valueNullOrEmpty(dkimConfig)) {
@@ -314,6 +346,9 @@ public class Email implements Serializable {
 		if (TRUE.equals(useReturnReceiptTo)) {
 			s += ",\n\tuseReturnReceiptTo=" + true +
 					",\n\t\treturnReceiptTo=" + returnReceiptTo;
+		}
+		if (!MiscUtil.valueNullOrEmpty(deliveryStatusNotification)) {
+			s += ",\n\tdeliveryStatusNotification=" + deliveryStatusNotification;
 		}
 		if (!overrideReceivers.isEmpty()) {
 			s += ",\n\toverrideReceivers=" + true +
@@ -477,6 +512,14 @@ public class Email implements Serializable {
 	@Nullable
 	public Recipient getReturnReceiptTo() {
 		return returnReceiptTo;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Nullable
+	public DeliveryStatusNotification getDeliveryStatusNotification() {
+		return deliveryStatusNotification;
 	}
 	
 	/**
@@ -648,5 +691,29 @@ public class Email implements Serializable {
 	@Nullable
 	public ContentTransferEncoding getContentTransferEncoding() {
 		return contentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	public ContentTransferEncoding getPlainTextContentTransferEncoding() {
+		return plainTextContentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	public ContentTransferEncoding getHTMLTextContentTransferEncoding() {
+		return htmlTextContentTransferEncoding;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 */
+	@Nullable
+	public ContentTransferEncoding getCalendarTextContentTransferEncoding() {
+		return calendarTextContentTransferEncoding;
 	}
 }

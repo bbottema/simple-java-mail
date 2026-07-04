@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.CalendarMethod.ADD;
 import static org.simplejavamail.api.email.CalendarMethod.REPLY;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
+import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.ThumbsUpImage.produceThumbsUpImage;
 
@@ -76,6 +77,9 @@ public class EmailTest {
 				+ "\ttextHTML='null',\n"
 				+ "\ttextCalendar='null (method: null)',\n"
 				+ "\tcontentTransferEncoding='quoted-printable',\n"
+				+ "\tplainTextContentTransferEncoding='null',\n"
+				+ "\thtmlTextContentTransferEncoding='null',\n"
+				+ "\tcalendarTextContentTransferEncoding='null',\n"
 				+ "\tsubject='null',\n"
 				+ "\trecipients=[]\n"
 				+ "}");
@@ -114,6 +118,9 @@ public class EmailTest {
 				+ "	textHTML='<b>We should meet up!</b><img src='cid:thumbsup'>',\n"
 				+ "	textCalendar='Calendar text (method: ADD)',\n"
 				+ "	contentTransferEncoding='quoted-printable',\n"
+				+ "	plainTextContentTransferEncoding='null',\n"
+				+ "	htmlTextContentTransferEncoding='null',\n"
+				+ "	calendarTextContentTransferEncoding='null',\n"
 				+ "	subject='hey',\n"
 				+ "	recipients=[Recipient{name='C.Cane', address='candycane@candyshop.org', type=To}],\n"
 				+ "	dkimConfig=DkimConfig(dkimSigningDomain=dkim_domain, dkimSelector=dkim_selector, useLengthParam=null, excludedHeadersFromDkimDefaultSigningList=null, headerCanonicalization=null, bodyCanonicalization=null, signingAlgorithm=null),\n"
@@ -127,20 +134,26 @@ public class EmailTest {
 				+ "		dataSource.name=the_image,\n"
 				+ "		dataSource.getContentType=image/png,\n"
 				+ "		description=null,\n"
-				+ "		contentTransferEncoding=null\n"
+				+ "		contentTransferEncoding=null,\n"
+				+ "		preEncodedContentTransferEncoding=null,\n"
+				+ "		contentId=null\n"
 				+ "	}],\n"
 				+ "	attachments=[AttachmentResource{\n"
 				+ "		name='the_attachment',\n"
 				+ "		dataSource.name=the_attachment,\n"
 				+ "		dataSource.getContentType=image/png,\n"
 				+ "		description=null,\n"
-				+ "		contentTransferEncoding=null\n"
+				+ "		contentTransferEncoding=null,\n"
+				+ "		preEncodedContentTransferEncoding=null,\n"
+				+ "		contentId=null\n"
 				+ "	}, AttachmentResource{\n"
 				+ "		name='described_attachment',\n"
 				+ "		dataSource.name=described_attachment,\n"
 				+ "		dataSource.getContentType=text/plain,\n"
 				+ "		description='cool description',\n"
-				+ "		contentTransferEncoding='base64'\n"
+				+ "		contentTransferEncoding='base64',\n"
+				+ "		preEncodedContentTransferEncoding=null,\n"
+				+ "		contentId=null\n"
 				+ "	}],\n"
 				+ "	forwardingEmail=true\n"
 				+ "}");
@@ -158,9 +171,9 @@ public class EmailTest {
 	public void testEqualsEmail_EqualityFieldByField() throws IOException {
 		// From recipient
 		assertEmailEqual(b().from("a@b.c").buildEmail(), b().from("a@b.c").buildEmail(), true);
-		assertEmailEqual(b().from("name", "a@b.c").buildEmail(), b().from(new Recipient("name", "a@b.c", null)).buildEmail(), true);
+		assertEmailEqual(b().from("name", "a@b.c").buildEmail(), b().from(new Recipient("name", "a@b.c", null, null)).buildEmail(), true);
 		assertEmailEqual(b().from("a@b.c").buildEmail(), b().from("some@thing.else").buildEmail(), false);
-		assertEmailEqual(b().from("name", "a@b.c").buildEmail(), b().from(new Recipient("different name", "a@b.c", null)).buildEmail(), false);
+		assertEmailEqual(b().from("name", "a@b.c").buildEmail(), b().from(new Recipient("different name", "a@b.c", null, null)).buildEmail(), false);
 		assertEmailEqual(b().from("a@b.c").buildEmail(), b().buildEmail(), false);
 		// ID
 		assertEmailEqual(b().fixingMessageId(null).buildEmail(), b().fixingMessageId(null).buildEmail(), true);
@@ -181,27 +194,27 @@ public class EmailTest {
 		assertEmailEqual(b().fixingSentDate(now).buildEmail(), b().buildEmail(), false);
 		// replyTo recipient
 		assertEmailEqual(b().withReplyTo("a@b.c").buildEmail(), b().withReplyTo("a@b.c").buildEmail(), true);
-		assertEmailEqual(b().withReplyTo("name", "a@b.c").buildEmail(), b().withReplyTo(new Recipient("name", "a@b.c", null)).buildEmail(), true);
+		assertEmailEqual(b().withReplyTo("name", "a@b.c").buildEmail(), b().withReplyTo(new Recipient("name", "a@b.c", null, null)).buildEmail(), true);
 		assertEmailEqual(b().withReplyTo("a@b.c").buildEmail(), b().withReplyTo("some@thing.else").buildEmail(), false);
-		assertEmailEqual(b().withReplyTo("name", "a@b.c").buildEmail(), b().withReplyTo(new Recipient("different name", "a@b.c", null)).buildEmail(), false);
+		assertEmailEqual(b().withReplyTo("name", "a@b.c").buildEmail(), b().withReplyTo(new Recipient("different name", "a@b.c", null, null)).buildEmail(), false);
 		assertEmailEqual(b().withReplyTo("a@b.c").buildEmail(), b().buildEmail(), false);
 		// bounceTo recipient
 		assertEmailEqual(b().withBounceTo("a@b.c").buildEmail(), b().withBounceTo("a@b.c").buildEmail(), true);
-		assertEmailEqual(b().withBounceTo("name", "a@b.c").buildEmail(), b().withBounceTo(new Recipient("name", "a@b.c", null)).buildEmail(), true);
+		assertEmailEqual(b().withBounceTo("name", "a@b.c").buildEmail(), b().withBounceTo(new Recipient("name", "a@b.c", null, null)).buildEmail(), true);
 		assertEmailEqual(b().withBounceTo("a@b.c").buildEmail(), b().withBounceTo("some@thing.else").buildEmail(), false);
-		assertEmailEqual(b().withBounceTo("name", "a@b.c").buildEmail(), b().withBounceTo(new Recipient("different name", "a@b.c", null)).buildEmail(), false);
+		assertEmailEqual(b().withBounceTo("name", "a@b.c").buildEmail(), b().withBounceTo(new Recipient("different name", "a@b.c", null, null)).buildEmail(), false);
 		assertEmailEqual(b().withBounceTo("a@b.c").buildEmail(), b().buildEmail(), false);
 		// dispositionNotificationTo recipient
 		assertEmailEqual(b().withDispositionNotificationTo("a@b.c").buildEmail(), b().withDispositionNotificationTo("a@b.c").buildEmail(), true);
-		assertEmailEqual(b().withDispositionNotificationTo("name", "a@b.c").buildEmail(), b().withDispositionNotificationTo(new Recipient("name", "a@b.c", null)).buildEmail(), true);
+		assertEmailEqual(b().withDispositionNotificationTo("name", "a@b.c").buildEmail(), b().withDispositionNotificationTo(new Recipient("name", "a@b.c", null, null)).buildEmail(), true);
 		assertEmailEqual(b().withDispositionNotificationTo("a@b.c").buildEmail(), b().withDispositionNotificationTo("some@thing.else").buildEmail(), false);
-		assertEmailEqual(b().withDispositionNotificationTo("name", "a@b.c").buildEmail(), b().withDispositionNotificationTo(new Recipient("different name", "a@b.c", null)).buildEmail(), false);
+		assertEmailEqual(b().withDispositionNotificationTo("name", "a@b.c").buildEmail(), b().withDispositionNotificationTo(new Recipient("different name", "a@b.c", null, null)).buildEmail(), false);
 		assertEmailEqual(b().withDispositionNotificationTo("a@b.c").buildEmail(), b().buildEmail(), false);
 		// returnReceiptTo recipient
 		assertEmailEqual(b().withReturnReceiptTo("a@b.c").buildEmail(), b().withReturnReceiptTo("a@b.c").buildEmail(), true);
-		assertEmailEqual(b().withReturnReceiptTo("name", "a@b.c").buildEmail(), b().withReturnReceiptTo(new Recipient("name", "a@b.c", null)).buildEmail(), true);
+		assertEmailEqual(b().withReturnReceiptTo("name", "a@b.c").buildEmail(), b().withReturnReceiptTo(new Recipient("name", "a@b.c", null, null)).buildEmail(), true);
 		assertEmailEqual(b().withReturnReceiptTo("a@b.c").buildEmail(), b().withReturnReceiptTo("some@thing.else").buildEmail(), false);
-		assertEmailEqual(b().withReturnReceiptTo("name", "a@b.c").buildEmail(), b().withReturnReceiptTo(new Recipient("different name", "a@b.c", null)).buildEmail(), false);
+		assertEmailEqual(b().withReturnReceiptTo("name", "a@b.c").buildEmail(), b().withReturnReceiptTo(new Recipient("different name", "a@b.c", null, null)).buildEmail(), false);
 		assertEmailEqual(b().withReturnReceiptTo("a@b.c").buildEmail(), b().buildEmail(), false);
 		// plainText
 		assertEmailEqual(b().withPlainText((String) null).buildEmail(), b().withPlainText((String) null).buildEmail(), true);
@@ -221,6 +234,19 @@ public class EmailTest {
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().withCalendarText(ADD, "shmoo").buildEmail(), false);
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().withCalendarText(REPLY, "moo").buildEmail(), false);
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().buildEmail(), false);
+		// contentTransferEncoding
+		assertEmailEqual(b().withContentTransferEncoding(BASE_64).buildEmail(), b().withContentTransferEncoding(BASE_64).buildEmail(), true);
+		assertEmailEqual(b().withContentTransferEncoding(BASE_64).buildEmail(), b().withContentTransferEncoding(BIT7).buildEmail(), false);
+		assertEmailEqual(b().withPlainTextContentTransferEncoding(BASE_64).buildEmail(), b().withPlainTextContentTransferEncoding(BASE_64).buildEmail(), true);
+		assertEmailEqual(b().withPlainTextContentTransferEncoding(BASE_64).buildEmail(), b().withPlainTextContentTransferEncoding(BIT7).buildEmail(), false);
+		assertEmailEqual(b().withHTMLTextContentTransferEncoding(BASE_64).buildEmail(), b().withHTMLTextContentTransferEncoding(BASE_64).buildEmail(), true);
+		assertEmailEqual(b().withHTMLTextContentTransferEncoding(BASE_64).buildEmail(), b().withHTMLTextContentTransferEncoding(BIT7).buildEmail(), false);
+		assertEmailEqual(b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), true);
+		assertEmailEqual(b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), b().withCalendarTextContentTransferEncoding(BIT7).buildEmail(), false);
+		assertEmailEqual(b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BASE_64).buildEmail(),
+				b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BASE_64).buildEmail(), true);
+		assertEmailEqual(b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BASE_64).buildEmail(),
+				b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BIT7).buildEmail(), false);
 		// forWardEmail
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, false).buildEmail();
 		final Email emailOther = EmailHelper.createDummyEmailBuilder(false, true, false, false, false, false).buildEmail();

@@ -41,7 +41,9 @@ public interface Mailer extends AutoCloseable {
 	Session getSession();
 	
 	/**
-	 * Delegates to {@link #testConnection(boolean)} with async == <code>false</code>.
+	 * Delegates to {@link #testConnection(boolean)} using the mailer's configured async default.
+	 *
+	 * @see MailerGenericBuilder#async()
 	 */
 	void testConnection();
 	
@@ -55,9 +57,10 @@ public interface Mailer extends AutoCloseable {
 	@NotNull CompletableFuture<Void> testConnection(boolean async);
 	
 	/**
-	 * Delegates to {@link #sendMail(Email, boolean)}, with <code>async = false</code>. This method returns only when the email has been processed by
-	 * the target SMTP server.
+	 * Delegates to {@link #sendMail(Email, boolean)} using the mailer's configured async default.
+	 *
 	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
+	 * @see MailerGenericBuilder#async()
 	 */
 	@NotNull CompletableFuture<Void> sendMail(Email email);
 	

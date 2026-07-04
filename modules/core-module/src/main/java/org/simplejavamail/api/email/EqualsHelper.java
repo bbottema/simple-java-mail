@@ -45,6 +45,18 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getCalendarMethod(), email2.getCalendarMethod(), "calendarMethod")) {
             return false;
         }
+        if (!fieldIsEqual(effectiveContentTransferEncoding(email1), effectiveContentTransferEncoding(email2), "contentTransferEncoding")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getPlainTextContentTransferEncoding(), email2.getPlainTextContentTransferEncoding(), "plainTextContentTransferEncoding")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getHTMLTextContentTransferEncoding(), email2.getHTMLTextContentTransferEncoding(), "htmlTextContentTransferEncoding")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getCalendarTextContentTransferEncoding(), email2.getCalendarTextContentTransferEncoding(), "calendarTextContentTransferEncoding")) {
+            return false;
+        }
         //noinspection SimplifiableConditionalExpression
         if (email1.getEmailToForward() != null ? email2.getEmailToForward() == null : email2.getEmailToForward() != null) {
             log.debug("Email unqual for emailToForward: {} vs {}", email1.getEmailToForward(), email2.getEmailToForward());
@@ -86,6 +98,9 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getDispositionNotificationTo(), email2.getDispositionNotificationTo(), "dispositionNotificationTo")) {
             return false;
         }
+        if (!fieldIsEqual(email1.getDeliveryStatusNotification(), email2.getDeliveryStatusNotification(), "deliveryStatusNotification")) {
+            return false;
+        }
         if (!fieldIsEqual(email1.getOriginalSmimeDetails(), email2.getOriginalSmimeDetails(), "originalSmimeDetails")) {
             return false;
         }
@@ -119,6 +134,10 @@ public final class EqualsHelper {
             }
         }
         return false;
+    }
+
+    private static ContentTransferEncoding effectiveContentTransferEncoding(final Email email) {
+        return email.getContentTransferEncoding() != null ? email.getContentTransferEncoding() : ContentTransferEncoding.getDefault();
     }
 
     static boolean isEqualDataSource(@Nullable final DataSource a, @Nullable final DataSource b) {

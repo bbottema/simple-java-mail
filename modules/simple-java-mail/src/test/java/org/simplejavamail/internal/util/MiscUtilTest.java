@@ -3,6 +3,7 @@ package org.simplejavamail.internal.util;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.internal.clisupport.model.Cli;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -142,16 +143,18 @@ public class MiscUtilTest {
 
 	@Test
 	@SuppressWarnings("unused")
-	public void testCountMandatoryParameters() {
-		Method methodWithZeroParameters = new Object() {public void methodWithZeroParameters() {}}.getClass().getDeclaredMethods()[0];
-		Method methodWithZeroMandatoryParameters = new Object() {public void methodWithZeroMandatoryParameters(@Nullable Integer optionalInt) {}}.getClass().getDeclaredMethods()[0];
-		Method methodWithOnlyMandatoryParameters = new Object() {public void methodWithOnlyMandatoryParameters(Integer mandatoryInt) {}}.getClass().getDeclaredMethods()[0];
-		Method methodWithMixedMandatoryParameters = new Object() {public void methodWithMixedMandatoryParameters(@Nullable Integer optionalInt, Integer mandatoryInt) {}}.getClass().getDeclaredMethods()[0];
+	public void testCountMandatoryParameters() throws NoSuchMethodException {
+		Method methodWithZeroParameters = new Object() {public void methodWithZeroParameters() {}}.getClass().getDeclaredMethod("methodWithZeroParameters");
+		Method methodWithZeroMandatoryParameters = new Object() {public void methodWithZeroMandatoryParameters(@Nullable @Cli.Optional Integer optionalInt) {}}.getClass().getDeclaredMethod("methodWithZeroMandatoryParameters", Integer.class);
+		Method methodWithOnlyMandatoryParameters = new Object() {public void methodWithOnlyMandatoryParameters(Integer mandatoryInt) {}}.getClass().getDeclaredMethod("methodWithOnlyMandatoryParameters", Integer.class);
+		Method methodWithMixedMandatoryParameters = new Object() {public void methodWithMixedMandatoryParameters(@Nullable @Cli.Optional Integer optionalInt, Integer mandatoryInt) {}}.getClass().getDeclaredMethod("methodWithMixedMandatoryParameters", Integer.class, Integer.class);
+		Method methodWithNullableParameter = new Object() {public void methodWithNullableParameter(@Nullable Integer nullableInt) {}}.getClass().getDeclaredMethod("methodWithNullableParameter", Integer.class);
 
 		assertThat(MiscUtil.countMandatoryParameters(methodWithZeroParameters)).isEqualTo(0);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithZeroMandatoryParameters)).isEqualTo(0);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithOnlyMandatoryParameters)).isEqualTo(1);
 		assertThat(MiscUtil.countMandatoryParameters(methodWithMixedMandatoryParameters)).isEqualTo(1);
+		assertThat(MiscUtil.countMandatoryParameters(methodWithNullableParameter)).isEqualTo(1);
 	}
 
 	@Test
@@ -222,19 +225,19 @@ public class MiscUtilTest {
 	
 	@Test
 	public void testAddRecipientByInternetAddress() {
-		assertThat(MiscUtil.interpretRecipient(null, false, "a@b.com", null)).isEqualTo(new Recipient(null, "a@b.com", null));
-		assertThat(MiscUtil.interpretRecipient(null, false, " a@b.com ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
-		assertThat(MiscUtil.interpretRecipient(null, false, " <a@b.com> ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
-		assertThat(MiscUtil.interpretRecipient(null, false, " < a@b.com > ", null)).isEqualTo(new Recipient(null, "a@b.com", null));
-		assertThat(MiscUtil.interpretRecipient(null, false, "moo <a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(MiscUtil.interpretRecipient(null, false, "moo<a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(MiscUtil.interpretRecipient(null, false, " moo< a@b.com   > ", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(MiscUtil.interpretRecipient(null, false, "\"moo\" <a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(MiscUtil.interpretRecipient(null, false, "\"moo\"<a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(MiscUtil.interpretRecipient(null, false, " \"moo\"< a@b.com   > ", null)).isEqualTo(new Recipient("moo", "a@b.com", null));
-		assertThat(MiscUtil.interpretRecipient(null, false, " \"  m oo  \"< a@b.com   > ", null)).isEqualTo(new Recipient("  m oo  ", "a@b.com", null));
+		assertThat(MiscUtil.interpretRecipient(null, false, "a@b.com", null)).isEqualTo(new Recipient(null, "a@b.com", null, null));
+		assertThat(MiscUtil.interpretRecipient(null, false, " a@b.com ", null)).isEqualTo(new Recipient(null, "a@b.com", null, null));
+		assertThat(MiscUtil.interpretRecipient(null, false, " <a@b.com> ", null)).isEqualTo(new Recipient(null, "a@b.com", null, null));
+		assertThat(MiscUtil.interpretRecipient(null, false, " < a@b.com > ", null)).isEqualTo(new Recipient(null, "a@b.com", null, null));
+		assertThat(MiscUtil.interpretRecipient(null, false, "moo <a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null, null));
+		assertThat(MiscUtil.interpretRecipient(null, false, "moo<a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null, null));
+		assertThat(MiscUtil.interpretRecipient(null, false, " moo< a@b.com   > ", null)).isEqualTo(new Recipient("moo", "a@b.com", null, null));
+		assertThat(MiscUtil.interpretRecipient(null, false, "\"moo\" <a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null, null));
+		assertThat(MiscUtil.interpretRecipient(null, false, "\"moo\"<a@b.com>", null)).isEqualTo(new Recipient("moo", "a@b.com", null, null));
+		assertThat(MiscUtil.interpretRecipient(null, false, " \"moo\"< a@b.com   > ", null)).isEqualTo(new Recipient("moo", "a@b.com", null, null));
+		assertThat(MiscUtil.interpretRecipient(null, false, " \"  m oo  \"< a@b.com   > ", null)).isEqualTo(new Recipient("  m oo  ", "a@b.com", null, null));
 		// next one is unparsable by InternetAddress#parse(), so it should be taken as is
-		assertThat(MiscUtil.interpretRecipient(null, false, " \"  m oo  \" a@b.com    ", null)).isEqualTo(new Recipient(null, " \"  m oo  \" a@b.com    ", null));
+		assertThat(MiscUtil.interpretRecipient(null, false, " \"  m oo  \" a@b.com    ", null)).isEqualTo(new Recipient(null, " \"  m oo  \" a@b.com    ", null, null));
 	}
 
 	@Test

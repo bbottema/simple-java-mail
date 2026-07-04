@@ -33,9 +33,9 @@ public class ReadSmimeAttachmentsTest {
 	public void testSMIMEMessageFromOutlookMsgWithDefaultMergeBehavior() {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).msg"));
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Alessandro Gasparini", "donotreply@unknown-from-address.net", null));
+		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Alessandro Gasparini", "donotreply@unknown-from-address.net", null, null));
 		EmailAssert.assertThat(emailParsedFromMsg).hasSubject("Invio messaggio SMIME (signed and clear text)");
-		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("a.gasparini@logicaldoc.com", "a.gasparini@logicaldoc.com", TO));
+		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("a.gasparini@logicaldoc.com", "a.gasparini@logicaldoc.com", TO, null));
 
 		assertThat(normalizeNewlines(emailParsedFromMsg.getPlainText())).isEqualTo("Invio messaggio SMIME (signed and clear text)\n"
 				+ "\n"
@@ -106,9 +106,9 @@ public class ReadSmimeAttachmentsTest {
 				.notMergingSingleSMIMESignedAttachment()
 				.buildEmail();
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Alessandro Gasparini", "donotreply@unknown-from-address.net", null));
+		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Alessandro Gasparini", "donotreply@unknown-from-address.net", null, null));
 		EmailAssert.assertThat(emailParsedFromMsg).hasSubject("Invio messaggio SMIME (signed and clear text)");
-		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("a.gasparini@logicaldoc.com", "a.gasparini@logicaldoc.com", TO));
+		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("a.gasparini@logicaldoc.com", "a.gasparini@logicaldoc.com", TO, null));
 
 		assertThat(emailParsedFromMsg.getHeaders()).isEmpty();
 		assertThat(normalizeNewlines(emailParsedFromMsg.getPlainText())).isNullOrEmpty();

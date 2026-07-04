@@ -13,6 +13,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
@@ -35,11 +36,16 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRES
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BOUNCETO_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
@@ -139,6 +145,12 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		if (hasProperty(DEFAULT_BOUNCETO_ADDRESS)) {
 			allDefaults.withBounceTo(getStringProperty(DEFAULT_BOUNCETO_NAME), verifyNonnullOrEmpty(getStringProperty(DEFAULT_BOUNCETO_ADDRESS)));
 		}
+		if (hasProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)) {
+			allDefaults.withDeliveryStatusNotificationNotifyOptions(verifyNonnullOrEmpty(getStringProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)));
+		}
+		if (hasProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)) {
+			allDefaults.withDeliveryStatusNotificationReturnOption(verifyNonnullOrEmpty(getStringProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)));
+		}
 		if (hasProperty(DEFAULT_TO_ADDRESS)) {
 			if (hasProperty(DEFAULT_TO_NAME)) {
 				allDefaults.to(getStringProperty(DEFAULT_TO_NAME), getStringProperty(DEFAULT_TO_ADDRESS));
@@ -162,6 +174,15 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		}
 		if (hasProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)) {
 			allDefaults.withContentTransferEncoding(verifyNonnullOrEmpty(getProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)));
+		}
+		if (hasProperty(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)) {
+			allDefaults.withPlainTextContentTransferEncoding(verifyNonnullOrEmpty(getProperty(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)));
+		}
+		if (hasProperty(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING)) {
+			allDefaults.withHTMLTextContentTransferEncoding(verifyNonnullOrEmpty(getProperty(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING)));
+		}
+		if (hasProperty(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)) {
+			allDefaults.withCalendarTextContentTransferEncoding(verifyNonnullOrEmpty(getProperty(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)));
 		}
 		if (hasProperty(DEFAULT_SUBJECT)) {
 			allDefaults.withSubject(getProperty(DEFAULT_SUBJECT));
@@ -265,10 +286,14 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			builder.withOverrideReceivers(overrideReceivers);
 		}
 		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withContentTransferEncoding);
+		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withPlainTextContentTransferEncoding);
+		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.HTML_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withHTMLTextContentTransferEncoding);
+		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withCalendarTextContentTransferEncoding);
 		ofNullable(this.<SmimeSigningConfig>resolveEmailProperty(provided, EmailProperty.SMIME_SIGNING_CONFIG)).ifPresent(builder::signWithSmime);
 		ofNullable(this.<SmimeEncryptionConfig>resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG)).ifPresent(builder::encryptWithSmime);
 		ofNullable(this.<DkimConfig>resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG)).ifPresent(builder::signWithDomainKey);
 		builder.withBounceTo(this.<Recipient>resolveEmailProperty(provided, EmailProperty.BOUNCETO_RECIPIENT));
+		ofNullable(this.<DeliveryStatusNotification>resolveEmailProperty(provided, EmailProperty.DELIVERY_STATUS_NOTIFICATION)).ifPresent(builder::withDeliveryStatusNotification);
 		ofNullable(this.<Date>resolveEmailProperty(provided, EmailProperty.SENT_DATE)).ifPresent(builder::fixingSentDate);
 		builder.fixingMessageId(resolveEmailProperty(provided, EmailProperty.ID));
 

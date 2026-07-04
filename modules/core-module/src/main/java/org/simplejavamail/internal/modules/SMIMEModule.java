@@ -16,6 +16,8 @@ import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionRe
 import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
+import java.security.cert.X509Certificate;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -74,7 +76,28 @@ public interface SMIMEModule {
 	MimeMessage signMessageWithSmime(@NotNull Session session, @NotNull final Email email, @NotNull MimeMessage messageToProtect, @NotNull SmimeSigningConfig smimeSigningConfig);
 
 	@NotNull
-	MimeMessage encryptMessageWithSmime(@NotNull Session session, @NotNull final Email email, @NotNull MimeMessage messageToProtect, @NotNull SmimeEncryptionConfig smimeEncryptionConfig);
+        MimeMessage encryptMessageWithSmime(@NotNull Session session, @NotNull final Email email, @NotNull MimeMessage messageToProtect, @NotNull SmimeEncryptionConfig smimeEncryptionConfig);
+
+        /**
+         * Encrypts a MimeMessage for multiple recipients in a single S/MIME envelope. Each cert in {@code recipientCerts}
+         * becomes an independent recipient info block, so any recipient whose private key matches one of the provided
+         * certificates can decrypt the message.
+         * <p>
+         * This is the per-recipient variant used when at least one {@link org.simplejavamail.api.email.Recipient}
+         * carries a non-null {@code smimeCertificate}. The algorithm parameters ({@code keyEncapsulationAlgorithm},
+         * {@code cipherAlgorithm}) are shared across all recipients and should come from the email-level
+         * {@link SmimeEncryptionConfig} when present; {@code null} falls back to the library defaults.
+         *
+         * @param recipientCerts         One cert per TO/CC/BCC recipient (already resolved using precedence rules).
+         *                               Duplicate certs are allowed; the underlying generator deduplicates naturally.
+         * @param keyEncapsulationAlgorithm Optional name of the key-encapsulation algorithm (e.g. {@code "RSA_OAEP_SHA256"}).
+         * @param cipherAlgorithm        Optional name of the content-encryption algorithm (e.g. {@code "AES256_CBC"}).
+         */
+        @NotNull
+        MimeMessage encryptMessageWithSmimeForRecipients(@Nullable Session session, @NotNull Email email, @NotNull MimeMessage messageToProtect,
+                        @NotNull Collection<X509Certificate> recipientCerts,
+                        @Nullable String keyEncapsulationAlgorithm,
+                        @Nullable String cipherAlgorithm);
 
 	/**
 	 * @return Whether the email has been properly wrapped in a MimeMessage subtype that overrides Message-ID. This is to

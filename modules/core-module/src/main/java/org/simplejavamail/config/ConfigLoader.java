@@ -4,6 +4,7 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.ContentTransferEncoding;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
@@ -47,6 +48,9 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * <li>simplejavamail.proxy.password</li>
  * <li>simplejavamail.proxy.socks5bridge.port</li>
  * <li>simplejavamail.defaults.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.text.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.html.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.calendar.content.transfer.encoding</li>
  * <li>simplejavamail.defaults.subject</li>
  * <li>simplejavamail.defaults.from.name</li>
  * <li>simplejavamail.defaults.from.address</li>
@@ -54,6 +58,8 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * <li>simplejavamail.defaults.replyto.address</li>
  * <li>simplejavamail.defaults.bounceto.name</li>
  * <li>simplejavamail.defaults.bounceto.address</li>
+ * <li>simplejavamail.defaults.delivery.status.notification.notify</li>
+ * <li>simplejavamail.defaults.delivery.status.notification.return.option</li>
  * <li>simplejavamail.defaults.to.name</li>
  * <li>simplejavamail.defaults.to.address</li>
  * <li>simplejavamail.defaults.cc.name</li>
@@ -152,12 +158,17 @@ public final class ConfigLoader {
 		PROXY_SOCKS5BRIDGE_PORT("simplejavamail.proxy.socks5bridge.port"),
 		DEFAULT_SUBJECT("simplejavamail.defaults.subject"),
 		DEFAULT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.content.transfer.encoding"),
+		DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.body.text.content.transfer.encoding"),
+		DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.body.html.content.transfer.encoding"),
+		DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.body.calendar.content.transfer.encoding"),
 		DEFAULT_FROM_NAME("simplejavamail.defaults.from.name"),
 		DEFAULT_FROM_ADDRESS("simplejavamail.defaults.from.address"),
 		DEFAULT_REPLYTO_NAME("simplejavamail.defaults.replyto.name"),
 		DEFAULT_REPLYTO_ADDRESS("simplejavamail.defaults.replyto.address"),
 		DEFAULT_BOUNCETO_NAME("simplejavamail.defaults.bounceto.name"),
 		DEFAULT_BOUNCETO_ADDRESS("simplejavamail.defaults.bounceto.address"),
+		DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY("simplejavamail.defaults.delivery.status.notification.notify"),
+		DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION("simplejavamail.defaults.delivery.status.notification.return.option"),
 		DEFAULT_TO_NAME("simplejavamail.defaults.to.name"),
 		DEFAULT_TO_ADDRESS("simplejavamail.defaults.to.address"),
 		DEFAULT_CC_NAME("simplejavamail.defaults.cc.name"),
@@ -474,6 +485,16 @@ public final class ConfigLoader {
 			return DkimConfig.Canonicalization.valueOf(propertyValue);
 		} catch (final IllegalArgumentException nfe) {
 			// Not a Canonicalization
+		}
+		try {
+			return DeliveryStatusNotification.NotifyOption.valueOf(propertyValue);
+		} catch (final IllegalArgumentException nfe) {
+			// Not a DeliveryStatusNotification.NotifyOption
+		}
+		try {
+			return DeliveryStatusNotification.parseReturnOption(propertyValue);
+		} catch (final IllegalArgumentException nfe) {
+			// Not a DeliveryStatusNotification.ReturnOption
 		}
 		try {
 			return LoadBalancingStrategy.valueOf(propertyValue);

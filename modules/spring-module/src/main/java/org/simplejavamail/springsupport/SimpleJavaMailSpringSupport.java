@@ -42,6 +42,9 @@ import java.util.Properties;
  * <li>simplejavamail.proxy.password</li>
  * <li>simplejavamail.proxy.socks5bridge.port</li>
  * <li>simplejavamail.defaults.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.text.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.html.content.transfer.encoding</li>
+ * <li>simplejavamail.defaults.body.calendar.content.transfer.encoding</li>
  * <li>simplejavamail.defaults.subject</li>
  * <li>simplejavamail.defaults.from.name</li>
  * <li>simplejavamail.defaults.from.address</li>
@@ -49,6 +52,8 @@ import java.util.Properties;
  * <li>simplejavamail.defaults.replyto.address</li>
  * <li>simplejavamail.defaults.bounceto.name</li>
  * <li>simplejavamail.defaults.bounceto.address</li>
+ * <li>simplejavamail.defaults.delivery.status.notification.notify</li>
+ * <li>simplejavamail.defaults.delivery.status.notification.return.option</li>
  * <li>simplejavamail.defaults.to.name</li>
  * <li>simplejavamail.defaults.to.address</li>
  * <li>simplejavamail.defaults.cc.name</li>
@@ -140,6 +145,9 @@ public class SimpleJavaMailSpringSupport {
 				@Nullable @Value("${simplejavamail.proxy.password:#{null}}") final String proxyPassword,
 				@Nullable @Value("${simplejavamail.proxy.socks5bridge.port:#{null}}") final String proxySocks5bridgePort,
 				@Nullable @Value("${simplejavamail.defaults.content.transfer.encoding:#{null}}") final String defaultContentTransferEncoding,
+				@Nullable @Value("${simplejavamail.defaults.body.text.content.transfer.encoding:#{null}}") final String defaultPlainTextContentTransferEncoding,
+				@Nullable @Value("${simplejavamail.defaults.body.html.content.transfer.encoding:#{null}}") final String defaultHtmlTextContentTransferEncoding,
+				@Nullable @Value("${simplejavamail.defaults.body.calendar.content.transfer.encoding:#{null}}") final String defaultCalendarTextContentTransferEncoding,
 				@Nullable @Value("${simplejavamail.defaults.subject:#{null}}") final String defaultSubject,
 				@Nullable @Value("${simplejavamail.defaults.from.name:#{null}}") final String defaultFromName,
 				@Nullable @Value("${simplejavamail.defaults.from.address:#{null}}") final String defaultFromAddress,
@@ -147,6 +155,8 @@ public class SimpleJavaMailSpringSupport {
 				@Nullable @Value("${simplejavamail.defaults.replyto.address:#{null}}") final String defaultReplytoAddress,
 				@Nullable @Value("${simplejavamail.defaults.bounceto.name:#{null}}") final String defaultBouncetoName,
 				@Nullable @Value("${simplejavamail.defaults.bounceto.address:#{null}}") final String defaultBouncetoAddress,
+				@Nullable @Value("${simplejavamail.defaults.delivery.status.notification.notify:#{null}}") final String defaultDeliveryStatusNotificationNotify,
+				@Nullable @Value("${simplejavamail.defaults.delivery.status.notification.return.option:#{null}}") final String defaultDeliveryStatusNotificationReturnOption,
 				@Nullable @Value("${simplejavamail.defaults.to.name:#{null}}") final String defaultToName,
 				@Nullable @Value("${simplejavamail.defaults.to.address:#{null}}") final String defaultToAddress,
 				@Nullable @Value("${simplejavamail.defaults.cc.name:#{null}}") final String defaultCcName,
@@ -219,6 +229,9 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.PROXY_PASSWORD.key(), proxyPassword);
 		setNullableProperty(emailProperties, Property.PROXY_SOCKS5BRIDGE_PORT.key(), proxySocks5bridgePort);
 		setNullableProperty(emailProperties, Property.DEFAULT_CONTENT_TRANSFER_ENCODING.key(), defaultContentTransferEncoding);
+		setNullableProperty(emailProperties, Property.DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING.key(), defaultPlainTextContentTransferEncoding);
+		setNullableProperty(emailProperties, Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING.key(), defaultHtmlTextContentTransferEncoding);
+		setNullableProperty(emailProperties, Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING.key(), defaultCalendarTextContentTransferEncoding);
 		setNullableProperty(emailProperties, Property.DEFAULT_SUBJECT.key(), defaultSubject);
 		setNullableProperty(emailProperties, Property.DEFAULT_FROM_NAME.key(), defaultFromName);
 		setNullableProperty(emailProperties, Property.DEFAULT_FROM_ADDRESS.key(), defaultFromAddress);
@@ -226,6 +239,8 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_REPLYTO_ADDRESS.key(), defaultReplytoAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_BOUNCETO_NAME.key(), defaultBouncetoName);
 		setNullableProperty(emailProperties, Property.DEFAULT_BOUNCETO_ADDRESS.key(), defaultBouncetoAddress);
+		setNullableProperty(emailProperties, Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY.key(), defaultDeliveryStatusNotificationNotify);
+		setNullableProperty(emailProperties, Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION.key(), defaultDeliveryStatusNotificationReturnOption);
 		setNullableProperty(emailProperties, Property.DEFAULT_TO_NAME.key(), defaultToName);
 		setNullableProperty(emailProperties, Property.DEFAULT_TO_ADDRESS.key(), defaultToAddress);
 		setNullableProperty(emailProperties, Property.DEFAULT_CC_NAME.key(), defaultCcName);
