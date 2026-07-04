@@ -134,7 +134,9 @@ public class SMIMESupport implements SMIMEModule {
 
 		if (smimeBuilder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
 			// this is the only way for Outlook messages to know a valid signature was included
-			smimeBuilder.getOriginalSmimeDetails().completeWithSmimeSignatureValid(smimeBuilder.getSmimeSignedOrEncryptedEmail() != null);
+			if (smimeBuilder.getOriginalSmimeDetails().getSmimeSignatureValid() == null) {
+				smimeBuilder.getOriginalSmimeDetails().completeWithSmimeSignatureValid(smimeBuilder.getSmimeSignedOrEncryptedEmail() != null);
+			}
 		}
 
 		return smimeBuilder;
@@ -185,9 +187,16 @@ public class SMIMESupport implements SMIMEModule {
 	private boolean checkSignature(@NotNull final MimeMessage mimeMessage, @Nullable final OriginalSmimeDetails messageSmimeDetails) {
 		if (messageSmimeDetails != null) {
 			LOGGER.debug("verifying signed mimemessage...");
-			final boolean validSignature = verifyValidSignature(mimeMessage, messageSmimeDetails);
+			final boolean validSignature;
+			try {
+				validSignature = verifyValidSignature(mimeMessage, messageSmimeDetails);
+			} catch (org.simplejavamail.utils.mail.smime.SmimeException e) {
+				LOGGER.warn("Message contains invalid S/MIME signature! Assume this email has been tampered with. Reason: {}", e.getMessage());
+				LOGGER.debug("S/MIME signature verification failure: {}", e.getMessage());
+				return false;
+			}
 			if (!validSignature) {
-				LOGGER.warn("Message contains invalid S/MIME signature! Assume this emal has been tampered with.");
+				LOGGER.warn("Message contains invalid S/MIME signature! Assume this email has been tampered with.");
 			}
 			return validSignature;
 		}
@@ -197,7 +206,8 @@ public class SMIMESupport implements SMIMEModule {
 	private void decryptAttachments(@NotNull final SmimeParseResultBuilder smimeBuilder, @NotNull final List<AttachmentResource> attachments,
 			@Nullable final Pkcs12Config pkcs12Config) {
 		LOGGER.debug("checking for S/MIME signed / encrypted attachments...");
-		List<AttachmentDecryptionResult> decryptedAttachments = decryptAttachments(attachments, pkcs12Config, smimeBuilder.getOriginalSmimeDetails());
+		List<AttachmentDecryptionResult> decryptedAttachments = decryptAttachments(attachments, pkcs12Config, smimeBuilder.getOriginalSmimeDetails(),
+				smimeBuilder.getOriginalSmimeDetails());
 		smimeBuilder.addDecryptedAttachments(decryptedAttachments);
 
 		if (attachments.size() == 1) {
@@ -234,12 +244,21 @@ public class SMIMESupport implements SMIMEModule {
 			@NotNull final List<AttachmentResource> attachments,
 			@Nullable final Pkcs12Config pkcs12Config,
 			@NotNull final OriginalSmimeDetails messageSmimeDetails) {
+		return decryptAttachments(attachments, pkcs12Config, messageSmimeDetails, null);
+	}
+
+	@NotNull
+	private List<AttachmentDecryptionResult> decryptAttachments(
+			@NotNull final List<AttachmentResource> attachments,
+			@Nullable final Pkcs12Config pkcs12Config,
+			@NotNull final OriginalSmimeDetails messageSmimeDetails,
+			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate) {
 		final List<AttachmentDecryptionResult> decryptedAttachments = new ArrayList<>();
 		for (final AttachmentResource attachment : attachments) {
 			if (isSmimeAttachment(attachment)) {
 				try {
 					LOGGER.debug("decrypting S/MIME signed attachment '{}'...", attachment.getName());
-					decryptedAttachments.add(decryptAndUnsignAttachment(attachment, pkcs12Config, messageSmimeDetails));
+					decryptedAttachments.add(decryptAndUnsignAttachment(attachment, pkcs12Config, messageSmimeDetails, smimeDetailsToUpdate));
 				} catch (Exception e) {
 					throw new SmimeException(format(ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT, attachment), e);
 				}
@@ -262,7 +281,8 @@ public class SMIMESupport implements SMIMEModule {
 	private AttachmentDecryptionResult decryptAndUnsignAttachment(
 			@NotNull final AttachmentResource attachment,
 			@Nullable final Pkcs12Config pkcs12Config,
-			@NotNull final OriginalSmimeDetails messageSmimeDetails) {
+			@NotNull final OriginalSmimeDetails messageSmimeDetails,
+			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate) {
 		try {
 			final MimeBodyPart mimeBodyPart = new MimeBodyPart(new InternetHeaders(), attachment.readAllBytes());
 			mimeBodyPart.addHeader("Content-Type", restoreSmimeContentType(attachment, messageSmimeDetails));
@@ -271,11 +291,11 @@ public class SMIMESupport implements SMIMEModule {
 
 			final SmimeState smimeState = determineStatus(mimeBodyPart, messageSmimeDetails);
 			if (smimeState == SmimeState.ENCRYPTED) {
-				liberatedContent = getEncryptedContent(pkcs12Config, mimeBodyPart);
+				liberatedContent = getEncryptedContent(pkcs12Config, mimeBodyPart, smimeDetailsToUpdate);
 			} else if (smimeState == SmimeState.SIGNED) {
-				liberatedContent = getSignedContent(mimeBodyPart);
+				liberatedContent = getSignedContent(mimeBodyPart, smimeDetailsToUpdate);
 			} else if (smimeState == SmimeState.PROBABLY_SIGNED) {
-				liberatedContent = tryGetSignedContent(mimeBodyPart);
+				liberatedContent = tryGetSignedContent(mimeBodyPart, smimeDetailsToUpdate);
 			}
 
 			return liberatedContent != null ? liberatedContent : new AttachmentDecryptionResultImpl(SmimeMode.PLAIN, attachment);
@@ -285,12 +305,13 @@ public class SMIMESupport implements SMIMEModule {
 	}
 
 	@Nullable
-	private AttachmentDecryptionResult getEncryptedContent(final @Nullable Pkcs12Config pkcs12Config, final MimeBodyPart mimeBodyPart)
+	private AttachmentDecryptionResult getEncryptedContent(final @Nullable Pkcs12Config pkcs12Config, final MimeBodyPart mimeBodyPart,
+			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate)
 			throws MessagingException, IOException {
 		if (pkcs12Config != null) {
 			MimeBodyPart liberatedBodyPart = SmimeUtil.decrypt(mimeBodyPart, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
 			if (SmimeUtil.getStatus(liberatedBodyPart) == SmimeState.SIGNED_ENVELOPED) {
-				final AttachmentDecryptionResult signedContent = getSignedContent(liberatedBodyPart);
+				final AttachmentDecryptionResult signedContent = getSignedContent(liberatedBodyPart, null);
 				if (signedContent != null) {
 					return new AttachmentDecryptionResultImpl(SmimeMode.SIGNED_ENCRYPTED, signedContent.getAttachmentResource());
 				}
@@ -303,29 +324,39 @@ public class SMIMESupport implements SMIMEModule {
 	}
 
 	@Nullable
-	private AttachmentDecryptionResult getSignedContent(final MimeBodyPart mimeBodyPart)
+	private AttachmentDecryptionResult getSignedContent(final MimeBodyPart mimeBodyPart, @Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate)
 			throws MessagingException, IOException {
-		if (SmimeUtil.checkSignature(mimeBodyPart)) {
-			MimeBodyPart liberatedBodyPart = SmimeUtil.getSignedContent(mimeBodyPart);
-			return toAttachmentDecryptionResult(SmimeMode.SIGNED, handleLiberatedContent(liberatedBodyPart.getContent()));
+		final boolean validSignature = checkSmimePartSignature(mimeBodyPart);
+		if (smimeDetailsToUpdate != null) {
+			smimeDetailsToUpdate.completeWithSmimeSignatureValid(validSignature);
 		}
-		LOGGER.warn("Content is S/MIME signed, but signature is not valid; skipping S/MIME interpeter...");
-		return null;
+		if (!validSignature) {
+			LOGGER.warn("Content is S/MIME signed, but signature is not valid; keeping the signed content for parsing.");
+		}
+		MimeBodyPart liberatedBodyPart = SmimeUtil.getSignedContent(mimeBodyPart);
+		return toAttachmentDecryptionResult(SmimeMode.SIGNED, handleLiberatedContent(liberatedBodyPart.getContent()));
 	}
 
 	@Nullable
-	private AttachmentDecryptionResult tryGetSignedContent(final MimeBodyPart mimeBodyPart)
+	private AttachmentDecryptionResult tryGetSignedContent(final MimeBodyPart mimeBodyPart, @Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate)
 			throws MessagingException, IOException {
 		try {
-			if (SmimeUtil.checkSignature(mimeBodyPart)) {
-				MimeBodyPart liberatedBodyPart = SmimeUtil.getSignedContent(mimeBodyPart);
-				return toAttachmentDecryptionResult(SmimeMode.SIGNED, handleLiberatedContent(liberatedBodyPart.getContent()));
-			}
-		} catch (MessagingException | IOException e) {
-			// ignore, apparently not S/SMIME after all
+			return getSignedContent(mimeBodyPart, smimeDetailsToUpdate);
+		} catch (MessagingException | IOException | org.simplejavamail.utils.mail.smime.SmimeException e) {
+			// ignore, apparently not S/MIME after all
 		}
-        LOGGER.warn("Content classified as signed, but apparently not using S/MIME (or it was and the signature was not valid); skipping S/MIME interpeter...");
+		LOGGER.warn("Content classified as signed, but apparently not using S/MIME; skipping S/MIME interpreter...");
 		return null;
+	}
+
+	private boolean checkSmimePartSignature(final MimeBodyPart mimeBodyPart) {
+		try {
+			return SmimeUtil.checkSignature(mimeBodyPart);
+		} catch (org.simplejavamail.utils.mail.smime.SmimeException e) {
+			LOGGER.warn("Content is S/MIME signed, but signature verification failed. Reason: {}", e.getMessage());
+			LOGGER.debug("S/MIME attachment signature verification failure: {}", e.getMessage());
+			return false;
+		}
 	}
 
 	@Nullable

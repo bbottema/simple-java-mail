@@ -1,6 +1,7 @@
 package org.simplejavamail.internal.smimesupport;
 
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionResult;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
@@ -11,12 +12,18 @@ import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import testutil.SecureTestDataHelper;
 
+import jakarta.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.FileInputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
@@ -94,6 +101,58 @@ public class ReadSmimeSelfSignedTest {
 				.smimeSignedBy("Benny Bottema")
 				.smimeSignatureValid(true)
 				.build());
+	}
+
+	@Test
+	public void testSignedMessageEmlWithInvalidSignatureStillParses()
+			throws Exception {
+		Email emailParsedFromEml = EmailConverter.emlToEmail(createInvalidSignedEml());
+
+		EmailAssert.assertThat(emailParsedFromEml).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null, null));
+		EmailAssert.assertThat(emailParsedFromEml).hasSubject("S/MIME test message signed");
+		EmailAssert.assertThat(emailParsedFromEml).hasOnlyRecipients(new Recipient("Benny Bottema", "benny@bennybottema.com", TO, null));
+
+		assertThat(normalizeNewlines(emailParsedFromEml.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
+				+ "BROKEN attachment.\n"
+				+ "\n"
+				+ "For testing purposes in the Simple Java Mail project.\n"
+				+ "\n");
+
+		EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.SIGNED)
+				.smimeMime("multipart/signed")
+				.smimeProtocol("application/pkcs7-signature")
+				.smimeMicalg("sha-512")
+				.smimeSignedBy("Benny Bottema")
+				.smimeSignatureValid(false)
+				.build());
+	}
+
+	@Test
+	public void testSignedAttachmentWithInvalidSignatureStillUnwrapsContent()
+			throws Exception {
+		final String invalidSignedEml = createInvalidSignedEml();
+		final AttachmentResource signedAttachment = new AttachmentResource("smime.p7s",
+				new ByteArrayDataSource(extractMessageBody(invalidSignedEml).getBytes(UTF_8), "multipart/signed"));
+
+		final List<AttachmentDecryptionResult> decryptedAttachments = new SMIMESupport().decryptAttachments(singletonList(signedAttachment), null,
+				OriginalSmimeDetailsImpl.builder()
+						.smimeMode(SmimeMode.SIGNED)
+						.smimeMime("multipart/signed")
+						.smimeProtocol("application/pkcs7-signature")
+						.smimeMicalg("sha-512")
+						.build());
+
+		assertThat(decryptedAttachments).hasSize(1);
+		assertThat(decryptedAttachments.get(0).getSmimeMode()).isEqualTo(SmimeMode.SIGNED);
+		assertThat(decryptedAttachments.get(0).getAttachmentResource().getName()).isEqualTo("signed-email.eml");
+
+		final Email unwrappedEmail = EmailConverter.emlToEmail(decryptedAttachments.get(0).getAttachmentResource().getDataSourceInputStream());
+		assertThat(normalizeNewlines(unwrappedEmail.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
+				+ "BROKEN attachment.\n"
+				+ "\n"
+				+ "For testing purposes in the Simple Java Mail project.\n"
+				+ "\n");
 	}
 
 	@Test
@@ -258,6 +317,16 @@ public class ReadSmimeSelfSignedTest {
 		final String systemVariable = System.getenv(name);
 		assumeThat(systemVariable).as("system variable " + name).isNotNull();
 		return systemVariable;
+	}
+
+	private static String createInvalidSignedEml()
+			throws Exception {
+		final String signedEml = new String(Files.readAllBytes(Paths.get(RESOURCES_MESSAGES + "/S_MIME test message signed.eml")), UTF_8);
+		return signedEml.replace("dummy=20\r\nattachment.", "dummy=20\r\nBROKEN attachment.");
+	}
+
+	private static String extractMessageBody(final String eml) {
+		return eml.substring(eml.indexOf("\r\n\r\n") + 4);
 	}
 
 	private static void assertEmbeddedModuleArchitectureImage(final AttachmentResource embeddedImg, final String contentId) {

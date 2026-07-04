@@ -52,6 +52,7 @@ Unreleased 9.0.0
 - [#615](https://github.com/bbottema/simple-java-mail/issues/615): Fixed `MailerGenericBuilder.async()` so no-arg `testConnection()` uses the configured async default.
 - [#611](https://github.com/bbottema/simple-java-mail/issues/611): Fixed custom SSL socket factory configuration for SMTPS mailers.
 - [#572](https://github.com/bbottema/simple-java-mail/issues/572): Tolerate unsupported S/MIME payloads during Outlook conversion instead of failing conversion.
+- [#571](https://github.com/bbottema/simple-java-mail/issues/571): Preserve parsed email content when S/MIME signature verification fails and expose the invalid signature status.
 - [#606](https://github.com/bbottema/simple-java-mail/issues/606): Sanitize malformed resource MIME types before generating attachment and embedded-image headers.
 - [#541](https://github.com/bbottema/simple-java-mail/issues/541): Removed the non-standard `filename` parameter from resource `Content-Type` headers; filenames remain available through `Content-Disposition`.
 - [#583](https://github.com/bbottema/simple-java-mail/issues/583): Fixed CLI startup on Java 25.
