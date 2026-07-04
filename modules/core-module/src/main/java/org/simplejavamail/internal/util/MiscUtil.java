@@ -287,7 +287,8 @@ public final class MiscUtil {
 			if (isCorrectlyFormattedUrl(srcLocation) && new URL(srcLocation).getPath().startsWith(baseUrl.getPath())) {
 				dataSource = tryLoadingFromUrl(srcLocation);
 			} else {
-				final String urlPath = (baseUrl.getAuthority() + baseUrl.getPath() + "/" + srcLocation)
+				final String authority = baseUrl.getAuthority() != null ? baseUrl.getAuthority() : "";
+				final String urlPath = (authority + baseUrl.getPath() + "/" + srcLocation)
 						.replaceAll("/\\\\", "/")
 						.replaceAll("//", "/");
 				final String url = format("%s://%s", baseUrl.getProtocol(), urlPath);
