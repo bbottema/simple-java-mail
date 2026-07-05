@@ -6,6 +6,10 @@ https://www.simplejavamail.org
     <version>8.12.6</version>
 </dependency>
 
+Unreleased 9.0.0
+
+- Dependency maintenance: bumped java-socks-proxy-server from 4.1.2 to 4.2.0 and updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
+
 v8.12.0 - v8.12.6
 
 - v8.12.6 (18-April-2025): #595: [bug] Spring configuration - fix support for simplejavamail.extraproperties
