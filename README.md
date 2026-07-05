@@ -51,6 +51,7 @@ Unreleased 9.0.0
 - [#569](https://github.com/bbottema/simple-java-mail/issues/569): Added simple sequential batch sending for reusing one mailer connection without the batch module.
 - [#615](https://github.com/bbottema/simple-java-mail/issues/615): Fixed `MailerGenericBuilder.async()` so no-arg `testConnection()` uses the configured async default.
 - [#611](https://github.com/bbottema/simple-java-mail/issues/611): Fixed custom SSL socket factory configuration for SMTPS mailers.
+- [#535](https://github.com/bbottema/simple-java-mail/issues/535): Let async send and connection-test failures surface through the returned `CompletableFuture` without duplicate framework error logs.
 - [#572](https://github.com/bbottema/simple-java-mail/issues/572): Tolerate unsupported S/MIME payloads during Outlook conversion instead of failing conversion.
 - [#571](https://github.com/bbottema/simple-java-mail/issues/571): Preserve parsed email content when S/MIME signature verification fails and expose the invalid signature status.
 - [#606](https://github.com/bbottema/simple-java-mail/issues/606): Sanitize malformed resource MIME types before generating attachment and embedded-image headers.

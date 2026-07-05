@@ -40,9 +40,6 @@ class TestConnectionClosure extends AbstractProxyServerSyncingClosure {
 			}
 		} catch (final MessagingException e) {
 			throw new MailerException(MailerException.ERROR_CONNECTING_SMTP_SERVER, e);
-		} catch (final Exception e) {
-			LOGGER.error("Failed to test connection email");
-			throw e;
 		}
 	}
 }

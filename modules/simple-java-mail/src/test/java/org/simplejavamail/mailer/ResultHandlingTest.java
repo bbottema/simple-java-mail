@@ -5,6 +5,11 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import lombok.SneakyThrows;
 import lombok.val;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.apache.poi.ss.formula.functions.T;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +23,9 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.util.concurrent.NamedRunnable;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.mailer.internal.AbstractProxyServerSyncingClosure;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
@@ -35,9 +42,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
@@ -176,6 +186,47 @@ public class ResultHandlingTest {
 	}
 
 	@Test
+	public void asyncSendFailureShouldCompleteFutureWithoutFrameworkErrorLog() {
+		try (ErrorLogCaptor errorLogCaptor = ErrorLogCaptor.forLogger(NamedRunnable.class.getName())) {
+			final CompletableFuture<Void> f = sendAsyncMailUsingMailerAPI(false);
+
+			assertThatThrownBy(f::get).isInstanceOf(ExecutionException.class);
+
+			assertThat(errorLogCaptor.errorEvents()).isEmpty();
+		}
+	}
+
+	@Test
+	public void asyncSendFailureShouldCompleteFutureWithoutFrameworkErrorLogWithoutBatchModule() {
+		try (MockedStatic<ModuleLoader> moduleLoaderMockedStatic = mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS);
+			 ErrorLogCaptor errorLogCaptor = ErrorLogCaptor.forLogger(NamedRunnable.class.getName())) {
+			moduleLoaderMockedStatic.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
+
+			final CompletableFuture<Void> f = sendAsyncMailUsingMailerAPI(false);
+
+			assertThatThrownBy(f::get).isInstanceOf(ExecutionException.class);
+			assertThat(errorLogCaptor.errorEvents()).isEmpty();
+			moduleLoaderMockedStatic.verify(ModuleLoader::loadBatchModule, never());
+		}
+	}
+
+	@Test
+	public void asyncTestConnectionFailureShouldCompleteFutureWithoutFrameworkErrorLog() throws Exception {
+		try (ErrorLogCaptor errorLogCaptor = ErrorLogCaptor.forLogger(AbstractProxyServerSyncingClosure.class.getName());
+			 Mailer mailer = MailerBuilder
+					 .withSMTPServer("localhost", 0)
+					 .withCustomMailer(new FailingConnectionTestMailer())
+					 .async()
+					 .buildMailer()) {
+			final CompletableFuture<Void> f = mailer.testConnection(true);
+
+			assertThatThrownBy(f::get).isInstanceOf(ExecutionException.class);
+
+			assertThat(errorLogCaptor.errorEvents()).isEmpty();
+		}
+	}
+
+	@Test
 	public void testConnectionShouldUseBuilderAsyncDefault() throws Exception {
 		final BlockingTestConnectionMailer blockingMailer = new BlockingTestConnectionMailer();
 		final Mailer mailer = MailerBuilder
@@ -274,6 +325,18 @@ public class ResultHandlingTest {
 		}
 	}
 
+	private static class FailingConnectionTestMailer implements CustomMailer {
+
+		@Override
+		public void testConnection(@NotNull final OperationalConfig operationalConfig, @NotNull final Session session) {
+			throw new RuntimeException("simulating connection test fail...");
+		}
+
+		@Override
+		public void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @NotNull MimeMessage message) {
+		}
+	}
+
 	private static class BlockingTestConnectionMailer implements CustomMailer {
 		private final CountDownLatch connectionTestStarted = new CountDownLatch(1);
 		private final CountDownLatch releaseConnectionTest = new CountDownLatch(1);
@@ -316,6 +379,51 @@ public class ResultHandlingTest {
 		@Override
 		public void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @NotNull MimeMessage message) {
 			this.message = message;
+		}
+	}
+
+	private static class ErrorLogCaptor implements AutoCloseable {
+
+		@NotNull private final org.apache.logging.log4j.core.Logger logger;
+		@NotNull private final CapturingAppender appender;
+
+		private ErrorLogCaptor(@NotNull final String loggerName) {
+			this.logger = (org.apache.logging.log4j.core.Logger) LogManager.getLogger(loggerName);
+			this.appender = new CapturingAppender("capturing-appender-" + loggerName);
+			this.appender.start();
+			this.logger.addAppender(appender);
+		}
+
+		@NotNull
+		private static ErrorLogCaptor forLogger(@NotNull final String loggerName) {
+			return new ErrorLogCaptor(loggerName);
+		}
+
+		@NotNull
+		private List<LogEvent> errorEvents() {
+			return appender.events.stream()
+					.filter(event -> event.getLevel().isMoreSpecificThan(Level.ERROR))
+					.collect(Collectors.toList());
+		}
+
+		@Override
+		public void close() {
+			logger.removeAppender(appender);
+			appender.stop();
+		}
+	}
+
+	private static class CapturingAppender extends AbstractAppender {
+
+		@NotNull private final List<LogEvent> events = new CopyOnWriteArrayList<>();
+
+		private CapturingAppender(@NotNull final String name) {
+			super(name, null, null, true, Property.EMPTY_ARRAY);
+		}
+
+		@Override
+		public void append(@NotNull final LogEvent event) {
+			events.add(event.toImmutable());
 		}
 	}
 }
