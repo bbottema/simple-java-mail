@@ -58,6 +58,7 @@ Unreleased 9.0.0
 - [#583](https://github.com/bbottema/simple-java-mail/issues/583): Fixed CLI startup on Java 25.
 - [#616](https://github.com/bbottema/simple-java-mail/issues/616): Removed the runtime JetBrains annotation fork from CLI optional-argument detection.
 - Dependency maintenance: bumped Kryo to 5.6.2 ([#586](https://github.com/bbottema/simple-java-mail/pull/586)), Zip4j to 2.11.5 ([#587](https://github.com/bbottema/simple-java-mail/pull/587)), SubEthaSMTP to 7.1.7 ([#593](https://github.com/bbottema/simple-java-mail/pull/593)), and Angus Mail to 2.0.4 ([#604](https://github.com/bbottema/simple-java-mail/pull/604)).
+  - `utils-mail-dkim` 3.3.0: added configurable DNS provider URL support for DKIM domain-key TXT lookups, fixed the published automatic module name, and kept packaged artifacts free of JaCoCo probes.
   - `smtp-connection-pool` 3.0.0: made clustered SMTP pools generic over their cluster-key type and kept already-unusable connections from surfacing as generic pool error logs during transport close.
   - `java-socks-proxy-server` 4.2.0: updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
 - Build and test maintenance: bumped Maven Surefire Plugin to 3.5.3 ([#592](https://github.com/bbottema/simple-java-mail/pull/592)), aligned JUnit Platform/Jupiter at 1.13.0/5.13.0 while preserving Java 8 compatibility ([#596](https://github.com/bbottema/simple-java-mail/pull/596)), and replaced live embedded-image URL tests with deterministic local coverage ([#617](https://github.com/bbottema/simple-java-mail/issues/617)).
