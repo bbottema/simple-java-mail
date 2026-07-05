@@ -41,7 +41,7 @@ public class BatchSupport implements BatchModule {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchSupport.class);
 
 	// no need to make this static, because this module itself is already static in the ModuleLoader
-	@Nullable private SmtpConnectionPoolClustered smtpConnectionPool;
+	@Nullable private SmtpConnectionPoolClustered<UUID> smtpConnectionPool;
 
 	/**
 	 * @see BatchModule#executeAsync(String, Runnable)
@@ -84,7 +84,7 @@ public class BatchSupport implements BatchModule {
 	private void ensureClusterInitialized(@NotNull OperationalConfig operationalConfig) {
 		if (smtpConnectionPool == null) {
 			LOGGER.warn("Starting SMTP connection pool cluster: JVM won't shutdown until the pool is manually closed with mailer.shutdownConnectionPool() (for each mailer in the cluster)");
-			smtpConnectionPool = new SmtpConnectionPoolClustered(configureSmtpClusterConfig(operationalConfig));
+			smtpConnectionPool = new SmtpConnectionPoolClustered<>(configureSmtpClusterConfig(operationalConfig));
 		} else if (compareClusterConfig(operationalConfig, smtpConnectionPool.getClusterConfig())) {
 			LOGGER.warn("Global SMTP Connection pool is already configured with pool defaults from the first Mailer instance, ignoring relevant properties from {}", operationalConfig);
 		}
@@ -106,7 +106,7 @@ public class BatchSupport implements BatchModule {
 	}
 
 	@Nullable
-	private PoolableObject<SessionTransport> getSessionTransportPoolableObject(SmtpConnectionPoolClustered smtpConnectionPool, UUID clusterKey, Session session, boolean stickySession) {
+	private PoolableObject<SessionTransport> getSessionTransportPoolableObject(SmtpConnectionPoolClustered<UUID> smtpConnectionPool, UUID clusterKey, Session session, boolean stickySession) {
 		try {
 			return stickySession
 					? smtpConnectionPool.claimResourceFromPool(new ResourceClusterAndPoolKey<>(clusterKey, session))

@@ -12,6 +12,8 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.smtpconnectionpool.SessionTransport;
 import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
 
+import java.util.UUID;
+
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_ROBIN;
 
@@ -21,8 +23,8 @@ final class ClusterHelper {
 	}
 
 	@NotNull
-	static SmtpClusterConfig configureSmtpClusterConfig(@NotNull final OperationalConfig operationalConfig) {
-		SmtpClusterConfig smtpClusterConfig = new SmtpClusterConfig();
+	static SmtpClusterConfig<UUID> configureSmtpClusterConfig(@NotNull final OperationalConfig operationalConfig) {
+		SmtpClusterConfig<UUID> smtpClusterConfig = new SmtpClusterConfig<>();
 		smtpClusterConfig.getConfigBuilder()
 				.defaultCorePoolSize(operationalConfig.getConnectionPoolCoreSize())
 				.defaultMaxPoolSize(operationalConfig.getConnectionPoolMaxSize())
@@ -34,7 +36,7 @@ final class ClusterHelper {
 		return smtpClusterConfig;
 	}
 
-	static boolean compareClusterConfig(@NotNull final OperationalConfig operationalConfig, final ClusterConfig<Session, SessionTransport> config) {
+	static boolean compareClusterConfig(@NotNull final OperationalConfig operationalConfig, final ClusterConfig<UUID, Session, SessionTransport> config) {
 		return config.getDefaultCorePoolSize() != operationalConfig.getConnectionPoolCoreSize() ||
 				config.getDefaultMaxPoolSize() != operationalConfig.getConnectionPoolMaxSize() ||
 				config.getLoadBalancingStrategy().getClass() != determineLoadBalancingStrategy(operationalConfig).getClass() ||
