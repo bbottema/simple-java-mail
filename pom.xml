@@ -201,7 +201,7 @@
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-params</artifactId>
-                <version>5.13.0</version>
+                <version>6.1.1</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.platform</groupId>
