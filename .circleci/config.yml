@@ -3,6 +3,11 @@ version: 2.1
 orbs:
   github-maven-deploy: github-maven-deploy/github-maven-deploy@1.3.1
 
+executors:
+  java21-executor:
+    docker:
+      - image: cimg/openjdk:21.0
+
 mvn-build-test-command: &mvn-build-test-command
   mvn-build-test-command: mvn verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Dlicense.skip=true
 
@@ -45,18 +50,22 @@ workflows:
             - github-maven-deploy/build-and-test
 
       - github-maven-deploy/deploy-patch-version:
+          executor: java21-executor
           requires:
             - github-maven-deploy/approve-deploy-patch-version
           <<: *mvn-deploy-command
       - github-maven-deploy/deploy-minor-version:
+          executor: java21-executor
           requires:
             - github-maven-deploy/approve-deploy-minor-version
           <<: *mvn-deploy-command
       - github-maven-deploy/deploy-major-version:
+          executor: java21-executor
           requires:
             - github-maven-deploy/approve-deploy-major-version
           <<: *mvn-deploy-command
       - github-maven-deploy/deploy-as-is-version:
+          executor: java21-executor
           requires:
             - github-maven-deploy/approve-deploy-as-is-version
           <<: *mvn-deploy-command

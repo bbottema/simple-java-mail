@@ -3,11 +3,12 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.12.6</version>
+    <version>9.0.0</version>
 </dependency>
 
 Unreleased 9.0.0
 
+- #265: Added Java 9 module descriptors to the core and facade jars so modular applications can require org.simplejavamail directly, completing the multi-release jar support requested in #237.
 - Dependency maintenance: bumped java-socks-proxy-server from 4.1.2 to 4.2.0 and updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
 - Dependency maintenance: bumped smtp-connection-pool from 2.3.5 to 3.0.0 and updated the batch module for the generic clustered SMTP pool API.
 

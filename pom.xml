@@ -6,7 +6,7 @@
     <groupId>org.simplejavamail</groupId>
     <artifactId>maven-master-project</artifactId>
     <packaging>pom</packaging>
-    <version>8.12.6</version>
+    <version>9.0.0</version>
     <inceptionYear>2009</inceptionYear>
 
     <name>Simple Java Mail - Maven master project</name>
@@ -340,13 +340,18 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.2.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
                     <version>3.0.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.5.1</version>
+                    <version>3.14.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -530,6 +535,103 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>clean-java9-generated-output</id>
+            <activation>
+                <file>
+                    <exists>src/main/java9/module-info.java</exists>
+                </file>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>delete-stale-java9-generated-output</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>clean</goal>
+                                </goals>
+                                <configuration>
+                                    <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                                    <filesets>
+                                        <fileset>
+                                            <directory>${project.build.outputDirectory}/META-INF/versions</directory>
+                                            <includes>
+                                                <include>**/module-info.class</include>
+                                            </includes>
+                                            <followSymlinks>false</followSymlinks>
+                                        </fileset>
+                                        <fileset>
+                                            <directory>${project.build.outputDirectory}/META-INF</directory>
+                                            <includes>
+                                                <include>MANIFEST.MF</include>
+                                            </includes>
+                                            <followSymlinks>false</followSymlinks>
+                                        </fileset>
+                                    </filesets>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>java9-module-info</id>
+            <activation>
+                <jdk>[9,)</jdk>
+                <file>
+                    <exists>src/main/java9/module-info.java</exists>
+                </file>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>compile-java9-module-info</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <configuration>
+                                    <release>9</release>
+                                    <compileSourceRoots>
+                                        <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+                                    </compileSourceRoots>
+                                    <multiReleaseOutput>true</multiReleaseOutput>
+                                    <proc>none</proc>
+                                    <compilerArgs>
+                                        <arg>--patch-module</arg>
+                                        <arg>${automaticModuleName}=${project.build.outputDirectory}</arg>
+                                    </compilerArgs>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <configuration>
+                            <archive>
+                                <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+                                <manifestEntries>
+                                    <Automatic-Module-Name>${automaticModuleName}</Automatic-Module-Name>
+                                    <Multi-Release>true</Multi-Release>
+                                </manifestEntries>
+                            </archive>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <profile>
             <id>standard-javadoc</id>
             <activation>

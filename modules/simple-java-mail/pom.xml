@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.simplejavamail</groupId>
         <artifactId>maven-master-project</artifactId>
-        <version>8.12.6</version>
+        <version>9.0.0</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -29,6 +29,10 @@
             <artifactId>core-module</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-mail</artifactId>
         </dependency>
 
         <!-- optional support modules -->

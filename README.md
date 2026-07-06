@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%228.12.6%22) 
-[![Javadocs](https://img.shields.io/badge/javadoc-8.12.6-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project) 
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.0.0%22)
+[![Javadocs](https://img.shields.io/badge/javadoc-9.0.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -28,7 +28,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>8.12.6</version>
+    <version>9.0.0</version>
 </dependency>
 ```
 
@@ -58,6 +58,7 @@ Unreleased 9.0.0
 - [#571](https://github.com/bbottema/simple-java-mail/issues/571): Preserve parsed email content when S/MIME signature verification fails and expose the invalid signature status.
 - [#606](https://github.com/bbottema/simple-java-mail/issues/606): Sanitize malformed resource MIME types before generating attachment and embedded-image headers.
 - [#541](https://github.com/bbottema/simple-java-mail/issues/541): Removed the non-standard `filename` parameter from resource `Content-Type` headers; filenames remain available through `Content-Disposition`.
+- [#265](https://github.com/bbottema/simple-java-mail/issues/265): Added Java 9 module descriptors to the core and facade jars so modular applications can require `org.simplejavamail` directly, completing the multi-release jar support requested in [#237](https://github.com/bbottema/simple-java-mail/issues/237).
 - [#583](https://github.com/bbottema/simple-java-mail/issues/583): Fixed CLI startup on Java 25.
 - [#616](https://github.com/bbottema/simple-java-mail/issues/616): Removed the runtime JetBrains annotation fork from CLI optional-argument detection.
 - Dependency maintenance: bumped Kryo to 5.6.2 ([#586](https://github.com/bbottema/simple-java-mail/pull/586)), Zip4j to 2.11.5 ([#587](https://github.com/bbottema/simple-java-mail/pull/587)), SubEthaSMTP to 7.1.7 ([#593](https://github.com/bbottema/simple-java-mail/pull/593)), Angus Mail to 2.0.4 ([#604](https://github.com/bbottema/simple-java-mail/pull/604)), and AssertJ Core to 3.27.7 ([#622](https://github.com/bbottema/simple-java-mail/pull/622)).
