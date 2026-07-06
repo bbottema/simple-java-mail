@@ -23,7 +23,7 @@
         <license.owner.name>Benny Bottema</license.owner.name>
         <license.owner.email>benny@bennybottema.com</license.owner.email>
         <lombok.version>1.18.36</lombok.version>
-        <log4j.version>2.22.1</log4j.version>
+        <log4j.version>2.24.3</log4j.version>
         <mockito.version>4.11.0</mockito.version>
         <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
     </properties>
@@ -246,24 +246,13 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>2.0.13</version>
+                <version>2.0.16</version>
             </dependency>
             <!-- log4j-slf4j2-impl is the SLF4J 2.x bridge; log4j-slf4j-impl only works with SLF4J 1.x -->
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-slf4j2-impl</artifactId>
-                <version>2.22.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-slf4j-impl</artifactId>
                 <version>${log4j.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-slf4j18-impl</artifactId>
-                <version>2.18.0</version>
                 <scope>test</scope>
             </dependency>
             <dependency>

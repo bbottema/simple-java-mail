@@ -177,14 +177,25 @@ public class OutlookEmailConverter implements OutlookModule {
 	private static void copyReceiversFromOutlookMessage(@NotNull EmailPopulatingBuilder builder, @NotNull OutlookMessage outlookMessage) {
 		//noinspection QuestionableName
 		for (final OutlookRecipient to : outlookMessage.getToRecipients()) {
-			builder.to(to.getName(), to.getAddress());
+			if (hasUsableAddress(to)) {
+				builder.to(to.getName(), to.getAddress());
+			}
 		}
 		for (final OutlookRecipient cc : outlookMessage.getCcRecipients()) {
-			builder.cc(cc.getName(), cc.getAddress());
+			if (hasUsableAddress(cc)) {
+				builder.cc(cc.getName(), cc.getAddress());
+			}
 		}
 		for (final OutlookRecipient bcc : outlookMessage.getBccRecipients()) {
-			builder.bcc(bcc.getName(), bcc.getAddress());
+			if (hasUsableAddress(bcc)) {
+				builder.bcc(bcc.getName(), bcc.getAddress());
+			}
 		}
+	}
+
+	private static boolean hasUsableAddress(@NotNull OutlookRecipient recipient) {
+		final String address = recipient.getAddress();
+		return !valueNullOrEmpty(address) && !valueNullOrEmpty(address.trim());
 	}
 	
 	@NotNull

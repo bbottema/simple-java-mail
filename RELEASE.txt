@@ -11,6 +11,8 @@ Unreleased 9.0.0
 - #265: Added Java 9 module descriptors to the core and facade jars so modular applications can require org.simplejavamail directly, completing the multi-release jar support requested in #237.
 - Dependency maintenance: bumped java-socks-proxy-server from 4.1.2 to 4.2.0 and updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
 - Dependency maintenance: bumped smtp-connection-pool from 2.3.5 to 3.0.0 and updated the batch module for the generic clustered SMTP pool API.
+- Dependency maintenance: bumped outlook-message-parser from 1.14.1 to 1.15.0 for nested .msg attachment metadata, recipient bucket parsing, broader S/MIME detection, improved RTF-only body conversion, and updated Apache POI.
+- Dependency maintenance: aligned Log4j to 2.24.3 and SLF4J API to 2.0.16, keeping the Log4j bridge on log4j-slf4j2-impl for SLF4J 2.x.
 
 v8.12.0 - v8.12.6
 

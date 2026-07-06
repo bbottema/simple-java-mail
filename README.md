@@ -67,6 +67,8 @@ Unreleased 9.0.0
   - `smtp-connection-pool` 3.0.1 ([#8](https://github.com/simple-java-mail/smtp-connection-pool/issues/8)): pulled in `clustered-object-pool` 4.0.1 so the batch-module fix for [#565](https://github.com/bbottema/simple-java-mail/issues/565) can keep connection-pool defaults per cluster key.
   - `smtp-connection-pool` 3.0.0: made clustered SMTP pools generic over their cluster-key type and kept already-unusable connections from surfacing as generic pool error logs during transport close.
   - `java-socks-proxy-server` 4.2.0: updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
+  - `outlook-message-parser` 1.15.0: improved Outlook `.msg` conversion by preserving nested message attachment metadata, fixing recipient bucket parsing, broadening S/MIME detection, improving RTF-only body conversion, and updating Apache POI.
+  - Logging dependencies: aligned Log4j to 2.24.3 and SLF4J API to 2.0.16, keeping the Log4j bridge on `log4j-slf4j2-impl` for SLF4J 2.x.
 - Build and test maintenance: bumped Maven Surefire Plugin to 3.5.3 ([#592](https://github.com/bbottema/simple-java-mail/pull/592)), Maven Deploy Plugin to 3.1.4 ([#619](https://github.com/bbottema/simple-java-mail/pull/619)), and Maven GPG Plugin to 3.2.8 ([#621](https://github.com/bbottema/simple-java-mail/pull/621)); aligned JUnit Platform/Jupiter at 1.13.0/5.13.0 while preserving Java 8 compatibility ([#596](https://github.com/bbottema/simple-java-mail/pull/596)); and replaced live embedded-image URL tests with deterministic local coverage ([#617](https://github.com/bbottema/simple-java-mail/issues/617)).
 
 v8.12.0 - [v8.12.6](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.12.6/)
