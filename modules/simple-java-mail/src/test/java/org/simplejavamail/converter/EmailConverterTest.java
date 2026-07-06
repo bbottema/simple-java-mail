@@ -30,10 +30,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -44,6 +47,7 @@ import static java.lang.String.format;
 import static java.nio.charset.Charset.defaultCharset;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
+import static java.util.Calendar.JUNE;
 import static java.util.regex.Pattern.compile;
 import static org.apache.commons.codec.binary.Base64.encodeBase64Chunked;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -116,6 +120,38 @@ public class EmailConverterTest {
 		EmailAssert.assertThat(msg).hasSubject("subject");
 		EmailAssert.assertThat(msg).hasOnlyRecipients(ramonTo);
 		EmailAssert.assertThat(msg).hasDispositionNotificationTo(ramonFrom);
+	}
+
+	@Test
+	public void testOutlookDuplicateRecipientBucketsGithubIssue504() {
+		final Recipient to = new Recipient("Andrew McQuillen", "andrew.mcquillen@civica.co.uk", TO, null);
+
+		final Email distinctNames = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#504 TestingCC.msg"));
+		EmailAssert.assertThat(distinctNames).hasOnlyRecipients(
+				to,
+				new Recipient("test@example.com", "test@example.com", CC, null));
+
+		final Email sameName = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#504 TestingCCSameName.msg"));
+		EmailAssert.assertThat(sameName).hasOnlyRecipients(
+				to,
+				new Recipient("Andrew McQuillen", "atmcquillen@gmail.com", CC, null));
+	}
+
+	@Test
+	public void testOutlookSentDateGithubIssue534() {
+		final Date expectedSentDate = amsterdamDate(2024, JUNE, 4, 15, 31, 19);
+
+		final Email original = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#534 test.msg"));
+		assertThat(original.getSentDate()).isEqualTo(expectedSentDate);
+
+		final Email corrected = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#534 test_corrected.msg"));
+		assertThat(corrected.getSentDate()).isEqualTo(expectedSentDate);
+	}
+
+	@Test
+	public void testOutlookRtfOnlyMessagesGithubIssue576() {
+		assertConvertedRtfOnlyMessage("#576 RtfSampleEmail.msg", "BOOK ONE: 1805");
+		assertConvertedRtfOnlyMessage("#576 RtfSampleEmailWithAttachment.msg", "This is a sample RTF email with an attachment");
 	}
 
 	@Test
@@ -690,6 +726,21 @@ public class EmailConverterTest {
 		assertThat(matcher.find()).as(format("Found UUID in EML's Content-ID for filename '%s'", filename)).isTrue();
 		assertThat(matcher.group("uuid")).matches("sjm-[A-Za-z0-9-]+@simplejavamail\\.generated");
 		return matcher.group("uuid");
+	}
+
+	private static Date amsterdamDate(int year, int month, int dayOfMonth, int hourOfDay, int minute, int second) {
+		final GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("Europe/Amsterdam"));
+		calendar.set(year, month, dayOfMonth, hourOfDay, minute, second);
+		calendar.set(GregorianCalendar.MILLISECOND, 0);
+		return calendar.getTime();
+	}
+
+	private static void assertConvertedRtfOnlyMessage(String fileName, String expectedHtmlContent) {
+		final Email email = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/" + fileName));
+		assertThat(email.getHTMLText())
+				.contains(expectedHtmlContent)
+				.doesNotContain("{\\rtf", "\\fromtext", "\\pard");
+		assertThat(email.getPlainText()).isNotEmpty();
 	}
 
 	private static String extractResourceBody(String eml, String filename) {
