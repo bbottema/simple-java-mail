@@ -99,6 +99,7 @@ Only skip property configuration when the value cannot be expressed safely or cl
 - **ConfigLoader**: Add a new entry to the `Property` enum.
 - **Data Resolution**: Ensure the new property is used in `EmailGovernanceImpl`, the Mailer builder/config object, or wherever defaults are applied.
 - **Spring Mapping**: If the property belongs to the public configuration surface, add the corresponding Spring property and map it through `SimpleJavaMailSpringSupport`.
+- **Dynamic Property Collections**: For collection-style namespaces such as `simplejavamail.defaults.connectionpool.clusters.*`, keep parsing and validation centralized in `ConfigLoader`. Spring support should forward the whole namespace into `ConfigLoader` and Spring Boot metadata should describe the nested shape, rather than duplicating alias/key resolution.
 
 ## 9. Verification Surface Areas
 

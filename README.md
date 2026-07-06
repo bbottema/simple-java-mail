@@ -50,6 +50,7 @@ Unreleased 9.0.0
 - [#196](https://github.com/bbottema/simple-java-mail/issues/196): Added mailer-level default DKIM signing configuration so DKIM can be configured once per `Mailer`.
 - [#569](https://github.com/bbottema/simple-java-mail/issues/569): Added simple sequential batch sending for reusing one mailer connection without the batch module.
 - [#565](https://github.com/bbottema/simple-java-mail/issues/565): Fixed batch-module cluster configuration so different cluster keys can keep separate connection-pool defaults through the Java API.
+- [#618](https://github.com/bbottema/simple-java-mail/issues/618): Added property-defined batch cluster configurations for property-file driven clustered sending.
 - [#615](https://github.com/bbottema/simple-java-mail/issues/615): Fixed `MailerGenericBuilder.async()` so no-arg `testConnection()` uses the configured async default.
 - [#611](https://github.com/bbottema/simple-java-mail/issues/611): Fixed custom SSL socket factory configuration for SMTPS mailers.
 - [#535](https://github.com/bbottema/simple-java-mail/issues/535): Let async send and connection-test failures surface through the returned `CompletableFuture` without duplicate framework error logs.

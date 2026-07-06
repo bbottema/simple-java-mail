@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.CustomMailer;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.email.EmailBuilder;
@@ -20,9 +21,11 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -140,16 +143,17 @@ public class EmailHelper {
 				/*10*/5000,
 				/*11*/10000,
 				/*12*/ROUND_ROBIN,
-				/*13*/false,
+				/*13*/Collections.emptyMap(),
 				/*14*/false,
-				/*15*/null,
-				/*16*/false,
-				/*17*/ofNullable(hostsToTrust).orElse(Lists.emptyList()),
-				/*18*/trustAllSSLHost,
-				/*19*/verifyServerIdentity,
-				/*20*/newSingleThreadExecutor(),
-				/*21*/false,
-				/*22*/null);
+				/*15*/false,
+				/*16*/null,
+				/*17*/false,
+				/*18*/ofNullable(hostsToTrust).orElse(Lists.emptyList()),
+				/*19*/trustAllSSLHost,
+				/*20*/verifyServerIdentity,
+				/*21*/newSingleThreadExecutor(),
+				/*22*/false,
+				/*23*/null);
 	}
 
 	@NotNull
@@ -168,16 +172,17 @@ public class EmailHelper {
 			/*10*/final int connectionPoolClaimTimeoutMillis,
 			/*11*/final int connectionPoolExpireAfterMillis,
 			/*12*/@NotNull final LoadBalancingStrategy connectionPoolLoadBalancingStrategy,
-			/*13*/final boolean transportModeLoggingOnly,
-			/*14*/final boolean debugLogging,
-			/*15*/@Nullable final PrintStream debugPrinter,
-			/*16*/final boolean disableAllClientValidation,
-			/*17*/@NotNull final List<String> sslHostsToTrust,
-			/*18*/final boolean trustAllSSLHost,
-			/*19*/final boolean verifyingServerIdentity,
-			/*20*/@NotNull final ExecutorService executorService,
-			/*21*/final boolean isExecutorServiceUserProvided,
-			/*22*/@Nullable final CustomMailer customMailer) {
+			/*13*/@NotNull final Map<UUID, ConnectionPoolClusterConfig> connectionPoolClusterConfigs,
+			/*14*/final boolean transportModeLoggingOnly,
+			/*15*/final boolean debugLogging,
+			/*16*/@Nullable final PrintStream debugPrinter,
+			/*17*/final boolean disableAllClientValidation,
+			/*18*/@NotNull final List<String> sslHostsToTrust,
+			/*19*/final boolean trustAllSSLHost,
+			/*20*/final boolean verifyingServerIdentity,
+			/*21*/@NotNull final ExecutorService executorService,
+			/*22*/final boolean isExecutorServiceUserProvided,
+			/*23*/@Nullable final CustomMailer customMailer) {
 		try {
 			Constructor<?> constructor = Class.forName("org.simplejavamail.mailer.internal.OperationalConfigImpl").getDeclaredConstructors()[0];
 			constructor.setAccessible(true);
@@ -195,16 +200,17 @@ public class EmailHelper {
 					/*10*/connectionPoolClaimTimeoutMillis,
 					/*11*/connectionPoolExpireAfterMillis,
 					/*12*/connectionPoolLoadBalancingStrategy,
-					/*13*/transportModeLoggingOnly,
-					/*14*/debugLogging,
-					/*15*/debugPrinter,
-					/*16*/disableAllClientValidation,
-					/*17*/sslHostsToTrust,
-					/*18*/trustAllSSLHost,
-					/*19*/verifyingServerIdentity,
-					/*20*/executorService,
-					/*21*/isExecutorServiceUserProvided,
-					/*22*/customMailer);
+					/*13*/connectionPoolClusterConfigs,
+					/*14*/transportModeLoggingOnly,
+					/*15*/debugLogging,
+					/*16*/debugPrinter,
+					/*17*/disableAllClientValidation,
+					/*18*/sslHostsToTrust,
+					/*19*/trustAllSSLHost,
+					/*20*/verifyingServerIdentity,
+					/*21*/executorService,
+					/*22*/isExecutorServiceUserProvided,
+					/*23*/customMailer);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

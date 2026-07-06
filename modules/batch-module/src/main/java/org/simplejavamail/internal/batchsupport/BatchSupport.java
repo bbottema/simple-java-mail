@@ -92,8 +92,8 @@ public class BatchSupport implements BatchModule {
 	private void ensureClusterRegistered(@NotNull OperationalConfig operationalConfig, @NotNull UUID clusterKey) {
 		val smtpConnectionPool = requireNonNull(this.smtpConnectionPool);
 		if (!smtpConnectionPool.isClusterRegistered(clusterKey)) {
-			smtpConnectionPool.registerResourceCluster(clusterKey, configureSmtpClusterConfig(operationalConfig).getConfigBuilder().build());
-		} else if (compareClusterConfig(operationalConfig, smtpConnectionPool.getClusterConfig(clusterKey))) {
+			smtpConnectionPool.registerResourceCluster(clusterKey, configureSmtpClusterConfig(operationalConfig, clusterKey).getConfigBuilder().build());
+		} else if (compareClusterConfig(operationalConfig, clusterKey, smtpConnectionPool.getClusterConfig(clusterKey))) {
 			LOGGER.warn("SMTP Connection pool cluster {} is already configured with pool defaults from the first Mailer instance in that cluster, ignoring relevant properties from {}",
 					clusterKey, operationalConfig);
 		}

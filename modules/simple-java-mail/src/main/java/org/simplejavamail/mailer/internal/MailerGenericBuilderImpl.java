@@ -8,6 +8,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -19,6 +20,7 @@ import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -204,6 +206,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private LoadBalancingStrategy connectionPoolLoadBalancingStrategy;
 
 	/**
+	 * @see OperationalConfig#getConnectionPoolClusterConfigs()
+	 */
+	@NotNull
+	private Map<UUID, ConnectionPoolClusterConfig> connectionPoolClusterConfigs;
+
+	/**
 	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
 	@NotNull
@@ -272,6 +280,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.connectionPoolClaimTimeoutMillis 		= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS));
 		this.connectionPoolExpireAfterMillis 		= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
 		this.connectionPoolLoadBalancingStrategy	= verifyNonnullOrEmpty(valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
+		this.connectionPoolClusterConfigs			= valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, Collections.emptyMap());
 		this.transportModeLoggingOnly 				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
 
 		final String trustedHosts = valueOrPropertyAsString(null, Property.DEFAULT_TRUSTED_HOSTS, null);
@@ -337,6 +346,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getConnectionPoolClaimTimeoutMillis(),
 				getConnectionPoolExpireAfterMillis(),
 				getConnectionPoolLoadBalancingStrategy(),
+				connectionPoolClusterConfigs,
 				isTransportModeLoggingOnly(),
 				isDebugLogging(),
 				getDebugPrinter(),

@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.Map;
+
 /**
  * @deprecated Don't use this class directly, it is only used to generate the file "spring-configuration-metadata.json" used for IDE hints for the application.properties file.
  */
@@ -176,6 +178,21 @@ public class SimpleJavaMailProperties {
             private Claimtimeout claimtimeout;
             private Expireafter expireafter;
             private Loadbalancing loadbalancing;
+            private Map<String, Cluster> clusters;
+
+            /**
+             * @deprecated See {@link SimpleJavaMailProperties}
+             */
+            @Getter
+            @Setter
+            public static class Cluster {
+                private Clusterkey clusterkey;
+                private String coresize;
+                private String maxsize;
+                private Claimtimeout claimtimeout;
+                private Expireafter expireafter;
+                private Loadbalancing loadbalancing;
+            }
 
             /**
              * @deprecated See {@link SimpleJavaMailProperties}

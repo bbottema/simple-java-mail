@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader.Property;
@@ -15,6 +17,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,6 +31,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
@@ -306,6 +310,34 @@ public class ConfigLoaderTest {
 		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
 		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
 					.containsExactly(new SimpleEntry<>("a", "A"), new SimpleEntry<>("b", "B"));
+	}
+
+	@Test
+	public void loadPropertiesParsesConnectionPoolClusterConfigsByAliasAndUuid() {
+		UUID ordersCluster = UUID.fromString("00000000-0000-0000-0000-000000000101");
+		UUID bulkCluster = UUID.fromString("00000000-0000-0000-0000-000000000202");
+		Properties source = new Properties();
+		source.put("simplejavamail.defaults.connectionpool.clusters.orders.clusterkey.uuid", ordersCluster.toString());
+		source.put("simplejavamail.defaults.connectionpool.clusters.orders.coresize", "0");
+		source.put("simplejavamail.defaults.connectionpool.clusters.orders.maxsize", "2");
+		source.put("simplejavamail.defaults.connectionpool.clusters.orders.claimtimeout.millis", "30000");
+		source.put("simplejavamail.defaults.connectionpool.clusters.orders.expireafter.millis", "600000");
+		source.put("simplejavamail.defaults.connectionpool.clusters.orders.loadbalancing.strategy", "ROUND_ROBIN");
+		source.put("simplejavamail.defaults.connectionpool.clusters." + bulkCluster + ".maxsize", "8");
+		source.put("simplejavamail.defaults.connectionpool.clusters." + bulkCluster + ".loadbalancing.strategy", "RANDOM_ACCESS");
+
+		ConfigLoader.loadProperties(source, false);
+
+		Map<UUID, ConnectionPoolClusterConfig> clusterConfigs = ConfigLoader.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		assertThat(clusterConfigs).containsOnlyKeys(ordersCluster, bulkCluster);
+		assertThat(clusterConfigs.get(ordersCluster).getCoreSize()).isEqualTo(0);
+		assertThat(clusterConfigs.get(ordersCluster).getMaxSize()).isEqualTo(2);
+		assertThat(clusterConfigs.get(ordersCluster).getClaimTimeoutMillis()).isEqualTo(30000);
+		assertThat(clusterConfigs.get(ordersCluster).getExpireAfterMillis()).isEqualTo(600000);
+		assertThat(clusterConfigs.get(ordersCluster).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.ROUND_ROBIN);
+		assertThat(clusterConfigs.get(bulkCluster).getCoreSize()).isNull();
+		assertThat(clusterConfigs.get(bulkCluster).getMaxSize()).isEqualTo(8);
+		assertThat(clusterConfigs.get(bulkCluster).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.RANDOM_ACCESS);
 	}
 
 	@Test

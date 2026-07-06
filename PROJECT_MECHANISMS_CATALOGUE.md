@@ -92,6 +92,7 @@ Key pieces:
 - `MailerGenericBuilderImpl` chooses the executor service. With `batch-module` on the classpath, the default is `BatchModule.createDefaultExecutorService(...)`; otherwise it falls back to `Executors.newSingleThreadExecutor()`.
 - `NonJvmBlockingThreadPoolExecutor` is a fixed-size `ThreadPoolExecutor` with a `LinkedBlockingQueue`. If keep-alive time is greater than zero, core threads are allowed to time out so they do not keep the JVM alive forever.
 - `BatchSupport.registerToCluster(...)` creates/registers SMTP connection pools using `SmtpConnectionPoolClustered`.
+- Cluster-specific property defaults are parsed from `simplejavamail.defaults.connectionpool.clusters.*` by `ConfigLoader` and overlaid on the global connection-pool defaults when `BatchSupport` registers a matching cluster key.
 - `TransportRunner` sends through `BatchModule.acquireTransport(...)` when batch is available; otherwise it opens a normal `Session.getTransport()` connection for the operation.
 - `LifecycleDelegatingTransportImpl` wraps the pooled transport so the caller can signal success with `release()` or failure with `invalidate()`.
 - `MailerImpl.shutdownConnectionPool()` shuts down the default executor if it is library-owned and delegates pool shutdown to the batch module when present.

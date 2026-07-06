@@ -6,11 +6,13 @@ import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.CustomMailer;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -94,6 +96,12 @@ class OperationalConfigImpl implements OperationalConfig {
 	 */
 	@NotNull
 	private final LoadBalancingStrategy connectionPoolLoadBalancingStrategy;
+
+	/**
+	 * @see OperationalConfig#getConnectionPoolClusterConfigs()
+	 */
+	@NotNull
+	private final Map<UUID, ConnectionPoolClusterConfig> connectionPoolClusterConfigs;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)

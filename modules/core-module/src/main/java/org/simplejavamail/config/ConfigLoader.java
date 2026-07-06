@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -78,6 +80,12 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * <li>simplejavamail.defaults.connectionpool.claimtimeout.millis</li>
  * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
  * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.clusterkey.uuid</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.coresize</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.maxsize</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.claimtimeout.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.expireafter.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.defaults.trustallhosts</li>
  * <li>simplejavamail.defaults.trustedhosts</li>
@@ -125,6 +133,8 @@ public final class ConfigLoader {
 	 * This pattern recognizes extra property lines that should be loaded directly into JavaMail on the Session object.
 	 */
 	private static final Pattern EXTRA_PROPERTY_PATTERN = compile("^simplejavamail\\.extraproperties\\.(?<actualProperty>.*)");
+	private static final Pattern CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN = compile(
+			"^simplejavamail\\.defaults\\.connectionpool\\.clusters\\.(?<clusterAlias>[^.]+)\\.(?<clusterProperty>clusterkey\\.uuid|coresize|maxsize|claimtimeout\\.millis|expireafter\\.millis|loadbalancing\\.strategy)$");
 
 	/**
 	 * Initially try to load properties from "{@value #DEFAULT_CONFIG_FILENAME}".
@@ -189,6 +199,7 @@ public final class ConfigLoader {
 		DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS("simplejavamail.defaults.connectionpool.claimtimeout.millis"),
 		DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS("simplejavamail.defaults.connectionpool.expireafter.millis"),
 		DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY("simplejavamail.defaults.connectionpool.loadbalancing.strategy"),
+		DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS("simplejavamail.defaults.connectionpool.clusters.*"),
 		DEFAULT_POOL_KEEP_ALIVE_TIME("simplejavamail.defaults.poolsize.keepalivetime"),
 		DEFAULT_SESSION_TIMEOUT_MILLIS("simplejavamail.defaults.sessiontimeoutmillis"),
 		DEFAULT_TRUST_ALL_HOSTS("simplejavamail.defaults.trustallhosts"),
@@ -417,13 +428,27 @@ public final class ConfigLoader {
 		}
 
 		@SuppressWarnings("unchecked")
+		val connectionPoolClusterConfigs = RESOLVED_PROPERTIES.containsKey(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)
+				? new HashMap<>((Map<UUID, ConnectionPoolClusterConfig>) RESOLVED_PROPERTIES.get(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS))
+				: new HashMap<UUID, ConnectionPoolClusterConfig>();
+
+		final Map<String, Object> connectionPoolClusterProperties = new HashMap<>();
+		collectConnectionPoolClusterProperties(filePropertiesLeft, fileProperties.entrySet(), connectionPoolClusterProperties);
+		collectConnectionPoolClusterProperties(null, System.getenv().entrySet(), connectionPoolClusterProperties);
+		collectConnectionPoolClusterProperties(null, System.getProperties().entrySet(), connectionPoolClusterProperties);
+		connectionPoolClusterConfigs.putAll(parseConnectionPoolClusterProperties(connectionPoolClusterProperties));
+
+		if (!connectionPoolClusterConfigs.isEmpty()) {
+			resolvedProps.put(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, unmodifiableMap(connectionPoolClusterConfigs));
+		}
+
+		@SuppressWarnings("unchecked")
 		val extraProperties = RESOLVED_PROPERTIES.containsKey(Property.EXTRA_PROPERTIES)
 					? new HashMap<>((Map<String, String>) RESOLVED_PROPERTIES.get(Property.EXTRA_PROPERTIES))
 					: new HashMap<String, String>();
 
 		extraProperties.putAll(filterExtraJavaMailProperties(null, System.getProperties().entrySet()));
-		//noinspection unchecked,rawtypes
-		extraProperties.putAll(filterExtraJavaMailProperties(null, (Set) System.getenv().entrySet()));
+		extraProperties.putAll(filterExtraJavaMailProperties(null, System.getenv().entrySet()));
 		extraProperties.putAll(filterExtraJavaMailProperties(filePropertiesLeft, fileProperties.entrySet()));
 
 		resolvedProps.put(Property.EXTRA_PROPERTIES, extraProperties);
@@ -435,9 +460,9 @@ public final class ConfigLoader {
 		return resolvedProps;
 	}
 
-	private static Map<String, String> filterExtraJavaMailProperties(@Nullable final Properties filePropertiesLeft, final Set<Map.Entry<Object, Object>> entries) {
+	private static Map<String, String> filterExtraJavaMailProperties(@Nullable final Properties filePropertiesLeft, final Set<? extends Map.Entry<?, ?>> entries) {
 		final Map<String, String> extraProperties = new HashMap<>();
-		for (Map.Entry<Object, Object> propertyKey : entries) {
+		for (Map.Entry<?, ?> propertyKey : entries) {
 			if (propertyKey.getKey() instanceof String) {
 				final Matcher matcher = EXTRA_PROPERTY_PATTERN.matcher((String) propertyKey.getKey());
 				if (matcher.matches()) {
@@ -450,6 +475,108 @@ public final class ConfigLoader {
 			}
 		}
 		return extraProperties;
+	}
+
+	private static void collectConnectionPoolClusterProperties(@Nullable final Properties filePropertiesLeft,
+															   final Set<? extends Map.Entry<?, ?>> entries,
+															   @NotNull final Map<String, Object> target) {
+		for (Map.Entry<?, ?> propertyKey : entries) {
+			if (propertyKey.getKey() instanceof String) {
+				final String propertyName = (String) propertyKey.getKey();
+				if (CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(propertyName).matches()) {
+					target.put(propertyName, propertyKey.getValue());
+					if (filePropertiesLeft != null) {
+						filePropertiesLeft.remove(propertyName);
+					}
+				}
+			}
+		}
+	}
+
+	private static Map<UUID, ConnectionPoolClusterConfig> parseConnectionPoolClusterProperties(@NotNull final Map<String, Object> connectionPoolClusterProperties) {
+		final Map<String, ConnectionPoolClusterConfig.ConnectionPoolClusterConfigBuilder> buildersByAlias = new HashMap<>();
+		final Map<String, UUID> clusterKeysByAlias = new HashMap<>();
+
+		for (Map.Entry<String, Object> propertyKey : connectionPoolClusterProperties.entrySet()) {
+			final String propertyName = propertyKey.getKey();
+			final Matcher matcher = CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(propertyName);
+			if (!matcher.matches()) {
+				continue;
+			}
+			final String clusterAlias = matcher.group("clusterAlias");
+			final String clusterProperty = matcher.group("clusterProperty");
+			final Object propertyValue = propertyKey.getValue();
+			final ConnectionPoolClusterConfig.ConnectionPoolClusterConfigBuilder builder = buildersByAlias.computeIfAbsent(clusterAlias, ignored -> ConnectionPoolClusterConfig.builder());
+
+			switch (clusterProperty) {
+				case "clusterkey.uuid":
+					clusterKeysByAlias.put(clusterAlias, parseUuid(propertyName, propertyValue));
+					break;
+				case "coresize":
+					builder.coreSize(parseInteger(propertyName, propertyValue));
+					break;
+				case "maxsize":
+					builder.maxSize(parseInteger(propertyName, propertyValue));
+					break;
+				case "claimtimeout.millis":
+					builder.claimTimeoutMillis(parseInteger(propertyName, propertyValue));
+					break;
+				case "expireafter.millis":
+					builder.expireAfterMillis(parseInteger(propertyName, propertyValue));
+					break;
+				case "loadbalancing.strategy":
+					builder.loadBalancingStrategy(parseLoadBalancingStrategy(propertyName, propertyValue));
+					break;
+				default:
+					throw new IllegalStateException("Unhandled connection pool cluster property " + clusterProperty);
+			}
+		}
+
+		final Map<UUID, ConnectionPoolClusterConfig> connectionPoolClusterConfigs = new HashMap<>();
+		for (Map.Entry<String, ConnectionPoolClusterConfig.ConnectionPoolClusterConfigBuilder> configBuilder : buildersByAlias.entrySet()) {
+			final String clusterAlias = configBuilder.getKey();
+			final UUID clusterKey = clusterKeysByAlias.containsKey(clusterAlias)
+					? clusterKeysByAlias.get(clusterAlias)
+					: parseUuid("cluster alias " + clusterAlias, clusterAlias);
+			connectionPoolClusterConfigs.put(clusterKey, configBuilder.getValue().build());
+		}
+		return connectionPoolClusterConfigs;
+	}
+
+	private static UUID parseUuid(@NotNull final String propertyName, @Nullable final Object propertyValue) {
+		try {
+			return UUID.fromString(SimpleConversions.convertToString(propertyValue));
+		} catch (RuntimeException e) {
+			throw new IllegalArgumentException("Connection pool cluster property " + propertyName + " should be a UUID", e);
+		}
+	}
+
+	@Nullable
+	private static Integer parseInteger(@NotNull final String propertyName, @Nullable final Object propertyValue) {
+		if (valueNullOrEmpty(propertyValue)) {
+			return null;
+		} else if (propertyValue instanceof Integer) {
+			return (Integer) propertyValue;
+		}
+		try {
+			return Integer.valueOf(SimpleConversions.convertToString(propertyValue));
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Connection pool cluster property " + propertyName + " should be an integer", e);
+		}
+	}
+
+	@Nullable
+	private static LoadBalancingStrategy parseLoadBalancingStrategy(@NotNull final String propertyName, @Nullable final Object propertyValue) {
+		if (valueNullOrEmpty(propertyValue)) {
+			return null;
+		} else if (propertyValue instanceof LoadBalancingStrategy) {
+			return (LoadBalancingStrategy) propertyValue;
+		}
+		try {
+			return LoadBalancingStrategy.valueOf(SimpleConversions.convertToString(propertyValue));
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Connection pool cluster property " + propertyName + " should be a LoadBalancingStrategy", e);
+		}
 	}
 
 	/**

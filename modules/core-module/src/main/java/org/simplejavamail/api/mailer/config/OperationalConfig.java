@@ -9,6 +9,7 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -78,6 +79,12 @@ public interface OperationalConfig {
 	 */
 	@NotNull
 	LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy();
+
+	/**
+	 * @return Cluster-specific connection pool settings loaded from properties, keyed by cluster key.
+	 */
+	@NotNull
+	Map<UUID, ConnectionPoolClusterConfig> getConnectionPoolClusterConfigs();
 	
 	/**
 	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)

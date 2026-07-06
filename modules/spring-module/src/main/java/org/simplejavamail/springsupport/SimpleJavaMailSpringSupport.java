@@ -73,6 +73,12 @@ import java.util.Properties;
  * <li>simplejavamail.defaults.connectionpool.claimtimeout.millis</li>
  * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
  * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.clusterkey.uuid</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.coresize</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.maxsize</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.claimtimeout.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.expireafter.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.defaults.trustallhosts</li>
  * <li>simplejavamail.defaults.trustedhosts</li>
@@ -116,6 +122,9 @@ import java.util.Properties;
  */
 @Configuration
 public class SimpleJavaMailSpringSupport {
+
+	private static final String EXTRA_PROPERTIES_PREFIX = "simplejavamail.extraproperties.";
+	private static final String CONNECTIONPOOL_CLUSTERS_PREFIX = "simplejavamail.defaults.connectionpool.clusters.";
 
 	private final ConfigurableEnvironment environment;
 
@@ -334,8 +343,11 @@ public class SimpleJavaMailSpringSupport {
 		for (PropertySource<?> source : environment.getPropertySources()) {
 			if (source instanceof EnumerablePropertySource) {
 				for (String name : ((EnumerablePropertySource<?>) source).getPropertyNames()) {
-					if (name.startsWith("simplejavamail.extraproperties.")) {
-						emailProperties.setProperty(name, environment.getProperty(name));
+					if (name.startsWith(EXTRA_PROPERTIES_PREFIX) || name.startsWith(CONNECTIONPOOL_CLUSTERS_PREFIX)) {
+						String propertyValue = environment.getProperty(name);
+						if (propertyValue != null) {
+							emailProperties.setProperty(name, propertyValue);
+						}
 					}
 				}
 			}
