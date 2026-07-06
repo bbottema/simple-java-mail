@@ -447,6 +447,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Configures the connection pool's core size (default {@value DEFAULT_CONNECTIONPOOL_CORE_SIZE}), which means the SMTP connection pool will keep X connections open at all times until shut down.
 	 * Note that this also means that if you configure an auto-expiry timeout, these connections die off and new ones are created immediately to maintain core size.
 	 * <p>
+	 * When using clustered batch sending, the first {@link Mailer} registered for a cluster determines this setting for that cluster.
+	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
 	 * @param connectionPoolCoreSize See main description.
@@ -463,6 +465,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * on a <em>claim</em> for an available {@code Transport} instance. In other words: by having an oversized connection pool, you inadvertently bypass the blocking claim mechanism of the
 	 * connection pool and wait on the Transport directly instead.
 	 * <p>
+	 * When using clustered batch sending, the first {@link Mailer} registered for a cluster determines this setting for that cluster.
+	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
 	 * @param connectionPoolMaxSize See main description.
@@ -472,6 +476,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * If {@code >0}, configures the connection pool to wait for a limited time after which the attempt to claim a Transport connection errors out.
 	 * The default is to wait indefinately until a connection becomes available in the pool.
+	 * <p>
+	 * When using clustered batch sending, the first {@link Mailer} registered for a cluster determines this setting for that cluster.
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
@@ -485,6 +491,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Note that if you combine this with {@link #withConnectionPoolCoreSize(Integer)} also {@code >0} (default is {@value DEFAULT_CONNECTIONPOOL_CORE_SIZE}), connections will keep
 	 * closing and opening to keep core pool populated until shut down.
 	 * <p>
+	 * When using clustered batch sending, the first {@link Mailer} registered for a cluster determines this setting for that cluster.
+	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
 	 * @param connectionPoolExpireAfterMillis See main description.
@@ -495,7 +503,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Defines the various types of load balancing modes supported by the connection pool ion the
 	 * <a href="https://www.simplejavamail.org/configuration.html#section-batch-and-clustering">batch-module</a>.
 	 * <p>
-	 * This is only relevant if you have multiple mail servers in one or more clusters. Currently, it is impossible to define different load balancing strategies for different clusters.
+	 * This is only relevant if you have multiple mail servers in one or more clusters. When using clustered batch sending,
+	 * the first {@link Mailer} registered for a cluster determines this setting for that cluster.
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *

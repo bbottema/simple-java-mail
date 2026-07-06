@@ -73,8 +73,9 @@ public class BatchSupport implements BatchModule {
 	 * @see BatchModule#registerToCluster(OperationalConfig, UUID, Session)
 	 */
 	@Override
-	public void registerToCluster(@NotNull final OperationalConfig operationalConfig, @NotNull final UUID clusterKey, @NotNull final Session session) {
+	public synchronized void registerToCluster(@NotNull final OperationalConfig operationalConfig, @NotNull final UUID clusterKey, @NotNull final Session session) {
 		ensureClusterInitialized(operationalConfig);
+		ensureClusterRegistered(operationalConfig, clusterKey);
 		final ResourceClusterAndPoolKey<UUID, Session> poolKey = new ResourceClusterAndPoolKey<>(clusterKey, session);
 		if (!requireNonNull(smtpConnectionPool).isPoolRegistered(poolKey)) {
 			smtpConnectionPool.registerResourcePool(poolKey);
@@ -85,8 +86,16 @@ public class BatchSupport implements BatchModule {
 		if (smtpConnectionPool == null) {
 			LOGGER.warn("Starting SMTP connection pool cluster: JVM won't shutdown until the pool is manually closed with mailer.shutdownConnectionPool() (for each mailer in the cluster)");
 			smtpConnectionPool = new SmtpConnectionPoolClustered<>(configureSmtpClusterConfig(operationalConfig));
-		} else if (compareClusterConfig(operationalConfig, smtpConnectionPool.getClusterConfig())) {
-			LOGGER.warn("Global SMTP Connection pool is already configured with pool defaults from the first Mailer instance, ignoring relevant properties from {}", operationalConfig);
+		}
+	}
+
+	private void ensureClusterRegistered(@NotNull OperationalConfig operationalConfig, @NotNull UUID clusterKey) {
+		val smtpConnectionPool = requireNonNull(this.smtpConnectionPool);
+		if (!smtpConnectionPool.isClusterRegistered(clusterKey)) {
+			smtpConnectionPool.registerResourceCluster(clusterKey, configureSmtpClusterConfig(operationalConfig).getConfigBuilder().build());
+		} else if (compareClusterConfig(operationalConfig, smtpConnectionPool.getClusterConfig(clusterKey))) {
+			LOGGER.warn("SMTP Connection pool cluster {} is already configured with pool defaults from the first Mailer instance in that cluster, ignoring relevant properties from {}",
+					clusterKey, operationalConfig);
 		}
 	}
 

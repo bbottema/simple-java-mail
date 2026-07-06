@@ -39,6 +39,7 @@ final class ClusterHelper {
 	static boolean compareClusterConfig(@NotNull final OperationalConfig operationalConfig, final ClusterConfig<UUID, Session, SessionTransport> config) {
 		return config.getDefaultCorePoolSize() != operationalConfig.getConnectionPoolCoreSize() ||
 				config.getDefaultMaxPoolSize() != operationalConfig.getConnectionPoolMaxSize() ||
+				!config.getClaimTimeout().equals(new Timeout(operationalConfig.getConnectionPoolClaimTimeoutMillis(), MILLISECONDS)) ||
 				config.getLoadBalancingStrategy().getClass() != determineLoadBalancingStrategy(operationalConfig).getClass() ||
 				!config.getDefaultExpirationPolicy().equals(new TimeoutSinceLastAllocationExpirationPolicy<SessionTransport>(operationalConfig.getConnectionPoolExpireAfterMillis(), MILLISECONDS));
 	}
