@@ -25,3 +25,9 @@ updates:
         update-types:
           - "version-update:semver-minor"
           - "version-update:semver-major"
+      - dependency-name: "org.junit.jupiter:*"
+        versions:
+          - "[6,)"
+      - dependency-name: "org.junit.platform:*"
+        versions:
+          - "[6,)"
