@@ -322,11 +322,21 @@ public class ReadSmimeSelfSignedTest {
 	private static String createInvalidSignedEml()
 			throws Exception {
 		final String signedEml = new String(Files.readAllBytes(Paths.get(RESOURCES_MESSAGES + "/S_MIME test message signed.eml")), UTF_8);
-		return signedEml.replace("dummy=20\r\nattachment.", "dummy=20\r\nBROKEN attachment.");
+		final String invalidSignedEml = signedEml.replaceFirst("dummy=20(\\r?\\n)attachment\\.", "dummy=20$1BROKEN attachment.");
+		assertThat(invalidSignedEml).as("test fixture corruption should be applied").isNotEqualTo(signedEml);
+		return invalidSignedEml;
 	}
 
 	private static String extractMessageBody(final String eml) {
-		return eml.substring(eml.indexOf("\r\n\r\n") + 4);
+		final int crlfBodyStart = eml.indexOf("\r\n\r\n");
+		if (crlfBodyStart >= 0) {
+			return eml.substring(crlfBodyStart + 4);
+		}
+		final int lfBodyStart = eml.indexOf("\n\n");
+		if (lfBodyStart >= 0) {
+			return eml.substring(lfBodyStart + 2);
+		}
+		throw new IllegalArgumentException("Could not find message body in test fixture");
 	}
 
 	private static void assertEmbeddedModuleArchitectureImage(final AttachmentResource embeddedImg, final String contentId) {
