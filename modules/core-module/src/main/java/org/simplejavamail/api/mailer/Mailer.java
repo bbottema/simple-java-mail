@@ -93,6 +93,32 @@ public interface Mailer extends AutoCloseable {
 	@NotNull CompletableFuture<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
 
 	/**
+	 * Runs caller-managed send logic while one SMTP connection is open.
+	 * <p>
+	 * Use this API when the caller owns the source queue and needs to run work between successful sends, for example marking a database-backed message
+	 * as sent before fetching the next pending message:
+	 * <pre>{@code
+	 * mailer.withOpenConnection(sender -> {
+	 *     while (database.hasMorePendingMails()) {
+	 *         PersistentMail mail = database.nextPendingMail();
+	 *         sender.sendMail(mail.toEmail());
+	 *         database.setPending(mail, false);
+	 *     }
+	 * });
+	 * }</pre>
+	 * Simple Java Mail owns the SMTP connection and closes it when the callback returns or fails. The delegate does <strong>not</strong> use the
+	 * batch-module connection pool, does not queue emails, and does not run asynchronously. Each {@link MailSender#sendMail(Email)} call
+	 * applies the same defaults, validation, MIME conversion, and transport mode behavior as {@link #sendMail(Email, boolean)} with {@code async=false}.
+	 * A custom mailer cannot be used with this API because Simple Java Mail does not own the underlying connection in that configuration.
+	 *
+	 * @param openConnectionCallback The caller-managed send logic to run while the SMTP connection is open.
+	 * @param <E>                    The checked exception type the callback may throw.
+	 * @throws E             Any checked exception thrown by caller code.
+	 * @throws MailException Can be thrown if opening the SMTP connection fails, an email isn't valid, or sending fails.
+	 */
+	<E extends Exception> void withOpenConnection(@NotNull OpenConnectionCallback<E> openConnectionCallback) throws E;
+
+	/**
 	 * Delegates to {@link #sendMailsInSimpleBatch(Iterable, boolean)} using the mailer's configured async default.
 	 *
 	 * @see MailerGenericBuilder#async()

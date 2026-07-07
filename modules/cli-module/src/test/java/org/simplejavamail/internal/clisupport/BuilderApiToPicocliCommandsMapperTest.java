@@ -10,6 +10,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
+import org.simplejavamail.api.mailer.OpenConnectionCallback;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -115,15 +116,18 @@ public class BuilderApiToPicocliCommandsMapperTest {
 	}
 
 	@Test
-	public void mailerFacadeSimpleBatchApiIsNotGeneratedAsCliBuilderOption() throws Exception {
+	public void mailerFacadeSendApisAreNotGeneratedAsCliBuilderOption() throws Exception {
 		Method simpleBatchSend = Mailer.class.getMethod("sendMailsInSimpleBatch", Iterable.class);
 		assertThat(methodIsCliCompatible(simpleBatchSend).isCompatible()).isFalse();
 		assertThat(methodIsCliCompatible(simpleBatchSend).getReason()).contains("@BuilderApiNode missing");
+		Method openConnectionSend = Mailer.class.getMethod("withOpenConnection", OpenConnectionCallback.class);
+		assertThat(methodIsCliCompatible(openConnectionSend).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(openConnectionSend).getReason()).contains("@BuilderApiNode missing");
 
 		List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
 				new Class<?>[] { EmailStartingBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class });
 		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
-				.doesNotContain("--mailer:sendMailsInSimpleBatch");
+				.doesNotContain("--mailer:sendMailsInSimpleBatch", "--mailer:withOpenConnection");
 	}
 
 	@Test

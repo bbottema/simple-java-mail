@@ -48,7 +48,7 @@ Unreleased 9.0.0
 - [#589](https://github.com/bbottema/simple-java-mail/issues/589): Added Jakarta Mail debug output configuration.
 - [#568](https://github.com/bbottema/simple-java-mail/issues/568): Added local bind address configuration for multi-IP SMTP hosts.
 - [#196](https://github.com/bbottema/simple-java-mail/issues/196): Added mailer-level default DKIM signing configuration so DKIM can be configured once per `Mailer`.
-- [#569](https://github.com/bbottema/simple-java-mail/issues/569): Added simple sequential batch sending for reusing one mailer connection without the batch module.
+- [#569](https://github.com/bbottema/simple-java-mail/issues/569): Added simple sequential batch sending and callback-scoped open connection sending without the batch module.
 - [#565](https://github.com/bbottema/simple-java-mail/issues/565): Fixed batch-module cluster configuration so different cluster keys can keep separate connection-pool defaults through the Java API.
 - [#618](https://github.com/bbottema/simple-java-mail/issues/618): Added property-defined batch cluster configurations for property-file and Spring-configured clustered sending, complementing the Java API cluster configuration from [#565](https://github.com/bbottema/simple-java-mail/issues/565).
 - [#615](https://github.com/bbottema/simple-java-mail/issues/615): Fixed `MailerGenericBuilder.async()` so no-arg `testConnection()` uses the configured async default.

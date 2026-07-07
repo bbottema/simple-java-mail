@@ -9,6 +9,7 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.OpenConnectionCallback;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -378,6 +379,17 @@ public class MailerImpl implements Mailer {
 						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
 					: AsyncOperationHelper
 						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
+	}
+
+	/**
+	 * @see Mailer#withOpenConnection(OpenConnectionCallback)
+	 */
+	@Override
+	public final <E extends Exception> void withOpenConnection(@NotNull final OpenConnectionCallback<E> openConnectionCallback) throws E {
+		val checkedOpenConnectionCallback = verifyNonnull(openConnectionCallback);
+		new SendMailsWithOpenConnectionClosure<>(operationalConfig, session, checkedOpenConnectionCallback, this::prepareEmailForSending,
+				proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter)
+				.runOpenConnectionCallback();
 	}
 
 	/**

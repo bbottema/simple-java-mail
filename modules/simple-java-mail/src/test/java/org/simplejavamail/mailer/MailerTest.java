@@ -11,6 +11,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DkimConfig;
@@ -46,8 +47,10 @@ import java.util.Properties;
 import java.util.UUID;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.util.Calendar.APRIL;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -541,13 +544,7 @@ public class MailerTest {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		CountingTransport.reset();
 
-		final Properties properties = new Properties();
-		properties.setProperty("mail.transport.protocol", "smtp");
-		properties.setProperty("mail.smtp.host", "localhost");
-		final Session session = Session.getInstance(properties);
-		final Provider provider = new Provider(Provider.Type.TRANSPORT, "smtp", CountingTransport.class.getName(), "Simple Java Mail", "test");
-		session.addProvider(provider);
-		session.setProvider(provider);
+		final Session session = createCountingTransportSession();
 
 		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
 			mailer.sendMailsInSimpleBatch(Arrays.asList(
@@ -562,6 +559,86 @@ public class MailerTest {
 		assertThat(CountingTransport.sentMessages.get(1).getSubject()).isEqualTo("Second batch email");
 		assertThat(CountingTransport.sentRecipients.get(0)).extracting(Address::toString).containsExactly("first@example.com");
 		assertThat(CountingTransport.sentRecipients.get(1)).extracting(Address::toString).containsExactly("second@example.com");
+	}
+
+	@Test
+	public void testOpenConnection_sendEmails_allowsCallerCheckpointingBetweenSends() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		CountingTransport.reset();
+		final List<String> markedSent = new ArrayList<>();
+
+		final Session session = createCountingTransportSession();
+
+		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+			mailer.withOpenConnection(sender -> {
+				sender.sendMail(createBatchEmail("First database email", "first@example.com"));
+				markedSent.add("first");
+
+				sender.sendMail(createBatchEmail("Second database email", "second@example.com"));
+				markedSent.add("second");
+			});
+		}
+
+		assertThat(markedSent).containsExactly("first", "second");
+		assertThat(CountingTransport.connectCount).isEqualTo(1);
+		assertThat(CountingTransport.closeCount).isEqualTo(1);
+		assertThat(CountingTransport.sentMessages).hasSize(2);
+		assertThat(CountingTransport.sentMessages.get(0).getSubject()).isEqualTo("First database email");
+		assertThat(CountingTransport.sentMessages.get(1).getSubject()).isEqualTo("Second database email");
+	}
+
+	@Test
+	public void testOpenConnection_sendEmails_propagatesCallerCheckedException() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		CountingTransport.reset();
+
+		final IOException checkpointFailure = new IOException("database unavailable");
+		final Session session = createCountingTransportSession();
+
+		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+			assertThatThrownBy(() -> mailer.withOpenConnection(sender -> {
+						sender.sendMail(createBatchEmail("First database email", "first@example.com"));
+						throw checkpointFailure;
+					}))
+					.isSameAs(checkpointFailure);
+		}
+
+		assertThat(CountingTransport.connectCount).isEqualTo(1);
+		assertThat(CountingTransport.closeCount).isEqualTo(1);
+		assertThat(CountingTransport.sentMessages).hasSize(1);
+	}
+
+	@Test
+	public void testOpenConnection_sendEmails_propagatesCallerRuntimeException() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		CountingTransport.reset();
+
+		final IllegalStateException checkpointFailure = new IllegalStateException("database unavailable");
+		final Session session = createCountingTransportSession();
+
+		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+			assertThatThrownBy(() -> mailer.withOpenConnection(sender -> {
+						sender.sendMail(createBatchEmail("First database email", "first@example.com"));
+						throw checkpointFailure;
+					}))
+					.isSameAs(checkpointFailure);
+		}
+
+		assertThat(CountingTransport.connectCount).isEqualTo(1);
+		assertThat(CountingTransport.closeCount).isEqualTo(1);
+		assertThat(CountingTransport.sentMessages).hasSize(1);
+	}
+
+	@Test
+	public void testOpenConnection_sendEmails_rejectsCustomMailer() throws Exception {
+		final CustomMailer customMailerMock = mock(CustomMailer.class);
+
+		try (Mailer mailer = getMailerWithCustomMailer(customMailerMock)) {
+			assertThatThrownBy(() -> mailer.withOpenConnection(sender -> {
+			}))
+					.isInstanceOf(MailException.class)
+					.hasMessageContaining("custom mailer");
+		}
 	}
 
 	@Test
@@ -591,10 +668,21 @@ public class MailerTest {
 				.buildMailer();
 	}
 
+	private static Session createCountingTransportSession() throws MessagingException {
+		final Properties properties = new Properties();
+		properties.setProperty("mail.transport.protocol", "smtp");
+		properties.setProperty("mail.smtp.host", "localhost");
+		final Session session = Session.getInstance(properties);
+		final Provider provider = new Provider(Provider.Type.TRANSPORT, "smtp", CountingTransport.class.getName(), "Simple Java Mail", "test");
+		session.addProvider(provider);
+		session.setProvider(provider);
+		return session;
+	}
+
 	private static Email createBatchEmail(final String subject, final String recipient) {
 		return EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.to(recipient)
+				.withRecipients(null, false, TO, recipient)
 				.withSubject(subject)
 				.withPlainText("Simple batch body")
 				.buildEmail();
