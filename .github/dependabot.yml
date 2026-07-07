@@ -34,3 +34,6 @@ updates:
       - dependency-name: "org.mockito:*"
         versions:
           - "[5,)"
+      - dependency-name: "org.junit-pioneer:junit-pioneer"
+        versions:
+          - "[2,)"
