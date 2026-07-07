@@ -40,6 +40,7 @@ import java.util.Properties;
  * <li>simplejavamail.smtp.localport</li>
  * <li>simplejavamail.disable.all.clientvalidation</li>
  * <li>simplejavamail.custom.sslfactory.class</li>
+ * <li>simplejavamail.custom.sslfactory.clazz</li>
  * <li>simplejavamail.proxy.host</li>
  * <li>simplejavamail.proxy.port</li>
  * <li>simplejavamail.proxy.username</li>
