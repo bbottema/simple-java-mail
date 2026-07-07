@@ -1,13 +1,12 @@
 package org.simplejavamail.internal.clisupport;
 
 import jakarta.activation.DataSource;
+import jakarta.mail.Message;
 import jakarta.mail.internet.MimeMessage;
 import lombok.val;
 import org.bbottema.javareflection.BeanUtils;
 import org.bbottema.javareflection.BeanUtils.Visibility;
 import org.bbottema.javareflection.ClassUtils;
-import org.bbottema.javareflection.MethodUtils;
-import org.bbottema.javareflection.model.LookupMode;
 import org.bbottema.javareflection.model.MethodModifier;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.jetbrains.annotations.NotNull;
@@ -28,6 +27,7 @@ import org.simplejavamail.internal.clisupport.valueinterpreters.StringToCalendar
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToContentTransferEncodingFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToFileFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToLoadBalancingStrategyFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToRecipientTypeFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToSessionDebugOutputFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToTransportStrategyFunction;
 import org.simplejavamail.internal.util.StringUtil;
@@ -75,8 +75,10 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(boolean.class, "BOOL");
 		put(Boolean.class, "BOOL");
 		put(String.class, "TEXT");
+		put(String[].class, "TEXT");
 		put(Object.class, "TEXT");
 		put(TransportStrategy.class, "NAME");
+		put(Message.RecipientType.class, "NAME");
 		put(CalendarMethod.class, "RFC-2446 VEVENT METHOD");
 		put(int.class, "NUM");
 		put(Integer.class, "NUM");
@@ -100,6 +102,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		ValueConversionHelper.registerValueConverter(new PemFilePathToX509CertificateFunction());
 		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
 		ValueConversionHelper.registerValueConverter(new StringToLoadBalancingStrategyFunction());
+		ValueConversionHelper.registerValueConverter(new StringToRecipientTypeFunction());
 		ValueConversionHelper.registerValueConverter(new StringToSessionDebugOutputFunction());
 		ValueConversionHelper.registerValueConverter(new StringToCalendarMethodFunction());
 		ValueConversionHelper.registerValueConverter(new StringToContentTransferEncodingFunction());
@@ -181,16 +184,30 @@ public final class BuilderApiToPicocliCommandsMapper {
 			return new CliMethodCompatibilityResult(false, "Compatibility check failed: @ExcludeApi present");
 		} else if (BeanUtils.isBeanMethod(m, m.getDeclaringClass(), allOf(Visibility.class), true)) {
 			return new CliMethodCompatibilityResult(false, "Compatibility check failed: actually a bean method");
-		} else if (MethodUtils.methodHasCollectionParameter(m)) {
+		} else if (hasUnsupportedCollectionParameter(m)) {
 			return new CliMethodCompatibilityResult(false, "Compatibility check failed: collection parameter present");
 		}
-		@SuppressWarnings("unchecked")
-		Class<String>[] stringParameters = new Class[m.getParameterTypes().length];
-		Arrays.fill(stringParameters, String.class);
-		if (!MethodUtils.isMethodCompatible(m, allOf(LookupMode.class), stringParameters)) {
-			return new CliMethodCompatibilityResult(false, "Compatibility check failed: parameters not compatible");
+		for (Class<?> parameterType : m.getParameterTypes()) {
+			if (!isCliCompatibleParameterType(parameterType)) {
+				return new CliMethodCompatibilityResult(false, "Compatibility check failed: parameter not CLI compatible: " + parameterType.getName());
+			}
 		}
 		return new CliMethodCompatibilityResult(true);
+	}
+
+	private static boolean isCliCompatibleParameterType(Class<?> parameterType) {
+		return TYPE_LABELS.containsKey(parameterType) || parameterType.isEnum();
+	}
+
+	private static boolean hasUnsupportedCollectionParameter(Method m) {
+		for (Class<?> parameterType : m.getParameterTypes()) {
+			if ((parameterType.isArray() && parameterType != String[].class)
+					|| Iterable.class.isAssignableFrom(parameterType)
+					|| Map.class.isAssignableFrom(parameterType)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	@NotNull
@@ -267,6 +284,8 @@ public final class BuilderApiToPicocliCommandsMapper {
 
 	@NotNull
 	private static String determineTypeLabel(Class<?> type) {
-		return checkNonEmptyArgument(TYPE_LABELS.get(type), "Missing type label for type " + type);
+		return type.isEnum()
+				? "NAME"
+				: checkNonEmptyArgument(TYPE_LABELS.get(type), "Missing type label for type " + type);
 	}
 }

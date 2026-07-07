@@ -94,6 +94,9 @@ class CliCommandLineConsumer {
 	}
     
     private static Object parseStringInput(@NotNull String stringValue, @NotNull Class<?> targetType) {
+		if (targetType == String[].class) {
+			return MiscUtil.extractEmailAddresses(stringValue);
+		}
 		try {
 			return ValueConversionHelper.convert(stringValue, targetType);
 		} catch (IncompatibleTypeException e) {

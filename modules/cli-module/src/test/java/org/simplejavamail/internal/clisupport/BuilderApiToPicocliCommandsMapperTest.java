@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.clisupport;
 
+import jakarta.mail.Message;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -113,6 +114,33 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		Method withProxy = MailerGenericBuilder.class.getMethod("withProxy", String.class, Integer.class);
 		assertThat(hasCliOptionalParameter(withProxy, 0)).isTrue();
 		assertThat(hasCliOptionalParameter(withProxy, 1)).isTrue();
+	}
+
+	@Test
+	public void stringVarargsBuilderApiIsMappedAndConvertedForCli() throws Exception {
+		Method withRecipients = EmailPopulatingBuilder.class.getMethod("withRecipients", String.class, boolean.class, Message.RecipientType.class, String[].class);
+		assertThat(methodIsCliCompatible(withRecipients).isCompatible()).isTrue();
+		assertThat(getArgumentsForCliOption(withRecipients)).extracting("helpLabel")
+				.containsExactly("TEXT", "BOOL", "NAME", "TEXT");
+
+		List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
+				new Class<?>[] { EmailStartingBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class });
+		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
+				.contains("--email:withRecipients");
+
+		List<Object> fullValues = CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(Arrays.asList(
+				"Team", "false", "TO", "alice@example.com;bob@example.com")), withRecipients);
+		assertThat(fullValues.get(0)).isEqualTo("Team");
+		assertThat(fullValues.get(1)).isEqualTo(false);
+		assertThat(fullValues.get(2)).isEqualTo(Message.RecipientType.TO);
+		assertThat((String[]) fullValues.get(3)).containsExactly("alice@example.com", "bob@example.com");
+
+		List<Object> minimalValues = CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(Arrays.asList(
+				"false", "alice@example.com,bob@example.com")), withRecipients);
+		assertThat(minimalValues.get(0)).isNull();
+		assertThat(minimalValues.get(1)).isEqualTo(false);
+		assertThat(minimalValues.get(2)).isNull();
+		assertThat((String[]) minimalValues.get(3)).containsExactly("alice@example.com", "bob@example.com");
 	}
 
 	@Test
