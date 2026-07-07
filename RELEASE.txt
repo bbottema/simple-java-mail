@@ -31,7 +31,6 @@ Unreleased 9.0.0
 - #265: Added Java 9 module descriptors to the core and facade jars so modular applications can require org.simplejavamail directly, completing the multi-release jar support requested in #237.
 - #583: Fixed CLI startup on Java 25.
 - #616: Removed the runtime JetBrains annotation fork from CLI optional-argument detection.
-- Fixed CLI metadata generation for the expanded 9.0 builder API so generated help and options remain stable without exhausting heap during reflection compatibility checks.
 - Fixed standalone CLI command cleanup so send, connect, and validate wait for command work and close mailer resources, preventing batch-module resources from keeping the process alive.
 - Dependency maintenance: bumped JMail to 2.1.0 (#634), commons-io to 2.22.0 (#579, #627), Kryo to 5.6.2 (#586), Zip4j to 2.11.5 (#587), SubEthaSMTP to 7.2.2 (#593, #632), Angus Mail to 2.0.4 (#604), Objenesis to 3.5 (#580, #635), Lombok to 1.18.46 (#636), AssertJ Core to 3.27.7 (#622), and SpotBugs annotations to 4.10.2 (#629).
   - utils-mail-dkim 3.3.0: added configurable DNS provider URL support for DKIM domain-key TXT lookups, fixed the published automatic module name, and kept packaged artifacts free of JaCoCo probes.
