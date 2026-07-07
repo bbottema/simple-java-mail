@@ -529,7 +529,7 @@ public interface EmailPopulatingBuilder {
 	 * Adds one or more recipients by parsing one or more RFC2822 address strings and applying the given recipient type to every parsed recipient.
 	 * <p>
 	 * This is the string-based recipient entry point used by the CLI and property-backed flows. For Java code that already has recipient data, prefer
-	 * {@link #withRecipients(Recipient...)} or {@link org.simplejavamail.recipient.RecipientsBuilder}.
+	 * {@link #withRecipients(Recipient...)} or {@link IRecipientsBuilder}.
 	 *
 	 * @param name Optional explicit name. If {@code fixedName} is {@code true}, it overwrites names found in the address strings; otherwise it is only
 	 *             used when an address string does not contain a name.
@@ -551,7 +551,7 @@ public interface EmailPopulatingBuilder {
 	 * Adds copies of the provided recipients, preserving name, address, recipient type and optional per-recipient S/MIME certificate.
 	 * <p>
 	 * If the recipients are reused and their certificate state should not be carried into this email, first pass them through
-	 * {@link org.simplejavamail.recipient.RecipientsBuilder#clearingSmimeCertificates()}.
+	 * {@link IRecipientsBuilder#clearingSmimeCertificates()}.
 	 */
 	EmailPopulatingBuilder withRecipients(@NotNull Recipient @NotNull ...recipients);
 
@@ -559,7 +559,7 @@ public interface EmailPopulatingBuilder {
 	 * Adds copies of the provided recipients, preserving name, address, recipient type and optional per-recipient S/MIME certificate.
 	 * <p>
 	 * If the recipients are reused and their certificate state should not be carried into this email, first pass them through
-	 * {@link org.simplejavamail.recipient.RecipientsBuilder#clearingSmimeCertificates()}.
+	 * {@link IRecipientsBuilder#clearingSmimeCertificates()}.
 	 */
 	EmailPopulatingBuilder withRecipients(@NotNull Collection<Recipient> recipients);
 
@@ -1306,14 +1306,14 @@ public interface EmailPopulatingBuilder {
 	 * For signing and encrypting this email when sending, resets the email-level S/MIME signing and encryption properties to empty.
 	 * <p>
 	 * This does not clear S/MIME certificates already present on {@link Recipient} instances added to this email. To clear recipient-level certificate state
-	 * while reusing recipients, pass those recipients through {@link org.simplejavamail.recipient.RecipientsBuilder#clearingSmimeCertificates()} before adding
+	 * while reusing recipients, pass those recipients through {@link IRecipientsBuilder#clearingSmimeCertificates()} before adding
 	 * them to the email.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
 	 * @see #signWithSmime(SmimeSigningConfig)
 	 * @see #encryptWithSmime(SmimeEncryptionConfig)
-	 * @see org.simplejavamail.recipient.RecipientsBuilder#clearingSmimeCertificates()
+	 * @see IRecipientsBuilder#clearingSmimeCertificates()
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearSmime();
@@ -1457,9 +1457,8 @@ public interface EmailPopulatingBuilder {
 	String getSubject();
 
 	/**
-	 * @see #to(Recipient...)
-	 * @see #cc(Recipient...)
-	 * @see #bcc(Recipient...)
+	 * @see #withRecipients(Recipient...)
+	 * @see #withRecipients(Collection)
 	 */
 	@NotNull
 	List<Recipient> getRecipients();

@@ -19,7 +19,7 @@ import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 
 /**
- * @see #getSignatureAlgorithm()
+ * @see SmimeSigningConfigBuilder#signatureAlgorithm(String)
  * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
  */
 @ToString

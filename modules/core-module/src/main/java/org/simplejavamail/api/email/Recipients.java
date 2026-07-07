@@ -24,12 +24,12 @@ public class Recipients implements Serializable {
     @NotNull List<Recipient> recipients;
 
     /**
-     * @see IRecipientsBuilder#withDefaultName(String)
+     * Optional default name used for recipient groups where missing names should be filled.
      */
     @Nullable String defaultName;
 
     /**
-     * @see IRecipientsBuilder#withOverridingName(String)
+     * Optional fixed name used for recipient groups where parsed names should be overwritten.
      */
     @Nullable String overridingName;
 }

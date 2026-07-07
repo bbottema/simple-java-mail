@@ -1,5 +1,6 @@
 package org.simplejavamail.recipient;
 
+import jakarta.mail.Message;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
@@ -32,7 +33,7 @@ public class RecipientBuilder implements IRecipientBuilder {
     private String address;
 
     /**
-     * @see IRecipientBuilder#withType(RecipientType)
+     * @see IRecipientBuilder#withType(Message.RecipientType)
      */
     @Nullable
     private RecipientType type;
@@ -56,7 +57,7 @@ public class RecipientBuilder implements IRecipientBuilder {
     }
 
     /**
-     * @see IRecipientBuilder#withType(RecipientType)
+     * @see IRecipientBuilder#withType(Message.RecipientType)
      */
     @Override
     public IRecipientBuilder withType(@NotNull RecipientType type) {

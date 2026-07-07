@@ -31,7 +31,7 @@ public class Recipient implements Serializable {
     @NotNull String address;
 
     /**
-     * @see IRecipientBuilder#withType(RecipientType)
+     * @see IRecipientBuilder#withType(Message.RecipientType)
      */
     @Nullable RecipientType type;
 

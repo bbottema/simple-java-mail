@@ -22,10 +22,10 @@ import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 /**
  * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
  * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
- * @see #getUseLengthParam()
- * @see #getHeaderCanonicalization()
- * @see #getBodyCanonicalization()
- * @see #getSigningAlgorithm()
+ * @see DkimConfigBuilder#useLengthParam(Boolean)
+ * @see DkimConfigBuilder#headerCanonicalization(DkimConfig.Canonicalization)
+ * @see DkimConfigBuilder#bodyCanonicalization(DkimConfig.Canonicalization)
+ * @see DkimConfigBuilder#signingAlgorithm(String)
  */
 @ToString(exclude = "dkimPrivateKeyData")
 @Getter
@@ -230,7 +230,7 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * @see DkimConfig#getUseLengthParam()
+         * Configures whether the DKIM signature should include the body length tag.
          */
         public DkimConfigBuilder useLengthParam(@Nullable Boolean useLengthParam) {
             this.useLengthParam = useLengthParam;
@@ -256,7 +256,7 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * @see DkimConfig#getHeaderCanonicalization()
+         * Configures the canonicalization algorithm for email headers.
          */
         public DkimConfigBuilder headerCanonicalization(@Nullable Canonicalization headerCanonicalization) {
             this.headerCanonicalization = headerCanonicalization;
@@ -264,7 +264,7 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * @see DkimConfig#getBodyCanonicalization()
+         * Configures the canonicalization algorithm for the email body.
          */
         public DkimConfigBuilder bodyCanonicalization(@Nullable Canonicalization bodyCanonicalization) {
             this.bodyCanonicalization = bodyCanonicalization;
@@ -272,7 +272,7 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * @see DkimConfig#getSigningAlgorithm()
+         * Configures the DKIM signing algorithm.
          */
         public DkimConfigBuilder signingAlgorithm(@Nullable String signingAlgorithm) {
             this.signingAlgorithm = signingAlgorithm;

@@ -185,9 +185,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private ContentTransferEncoding calendarTextContentTransferEncoding;
 
 	/**
-	 * @see #to(Recipient...)
-	 * @see #cc(Recipient...)
-	 * @see #bcc(Recipient...)
+	 * @see #withRecipients(Recipient...)
+	 * @see #withRecipients(Collection)
 	 */
 	@NotNull
 	private final List<Recipient> recipients = new ArrayList<>();

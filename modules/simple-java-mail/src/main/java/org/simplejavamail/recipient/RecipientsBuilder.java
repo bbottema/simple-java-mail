@@ -54,7 +54,7 @@ public class RecipientsBuilder implements IRecipientsBuilder {
     }
 
     /**
-     * @see IRecipientsBuilder#withDefaultSmimeCertificate(X509Certificate)
+     * @see IRecipientsBuilder#withDefaultSmimeCertificate(java.security.cert.X509Certificate)
      */
     @Override
     @NotNull
@@ -65,7 +65,7 @@ public class RecipientsBuilder implements IRecipientsBuilder {
     }
 
     /**
-     * @see IRecipientsBuilder#withFixedSmimeCertificate(X509Certificate)
+     * @see IRecipientsBuilder#withFixedSmimeCertificate(java.security.cert.X509Certificate)
      */
     @Override
     @NotNull

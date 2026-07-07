@@ -22,8 +22,8 @@ import java.security.cert.X509Certificate;
 import static java.lang.String.format;
 
 /**
- * @see #getKeyEncapsulationAlgorithm()
- * @see #getCipherAlgorithm()
+ * @see SmimeEncryptionConfigBuilder#keyEncapsulationAlgorithm(String)
+ * @see SmimeEncryptionConfigBuilder#cipherAlgorithm(String)
  * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
  */
 @ToString
