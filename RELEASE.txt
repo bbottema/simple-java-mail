@@ -8,11 +8,38 @@ https://www.simplejavamail.org
 
 Unreleased 9.0.0
 
+- #297: Added per-recipient S/MIME certificates, enabling encrypted mail for multiple recipients with different certificates.
+- #613: Added a dedicated recipient builder API for constructing single recipients and recipient collections.
+- #614: Added explicit Outlook conversion result APIs for inspecting source .msg headers and metadata without copying structural headers into converted emails, resolving #609.
+- #574: Added Delivery Status Notification (DSN) configuration.
+- #605: Added per-body Content-Transfer-Encoding configuration for plain text, HTML, and calendar content.
+- #573: Added pre-encoded attachment and embedded-image APIs.
+- #566, #597, #602, #607: Improved MIME resource Content-ID handling for explicit IDs, parsed embedded images, and generated fallback IDs.
+- #589: Added Jakarta Mail debug output configuration.
+- #568: Added local bind address configuration for multi-IP SMTP hosts.
+- #196: Added mailer-level default DKIM signing configuration so DKIM can be configured once per Mailer.
+- #569: Added simple sequential batch sending and callback-scoped open connection sending without the batch module.
+- #565: Fixed batch-module cluster configuration so different cluster keys can keep separate connection-pool defaults through the Java API.
+- #618: Added property-defined batch cluster configurations for property-file and Spring-configured clustered sending, complementing the Java API cluster configuration from #565.
+- #615: Fixed MailerGenericBuilder.async() so no-arg testConnection() uses the configured async default.
+- #611: Fixed custom SSL socket factory configuration for SMTPS mailers.
+- #535: Let async send and connection-test failures surface through the returned CompletableFuture without duplicate framework error logs.
+- #572: Tolerate unsupported S/MIME payloads during Outlook conversion instead of failing conversion.
+- #571: Preserve parsed email content when S/MIME signature verification fails and expose the invalid signature status.
+- #606: Sanitize malformed resource MIME types before generating attachment and embedded-image headers.
+- #541: Removed the non-standard filename parameter from resource Content-Type headers; filenames remain available through Content-Disposition.
 - #265: Added Java 9 module descriptors to the core and facade jars so modular applications can require org.simplejavamail directly, completing the multi-release jar support requested in #237.
-- Dependency maintenance: bumped java-socks-proxy-server from 4.1.2 to 4.2.0 and updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
-- Dependency maintenance: bumped smtp-connection-pool from 2.3.5 to 3.0.0 and updated the batch module for the generic clustered SMTP pool API.
-- Dependency maintenance: bumped outlook-message-parser from 1.14.1 to 1.15.0 for nested .msg attachment metadata, recipient bucket parsing, broader S/MIME detection, improved RTF-only body conversion, and updated Apache POI.
-- Dependency maintenance: aligned Log4j to 2.24.3 and SLF4J API to 2.0.16, keeping the Log4j bridge on log4j-slf4j2-impl for SLF4J 2.x.
+- #583: Fixed CLI startup on Java 25.
+- #616: Removed the runtime JetBrains annotation fork from CLI optional-argument detection.
+- Dependency maintenance: bumped JMail to 2.1.0 (#634), commons-io to 2.22.0 (#579, #627), Kryo to 5.6.2 (#586), Zip4j to 2.11.5 (#587), SubEthaSMTP to 7.2.2 (#593, #632), Angus Mail to 2.0.4 (#604), Objenesis to 3.5 (#580, #635), Lombok to 1.18.46 (#636), AssertJ Core to 3.27.7 (#622), and SpotBugs annotations to 4.10.2 (#629).
+  - utils-mail-dkim 3.3.0: added configurable DNS provider URL support for DKIM domain-key TXT lookups, fixed the published automatic module name, and kept packaged artifacts free of JaCoCo probes.
+  - clustered-object-pool 4.0.1: added cluster-specific Java configuration for pool defaults, claim timeout, and load balancing.
+  - smtp-connection-pool 3.0.1: pulled in clustered-object-pool 4.0.1 so the batch-module fix for #565 can keep connection-pool defaults per cluster key.
+  - smtp-connection-pool 3.0.0: made clustered SMTP pools generic over their cluster-key type and kept already-unusable connections from surfacing as generic pool error logs during transport close.
+  - java-socks-proxy-server 4.2.0: updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
+  - outlook-message-parser 1.15.0: improved Outlook .msg conversion by preserving nested message attachment metadata, fixing sent-date extraction (#534), fixing recipient bucket parsing (#504), broadening S/MIME detection, improving RTF-only body conversion (#576), and updating Apache POI.
+  - Logging dependencies: aligned Log4j to 2.25.4 (#624) and SLF4J API to 2.0.18 (#631), keeping the Log4j bridge on log4j-slf4j2-impl for SLF4J 2.x.
+- Build and test maintenance: bumped Maven Surefire Plugin to 3.5.6 (#592, #625), Maven Clean Plugin to 3.5.0 (#626), Appassembler Maven Plugin to 2.1.0 (#581), Exec Maven Plugin to 3.5.0 (#582), Maven Deploy Plugin to 3.1.4 (#619), Maven Install Plugin to 3.1.4 (#639), Maven Javadoc Plugin to 3.12.0 (#637), Maven GPG Plugin to 3.2.8 (#621), and JaCoCo Maven Plugin to 0.8.15 (#638); aligned JUnit Platform/Jupiter at 1.14.4/5.14.4 while preserving Java 8 compatibility (#596, #633); kept JUnit Pioneer on 1.9.1 because 2.x is Java 11 bytecode (#630); and replaced live embedded-image URL tests with deterministic local coverage (#617).
 
 v8.12.0 - v8.12.6
 
