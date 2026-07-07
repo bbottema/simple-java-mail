@@ -83,7 +83,7 @@
         <dependency><!-- SMTP test server -->
             <groupId>com.github.davidmoten</groupId>
             <artifactId>subethasmtp</artifactId>
-            <version>7.1.7</version>
+            <version>7.2.2</version>
             <scope>test</scope>
         </dependency>
         <dependency><!-- used to test loading of Environment properties in ConfigLoaderTest -->
