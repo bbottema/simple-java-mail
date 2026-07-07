@@ -23,7 +23,7 @@
         <license.owner.name>Benny Bottema</license.owner.name>
         <license.owner.email>benny@bennybottema.com</license.owner.email>
         <lombok.version>1.18.36</lombok.version>
-        <log4j.version>2.24.3</log4j.version>
+        <log4j.version>2.25.4</log4j.version>
         <mockito.version>4.11.0</mockito.version>
         <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
     </properties>
