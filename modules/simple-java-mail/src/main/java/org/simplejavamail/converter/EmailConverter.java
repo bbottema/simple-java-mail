@@ -13,6 +13,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
@@ -44,6 +45,9 @@ import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.Properties;
 
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
@@ -834,14 +838,14 @@ public final class EmailConverter {
 		}
 		builder.fixingMessageId(parsed.getMessageId());
 		for (final InternetAddress to : parsed.getToAddresses()) {
-			builder.to(to);
+			builder.withRecipients(new Recipient(to.getPersonal(), to.getAddress(), TO, null));
 		}
 		//noinspection QuestionableName
 		for (final InternetAddress cc : parsed.getCcAddresses()) {
-			builder.cc(cc);
+			builder.withRecipients(new Recipient(cc.getPersonal(), cc.getAddress(), CC, null));
 		}
 		for (final InternetAddress bcc : parsed.getBccAddresses()) {
-			builder.bcc(bcc);
+			builder.withRecipients(new Recipient(bcc.getPersonal(), bcc.getAddress(), BCC, null));
 		}
 		builder.withSubject(parsed.getSubject() != null ? parsed.getSubject() : "");
 		builder.withPlainText(parsed.getPlainContent());

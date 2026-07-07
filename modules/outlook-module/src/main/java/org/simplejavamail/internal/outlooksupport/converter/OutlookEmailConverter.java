@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.general.EmailPopulatingBuilderFactory;
 import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.internal.general.MessageHeader;
@@ -28,6 +29,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -178,17 +182,17 @@ public class OutlookEmailConverter implements OutlookModule {
 		//noinspection QuestionableName
 		for (final OutlookRecipient to : outlookMessage.getToRecipients()) {
 			if (hasUsableAddress(to)) {
-				builder.to(to.getName(), to.getAddress());
+				builder.withRecipients(new Recipient(to.getName(), to.getAddress(), TO, null));
 			}
 		}
 		for (final OutlookRecipient cc : outlookMessage.getCcRecipients()) {
 			if (hasUsableAddress(cc)) {
-				builder.cc(cc.getName(), cc.getAddress());
+				builder.withRecipients(new Recipient(cc.getName(), cc.getAddress(), CC, null));
 			}
 		}
 		for (final OutlookRecipient bcc : outlookMessage.getBccRecipients()) {
 			if (hasUsableAddress(bcc)) {
-				builder.bcc(bcc.getName(), bcc.getAddress());
+				builder.withRecipients(new Recipient(bcc.getName(), bcc.getAddress(), BCC, null));
 			}
 		}
 	}

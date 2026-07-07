@@ -9,6 +9,7 @@ import org.simplejavamail.email.EmailBuilder;
 import java.lang.reflect.Method;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.DELAY;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
@@ -19,7 +20,7 @@ public class DeliveryStatusNotificationMimeMessageProducerTest {
 	public void emailToMimeMessage_PrimesDeliveryStatusNotificationOnSmtpMessage() throws Exception {
 		MimeMessage message = EmailConverter.emailToMimeMessage(EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.to("receiver@example.com")
+				.withRecipients(null, false, TO, "receiver@example.com")
 				.withPlainText("Hello")
 				.withDeliveryStatusNotification(HEADERS_ONLY, FAILURE, DELAY)
 				.buildEmail());

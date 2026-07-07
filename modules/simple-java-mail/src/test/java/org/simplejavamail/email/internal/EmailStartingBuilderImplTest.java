@@ -18,6 +18,9 @@ import java.util.Date;
 import java.util.Random;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.DELAY;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
@@ -64,9 +67,9 @@ public class EmailStartingBuilderImplTest {
 
 		Email fullyPopulatedEmail = EmailBuilder
 				.startingBlank()
-				.to("mr moo to", "mr@moo.com")
-				.cc("mr moo cc", "mr@moo.com")
-				.bcc("mr moo bcc", "mr@moo.com")
+				.withRecipients("mr moo to", true, TO, "mr@moo.com")
+				.withRecipients("mr moo cc", true, CC, "mr@moo.com")
+				.withRecipients("mr moo bcc", true, BCC, "mr@moo.com")
 				.withAttachment("mooxt", "attachment content".getBytes(), "text/plain")
 				.withEmbeddedImage("mooxt", "attachment content".getBytes(), "text/plain")
 				.withBounceTo("bounce@bouncy.com")

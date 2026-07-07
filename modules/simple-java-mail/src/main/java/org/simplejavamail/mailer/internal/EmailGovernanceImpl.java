@@ -29,6 +29,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.Boolean.TRUE;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
@@ -170,23 +173,23 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		}
 		if (hasProperty(DEFAULT_TO_ADDRESS)) {
 			if (hasProperty(DEFAULT_TO_NAME)) {
-				allDefaults.to(getStringProperty(DEFAULT_TO_NAME), getStringProperty(DEFAULT_TO_ADDRESS));
+				allDefaults.withRecipients(getStringProperty(DEFAULT_TO_NAME), true, TO, getStringProperty(DEFAULT_TO_ADDRESS));
 			} else {
-				allDefaults.to(verifyNonnullOrEmpty(getStringProperty(DEFAULT_TO_ADDRESS)));
+				allDefaults.withRecipients(null, false, TO, verifyNonnullOrEmpty(getStringProperty(DEFAULT_TO_ADDRESS)));
 			}
 		}
 		if (hasProperty(DEFAULT_CC_ADDRESS)) {
 			if (hasProperty(DEFAULT_CC_NAME)) {
-				allDefaults.cc(getStringProperty(DEFAULT_CC_NAME), getStringProperty(DEFAULT_CC_ADDRESS));
+				allDefaults.withRecipients(getStringProperty(DEFAULT_CC_NAME), true, CC, getStringProperty(DEFAULT_CC_ADDRESS));
 			} else {
-				allDefaults.cc(verifyNonnullOrEmpty(getStringProperty(DEFAULT_CC_ADDRESS)));
+				allDefaults.withRecipients(null, false, CC, verifyNonnullOrEmpty(getStringProperty(DEFAULT_CC_ADDRESS)));
 			}
 		}
 		if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 			if (hasProperty(DEFAULT_BCC_NAME)) {
-				allDefaults.bcc(getStringProperty(DEFAULT_BCC_NAME), getStringProperty(DEFAULT_BCC_ADDRESS));
+				allDefaults.withRecipients(getStringProperty(DEFAULT_BCC_NAME), true, BCC, getStringProperty(DEFAULT_BCC_ADDRESS));
 			} else {
-				allDefaults.bcc(verifyNonnullOrEmpty(getStringProperty(DEFAULT_BCC_ADDRESS)));
+				allDefaults.withRecipients(null, false, BCC, verifyNonnullOrEmpty(getStringProperty(DEFAULT_BCC_ADDRESS)));
 			}
 		}
 		if (hasProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)) {
@@ -255,9 +258,9 @@ public class EmailGovernanceImpl implements EmailGovernance {
 
 		ofNullable(fromRecipient).ifPresent(builder::from);
 		builder.withReplyTo(replyToRecipients);
-		builder.to(resolveEmailCollectionProperty(provided, EmailProperty.TO_RECIPIENTS));
-		builder.cc(resolveEmailCollectionProperty(provided, EmailProperty.CC_RECIPIENTS));
-		builder.bcc(resolveEmailCollectionProperty(provided, EmailProperty.BCC_RECIPIENTS));
+		builder.withRecipients(resolveEmailCollectionProperty(provided, EmailProperty.TO_RECIPIENTS));
+		builder.withRecipients(resolveEmailCollectionProperty(provided, EmailProperty.CC_RECIPIENTS));
+		builder.withRecipients(resolveEmailCollectionProperty(provided, EmailProperty.BCC_RECIPIENTS));
 		builder.withSubject(resolveEmailProperty(provided, EmailProperty.SUBJECT));
 		builder.withPlainText(this.<String>resolveEmailProperty(provided, EmailProperty.BODY_TEXT));
 		builder.withHTMLText(this.<String>resolveEmailProperty(provided, EmailProperty.BODY_HTML));

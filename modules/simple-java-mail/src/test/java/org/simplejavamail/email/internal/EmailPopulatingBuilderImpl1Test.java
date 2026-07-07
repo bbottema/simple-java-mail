@@ -184,17 +184,17 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testBuilderToAddresses() {
 		final Email email = builder
-				.to("1", "1@candyshop.org")
-				.to(null, "2@candyshop.org")
-				.to(new Recipient("3", "3@candyshop.org", null, null))
-				.to(new Recipient(null, "4@candyshop.org", null, null))
-				.to("5@candyshop.org")
-				.to("6@candyshop.org,7@candyshop.org")
-				.to("8@candyshop.org;9@candyshop.org")
-				.to("10@candyshop.org;11@candyshop.org,12@candyshop.org")
-				.to(new Recipient("13", "13@candyshop.org", null, null), new Recipient("14", "14@candyshop.org", null, null))
-				.to("15", "15a@candyshop.org,15b@candyshop.org")
-				.to("16", "16a@candyshop.org;16b@candyshop.org")
+				.withRecipients("1", true, TO, "1@candyshop.org")
+				.withRecipients(null, true, TO, "2@candyshop.org")
+				.withRecipients(new Recipient("3", "3@candyshop.org", TO, null))
+				.withRecipients(new Recipient(null, "4@candyshop.org", TO, null))
+				.withRecipients(null, false, TO, "5@candyshop.org")
+				.withRecipients(null, false, TO, "6@candyshop.org,7@candyshop.org")
+				.withRecipients(null, false, TO, "8@candyshop.org;9@candyshop.org")
+				.withRecipients(null, false, TO, "10@candyshop.org;11@candyshop.org,12@candyshop.org")
+				.withRecipients(new Recipient("13", "13@candyshop.org", TO, null), new Recipient("14", "14@candyshop.org", TO, null))
+				.withRecipients("15", true, TO, "15a@candyshop.org,15b@candyshop.org")
+				.withRecipients("16", true, TO, "16a@candyshop.org;16b@candyshop.org")
 				.buildEmail();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
@@ -222,11 +222,11 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testBuilderToAddresses_ComplexFormat() {
 		final Email email = builder
-				.toWithDefaultName("1", "1b <1@candyshop.org>")
-				.to("5b <5@candyshop.org>")
-				.to("6@candyshop.org,7b <7@candyshop.org>")
-				.to("8b <8@candyshop.org>;9@candyshop.org")
-				.to("10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
+				.withRecipients("1", false, TO, "1b <1@candyshop.org>")
+				.withRecipients(null, false, TO, "5b <5@candyshop.org>")
+				.withRecipients(null, false, TO, "6@candyshop.org,7b <7@candyshop.org>")
+				.withRecipients(null, false, TO, "8b <8@candyshop.org>;9@candyshop.org")
+				.withRecipients(null, false, TO, "10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
 				.buildEmail();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
@@ -245,17 +245,17 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testBuilderCCAddresses() {
 		final Email email = builder
-				.cc("1", "1@candyshop.org")
-				.cc(null, "2@candyshop.org")
-				.cc(new Recipient("3", "3@candyshop.org", null, null))
-				.cc(new Recipient(null, "4@candyshop.org", null, null))
-				.cc("5@candyshop.org")
-				.cc("6@candyshop.org,7@candyshop.org")
-				.cc("8@candyshop.org;9@candyshop.org")
-				.cc("10@candyshop.org;11@candyshop.org,12@candyshop.org")
-				.cc(new Recipient("13", "13@candyshop.org", null, null), new Recipient("14", "14@candyshop.org", null, null))
-				.cc("15", "15a@candyshop.org,15b@candyshop.org")
-				.cc("16", "16a@candyshop.org;16b@candyshop.org")
+				.withRecipients("1", true, CC, "1@candyshop.org")
+				.withRecipients(null, true, CC, "2@candyshop.org")
+				.withRecipients(new Recipient("3", "3@candyshop.org", CC, null))
+				.withRecipients(new Recipient(null, "4@candyshop.org", CC, null))
+				.withRecipients(null, false, CC, "5@candyshop.org")
+				.withRecipients(null, false, CC, "6@candyshop.org,7@candyshop.org")
+				.withRecipients(null, false, CC, "8@candyshop.org;9@candyshop.org")
+				.withRecipients(null, false, CC, "10@candyshop.org;11@candyshop.org,12@candyshop.org")
+				.withRecipients(new Recipient("13", "13@candyshop.org", CC, null), new Recipient("14", "14@candyshop.org", CC, null))
+				.withRecipients("15", true, CC, "15a@candyshop.org,15b@candyshop.org")
+				.withRecipients("16", true, CC, "16a@candyshop.org;16b@candyshop.org")
 				.buildEmail();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
@@ -283,11 +283,11 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testBuilderCCAddresses_ComplexFormat() {
 		final Email email = builder
-				.ccWithDefaultName("1", "1b <1@candyshop.org>")
-				.cc("5b <5@candyshop.org>")
-				.cc("6@candyshop.org,7b <7@candyshop.org>")
-				.cc("8b <8@candyshop.org>;9@candyshop.org")
-				.cc("10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
+				.withRecipients("1", false, CC, "1b <1@candyshop.org>")
+				.withRecipients(null, false, CC, "5b <5@candyshop.org>")
+				.withRecipients(null, false, CC, "6@candyshop.org,7b <7@candyshop.org>")
+				.withRecipients(null, false, CC, "8b <8@candyshop.org>;9@candyshop.org")
+				.withRecipients(null, false, CC, "10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
 				.buildEmail();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
@@ -306,17 +306,17 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testBuilderBCCAddresses() {
 		final Email email = builder
-				.bcc("1", "1@candyshop.org")
-				.bcc(null, "2@candyshop.org")
-				.bcc(new Recipient("3", "3@candyshop.org", null, null))
-				.bcc(new Recipient(null, "4@candyshop.org", null, null))
-				.bcc("5@candyshop.org")
-				.bcc("6@candyshop.org,7@candyshop.org")
-				.bcc("8@candyshop.org;9@candyshop.org")
-				.bcc("10@candyshop.org;11@candyshop.org,12@candyshop.org")
-				.bcc(new Recipient("13", "13@candyshop.org", null, null), new Recipient("14", "14@candyshop.org", null, null))
-				.bcc("15", "15a@candyshop.org,15b@candyshop.org")
-				.bcc("16", "16a@candyshop.org;16b@candyshop.org")
+				.withRecipients("1", true, BCC, "1@candyshop.org")
+				.withRecipients(null, true, BCC, "2@candyshop.org")
+				.withRecipients(new Recipient("3", "3@candyshop.org", BCC, null))
+				.withRecipients(new Recipient(null, "4@candyshop.org", BCC, null))
+				.withRecipients(null, false, BCC, "5@candyshop.org")
+				.withRecipients(null, false, BCC, "6@candyshop.org,7@candyshop.org")
+				.withRecipients(null, false, BCC, "8@candyshop.org;9@candyshop.org")
+				.withRecipients(null, false, BCC, "10@candyshop.org;11@candyshop.org,12@candyshop.org")
+				.withRecipients(new Recipient("13", "13@candyshop.org", BCC, null), new Recipient("14", "14@candyshop.org", BCC, null))
+				.withRecipients("15", true, BCC, "15a@candyshop.org,15b@candyshop.org")
+				.withRecipients("16", true, BCC, "16a@candyshop.org;16b@candyshop.org")
 				.buildEmail();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
@@ -344,11 +344,11 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testBuilderBCCAddresses_ComplexFormat() {
 		final Email email = builder
-				.bccWithDefaultName("1", "1b <1@candyshop.org>")
-				.bcc("5b <5@candyshop.org>")
-				.bcc("6@candyshop.org,7b <7@candyshop.org>")
-				.bcc("8b <8@candyshop.org>;9@candyshop.org")
-				.bcc("10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
+				.withRecipients("1", false, BCC, "1b <1@candyshop.org>")
+				.withRecipients(null, false, BCC, "5b <5@candyshop.org>")
+				.withRecipients(null, false, BCC, "6@candyshop.org,7b <7@candyshop.org>")
+				.withRecipients(null, false, BCC, "8b <8@candyshop.org>;9@candyshop.org")
+				.withRecipients(null, false, BCC, "10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
 				.buildEmail();
 
 		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
@@ -538,10 +538,10 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testAddRecipients_Basic_Named() {
-		builder.to("name1", "1@domain.com");
-		builder.cc("name2", "2@domain.com,3@domain.com");
-		builder.bcc("name3", "4@domain.com;5@domain.com");
-		builder.to("name4", "6@domain.com;7@domain.com,8@domain.com");
+		builder.withRecipients("name1", true, TO, "1@domain.com");
+		builder.withRecipients("name2", true, CC, "2@domain.com,3@domain.com");
+		builder.withRecipients("name3", true, BCC, "4@domain.com;5@domain.com");
+		builder.withRecipients("name4", true, TO, "6@domain.com;7@domain.com,8@domain.com");
 
 		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1", "1@domain.com", TO, null),
@@ -557,10 +557,10 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testAddRecipients_Complex_Named() {
-		builder.toWithDefaultName("name1", "name1b <1@domain.com>");
-		builder.ccWithDefaultName("name2", "name2b <2@domain.com>,3@domain.com");
-		builder.bccWithDefaultName("name3", "4@domain.com;name3b <5@domain.com>");
-		builder.toWithDefaultName("name4", "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
+		builder.withRecipients("name1", false, TO, "name1b <1@domain.com>");
+		builder.withRecipients("name2", false, CC, "name2b <2@domain.com>,3@domain.com");
+		builder.withRecipients("name3", false, BCC, "4@domain.com;name3b <5@domain.com>");
+		builder.withRecipients("name4", false, TO, "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
 
 		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1b", "1@domain.com", TO, null),
@@ -576,8 +576,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testAddRecipientsVarArgs_Basic_Named() {
-		builder.to("name1", "1@domain.com");
-		builder.cc("name2", "2@domain.com", "3@domain.com");
+		builder.withRecipients("name1", true, TO, "1@domain.com");
+		builder.withRecipients("name2", true, CC, "2@domain.com", "3@domain.com");
 
 		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1", "1@domain.com", TO, null),
@@ -588,23 +588,23 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testAddRecipients_DefaultToName_A() {
-		builder.to(null, "to1@domain.com");
-		builder.toWithDefaultName("to_default", "to included <to2@domain.com>");
-		builder.to("to_default", "to3@domain.com");
-		builder.toWithFixedName("to_fixed", "to included <to4@domain.com>");
-		builder.to("to_fixed", "to included <to5@domain.com>");
+		builder.withRecipients(null, true, TO, "to1@domain.com");
+		builder.withRecipients("to_default", false, TO, "to included <to2@domain.com>");
+		builder.withRecipients("to_default", true, TO, "to3@domain.com");
+		builder.withRecipients("to_fixed", true, TO, "to included <to4@domain.com>");
+		builder.withRecipients("to_fixed", true, TO, "to included <to5@domain.com>");
 
-		builder.cc(null, "cc1@domain.com");
-		builder.ccWithDefaultName("cc_default", "cc included <cc2@domain.com>");
-		builder.cc("cc_default", "cc3@domain.com");
-		builder.ccWithFixedName("cc_fixed", "cc included <cc4@domain.com>");
-		builder.cc("cc_fixed", "cc included <cc5@domain.com>");
+		builder.withRecipients(null, true, CC, "cc1@domain.com");
+		builder.withRecipients("cc_default", false, CC, "cc included <cc2@domain.com>");
+		builder.withRecipients("cc_default", true, CC, "cc3@domain.com");
+		builder.withRecipients("cc_fixed", true, CC, "cc included <cc4@domain.com>");
+		builder.withRecipients("cc_fixed", true, CC, "cc included <cc5@domain.com>");
 
-		builder.bcc(null, "bcc1@domain.com");
-		builder.bccWithDefaultName("bcc_default", "bcc included <bcc2@domain.com>");
-		builder.bcc("bcc_default", "bcc3@domain.com");
-		builder.bccWithFixedName("bcc_fixed", "bcc included <bcc4@domain.com>");
-		builder.bcc("bcc_fixed", "bcc included <bcc5@domain.com>");
+		builder.withRecipients(null, true, BCC, "bcc1@domain.com");
+		builder.withRecipients("bcc_default", false, BCC, "bcc included <bcc2@domain.com>");
+		builder.withRecipients("bcc_default", true, BCC, "bcc3@domain.com");
+		builder.withRecipients("bcc_fixed", true, BCC, "bcc included <bcc4@domain.com>");
+		builder.withRecipients("bcc_fixed", true, BCC, "bcc included <bcc5@domain.com>");
 
 		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
 				new Recipient(null, "to1@domain.com", TO, null),
@@ -629,9 +629,9 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testAddRecipients_DefaultToName_MultipleAddress() {
-		builder.toWithDefaultName("to_default", "to_included <1@domain.com>", "2@domain.com");
-		builder.ccWithDefaultName("cc_default", "cc_included <3@domain.com>", "4@domain.com");
-		builder.bccWithDefaultName("bcc_default", "bcc_included <5@domain.com>", "6@domain.com");
+		builder.withRecipients("to_default", false, TO, "to_included <1@domain.com>", "2@domain.com");
+		builder.withRecipients("cc_default", false, CC, "cc_included <3@domain.com>", "4@domain.com");
+		builder.withRecipients("bcc_default", false, BCC, "bcc_included <5@domain.com>", "6@domain.com");
 
 		assertThat(builder.buildEmail().getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("to_included", "1@domain.com", TO, null),
@@ -645,8 +645,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testAddRecipientsVarArgs_Complex_Named() {
-		builder.toWithDefaultName("name1", "name1b <1@domain.com>");
-		builder.ccWithDefaultName("name2", "name2b <2@domain.com>", "name3b <3@domain.com>");
+		builder.withRecipients("name1", false, TO, "name1b <1@domain.com>");
+		builder.withRecipients("name2", false, CC, "name2b <2@domain.com>", "name3b <3@domain.com>");
 
 		assertThat(builder.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1b", "1@domain.com", TO, null),
@@ -657,8 +657,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testAddRecipientsVarArgs_Basic_Nameless() {
-		builder.to("1@domain.com");
-		builder.ccMultiple("2@domain.com", "3@domain.com");
+		builder.withRecipients(null, false, TO, "1@domain.com");
+		builder.withRecipients(null, false, CC, "2@domain.com", "3@domain.com");
 
 		assertThat(builder.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient(null, "1@domain.com", TO, null),
@@ -669,8 +669,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testAddRecipientsVarArgs_Complex_Nameless() {
-		builder.to("name1b <1@domain.com>");
-		builder.ccMultiple("name2b <2@domain.com>", "name3b <3@domain.com>");
+		builder.withRecipients(null, false, TO, "name1b <1@domain.com>");
+		builder.withRecipients(null, false, CC, "name2b <2@domain.com>", "name3b <3@domain.com>");
 
 		assertThat(builder.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1b", "1@domain.com", TO, null),
@@ -681,10 +681,10 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testAddRecipients_Basic_Nameless() {
-		builder.to("1@domain.com");
-		builder.cc("2@domain.com,3@domain.com");
-		builder.bcc("4@domain.com;5@domain.com");
-		builder.to("6@domain.com;7@domain.com,8@domain.com");
+		builder.withRecipients(null, false, TO, "1@domain.com");
+		builder.withRecipients(null, false, CC, "2@domain.com,3@domain.com");
+		builder.withRecipients(null, false, BCC, "4@domain.com;5@domain.com");
+		builder.withRecipients(null, false, TO, "6@domain.com;7@domain.com,8@domain.com");
 
 		assertThat(builder.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient(null, "1@domain.com", TO, null),
@@ -700,10 +700,10 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@Test
 	public void testAddRecipients_Complex_Nameless() {
-		builder.to("name1b <1@domain.com>");
-		builder.cc("name2b <2@domain.com>,3@domain.com");
-		builder.bcc("4@domain.com;name3b <5@domain.com>");
-		builder.to("name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
+		builder.withRecipients(null, false, TO, "name1b <1@domain.com>");
+		builder.withRecipients(null, false, CC, "name2b <2@domain.com>,3@domain.com");
+		builder.withRecipients(null, false, BCC, "4@domain.com;name3b <5@domain.com>");
+		builder.withRecipients(null, false, TO, "name4b <6@domain.com>;name5b <7@domain.com>,name6b <8@domain.com>");
 
 		assertThat(builder.getRecipients()).containsExactlyInAnyOrder(
 				new Recipient("name1b", "1@domain.com", TO, null),
@@ -720,19 +720,19 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testAddRecipients_Complex_Quicktest() {
 		// accept valid addresses:
-		builder.to("Abc\\@def@example.com");
-		builder.to("Fred\\ Bloggs@example.com");
-		builder.to("Joe.\\\\Blow@example.com");
-		builder.to("\"Abc@def\"@example.com");
-		builder.to("\"Fred Bloggs\"@example.com");
-		builder.to("customer/department=shipping@example.com");
-		builder.to("$A12345@example.com");
-		builder.to("!def!xyz%abc@example.com");
-		builder.to("_somename@example.com");
-		builder.to("very.“():[]”.VERY.“very@\\\\ \"very”.unusual@strange.example.com");
+		builder.withRecipients(null, false, TO, "Abc\\@def@example.com");
+		builder.withRecipients(null, false, TO, "Fred\\ Bloggs@example.com");
+		builder.withRecipients(null, false, TO, "Joe.\\\\Blow@example.com");
+		builder.withRecipients(null, false, TO, "\"Abc@def\"@example.com");
+		builder.withRecipients(null, false, TO, "\"Fred Bloggs\"@example.com");
+		builder.withRecipients(null, false, TO, "customer/department=shipping@example.com");
+		builder.withRecipients(null, false, TO, "$A12345@example.com");
+		builder.withRecipients(null, false, TO, "!def!xyz%abc@example.com");
+		builder.withRecipients(null, false, TO, "_somename@example.com");
+		builder.withRecipients(null, false, TO, "very.“():[]”.VERY.“very@\\\\ \"very”.unusual@strange.example.com");
 
 		// even accept invalid addresses:
-		builder.to("Name <1@domai@n.com>");
+		builder.withRecipients(null, false, TO, "Name <1@domai@n.com>");
 
 		// OK, InternetAddress#parse() didn't error out on these addresses
 	}

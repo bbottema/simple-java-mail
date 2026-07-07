@@ -150,7 +150,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 
 		return startingBlank()
 				.withSubject(generatedReply.getSubject())
-				.to(generatedReply.getRecipients())
+				.withRecipients(generatedReply.getRecipients())
 				.withPlainText(EmailStartingBuilder.LINE_START_PATTERN.matcher(defaultTo(repliedTo.getPlainText(), "")).replaceAll("> "))
 				.withHTMLText(format(htmlTemplate, defaultTo(repliedTo.getHTMLText(), "")))
 				.withHeaders(generatedReply.getHeaders())

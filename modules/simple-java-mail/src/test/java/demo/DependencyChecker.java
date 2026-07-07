@@ -4,6 +4,7 @@ import lombok.SneakyThrows;
 import lombok.val;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.ModuleLoaderTestHelper;
 
 import java.awt.*;
@@ -13,6 +14,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 import static java.lang.String.format;
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.bbottema.genericobjectpool.util.SleepUtil.sleep;
 
 public class DependencyChecker extends DemoAppBase {
@@ -43,7 +45,10 @@ public class DependencyChecker extends DemoAppBase {
                             .buildMailer()
                             .sendMail(EmailBuilder.startingBlank()
                                     .from("Dependency Checker", "no-reply@dependency-checker.com")
-                                    .to(YOUR_GMAIL_ADDRESS)
+                                    .withRecipients(new RecipientBuilder()
+                                            .withAddress(YOUR_GMAIL_ADDRESS)
+                                            .withType(TO)
+                                            .build())
                                     .withSubject("Dependency available: " + dependency)
                                     .withPlainText(format("The dependency '%s' is available at %s", dependency, urlString))
                                     .buildEmail());

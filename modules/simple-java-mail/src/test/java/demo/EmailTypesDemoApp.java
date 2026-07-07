@@ -1,13 +1,16 @@
 package demo;
 
 import jakarta.mail.util.ByteArrayDataSource;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.ModuleLoaderTestHelper;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static testutil.ThumbsUpImage.produceThumbsUpImage;
 
@@ -38,7 +41,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 
 	private static void testSimplePlainText(Mailer mailerTLS) {
 		final CompletableFuture<Void> result = mailerTLS.sendMail(EmailBuilder.startingBlank()
-				.to(YOUR_GMAIL_ADDRESS)
+				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - simple (using plain text)")
 				.withPlainText("This is a simple email, the source contains no \"mixed\", \"related\" or \"alternative\" content.\n" +
@@ -55,7 +58,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 
 	private static void testSimpleHTMLText(Mailer mailerTLS) {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
-				.to(YOUR_GMAIL_ADDRESS)
+				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - simple (using HTML text)")
 				.withHTMLText("<p>This is a simple email, the source contains no \"mixed\", \"related\" or \"alternative\" content.</p>" +
@@ -70,7 +73,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 
 	private static void testMixed(Mailer mailerTLS) throws IOException {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
-				.to(YOUR_GMAIL_ADDRESS)
+				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - mixed")
 				.withPlainText("This is an email with \"mixed\" content: it contains a content part (this plain text) and an attachment\n" +
@@ -86,7 +89,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	private static void testRelated(Mailer mailerTLS) {
 		// makes it related
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
-				.to(YOUR_GMAIL_ADDRESS)
+				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - related")
 				.withHTMLText("<p>This is an email with \"related\" content: it contains a content part (this HTML text) which references a " +
@@ -105,7 +108,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 
 	private static void testAlternative(Mailer mailerTLS) {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
-				.to(YOUR_GMAIL_ADDRESS)
+				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - alternative")
 				.withPlainText("plain text body here which should be ignored by any modern mail client")
@@ -123,7 +126,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 
 	private static void testMixedRelated(Mailer mailerTLS) throws IOException {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
-				.to(YOUR_GMAIL_ADDRESS)
+				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - mixed + related")
 				.withHTMLText("<p>This is an email with \"mixed\" and \"related\" content: it contains a content part (this HTML text) which references a " +
@@ -146,7 +149,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 
 	private static void testMixedAlternative(Mailer mailerTLS) throws IOException {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
-				.to(YOUR_GMAIL_ADDRESS)
+				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - mixed + alternative")
 				.withPlainText("plain text body here which should be ignored by any modern mail client")
@@ -169,7 +172,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 
 	private static void testRelatedAlternative(Mailer mailerTLS) {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
-				.to(YOUR_GMAIL_ADDRESS)
+				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - related + alternative")
 				.withPlainText("plain text body here which should be ignored by any modern mail client")
@@ -192,7 +195,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 
 	private static void testMixedRelatedAlternative(Mailer mailerTLS) throws IOException {
 		mailerTLS.sendMail(EmailBuilder.startingBlank()
-				.to(YOUR_GMAIL_ADDRESS)
+				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - mixed + related + alternative")
 				.withPlainText("plain text body here which should be ignored by any modern mail client")
@@ -216,5 +219,12 @@ public class EmailTypesDemoApp extends DemoAppBase {
 						"	</ul></li>" +
 						"</ul></p>") // makes it alternative
 				.buildEmail());
+	}
+
+	private static Recipient demoRecipient() {
+		return new RecipientBuilder()
+				.withAddress(YOUR_GMAIL_ADDRESS)
+				.withType(TO)
+				.build();
 	}
 }

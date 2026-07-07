@@ -66,17 +66,14 @@ public interface IRecipientBuilder {
     IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull String address, @Nullable String fixedName);
 
     /**
-     * @param smimeCertificate Optional S/MIME certificate for this recipient, used for encrypting S/MIME messages on a per-user basis. Overrides certificate
-     *                         provided on {@link Email} level and {@link org.simplejavamail.api.mailer.Mailer} level (if provided).
-     *                         <p></p>
-     *                         So, the order of precedence is:
-     *                         <ol>
-     *                         <li>Mailer level (override value)</li>
-     *                         <li>Recipient level (specific value)</li>
-     *                         <li>Recipients level (default value)</li>
-     *                         <li>Email level (default value)</li>
-     *                         <li>Mailer level (default value)</li>
-     *                         </ol>
+     * @param smimeCertificate Optional S/MIME certificate for this recipient, used for encrypting S/MIME messages on a per-user basis. After recipients are
+     *                         built, any certificate present on a {@link Recipient} is treated as the recipient-specific encryption certificate and takes
+     *                         precedence over the governance-resolved {@link Email} / {@link org.simplejavamail.api.mailer.Mailer} S/MIME encryption
+     *                         fallback.
+     *                         <p>
+     *                         For reusable recipient groups, use {@link IRecipientsBuilder#withDefaultSmimeCertificate(X509Certificate)},
+     *                         {@link IRecipientsBuilder#withFixedSmimeCertificate(X509Certificate)} or
+     *                         {@link IRecipientsBuilder#clearingSmimeCertificates()} before adding the resulting flat recipient list to an email.
      * @see #clearingSmimeCertificate()
      */
     IRecipientBuilder withSmimeCertificate(@NotNull X509Certificate smimeCertificate);
@@ -86,6 +83,7 @@ public interface IRecipientBuilder {
      * {@link Email} object is used and from the {@link org.simplejavamail.api.mailer.Mailer} otherwise (if provided).
      *
      * @see #withSmimeCertificate(X509Certificate)
+     * @see IRecipientsBuilder#clearingSmimeCertificates()
      */
     IRecipientBuilder clearingSmimeCertificate();
 

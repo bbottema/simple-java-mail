@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.nio.charset.Charset.defaultCharset;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Calendar.APRIL;
@@ -49,7 +51,7 @@ public class EmailTest {
 				.from("lollypop", "lol.pop@somemail.com")
 				.withReplyTo("lollypop-reply", "lol.pop.reply@somemail.com")
 				.withBounceTo("lollypop-bounce", "lol.pop.bounce@somemail.com")
-				.to("C.Cane", "candycane@candyshop.org")
+				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org")
 				.withPlainText("We should meet up!")
 				.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'>")
 				.withSubject("hey")
@@ -93,7 +95,7 @@ public class EmailTest {
 				.from("lollypop", "lol.pop@somemail.com")
 				.withReplyTo("lollypop-reply", "lol.pop.reply@somemail.com")
 				.withBounceTo("lollypop-bounce", "lol.pop.bounce@somemail.com")
-				.to("C.Cane", "candycane@candyshop.org")
+				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org")
 				.withPlainText("We should meet up!")
 				.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'>")
 				.withSubject("hey")
@@ -255,14 +257,14 @@ public class EmailTest {
 		assertEmailEqual(f(email).buildEmail(), f(emailOther).buildEmail(), false);
 		assertEmailEqual(f(emailOther).buildEmail(), f(emailOther).buildEmail(), true);
 		// recipients various combinations
-		assertEmailEqual(b().cc("a@b.c;1@2.3").buildEmail(), b().cc("a@b.c;1@2.3").buildEmail(), true);
-		assertEmailEqual(b().cc("a@b.c;1@2.3").buildEmail(), b().cc("a@b.c").cc("1@2.3").buildEmail(), true);
-		assertEmailEqual(b().cc("a@b.c").bcc("name", "a@b.c").buildEmail(), b().cc("a@b.c").withRecipient("name", "a@b.c", BCC).buildEmail(), true);
-		assertEmailEqual(b().cc("a@b.c").bcc("name", "a@b.c").buildEmail(), b().cc("a@b.c").withRecipient("a@b.c", BCC).buildEmail(), false);
-		assertEmailEqual(b().cc("a@b.c;1@2.3").buildEmail(), b().buildEmail(), false);
-		assertEmailEqual(b().cc("a@b.c;1@2.3").buildEmail(), b().cc("a@b.c;1@2.other").buildEmail(), false);
-		assertEmailEqual(b().cc("a@b.c;1@2.3").buildEmail(), b().cc("a@b.c").buildEmail(), false);
-		assertEmailEqual(b().cc("a@b.c").bcc("name", "a@b.c").buildEmail(), b().withRecipient("a@b.c", BCC).buildEmail(), false);
+		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), true);
+		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), b().withRecipients(null, false, CC, "a@b.c").withRecipients(null, false, CC, "1@2.3").buildEmail(), true);
+		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c").withRecipients("name", true, BCC, "a@b.c").buildEmail(), b().withRecipients(null, false, CC, "a@b.c").withRecipients("name", true, BCC, "a@b.c").buildEmail(), true);
+		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c").withRecipients("name", true, BCC, "a@b.c").buildEmail(), b().withRecipients(null, false, CC, "a@b.c").withRecipients(null, false, BCC, "a@b.c").buildEmail(), false);
+		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), b().buildEmail(), false);
+		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), b().withRecipients(null, false, CC, "a@b.c;1@2.other").buildEmail(), false);
+		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), b().withRecipients(null, false, CC, "a@b.c").buildEmail(), false);
+		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c").withRecipients("name", true, BCC, "a@b.c").buildEmail(), b().withRecipients(null, false, BCC, "a@b.c").buildEmail(), false);
 		// headers
 		assertEmailEqual(b().withHeader("name", 44).buildEmail(), b().withHeader("name", 44).buildEmail(), true);
 		assertEmailEqual(b().withHeaders(map("name1", 44, "name2", "value")).buildEmail(), b().withHeaders(map("name1", 44, "name2", "value")).buildEmail(), true);

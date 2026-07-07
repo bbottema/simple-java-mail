@@ -389,7 +389,7 @@ public class MailerLiveTest {
 		// Build email with per-recipient cert only — no email-level encrypt config
 		mailer.sendMail(EmailBuilder.startingBlank()
 				.from("sender@test.com")
-				.to(new Recipient("Benny", "benny.bottema@aegon.nl", TO, recipientCert))
+				.withRecipients(new Recipient("Benny", "benny.bottema@aegon.nl", TO, recipientCert))
 				.withPlainText("Hello, this is per-recipient encrypted!")
 				.withHTMLText("<html><body>Hello, this is per-recipient encrypted!</body></html>")
 				.withSubject("Per-recipient S/MIME encryption test")
@@ -429,7 +429,7 @@ public class MailerLiveTest {
 
 		mailer.sendMail(EmailBuilder.startingBlank()
 				.from("sender@test.com")
-				.to(new Recipient("Benny", "benny.bottema@aegon.nl", TO, correctCert))
+				.withRecipients(new Recipient("Benny", "benny.bottema@aegon.nl", TO, correctCert))
 				.encryptWithSmime(SmimeEncryptionConfig.builder().x509Certificate(wrongCert).build()) // email-level: wrong cert
 				.withPlainText("Precedence test body")
 				.withHTMLText("<html><body>Precedence test body</body></html>")
@@ -745,7 +745,7 @@ public class MailerLiveTest {
 				.withPlainText("non empty text")
 				.withSubject("email size test")
 				.from("a@b.com")
-				.to("a@b.com")
+				.withRecipients(null, false, TO, "a@b.com")
 				.buildEmail();
 
 		assertThatThrownBy(() -> mailer.sendMail(email))

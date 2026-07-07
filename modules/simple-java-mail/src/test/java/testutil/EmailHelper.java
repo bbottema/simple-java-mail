@@ -38,6 +38,7 @@ import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_R
 import static org.simplejavamail.converter.EmailConverter.emlToEmailBuilder;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilderWithOutlookData;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
+import static jakarta.mail.Message.RecipientType.TO;
 
 public class EmailHelper {
 
@@ -54,7 +55,7 @@ public class EmailHelper {
 				.fixingMessageId(id)
 				.from("lollypop", "lol.pop@somemail.com")
 				// don't forget to add your own address here ->
-				.to("C.Cane", "candycane@candyshop.org");
+				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org");
 
 		if (!skipReplyToAndBounceTo) {
 			// normally not needed, but for the test it is because the MimeMessage will

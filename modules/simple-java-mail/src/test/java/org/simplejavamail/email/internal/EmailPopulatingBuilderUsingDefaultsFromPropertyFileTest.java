@@ -17,6 +17,7 @@ import java.util.Base64;
 import java.util.Properties;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
@@ -40,7 +41,7 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 
 		final Email email = EmailBuilder.startingBlank()
 				.from("lollypop", "lol.pop@somemail.com")
-				.to("C.Cane", "candycane@candyshop.org")
+				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org")
 				.withPlainText("We should meet up!")
 				.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'><img src='cid:fixedNameWithoutFileExtensionForNamedEmbeddedImage'>")
 				.withSubject("hey")
@@ -75,7 +76,7 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 				.from("lollypop", "lol.pop@somemail.com")
 				.withReplyTo("lollypop-reply", "lol.pop.reply@somemail.com")
 				.withBounceTo("lollypop-bounce", "lol.pop.bounce@somemail.com")
-				.to("C.Cane", "candycane@candyshop.org")
+				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org")
 				.withPlainText("We should meet up!")
 				.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'><img src='cid:fixedNameWithoutFileExtensionForNamedEmbeddedImage'>")
 				.withSubject("hey")

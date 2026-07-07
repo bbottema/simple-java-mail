@@ -7,12 +7,14 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.CalendarHelper;
 import testutil.ModuleLoaderTestHelper;
 
 import java.io.IOException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.nio.charset.Charset.defaultCharset;
 import static testutil.ThumbsUpImage.produceThumbsUpImage;
 
@@ -51,7 +53,11 @@ public class FullEmailDemoApp extends DemoAppBase {
 
 		emailPopulatingBuilderNormal.from("Simple Java Mail demo", "simplejavamail@demo.app");
 		// don't forget to add your own address here ->
-		emailPopulatingBuilderNormal.to("C.Cane", YOUR_GMAIL_ADDRESS);
+		emailPopulatingBuilderNormal.withRecipients(new RecipientBuilder()
+				.withName("C.Cane")
+				.withAddress(YOUR_GMAIL_ADDRESS)
+				.withType(TO)
+				.build());
 		emailPopulatingBuilderNormal.withPlainText("Plain text content (ignored in favor of HTML by modern browsers)");
 		emailPopulatingBuilderNormal.withHTMLText("<p>This is an email with \"mixed\", \"related\" and \"alternative\" content: it contains a plain " +
 				"text part (ignored in favor of HTML by modern clients), an HTML content part (this HTML text) which references a related " +

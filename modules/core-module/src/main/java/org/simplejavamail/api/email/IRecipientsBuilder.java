@@ -5,8 +5,8 @@ import jakarta.mail.internet.InternetAddress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.security.cert.X509Certificate;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * This builder is used to handle recipient data that may contain multiple recipients. This is possible in the case of a standard RFC 2822 {@code String} based
@@ -18,6 +18,49 @@ public interface IRecipientsBuilder {
 
     @NotNull
     Collection<Recipient> buildRecipients();
+
+    /**
+     * Applies the given S/MIME certificate to recipients produced by this builder that do not already have a recipient-specific certificate.
+     * <p>
+     * This is useful for group-level defaults: a mailing list, department or shared mailbox can have a certificate while still allowing individual
+     * recipients to override it with their own certificate.
+     * <p>
+     * This is mutually exclusive with {@link #withFixedSmimeCertificate(X509Certificate)} and {@link #clearingSmimeCertificates()}; the last group S/MIME
+     * policy configured on this builder wins.
+     *
+     * @see IRecipientBuilder#withSmimeCertificate(X509Certificate)
+     */
+    @NotNull
+    IRecipientsBuilder withDefaultSmimeCertificate(@NotNull X509Certificate smimeCertificate);
+
+    /**
+     * Applies the given S/MIME certificate to all recipients produced by this builder, overriding any recipient-specific certificate already present.
+     * <p>
+     * This is useful when a group should always use one certificate regardless of the source recipient data.
+     * <p>
+     * This is mutually exclusive with {@link #withDefaultSmimeCertificate(X509Certificate)} and {@link #clearingSmimeCertificates()}; the last group S/MIME
+     * policy configured on this builder wins.
+     *
+     * @see IRecipientBuilder#withSmimeCertificate(X509Certificate)
+     */
+    @NotNull
+    IRecipientsBuilder withFixedSmimeCertificate(@NotNull X509Certificate smimeCertificate);
+
+    /**
+     * Clears all S/MIME certificates from recipients produced by this builder, including certificates copied from source {@link Recipient} objects and
+     * previously configured group-level certificate defaults or fixed values.
+     * <p>
+     * This is useful when reusing recipients that may already carry certificate state, but the current email should rely on the email-level or mailer-level
+     * S/MIME encryption fallback instead.
+     * <p>
+     * This is mutually exclusive with {@link #withDefaultSmimeCertificate(X509Certificate)} and {@link #withFixedSmimeCertificate(X509Certificate)}; the last
+     * group S/MIME policy configured on this builder wins.
+     *
+     * @see IRecipientBuilder#clearingSmimeCertificate()
+     * @see EmailPopulatingBuilder#clearSmime()
+     */
+    @NotNull
+    IRecipientsBuilder clearingSmimeCertificates();
 
     /**
      * Delegates to {@link #withRecipient(String, String, Message.RecipientType)} with the name omitted.

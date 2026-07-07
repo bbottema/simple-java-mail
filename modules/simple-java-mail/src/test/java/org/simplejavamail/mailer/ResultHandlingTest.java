@@ -46,6 +46,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mockStatic;
@@ -90,7 +91,7 @@ public class ResultHandlingTest {
                 .buildMailer()) {
 
 			final Email dkimMail = EmailBuilder.startingBlank()
-					.to("a@b.com")
+					.withRecipients(null, false, TO, "a@b.com")
 					.from("Simple Java Mail demo", "simplejavamail@supersecret-testing-domain.com")
 					.withSubject("test")
 					.withPlainText("")
@@ -287,7 +288,7 @@ public class ResultHandlingTest {
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
 				.buildMailer().sendMail(EmailBuilder.startingBlank()
-						.to("a@b.com")
+						.withRecipients(null, false, TO, "a@b.com")
 						.from("Simple Java Mail demo", "simplejavamail@demo.app")
 						.withPlainText("")
 						.buildEmail(), async);
@@ -300,7 +301,7 @@ public class ResultHandlingTest {
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
 				.async()
 				.buildMailer().sendMail(EmailBuilder.startingBlank()
-						.to("a@b.com")
+						.withRecipients(null, false, TO, "a@b.com")
 						.from("Simple Java Mail demo", "simplejavamail@demo.app")
 						.withPlainText("")
 						.buildEmail());

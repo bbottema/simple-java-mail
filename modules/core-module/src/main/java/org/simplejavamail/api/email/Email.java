@@ -133,9 +133,8 @@ public class Email implements Serializable {
 	private final String subject;
 	
 	/**
-	 * @see EmailPopulatingBuilder#to(Recipient...)
-	 * @see EmailPopulatingBuilder#cc(Recipient...)
-	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 * @see EmailPopulatingBuilder#withRecipients(Recipient...)
+	 * @see EmailPopulatingBuilder#withRecipients(Collection)
 	 */
 	@NotNull
 	private final List<Recipient> recipients;
@@ -587,9 +586,8 @@ public class Email implements Serializable {
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#to(Recipient...)
-	 * @see EmailPopulatingBuilder#cc(Recipient...)
-	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 * @see EmailPopulatingBuilder#withRecipients(Recipient...)
+	 * @see EmailPopulatingBuilder#withRecipients(Collection)
 	 */
 	@NotNull
 	public List<Recipient> getRecipients() {
@@ -597,9 +595,8 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#to(Recipient...)
-	 * @see EmailPopulatingBuilder#cc(Recipient...)
-	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 * @see EmailPopulatingBuilder#withRecipients(Recipient...)
+	 * @see EmailPopulatingBuilder#withRecipients(Collection)
 	 */
 	@NotNull
 	public List<Recipient> getToRecipients() {
@@ -607,9 +604,8 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#to(Recipient...)
-	 * @see EmailPopulatingBuilder#cc(Recipient...)
-	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 * @see EmailPopulatingBuilder#withRecipients(Recipient...)
+	 * @see EmailPopulatingBuilder#withRecipients(Collection)
 	 */
 	@NotNull
 	public List<Recipient> getCcRecipients() {
@@ -617,9 +613,8 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#to(Recipient...)
-	 * @see EmailPopulatingBuilder#cc(Recipient...)
-	 * @see EmailPopulatingBuilder#bcc(Recipient...)
+	 * @see EmailPopulatingBuilder#withRecipients(Recipient...)
+	 * @see EmailPopulatingBuilder#withRecipients(Collection)
 	 */
 	@NotNull
 	public List<Recipient> getBccRecipients() {

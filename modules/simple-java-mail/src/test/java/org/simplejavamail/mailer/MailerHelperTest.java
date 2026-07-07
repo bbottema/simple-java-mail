@@ -8,6 +8,9 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import testutil.EmailHelper;
 
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -78,17 +81,17 @@ public class MailerHelperTest {
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid FROM address: invalid");
 
-        val emailInvalidBcc = newBuilder().bcc("invalid", "invalid").buildEmail();
+        val emailInvalidBcc = newBuilder().withRecipients("invalid", true, BCC, "invalid").buildEmail();
         assertThatThrownBy(() -> MailerHelper.validateAddresses(emailInvalidBcc, JMail.validator()))
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid BCC address: invalid");
 
-        val emailInvalidCc = newBuilder().cc("invalid", "invalid").buildEmail();
+        val emailInvalidCc = newBuilder().withRecipients("invalid", true, CC, "invalid").buildEmail();
         assertThatThrownBy(() -> MailerHelper.validateAddresses(emailInvalidCc, JMail.validator()))
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid CC address: invalid");
 
-        val emailInvalidTo = newBuilder().to("invalid", "invalid").buildEmail();
+        val emailInvalidTo = newBuilder().withRecipients("invalid", true, TO, "invalid").buildEmail();
         assertThatThrownBy(() -> MailerHelper.validateAddresses(emailInvalidTo, JMail.validator()))
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid TO address: invalid");

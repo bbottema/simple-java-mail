@@ -5,17 +5,16 @@ import jakarta.mail.internet.InternetAddress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.IRecipientsBuilder;
-import org.simplejavamail.api.email.IRecipientsBuilder;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.email.Recipients;
 import org.simplejavamail.internal.util.MiscUtil;
 
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.unmodifiableList;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -23,10 +22,69 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 /**
  * @see IRecipientsBuilder
  */
-public abstract class RecipientsBuilder implements IRecipientsBuilder {
+public class RecipientsBuilder implements IRecipientsBuilder {
+
+    private enum GroupSmimeCertificateMode {
+        PRESERVE,
+        DEFAULT,
+        FIXED,
+        CLEAR
+    }
 
     @NotNull
     private final List<Recipient> recipients = new ArrayList<>();
+
+    @Nullable
+    private X509Certificate groupSmimeCertificate;
+
+    @NotNull
+    private GroupSmimeCertificateMode groupSmimeCertificateMode = GroupSmimeCertificateMode.PRESERVE;
+
+    /**
+     * @see IRecipientsBuilder#buildRecipients()
+     */
+    @Override
+    @NotNull
+    public Collection<Recipient> buildRecipients() {
+        List<Recipient> recipientsWithGroupDefaults = new ArrayList<>();
+        for (Recipient recipient : recipients) {
+            recipientsWithGroupDefaults.add(copyRecipientApplyingGroupSmimeCertificate(recipient));
+        }
+        return unmodifiableList(recipientsWithGroupDefaults);
+    }
+
+    /**
+     * @see IRecipientsBuilder#withDefaultSmimeCertificate(X509Certificate)
+     */
+    @Override
+    @NotNull
+    public IRecipientsBuilder withDefaultSmimeCertificate(@NotNull final X509Certificate smimeCertificate) {
+        this.groupSmimeCertificate = smimeCertificate;
+        this.groupSmimeCertificateMode = GroupSmimeCertificateMode.DEFAULT;
+        return this;
+    }
+
+    /**
+     * @see IRecipientsBuilder#withFixedSmimeCertificate(X509Certificate)
+     */
+    @Override
+    @NotNull
+    public IRecipientsBuilder withFixedSmimeCertificate(@NotNull final X509Certificate smimeCertificate) {
+        this.groupSmimeCertificate = smimeCertificate;
+        this.groupSmimeCertificateMode = GroupSmimeCertificateMode.FIXED;
+        return this;
+    }
+
+    /**
+     * @see IRecipientsBuilder#clearingSmimeCertificates()
+     */
+    @Override
+    @NotNull
+    public IRecipientsBuilder clearingSmimeCertificates() {
+        this.groupSmimeCertificate = null;
+        this.groupSmimeCertificateMode = GroupSmimeCertificateMode.CLEAR;
+        return this;
+    }
 
     /**
      * @see IRecipientsBuilder#withRecipientsWithDefaultName(String, Collection, Message.RecipientType)
@@ -141,7 +199,7 @@ public abstract class RecipientsBuilder implements IRecipientsBuilder {
     @NotNull
     public IRecipientsBuilder withRecipients(@NotNull Collection<Recipient> recipients, @Nullable Message.RecipientType fixedRecipientType) {
         for (Recipient recipient : recipients) {
-            withRecipient(recipient.getName(), recipient.getAddress(), defaultTo(fixedRecipientType, recipient.getType()));
+            withRecipient(new Recipient(recipient.getName(), recipient.getAddress(), defaultTo(fixedRecipientType, recipient.getType()), recipient.getSmimeCertificate()));
         }
         return this;
     }
@@ -180,7 +238,27 @@ public abstract class RecipientsBuilder implements IRecipientsBuilder {
      */
     @Override
     public IRecipientsBuilder withRecipient(@NotNull final Recipient recipient) {
-        recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), null));
+        recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), recipient.getSmimeCertificate()));
         return this;
+    }
+
+    @NotNull
+    private Recipient copyRecipientApplyingGroupSmimeCertificate(@NotNull final Recipient recipient) {
+        return new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), resolveSmimeCertificate(recipient));
+    }
+
+    @Nullable
+    private X509Certificate resolveSmimeCertificate(@NotNull final Recipient recipient) {
+        switch (groupSmimeCertificateMode) {
+            case DEFAULT:
+                return defaultTo(recipient.getSmimeCertificate(), groupSmimeCertificate);
+            case FIXED:
+                return groupSmimeCertificate;
+            case CLEAR:
+                return null;
+            case PRESERVE:
+            default:
+                return recipient.getSmimeCertificate();
+        }
     }
 }

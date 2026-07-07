@@ -16,6 +16,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -147,19 +150,19 @@ public class MailerInjectionScanTest {
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_RecipientAddress() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
 				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
-						.cc("sweety pie <naughty%0Apie@evil.laugh>").buildEmail()))
+						.withRecipients(null, false, CC, "sweety pie <naughty%0Apie@evil.laugh>").buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
 				.hasMessage("Suspected of injection attack, field: email.recipient.address with suspicious value: naughty%0Apie@evil.laugh");
 
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
 				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
-						.to("naughty%0Apie <sweety_pie@evil.laugh>").buildEmail()))
+						.withRecipients(null, false, TO, "naughty%0Apie <sweety_pie@evil.laugh>").buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
 				.hasMessage("Suspected of injection attack, field: email.recipient.name with suspicious value: naughty%0Apie");
 
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
 				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
-						.bcc("sweety pie <sweety_pie@evil.laugh>, evil%0Alaugh <sweety_pie@evil.laugh>").buildEmail()))
+						.withRecipients(null, false, BCC, "sweety pie <sweety_pie@evil.laugh>, evil%0Alaugh <sweety_pie@evil.laugh>").buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
 				.hasMessage("Suspected of injection attack, field: email.recipient.name with suspicious value: evil%0Alaugh");
 	}
