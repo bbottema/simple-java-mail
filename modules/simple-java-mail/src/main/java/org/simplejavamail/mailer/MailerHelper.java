@@ -168,10 +168,10 @@ public class MailerHelper {
 	 * <ol>
 	 *     <li>subject</li>
 	 *     <li>every header name and value</li>
-	 *     <li>every attachment name, nested datasource name and description</li>
-	 *     <li>every embedded image name, nested datasource name and description</li>
+	 *     <li>every attachment name, content ID, nested datasource name and description</li>
+	 *     <li>every embedded image name, content ID, nested datasource name and description</li>
 	 *     <li>from recipient name and address</li>
-	 *     <li>replyTo recipient name and address, if provided</li>
+	 *     <li>every replyTo recipient name and address, if provided</li>
 	 *     <li>bounceTo recipient name and address, if provided</li>
 	 *     <li>every TO/CC/BCC recipient name and address</li>
 	 *     <li>disposition-notification-to recipient name and address, if provided</li>
