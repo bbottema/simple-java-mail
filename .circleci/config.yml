@@ -9,7 +9,7 @@ executors:
       - image: cimg/openjdk:21.0
 
 mvn-build-test-command: &mvn-build-test-command
-  mvn-build-test-command: mvn verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Dlicense.skip=true
+  mvn-build-test-command: mvn verify -Ppublish-cli -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Dlicense.skip=true
 
 mvn-collect-artifacts-command: &mvn-collect-artifacts-command
   mvn-collect-artifacts-command: |
