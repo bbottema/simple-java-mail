@@ -185,7 +185,7 @@
             <dependency>
                 <groupId>org.objenesis</groupId>
                 <artifactId>objenesis</artifactId>
-                <version>3.4</version>
+                <version>3.5</version>
             </dependency>
             <!-- Keep managed JUnit artifacts Java 8-compatible; junit-pioneer itself must stay on 1.x for Java 8 bytecode. -->
             <dependency>
