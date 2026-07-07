@@ -31,3 +31,6 @@ updates:
       - dependency-name: "org.junit.platform:*"
         versions:
           - "[6,)"
+      - dependency-name: "org.mockito:*"
+        versions:
+          - "[5,)"
