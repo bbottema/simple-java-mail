@@ -6,21 +6,27 @@
 
 # Simple Java Mail #
 
+Simple Java Mail is a robust Java mailing library built to make production email simple to use: rich content, recipient governance, signing and encryption, transport security, configuration, diagnostics, conversion, and high-throughput batch or clustered sending.
+
+It keeps those concerns behind a consistent high-level API, while still giving you fluent builders, property/Spring configuration, defaults and overrides, validation, logging, and lower-level Jakarta Mail escape hatches when you need them.
+
+Under the hood, Simple Java Mail sits on top of [Angus Mail](https://eclipse-ee4j.github.io/angus-mail/) (previously [Jakarta Mail](https://jakartaee.github.io/mail-api/README-JakartaMail)).
+
 Simple Java Mail remains Java 8-compatible; Java 8 is the source, target, and minimum supported runtime.
 
-Simple Java Mail is the simplest to use lightweight mailing library for Java, while being able to send complex emails including **[Batch processing and server clusters](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering)**, **[CLI support](https://www.simplejavamail.org/cli.html#navigation)**, **[authenticated socks proxy](https://www.simplejavamail.org/features.html#section-proxy)**(!), **[attachments](https://www.simplejavamail.org/features.html#section-attachments)**, **[embedded images](https://www.simplejavamail.org/features.html#section-embedding)**, **[custom headers and properties](https://www.simplejavamail.org/features.html#section-custom-headers)**, **[robust address validation](https://www.simplejavamail.org/features.html#section-email-validation)**, **[build pattern](https://www.simplejavamail.org/features.html#section-builder-api)** and even **[DKIM signing](https://www.simplejavamail.org/features.html#section-dkim)**, **[S/MIME support](https://www.simplejavamail.org/features.html#section-sending-smime)** and **[external configuration files](https://www.simplejavamail.org/configuration.html#section-config-properties)**, **[Spring support](https://www.simplejavamail.org/configuration.html#section-spring-support)** and **[Email conversion](https://www.simplejavamail.org/features.html#section-converting)** tools (including support for Outlook).
+### Documentation ###
 
-Just send your emails without dealing with [RFCs](https://www.simplejavamail.org/rfc-compliant.html#navigation).
+The full user documentation lives at [simplejavamail.org](https://www.simplejavamail.org). Start there for the minimal banner example, grand examples, feature guides, configuration reference, diagnostics, and module overview.
 
-The Simple Java Mail library is a thin layer on top of [Angus Mail](https://eclipse-ee4j.github.io/angus-mail/) (previously [Jakarta Mail](https://jakartaee.github.io/mail-api/README-JakartaMail)) that allows users to define emails on a high abstraction level without having to deal with mumbo jumbo such as 'multipart' and 'mimemessage'.
+- [Features](https://www.simplejavamail.org/features.html#navigation)
+- [Configuration and Spring support](https://www.simplejavamail.org/configuration.html#navigation)
+- [Security](https://www.simplejavamail.org/security.html#navigation)
+- [Logging and debugging](https://www.simplejavamail.org/debugging.html#navigation)
+- [Modules](https://www.simplejavamail.org/modules.html)
+- [CLI](https://www.simplejavamail.org/cli.html#navigation)
+- [9.0 migration notes](https://www.simplejavamail.org/migration-notes-9.0.0.html)
 
-### [simplejavamail.org](https://www.simplejavamail.org) ###
-
-Developer documentation:
-
-- [Project mechanisms catalogue](PROJECT_MECHANISMS_CATALOGUE.md) for optional module loading, CLI metadata generation, MIME selection, proxy bridging, concurrency, and non-null instrumentation.
-- [API expansion workflow](API_EXPANSION_WORKFLOW.md) for adding public API fields or builder methods.
-- [Developer environment setup](DEVELOPMENT.md) for JDK and build constraints.
+### Installation ###
 
 Simple Java Mail is available in [Maven Central](https://search.maven.org/search?q=g:org.simplejavamail):
 
@@ -33,6 +39,12 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 ```
 
 Read about additional modules you can add here: [simplejavamail.org/modules](https://www.simplejavamail.org/modules.html). 
+
+### Development ###
+
+- [Project mechanisms catalogue](PROJECT_MECHANISMS_CATALOGUE.md) for optional module loading, CLI metadata generation, MIME selection, proxy bridging, concurrency, and non-null instrumentation.
+- [API expansion workflow](API_EXPANSION_WORKFLOW.md) for adding public API fields or builder methods.
+- [Developer environment setup](DEVELOPMENT.md) for JDK and build constraints.
 
 ### Latest Progress ###
 
