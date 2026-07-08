@@ -18,7 +18,7 @@ mvn-collect-artifacts-command: &mvn-collect-artifacts-command
 
 mvn-deploy-command: &mvn-deploy-command
   mvn-deploy-command:  |
-    mvn -s .circleci/maven-central-settings.xml clean deploy -DdeployAtEnd=true -DperformRelease=true -DskipTests -Dspotbugs.skip=true -Denforcer.skip=true -Djacoco.skip=true -Dossindex.skip=true
+    mvn -s .circleci/maven-central-settings.xml clean deploy -Ppublish-cli -DdeployAtEnd=true -DperformRelease=true -DskipTests -Dspotbugs.skip=true -Denforcer.skip=true -Djacoco.skip=true -Dossindex.skip=true
     mvn com.mycila:license-maven-plugin:3.0:remove
   context: RELEASE_PROFILE_BBOTTEMA
 
