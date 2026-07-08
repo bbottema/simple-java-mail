@@ -37,3 +37,9 @@ updates:
       - dependency-name: "org.junit-pioneer:junit-pioneer"
         versions:
           - "[2,)"
+      - dependency-name: "com.mycila:license-maven-plugin"
+        versions:
+          - "[5,)"
+      - dependency-name: "org.apache.karaf.tooling:karaf-maven-plugin"
+        versions:
+          - "[4.4.11,)"
