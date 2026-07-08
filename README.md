@@ -46,9 +46,9 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 - [API expansion workflow](API_EXPANSION_WORKFLOW.md) for adding public API fields or builder methods.
 - [Developer environment setup](DEVELOPMENT.md) for JDK and build constraints.
 
-### Latest Progress ###
+### Latest Release ###
 
-Unreleased 9.0.0
+[v9.0.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.0/)
 
 - [#297](https://github.com/bbottema/simple-java-mail/issues/297): Added per-recipient S/MIME certificates, enabling encrypted mail for multiple recipients with different certificates.
 - [#613](https://github.com/bbottema/simple-java-mail/issues/613): Added a dedicated recipient builder API for constructing single recipients and recipient collections.
@@ -83,21 +83,5 @@ Unreleased 9.0.0
   - `outlook-message-parser` 1.15.0: improved Outlook `.msg` conversion by preserving nested message attachment metadata, fixing sent-date extraction ([#534](https://github.com/bbottema/simple-java-mail/issues/534)), fixing recipient bucket parsing ([#504](https://github.com/bbottema/simple-java-mail/issues/504)), broadening S/MIME detection, improving RTF-only body conversion ([#576](https://github.com/bbottema/simple-java-mail/issues/576)), and updating Apache POI.
   - Logging dependencies: aligned Log4j to 2.25.4 ([#624](https://github.com/bbottema/simple-java-mail/pull/624)) and SLF4J API to 2.0.18 ([#631](https://github.com/bbottema/simple-java-mail/pull/631)), keeping the Log4j bridge on `log4j-slf4j2-impl` for SLF4J 2.x.
 - Build and test maintenance: bumped Maven Surefire Plugin to 3.5.6 ([#592](https://github.com/bbottema/simple-java-mail/pull/592), [#625](https://github.com/bbottema/simple-java-mail/pull/625)), Maven Clean Plugin to 3.5.0 ([#626](https://github.com/bbottema/simple-java-mail/pull/626)), Appassembler Maven Plugin to 2.1.0 ([#581](https://github.com/bbottema/simple-java-mail/pull/581)), Exec Maven Plugin to 3.5.0 ([#582](https://github.com/bbottema/simple-java-mail/pull/582)), Maven Deploy Plugin to 3.1.4 ([#619](https://github.com/bbottema/simple-java-mail/pull/619)), Maven Install Plugin to 3.1.4 ([#639](https://github.com/bbottema/simple-java-mail/pull/639)), Maven Javadoc Plugin to 3.12.0 ([#637](https://github.com/bbottema/simple-java-mail/pull/637)), Maven GPG Plugin to 3.2.8 ([#621](https://github.com/bbottema/simple-java-mail/pull/621)), and JaCoCo Maven Plugin to 0.8.15 ([#638](https://github.com/bbottema/simple-java-mail/pull/638)); aligned JUnit Platform/Jupiter at 1.14.4/5.14.4 while preserving Java 8 compatibility ([#596](https://github.com/bbottema/simple-java-mail/pull/596), [#633](https://github.com/bbottema/simple-java-mail/pull/633)); kept JUnit Pioneer on 1.9.1 because 2.x is Java 11 bytecode ([#630](https://github.com/bbottema/simple-java-mail/pull/630)); and replaced live embedded-image URL tests with deterministic local coverage ([#617](https://github.com/bbottema/simple-java-mail/issues/617)).
-
-v8.12.0 - [v8.12.6](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/8.12.6/)
-
-- v8.12.6 (18-April-2025): [#595](https://github.com/bbottema/simple-java-mail/issues/595): [bug] Spring configuration - fix support for simplejavamail.extraproperties
-- v8.12.5 (05-March-2025): Bumped PATCH versions of various dependencies [#553](https://github.com/bbottema/simple-java-mail/pull/553), [#554](https://github.com/bbottema/simple-java-mail/pull/554), [#555](https://github.com/bbottema/simple-java-mail/pull/555), [#562](https://github.com/bbottema/simple-java-mail/pull/562), [#567](https://github.com/bbottema/simple-java-mail/pull/567)
-- v8.12.4 (12-December-2024): [#558](https://github.com/bbottema/simple-java-mail/pull/558): [bug] Mailer.close() exception because it attempts to shutdown batch-module connection pools, even if not available on the classpath
-- v8.12.3 (25-November-2024): [#563](https://github.com/bbottema/simple-java-mail/pull/563): [enhancement] Add getter for Authenticated SOCKS server port
-- v8.12.2 (05-October-2024): [#552](https://github.com/bbottema/simple-java-mail/pull/552): [bug] support iCalendar events with METHOD defined in body instead of Content-Type
-- v8.12.1 (02-October-2024): [#533](https://github.com/bbottema/simple-java-mail/pull/533): [maintenance] Bump com.github.therapi:therapi-runtime-javadoc-scribe from 0.13.0 to 0.15.0
-- v8.12.1 (02-October-2024): [#532](https://github.com/bbottema/simple-java-mail/pull/532): [maintenance] Bump com.sanctionco.jmail:jmail from 1.4.1 to 1.6.3
-- v8.12.1 (02-October-2024): [#531](https://github.com/bbottema/simple-java-mail/pull/531): [maintenance] Bump com.github.bbottema:java-socks-proxy-server from 4.0.0 to 4.1.2
-- v8.12.1 (02-October-2024): [#528](https://github.com/bbottema/simple-java-mail/pull/528): [maintenance] Buump com.github.davidmoten:subethasmtp from 7.0.1 to 7.1.1
-- v8.12.1 (02-October-2024): [#522](https://github.com/bbottema/simple-java-mail/pull/522): [maintenance] Bump jakarta.annotation:jakarta.annotation-api from 1.3.5 to 3.0.0
-- v8.12.0 (26-September-2024): [#550](https://github.com/bbottema/simple-java-mail/issues/550): [bug] Environment variables are not being loaded properly
-- v8.12.0 (26-September-2024): [#538](https://github.com/bbottema/simple-java-mail/issues/538): [bug] System properties are only read if configuration file exists in class path
-- v8.12.0 (26-September-2024): [#546](https://github.com/bbottema/simple-java-mail/pull/546): [Enhancement] Trim whitespace in encoder values for Content-Encoding
 
 Older release notes are maintained in [RELEASE_HISTORY.md](RELEASE_HISTORY.md).
