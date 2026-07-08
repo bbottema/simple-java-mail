@@ -20,6 +20,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
+        <license.type>com/mycila/maven/plugin/license/templates/APACHE-2.txt</license.type>
         <license.owner.name>Benny Bottema</license.owner.name>
         <license.owner.email>benny@bennybottema.com</license.owner.email>
         <lombok.version>1.18.46</lombok.version>
@@ -387,6 +388,11 @@
                     <artifactId>maven-deploy-plugin</artifactId>
                     <version>3.1.4</version>
                 </plugin>
+                <plugin>
+                    <groupId>com.mycila</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>3.0</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -452,6 +458,46 @@
                         <id>attach-sources</id>
                         <goals>
                             <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <configuration>
+                    <header>${license.type}</header>
+                    <properties>
+                        <owner>${license.owner.name}</owner>
+                        <email>${license.owner.email}</email>
+                    </properties>
+                    <mapping>
+                        <java>SLASHSTAR_STYLE</java>
+                    </mapping>
+                    <includes>
+                        <include>src/main/java/**/*.java</include>
+                    </includes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>remove-license-boilerplate-on-clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>remove</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>add-license-boilerplate-on-compile</id>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>remove-license-boilerplate-after-package</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>remove</goal>
                         </goals>
                     </execution>
                 </executions>

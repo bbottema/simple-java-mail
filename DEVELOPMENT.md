@@ -53,7 +53,7 @@ mvn verify -DskipTests -Dmaven.javadoc.skip=true
 After any build that ran `license:format`, clean up auto-generated headers before committing:
 
 ```powershell
-mvn license:remove
+mvn com.mycila:license-maven-plugin:3.0:remove
 ```
 
 ---
