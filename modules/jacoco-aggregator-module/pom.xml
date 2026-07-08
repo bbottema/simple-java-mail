@@ -13,6 +13,7 @@
 
 	<artifactId>jacoco-aggregator-module</artifactId>
 	<packaging>pom</packaging>
+	<name>Simple Java Mail - JaCoCo aggregator module</name>
 
 	<dependencies>
 		<dependency>
