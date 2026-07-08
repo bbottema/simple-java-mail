@@ -4,6 +4,7 @@ This document records environment requirements and constraints for building Simp
 It is intended for both human developers and coding agents starting new sessions.
 
 For a catalogue of cross-cutting project mechanisms, see [PROJECT_MECHANISMS_CATALOGUE.md](PROJECT_MECHANISMS_CATALOGUE.md).
+For issue, Dependabot, and release handling workflows, see [MAINTAINER_WORKFLOW.md](MAINTAINER_WORKFLOW.md).
 
 ---
 
@@ -11,34 +12,32 @@ For a catalogue of cross-cutting project mechanisms, see [PROJECT_MECHANISMS_CAT
 
 **Simple Java Mail must remain Java 8-compatible. Use JDK 8 for dependency bumps and compatibility validation.**
 
-The system-wide `JAVA_HOME` on this machine may point to a newer JDK (e.g. JDK 21), but
-Simple Java Mail is **incompatible with Java 12+** for CLI metadata generation. Specifically:
+The system-wide `JAVA_HOME` may point to a newer JDK, but Simple Java Mail is **incompatible with Java 12+**
+for CLI metadata generation. Specifically:
 
 - The CLI module serialises `java.lang.reflect.Method` objects into `cli.data` using Kryo.
   On Java 12+, the Java module system and internal JVM changes break this serialisation.
 - The `therapi-runtime-javadoc` Javadoc scanning used by the CLI module encounters NPEs on
   synthetic/bridge methods exposed differently by newer JVM reflection APIs.
 
-**Before building, ensure the Java 8 JDK is active:**
+**Before building, ensure a Java 8 JDK is active.**
+
+Use a local, gitignored `.maintainer-env.ps1` file for machine-specific paths:
 
 ```powershell
-# Windows (this session only)
-$env:JAVA_HOME = "C:\Program Files\Java\jdk1.8.0_152"
-$env:PATH = "$env:JAVA_HOME\bin;" + $env:PATH
-java -version   # should report 1.8.x
+# .maintainer-env.ps1, not committed
+$env:JAVA_HOME = "<absolute path to a Java 8 JDK>"
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+$env:MAVEN_OPTS = "-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT"
+$env:SJM_GH = "<optional absolute path to gh when it is not on PATH>"
 ```
 
-To make this permanent, update `JAVA_HOME` in System Environment Variables (but note that
-the rest of the system may need Java 21 - Simple Java Mail is the exception, not the rule).
+Then load it in the shell used for builds:
 
-### Available JDKs on this machine
-
-| Version | Path |
-|---------|------|
-| **1.8.0_152** <- use this | `C:\Program Files\Java\jdk1.8.0_152` |
-| 11.0.16.1 | `C:\Program Files\Java\jdk-11.0.16.1` |
-| 18.0.2.1 | `C:\Program Files\Java\jdk-18.0.2.1` |
-| 21 | `C:\Program Files\Java\jdk-21` |
+```powershell
+. .\.maintainer-env.ps1
+java -version   # should report 1.8.x
+```
 
 ---
 
