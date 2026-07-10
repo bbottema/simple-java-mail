@@ -207,10 +207,13 @@ Release-note retention:
 - `RELEASE.txt` keeps the full release history.
 - `README.md` should stay readable and lively, but should not become the full archive.
 - On major releases, trim older README release notes while keeping all notes from the current major line.
-- Patch releases are absorbed into their parent minor release notes in the same primary note style; do not create a separate patch-release story unless the user asks.
-- Minor releases that follow closely in the wake of a major release are absorbed into the current major-line notes the same way.
+- Major releases create the primary release-note story. Keep the README, `RELEASE.txt`, and GitHub release body in sync.
+- Minor releases normally create their own primary release-note story. If a minor release follows closely in the wake of a major release and is still part of that same release wave, absorb it into the current major-line notes instead.
+- Patch releases are absorbed into their parent minor release notes in the same primary note style. Do not create a separate patch-release story unless the user explicitly asks.
+- When a patch is absorbed, place each change in the section where it belongs: bug fixes under fixes, dependency bumps under dependencies, packaging fixes under build/release maintenance, and API/docs additions under the relevant feature or enhancement section.
 - The active release-note header may be a version range, for example `v9.0.0 - v9.0.2`, while the body remains organized by feature/fix/dependency sections.
-- For older archived release groups, a compact secondary format with each bullet prefixed by the concrete release version is fine.
+- A standalone patch GitHub release may still exist for the tag and artifacts. Keep its body short and point to the ranged primary release notes; do not duplicate the patch narrative there.
+- For older archived release groups only, a compact secondary format with each bullet prefixed by the concrete release version is fine.
 
 The website checkout is deploy-sensitive and separate from the root repo. Keep root and website status, staging, commit, and push flows separate.
 Use the root repo as source of truth for API/config names, and patch website docs only for proven mismatches.
@@ -322,7 +325,7 @@ After the deploy job finishes:
 7. Close the release milestone after all fixed issues are closed.
 8. Fast-forward `develop` to `master` and push `develop`.
 
-If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane, ship a patch release, and fold the patch into the existing GitHub release only if the user asks for that specific presentation.
+If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane and ship a patch release. Fold the patch changes into the parent release notes using the release-note decision tree above; keep any patch GitHub release body as a short pointer to the ranged parent notes unless the user explicitly asks for a standalone patch story.
 
 Useful checks:
 
@@ -340,7 +343,7 @@ For a normal release, create a GitHub release for the tag:
 & $gh release create $version --repo bbottema/simple-java-mail --title "v$version" --notes-file RELEASE_NOTES.md
 ```
 
-For a special packaging patch that should be rolled into an existing release, do not create a new GitHub release. Edit the existing release body and attach the patch artifacts there instead.
+For a special packaging patch, the notes still roll into the parent release. If a patch GitHub release is needed for the tag or artifacts, keep it as a short pointer; if the user asks to hide the patch as a separate release page, edit the existing parent release body and attach the patch artifacts there instead.
 
 ---
 
