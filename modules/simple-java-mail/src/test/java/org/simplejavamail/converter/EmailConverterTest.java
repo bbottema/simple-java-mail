@@ -166,6 +166,17 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testOutlookPlainTextRtfDoesNotUsePreWrapperGithubIssue651() {
+		final Email email = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#651 simple sent.msg"));
+
+		assertThat(normalizeNewlines(email.getHTMLText()))
+				.contains("<div style=\"white-space:pre-wrap\">")
+				.contains("Dear BitDaddys Corp.")
+				.contains("Sincerely,\nJohn Doe")
+				.doesNotContain("<pre", "font-family: monospace");
+	}
+
+	@Test
 	public void testOutlookUnicode() {
 		final Recipient kalejs = new Recipient("m.kalejs@outlook.com", "m.kalejs@outlook.com", null, null);
 		final Recipient dummy = new Recipient("doesnotexist@doesnt.com", "doesnotexist@doesnt.com", TO, null);

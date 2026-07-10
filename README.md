@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.0.2%22)
-[![Javadocs](https://img.shields.io/badge/javadoc-9.0.2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.0.3%22)
+[![Javadocs](https://img.shields.io/badge/javadoc-9.0.3-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -34,7 +34,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.0.2</version>
+    <version>9.0.3</version>
 </dependency>
 ```
 
@@ -48,7 +48,7 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 
 ### Latest Release ###
 
-[v9.0.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.0) - [v9.0.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.2) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.2/)
+[v9.0.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.0) - [v9.0.3](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.3) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.3/)
 
 #### The Short Version ####
 
@@ -119,7 +119,7 @@ Across Simple Java Mail and the supporting libraries that keep the stack moving,
 - **`smtp-connection-pool` 3.0.1** ([#8](https://github.com/simple-java-mail/smtp-connection-pool/issues/8)): pulled in `clustered-object-pool` 4.0.1 so the batch-module fix for [#565](https://github.com/bbottema/simple-java-mail/issues/565) can keep connection-pool defaults per cluster key.
 - **`smtp-connection-pool` 3.0.0:** made clustered SMTP pools generic over their cluster-key type and kept already-unusable connections from surfacing as generic pool error logs during transport close.
 - **`java-socks-proxy-server` 4.2.0:** updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
-- **`outlook-message-parser` 1.16.0:** improved Outlook `.msg` conversion by preserving nested message attachment metadata, fixing sent-date extraction ([#534](https://github.com/bbottema/simple-java-mail/issues/534)), fixing recipient bucket parsing ([#504](https://github.com/bbottema/simple-java-mail/issues/504)), broadening S/MIME detection, improving RTF-only body conversion ([#576](https://github.com/bbottema/simple-java-mail/issues/576)), updating Apache POI, and exposing Outlook last-modifier source metadata.
+- **`outlook-message-parser` 1.16.1:** improved Outlook `.msg` conversion by preserving nested message attachment metadata, fixing sent-date extraction ([#534](https://github.com/bbottema/simple-java-mail/issues/534)), fixing recipient bucket parsing ([#504](https://github.com/bbottema/simple-java-mail/issues/504)), broadening S/MIME detection, improving RTF-only body conversion ([#576](https://github.com/bbottema/simple-java-mail/issues/576)), avoiding browser-default `<pre>` styling for Outlook plain-text RTF conversion ([#651](https://github.com/bbottema/simple-java-mail/issues/651)), updating Apache POI, and exposing Outlook last-modifier source metadata.
 
 ##### Build and Test Maintenance #####
 

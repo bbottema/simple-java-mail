@@ -3,10 +3,10 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.0.2</version>
+    <version>9.0.3</version>
 </dependency>
 
-v9.0.0 - v9.0.2
+v9.0.0 - v9.0.3
 
 #### The Short Version ####
 
@@ -77,7 +77,7 @@ Across Simple Java Mail and the supporting libraries that keep the stack moving,
 - **smtp-connection-pool 3.0.1** (#8): pulled in clustered-object-pool 4.0.1 so the batch-module fix for #565 can keep connection-pool defaults per cluster key.
 - **smtp-connection-pool 3.0.0:** made clustered SMTP pools generic over their cluster-key type and kept already-unusable connections from surfacing as generic pool error logs during transport close.
 - **java-socks-proxy-server 4.2.0:** updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
-- **outlook-message-parser 1.16.0:** improved Outlook .msg conversion by preserving nested message attachment metadata, fixing sent-date extraction (#534), fixing recipient bucket parsing (#504), broadening S/MIME detection, improving RTF-only body conversion (#576), updating Apache POI, and exposing Outlook last-modifier source metadata.
+- **outlook-message-parser 1.16.1:** improved Outlook .msg conversion by preserving nested message attachment metadata, fixing sent-date extraction (#534), fixing recipient bucket parsing (#504), broadening S/MIME detection, improving RTF-only body conversion (#576), avoiding browser-default <pre> styling for Outlook plain-text RTF conversion (#651), updating Apache POI, and exposing Outlook last-modifier source metadata.
 
 ##### Build and Test Maintenance #####
 
