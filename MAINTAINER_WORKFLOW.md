@@ -122,6 +122,8 @@ For sibling repositories:
 - Check hidden CI files such as `.circleci/config.yml`; do not stop at visible-file scans.
 - Verify the sibling repo is clean and aligned with its upstream before changing it.
 - Do not fast-forward, push, tag, or release sibling repositories unless that was explicitly requested or approved.
+- If a sibling repository is released as part of the fix, also complete its GitHub release bookkeeping: fixed issue comment/close,
+  milestone close, GitHub release for the tag, and any relevant usage example.
 - When copying or flattening parent/dependency configuration, verify the sibling source project is current and compare against the released Maven Central version. Do not bake stale local checkout state into this project.
 
 ---
@@ -314,7 +316,8 @@ After the deploy job finishes:
 4. Verify `cli-module` includes `standalone-cli.tar` and `standalone-cli.zip`.
 5. Create or update the GitHub release according to the user's request.
 6. Attach the release assets: CLI standalone archives and sample logging configs.
-7. Fast-forward `develop` to `master` and push `develop`.
+7. Close the release milestone after all fixed issues are closed.
+8. Fast-forward `develop` to `master` and push `develop`.
 
 If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane, ship a patch release, and fold the patch into the existing GitHub release only if the user asks for that specific presentation.
 
