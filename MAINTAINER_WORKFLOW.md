@@ -207,7 +207,10 @@ Release-note retention:
 - `RELEASE.txt` keeps the full release history.
 - `README.md` should stay readable and lively, but should not become the full archive.
 - On major releases, trim older README release notes while keeping all notes from the current major line.
-- On patch and minor releases, append/update the current major-line notes rather than deleting older notes from that same major line.
+- Patch releases are absorbed into their parent minor release notes in the same primary note style; do not create a separate patch-release story unless the user asks.
+- Minor releases that follow closely in the wake of a major release are absorbed into the current major-line notes the same way.
+- The active release-note header may be a version range, for example `v9.0.0 - v9.0.2`, while the body remains organized by feature/fix/dependency sections.
+- For older archived release groups, a compact secondary format with each bullet prefixed by the concrete release version is fine.
 
 The website checkout is deploy-sensitive and separate from the root repo. Keep root and website status, staging, commit, and push flows separate.
 Use the root repo as source of truth for API/config names, and patch website docs only for proven mismatches.
