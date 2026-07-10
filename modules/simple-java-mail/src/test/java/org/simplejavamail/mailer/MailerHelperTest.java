@@ -72,6 +72,11 @@ public class MailerHelperTest {
         val emailEmptyReturnReceiptTo = newBuilder().withReturnReceiptTo().buildEmail();
         assertThatNoException().isThrownBy(() -> MailerHelper.validateAddresses(emailEmptyReturnReceiptTo, JMail.validator()));
 
+        val emailWithEncodedWordInDisplayName = newBuilder()
+                .from("=?UTF-8?B?Sm9obiBEb2U=?=", "sender@example.com")
+                .buildEmail();
+        assertThatNoException().isThrownBy(() -> MailerHelper.validateAddresses(emailWithEncodedWordInDisplayName, JMail.validator()));
+
         // problem cases
         val emailMissingFrom = newBuilder().clearFromRecipient().buildEmail();
         assertThatNoException().isThrownBy(() -> MailerHelper.validateAddresses(emailMissingFrom, null));
@@ -115,6 +120,27 @@ public class MailerHelperTest {
         assertThatThrownBy(() -> MailerHelper.validateAddresses(emailInvalidDispositionNotificationTo, JMail.validator()))
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid \"Disposition Notification To\" address: invalid");
+    }
+
+    @Test
+    public void validateAddressesRejectsEncodedWordsInAddressSpec() {
+        val encodedWordAddress = "=?utf-8?q?=40evil.com=00?=@microsoft.com";
+
+        assertThat(JMail.strictValidator().isValid(encodedWordAddress))
+                .as("Sanity check for the Jakarta/JMail validation gap guarded by Simple Java Mail")
+                .isTrue();
+
+        assertThatThrownBy(() -> MailerHelper.validateAddresses(newBuilder()
+                .from(encodedWordAddress)
+                .buildEmail(), null))
+                .isInstanceOf(MailInvalidAddressException.class)
+                .hasMessageContaining("Invalid FROM address: " + encodedWordAddress);
+
+        assertThatThrownBy(() -> MailerHelper.validateAddresses(newBuilder()
+                .withRecipients(null, true, TO, encodedWordAddress)
+                .buildEmail(), null))
+                .isInstanceOf(MailInvalidAddressException.class)
+                .hasMessageContaining("Invalid TO address: " + encodedWordAddress);
     }
 
     @Test

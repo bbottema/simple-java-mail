@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.0.3%22)
-[![Javadocs](https://img.shields.io/badge/javadoc-9.0.3-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.0.4%22)
+[![Javadocs](https://img.shields.io/badge/javadoc-9.0.4-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -34,7 +34,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.0.3</version>
+    <version>9.0.4</version>
 </dependency>
 ```
 
@@ -48,7 +48,7 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 
 ### Latest Release ###
 
-[v9.0.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.0) - [v9.0.3](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.3) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.3/)
+[v9.0.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.0) - [v9.0.4](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.4) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.4/)
 
 #### The Short Version ####
 
@@ -105,6 +105,7 @@ Across Simple Java Mail and the supporting libraries that keep the stack moving,
 - [#535](https://github.com/bbottema/simple-java-mail/issues/535): **Async failure reporting:** let async send and connection-test failures surface through the returned `CompletableFuture` without duplicate framework error logs.
 - [#583](https://github.com/bbottema/simple-java-mail/issues/583): **Java 25 CLI startup:** fixed CLI startup on Java 25.
 - [#616](https://github.com/bbottema/simple-java-mail/issues/616): **CLI optional-argument detection:** removed the runtime JetBrains annotation fork from CLI optional-argument detection.
+- [#652](https://github.com/bbottema/simple-java-mail/issues/652): **RFC 2047 address validation:** reject encoded-word syntax inside address specs during validation while keeping encoded display names valid.
 - **Standalone CLI command cleanup:** `send`, `connect`, and `validate` now wait for command work and close mailer resources, preventing batch-module resources from keeping the process alive.
 
 #### Dependency and Supporting-Library Updates ####

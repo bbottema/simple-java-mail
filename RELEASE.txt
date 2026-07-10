@@ -3,10 +3,10 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.0.3</version>
+    <version>9.0.4</version>
 </dependency>
 
-v9.0.0 - v9.0.3
+v9.0.0 - v9.0.4
 
 #### The Short Version ####
 
@@ -63,6 +63,7 @@ Across Simple Java Mail and the supporting libraries that keep the stack moving,
 - #535: **Async failure reporting:** let async send and connection-test failures surface through the returned CompletableFuture without duplicate framework error logs.
 - #583: **Java 25 CLI startup:** fixed CLI startup on Java 25.
 - #616: **CLI optional-argument detection:** removed the runtime JetBrains annotation fork from CLI optional-argument detection.
+- #652: **RFC 2047 address validation:** reject encoded-word syntax inside address specs during validation while keeping encoded display names valid.
 - **Standalone CLI command cleanup:** send, connect, and validate now wait for command work and close mailer resources, preventing batch-module resources from keeping the process alive.
 
 #### Dependency and Supporting-Library Updates ####
