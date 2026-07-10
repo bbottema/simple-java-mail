@@ -119,8 +119,8 @@ public class ResultHandlingTest {
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
 
-		f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
-		f.get();
+		CompletableFuture<Void> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		handledFuture.get();
 
 		assertThat(successHandlerInvoked).hasValue(true);
 		assertThat(exceptionHandlerInvoked).hasValue(false);
@@ -138,7 +138,8 @@ public class ResultHandlingTest {
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
 
-		f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		CompletableFuture<Void> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		handledFuture.get();
 
 		assertThat(successHandlerInvoked).hasValue(true);
 		assertThat(exceptionHandlerInvoked).hasValue(false);
@@ -155,10 +156,10 @@ public class ResultHandlingTest {
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
 
-		f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		CompletableFuture<Void> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
 
 		try {
-			f.get();
+			handledFuture.get();
 		} catch (Exception e) {
 			// good
 		}
@@ -180,7 +181,12 @@ public class ResultHandlingTest {
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
 
-		f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		CompletableFuture<Void> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		try {
+			handledFuture.get();
+		} catch (Exception e) {
+			// good
+		}
 
 		assertThat(successHandlerInvoked).hasValue(false);
 		assertThat(exceptionHandlerInvoked).hasValue(true);
