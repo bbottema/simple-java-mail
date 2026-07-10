@@ -76,6 +76,11 @@ public class OutlookMessageProxy implements OutlookMessage {
 	}
 
 	@Override
+	public String getLastModifierName() {
+		return delegate.getLastModifierName();
+	}
+
+	@Override
 	public String getDisplayTo() {
 		return delegate.getDisplayTo();
 	}

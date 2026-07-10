@@ -37,6 +37,7 @@ public class OutlookMessageData implements Serializable {
 	private final Date clientSubmitTime;
 	private final Date creationDate;
 	private final Date lastModificationDate;
+	private final String lastModifierName;
 	private final Set<String> propertiesAsHex;
 	private final Set<Integer> propertyCodes;
 	private final String propertyListing;
@@ -56,6 +57,26 @@ public class OutlookMessageData implements Serializable {
 			@Nullable final Set<String> propertiesAsHex,
 			@Nullable final Set<Integer> propertyCodes,
 			@Nullable final String propertyListing) {
+		this(headers, rawHeaders, messageClass, displayTo, displayCc, displayBcc, date, clientSubmitTime, creationDate, lastModificationDate,
+				null, propertiesAsHex, propertyCodes, propertyListing);
+	}
+
+	@SuppressWarnings("ConstructorWithTooManyParameters")
+	public OutlookMessageData(
+			@Nullable final Map<String, ? extends Collection<String>> headers,
+			@Nullable final String rawHeaders,
+			@Nullable final String messageClass,
+			@Nullable final String displayTo,
+			@Nullable final String displayCc,
+			@Nullable final String displayBcc,
+			@Nullable final Date date,
+			@Nullable final Date clientSubmitTime,
+			@Nullable final Date creationDate,
+			@Nullable final Date lastModificationDate,
+			@Nullable final String lastModifierName,
+			@Nullable final Set<String> propertiesAsHex,
+			@Nullable final Set<Integer> propertyCodes,
+			@Nullable final String propertyListing) {
 		this.headers = copyHeaders(headers);
 		this.rawHeaders = rawHeaders;
 		this.messageClass = messageClass;
@@ -66,6 +87,7 @@ public class OutlookMessageData implements Serializable {
 		this.clientSubmitTime = copyDate(clientSubmitTime);
 		this.creationDate = copyDate(creationDate);
 		this.lastModificationDate = copyDate(lastModificationDate);
+		this.lastModifierName = lastModifierName;
 		this.propertiesAsHex = copySet(propertiesAsHex);
 		this.propertyCodes = copySet(propertyCodes);
 		this.propertyListing = propertyListing;
@@ -140,6 +162,15 @@ public class OutlookMessageData implements Serializable {
 	@Nullable
 	public Date getLastModificationDate() {
 		return copyDate(lastModificationDate);
+	}
+
+	/**
+	 * @return Outlook source/store last modifier name (PR_LAST_MODIFIER_NAME / 0x3FFA), or {@code null} if the property is not present.
+	 * This is metadata about the stored Outlook item and must not be treated as sender identity.
+	 */
+	@Nullable
+	public String getLastModifierName() {
+		return lastModifierName;
 	}
 
 	@NotNull

@@ -28,6 +28,8 @@ public interface OutlookMessage {
 	String getFromEmail();
 	
 	String getFromName();
+
+	String getLastModifierName();
 	
 	String getDisplayTo();
 	

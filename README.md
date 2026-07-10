@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.0.0%22)
-[![Javadocs](https://img.shields.io/badge/javadoc-9.0.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.0.2%22)
+[![Javadocs](https://img.shields.io/badge/javadoc-9.0.2-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -34,7 +34,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.0.0</version>
+    <version>9.0.2</version>
 </dependency>
 ```
 
@@ -47,6 +47,11 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 - [Developer environment setup](DEVELOPMENT.md) for JDK and build constraints.
 
 ### Latest Release ###
+
+[v9.0.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.2) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.2/)
+
+- [#645](https://github.com/bbottema/simple-java-mail/issues/645): **Outlook last-modifier metadata:** updated `outlook-message-parser` to 1.16.0 and exposed `PR_LAST_MODIFIER_NAME` / `0x3FFA` as `OutlookMessageData#getLastModifierName()` without treating it as sender identity.
+- **Dependency and build maintenance:** refreshed Jakarta Mail/Activation API dependencies and Maven build plugins while preserving Java 8 compatibility; added Dependabot ignore rules for Java 11-only upgrade lines.
 
 [v9.0.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.0/)
 

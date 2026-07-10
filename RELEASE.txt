@@ -3,10 +3,15 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.0.0</version>
+    <version>9.0.2</version>
 </dependency>
 
-Unreleased 9.0.0
+v9.0.2
+
+- #645: **Outlook last-modifier metadata:** updated outlook-message-parser to 1.16.0 and exposed PR_LAST_MODIFIER_NAME / 0x3FFA as OutlookMessageData#getLastModifierName() without treating it as sender identity.
+- **Dependency and build maintenance:** refreshed Jakarta Mail/Activation API dependencies and Maven build plugins while preserving Java 8 compatibility; added Dependabot ignore rules for Java 11-only upgrade lines.
+
+v9.0.0
 
 #### The Short Version ####
 

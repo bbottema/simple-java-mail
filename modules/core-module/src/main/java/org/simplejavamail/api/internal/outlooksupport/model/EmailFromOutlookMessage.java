@@ -20,7 +20,7 @@ public class EmailFromOutlookMessage {
 		this(emailBuilder, outlookMessage, new OutlookMessageData(null, outlookMessage.getHeaders(), outlookMessage.getMessageClass(),
 				outlookMessage.getDisplayTo(), outlookMessage.getDisplayCc(), outlookMessage.getDisplayBcc(), outlookMessage.getDate(),
 				outlookMessage.getClientSubmitTime(), outlookMessage.getCreationDate(), outlookMessage.getLastModificationDate(),
-				outlookMessage.getPropertiesAsHex(), outlookMessage.getPropertyCodes(), outlookMessage.getPropertyListing()));
+				outlookMessage.getLastModifierName(), outlookMessage.getPropertiesAsHex(), outlookMessage.getPropertyCodes(), outlookMessage.getPropertyListing()));
 	}
 
 	public EmailFromOutlookMessage(final EmailPopulatingBuilder emailBuilder, final OutlookMessage outlookMessage, final OutlookMessageData outlookMessageData) {

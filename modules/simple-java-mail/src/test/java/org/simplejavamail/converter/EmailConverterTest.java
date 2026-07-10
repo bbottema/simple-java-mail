@@ -99,6 +99,17 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testOutlookConversionWithOutlookDataExposesLastModifierNameGithubIssue645() {
+		final File msgFile = new File(RESOURCE_TEST_MESSAGES + "/chinese message.msg");
+
+		final OutlookEmailConversionResult result = EmailConverter.outlookMsgToEmailBuilderWithOutlookData(msgFile);
+		final Email msg = result.buildEmail();
+
+		assertThat(result.getOutlookMessageData().getLastModifierName()).isEqualTo("haozl@Ctrip.com");
+		EmailAssert.assertThat(msg).hasFromRecipient(new Recipient(null, "donotreply@unknown-from-address.net", null, null));
+	}
+
+	@Test
 	public void testOutlookBasicConversionsGithubIssue482() {
 		final Recipient ramonFrom = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", null, null);
 		final Recipient ramonTo = new Recipient("Boss Ramon", "ramon.boss@mobi.ch", TO, null);

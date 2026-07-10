@@ -151,6 +151,7 @@ public class OutlookEmailConverter implements OutlookModule {
 				outlookMessage.getClientSubmitTime(),
 				outlookMessage.getCreationDate(),
 				outlookMessage.getLastModificationDate(),
+				outlookMessage.getLastModifierName(),
 				outlookMessage.getPropertiesAsHex(),
 				outlookMessage.getPropertyCodes(),
 				outlookMessage.getPropertyListing());
