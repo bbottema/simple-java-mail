@@ -24,7 +24,7 @@
         <license.owner.name>Benny Bottema</license.owner.name>
         <license.owner.email>benny@bennybottema.com</license.owner.email>
         <lombok.version>1.18.46</lombok.version>
-        <log4j.version>2.25.4</log4j.version>
+        <log4j.version>2.26.1</log4j.version>
         <mockito.version>4.11.0</mockito.version>
         <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
     </properties>
@@ -242,7 +242,12 @@
             <dependency>
                 <groupId>org.eclipse.angus</groupId>
                 <artifactId>angus-mail</artifactId>
-                <version>2.0.4</version>
+                <version>2.0.5</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.angus</groupId>
+                <artifactId>angus-activation</artifactId>
+                <version>2.0.3</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -336,7 +341,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.0.1</version>
+                    <version>3.4.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -356,7 +361,7 @@
                 <plugin>
                     <groupId>se.eris</groupId>
                     <artifactId>notnull-instrumenter-maven-plugin</artifactId>
-                    <version>0.6.8</version>
+                    <version>1.1.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -391,7 +396,7 @@
                 <plugin>
                     <groupId>com.mycila</groupId>
                     <artifactId>license-maven-plugin</artifactId>
-                    <version>3.0</version>
+                    <version>4.6</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -466,7 +471,6 @@
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
                 <configuration>
-                    <header>${license.type}</header>
                     <properties>
                         <owner>${license.owner.name}</owner>
                         <email>${license.owner.email}</email>
@@ -474,9 +478,14 @@
                     <mapping>
                         <java>SLASHSTAR_STYLE</java>
                     </mapping>
-                    <includes>
-                        <include>src/main/java/**/*.java</include>
-                    </includes>
+                    <licenseSets>
+                        <licenseSet>
+                            <header>${license.type}</header>
+                            <includes>
+                                <include>src/main/java/**/*.java</include>
+                            </includes>
+                        </licenseSet>
+                    </licenseSets>
                 </configuration>
                 <executions>
                     <execution>
