@@ -10,16 +10,16 @@ v9.1.0
 
 #### The Short Version ####
 
-9.1.0 is a small SMTP operations release. It adds two public APIs for production mail setups that need better protocol identity, tracing and submission auditing while keeping existing sendMail(...) behavior unchanged.
+9.1.0 is a small SMTP operations release for production setups that need better mail-server identity and submission auditing. It adds:
 
-#### SMTP Operations ####
+- #653: a configurable SMTP client hostname for the EHLO / HELO command.
+- #654: SMTP submission receipts for reading the server acceptance response after a send.
 
-- #654: **SMTP submission receipts:** added sendMailAndGetReceipt(...) on Mailer and the scoped open-connection MailSender. The returned MailSubmissionReceipt exposes the effective message id, submission timestamp and, when Angus SMTP is used, an SmtpServerResponse with the return code and final server response such as `250 ... queued as ...`.
-- #653: **SMTP EHLO/HELO client hostname:** added typed Java, property and Spring configuration for the SMTP client hostname sent in the EHLO or HELO command. This maps to mail.smtp.localhost or mail.smtps.localhost according to the active transport strategy.
+There are no breaking changes. Existing sendMail(...) behavior is unchanged.
 
-#### Compatibility ####
+#### Details ####
 
-There are no breaking changes. sendMail(...) still returns CompletableFuture<Void>, custom mailers and logging-only transport mode still work, and the new receipt API returns no SMTP response when no SMTP transport response is available. Submission receipts confirm SMTP server acceptance, not final mailbox delivery; use DSN, bounces, read receipts or provider-specific tracking for final delivery signals.
+See the GitHub issues for API examples, configuration notes and conceptual background: #653 and #654.
 
 
 v9.0.0 - v9.0.4
