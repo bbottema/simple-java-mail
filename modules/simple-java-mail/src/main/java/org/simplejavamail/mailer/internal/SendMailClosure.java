@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.EmailTooBigException;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 
@@ -31,6 +32,7 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 	@NotNull private final Session session;
 	@NotNull private final Email email;
 	private final boolean transportModeLoggingOnly;
+	@Nullable private MailSubmissionReceipt receipt;
 
 	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
 		super(smtpConnectionCounter, proxyServer);
@@ -47,11 +49,13 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 			if (transportModeLoggingOnly) {
 				SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
 				LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
+				receipt = TransportRunner.buildReceipt(email, null);
 			} else if (operationalConfig.getCustomMailer() != null) {
 				val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
 				operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, email, message);
+				receipt = TransportRunner.buildReceipt(email, null);
 			} else {
-				TransportRunner.sendMessage(operationalConfig.getClusterKey(), session, email);
+				receipt = TransportRunner.sendMessage(operationalConfig.getClusterKey(), session, email);
 			}
 		} catch (final MessagingException e) {
 			handleException(e, GENERIC_ERROR);
@@ -60,6 +64,14 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 		} catch (final Exception e) {
 			handleException(e, UNKNOWN_ERROR);
 		}
+	}
+
+	@NotNull
+	MailSubmissionReceipt getReceipt() {
+		if (receipt == null) {
+			throw new IllegalStateException("No submission receipt available; send closure has not completed successfully");
+		}
+		return receipt;
 	}
 
 	private void handleException(final Exception e, String errorMsg) {

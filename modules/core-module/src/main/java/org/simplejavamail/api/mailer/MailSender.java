@@ -21,4 +21,19 @@ public interface MailSender {
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during sending.
 	 */
 	void sendMail(Email email);
+
+	/**
+	 * Sends one email over the surrounding open SMTP connection and returns a submission receipt.
+	 * <p>
+	 * The email is processed like {@link Mailer#sendMailAndGetReceipt(Email, boolean)} with {@code async=false}. The returned receipt describes SMTP
+	 * submission acceptance when the underlying transport is Angus SMTP. It does not prove final recipient mailbox delivery.
+	 *
+	 * @param email The email to send.
+	 * @return A receipt for the completed submission.
+	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during sending.
+	 */
+	default MailSubmissionReceipt sendMailAndGetReceipt(Email email) {
+		sendMail(email);
+		return new MailSubmissionReceipt(email.getId(), null, java.time.Instant.now());
+	}
 }

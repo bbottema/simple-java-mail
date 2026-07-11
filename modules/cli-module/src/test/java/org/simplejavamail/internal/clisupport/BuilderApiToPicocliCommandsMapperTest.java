@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.mailer.Mailer;
@@ -155,11 +156,14 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		Method openConnectionSend = Mailer.class.getMethod("withOpenConnection", OpenConnectionCallback.class);
 		assertThat(methodIsCliCompatible(openConnectionSend).isCompatible()).isFalse();
 		assertThat(methodIsCliCompatible(openConnectionSend).getReason()).contains("@BuilderApiNode missing");
+		Method sendMailAndGetReceipt = Mailer.class.getMethod("sendMailAndGetReceipt", Email.class);
+		assertThat(methodIsCliCompatible(sendMailAndGetReceipt).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(sendMailAndGetReceipt).getReason()).contains("@BuilderApiNode missing");
 
 		List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
 				new Class<?>[] { EmailStartingBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class });
 		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
-				.doesNotContain("--mailer:sendMailsInSimpleBatch", "--mailer:withOpenConnection");
+				.doesNotContain("--mailer:sendMailsInSimpleBatch", "--mailer:withOpenConnection", "--mailer:sendMailAndGetReceipt");
 	}
 
 	@Test

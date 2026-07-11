@@ -5,9 +5,9 @@ import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Provider;
 import jakarta.mail.Session;
-import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import jakarta.mail.internet.MimeMessage;
+import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,9 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
@@ -540,6 +542,67 @@ public class MailerTest {
 	}
 
 	@Test
+	public void testSendMailAndGetReceipt_returnsSmtpServerResponse() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		CountingTransport.reset();
+
+		final Session session = createCountingTransportSession();
+
+		MailSubmissionReceipt receipt;
+		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+			receipt = mailer.sendMailAndGetReceipt(createBatchEmail("Receipt email", "receipt@example.com"), false).get();
+		}
+
+		assertThat(CountingTransport.connectCount).isEqualTo(1);
+		assertThat(CountingTransport.closeCount).isEqualTo(1);
+		assertThat(CountingTransport.sentMessages).hasSize(1);
+		assertThat(receipt.getEmailId()).isEqualTo(CountingTransport.sentMessages.get(0).getMessageID());
+		assertThat(receipt.getSubmittedAt()).isNotNull();
+		assertThat(receipt.isAcceptedByServer()).isTrue();
+		assertThat(receipt.getSmtpResponse()).isPresent();
+		SmtpServerResponse smtpResponse = receipt.getSmtpResponse().get();
+		assertThat(smtpResponse.getReturnCode()).isEqualTo(250);
+		assertThat(smtpResponse.getResponse()).isEqualTo("250 queued as simple-java-mail-test-1");
+		assertThat(smtpResponse.isPositiveCompletionReply()).isTrue();
+	}
+
+	@Test
+	public void testSendMailAndGetReceipt_asyncCompletesWithReceipt() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		CountingTransport.reset();
+
+		final Session session = createCountingTransportSession();
+
+		MailSubmissionReceipt receipt;
+		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+			receipt = mailer.sendMailAndGetReceipt(createBatchEmail("Async receipt email", "receipt@example.com"), true).get();
+		}
+
+		assertThat(CountingTransport.connectCount).isEqualTo(1);
+		assertThat(CountingTransport.closeCount).isEqualTo(1);
+		assertThat(receipt.isAcceptedByServer()).isTrue();
+		assertThat(receipt.getSmtpResponse()).isPresent();
+		assertThat(receipt.getSmtpResponse().get().getResponse()).isEqualTo("250 queued as simple-java-mail-test-1");
+	}
+
+	@Test
+	public void testSendMailAndGetReceipt_customMailerHasNoSmtpResponse() throws Exception {
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false).buildEmail();
+		final CustomMailer customMailerMock = mock(CustomMailer.class);
+
+		MailSubmissionReceipt receipt;
+		try (Mailer mailer = getMailerWithCustomMailer(customMailerMock)) {
+			receipt = mailer.sendMailAndGetReceipt(email, false).get();
+		}
+
+		assertThat(receipt.getEmailId()).isEqualTo(email.getId());
+		assertThat(receipt.isAcceptedByServer()).isFalse();
+		assertThat(receipt.getSmtpResponse()).isNotPresent();
+		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
+		verifyNoMoreInteractions(customMailerMock);
+	}
+
+	@Test
 	public void testSimpleBatch_sendEmails_usesSingleTransportConnection() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		CountingTransport.reset();
@@ -585,6 +648,30 @@ public class MailerTest {
 		assertThat(CountingTransport.sentMessages).hasSize(2);
 		assertThat(CountingTransport.sentMessages.get(0).getSubject()).isEqualTo("First database email");
 		assertThat(CountingTransport.sentMessages.get(1).getSubject()).isEqualTo("Second database email");
+	}
+
+	@Test
+	public void testOpenConnection_sendMailAndGetReceipt_returnsSmtpServerResponses() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		CountingTransport.reset();
+		final List<MailSubmissionReceipt> receipts = new ArrayList<>();
+
+		final Session session = createCountingTransportSession();
+
+		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+			mailer.withOpenConnection(sender -> {
+				receipts.add(sender.sendMailAndGetReceipt(createBatchEmail("First database email", "first@example.com")));
+				receipts.add(sender.sendMailAndGetReceipt(createBatchEmail("Second database email", "second@example.com")));
+			});
+		}
+
+		assertThat(CountingTransport.connectCount).isEqualTo(1);
+		assertThat(CountingTransport.closeCount).isEqualTo(1);
+		assertThat(CountingTransport.sentMessages).hasSize(2);
+		assertThat(receipts).hasSize(2);
+		assertThat(receipts).extracting(MailSubmissionReceipt::isAcceptedByServer).containsExactly(true, true);
+		assertThat(receipts.get(0).getSmtpResponse().get().getResponse()).isEqualTo("250 queued as simple-java-mail-test-1");
+		assertThat(receipts.get(1).getSmtpResponse().get().getResponse()).isEqualTo("250 queued as simple-java-mail-test-2");
 	}
 
 	@Test
@@ -688,11 +775,13 @@ public class MailerTest {
 				.buildEmail();
 	}
 
-	public static class CountingTransport extends Transport {
+	public static class CountingTransport extends SMTPTransport {
 		private static int connectCount;
 		private static int closeCount;
 		private static final List<MimeMessage> sentMessages = new ArrayList<>();
 		private static final List<Address[]> sentRecipients = new ArrayList<>();
+		private int lastReturnCode = -1;
+		@Nullable private String lastServerResponse;
 
 		public CountingTransport(final Session session, final URLName urlName) {
 			super(session, urlName);
@@ -716,12 +805,24 @@ public class MailerTest {
 				throws MessagingException {
 			sentMessages.add((MimeMessage) message);
 			sentRecipients.add(addresses);
+			lastReturnCode = 250;
+			lastServerResponse = "250 queued as simple-java-mail-test-" + sentMessages.size();
 		}
 
 		@Override
 		public synchronized void close() {
 			closeCount++;
 			setConnected(false);
+		}
+
+		@Override
+		public synchronized int getLastReturnCode() {
+			return lastReturnCode;
+		}
+
+		@Override
+		public synchronized String getLastServerResponse() {
+			return lastServerResponse;
 		}
 	}
 

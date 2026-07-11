@@ -10,6 +10,7 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.EmailTooBigException;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSender;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -30,7 +31,7 @@ import static org.simplejavamail.mailer.internal.MailerException.UNKNOWN_ERROR;
 /**
  * Runs caller-managed send logic while one SMTP connection is open.
  */
-class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractProxyServerSyncingClosure {
+class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractProxyServerSyncingClosure implements MailSender {
 
 	@NotNull private final OperationalConfig operationalConfig;
 	@NotNull private final Session session;
@@ -70,11 +71,11 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 			if (operationalConfig.getCustomMailer() != null) {
 				throw new MailerException("Cannot use withOpenConnection when a custom mailer is configured");
 			} else if (transportModeLoggingOnly) {
-				runCallback(this::convertAndLogEmailOnly);
+				runCallback(this);
 				LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual open connection sending...");
 			} else {
 				openSmtpTransport();
-				runCallback(this::sendEmailUsingSingleTransport);
+				runCallback(this);
 			}
 		} catch (final CheckedCallbackException e) {
 			failed = true;
@@ -102,6 +103,20 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		}
 	}
 
+	@Override
+	public void sendMail(@NotNull final Email userProvidedEmail) {
+		sendMailAndGetReceipt(userProvidedEmail);
+	}
+
+	@Override
+	@NotNull
+	public MailSubmissionReceipt sendMailAndGetReceipt(@NotNull final Email userProvidedEmail) {
+		if (transportModeLoggingOnly) {
+			return convertAndLogEmailOnly(userProvidedEmail);
+		}
+		return sendEmailUsingSingleTransport(userProvidedEmail);
+	}
+
 	private void runCallback(@NotNull final MailSender sender) {
 		try {
 			openConnectionCallback.accept(sender);
@@ -116,20 +131,26 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		}
 	}
 
-	private void convertAndLogEmailOnly(@NotNull final Email userProvidedEmail) {
+	@NotNull
+	private MailSubmissionReceipt convertAndLogEmailOnly(@NotNull final Email userProvidedEmail) {
 		try {
-			SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, prepareEmail(userProvidedEmail));
+			val email = prepareEmail(userProvidedEmail);
+			SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
+			return TransportRunner.buildReceipt(email, null);
 		} catch (final MessagingException e) {
 			handleException(e, GENERIC_ERROR);
 		}
+		throw new IllegalStateException("unreachable");
 	}
 
-	private void sendEmailUsingSingleTransport(@NotNull final Email userProvidedEmail) {
+	@NotNull
+	private MailSubmissionReceipt sendEmailUsingSingleTransport(@NotNull final Email userProvidedEmail) {
 		try {
-			TransportRunner.sendMessageOnTransport(checkNonEmptyArgument(transport, "transport"), session, prepareEmail(userProvidedEmail));
+			return TransportRunner.sendMessageOnTransport(checkNonEmptyArgument(transport, "transport"), session, prepareEmail(userProvidedEmail));
 		} catch (final MessagingException e) {
 			handleException(e, GENERIC_ERROR);
 		}
+		throw new IllegalStateException("unreachable");
 	}
 
 	private void openSmtpTransport()

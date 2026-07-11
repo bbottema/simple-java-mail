@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
@@ -380,19 +381,39 @@ public class MailerImpl implements Mailer {
 	@Override
 	@NotNull
 	public final CompletableFuture<Void> sendMail(final Email userProvidedEmail, @SuppressWarnings("SameParameterValue") final boolean async) {
+		return sendMailAndGetReceipt(userProvidedEmail, async).thenApply(receipt -> (Void) null);
+	}
+
+	/**
+	 * @see Mailer#sendMailAndGetReceipt(Email)
+	 */
+	@Override
+	@NotNull
+	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(final Email email) {
+		return sendMailAndGetReceipt(email, getOperationalConfig().isAsync());
+	}
+
+	/**
+	 * @see Mailer#sendMailAndGetReceipt(Email, boolean)
+	 */
+	@Override
+	@NotNull
+	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(final Email userProvidedEmail, final boolean async) {
 		val email = prepareEmailForSending(userProvidedEmail);
 
 		SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 
 		if (!async) {
 			sendMailClosure.run();
-			return CompletableFuture.completedFuture(null);
+			return CompletableFuture.completedFuture(sendMailClosure.getReceipt());
 		} else
 			return ModuleLoader.batchModuleAvailable()
 					? ModuleLoader.loadBatchModule()
 						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
+						.thenApply(unused -> sendMailClosure.getReceipt())
 					: AsyncOperationHelper
-						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure);
+						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
+						.thenApply(unused -> sendMailClosure.getReceipt());
 	}
 
 	/**

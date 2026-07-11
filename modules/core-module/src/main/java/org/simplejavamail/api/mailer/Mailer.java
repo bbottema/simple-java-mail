@@ -63,6 +63,20 @@ public interface Mailer extends AutoCloseable {
 	 * @see MailerGenericBuilder#async()
 	 */
 	@NotNull CompletableFuture<Void> sendMail(Email email);
+
+	/**
+	 * Delegates to {@link #sendMailAndGetReceipt(Email, boolean)} using the mailer's configured async default.
+	 * <p>
+	 * The returned receipt describes SMTP submission acceptance, not final delivery to the recipient mailbox.
+	 *
+	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
+	 * @see MailerGenericBuilder#async()
+	 * @see MailSubmissionReceipt
+	 */
+	@NotNull
+	default CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(Email email) {
+		return sendMail(email).thenApply(unused -> new MailSubmissionReceipt(email.getId(), null, java.time.Instant.now()));
+	}
 	
 	/**
 	 * Processes an {@link Email} instance into a completely configured {@link Message}. First, it will apply all defaults and overrides to the email
@@ -93,6 +107,30 @@ public interface Mailer extends AutoCloseable {
 	@NotNull CompletableFuture<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
 
 	/**
+	 * Processes and sends one {@link Email}, returning a receipt for the completed submission.
+	 * <p>
+	 * The send behavior is identical to {@link #sendMail(Email, boolean)}: defaults and overrides are applied, validation runs, MIME conversion happens,
+	 * and the message is submitted using the configured transport. If the underlying transport is Angus SMTP, the receipt contains the final SMTP
+	 * response available from the transport, such as {@code 250 ... queued as ...}. If no SMTP transport is involved, for example when transport mode
+	 * logging-only or a custom mailer is used, the receipt is still returned after successful processing but has no SMTP response.
+	 * <p>
+	 * This is a submission receipt only. It does not prove final recipient mailbox delivery; use DSN, bounces, read receipts, or provider-specific
+	 * mechanisms for that.
+	 *
+	 * @param email The information for the email to be sent.
+	 * @param async If false, this method blocks until the mail has been processed completely by the configured send path. If true, a new thread is
+	 *              started and this method returns immediately.
+	 * @return A {@link CompletableFuture} containing the submission receipt. It is completed immediately if not <em>async</em>.
+	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
+	 * @see SmtpServerResponse
+	 * @see #sendMail(Email, boolean)
+	 */
+	@NotNull
+	default CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(Email email, boolean async) {
+		return sendMail(email, async).thenApply(unused -> new MailSubmissionReceipt(email.getId(), null, java.time.Instant.now()));
+	}
+
+	/**
 	 * Runs caller-managed send logic while one SMTP connection is open.
 	 * <p>
 	 * Use this API when the caller owns the source queue and needs to run work between successful sends, for example marking a database-backed message
@@ -109,6 +147,7 @@ public interface Mailer extends AutoCloseable {
 	 * Simple Java Mail owns the SMTP connection and closes it when the callback returns or fails. The delegate does <strong>not</strong> use the
 	 * batch-module connection pool, does not queue emails, and does not run asynchronously. Each {@link MailSender#sendMail(Email)} call
 	 * applies the same defaults, validation, MIME conversion, and transport mode behavior as {@link #sendMail(Email, boolean)} with {@code async=false}.
+	 * Use {@link MailSender#sendMailAndGetReceipt(Email)} inside the callback when caller code needs the SMTP submission receipt before checkpointing.
 	 * A custom mailer cannot be used with this API because Simple Java Mail does not own the underlying connection in that configuration.
 	 *
 	 * @param openConnectionCallback The caller-managed send logic to run while the SMTP connection is open.
