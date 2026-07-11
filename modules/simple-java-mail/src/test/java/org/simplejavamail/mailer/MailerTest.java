@@ -47,6 +47,8 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.TO;
@@ -66,6 +68,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 public class MailerTest {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
+	private static final String COUNTING_TRANSPORT_STATE_KEY = MailerTest.class.getName() + ".countingTransportState";
 
 	@BeforeEach
 	public void restoreOriginalStaticProperties() {
@@ -544,19 +547,19 @@ public class MailerTest {
 	@Test
 	public void testSendMailAndGetReceipt_returnsSmtpServerResponse() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		CountingTransport.reset();
 
 		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
 
 		MailSubmissionReceipt receipt;
 		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
 			receipt = mailer.sendMailAndGetReceipt(createBatchEmail("Receipt email", "receipt@example.com"), false).get();
 		}
 
-		assertThat(CountingTransport.connectCount).isEqualTo(1);
-		assertThat(CountingTransport.closeCount).isEqualTo(1);
-		assertThat(CountingTransport.sentMessages).hasSize(1);
-		assertThat(receipt.getEmailId()).isEqualTo(CountingTransport.sentMessages.get(0).getMessageID());
+		assertThat(transportState.connectCount.get()).isEqualTo(1);
+		assertThat(transportState.closeCount.get()).isEqualTo(1);
+		assertThat(transportState.sentMessages).hasSize(1);
+		assertThat(receipt.getEmailId()).isEqualTo(transportState.sentMessages.get(0).getMessageID());
 		assertThat(receipt.getSubmittedAt()).isNotNull();
 		assertThat(receipt.isAcceptedByServer()).isTrue();
 		assertThat(receipt.getSmtpResponse()).isPresent();
@@ -569,17 +572,17 @@ public class MailerTest {
 	@Test
 	public void testSendMailAndGetReceipt_asyncCompletesWithReceipt() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		CountingTransport.reset();
 
 		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
 
 		MailSubmissionReceipt receipt;
 		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
 			receipt = mailer.sendMailAndGetReceipt(createBatchEmail("Async receipt email", "receipt@example.com"), true).get();
 		}
 
-		assertThat(CountingTransport.connectCount).isEqualTo(1);
-		assertThat(CountingTransport.closeCount).isEqualTo(1);
+		assertThat(transportState.connectCount.get()).isEqualTo(1);
+		assertThat(transportState.closeCount.get()).isEqualTo(1);
 		assertThat(receipt.isAcceptedByServer()).isTrue();
 		assertThat(receipt.getSmtpResponse()).isPresent();
 		assertThat(receipt.getSmtpResponse().get().getResponse()).isEqualTo("250 queued as simple-java-mail-test-1");
@@ -605,9 +608,9 @@ public class MailerTest {
 	@Test
 	public void testSimpleBatch_sendEmails_usesSingleTransportConnection() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		CountingTransport.reset();
 
 		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
 
 		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
 			mailer.sendMailsInSimpleBatch(Arrays.asList(
@@ -615,22 +618,22 @@ public class MailerTest {
 					createBatchEmail("Second batch email", "second@example.com")), false);
 		}
 
-		assertThat(CountingTransport.connectCount).isEqualTo(1);
-		assertThat(CountingTransport.closeCount).isEqualTo(1);
-		assertThat(CountingTransport.sentMessages).hasSize(2);
-		assertThat(CountingTransport.sentMessages.get(0).getSubject()).isEqualTo("First batch email");
-		assertThat(CountingTransport.sentMessages.get(1).getSubject()).isEqualTo("Second batch email");
-		assertThat(CountingTransport.sentRecipients.get(0)).extracting(Address::toString).containsExactly("first@example.com");
-		assertThat(CountingTransport.sentRecipients.get(1)).extracting(Address::toString).containsExactly("second@example.com");
+		assertThat(transportState.connectCount.get()).isEqualTo(1);
+		assertThat(transportState.closeCount.get()).isEqualTo(1);
+		assertThat(transportState.sentMessages).hasSize(2);
+		assertThat(transportState.sentMessages.get(0).getSubject()).isEqualTo("First batch email");
+		assertThat(transportState.sentMessages.get(1).getSubject()).isEqualTo("Second batch email");
+		assertThat(transportState.sentRecipients.get(0)).extracting(Address::toString).containsExactly("first@example.com");
+		assertThat(transportState.sentRecipients.get(1)).extracting(Address::toString).containsExactly("second@example.com");
 	}
 
 	@Test
 	public void testOpenConnection_sendEmails_allowsCallerCheckpointingBetweenSends() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		CountingTransport.reset();
 		final List<String> markedSent = new ArrayList<>();
 
 		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
 
 		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
 			mailer.withOpenConnection(sender -> {
@@ -643,20 +646,20 @@ public class MailerTest {
 		}
 
 		assertThat(markedSent).containsExactly("first", "second");
-		assertThat(CountingTransport.connectCount).isEqualTo(1);
-		assertThat(CountingTransport.closeCount).isEqualTo(1);
-		assertThat(CountingTransport.sentMessages).hasSize(2);
-		assertThat(CountingTransport.sentMessages.get(0).getSubject()).isEqualTo("First database email");
-		assertThat(CountingTransport.sentMessages.get(1).getSubject()).isEqualTo("Second database email");
+		assertThat(transportState.connectCount.get()).isEqualTo(1);
+		assertThat(transportState.closeCount.get()).isEqualTo(1);
+		assertThat(transportState.sentMessages).hasSize(2);
+		assertThat(transportState.sentMessages.get(0).getSubject()).isEqualTo("First database email");
+		assertThat(transportState.sentMessages.get(1).getSubject()).isEqualTo("Second database email");
 	}
 
 	@Test
 	public void testOpenConnection_sendMailAndGetReceipt_returnsSmtpServerResponses() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		CountingTransport.reset();
 		final List<MailSubmissionReceipt> receipts = new ArrayList<>();
 
 		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
 
 		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
 			mailer.withOpenConnection(sender -> {
@@ -665,9 +668,9 @@ public class MailerTest {
 			});
 		}
 
-		assertThat(CountingTransport.connectCount).isEqualTo(1);
-		assertThat(CountingTransport.closeCount).isEqualTo(1);
-		assertThat(CountingTransport.sentMessages).hasSize(2);
+		assertThat(transportState.connectCount.get()).isEqualTo(1);
+		assertThat(transportState.closeCount.get()).isEqualTo(1);
+		assertThat(transportState.sentMessages).hasSize(2);
 		assertThat(receipts).hasSize(2);
 		assertThat(receipts).extracting(MailSubmissionReceipt::isAcceptedByServer).containsExactly(true, true);
 		assertThat(receipts.get(0).getSmtpResponse().get().getResponse()).isEqualTo("250 queued as simple-java-mail-test-1");
@@ -677,10 +680,10 @@ public class MailerTest {
 	@Test
 	public void testOpenConnection_sendEmails_propagatesCallerCheckedException() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		CountingTransport.reset();
 
 		final IOException checkpointFailure = new IOException("database unavailable");
 		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
 
 		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
 			assertThatThrownBy(() -> mailer.withOpenConnection(sender -> {
@@ -690,18 +693,18 @@ public class MailerTest {
 					.isSameAs(checkpointFailure);
 		}
 
-		assertThat(CountingTransport.connectCount).isEqualTo(1);
-		assertThat(CountingTransport.closeCount).isEqualTo(1);
-		assertThat(CountingTransport.sentMessages).hasSize(1);
+		assertThat(transportState.connectCount.get()).isEqualTo(1);
+		assertThat(transportState.closeCount.get()).isEqualTo(1);
+		assertThat(transportState.sentMessages).hasSize(1);
 	}
 
 	@Test
 	public void testOpenConnection_sendEmails_propagatesCallerRuntimeException() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		CountingTransport.reset();
 
 		final IllegalStateException checkpointFailure = new IllegalStateException("database unavailable");
 		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
 
 		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
 			assertThatThrownBy(() -> mailer.withOpenConnection(sender -> {
@@ -711,9 +714,9 @@ public class MailerTest {
 					.isSameAs(checkpointFailure);
 		}
 
-		assertThat(CountingTransport.connectCount).isEqualTo(1);
-		assertThat(CountingTransport.closeCount).isEqualTo(1);
-		assertThat(CountingTransport.sentMessages).hasSize(1);
+		assertThat(transportState.connectCount.get()).isEqualTo(1);
+		assertThat(transportState.closeCount.get()).isEqualTo(1);
+		assertThat(transportState.sentMessages).hasSize(1);
 	}
 
 	@Test
@@ -757,6 +760,7 @@ public class MailerTest {
 
 	private static Session createCountingTransportSession() throws MessagingException {
 		final Properties properties = new Properties();
+		properties.put(COUNTING_TRANSPORT_STATE_KEY, new CountingTransportState());
 		properties.setProperty("mail.transport.protocol", "smtp");
 		properties.setProperty("mail.smtp.host", "localhost");
 		final Session session = Session.getInstance(properties);
@@ -764,6 +768,10 @@ public class MailerTest {
 		session.addProvider(provider);
 		session.setProvider(provider);
 		return session;
+	}
+
+	private static CountingTransportState getCountingTransportState(final Session session) {
+		return (CountingTransportState) session.getProperties().get(COUNTING_TRANSPORT_STATE_KEY);
 	}
 
 	private static Email createBatchEmail(final String subject, final String recipient) {
@@ -776,42 +784,33 @@ public class MailerTest {
 	}
 
 	public static class CountingTransport extends SMTPTransport {
-		private static int connectCount;
-		private static int closeCount;
-		private static final List<MimeMessage> sentMessages = new ArrayList<>();
-		private static final List<Address[]> sentRecipients = new ArrayList<>();
+		private final CountingTransportState state;
 		private int lastReturnCode = -1;
 		@Nullable private String lastServerResponse;
 
 		public CountingTransport(final Session session, final URLName urlName) {
 			super(session, urlName);
-		}
-
-		private static void reset() {
-			connectCount = 0;
-			closeCount = 0;
-			sentMessages.clear();
-			sentRecipients.clear();
+			state = getCountingTransportState(session);
 		}
 
 		@Override
 		protected boolean protocolConnect(final String host, final int port, final String user, final String password) {
-			connectCount++;
+			state.connectCount.incrementAndGet();
 			return true;
 		}
 
 		@Override
 		public void sendMessage(final Message message, final Address[] addresses)
 				throws MessagingException {
-			sentMessages.add((MimeMessage) message);
-			sentRecipients.add(addresses);
+			state.sentMessages.add((MimeMessage) message);
+			state.sentRecipients.add(addresses);
 			lastReturnCode = 250;
-			lastServerResponse = "250 queued as simple-java-mail-test-" + sentMessages.size();
+			lastServerResponse = "250 queued as simple-java-mail-test-" + state.sentMessages.size();
 		}
 
 		@Override
 		public synchronized void close() {
-			closeCount++;
+			state.closeCount.incrementAndGet();
 			setConnected(false);
 		}
 
@@ -824,6 +823,13 @@ public class MailerTest {
 		public synchronized String getLastServerResponse() {
 			return lastServerResponse;
 		}
+	}
+
+	private static final class CountingTransportState {
+		private final AtomicInteger connectCount = new AtomicInteger();
+		private final AtomicInteger closeCount = new AtomicInteger();
+		private final List<MimeMessage> sentMessages = new CopyOnWriteArrayList<>();
+		private final List<Address[]> sentRecipients = new CopyOnWriteArrayList<>();
 	}
 
 	public static MailerRegularBuilderImpl createFullyConfiguredMailerBuilder(final boolean authenticateProxy, final String prefix, @Nullable final TransportStrategy transportStrategy) {
