@@ -56,6 +56,12 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final Integer localBindPort;
 
 	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withSmtpClientHostname(String)
+	 */
+	@Nullable
+	private final String smtpClientHostname;
+
+	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	private final int threadPoolSize;

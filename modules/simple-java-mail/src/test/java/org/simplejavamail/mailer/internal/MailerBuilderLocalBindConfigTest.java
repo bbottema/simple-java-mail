@@ -86,4 +86,67 @@ public class MailerBuilderLocalBindConfigTest {
 			assertThat(session.getProperty("mail.smtp.localport")).isNull();
 		}
 	}
+
+	@Test
+	public void smtpClientHostnameUsesSmtpPropertiesForStartTls() throws Exception {
+		try (Mailer mailer = MailerBuilder
+				.withSMTPServer("smtp.example.com", 587)
+				.withTransportStrategy(TransportStrategy.SMTP_TLS)
+				.withSmtpClientHostname("orders-service.prod.example.com")
+				.buildMailer()) {
+			Session session = mailer.getSession();
+
+			assertThat(mailer.getOperationalConfig().getSmtpClientHostname()).isEqualTo("orders-service.prod.example.com");
+			assertThat(session.getProperty("mail.smtp.localhost")).isEqualTo("orders-service.prod.example.com");
+			assertThat(session.getProperty("mail.smtps.localhost")).isNull();
+		}
+	}
+
+	@Test
+	public void smtpClientHostnameUsesSmtpsPropertiesForSmtps() throws Exception {
+		try (Mailer mailer = MailerBuilder
+				.withSMTPServer("smtp.example.com", 465)
+				.withTransportStrategy(TransportStrategy.SMTPS)
+				.withSmtpClientHostname("bulk-mailer.corp.example.com")
+				.buildMailer()) {
+			Session session = mailer.getSession();
+
+			assertThat(session.getProperty("mail.smtps.localhost")).isEqualTo("bulk-mailer.corp.example.com");
+			assertThat(session.getProperty("mail.smtp.localhost")).isNull();
+		}
+	}
+
+	@Test
+	public void smtpClientHostnameConfigPropertyIsAppliedThroughTransportStrategy() throws Exception {
+		ConfigLoader.loadProperties(new ByteArrayInputStream((
+				"simplejavamail.smtp.clienthostname=relay-identity.example.com\n").getBytes()), false);
+
+		try (Mailer mailer = MailerBuilder
+				.withSMTPServer("smtp.example.com", 465)
+				.withTransportStrategy(TransportStrategy.SMTPS)
+				.buildMailer()) {
+			Session session = mailer.getSession();
+
+			assertThat(session.getProperty("mail.smtps.localhost")).isEqualTo("relay-identity.example.com");
+			assertThat(session.getProperty("mail.smtp.localhost")).isNull();
+		}
+	}
+
+	@Test
+	public void smtpClientHostnameCanBeClearedAfterConfigDefaults() throws Exception {
+		ConfigLoader.loadProperties(new ByteArrayInputStream((
+				"simplejavamail.smtp.clienthostname=relay-identity.example.com\n").getBytes()), false);
+
+		try (Mailer mailer = MailerBuilder
+				.withSMTPServer("smtp.example.com", 587)
+				.withTransportStrategy(TransportStrategy.SMTP_TLS)
+				.clearSmtpClientHostname()
+				.buildMailer()) {
+			Session session = mailer.getSession();
+
+			assertThat(mailer.getOperationalConfig().getSmtpClientHostname()).isNull();
+			assertThat(session.getProperty("mail.smtp.localhost")).isNull();
+			assertThat(session.getProperty("mail.smtps.localhost")).isNull();
+		}
+	}
 }

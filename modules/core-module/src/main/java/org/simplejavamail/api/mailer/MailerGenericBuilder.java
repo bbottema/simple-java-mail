@@ -301,6 +301,28 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withLocalBindAddress(@Nullable @Cli.Optional String localBindAddress, @Nullable @Cli.Optional Integer localBindPort);
 
 	/**
+	 * Configures the hostname that Jakarta Mail should send as the SMTP client identity in the {@code EHLO} or
+	 * {@code HELO} command.
+	 * <p>
+	 * This is useful when corporate SMTP relays expect a stable recognizable client hostname, or when mail-server logs,
+	 * tracing, audit trails and SMTP diagnostics should identify application traffic consistently. Simple Java Mail applies
+	 * this to the correct Jakarta Mail Session property for the configured {@link TransportStrategy}.
+	 * <p>
+	 * This setting does not bind the outgoing socket to a local IP address; use {@link #withLocalBindAddress(String, Integer)}
+	 * for that. It also does not change the SMTP envelope sender address.
+	 * <p>
+	 * Provide the hostname shape expected by your SMTP relay, typically a DNS host name or FQDN. Simple Java Mail deliberately
+	 * does not over-validate this value because corporate relay identifiers can be environment-specific.
+	 *
+	 * @param smtpClientHostname Hostname to send in the SMTP {@code EHLO} or {@code HELO} command.
+	 *
+	 * @see #clearSmtpClientHostname()
+	 * @see TransportStrategy#propertyNameLocalHost()
+	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.localhost">mail.smtp.localhost</a>
+	 */
+	T withSmtpClientHostname(@Nullable @Cli.Optional String smtpClientHostname);
+
+	/**
 	 * Sets the email address validator used when validating and sending emails using the current <code>Mailer</code> instance.
 	 * <p>
 	 * Defaults to {@link JMail#strictValidator()}.
@@ -793,6 +815,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearLocalBindAddress();
 
 	/**
+	 * Clears the configured SMTP {@code EHLO}/{@code HELO} client hostname.
+	 *
+	 * @see #withSmtpClientHostname(String)
+	 */
+	T clearSmtpClientHostname();
+
+	/**
 	 * Removes all properties.
 	 *
 	 * @see #withProperties(Properties)
@@ -872,6 +901,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	Integer getLocalBindPort();
+
+	/**
+	 * @see #withSmtpClientHostname(String)
+	 */
+	@Nullable
+	String getSmtpClientHostname();
 
 	/**
 	 * @see #withEmailValidator(EmailValidator)

@@ -203,6 +203,7 @@ public class MailerImpl implements Mailer {
 
 		configureSessionWithTimeout(session, operationalConfig.getSessionTimeout(), transportStrategy);
 		configureSessionWithLocalBindAddress(session, operationalConfig, transportStrategy);
+		configureSessionWithSmtpClientHostname(session, operationalConfig, transportStrategy);
 		configureTrustedHosts(session, operationalConfig, transportStrategy);
 		configureServerIdentityVerification(session, operationalConfig, transportStrategy);
 
@@ -238,6 +239,19 @@ public class MailerImpl implements Mailer {
 			}
 		} else {
 			LOGGER.debug("No transport strategy provided, skipping local bind address configuration");
+		}
+	}
+
+	/**
+	 * Configures the SMTP client hostname used in the EHLO/HELO command.
+	 */
+	static private void configureSessionWithSmtpClientHostname(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, @Nullable final TransportStrategy transportStrategy) {
+		if (transportStrategy != null) {
+			if (!valueNullOrEmpty(operationalConfig.getSmtpClientHostname())) {
+				session.getProperties().setProperty(transportStrategy.propertyNameLocalHost(), verifyNonnull(operationalConfig.getSmtpClientHostname()));
+			}
+		} else {
+			LOGGER.debug("No transport strategy provided, skipping SMTP client hostname configuration");
 		}
 	}
 

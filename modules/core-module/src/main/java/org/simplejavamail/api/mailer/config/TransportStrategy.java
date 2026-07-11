@@ -143,6 +143,14 @@ public enum TransportStrategy {
 		public String propertyNameLocalPort() {
 			return "mail.smtp.localport";
 		}
+
+		/**
+		 * @return "mail.smtp.localhost"
+		 */
+		@Override
+		public String propertyNameLocalHost() {
+			return "mail.smtp.localhost";
+		}
 		
 		/**
 		 * @return "mail.smtp.connectiontimeout"
@@ -336,6 +344,14 @@ public enum TransportStrategy {
 		public String propertyNameLocalPort() {
 			return "mail.smtps.localport";
 		}
+
+		/**
+		 * @return "mail.smtps.localhost"
+		 */
+		@Override
+		public String propertyNameLocalHost() {
+			return "mail.smtps.localhost";
+		}
 		
 		/**
 		 * @return "mail.smtps.connectiontimeout"
@@ -509,6 +525,14 @@ public enum TransportStrategy {
 		}
 
 		/**
+		 * @return "mail.smtp.localhost"
+		 */
+		@Override
+		public String propertyNameLocalHost() {
+			return "mail.smtp.localhost";
+		}
+
+		/**
 		 * @return "mail.smtp.connectiontimeout"
 		 */
 		@Override
@@ -670,6 +694,14 @@ public enum TransportStrategy {
 		}
 
 		/**
+		 * @return "mail.smtp.localhost"
+		 */
+		@Override
+		public String propertyNameLocalHost() {
+			return "mail.smtp.localhost";
+		}
+
+		/**
 		 * @return "mail.smtp.connectiontimeout"
 		 */
 		@Override
@@ -803,6 +835,10 @@ public enum TransportStrategy {
 	 * For internal use only.
 	 */
 	public abstract String propertyNameLocalPort();
+	/**
+	 * For internal use only.
+	 */
+	public abstract String propertyNameLocalHost();
 	/**
 	 * For internal use only.
 	 *

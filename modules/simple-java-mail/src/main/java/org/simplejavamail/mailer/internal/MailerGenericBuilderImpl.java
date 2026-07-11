@@ -117,6 +117,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private Integer localBindPort;
 
 	/**
+	 * @see MailerGenericBuilder#withSmtpClientHostname(String)
+	 */
+	@Nullable
+	private String smtpClientHostname;
+
+	/**
 	 * @see MailerGenericBuilder#withEmailValidator(EmailValidator)
 	 */
 	@Nullable
@@ -271,6 +277,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.sessionTimeout 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
 		this.localBindAddress						= valueOrPropertyAsString(null, Property.SMTP_LOCAL_ADDRESS, null);
 		this.localBindPort							= valueOrPropertyAsInteger(null, Property.SMTP_LOCAL_PORT, null);
+		this.smtpClientHostname					= valueOrPropertyAsString(null, Property.SMTP_CLIENT_HOSTNAME, null);
 		this.trustAllSSLHost 						= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
 		this.verifyingServerIdentity 				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY));
 		this.threadPoolSize 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
@@ -338,6 +345,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getSessionTimeout(),
 				getLocalBindAddress(),
 				getLocalBindPort(),
+				getSmtpClientHostname(),
 				getThreadPoolSize(),
 				getThreadPoolKeepAliveTime(),
 				getClusterKey(),
@@ -493,6 +501,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public T withLocalBindAddress(@Nullable final String localBindAddress, @Nullable final Integer localBindPort) {
 		this.localBindAddress = localBindAddress;
 		this.localBindPort = localBindPort;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withSmtpClientHostname(String)
+	 */
+	@Override
+	public T withSmtpClientHostname(@Nullable final String smtpClientHostname) {
+		this.smtpClientHostname = smtpClientHostname;
 		return (T) this;
 	}
 
@@ -920,6 +937,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public T clearLocalBindAddress() {
 		return withLocalBindAddress(null, null);
 	}
+
+	/**
+	 * @see MailerGenericBuilder#clearSmtpClientHostname()
+	 */
+	@Override
+	public T clearSmtpClientHostname() {
+		return withSmtpClientHostname(null);
+	}
 	
 	/**
 	 * @see MailerGenericBuilder#clearProperties()
@@ -1033,6 +1058,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	public Integer getLocalBindPort() {
 		return localBindPort;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getSmtpClientHostname()
+	 */
+	@Override
+	@Nullable
+	public String getSmtpClientHostname() {
+		return smtpClientHostname;
 	}
 
 	/**

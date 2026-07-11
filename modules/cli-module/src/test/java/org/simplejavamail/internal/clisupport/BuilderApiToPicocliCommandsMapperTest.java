@@ -114,6 +114,10 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		Method withProxy = MailerGenericBuilder.class.getMethod("withProxy", String.class, Integer.class);
 		assertThat(hasCliOptionalParameter(withProxy, 0)).isTrue();
 		assertThat(hasCliOptionalParameter(withProxy, 1)).isTrue();
+
+		Method withSmtpClientHostname = MailerGenericBuilder.class.getMethod("withSmtpClientHostname", String.class);
+		assertThat(methodIsCliCompatible(withSmtpClientHostname).isCompatible()).isTrue();
+		assertThat(hasCliOptionalParameter(withSmtpClientHostname, 0)).isTrue();
 	}
 
 	@Test

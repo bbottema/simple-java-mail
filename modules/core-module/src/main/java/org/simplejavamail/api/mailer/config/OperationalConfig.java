@@ -45,6 +45,12 @@ public interface OperationalConfig {
 	Integer getLocalBindPort();
 
 	/**
+	 * @see MailerGenericBuilder#withSmtpClientHostname(String)
+	 */
+	@Nullable
+	String getSmtpClientHostname();
+
+	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */
 	int getThreadPoolSize();
