@@ -27,13 +27,13 @@ To be able to have your CI/CD script also commit the new version, you need to ad
 
 To release through CI/CD pipeline in CircleCI
 
- 1. update release notes and github readme page and push changes
+ 1. update release notes, RELEASE_HISTORY.md and the github readme page according to MAINTAINER_WORKFLOW.md, then push changes
  2. go to the CI/CD pipeline https://circleci.com/gh/bbottema/simple-java-mail
  3. select the version release needed
 
 To release manually:
 
- 1. update release notes and github readme page (don't commit)
+ 1. update release notes, RELEASE_HISTORY.md and the github readme page according to MAINTAINER_WORKFLOW.md (don't commit)
  2. remove SNAPSHOT version from the <version> property
  4. mvn -DperformRelease=true clean deploy
             (set password in settings.xml or use local pgp key password, for which the public key must have been sent to a public key server,
