@@ -8,18 +8,9 @@ https://www.simplejavamail.org
 
 v9.1.0
 
-#### The Short Version ####
-
-9.1.0 is a small SMTP operations release for production setups that need better mail-server identity and submission auditing. It adds:
-
 - #653: a configurable SMTP client hostname for the EHLO / HELO command.
 - #654: SMTP submission receipts for reading the server acceptance response after a send.
-
-There are no breaking changes. Existing sendMail(...) behavior is unchanged.
-
-#### Details ####
-
-See the GitHub issues for API examples, configuration notes and conceptual background: #653 and #654.
+- No breaking changes; existing sendMail(...) behavior is unchanged.
 
 
 v9.0.0 - v9.0.4

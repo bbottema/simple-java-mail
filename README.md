@@ -46,25 +46,13 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 - [API expansion workflow](API_EXPANSION_WORKFLOW.md) for adding public API fields or builder methods.
 - [Developer environment setup](DEVELOPMENT.md) for JDK and build constraints.
 
-### Latest Release ###
+### Latest progress ###
 
 [v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.0/)
 
-#### The Short Version ####
-
-9.1.0 is a small SMTP operations release for production setups that need better mail-server identity and submission auditing. It adds:
-
 - [#653](https://github.com/bbottema/simple-java-mail/issues/653): a configurable SMTP client hostname for the `EHLO` / `HELO` command.
 - [#654](https://github.com/bbottema/simple-java-mail/issues/654): SMTP submission receipts for reading the server acceptance response after a send.
-
-There are no breaking changes. Existing `sendMail(...)` behavior is unchanged.
-
-#### Details ####
-
-See the GitHub issues for API examples, configuration notes and conceptual background:
-[#653](https://github.com/bbottema/simple-java-mail/issues/653) and [#654](https://github.com/bbottema/simple-java-mail/issues/654).
-
-### Previous Major Release ###
+- No breaking changes; existing `sendMail(...)` behavior is unchanged.
 
 [v9.0.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.0) - [v9.0.4](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.4) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.4/)
 
