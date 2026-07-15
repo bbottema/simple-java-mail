@@ -276,7 +276,7 @@
             <dependency>
                 <groupId>org.jetbrains</groupId>
                 <artifactId>annotations</artifactId>
-                <version>16.0.3</version>
+                <version>26.1.0</version>
             </dependency>
             <dependency><!-- Gives us SpotBugs suppression annotations. -->
                 <groupId>com.github.spotbugs</groupId>
