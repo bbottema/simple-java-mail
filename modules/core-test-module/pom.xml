@@ -20,6 +20,24 @@
         <automaticModuleName>org.simplejavamail.test</automaticModuleName>
     </properties>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Import-Package>
+                            org.simplejavamail.internal.moduleloader;resolution:=optional,
+                            org.simplejavamail.mailer.internal;resolution:=optional,
+                            *
+                        </Import-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>org.simplejavamail</groupId>

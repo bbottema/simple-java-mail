@@ -40,6 +40,9 @@ updates:
       - dependency-name: "com.mycila:license-maven-plugin"
         versions:
           - "[5,)"
+      - dependency-name: "org.apache.felix:maven-bundle-plugin"
+        versions:
+          - "[6,)"
       - dependency-name: "org.apache.karaf.tooling:karaf-maven-plugin"
         versions:
-          - "[4.4.11,)"
+          - "[4.4.8,)"
