@@ -8,9 +8,9 @@ https://www.simplejavamail.org
 
 v9.1.0 - v9.1.1
 
+- **v9.1.1:** **Java 8 build-tool maintenance** (#662): updated annotations and Maven compiler, JAR, OSGi bundle, and Karaf tooling to Java 8-compatible versions, with Dependabot guards against newer-Java-only upgrade lines.
 - **v9.1.0:** #653: a configurable SMTP client hostname for the EHLO / HELO command.
 - **v9.1.0:** #654: SMTP submission receipts for reading the server acceptance response after a send.
-- **v9.1.1:** **Java 8 build-tool maintenance** (#662): updated annotations and Maven compiler, JAR, OSGi bundle, and Karaf tooling to Java 8-compatible versions, with Dependabot guards against newer-Java-only upgrade lines.
 - **v9.1.0:** No breaking changes; existing sendMail(...) behavior is unchanged.
 
 
@@ -52,8 +52,8 @@ Across Simple Java Mail and the supporting libraries that keep the stack moving,
 
 #### Enhancements ####
 
-- **v9.0.0:** #614: **Outlook conversion metadata:** added explicit result APIs for inspecting source .msg headers and metadata without copying structural headers into converted emails, resolving #609.
 - **v9.0.2:** #645: **Outlook last-modifier metadata:** exposed PR_LAST_MODIFIER_NAME / 0x3FFA as OutlookMessageData#getLastModifierName() without treating it as sender identity.
+- **v9.0.0:** #614: **Outlook conversion metadata:** added explicit result APIs for inspecting source .msg headers and metadata without copying structural headers into converted emails, resolving #609.
 - **v9.0.0:** #605: **Per-body content-transfer encoding:** added Content-Transfer-Encoding configuration for plain text, HTML, and calendar content.
 - **v9.0.0:** #566, #597, #602, #607: **MIME resource Content-ID handling:** improved explicit IDs, parsed embedded images, and generated fallback IDs.
 - **v9.0.0:** #589: **Jakarta Mail debug output:** added configurable debug output routing.
@@ -66,40 +66,40 @@ Across Simple Java Mail and the supporting libraries that keep the stack moving,
 
 #### Fixes and Compatibility ####
 
+- **v9.0.4:** #652: **RFC 2047 address validation:** reject encoded-word syntax inside address specs during validation while keeping encoded display names valid.
+- **v9.0.3:** #651: **Outlook plain-text RTF rendering:** preserved line breaks without exposing browser-default <pre> styling in converted HTML.
 - **v9.0.0:** #615: **Async test connections:** fixed MailerGenericBuilder.async() so no-arg testConnection() uses the configured async default.
 - **v9.0.0:** #611: **SMTPS custom SSL socket factories:** fixed custom SSL socket factory configuration for SMTPS mailers.
 - **v9.0.0:** #535: **Async failure reporting:** let async send and connection-test failures surface through the returned CompletableFuture without duplicate framework error logs.
 - **v9.0.0:** #583: **Java 25 CLI startup:** fixed CLI startup on Java 25.
 - **v9.0.0:** #616: **CLI optional-argument detection:** removed the runtime JetBrains annotation fork from CLI optional-argument detection.
-- **v9.0.3:** #651: **Outlook plain-text RTF rendering:** preserved line breaks without exposing browser-default <pre> styling in converted HTML.
-- **v9.0.4:** #652: **RFC 2047 address validation:** reject encoded-word syntax inside address specs during validation while keeping encoded display names valid.
 - **v9.0.0:** **Standalone CLI command cleanup:** send, connect, and validate now wait for command work and close mailer resources, preventing batch-module resources from keeping the process alive.
 
 #### Dependency and Supporting-Library Updates ####
 
-- **v9.0.0:** **Core dependency maintenance:** bumped JMail to 2.1.0 (#634), commons-io to 2.22.0 (#579, #627), Kryo to 5.6.2 (#586), Zip4j to 2.11.5 (#587), SubEthaSMTP to 7.2.2 (#593, #632), Angus Mail to 2.0.4 (#604), Objenesis to 3.5 (#580, #635), Lombok to 1.18.46 (#636), AssertJ Core to 3.27.7 (#622), and SpotBugs annotations to 4.10.2 (#629).
-- **v9.0.2:** **Jakarta API alignment:** bumped Jakarta Mail API to 2.1.5 and Jakarta Activation API to 2.1.4.
 - **v9.0.3:** **Angus runtime alignment:** bumped Angus Mail to 2.0.5 and added Angus Activation 2.0.3.
-- **v9.0.0:** **Logging dependencies:** aligned Log4j to 2.25.4 (#624) and SLF4J API to 2.0.18 (#631), keeping the Log4j bridge on log4j-slf4j2-impl for SLF4J 2.x.
 - **v9.0.3:** **Logging dependencies:** bumped Log4j from 2.25.4 to 2.26.1.
+- **v9.0.2:** **Jakarta API alignment:** bumped Jakarta Mail API to 2.1.5 and Jakarta Activation API to 2.1.4.
+- **v9.0.0:** **Core dependency maintenance:** bumped JMail to 2.1.0 (#634), commons-io to 2.22.0 (#579, #627), Kryo to 5.6.2 (#586), Zip4j to 2.11.5 (#587), SubEthaSMTP to 7.2.2 (#593, #632), Angus Mail to 2.0.4 (#604), Objenesis to 3.5 (#580, #635), Lombok to 1.18.46 (#636), AssertJ Core to 3.27.7 (#622), and SpotBugs annotations to 4.10.2 (#629).
+- **v9.0.0:** **Logging dependencies:** aligned Log4j to 2.25.4 (#624) and SLF4J API to 2.0.18 (#631), keeping the Log4j bridge on log4j-slf4j2-impl for SLF4J 2.x.
 
 ##### Supporting Libraries #####
 
+- **v9.0.3:** **outlook-message-parser 1.16.1 / rtf-to-html 2.0.2:** fixed browser-default <pre> styling in Outlook plain-text RTF conversion (#651).
+- **v9.0.2:** **outlook-message-parser 1.16.0:** added source last-modifier metadata used by OutlookMessageData#getLastModifierName().
 - **v9.0.0:** **utils-mail-dkim 3.3.0:** added configurable DNS provider URL support for DKIM domain-key TXT lookups, fixed the published automatic module name, and kept packaged artifacts free of JaCoCo probes.
 - **v9.0.0:** **clustered-object-pool 4.0.1** (#6): added cluster-specific Java configuration for pool defaults, claim timeout, and load balancing.
 - **v9.0.0:** **smtp-connection-pool 3.0.1** (#8): pulled in clustered-object-pool 4.0.1 so the batch-module fix for #565 can keep connection-pool defaults per cluster key.
 - **v9.0.0:** **smtp-connection-pool 3.0.0:** made clustered SMTP pools generic over their cluster-key type and kept already-unusable connections from surfacing as generic pool error logs during transport close.
 - **v9.0.0:** **java-socks-proxy-server 4.2.0:** updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
 - **v9.0.0:** **outlook-message-parser 1.15.0:** improved Outlook .msg conversion by preserving nested message attachment metadata, fixing sent-date extraction (#534), fixing recipient bucket parsing (#504), broadening S/MIME detection, improving RTF-only body conversion (#576), and updating Apache POI.
-- **v9.0.2:** **outlook-message-parser 1.16.0:** added source last-modifier metadata used by OutlookMessageData#getLastModifierName().
-- **v9.0.3:** **outlook-message-parser 1.16.1 / rtf-to-html 2.0.2:** fixed browser-default <pre> styling in Outlook plain-text RTF conversion (#651).
 
 ##### Build and Test Maintenance #####
 
-- **v9.0.0:** **Build plugins and test stack:** bumped Maven Surefire Plugin to 3.5.6 (#592, #625), Maven Clean Plugin to 3.5.0 (#626), Appassembler Maven Plugin to 2.1.0 (#581), Exec Maven Plugin to 3.5.0 (#582), Maven Deploy Plugin to 3.1.4 (#619), Maven Install Plugin to 3.1.4 (#639), Maven Javadoc Plugin to 3.12.0 (#637), Maven GPG Plugin to 3.2.8 (#621), and JaCoCo Maven Plugin to 0.8.15 (#638); aligned JUnit Platform/Jupiter at 1.14.4/5.14.4 while preserving Java 8 compatibility (#596, #633); kept JUnit Pioneer on 1.9.1 because 2.x is Java 11 bytecode (#630); added Java 8 Dependabot guards; and replaced live embedded-image URL tests with deterministic local coverage (#617).
-- **v9.0.1:** **Release packaging:** restored generated license headers in published source JARs and enabled publication of the standalone CLI ZIP and TAR classifier artifacts.
-- **v9.0.2:** **Build maintenance:** bumped Maven Assembly Plugin to 3.8.0 and Nexus Staging Maven Plugin to 1.7.0, and extended Dependabot guards for Java 11-only plugin lines.
 - **v9.0.3:** **Build maintenance:** bumped Maven Source Plugin to 3.4.0, NotNull Instrumenter Maven Plugin to 1.1.1, and Mycila License Maven Plugin to 4.6.
+- **v9.0.2:** **Build maintenance:** bumped Maven Assembly Plugin to 3.8.0 and Nexus Staging Maven Plugin to 1.7.0, and extended Dependabot guards for Java 11-only plugin lines.
+- **v9.0.1:** **Release packaging:** restored generated license headers in published source JARs and enabled publication of the standalone CLI ZIP and TAR classifier artifacts.
+- **v9.0.0:** **Build plugins and test stack:** bumped Maven Surefire Plugin to 3.5.6 (#592, #625), Maven Clean Plugin to 3.5.0 (#626), Appassembler Maven Plugin to 2.1.0 (#581), Exec Maven Plugin to 3.5.0 (#582), Maven Deploy Plugin to 3.1.4 (#619), Maven Install Plugin to 3.1.4 (#639), Maven Javadoc Plugin to 3.12.0 (#637), Maven GPG Plugin to 3.2.8 (#621), and JaCoCo Maven Plugin to 0.8.15 (#638); aligned JUnit Platform/Jupiter at 1.14.4/5.14.4 while preserving Java 8 compatibility (#596, #633); kept JUnit Pioneer on 1.9.1 because 2.x is Java 11 bytecode (#630); added Java 8 Dependabot guards; and replaced live embedded-image URL tests with deterministic local coverage (#617).
 
 v8.12.0 - v8.12.6
 

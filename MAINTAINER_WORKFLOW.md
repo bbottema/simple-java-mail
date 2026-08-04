@@ -217,6 +217,7 @@ Release-note retention:
 - When a patch is absorbed, place each change in the section where it belongs: bug fixes under fixes, dependency bumps under dependencies, packaging fixes under build/release maintenance, and API/docs additions under the relevant feature or enhancement section.
 - The active release-note header may be a version range, for example `v9.0.0 - v9.0.2`, while the body remains organized by feature/fix/dependency sections.
 - When a release-note heading covers more than one version, prefix every bullet with the exact version that first released that change, for example `- **v9.0.2:** ...`. A bullet may omit its version only when its heading names exactly one version.
+- Within each section of a multi-version release-note entry, order the version-prefixed bullets by release number in descending order (newest first). Keep bullets from the same version together and retain their logical editorial order within that version group.
 - Never combine changes first released in different versions into one bullet. Split mixed maintenance or dependency summaries by release version so every prefix remains unambiguous.
 - Create one GitHub release for every published tag, including patches whose repository notes are absorbed into a version range. Never omit a patch release or fold it into an adjacent tag's GitHub release.
 - Every GitHub release title and body must describe one tag only; never roll multiple versions into a GitHub release title or treat another tag's changes as part of that release.
@@ -396,5 +397,6 @@ For a release task:
 - A separate GitHub release exists for the current tag; it is not folded into another tag's release.
 - The GitHub release body is self-contained and tag-specific: it identifies that version's changes and compatibility impact without relying on README, release-history, issue, or pull-request links for essential meaning.
 - The GitHub release body contains no build/test verification evidence or internal release-process commentary.
+- Every multi-version repository release-note section has version-prefixed bullets ordered newest first.
 - Related GitHub issues have a short release-availability comment when applicable.
 - Worktree is clean.
