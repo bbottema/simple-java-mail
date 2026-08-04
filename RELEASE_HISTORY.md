@@ -2,8 +2,9 @@
 
 Full Simple Java Mail release history. [README.md](README.md#latest-progress) also mirrors recent progress for quick scanning.
 
-[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.2) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.2/)
+[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.3](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.3) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.3/)
 
+- **v9.1.3:** [#668](https://github.com/bbottema/simple-java-mail/issues/668): **New Outlook inline images:** updated `outlook-message-parser` to 1.16.2 so native-HTML-only `.msg` files match inline `cid:` images correctly and trailing NUL terminators no longer leak into attachment metadata.
 - **v9.1.2:** **Dependency and Java 8-compatible build-tool maintenance:** updated JMail to 2.2.0 ([#663](https://github.com/bbottema/simple-java-mail/pull/663)), Zip4j to 2.11.6 ([#666](https://github.com/bbottema/simple-java-mail/pull/666)), Exec Maven Plugin to 3.6.3 ([#664](https://github.com/bbottema/simple-java-mail/pull/664)), Maven Enforcer Plugin to 3.6.3 ([#665](https://github.com/bbottema/simple-java-mail/pull/665)), and Maven JAR Plugin to 3.5.1 ([#667](https://github.com/bbottema/simple-java-mail/pull/667)).
 - **v9.1.1:** **Java 8 build-tool maintenance** ([#662](https://github.com/bbottema/simple-java-mail/pull/662)): updated annotations and Maven compiler, JAR, OSGi bundle, and Karaf tooling to Java 8-compatible versions, with Dependabot guards against newer-Java-only upgrade lines.
 - **v9.1.0:** [#653](https://github.com/bbottema/simple-java-mail/issues/653): a configurable SMTP client hostname for the `EHLO` / `HELO` command.
