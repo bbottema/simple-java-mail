@@ -48,10 +48,11 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 
 ### Latest progress ###
 
-[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.0/)
+[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.1) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.1/)
 
 - [#653](https://github.com/bbottema/simple-java-mail/issues/653): a configurable SMTP client hostname for the `EHLO` / `HELO` command.
 - [#654](https://github.com/bbottema/simple-java-mail/issues/654): SMTP submission receipts for reading the server acceptance response after a send.
+- **Java 8 build-tool maintenance** ([#662](https://github.com/bbottema/simple-java-mail/pull/662)): updated annotations and Maven compiler, JAR, OSGi bundle, and Karaf tooling to Java 8-compatible versions, with Dependabot guards against newer-Java-only upgrade lines.
 - No breaking changes; existing `sendMail(...)` behavior is unchanged.
 
 [v9.0.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.0) - [v9.0.4](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.4) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.4/)

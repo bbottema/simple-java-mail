@@ -3,13 +3,14 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.1.0</version>
+    <version>9.1.1</version>
 </dependency>
 
-v9.1.0
+v9.1.0 - v9.1.1
 
 - #653: a configurable SMTP client hostname for the EHLO / HELO command.
 - #654: SMTP submission receipts for reading the server acceptance response after a send.
+- **Java 8 build-tool maintenance** (#662): updated annotations and Maven compiler, JAR, OSGi bundle, and Karaf tooling to Java 8-compatible versions, with Dependabot guards against newer-Java-only upgrade lines.
 - No breaking changes; existing sendMail(...) behavior is unchanged.
 
 
