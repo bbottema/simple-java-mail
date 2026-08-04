@@ -211,12 +211,15 @@ Release-note retention:
 - Keep the last major release visible in `README.md` until a newer major release exists, even after minor or patch releases ship.
 - Major releases create the primary release-note story. A narrative section such as `The Short Version` is acceptable for a major release when it helps explain the release line.
 - Regular minor and patch releases should usually be concise bullets that speak for themselves and link to GitHub issues for details. Do not force the major-release narrative format onto ordinary releases.
-- Keep the latest-release notes aligned across `README.md`, `RELEASE.txt`, `RELEASE_HISTORY.md`, and the GitHub release body, with detail level adjusted to each surface.
+- Keep the latest-release notes aligned across `README.md`, `RELEASE.txt`, `RELEASE_HISTORY.md`, and the GitHub release body, with detail level adjusted to each surface. Alignment does not permit the GitHub release body to delegate its content to another file.
 - Minor releases normally create their own primary release-note entry. If a minor release follows closely in the wake of a major release and is still part of that same release wave, absorb it into the current major-line notes instead.
 - Patch releases are absorbed into their parent minor release notes in the same primary note style. Do not create a separate patch-release story unless the user explicitly asks.
 - When a patch is absorbed, place each change in the section where it belongs: bug fixes under fixes, dependency bumps under dependencies, packaging fixes under build/release maintenance, and API/docs additions under the relevant feature or enhancement section.
 - The active release-note header may be a version range, for example `v9.0.0 - v9.0.2`, while the body remains organized by feature/fix/dependency sections.
-- A standalone patch GitHub release may still exist for the tag and artifacts. Keep its body short and point to the ranged primary release notes; do not duplicate the patch narrative there.
+- Every GitHub release body, including a patch release, must be a permanent, self-contained record of that tagged release. State what changed in that version, relevant compatibility decisions, and any important verification or artifact notes directly in the body.
+- Links to `README.md`, `RELEASE_HISTORY.md`, pull requests, issues, or Maven Central are supporting references only. Never use a link or wording such as "see the release notes" as a substitute for the release's own change summary.
+- A patch release can remain concise and its repository notes can still be absorbed into the parent minor range, but its GitHub release body must independently explain the patch without requiring the reader to open another page.
+- Write GitHub release notes from facts fixed at the tag. Do not depend on mutable branch content or on documentation whose visible focus will change with a later release.
 - For older archived release groups only, a compact secondary format with each bullet prefixed by the concrete release version is fine.
 
 The website checkout is deploy-sensitive and separate from the root repo. Keep root and website status, staging, commit, and push flows separate.
@@ -324,12 +327,12 @@ After the deploy job finishes:
 2. Verify the new version exists in Maven Central.
 3. Verify the published sources contain license headers.
 4. Verify `cli-module` includes `standalone-cli.tar` and `standalone-cli.zip`.
-5. Create or update the GitHub release according to the user's request.
+5. Create or update the GitHub release with a self-contained body that permanently records the tagged release's changes, compatibility notes, and relevant verification.
 6. Attach the release assets: CLI standalone archives and sample logging configs.
 7. Close the release milestone after all fixed issues are closed.
 8. Fast-forward `develop` to `master` and push `develop`.
 
-If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane and ship a patch release. Fold the patch changes into the parent release notes using the release-note decision tree above; keep any patch GitHub release body as a short pointer to the ranged parent notes unless the user explicitly asks for a standalone patch story.
+If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane and ship a patch release. Fold the patch changes into the parent repository notes using the release-note decision tree above, while giving the patch tag its own concise, self-contained GitHub release body.
 
 Useful checks:
 
@@ -347,7 +350,7 @@ For a normal release, create a GitHub release for the tag:
 & $gh release create $version --repo bbottema/simple-java-mail --title "v$version" --notes-file RELEASE_NOTES.md
 ```
 
-For a special packaging patch, the notes still roll into the parent release. If a patch GitHub release is needed for the tag or artifacts, keep it as a short pointer; if the user asks to hide the patch as a separate release page, edit the existing parent release body and attach the patch artifacts there instead.
+For a special packaging patch, the repository notes still roll into the parent release range, but the GitHub release for the patch tag must state the packaging problem and correction directly. Do not publish a pointer-only release body. If the user explicitly asks not to create a separate patch release page, update the existing parent release body with the full patch details and attach the corrected artifacts there instead.
 
 ---
 
@@ -384,6 +387,7 @@ For a release task:
 - Maven Central has the released artifacts.
 - CLI standalone ZIP/TAR exist for `cli-module`.
 - The GitHub release has the CLI standalone ZIP/TAR and sample logging config assets.
-- GitHub release exists or was intentionally folded into another release.
+- GitHub release exists for the current tag unless the user explicitly requested folding it into another release.
+- The GitHub release body is self-contained: it identifies the tagged version's changes and compatibility impact without relying on README, release-history, issue, or pull-request links for essential meaning.
 - Related GitHub issues have a short release-availability comment when applicable.
 - Worktree is clean.
