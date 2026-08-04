@@ -357,7 +357,7 @@ For a normal release, create a GitHub release for the tag:
 & $gh release create $version --repo bbottema/simple-java-mail --title "v$version" --notes-file RELEASE_NOTES.md
 ```
 
-For a special packaging patch, the repository notes still roll into the parent release range, but the GitHub release for the patch tag must state the packaging problem and correction directly. Do not publish a pointer-only release body. If the user explicitly asks not to create a separate patch release page, update the existing parent release body with the full patch details and attach the corrected artifacts there instead.
+For a special packaging patch, the repository notes still roll into the parent release range, but the patch tag must always have its own GitHub release with a body that states the packaging problem and correction directly. Do not publish a pointer-only release body or attach the patch's versioned artifacts to another tag.
 
 ---
 
