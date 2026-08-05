@@ -160,9 +160,9 @@ final class SocksCommandSender {
 			int size = receivedData[4];
 			size = size & 0xFF;
 			addressBytes = new byte[size];
-			System.arraycopy(receivedData, 4, addressBytes, 0, size);
-			portBytes[0] = receivedData[4 + size];
-			portBytes[1] = receivedData[5 + size];
+			System.arraycopy(receivedData, 5, addressBytes, 0, size);
+			portBytes[0] = receivedData[5 + size];
+			portBytes[1] = receivedData[6 + size];
 			LOGGER.debug("Server replied:Address as host:{}, port:{}", new String(addressBytes, UTF_8),
 					(MiscUtil.toInt(portBytes[0]) << 8) | (MiscUtil.toInt(portBytes[1])));
 		} else if (receivedData[3] == ADDRESS_TYPE_IPV6) {
