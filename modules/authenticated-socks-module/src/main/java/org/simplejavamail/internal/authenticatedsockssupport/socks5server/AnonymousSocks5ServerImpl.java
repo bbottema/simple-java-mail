@@ -1,12 +1,14 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5server;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
@@ -25,8 +27,8 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 	
 	private ExecutorService threadPool;
 	private ServerSocket serverSocket;
-	private boolean stopping = false;
-	private boolean running = false;
+	private volatile boolean stopping = false;
+	private volatile boolean running = false;
 	
 	public AnonymousSocks5ServerImpl(final Socks5Bridge socks5Bridge, final int proxyBridgePort) {
 		this.socks5Bridge = socks5Bridge;
@@ -46,7 +48,7 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 			this.threadPool = Executors.newFixedThreadPool(100);
 			this.serverSocket = new ServerSocket();
 			this.serverSocket.setReuseAddress(true);
-			this.serverSocket.bind(new InetSocketAddress(proxyBridgePort));
+			this.serverSocket.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), proxyBridgePort));
 		} catch (final IOException e) {
 			throw new SocksException("error preparing socks5bridge server for authenticated proxy session", e);
 		}
@@ -109,5 +111,10 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 			return -1;
 		}
 		return serverSocket.getLocalPort();
+	}
+
+	@Nullable
+	InetAddress getLocalAddress() {
+		return serverSocket == null ? null : serverSocket.getInetAddress();
 	}
 }

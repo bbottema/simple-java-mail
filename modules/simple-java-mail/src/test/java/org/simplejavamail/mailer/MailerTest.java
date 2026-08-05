@@ -39,6 +39,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.InetAddress;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,6 +70,7 @@ public class MailerTest {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 	private static final String COUNTING_TRANSPORT_STATE_KEY = MailerTest.class.getName() + ".countingTransportState";
+	private static final String LOOPBACK_HOST = InetAddress.getLoopbackAddress().getHostAddress();
 
 	@BeforeEach
 	public void restoreOriginalStaticProperties() {
@@ -181,7 +183,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
+		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("999");
 		assertThat(session.getProperty("extra1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("value2");
@@ -208,7 +210,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
+		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
 		assertThat(session.getProperty("extra1")).isNull();
 		assertThat(session.getProperty("extra2")).isNull();
@@ -282,7 +284,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
+		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
 		assertThat(session.getProperty("extra-properties-property1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra-properties-property2")).isEqualTo("override");
@@ -312,7 +314,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
+		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
 	}
 	
@@ -332,7 +334,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("overridden username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
 		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
+		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
 		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
 		assertThat(session.getProperty("extra1")).isEqualTo("overridden value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("overridden value2");

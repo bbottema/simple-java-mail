@@ -25,6 +25,7 @@ import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -49,6 +50,7 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
 public class MailerImpl implements Mailer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MailerImpl.class);
+	private static final String LOOPBACK_HOST = InetAddress.getLoopbackAddress().getHostAddress();
 
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
@@ -288,8 +290,8 @@ public class MailerImpl implements Mailer {
 	 * If a {@link ProxyConfig} was provided with a host address, then the appropriate properties are set on the {@link Session}, overriding any SOCKS
 	 * properties already there.
 	 * <p>
-	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>, which are set to "localhost" and {@link
-	 * ProxyConfig#getProxyBridgePort()}.
+	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>, which are set to the JVM loopback address and
+	 * {@link ProxyConfig#getProxyBridgePort()}.
 	 *
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
 	 * @param session           The session with properties to add the new configuration to.
@@ -322,11 +324,11 @@ public class MailerImpl implements Mailer {
 			if (proxyConfig.requiresAuthentication()) {
 				if (transportStrategy != null) {
 					// wire anonymous proxy request to our own proxy bridge, so we can perform authentication to the actual proxy
-					sessionProperties.put(transportStrategy.propertyNameSocksHost(), "localhost");
+					sessionProperties.put(transportStrategy.propertyNameSocksHost(), LOOPBACK_HOST);
 					sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getProxyBridgePort()));
 				} else {
 					LOGGER.debug("no transport strategy provided but authenticated proxy required, expecting mail.smtp(s).socks.host and .port " +
-							"properties to be set to localhost and port " + proxyConfig.getProxyBridgePort());
+							"properties to be set to the JVM loopback address and port " + proxyConfig.getProxyBridgePort());
 				}
 				return ModuleLoader.loadAuthenticatedSocksModule().createAnonymousSocks5Server(proxyConfig);
 			}
