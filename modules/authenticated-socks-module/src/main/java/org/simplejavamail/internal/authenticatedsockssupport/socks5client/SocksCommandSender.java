@@ -87,7 +87,8 @@ final class SocksCommandSender {
 			throws IOException, SocksException {
 		final InputStream inputStream = socket.getInputStream();
 		final OutputStream outputStream = socket.getOutputStream();
-		final int lengthOfHost = host.getBytes(UTF_8).length;
+		final byte[] bytesOfHost = host.getBytes(UTF_8);
+		final int lengthOfHost = bytesOfHost.length;
 		final byte[] bufferSent = new byte[7 + lengthOfHost];
 
 		bufferSent[0] = SOCKS_VERSION;
@@ -95,10 +96,9 @@ final class SocksCommandSender {
 		bufferSent[2] = RESERVED;
 		bufferSent[3] = ATYPE_DOMAINNAME;
 		bufferSent[4] = (byte) lengthOfHost;
-		final byte[] bytesOfHost = host.getBytes(UTF_8);
 		System.arraycopy(bytesOfHost, 0, bufferSent, 5, lengthOfHost);// copy host bytes.
-		bufferSent[5 + host.length()] = (byte) ((port & 0xff00) >> 8);
-		bufferSent[6 + host.length()] = (byte) (port & 0xff);
+		bufferSent[5 + lengthOfHost] = (byte) ((port & 0xff00) >> 8);
+		bufferSent[6 + lengthOfHost] = (byte) (port & 0xff);
 
 		outputStream.write(bufferSent);
 		outputStream.flush();
