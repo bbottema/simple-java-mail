@@ -4,6 +4,9 @@ Full Simple Java Mail release history. [README.md](README.md#latest-progress) al
 
 ## Unreleased
 
+**Security default change in v9.2.0:** Simple Java Mail no longer trusts every TLS certificate by default. SMTP connections now use the JVM trust store while continuing to verify the server hostname. Applications using self-signed certificates or a private CA that is not installed in the JVM trust store may stop connecting after the upgrade. Install the issuing CA in the JVM trust store when possible; otherwise use `trustingSSLHosts("smtp.internal.example")` as a narrow compatibility exception, or `trustingAllHosts(true)` as the broader, less-safe escape hatch. See the [9.2 migration notes](https://www.simplejavamail.org/migration-notes-9.2.0.html).
+
+- [#677](https://github.com/bbottema/simple-java-mail/issues/677): **Strict TLS certificate trust by default:** changed `DEFAULT_TRUST_ALL_HOSTS` to `false`, leaving `mail.*.ssl.trust` unset unless an application explicitly configures a trust exception. Server identity verification remains enabled.
 - [#676](https://github.com/bbottema/simple-java-mail/issues/676): **Authenticated SOCKS bridge binding:** restrict the temporary bridge to the JVM loopback address and configure Jakarta Mail with that same address. The bridge is not exposed on network interfaces and is not a general-purpose proxy.
 
 [v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.5](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.5) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.5/)
