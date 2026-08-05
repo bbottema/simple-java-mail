@@ -7,7 +7,6 @@ import org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil;
 
 import java.util.Objects;
 
-import static java.lang.Boolean.TRUE;
 import static java.util.Optional.ofNullable;
 
 /**
@@ -55,7 +54,7 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 		this.smimeProtocol = ofNullable(smimeProtocol).orElse(attachmentSmimeDetails.getSmimeProtocol());
 		this.smimeMicalg = ofNullable(smimeMicalg).orElse(attachmentSmimeDetails.getSmimeMicalg());
 		this.smimeSignedBy = ofNullable(smimeSignedBy).orElse(attachmentSmimeDetails.getSmimeSignedBy());
-		this.smimeSignatureValid = ofNullable(smimeSignatureValid).orElse(attachmentSmimeDetails.getSmimeSignatureValid());
+		this.smimeSignatureValid = mergeSmimeSignatureValidity(smimeSignatureValid, attachmentSmimeDetails.getSmimeSignatureValid());
 		this.smimeMode = determineSmode(ofNullable(this.smimeMode).orElse(attachmentSmimeDetails.getSmimeMode()));
 	}
 
@@ -71,7 +70,18 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 	}
 
 	public void completeWithSmimeSignatureValid(final boolean signatureValid) {
-		this.smimeSignatureValid = TRUE.equals(this.smimeSignatureValid) || signatureValid;
+		this.smimeSignatureValid = mergeSmimeSignatureValidity(this.smimeSignatureValid, signatureValid);
+	}
+
+	@Nullable
+	private static Boolean mergeSmimeSignatureValidity(@Nullable final Boolean currentResult, @Nullable final Boolean additionalResult) {
+		if (currentResult == null) {
+			return additionalResult;
+		}
+		if (additionalResult == null) {
+			return currentResult;
+		}
+		return currentResult && additionalResult;
 	}
 
 	public void completeWithSmimeMode(final SmimeMode smimeMode) {
