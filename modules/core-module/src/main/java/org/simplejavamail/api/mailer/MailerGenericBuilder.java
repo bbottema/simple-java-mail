@@ -36,7 +36,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @see #trustingAllHosts(boolean)
 	 */
-	boolean DEFAULT_TRUST_ALL_HOSTS = true;
+	boolean DEFAULT_TRUST_ALL_HOSTS = false;
 	/**
 	 * {@value}
 	 *
@@ -544,51 +544,53 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withTransportModeLoggingOnly(@NotNull Boolean transportModeLoggingOnly);
 
 	/**
-	 * Configures the new session to only accept server certificates issued to one of the provided hostnames. Note that verifying server identity
-	 * can be turned on and off with {@link #verifyingServerIdentity(boolean)}.
+	 * Configures Angus Mail to trust certificates from the provided SMTP hosts without requiring their issuer to be present in the JVM trust store.
+	 * Server identity verification is a separate check and can be controlled with {@link #verifyingServerIdentity(boolean)}.
 	 * <p>
-	 * Passing an empty list resets the current session's trust behavior to the default, and is equivalent to never calling this method in the first
-	 * place.
+	 * Passing an empty list removes the host-specific exception. With {@link #trustingAllHosts(boolean)} set to {@code false}, which is the default,
+	 * normal JVM trust-store validation then applies.
 	 * <p>
-	 * <strong>Security warning:</strong> Any certificate matching any of the provided host names will be accepted, regardless of the certificate
-	 * issuer; attackers can abuse this behavior by serving a matching self-signed certificate during a man-in-the-middle attack.
+	 * <strong>Security warning:</strong> This bypasses normal certificate-authority validation for the named hosts. Keep server identity verification
+	 * enabled, and prefer adding a private certificate authority to the JVM trust store when possible.
 	 * <p>
-	 * This method sets the property {@code mail.smtp.ssl.trust} to a space-separated list of the provided {@code hosts}. If the provided list is
-	 * empty, {@code mail.smtp.ssl.trust} is unset.
+	 * This method sets the transport-specific {@code mail.*.ssl.trust} property to a space-separated list of the provided {@code hosts}. If the
+	 * provided list is empty, the property is unset.
 	 *
-	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
+	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
 	 * @see #trustingAllHosts(boolean)
-	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
+	 * @see #verifyingServerIdentity(boolean)
 	 *
 	 * @param sslHostsToTrust See main description.
 	 */
 	T trustingSSLHosts(String... sslHostsToTrust);
 
 	/**
-	 * Configures the current session to trust all hosts. Defaults to true, but this allows you to whitelist <em>only</em> certain hosts.
+	 * Controls whether Angus Mail trusts certificates from every SMTP host without requiring their issuer to be present in the JVM trust store.
+	 * Defaults to {@value #DEFAULT_TRUST_ALL_HOSTS}, so normal JVM trust-store validation applies unless this method or
+	 * {@link #trustingSSLHosts(String...)} enables an exception.
 	 * <p>
-	 * Note that this is <em>not</em> the same as server identity verification, which is enabled through {@link #verifyingServerIdentity(boolean)}.
-	 * It would be prudent to have at least one of these features turned on, lest you be vulnerable to man-in-the-middle attacks.
+	 * <strong>Security warning:</strong> Setting this to {@code true} disables certificate-authority trust validation for all SMTP hosts. Server identity
+	 * verification remains a separate check and should stay enabled, but it does not make trusting every certificate safe against an active attacker.
+	 * Prefer configuring the JVM trust store or, when that is not possible, a narrow exception through {@link #trustingSSLHosts(String...)}.
 	 *
-	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
+	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
 	 * @see #trustingSSLHosts(String...)
-	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
+	 * @see #verifyingServerIdentity(boolean)
 	 *
 	 * @param trustAllHosts See main description.
 	 */
 	T trustingAllHosts(boolean trustAllHosts);
 
 	/**
-	 * Configures the current session to not verify the server's identity on an SSL connection. Defaults to true, even for SMTP which makes sense since
-	 * opportunistic TLS is also enabled by default (also see {@link TransportStrategy#setOpportunisticTLS(Boolean)}).
+	 * Controls whether Angus Mail verifies that the SMTP server certificate matches the host used for the connection. Defaults to
+	 * {@value #DEFAULT_VERIFY_SERVER_IDENTITY}, including for opportunistic TLS with {@link TransportStrategy#SMTP}.
 	 * <p>
-	 * Note that this is <em>not</em> the same as {@link #trustingAllHosts(boolean)} or {@link #trustingSSLHosts(String...)}.<br>
-	 * It would be prudent to have at least one of these features turned on, lest you be vulnerable to man-in-the-middle attacks.
+	 * Hostname verification and certificate-authority trust are independent checks. Normal secure TLS requires both a trusted certificate chain and a
+	 * matching server identity. Disabling this check is intended only for controlled compatibility or testing scenarios.
 	 *
-	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.checkserveridentity">mail.smtp.ssl.checkserveridentity</a>
+	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.checkserveridentity">mail.smtp.ssl.checkserveridentity</a>
 	 * @see #trustingAllHosts(boolean)
 	 * @see #trustingSSLHosts(String...)
-	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
 	 *
 	 * @param verifyingServerIdentity See main description.
 	 */

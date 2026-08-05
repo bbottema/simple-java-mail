@@ -111,7 +111,7 @@ public class MailerTest {
 		
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
-		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
+		assertThat(session.getProperty("mail.smtp.ssl.trust")).isNull();
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		
 		assertThat(session.getProperty("mail.smtp.user")).isNull();
@@ -136,6 +136,36 @@ public class MailerTest {
 		SessionBasedEmailToMimeMessageConverter.unprimeSession(session);
 		SessionBasedEmailToMimeMessageConverter.unprimeSession(otherMailerOtherSession.getSession());
 		assertThat(session.getProperties()).isEqualTo(otherMailerOtherSession.getSession().getProperties());
+	}
+
+	@Test
+	public void createMailSession_SecureTLSDefaults_AllTransportStrategies() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		assertSecureTLSDefaults(TransportStrategy.SMTP, "mail.smtp");
+		assertSecureTLSDefaults(SMTP_TLS, "mail.smtp");
+		assertSecureTLSDefaults(SMTPS, "mail.smtps");
+	}
+
+	@Test
+	public void createMailSession_ExplicitTLSCertificateTrustOverrides() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		Mailer trustAllMailer = MailerBuilder.withSMTPServer("host", 25)
+				.withTransportStrategy(SMTP_TLS)
+				.trustingAllHosts(true)
+				.buildMailer();
+		assertThat(trustAllMailer.getOperationalConfig().isTrustAllSSLHost()).isTrue();
+		assertThat(trustAllMailer.getSession().getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
+		assertThat(trustAllMailer.getSession().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
+
+		Mailer trustedHostMailer = MailerBuilder.withSMTPServer("smtp.internal.example", 465)
+				.withTransportStrategy(SMTPS)
+				.trustingSSLHosts("smtp.internal.example")
+				.buildMailer();
+		assertThat(trustedHostMailer.getOperationalConfig().isTrustAllSSLHost()).isFalse();
+		assertThat(trustedHostMailer.getSession().getProperty("mail.smtps.ssl.trust")).isEqualTo("smtp.internal.example");
+		assertThat(trustedHostMailer.getSession().getProperty("mail.smtps.ssl.checkserveridentity")).isEqualTo("true");
 	}
 	
 	@Test
@@ -308,7 +338,7 @@ public class MailerTest {
 		
 		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
-		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
+		assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("192.168.1.122 mymailserver.com ix55432y");
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
@@ -859,5 +889,16 @@ public class MailerTest {
 		return mailerBuilder
 				.withProperty("extra1", prefix + "value1")
 				.withProperty("extra2", prefix + "value2");
+	}
+
+	private static void assertSecureTLSDefaults(final TransportStrategy transportStrategy, final String propertyPrefix) {
+		Mailer mailer = MailerBuilder.withSMTPServer("host", 25)
+				.withTransportStrategy(transportStrategy)
+				.buildMailer();
+
+		assertThat(mailer.getOperationalConfig().isTrustAllSSLHost()).isFalse();
+		assertThat(mailer.getOperationalConfig().getSslHostsToTrust()).isEmpty();
+		assertThat(mailer.getSession().getProperty(propertyPrefix + ".ssl.trust")).isNull();
+		assertThat(mailer.getSession().getProperty(propertyPrefix + ".ssl.checkserveridentity")).isEqualTo("true");
 	}
 }
