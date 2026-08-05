@@ -979,7 +979,9 @@ public interface EmailPopulatingBuilder {
 	 * @param dkimPrivateKey                            De key content used to sign for the sending party.
 	 * @param signingDomain                             The domain being authorized to send.
 	 * @param dkimSelector                              Additional domain specifier.
-	 * @param excludedHeadersFromDkimDefaultSigningList Allows you to exclude headers being signed, as might be the case when another mail transfer agent. For example, Amazon SES doesn't want Message-ID and Date Headers to be signed as they have internal mechanisms to handle these headers.
+	 * @param excludedHeadersFromDkimDefaultSigningList Headers that a known downstream relay rewrites, such as {@code Message-ID} or {@code Date}.
+	 *                                                 {@code From} is mandatory in a DKIM signature and cannot be excluded.
+	 * @throws IllegalArgumentException                  When the excluded-header list contains {@code From}, case-insensitively.
 	 *
 	 * @see <a href="https://postmarkapp.com/guides/dkim">more on DKIM 1</a>
 	 * @see <a href="https://github.com/markenwerk/java-utils-mail-dkim">more on DKIM 2</a>

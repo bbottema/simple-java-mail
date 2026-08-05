@@ -353,7 +353,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @param dkimPrivateKey                            The key content used to sign for the sending party.
 	 * @param signingDomain                             The domain being authorized to send.
 	 * @param dkimSelector                              Additional domain specifier.
-	 * @param excludedHeadersFromDkimDefaultSigningList Allows you to exclude headers from the DKIM library's default signing list.
+	 * @param excludedHeadersFromDkimDefaultSigningList Headers that a known downstream relay rewrites, such as {@code Message-ID} or {@code Date}.
+	 *                                                 {@code From} is mandatory in a DKIM signature and cannot be excluded.
+	 * @throws IllegalArgumentException                  When the excluded-header list contains {@code From}, case-insensitively.
 	 *
 	 * @see #withDefaultDkimSigning(DkimConfig)
 	 * @see #clearDefaultDkimSigning()

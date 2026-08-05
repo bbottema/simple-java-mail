@@ -11,6 +11,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,6 +38,7 @@ public class DkimConfig implements Serializable {
     }
 
     private static final long serialVersionUID = 1234567L;
+    private static final String MANDATORY_SIGNED_HEADER = "From";
 
     /**
      * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
@@ -45,6 +47,11 @@ public class DkimConfig implements Serializable {
     private final byte[] dkimPrivateKeyData;
 
     /**
+     * Lists default DKIM headers to omit when a downstream relay is known to rewrite them. This is intended for narrow interoperability
+     * exceptions, such as a relay replacing {@code Date} or {@code Message-ID}.
+     * <p>
+     * {@code From} is mandatory in a DKIM signature and cannot be excluded.
+     *
      * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
      * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
      */
@@ -130,7 +137,7 @@ public class DkimConfig implements Serializable {
         this.dkimSigningDomain = dkimSigningDomain;
         this.dkimSelector = dkimSelector;
         this.useLengthParam = useLengthParam;
-        this.excludedHeadersFromDkimDefaultSigningList = excludedHeadersFromDkimDefaultSigningList;
+        this.excludedHeadersFromDkimDefaultSigningList = copyAndValidateExcludedHeaders(excludedHeadersFromDkimDefaultSigningList);
         this.headerCanonicalization = headerCanonicalization;
         this.bodyCanonicalization = bodyCanonicalization;
         this.signingAlgorithm = signingAlgorithm;
@@ -238,21 +245,30 @@ public class DkimConfig implements Serializable {
         }
 
         /**
+         * Excludes selected headers from the DKIM library's default signing list for a known downstream relay that rewrites them.
+         * {@code From} is mandatory in DKIM and cannot be excluded.
+         *
+         * @throws IllegalArgumentException when {@code From} is excluded, case-insensitively
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
-         */
+        */
         public DkimConfigBuilder excludedHeadersFromDkimDefaultSigningList(@Nullable Set<String> excludedHeadersFromDkimDefaultSigningList) {
+            validateExcludedHeaders(excludedHeadersFromDkimDefaultSigningList);
             this.excludedHeadersFromDkimDefaultSigningList = excludedHeadersFromDkimDefaultSigningList;
             return this;
         }
 
         /**
+         * Delegates to {@link #excludedHeadersFromDkimDefaultSigningList(Set)}.
+         *
+         * @throws IllegalArgumentException when {@code From} is excluded, case-insensitively
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
          */
         public DkimConfigBuilder excludedHeadersFromDkimDefaultSigningList(@Nullable String... excludedHeadersFromDkimDefaultSigningList) {
-            this.excludedHeadersFromDkimDefaultSigningList = new HashSet<>(asList(excludedHeadersFromDkimDefaultSigningList));
-            return this;
+            return excludedHeadersFromDkimDefaultSigningList(excludedHeadersFromDkimDefaultSigningList == null
+                    ? null
+                    : new HashSet<>(asList(excludedHeadersFromDkimDefaultSigningList)));
         }
 
         /**
@@ -282,6 +298,23 @@ public class DkimConfig implements Serializable {
         public DkimConfig build() {
             return new DkimConfig(dkimPrivateKeyData, dkimSigningDomain, dkimSelector, useLengthParam,
                     excludedHeadersFromDkimDefaultSigningList, headerCanonicalization, bodyCanonicalization, signingAlgorithm);
+        }
+    }
+
+    @Nullable
+    private static Set<String> copyAndValidateExcludedHeaders(@Nullable final Set<String> excludedHeaders) {
+        validateExcludedHeaders(excludedHeaders);
+        return excludedHeaders == null ? null : Collections.unmodifiableSet(new HashSet<>(excludedHeaders));
+    }
+
+    private static void validateExcludedHeaders(@Nullable final Set<String> excludedHeaders) {
+        if (excludedHeaders == null) {
+            return;
+        }
+        for (String excludedHeader : excludedHeaders) {
+            if (excludedHeader != null && MANDATORY_SIGNED_HEADER.equalsIgnoreCase(excludedHeader.trim())) {
+                throw new IllegalArgumentException("DKIM signatures must include the From header; it cannot be excluded from the default signing list");
+            }
         }
     }
 }
