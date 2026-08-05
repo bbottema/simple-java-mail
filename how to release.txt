@@ -28,19 +28,23 @@ To be able to have your CI/CD script also commit the new version, you need to ad
 To release through CI/CD pipeline in CircleCI
 
  1. update release notes, RELEASE_HISTORY.md and the github readme page according to MAINTAINER_WORKFLOW.md, then push changes
- 2. go to the CI/CD pipeline https://circleci.com/gh/bbottema/simple-java-mail
- 3. select the version release needed
+ 2. create or reuse the exact-version GitHub milestone, assign all release issues/PRs (including accounted-for closed Dependabot work), and cross-check the release-note links
+ 3. go to the CI/CD pipeline https://circleci.com/gh/bbottema/simple-java-mail
+ 4. select the version release needed
+ 5. after a successful release, verify every milestone item is closed and close the milestone
 
 To release manually:
 
  1. update release notes, RELEASE_HISTORY.md and the github readme page according to MAINTAINER_WORKFLOW.md (don't commit)
- 2. remove SNAPSHOT version from the <version> property
+ 2. create or reuse the exact-version GitHub milestone, assign all release issues/PRs (including accounted-for closed Dependabot work), and cross-check the release-note links
+ 3. remove SNAPSHOT version from the <version> property
  4. mvn -DperformRelease=true clean deploy
             (set password in settings.xml or use local pgp key password, for which the public key must have been sent to a public key server,
             eg: gpg --keyserver hkp://keyserver.ubuntu.com --send-keys 05AC6403)
 		    server needed in settings.xml (see below)
  5. Go to https://oss.sonatype.org and release the artifact so it is submitted to Maven Central
- 6. add new SNAPSHOT version to the <version> property, execute and commit everything
+ 6. close the exact-version milestone after every included issue and PR is closed
+ 7. add new SNAPSHOT version to the <version> property, execute and commit everything
 
     maven's settings.xml:
 

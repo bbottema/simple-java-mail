@@ -106,7 +106,42 @@ Inspect issues or PRs directly through `gh`.
 This installed `gh` does not expose a top-level milestone command; use the API:
 
 ```powershell
-& $gh api repos/bbottema/simple-java-mail/milestones --paginate --jq '.[] | [.number,.title,.state,.open_issues,.closed_issues] | @tsv'
+& $gh api 'repos/bbottema/simple-java-mail/milestones?state=all&per_page=100' --paginate --jq '.[] | [.number,.title,.state,.open_issues,.closed_issues] | @tsv'
+```
+
+Release milestones use the exact numeric release version as their title, without a `v` prefix. Once the target version is known,
+reuse its milestone or create it in the open state before release bookkeeping starts:
+
+```powershell
+$version = "9.1.4"
+$milestones = & $gh api repos/bbottema/simple-java-mail/milestones?state=all --paginate | ConvertFrom-Json
+$milestone = $milestones | Where-Object title -eq $version
+if (-not $milestone) {
+    $milestone = & $gh api -X POST repos/bbottema/simple-java-mail/milestones -f title=$version -f state=open | ConvertFrom-Json
+}
+```
+
+Assign every issue and PR represented by the release to that milestone. This includes closed Dependabot PRs whose update or
+compatibility decision is part of the release, even when the published notes summarize several automated PRs in one maintenance
+bullet or a maintainer roll-up PR. Do not add unrelated or superseded proposals that did not contribute to the release.
+GitHub treats pull requests as issues for milestone updates:
+
+```powershell
+& $gh api -X PATCH repos/bbottema/simple-java-mail/issues/671 -F milestone=$($milestone.number)
+```
+
+Before publishing, extract the repository issue and PR links from the version's release-note entries and verify that each linked
+Simple Java Mail item belongs to the same-version milestone. Also verify that any summarized Dependabot batch is fully represented
+in the milestone even if the compact release note does not link every constituent PR.
+
+```powershell
+& $gh api "repos/bbottema/simple-java-mail/issues?milestone=$($milestone.number)&state=all&per_page=100" --paginate --jq '.[] | [.number,.state,.title] | @tsv'
+```
+
+Close the milestone only after that membership check passes and every included item is closed:
+
+```powershell
+& $gh api -X PATCH repos/bbottema/simple-java-mail/milestones/$($milestone.number) -f state=closed
 ```
 
 Use existing labels. Common labels include:
@@ -300,9 +335,12 @@ Before release:
 
 1. Confirm `develop` is green locally with JDK 8.
 2. Confirm README and `RELEASE.txt` are in sync.
-3. Confirm no unrelated local changes remain.
-4. Merge `develop` into `master` with a fast-forward merge.
-5. Push `master`.
+3. Create or reuse the exact-version GitHub milestone, without a `v` prefix, and keep it open during the release.
+4. Assign all release issues and PRs to it, including applicable closed Dependabot PRs and maintenance roll-ups.
+5. Cross-check the version's release-note issue and PR links against milestone membership.
+6. Confirm no unrelated local changes remain.
+7. Merge `develop` into `master` with a fast-forward merge.
+8. Push `master`.
 
 Do not modify project POM versions to prepare a release. The CircleCI release workflow owns version bumping and tagging.
 After release, the checked-in POM version should represent the current released version, not the next possible version.
@@ -336,8 +374,9 @@ After the deploy job finishes:
 4. Verify `cli-module` includes `standalone-cli.tar` and `standalone-cli.zip`.
 5. Create or update the GitHub release with a self-contained, tag-specific body that permanently records that version's changes and compatibility notes without internal verification evidence.
 6. Attach the release assets: CLI standalone archives and sample logging configs.
-7. Close the release milestone after all fixed issues are closed.
-8. Fast-forward `develop` to `master` and push `develop`.
+7. Recheck that every release-note issue/PR and summarized Dependabot item is in the exact-version milestone.
+8. Confirm every milestone item is closed, then close the release milestone.
+9. Fast-forward `develop` to `master` and push `develop`.
 
 If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane and ship a patch release. Fold the patch changes into the parent repository notes using the release-note decision tree above, while giving the patch tag its own concise, self-contained GitHub release body.
 
@@ -370,8 +409,11 @@ Dependabot PR handling follows the same workflow with extra Java 8 caution:
 3. Update or add `.github/dependabot.yml` ignores for impossible upgrade lines.
 4. Merge compatible PRs into `develop`.
 5. Run full JDK 8 verification.
-6. Add a compact dependency-maintenance release-note entry.
-7. Release as patch only if requested.
+6. Once the release version is selected, create or reuse its exact-version milestone without a `v` prefix.
+7. Assign every Dependabot PR accounted for by the release, including closed PRs consolidated into a maintainer roll-up.
+8. Add a compact dependency-maintenance release-note entry.
+9. Cross-check the maintenance entry and its constituent PRs against milestone membership.
+10. Release as patch only if requested.
 
 If Dependabot keeps reopening the same incompatible upgrade, fix the ignore rule before trying to out-click it.
 
@@ -398,5 +440,6 @@ For a release task:
 - The GitHub release body is self-contained and tag-specific: it identifies that version's changes and compatibility impact without relying on README, release-history, issue, or pull-request links for essential meaning.
 - The GitHub release body contains no build/test verification evidence or internal release-process commentary.
 - Every multi-version repository release-note section has version-prefixed bullets ordered newest first.
+- The exact-version GitHub milestone contains every release issue, PR, and accounted-for Dependabot item; all items and the milestone are closed.
 - Related GitHub issues have a short release-availability comment when applicable.
 - Worktree is clean.
