@@ -19,8 +19,8 @@ Status vocabulary: `Planned`, `In progress`, `Blocked`, `Done`.
 These items correct claims that could lead users to deploy an insecure or operationally unsafe configuration.
 
 - [x] [Bind the authenticated SOCKS bridge to loopback](01-security-and-correctness/01-authenticated-socks-loopback.md)
-- [ ] [Document the TLS trust model accurately](01-security-and-correctness/02-tls-trust-model.md)
-- [ ] [Make embedded-image resolution a real containment boundary](01-security-and-correctness/03-embedded-image-containment.md)
+- [x] [Document the TLS trust model accurately](01-security-and-correctness/02-tls-trust-model.md)
+- [x] [Make embedded-image resolution a real containment boundary](01-security-and-correctness/03-embedded-image-containment.md)
 - [ ] [Replace unsafe DKIM examples](01-security-and-correctness/04-dkim-safe-defaults.md)
 - [ ] [Define S/MIME signature verification precisely](01-security-and-correctness/05-smime-verification-semantics.md)
 - [ ] [Remove unsupported cluster failover claims](01-security-and-correctness/06-cluster-failover-claims.md)
