@@ -2,6 +2,10 @@
 
 Full Simple Java Mail release history. [README.md](README.md#latest-progress) also mirrors recent progress for quick scanning.
 
+## Unreleased
+
+- [#676](https://github.com/bbottema/simple-java-mail/issues/676): **Authenticated SOCKS bridge binding:** restrict the temporary bridge to the JVM loopback address and configure Jakarta Mail with that same address. The bridge is not exposed on network interfaces and is not a general-purpose proxy.
+
 [v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.5](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.5) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.5/)
 
 - **v9.1.5:** [#674](https://github.com/bbottema/simple-java-mail/issues/674), [#675](https://github.com/bbottema/simple-java-mail/issues/675): **SOCKS5 domain framing:** place the port after the UTF-8-encoded domain bytes and decode domain replies after their length octet, fixing internationalized-host requests and reply diagnostics.
