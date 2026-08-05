@@ -1,8 +1,8 @@
 # Replace unsafe DKIM examples
 
-- Status: Planned
+- Status: Complete
 - Priority: High
-- Work: Documentation
+- Work: Configuration validation, tests, documentation
 
 ## Problem
 
@@ -13,17 +13,20 @@ Primary DKIM examples enable the body-length parameter and exclude `From` and `S
 1. Use safe defaults in the first complete example.
 2. Remove `From` and `Subject` from header-exclusion examples.
 3. Put `useLengthParam(true)` in an advanced warning block, if retained at all.
-4. Explain what header exclusions are for and which headers should remain signed.
+4. Reject case-insensitive attempts to exclude the mandatory `From` header.
+5. Explain what header exclusions are for and which headers should remain signed.
 
 ## Acceptance criteria
 
-- [ ] The normal example keeps `useLengthParam(false)`.
-- [ ] `From` is always signed in examples.
-- [ ] Security consequences precede any advanced opt-in example.
-- [ ] Property and programmatic examples agree.
+- [x] The normal example keeps `useLengthParam(false)`.
+- [x] `From` is always signed in examples and rejected as an exclusion, case-insensitively.
+- [x] Security consequences precede the advanced `useLengthParam(true)` opt-in example.
+- [x] Property and programmatic examples agree on safe defaults and relay-specific exclusions.
+- [x] The Java builder, convenience APIs, and property-driven defaults all enforce the configuration boundary.
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/security.hbs:352-385`
-- API warning: `modules/core-module/src/main/java/org/simplejavamail/api/email/config/DkimConfig.java:60-69`
-- Signing implementation: `modules/dkim-module/src/main/java/org/simplejavamail/internal/dkimsupport/DKIMSigner.java:43-49`
+- Issue: [#679](https://github.com/bbottema/simple-java-mail/issues/679), with historical context from [#344](https://github.com/bbottema/simple-java-mail/issues/344) and [#499](https://github.com/bbottema/simple-java-mail/issues/499).
+- Configuration guard: `modules/core-module/src/main/java/org/simplejavamail/api/email/config/DkimConfig.java`
+- API and property coverage: `modules/simple-java-mail/src/test/java/org/simplejavamail/api/email/config/DkimConfigTest.java` and `modules/simple-java-mail/src/test/java/org/simplejavamail/email/internal/EmailPopulatingBuilderImpl2Test.java`
+- Documentation and migration material: `simplejavamail.org/src/pages/security.hbs`, `simplejavamail.org/src/pages/configuration.hbs`, and `simplejavamail.org/src/pages/migration-notes-9.2.0.hbs`
