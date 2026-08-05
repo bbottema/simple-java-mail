@@ -10,6 +10,7 @@ import net.fortuna.ical4j.model.Property;
 import org.assertj.core.api.Condition;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
@@ -29,6 +30,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -59,6 +62,23 @@ public class EmailConverterTest {
 
 	private static final String RESOURCES = determineResourceFolder("simple-java-mail") + "/test/resources";
 	private static final String RESOURCE_TEST_MESSAGES = RESOURCES + "/test-messages";
+
+	@Test
+	public void fileEmlConversionsReleaseTheirFiles(@TempDir final Path tempDir) throws Exception {
+		final byte[] eml = ("From: from@example.com\r\n" +
+				"To: to@example.com\r\n" +
+				"Subject: test\r\n" +
+				"\r\n" +
+				"body\r\n").getBytes(UTF_8);
+
+		final Path builderEml = Files.write(tempDir.resolve("email-builder.eml"), eml);
+		assertThat(EmailConverter.emlToEmailBuilder(builderEml.toFile()).buildEmail().getSubject()).isEqualTo("test");
+		assertThat(Files.deleteIfExists(builderEml)).isTrue();
+
+		final Path mimeMessageEml = Files.write(tempDir.resolve("mime-message.eml"), eml);
+		assertThat(EmailConverter.emlToMimeMessage(mimeMessageEml.toFile()).getSubject()).isEqualTo("test");
+		assertThat(Files.deleteIfExists(mimeMessageEml)).isTrue();
+	}
 
 	@Test
 	public void testOutlookBasicConversions() {

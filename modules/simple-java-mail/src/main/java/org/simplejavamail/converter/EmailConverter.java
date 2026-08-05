@@ -37,7 +37,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -475,9 +474,9 @@ public final class EmailConverter {
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final File emlFile, @Nullable final Pkcs12Config pkcs12Config, @NotNull final Session session) {
-		try {
-			return emlToEmailBuilder(new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile")), pkcs12Config, session);
-		} catch (final FileNotFoundException e) {
+		try (final FileInputStream emlInputStream = new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile"))) {
+			return emlToEmailBuilder(emlInputStream, pkcs12Config, session);
+		} catch (final IOException e) {
 			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_FILE, e.getMessage()), e);
 		}
 	}
@@ -657,9 +656,9 @@ public final class EmailConverter {
 	 * Delegates to {@link #emlToMimeMessage(InputStream, Session)}.
 	 */
 	public static MimeMessage emlToMimeMessage(@NotNull final File emlFile, @NotNull final Session session) {
-		try {
-			return emlToMimeMessage(new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile")), session);
-		} catch (final FileNotFoundException e) {
+		try (final FileInputStream emlInputStream = new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile"))) {
+			return emlToMimeMessage(emlInputStream, session);
+		} catch (final IOException e) {
 			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_FILE, e.getMessage()), e);
 		}
 	}
