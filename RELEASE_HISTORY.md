@@ -2,8 +2,9 @@
 
 Full Simple Java Mail release history. [README.md](README.md#latest-progress) also mirrors recent progress for quick scanning.
 
-[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.4](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.4) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.4/)
+[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.5](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.5) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.5/)
 
+- **v9.1.5:** [#674](https://github.com/bbottema/simple-java-mail/issues/674), [#675](https://github.com/bbottema/simple-java-mail/issues/675): **SOCKS5 domain framing:** place the port after the UTF-8-encoded domain bytes and decode domain replies after their length octet, fixing internationalized-host requests and reply diagnostics.
 - **v9.1.4:** [#669](https://github.com/bbottema/simple-java-mail/issues/669), [#670](https://github.com/bbottema/simple-java-mail/issues/670): **EML file stream ownership:** close streams created internally by the `File`-based EML conversion overloads after synchronous parsing, while leaving caller-provided `InputStream` ownership unchanged.
 - **v9.1.4:** **Java 8-compatible dependency and release-tool maintenance:** updated SpotBugs annotations to 4.10.3 ([#671](https://github.com/bbottema/simple-java-mail/pull/671)), the Central Publishing Maven Plugin to 0.11.0 ([#672](https://github.com/bbottema/simple-java-mail/pull/672)), and Objenesis to 3.6 ([#673](https://github.com/bbottema/simple-java-mail/pull/673)).
 - **v9.1.3:** [#668](https://github.com/bbottema/simple-java-mail/issues/668): **New Outlook inline images:** updated `outlook-message-parser` to 1.16.2 so native-HTML-only `.msg` files match inline `cid:` images correctly and trailing NUL terminators no longer leak into attachment metadata.
