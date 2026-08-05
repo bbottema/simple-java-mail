@@ -281,7 +281,7 @@
             <dependency><!-- Gives us SpotBugs suppression annotations. -->
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-annotations</artifactId>
-                <version>4.10.2</version>
+                <version>4.10.3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
