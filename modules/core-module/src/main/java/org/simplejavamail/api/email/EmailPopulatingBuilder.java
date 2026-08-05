@@ -569,6 +569,9 @@ public interface EmailPopulatingBuilder {
 	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
 	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-file-resolution, you can just
 	 * refer to the file instead and the data will be included dynamically with a generated <em>cid</em>.
+	 * <p>
+	 * This option is disabled by default. Enabling it lets HTML image references read from the filesystem. When the HTML is not fully trusted, set
+	 * {@link #withEmbeddedImageBaseDir(String)} and leave {@link #allowingEmbeddedImageOutsideBaseDir(boolean)} disabled.
 	 *
 	 * @param embeddedImageAutoResolutionForFiles Enables auto resolution of file datasources for embedded images.
 	 *
@@ -583,6 +586,9 @@ public interface EmailPopulatingBuilder {
 	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
 	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-classpath-resolution, you can just
 	 * refer to the resource on the classpath instead and the data will be included dynamically with a generated <em>cid</em>.
+	 * <p>
+	 * This option is disabled by default. Enabling it lets HTML image references read classpath resources. When the HTML is not fully trusted, set
+	 * {@link #withEmbeddedImageBaseClassPath(String)} and leave {@link #allowingEmbeddedImageOutsideBaseClassPath(boolean)} disabled.
 	 *
 	 * @param embeddedImageAutoResolutionForClassPathResources Enables auto resolution of classpath datasources for embedded images.
 	 *
@@ -597,6 +603,9 @@ public interface EmailPopulatingBuilder {
 	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
 	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-URL-resolution, you can just
 	 * refer to the hosted image instead and the data will be downloaded and included dynamically with a generated <em>cid</em>.
+	 * <p>
+	 * This option is disabled by default. Enabling it lets HTML image references make network requests. When the HTML is not fully trusted, set
+	 * {@link #withEmbeddedImageBaseUrl(URL)} and leave {@link #allowingEmbeddedImageOutsideBaseUrl(boolean)} disabled.
 	 *
 	 * @param embeddedImageAutoResolutionForURLs Enables auto resolution of URL's for embedded images.
 	 *
@@ -607,9 +616,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImageAutoResolutionForURLs(final boolean embeddedImageAutoResolutionForURLs);
 
 	/**
-	 * Sets the base folder used when resolving images sources in HTML text. Without this, the folder needs to be an absolute path (or a classpath/url resource).
+	 * Sets the base folder used when resolving image sources in HTML text.
 	 * <p>
-	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 * By default, a resolved file must remain below this directory after normalizing the path and following symbolic links. Without a base directory,
+	 * file resolution is unrestricted and may use absolute paths or paths relative to the working directory.
 	 *
 	 * @param embeddedImageBaseDir The base folder used when resolving images sources in HTML text.
 	 *
@@ -619,9 +629,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImageBaseDir(@NotNull final String embeddedImageBaseDir);
 
 	/**
-	 * Sets the classpath base used when resolving images sources in HTML text. Without this, the resource needs to be an absolute path (or a file/url resource).
+	 * Sets the classpath base used when resolving image sources in HTML text.
 	 * <p>
-	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 * By default, normalized resource paths must remain below this classpath location. Without a classpath base, classpath resolution accepts absolute
+	 * classpath resource names without a containment boundary.
 	 *
 	 * @param embeddedImageBaseClassPath The classpath base used when resolving images sources in HTML text.
 	 *
@@ -641,9 +652,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final String embeddedImageBaseUrl);
 
 	/**
-	 * Sets the base URL used when resolving images sources in HTML text. Without this, the resource needs to be an absolute URL (or a file/classpath resource).
+	 * Sets the base URL used when resolving image sources in HTML text.
 	 * <p>
-	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 * By default, resolved URLs and every HTTP redirect must use the same scheme, host and effective port as this URL, and their normalized path must
+	 * remain below its path. Without a base URL, URL resolution accepts absolute URLs without a containment boundary.
 	 *
 	 * @param embeddedImageBaseUrl The base URL used when resolving images sources in HTML text.
 	 *
@@ -654,7 +666,9 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final URL embeddedImageBaseUrl);
 
 	/**
-	 * Dictates whether files will be resolved for embedded images when they are not nested under the baseDir (if baseDir is set).
+	 * Allows embedded-image file resolution outside the configured base directory. Disabled by default.
+	 * <p>
+	 * Enabling this deliberately removes the filesystem containment boundary and is unsafe for untrusted HTML.
 	 *
 	 * @param allowEmbeddedImageOutsideBaseDir Whether files should be resolved that reside outside the baseDir (if set)
 	 *
@@ -664,7 +678,9 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseDir(final boolean allowEmbeddedImageOutsideBaseDir);
 
 	/**
-	 * Dictates whether sources will be resolved for embedded images when they are not nested under the baseClassPath (if baseClassPath is set).
+	 * Allows embedded-image classpath resolution outside the configured classpath base. Disabled by default.
+	 * <p>
+	 * Enabling this deliberately removes the classpath containment boundary and is unsafe for untrusted HTML.
 	 *
 	 * @param allowEmbeddedImageOutsideBaseClassPath Whether image sources should be resolved that reside outside the baseClassPath (if set)
 	 *
@@ -674,7 +690,9 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseClassPath(final boolean allowEmbeddedImageOutsideBaseClassPath);
 
 	/**
-	 * Dictates whether url's will be resolved for embedded images when they are not nested under the baseUrl (if baseUrl is set).
+	 * Allows embedded-image URL resolution outside the configured base URL. Disabled by default.
+	 * <p>
+	 * Enabling this deliberately removes the URL origin and path boundary and is unsafe for untrusted HTML.
 	 *
 	 * @param allowEmbeddedImageOutsideBaseUrl Whether url's should be resolved that reside outside the baseUrl (if set)
 	 *
@@ -688,6 +706,7 @@ public interface EmailPopulatingBuilder {
 	 * When embedded image auto resolution is enabled, this option will make sure unresolved images sources result in an exception.
 	 * <p>
 	 * Not using this option effectively means a more lenient approach to image sources.
+	 * References blocked by a configured base boundary count as unresolved.
 	 * <p>
 	 * Note: It also allows you to work with URL's as image sources that can't be resolved at time of sending, but that makes sense
 	 * when viewing the email in some client (e.g. relative url's).
