@@ -106,18 +106,25 @@ Inspect issues or PRs directly through `gh`.
 This installed `gh` does not expose a top-level milestone command; use the API:
 
 ```powershell
-& $gh api 'repos/bbottema/simple-java-mail/milestones?state=all&per_page=100' --paginate --jq '.[] | [.number,.title,.state,.open_issues,.closed_issues] | @tsv'
+& $gh api 'repos/bbottema/simple-java-mail/milestones?state=all&per_page=100' --paginate --jq '.[] | [.number,.title,.state,.due_on,.open_issues,.closed_issues] | @tsv'
 ```
 
 Release milestones use the exact numeric release version as their title, without a `v` prefix. Once the target version is known,
-reuse its milestone or create it in the open state before release bookkeeping starts:
+reuse its milestone or create it in the open state before release bookkeeping starts. Set `due_on` to the planned release date when
+creating the milestone; if the milestone already exists and is still open, fill or update its due date to the current plan:
 
 ```powershell
 $version = "9.1.4"
+$plannedReleaseDate = "2026-08-05T00:00:00Z"
 $milestones = & $gh api repos/bbottema/simple-java-mail/milestones?state=all --paginate | ConvertFrom-Json
 $milestone = $milestones | Where-Object title -eq $version
 if (-not $milestone) {
-    $milestone = & $gh api -X POST repos/bbottema/simple-java-mail/milestones -f title=$version -f state=open | ConvertFrom-Json
+    $milestone = & $gh api -X POST repos/bbottema/simple-java-mail/milestones `
+        -f title=$version -f state=open -f due_on=$plannedReleaseDate | ConvertFrom-Json
+} elseif ($milestone.state -eq "open" -and
+        (-not $milestone.due_on -or ([DateTimeOffset]$milestone.due_on).UtcDateTime.ToString("yyyy-MM-ddT00:00:00Z") -ne $plannedReleaseDate)) {
+    $milestone = & $gh api -X PATCH repos/bbottema/simple-java-mail/milestones/$($milestone.number) `
+        -f due_on=$plannedReleaseDate | ConvertFrom-Json
 }
 ```
 
@@ -138,11 +145,18 @@ in the milestone even if the compact release note does not link every constituen
 & $gh api "repos/bbottema/simple-java-mail/issues?milestone=$($milestone.number)&state=all&per_page=100" --paginate --jq '.[] | [.number,.state,.title] | @tsv'
 ```
 
-Close the milestone only after that membership check passes and every included item is closed:
+Close the milestone only after that membership check passes and every included item is closed. Read the published GitHub release
+date and write that actual release date to `due_on` while closing, replacing the earlier planned date when necessary:
 
 ```powershell
-& $gh api -X PATCH repos/bbottema/simple-java-mail/milestones/$($milestone.number) -f state=closed
+$publishedAt = & $gh release view $version --repo bbottema/simple-java-mail --json publishedAt --jq .publishedAt
+$actualReleaseDate = ([DateTimeOffset]$publishedAt).UtcDateTime.ToString("yyyy-MM-ddT00:00:00Z")
+& $gh api -X PATCH repos/bbottema/simple-java-mail/milestones/$($milestone.number) `
+    -f state=closed -f due_on=$actualReleaseDate
 ```
+
+For historical bookkeeping, derive the actual date from the version's release notes or published GitHub release. A closed release
+milestone must never be left without a due date, because GitHub uses it to order milestones by release date.
 
 Use existing labels. Common labels include:
 
@@ -333,14 +347,41 @@ Only release when the user asked for it.
 
 Before release:
 
-1. Confirm `develop` is green locally with JDK 8.
-2. Confirm README and `RELEASE.txt` are in sync.
-3. Create or reuse the exact-version GitHub milestone, without a `v` prefix, and keep it open during the release.
-4. Assign all release issues and PRs to it, including applicable closed Dependabot PRs and maintenance roll-ups.
-5. Cross-check the version's release-note issue and PR links against milestone membership.
-6. Confirm no unrelated local changes remain.
-7. Merge `develop` into `master` with a fast-forward merge.
-8. Push `master`.
+1. Perform the defensive Dependabot sweep below against the current `develop` branch.
+2. Merge every safe, release-ready patch-level library update selected by the sweep into `develop`.
+3. Run the full JDK 8 verification on the final release candidate, including the lifted dependency patches.
+4. Confirm README and `RELEASE.txt` are in sync and include a compact dependency-maintenance note when patches were lifted.
+5. Create or reuse the exact-version GitHub milestone, without a `v` prefix, set its due date to the planned release date, and keep it open during the release.
+6. Assign all release issues and PRs to it, including applicable closed Dependabot PRs and maintenance roll-ups.
+7. Cross-check the version's release-note issue and PR links against milestone membership.
+8. Confirm no unrelated local changes remain.
+9. Merge `develop` into `master` with a fast-forward merge.
+10. Push `master`.
+
+### Defensive Dependabot Sweep
+
+Run this sweep immediately before the final release verification for every release, not only when the original request mentions
+Dependabot. Its purpose is to let low-risk library patches travel with an already-planned release instead of requiring another
+release shortly afterward.
+
+```powershell
+& $gh pr list --repo bbottema/simple-java-mail --state open --author app/dependabot `
+    --json number,title,baseRefName,mergeStateStatus,statusCheckRollup,url
+```
+
+Inspect every open Dependabot PR and lift a patch-level Java library update into the release only when all of these are true:
+
+- The PR targets `develop`, is current or can be updated cleanly, and has no merge conflict.
+- The proposed version is a patch update. Do not classify an update from its title alone when the versioning scheme is unusual.
+- The library, its bytecode, and its transitive runtime dependencies remain Java 8-compatible.
+- Existing checks pass and the update does not introduce a known behavioral, API, packaging, or licensing change that deserves
+  separate release scope.
+- The patch can be merged before the final full JDK 8 verification and release-note freeze.
+
+Do not hold up or silently broaden the release for minor/major upgrades, failing or uncertain patches, incompatible Java baselines,
+or updates that need dedicated investigation. Leave those PRs for separate handling and record an ignore rule when an upgrade line
+can never support Java 8. For every patch that is lifted, add its PR to the release milestone and include it in the compact
+dependency-maintenance release-note entry before publishing.
 
 Do not modify project POM versions to prepare a release. The CircleCI release workflow owns version bumping and tagging.
 After release, the checked-in POM version should represent the current released version, not the next possible version.
@@ -375,7 +416,7 @@ After the deploy job finishes:
 5. Create or update the GitHub release with a self-contained, tag-specific body that permanently records that version's changes and compatibility notes without internal verification evidence.
 6. Attach the release assets: CLI standalone archives and sample logging configs.
 7. Recheck that every release-note issue/PR and summarized Dependabot item is in the exact-version milestone.
-8. Confirm every milestone item is closed, then close the release milestone.
+8. Confirm every milestone item is closed, set the milestone due date to the actual published release date, then close it.
 9. Fast-forward `develop` to `master` and push `develop`.
 
 If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane and ship a patch release. Fold the patch changes into the parent repository notes using the release-note decision tree above, while giving the patch tag its own concise, self-contained GitHub release body.
@@ -431,6 +472,7 @@ For a non-release task:
 
 For a release task:
 
+- The defensive Dependabot sweep was completed; every eligible patch-level library update was included or deliberately left for separate handling.
 - `master` and `develop` are aligned after release.
 - The release tag exists remotely.
 - Maven Central has the released artifacts.
@@ -440,6 +482,6 @@ For a release task:
 - The GitHub release body is self-contained and tag-specific: it identifies that version's changes and compatibility impact without relying on README, release-history, issue, or pull-request links for essential meaning.
 - The GitHub release body contains no build/test verification evidence or internal release-process commentary.
 - Every multi-version repository release-note section has version-prefixed bullets ordered newest first.
-- The exact-version GitHub milestone contains every release issue, PR, and accounted-for Dependabot item; all items and the milestone are closed.
+- The exact-version GitHub milestone contains every release issue, PR, and accounted-for Dependabot item; all items and the milestone are closed, and its due date equals the actual published release date.
 - Related GitHub issues have a short release-availability comment when applicable.
 - Worktree is clean.
