@@ -1,8 +1,8 @@
 # Define clearEmailValidator scope
 
-- Status: Planned
+- Status: Done
 - Priority: Medium
-- Work: Documentation
+- Work: Documentation and source Javadocs
 
 ## Problem
 
@@ -14,11 +14,12 @@ Rename the example comment and list the checks that remain active. Link to `disa
 
 ## Acceptance criteria
 
-- [ ] “Turn off validation” is removed.
-- [ ] Remaining validation layers are explicit.
-- [ ] Security consequences of broader disabling are clear.
+- [x] “Turn off validation” is removed.
+- [x] Remaining validation layers are explicit.
+- [x] Security consequences of broader disabling are clear.
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/features.hbs:1326-1336`
-- Validation implementation: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/MailerHelper.java:138-178`
+- Documentation: `simplejavamail.org/src/pages/features.hbs:1345`
+- API contract: `modules/core-module/src/main/java/org/simplejavamail/api/mailer/MailerGenericBuilder.java:769`
+- Validation implementation: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/MailerHelper.java:58` and `:139`

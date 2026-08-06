@@ -1,8 +1,8 @@
 # Correct the validator reset example
 
-- Status: Planned
+- Status: Done
 - Priority: High
-- Work: Documentation
+- Work: Documentation, source Javadocs and regression tests
 
 ## Problem
 
@@ -14,12 +14,13 @@ Swap the calls and comments, then distinguish clearing the address validator fro
 
 ## Acceptance criteria
 
-- [ ] `resetEmailValidator()` is shown restoring the strict default.
-- [ ] `clearEmailValidator()` is shown removing address validation only.
-- [ ] The example agrees with API Javadocs and implementation tests.
+- [x] `resetEmailValidator()` is shown restoring the strict default.
+- [x] `clearEmailValidator()` is shown removing address validation only.
+- [x] The example agrees with API Javadocs and implementation tests.
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/configuration.hbs:206-209`
-- Contract: `modules/core-module/src/main/java/org/simplejavamail/api/mailer/MailerGenericBuilder.java:643-769`
-- Implementation: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerGenericBuilderImpl.java:773-885`
+- Documentation: `simplejavamail.org/src/pages/configuration.hbs:205`
+- Contract: `modules/core-module/src/main/java/org/simplejavamail/api/mailer/MailerGenericBuilder.java:648` and `:769`
+- Implementation: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerGenericBuilderImpl.java:773` and `:883`
+- Regression coverage: `modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailerBuilderTest.java:12`

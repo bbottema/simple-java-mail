@@ -31,7 +31,7 @@ Phase gate: targeted security tests pass, security examples use safe defaults, a
 
 These items make the examples compile against 9.1.5 and behave as their surrounding text promises.
 
-- [ ] [Correct the validator reset example](02-copyable-api-examples/01-validator-reset-example.md)
+- [x] [Correct the validator reset example](02-copyable-api-examples/01-validator-reset-example.md)
 - [ ] [Replace removed ConfigLoader overloads](02-copyable-api-examples/02-configloader-overloads.md)
 - [ ] [Repair the delivery-receipt example](02-copyable-api-examples/03-delivery-receipt-example.md)
 - [ ] [Update both reply content alternatives](02-copyable-api-examples/04-reply-content-alternatives.md)
@@ -55,7 +55,7 @@ These items align explanations with actual defaults, lifecycle, conversion, modu
 - [ ] [Explain proxying with a custom Session](03-behavior-and-operations/03-custom-session-proxy.md)
 - [ ] [Document the SMTPS proxy restriction](03-behavior-and-operations/04-smtps-proxy-compatibility.md)
 - [ ] [Define Mailer.validate scope](03-behavior-and-operations/05-mailer-validation-scope.md)
-- [ ] [Define clearEmailValidator scope](03-behavior-and-operations/06-clear-validator-scope.md)
+- [x] [Define clearEmailValidator scope](03-behavior-and-operations/06-clear-validator-scope.md)
 - [ ] [Separate startingBlank from mailer defaults](03-behavior-and-operations/07-starting-blank-and-defaults.md)
 - [ ] [Describe converter header preservation accurately](03-behavior-and-operations/08-converter-header-preservation.md)
 - [ ] [Document generated attachment Content-IDs](03-behavior-and-operations/09-generated-attachment-content-ids.md)
