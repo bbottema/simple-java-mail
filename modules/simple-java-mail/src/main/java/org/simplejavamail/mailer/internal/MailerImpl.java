@@ -294,7 +294,7 @@ public class MailerImpl implements Mailer {
 	 *
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
 	 * @param session           The session with properties to add the new configuration to.
-	 * @param transportStrategy Used to resolve protocol-specific property names and verify whether the proxy combination is supported. Can be omitted
+	 * @param transportStrategy Used to resolve protocol-specific property names. Can be omitted
 	 *                          for a caller-supplied Session, in which case the supported <em>"mail.smtp.socks.*"</em> properties are used.
 	 * @return null in case of no proxy or anonymous proxy, or a AnonymousSocks5Server proxy bridging server instance in case of authenticated proxy.
 	 */
@@ -310,9 +310,6 @@ public class MailerImpl implements Mailer {
 			LOGGER.trace("No proxy set, skipping proxy.");
 		} else {
 			final TransportStrategy proxyPropertyStrategy = transportStrategy != null ? transportStrategy : TransportStrategy.SMTP;
-			if (proxyPropertyStrategy == TransportStrategy.SMTPS) {
-				throw new MailerException(MailerException.INVALID_PROXY_SLL_COMBINATION);
-			}
 			final Properties sessionProperties = session.getProperties();
 			sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost()));
 			sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
