@@ -1,12 +1,13 @@
 # Correct Outlook MSG conversion calls
 
-- Status: Planned
+- Status: Done
 - Priority: Medium
-- Work: Documentation
+- Work: Documentation and source Javadocs
 
 ## Problem
 
-The examples read binary `.msg` data into a Java `String` and pass it to overloads whose `String` parameter means a filename.
+The examples call a nonexistent `readToString(...)` helper, implying that binary `.msg` data should be decoded into a Java `String`, and then pass that
+value to overloads whose `String` parameter means a filename.
 
 ## Plan
 
@@ -14,11 +15,12 @@ Pass the path string directly, or use `File` or `InputStream`. Keep binary data 
 
 ## Acceptance criteria
 
-- [ ] All three Outlook conversion examples use the correct overload semantics.
-- [ ] No example converts MSG bytes to text.
-- [ ] The path, file, and stream alternatives are labeled clearly.
+- [x] All three Outlook conversion examples use the correct overload semantics.
+- [x] No example converts MSG bytes to text.
+- [x] The path, file, and stream alternatives are labeled clearly.
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/features.hbs:1413-1422`
-- API: `modules/simple-java-mail/src/main/java/org/simplejavamail/converter/EmailConverter.java:134-153`
+- Documentation: `simplejavamail.org/src/pages/features.hbs` now labels path-string, `File`, and fresh binary `InputStream` alternatives and uses only real APIs.
+- API: `modules/simple-java-mail/src/main/java/org/simplejavamail/converter/EmailConverter.java` consistently names and documents filename-based `String` parameters.
+- Verification: `npm run check`, `npm run build`, `npm run verifyLinks:internal`, targeted `EmailConverterTest`, and generated Javadocs pass.

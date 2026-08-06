@@ -35,7 +35,7 @@ These items make the examples compile against 9.1.5 and behave as their surround
 - [x] [Replace removed ConfigLoader overloads](02-copyable-api-examples/02-configloader-overloads.md)
 - [x] [Repair the delivery-receipt example](02-copyable-api-examples/03-delivery-receipt-example.md)
 - [x] [Update both reply content alternatives](02-copyable-api-examples/04-reply-content-alternatives.md)
-- [ ] [Correct Outlook MSG conversion calls](02-copyable-api-examples/05-outlook-msg-conversion.md)
+- [x] [Correct Outlook MSG conversion calls](02-copyable-api-examples/05-outlook-msg-conversion.md)
 - [ ] [Replace removed CLI recipient flags](02-copyable-api-examples/06-cli-recipient-flags.md)
 - [ ] [Add the CLI argument-file subcommand](02-copyable-api-examples/07-cli-argument-file-subcommand.md)
 - [ ] [Correct the testConnection overload](02-copyable-api-examples/08-test-connection-overload.md)
