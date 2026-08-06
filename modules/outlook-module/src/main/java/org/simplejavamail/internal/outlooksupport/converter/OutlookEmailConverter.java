@@ -51,7 +51,7 @@ public class OutlookEmailConverter implements OutlookModule {
 			@NotNull final EmailPopulatingBuilderFactory builderFactory,
 			@NotNull final InternalEmailConverter internalEmailConverter) {
 		return buildEmailFromOutlookMessage(
-				emailStartingBuilder.ignoringDefaults().startingBlank(),
+				emailStartingBuilder.startingBlank().ignoringDefaults(),
 				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")),
 				builderFactory,
 				internalEmailConverter);
@@ -64,7 +64,7 @@ public class OutlookEmailConverter implements OutlookModule {
 			@NotNull final EmailPopulatingBuilderFactory builderFactory,
 			@NotNull final InternalEmailConverter internalEmailConverter) {
 		return buildEmailFromOutlookMessage(
-				emailStartingBuilder.ignoringDefaults().startingBlank(),
+				emailStartingBuilder.startingBlank().ignoringDefaults(),
 				parseOutlookMsg(checkNonEmptyArgument(msgFileName, "msgFile")),
 				builderFactory,
 				internalEmailConverter);
@@ -77,7 +77,7 @@ public class OutlookEmailConverter implements OutlookModule {
 			@NotNull final EmailPopulatingBuilderFactory builderFactory,
 			@NotNull final InternalEmailConverter internalEmailConverter) {
 		return buildEmailFromOutlookMessage(
-				emailStartingBuilder.startingBlank(),
+				emailStartingBuilder.startingBlank().ignoringDefaults(),
 				parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream")),
 				builderFactory,
 				internalEmailConverter);

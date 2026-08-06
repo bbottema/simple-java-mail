@@ -482,6 +482,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#ignoringDefaults()
+	 */
+	@Override
+	public EmailPopulatingBuilder ignoringDefaults() {
+		return ignoringDefaults(true);
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
 	 */
 	@Override
@@ -491,11 +499,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#ignoringOverrides()
+	 */
+	@Override
+	public EmailPopulatingBuilder ignoringOverrides() {
+		return ignoringOverrides(true);
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#ignoringOverrides(boolean)
 	 */
 	@Override
-	public EmailPopulatingBuilder ignoringOverrides(boolean ignoreDefaults) {
-		this.ignoringOverrides = ignoreDefaults;
+	public EmailPopulatingBuilder ignoringOverrides(boolean ignoreOverrides) {
+		this.ignoringOverrides = ignoreOverrides;
 		return this;
 	}
 

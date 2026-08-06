@@ -87,7 +87,17 @@ public interface EmailPopulatingBuilder {
 	Email buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance);
 
 	/**
-	 * Indicates that when the email is sent, no default values whatsoever should be applied to the email.
+	 * Configures this email to ignore all default values when governance is applied.
+	 *
+	 * @return This builder.
+	 * @see #ignoringDefaults(boolean)
+	 * @see #dontApplyDefaultValueFor(EmailProperty...)
+	 */
+	@Cli.ExcludeApi(reason = "Convenience overload; CLI uses ignoringDefaults(boolean)")
+	EmailPopulatingBuilder ignoringDefaults();
+
+	/**
+	 * Sets whether this email should ignore all default values when governance is applied.
 	 *
 	 * @param ignoreDefaults Whether to ignore all default values or not for this email.
 	 *
@@ -98,9 +108,19 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder ignoringDefaults(boolean ignoreDefaults);
 
 	/**
-	 * Indicates that when the email is sent, no override values whatsoever should be applied to the email.
+	 * Configures this email to ignore all override values when governance is applied.
 	 *
-	 * @param ignoreOverrides Whether to ignore all overrides values or not for this email.
+	 * @return This builder.
+	 * @see #ignoringOverrides(boolean)
+	 * @see #dontApplyOverrideValueFor(EmailProperty...)
+	 */
+	@Cli.ExcludeApi(reason = "Convenience overload; CLI uses ignoringOverrides(boolean)")
+	EmailPopulatingBuilder ignoringOverrides();
+
+	/**
+	 * Sets whether this email should ignore all override values when governance is applied.
+	 *
+	 * @param ignoreOverrides Whether to ignore all override values or not for this email.
 	 *
 	 * @see #dontApplyOverrideValueFor(EmailProperty...)
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withEmailOverrides(Email)
@@ -117,7 +137,8 @@ public interface EmailPopulatingBuilder {
 	 * as defaults or overrides reference.
 	 *
 	 * @param configProperties The properties that should not be configured with default values, if any, when sending the email.
-	 * @see EmailStartingBuilder#ignoringDefaults()
+	 * @see #ignoringDefaults()
+	 * @see #ignoringDefaults(boolean)
 	 */
 	EmailPopulatingBuilder dontApplyDefaultValueFor(@NotNull EmailProperty @NotNull ...configProperties);
 

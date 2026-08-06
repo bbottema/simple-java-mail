@@ -23,14 +23,6 @@ import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 public class EmailBuilder {
 	
 	/**
-	 * Configures this builder to create an email ignoring the normal (optional) defaults that apply from property config files.
-	 */
-	@SuppressWarnings("deprecation")
-	public static EmailStartingBuilder ignoringDefaults() {
-		return new EmailStartingBuilderImpl().ignoringDefaults();
-	}
-	
-	/**
 	 * Delegates to {@link EmailStartingBuilder#replyingTo(Email)}.
 	 */
 	@SuppressWarnings("deprecation")

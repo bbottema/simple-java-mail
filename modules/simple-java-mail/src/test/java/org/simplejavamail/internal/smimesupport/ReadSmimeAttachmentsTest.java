@@ -170,14 +170,14 @@ public class ReadSmimeAttachmentsTest {
 				.buildEmail();
 
 		Email emailWithCopiedMerginBehavior = EmailBuilder
-				.ignoringDefaults()
 				.copying(emailParsedFromMsg)
+				.ignoringDefaults()
 				.buildEmail();
 		EmailAssert.assertThat(emailWithCopiedMerginBehavior).isEqualTo(emailParsedFromMsg);
 
 		Email emailWithDefaultMerginBehavior = EmailBuilder
-				.ignoringDefaults()
 				.copying(emailParsedFromMsg)
+				.ignoringDefaults()
 				.clearSMIMESignedAttachmentMergingBehavior()
 				.buildEmail();
 		EmailAssert.assertThat(emailWithDefaultMerginBehavior).isEqualTo(emailExpectedFromEml);

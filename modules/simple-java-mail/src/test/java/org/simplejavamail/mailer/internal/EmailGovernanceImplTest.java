@@ -5,9 +5,11 @@ import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.ContentTransferEncoding;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.email.EmailBuilder;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -24,6 +26,48 @@ import static org.simplejavamail.api.email.config.DeliveryStatusNotification.Ret
 import static org.simplejavamail.internal.config.EmailProperty.DELIVERY_STATUS_NOTIFICATION;
 
 public class EmailGovernanceImplTest {
+
+	@Test
+	public void governanceOptOutsAreConfiguredAfterStartingAnEmail() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		val defaults = EmailBuilder.startingBlank()
+				.withSubject("default subject")
+				.buildEmail();
+		val overrides = EmailBuilder.startingBlank()
+				.withPlainText("override body")
+				.buildEmail();
+		val governance = new EmailGovernanceImpl(null, defaults, overrides, null);
+
+		Email blankIgnoringBoth = EmailBuilder.startingBlank()
+				.ignoringDefaults()
+				.ignoringOverrides()
+				.buildEmail();
+
+		assertThat(blankIgnoringBoth.isIgnoreDefaults()).isTrue();
+		assertThat(blankIgnoringBoth.isIgnoreOverrides()).isTrue();
+		Email resolvedBlank = governance.produceEmailApplyingDefaultsAndOverrides(blankIgnoringBoth);
+		assertThat(resolvedBlank.getSubject()).isNull();
+		assertThat(resolvedBlank.getPlainText()).isNull();
+
+		Email copyIgnoringOnlyDefaults = EmailBuilder.copying(EmailBuilder.startingBlank().buildEmail())
+				.ignoringDefaults()
+				.ignoringOverrides(false)
+				.buildEmail();
+
+		Email resolvedCopy = governance.produceEmailApplyingDefaultsAndOverrides(copyIgnoringOnlyDefaults);
+		assertThat(resolvedCopy.getSubject()).isNull();
+		assertThat(resolvedCopy.getPlainText()).isEqualTo("override body");
+
+		Email copyIgnoringOnlyOverrides = EmailBuilder.copying(EmailBuilder.startingBlank().buildEmail())
+				.ignoringDefaults(false)
+				.ignoringOverrides()
+				.buildEmail();
+
+		Email resolvedCopyIgnoringOverrides = governance.produceEmailApplyingDefaultsAndOverrides(copyIgnoringOnlyOverrides);
+		assertThat(resolvedCopyIgnoringOverrides.getSubject()).isEqualTo("default subject");
+		assertThat(resolvedCopyIgnoringOverrides.getPlainText()).isNull();
+	}
 
     @Test
     public void produceEmailApplyingDefaultsAndOverrides_DispositionNotificationTo() {
