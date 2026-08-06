@@ -1,6 +1,6 @@
 # Update both reply content alternatives
 
-- Status: Planned
+- Status: Done
 - Priority: High
 - Work: Documentation
 
@@ -14,12 +14,17 @@ Add `prependTextHTML(...)`, or explicitly clear the HTML alternative when demons
 
 ## Acceptance criteria
 
-- [ ] The reply is present in both body alternatives.
-- [ ] The example renders correctly for plain-text and HTML clients.
-- [ ] The guidance links to the broader reply API coverage item.
+- [x] The reply is present in both body alternatives.
+- [x] The example renders correctly for plain-text and HTML clients.
+- [x] The guidance links to the broader reply API coverage item.
+
+## Related follow-up
+
+- [Cover reply and body-editing APIs](../04-missing-coverage/02-reply-and-body-api.md)
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/features.hbs:1519-1523`
-- Contract: `modules/core-module/src/main/java/org/simplejavamail/api/email/EmailStartingBuilder.java:139-145`
-- Implementation: `modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal/EmailStartingBuilderImpl.java:151-157`
+- Documentation: `simplejavamail.org/src/pages/features.hbs` now prepends the reply to both plain-text and HTML alternatives and explains why they stay paired.
+- Contract: `modules/core-module/src/main/java/org/simplejavamail/api/email/EmailStartingBuilder.java:139-145` documents that replies start with both alternatives.
+- Implementation: `modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal/EmailStartingBuilderImpl.java:151-157` initializes both quoted bodies.
+- Verification: `npm run check`, `npm run build`, and `npm run verifyLinks:internal` pass; generated HTML preserves the escaped HTML reply string.
