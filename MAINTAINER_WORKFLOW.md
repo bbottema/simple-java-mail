@@ -119,6 +119,10 @@ Release milestones use the exact numeric release version as their title, without
 reuse its milestone or create it in the open state before release bookkeeping starts. Set `due_on` to the planned release date when
 creating the milestone; if the milestone already exists and is still open, fill or update its due date to the current plan:
 
+Keep release milestone descriptions empty. Release summaries, planning notes, and process context belong elsewhere. The only
+exception is a cross-version advisory that the maintainer explicitly asks to show on affected milestones; in that case, the
+description must contain only that notice.
+
 ```powershell
 $version = "9.1.4"
 $plannedReleaseDate = "2026-08-05T00:00:00Z"
