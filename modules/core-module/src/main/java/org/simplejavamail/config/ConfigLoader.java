@@ -449,9 +449,9 @@ public final class ConfigLoader {
 					? new HashMap<>((Map<String, String>) RESOLVED_PROPERTIES.get(Property.EXTRA_PROPERTIES))
 					: new HashMap<String, String>();
 
-		extraProperties.putAll(filterExtraJavaMailProperties(null, System.getProperties().entrySet()));
-		extraProperties.putAll(filterExtraJavaMailProperties(null, System.getenv().entrySet()));
 		extraProperties.putAll(filterExtraJavaMailProperties(filePropertiesLeft, fileProperties.entrySet()));
+		extraProperties.putAll(filterExtraJavaMailProperties(null, System.getenv().entrySet()));
+		extraProperties.putAll(filterExtraJavaMailProperties(null, System.getProperties().entrySet()));
 
 		resolvedProps.put(Property.EXTRA_PROPERTIES, extraProperties);
 
