@@ -16,6 +16,9 @@ Unreleased
 
 - **S/MIME signature-status change in v9.2.0:** getSmimeSignatureValid() now reports only cryptographic verification that actually happened. Outlook conversion no longer infers true from successfully extracted content, and one failed signature makes a combined result false. A true result verifies content integrity against the signer certificate included with the message; it does not establish certificate trust or authenticate the From address. Invalid signed content remains available when it can be parsed. See https://www.simplejavamail.org/migration-notes-9.2.0.html#smime-signature-status.
 
+- **Extra-property precedence change in v9.2.0:** simplejavamail.extraproperties.* now follows the same precedence as other configuration: system properties override environment variables, which override property-file values. Applications that define the same extra Jakarta Mail property in more than one source may resolve a different value after upgrading. See https://www.simplejavamail.org/migration-notes-9.2.0.html#extra-property-precedence.
+
+- #685: **Align extra Jakarta Mail property precedence:** let deployment-time system and environment settings override matching property-file values.
 - #680: **Make S/MIME verification metadata fail closed:** reserve true for signatures that were actually checked, preserve false when results are combined, and document the boundary between signature integrity and certificate trust.
 - #679: **Require DKIM signatures to include From:** reject From in header-exclusion configuration case-insensitively while retaining relay-specific exclusions for non-mandatory headers.
 - #678: **Contain embedded-image auto-resolution:** enforce real-path containment for files, segment containment for classpath resources, and same-origin normalized-path containment across URL redirects.
