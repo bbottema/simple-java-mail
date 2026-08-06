@@ -1,8 +1,8 @@
 # Remove unsupported cluster failover claims
 
-- Status: Planned
+- Status: Done
 - Priority: High
-- Work: Documentation, feature-design decision
+- Work: Documentation
 
 ## Problem
 
@@ -18,13 +18,13 @@ The configuration page says a failed server is removed and remaining mailers con
 
 ## Acceptance criteria
 
-- [ ] No page promises transparent failover or automatic server removal.
-- [ ] The failure example shows the exception reaching caller code.
-- [ ] Load-balancing behavior remains clearly documented.
-- [ ] Configuration and homepage cluster language agree.
+- [x] No page promises transparent failover or automatic server removal.
+- [x] The failure example shows the exception reaching caller code.
+- [x] Load-balancing behavior remains clearly documented.
+- [x] Configuration and homepage cluster language agree.
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/configuration.hbs:868-923`
-- Pool selection: `modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java:108-149`
-- Failure path: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java:97-108`
+- Documentation: `simplejavamail.org/src/pages/configuration.hbs:863`
+- Pool selection: `modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java:111`
+- Failure path: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java:97`
