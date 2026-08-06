@@ -50,6 +50,8 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 
 [v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.6](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.6) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.6/)
 
+> **Spring-module notice:** Versions 9.0.0 through 9.1.5 package test application settings that can override an application's YAML configuration and prevent SMTP connections. If you use `spring-module`, upgrade to 9.1.6 or later.
+
 - **v9.1.6:** [#681](https://github.com/bbottema/simple-java-mail/issues/681): **Spring configuration isolation:** stop packaging the Spring test `application.properties` in `spring-module`. Sample local-bind, SMTP client-hostname, transfer-encoding, and other test values can no longer override an application's YAML configuration or break SMTP connections.
 - **v9.1.5:** [#674](https://github.com/bbottema/simple-java-mail/issues/674), [#675](https://github.com/bbottema/simple-java-mail/issues/675): **SOCKS5 domain framing:** place the port after the UTF-8-encoded domain bytes and decode domain replies after their length octet, fixing internationalized-host requests and reply diagnostics.
 - **v9.1.4:** [#669](https://github.com/bbottema/simple-java-mail/issues/669), [#670](https://github.com/bbottema/simple-java-mail/issues/670): **EML file stream ownership:** close streams created internally by the `File`-based EML conversion overloads after synchronous parsing, while leaving caller-provided `InputStream` ownership unchanged.
@@ -62,6 +64,8 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 - **v9.1.0:** No breaking changes; existing `sendMail(...)` behavior is unchanged.
 
 [v9.0.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.0) - [v9.0.4](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.4) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.4/)
+
+> **Spring-module notice:** Versions 9.0.0 through 9.1.5 package test application settings that can override an application's YAML configuration and prevent SMTP connections. If you use `spring-module`, upgrade to 9.1.6 or later.
 
 #### The Short Version ####
 
