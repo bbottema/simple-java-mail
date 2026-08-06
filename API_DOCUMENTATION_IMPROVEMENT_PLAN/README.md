@@ -51,7 +51,7 @@ Phase gate: concrete Java examples have been reviewed for syntax and current API
 These items align explanations with actual defaults, lifecycle, conversion, module, and runtime behavior.
 
 - [x] [Clarify ConfigLoader replacement semantics](03-behavior-and-operations/01-configloader-replacement-semantics.md)
-- [ ] [Resolve extra-property precedence](03-behavior-and-operations/02-extra-properties-precedence.md)
+- [x] [Resolve extra-property precedence](03-behavior-and-operations/02-extra-properties-precedence.md)
 - [ ] [Explain proxying with a custom Session](03-behavior-and-operations/03-custom-session-proxy.md)
 - [ ] [Document the SMTPS proxy restriction](03-behavior-and-operations/04-smtps-proxy-compatibility.md)
 - [ ] [Define Mailer.validate scope](03-behavior-and-operations/05-mailer-validation-scope.md)
