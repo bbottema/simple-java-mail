@@ -26,7 +26,13 @@ Classify the request before editing anything:
 | "Fix the last issue and prepare for a minor release" | Implementation plus release prep | Usually stop before approving release unless explicitly told to release |
 
 If the user explicitly says not to release, do not release.
-If the user explicitly says to release, carry the release through CircleCI approval, Maven Central verification, GitHub release notes, and final branch sync.
+If the user asks for or approves a patch or minor release at any point in the maintenance task, treat that as standing authorization
+to carry the matching release through CircleCI approval, Maven Central verification, GitHub release notes, and final branch sync.
+Release-context shorthand such as "new branch, patch" or "make this a minor" counts; do not stop later to ask for a second
+"release it" confirmation. This authorization remains active until the user withdraws it or changes the requested release level.
+
+Do not infer release authorization when "patch" only means a code diff or when "minor" merely describes the size of a change;
+the surrounding request must indicate a semantic-version release or invoke this release workflow.
 
 ---
 
@@ -343,7 +349,8 @@ Do not merge to `master` or approve CircleCI release gates.
 
 ## 10. Release
 
-Only release when the user asked for it.
+Only release when the user asked for it. An earlier request or approval for a patch or minor release remains sufficient authorization
+throughout the task; do not require a second confirmation after implementation or issue follow-up.
 
 Before release:
 
