@@ -239,11 +239,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withDebugOutput(@NotNull SessionDebugOutput debugOutput);
 
 	/**
-	 * Controls whether there will be any client-sided validation, including email address validation and CRLF injection attack detection (which will be warning instead).
+	 * Controls whether client-side validation findings block sending or are reported as warnings.
 	 * <p>
-	 * If set to {@code true}, this silences the client completely and just delegates all responsibility of correctness/security to the server.
+	 * When set to {@code true}, sender and recipient completeness checks, the configured email address validator and CRLF injection scans still run,
+	 * but their findings are logged and sending continues. The default {@code false} keeps these validations blocking.
 	 *
-	 * @param disableAllClientValidation Enables or disables client-side email address validation (if configured) and CRLF injection scans. Default set to
+	 * @param disableAllClientValidation Whether client-side validation findings should be non-blocking. Defaults to
 	 *                                   {@value DEFAULT_DISABLE_ALL_CLIENTVALIDATION}.
 	 */
 	T disablingAllClientValidation(@NotNull Boolean disableAllClientValidation);
@@ -765,10 +766,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearProxy();
 
 	/**
-	 * Makes the email validator <code>null</code>, meaning validation won't take place.
+	 * Clears the configurable JMail email address validator. Required sender and recipient checks, encoded-word address protection and CRLF injection
+	 * scanning remain active.
 	 *
 	 * @see #withEmailValidator(EmailValidator)
 	 * @see #resetEmailValidator()
+	 * @see #disablingAllClientValidation(Boolean)
 	 */
 	T clearEmailValidator();
 

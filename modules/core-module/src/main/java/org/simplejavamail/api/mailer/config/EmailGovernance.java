@@ -18,7 +18,8 @@ import org.simplejavamail.api.mailer.MailerGenericBuilder;
  */
 public interface EmailGovernance {
     /**
-     * @return The effective email validator used for email validation. Can be <code>null</code> if no validation should be done.
+     * @return The effective JMail address validator. Can be <code>null</code> when the mailer uses its remaining completeness, encoded-word and CRLF
+     * checks without a configurable address policy.
      * @see MailerGenericBuilder#withEmailValidator(EmailValidator)
      * @see EmailValidator
      */
