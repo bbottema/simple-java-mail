@@ -37,36 +37,42 @@ public interface EmailStartingBuilder {
 			"1cm\">%s</blockquote>";
 
 	/**
-	 * Configures this builder to create an email ignoring the all defaults from (System) properties, config files or defaults email on
+	 * Configures the resulting email to ignore all defaults from system properties, config files, or the defaults email on
 	 * Mailer level in the {@link org.simplejavamail.api.mailer.config.EmailGovernance}. You can make individual exceptions with
-	 * 	 * {@link EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)}
+	 * {@link EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)}.
 	 * <br>
 	 * <strong>Note:</strong> This is irrelevant for Email instances used to set on {@link org.simplejavamail.api.mailer.config.EmailGovernance}
 	 * as defaults or overrides reference.
 	 *
+	 * @deprecated Select an email starting operation first, then call {@link EmailPopulatingBuilder#ignoringDefaults(boolean)} on the
+	 * returned builder.
 	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
 	 */
+	@Deprecated
 	EmailStartingBuilder ignoringDefaults();
 
 	/**
-	 * Configures this builder to create an email ignoring the all overrides from (System) properties, config files or defaults email on
-	 * Mailer level in the {@link org.simplejavamail.api.mailer.config.EmailGovernance}. You can make individual exceptions with
-	 * {@link EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)}
+	 * Configures the resulting email to ignore all overrides from system properties, config files, or the overrides email on Mailer level
+	 * in the {@link org.simplejavamail.api.mailer.config.EmailGovernance}. You can make individual exceptions with
+	 * {@link EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)}.
 	 * <br>
 	 * <strong>Note:</strong> This is irrelevant for Email instances used to set on {@link org.simplejavamail.api.mailer.config.EmailGovernance}
 	 * as defaults or overrides reference.
 	 *
+	 * @deprecated Select an email starting operation first, then call {@link EmailPopulatingBuilder#ignoringOverrides(boolean)} on the
+	 * returned builder.
 	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
 	 */
+	@Deprecated
 	EmailStartingBuilder ignoringOverrides();
 	
 	/**
-	 * Most common use case for creating a new email. Starts with an empty email, populated with defaults when set through config properties (if
-	 * not disabled using {@link EmailStartingBuilder#ignoringDefaults()}.
+	 * Most common use case for creating a new email. Starts with an empty email; no defaults or overrides are applied while building it.
 	 * <p>
-	 * <strong>Note:</strong> Any builder method called after this will override the default value.
+	 * Defaults and overrides remain eligible for application later, when a Mailer prepares the email for sending or when completion is requested
+	 * explicitly. Configure that later behavior on the returned {@link EmailPopulatingBuilder}.
 	 *
-	 * @return A new {@link EmailStartingBuilder} to further populate the email with.
+	 * @return A new {@link EmailPopulatingBuilder} to populate and configure.
 	 */
 	EmailPopulatingBuilder startingBlank();
 	

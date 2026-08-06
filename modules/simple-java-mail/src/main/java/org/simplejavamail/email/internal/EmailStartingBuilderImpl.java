@@ -44,6 +44,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	/**
 	 * @see EmailStartingBuilder#ignoringDefaults()
 	 */
+	@Deprecated
 	@Override
 	public EmailStartingBuilder ignoringDefaults() {
 		ignoreDefaults = true;
@@ -53,6 +54,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	/**
 	 * @see EmailStartingBuilder#ignoringOverrides()
 	 */
+	@Deprecated
 	@Override
 	public EmailStartingBuilder ignoringOverrides() {
 		ignoreOverrides = true;
