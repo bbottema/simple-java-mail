@@ -1079,8 +1079,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder notMergingSingleSMIMESignedAttachment();
 
 	/**
-	 * Indicates that we want to use the NPM flag {@code dispositionNotificationTo}. The actual address will default to the {@code replyToRecipient}
-	 * first if set or else {@code fromRecipient} (the final address is determined when sending this email).
+	 * Requests a read receipt by adding the {@code Disposition-Notification-To} header. The actual address defaults to the first
+	 * {@code replyToRecipient} when present, or to the {@code fromRecipient} otherwise (the final address is determined when sending this email).
 	 *
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
@@ -1117,11 +1117,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withDispositionNotificationTo(@Nullable @Cli.Optional String fixedName, @NotNull InternetAddress address);
 
 	/**
-	 * Indicates this email should use the <a href="https://tools.ietf.org/html/rfc8098">NPM flag "Disposition-Notification-To"</a> with the given
-	 * preconfigred {@link Recipient}. This flag can be used to request a return receipt from the recipient to signal that the recipient has read the
-	 * email.
+	 * Indicates this email should use the <a href="https://www.rfc-editor.org/rfc/rfc8098.html">MDN header "Disposition-Notification-To"</a> with the given
+	 * preconfigured {@link Recipient}. This header requests a receipt from the recipient's mail client to signal that the email has been read.
 	 * <p>
-	 * This flag may be ignored by SMTP clients (for example gmail ignores it completely, while the Google Apps business suite honors it).
+	 * The receiving mail client or user controls whether a receipt is returned.
 	 *
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(String)
@@ -1130,8 +1129,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withDispositionNotificationTo(@NotNull Recipient recipient);
 
 	/**
-	 * Indicates that we want to use the flag {@code returnReceiptTo}. The actual address will default to the {@code replyToRecipient} first if set
-	 * or else {@code fromRecipient} (the final address is determined when sending the email).
+	 * Requests a receipt notification by adding the {@code Return-Receipt-To} header. The actual address defaults to the first
+	 * {@code replyToRecipient} when present, or to the {@code fromRecipient} otherwise (the final address is determined when sending the email).
 	 * <p>
 	 * For more detailed information, refer to {@link #withReturnReceiptTo(Recipient)}.
 	 */
@@ -1141,7 +1140,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
 	 *
-	 * @param address The address of the receiver of the bounced email
+	 * @param address The address of the receiver of the receipt notification
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull String address);
@@ -1167,12 +1166,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withReturnReceiptTo(@Nullable @Cli.Optional String fixedName, @NotNull InternetAddress address);
 
 	/**
-	 * Indicates that this email should use the <a href="https://en.wikipedia.org/wiki/Return_receipt">RRT flag "Return-Receipt-To"</a> with the
-	 * preconfigured {@link Recipient}. This flag can be used to request a notification from the SMTP server recipient to signal that the recipient
-	 * has read the email.
+	 * Indicates that this email should use the {@code Return-Receipt-To} request header with the preconfigured {@link Recipient}. Supporting mail servers or
+	 * clients may use this header to return a delivery or read notification, depending on their implementation.
 	 * <p>
-	 * This flag is rarely used, but your mail server / client might implement this flag to automatically send back a notification that the email was
-	 * received on the mail server or opened in the client, depending on the chosen implementation.
+	 * The receiving system controls whether a receipt is returned.
 	 */
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull Recipient recipient);
 
