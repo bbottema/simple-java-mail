@@ -41,7 +41,7 @@ These items make the examples compile against 9.1.5 and behave as their surround
 - [ ] [Correct the testConnection overload](02-copyable-api-examples/08-test-connection-overload.md)
 - [ ] [Correct DKIM private-key overloads](02-copyable-api-examples/09-dkim-private-key-overloads.md)
 - [ ] [Define the DKIM property key format](02-copyable-api-examples/10-dkim-property-key-format.md)
-- [ ] [Use a valid S/MIME content cipher](02-copyable-api-examples/11-smime-content-cipher.md)
+- [x] [Use a valid S/MIME content cipher](02-copyable-api-examples/11-smime-content-cipher.md)
 - [ ] [Repair remaining Java snippet syntax](02-copyable-api-examples/12-java-snippet-syntax.md)
 
 Phase gate: all marked Java examples compile in a documentation-snippet fixture, and current CLI examples pass a smoke test.
