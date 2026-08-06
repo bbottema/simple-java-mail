@@ -38,7 +38,7 @@ These items make the examples compile against 9.1.5 and behave as their surround
 - [x] [Correct Outlook MSG conversion calls](02-copyable-api-examples/05-outlook-msg-conversion.md)
 - [x] [Restore dedicated CLI recipient flags](02-copyable-api-examples/06-cli-recipient-flags.md)
 - [x] [Add the CLI argument-file subcommand](02-copyable-api-examples/07-cli-argument-file-subcommand.md)
-- [ ] [Correct the testConnection overload](02-copyable-api-examples/08-test-connection-overload.md)
+- [x] [Correct the testConnection overload](02-copyable-api-examples/08-test-connection-overload.md)
 - [ ] [Correct DKIM private-key overloads](02-copyable-api-examples/09-dkim-private-key-overloads.md)
 - [ ] [Define the DKIM property key format](02-copyable-api-examples/10-dkim-property-key-format.md)
 - [ ] [Use a valid S/MIME content cipher](02-copyable-api-examples/11-smime-content-cipher.md)
