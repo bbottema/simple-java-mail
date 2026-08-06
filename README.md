@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.1.5%22)
-[![Javadocs](https://img.shields.io/badge/javadoc-9.1.5-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.1.6%22)
+[![Javadocs](https://img.shields.io/badge/javadoc-9.1.6-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -34,7 +34,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.1.5</version>
+    <version>9.1.6</version>
 </dependency>
 ```
 
@@ -48,12 +48,9 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 
 ### Latest progress ###
 
-#### Unreleased ####
+[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.6](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.6) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.6/)
 
-- [#681](https://github.com/bbottema/simple-java-mail/issues/681): **Spring configuration isolation:** stop packaging the Spring test `application.properties` in `spring-module`. Sample local-bind, SMTP client-hostname, transfer-encoding, and other test values can no longer override an application's YAML configuration or break SMTP connections.
-
-[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.5](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.5) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.5/)
-
+- **v9.1.6:** [#681](https://github.com/bbottema/simple-java-mail/issues/681): **Spring configuration isolation:** stop packaging the Spring test `application.properties` in `spring-module`. Sample local-bind, SMTP client-hostname, transfer-encoding, and other test values can no longer override an application's YAML configuration or break SMTP connections.
 - **v9.1.5:** [#674](https://github.com/bbottema/simple-java-mail/issues/674), [#675](https://github.com/bbottema/simple-java-mail/issues/675): **SOCKS5 domain framing:** place the port after the UTF-8-encoded domain bytes and decode domain replies after their length octet, fixing internationalized-host requests and reply diagnostics.
 - **v9.1.4:** [#669](https://github.com/bbottema/simple-java-mail/issues/669), [#670](https://github.com/bbottema/simple-java-mail/issues/670): **EML file stream ownership:** close streams created internally by the `File`-based EML conversion overloads after synchronous parsing, while leaving caller-provided `InputStream` ownership unchanged.
 - **v9.1.4:** **Java 8-compatible dependency and release-tool maintenance:** updated SpotBugs annotations to 4.10.3 ([#671](https://github.com/bbottema/simple-java-mail/pull/671)), the Central Publishing Maven Plugin to 0.11.0 ([#672](https://github.com/bbottema/simple-java-mail/pull/672)), and Objenesis to 3.6 ([#673](https://github.com/bbottema/simple-java-mail/pull/673)).

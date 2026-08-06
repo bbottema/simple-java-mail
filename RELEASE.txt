@@ -3,15 +3,12 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.1.5</version>
+    <version>9.1.6</version>
 </dependency>
 
-Unreleased
+v9.1.0 - v9.1.6
 
-- #681: **Spring configuration isolation:** stop packaging the Spring test application.properties in spring-module. Sample local-bind, SMTP client-hostname, transfer-encoding, and other test values can no longer override an application's YAML configuration or break SMTP connections.
-
-v9.1.0 - v9.1.5
-
+- **v9.1.6:** #681: **Spring configuration isolation:** stop packaging the Spring test application.properties in spring-module. Sample local-bind, SMTP client-hostname, transfer-encoding, and other test values can no longer override an application's YAML configuration or break SMTP connections.
 - **v9.1.5:** #674, #675: **SOCKS5 domain framing:** place the port after the UTF-8-encoded domain bytes and decode domain replies after their length octet, fixing internationalized-host requests and reply diagnostics.
 - **v9.1.4:** #669, #670: **EML file stream ownership:** close streams created internally by the File-based EML conversion overloads after synchronous parsing, while leaving caller-provided InputStream ownership unchanged.
 - **v9.1.4:** **Java 8-compatible dependency and release-tool maintenance:** updated SpotBugs annotations to 4.10.3 (#671), the Central Publishing Maven Plugin to 0.11.0 (#672), and Objenesis to 3.6 (#673).
