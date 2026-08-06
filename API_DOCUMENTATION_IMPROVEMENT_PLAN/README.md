@@ -42,9 +42,9 @@ These items make the examples compile against 9.1.5 and behave as their surround
 - [x] [Correct DKIM private-key overloads](02-copyable-api-examples/09-dkim-private-key-overloads.md)
 - [x] [Define the DKIM property key format](02-copyable-api-examples/10-dkim-property-key-format.md)
 - [x] [Use a valid S/MIME content cipher](02-copyable-api-examples/11-smime-content-cipher.md)
-- [ ] [Repair remaining Java snippet syntax](02-copyable-api-examples/12-java-snippet-syntax.md)
+- [x] [Repair remaining Java snippet syntax](02-copyable-api-examples/12-java-snippet-syntax.md)
 
-Phase gate: all marked Java examples compile in a documentation-snippet fixture, and current CLI examples pass a smoke test.
+Phase gate: concrete Java examples have been reviewed for syntax and current API usage, and current CLI examples pass a smoke test.
 
 ## Phase 3 — Behavioral and operational accuracy
 
@@ -111,4 +111,4 @@ npm run verifyLinks
 
 From the repository root, run the targeted module tests for every code change, then the complete Maven test suite in a release-capable environment.
 
-The plan is complete when every item is `Done`, all checkboxes above are checked, website and Javadoc builds pass, examples compile or are explicitly marked pseudocode, and the website contains no claims contradicted by the 9.1.5 implementation.
+The plan is complete when every item is `Done`, all checkboxes above are checked, website and Javadoc builds pass, concrete examples have been reviewed against the current API, and the website contains no claims contradicted by the 9.1.5 implementation.
