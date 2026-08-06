@@ -162,6 +162,61 @@ public class MailerTest {
 		assertThat(session.getProperty("extra-properties-property1")).isNull();
 		assertThat(session.getProperty("extra-properties-property2")).isNull();
 	}
+
+	@Test
+	public void usingSession_AnonymousProxy_OverridesOnlySocksRoute() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		final Properties properties = new Properties();
+		properties.setProperty("mail.smtp.host", "caller-smtp.example.com");
+		properties.setProperty("mail.smtp.port", "2525");
+		properties.setProperty("mail.smtp.starttls.required", "true");
+		properties.setProperty("mail.smtp.socks.host", "old-proxy.example.com");
+		properties.setProperty("mail.smtp.socks.port", "9999");
+		properties.setProperty("caller.property", "unchanged");
+		final Session session = Session.getInstance(properties);
+
+		try (Mailer mailer = MailerBuilder
+				.usingSession(session)
+				.withProxy("proxy.example.com", 1080)
+				.buildMailer()) {
+			assertThat(mailer.getSession()).isSameAs(session);
+			assertThat(session.getProperty("mail.smtp.host")).isEqualTo("caller-smtp.example.com");
+			assertThat(session.getProperty("mail.smtp.port")).isEqualTo("2525");
+			assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("true");
+			assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("proxy.example.com");
+			assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1080");
+			assertThat(session.getProperty("mail.smtps.socks.host")).isNull();
+			assertThat(session.getProperty("caller.property")).isEqualTo("unchanged");
+		}
+	}
+
+	@Test
+	public void usingSession_AuthenticatedProxy_RoutesThroughLocalBridge() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		final Properties properties = new Properties();
+		properties.setProperty("mail.smtp.host", "caller-smtp.example.com");
+		properties.setProperty("mail.smtp.socks.host", "old-proxy.example.com");
+		properties.setProperty("mail.smtp.socks.port", "9999");
+		properties.setProperty("caller.property", "unchanged");
+		final Session session = Session.getInstance(properties);
+
+		try (Mailer mailer = MailerBuilder
+				.usingSession(session)
+				.withProxy("proxy.example.com", 1080, "proxy-user", "proxy-password")
+				.withProxyBridgePort(8181)
+				.buildMailer()) {
+			assertThat(mailer.getSession()).isSameAs(session);
+			assertThat(session.getProperty("mail.smtp.host")).isEqualTo("caller-smtp.example.com");
+			assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
+			assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("8181");
+			assertThat(session.getProperty("mail.smtps.socks.host")).isNull();
+			assertThat(session.getProperty("caller.property")).isEqualTo("unchanged");
+			assertThat(mailer.getProxyConfig().getRemoteProxyHost()).isEqualTo("proxy.example.com");
+			assertThat(mailer.getProxyConfig().getRemoteProxyPort()).isEqualTo(1080);
+			assertThat(mailer.getProxyConfig().getUsername()).isEqualTo("proxy-user");
+			assertThat(mailer.getProxyConfig().getPassword()).isEqualTo("proxy-password");
+		}
+	}
 	
 	@Test
 	public void createMailSession_MaximumConstructor_WithoutConfig() {

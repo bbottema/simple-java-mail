@@ -7,23 +7,24 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
 /**
- * Intermediate builder interface that supports a fixed {@link Session} instance. Allows configuring all generic Mailer settings, but not SMTP and transport strategy
- * details.
+ * Intermediate builder interface that supports a caller-supplied {@link Session}. Allows configuring generic Mailer settings, but not SMTP server or transport
+ * strategy details.
  * <p>
  * <strong>Note:</strong> To start creating a new Mailer, you use {@code MailerBuilder} directly instead.
  * <p>
- * <strong>Note:</strong> Any SMTP server properties that can be set on the {@link Session} object by are presumed to be already present in the past
- * {@link Session} instance.
+ * <strong>Note:</strong> SMTP server and transport properties are presumed to be present in the supplied {@link Session}. Proxy routing is the deliberate exception:
+ * configuring a proxy through this builder overwrites the supported {@code mail.smtp.socks.host} and {@code mail.smtp.socks.port} properties.
  *
  * @see org.simplejavamail.api.mailer.config.TransportStrategy
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>> extends MailerGenericBuilder<T> {
 	/**
-	 * Only use this API if you <em>must</em> use your own {@link Session} instance. Assumes that all properties (except session timeout) used to make
-	 * a connection are configured (host, port, authentication and transport protocol settings and custom ssl factory if used).
+	 * Only use this API if you <em>must</em> use your own {@link Session} instance. It assumes that all protocol-specific connection properties are
+	 * configured, including host, port, authentication, transport protocol and any custom SSL factory.
 	 * <p>
-	 * Only proxy can be configured optionally and general connection settings.
+	 * Calling {@link #withProxy(String, Integer)} or {@link #withProxy(String, Integer, String, String)} is the deliberate exception: Simple Java Mail
+	 * updates the supported {@code mail.smtp.socks.*} route, while leaving the remaining connection configuration under the caller's control.
 	 *
 	 * @param session A mostly preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 */

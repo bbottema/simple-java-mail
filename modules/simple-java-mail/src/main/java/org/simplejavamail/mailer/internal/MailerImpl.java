@@ -288,13 +288,14 @@ public class MailerImpl implements Mailer {
 	 * If a {@link ProxyConfig} was provided with a host address, then the appropriate properties are set on the {@link Session}, overriding any SOCKS
 	 * properties already there.
 	 * <p>
-	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>, which are set to "localhost" and {@link
-	 * ProxyConfig#getProxyBridgePort()}.
+	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>. For a caller-supplied Session without Simple Java
+	 * Mail's transport-strategy marker, the proxy-capable SMTP strategies all use <em>"mail.smtp.socks.host"</em> and
+	 * <em>"mail.smtp.socks.port"</em>. Authenticated proxying sets them to the JVM loopback address and {@link ProxyConfig#getProxyBridgePort()}.
 	 *
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
 	 * @param session           The session with properties to add the new configuration to.
-	 * @param transportStrategy Used to verify if the current combination with proxy is allowed (SMTP with SSL trategy doesn't support any proxy,
-	 *                          virtue of the underlying JavaMail framework). Can be omitted if the Session is presumed preconfigured.
+	 * @param transportStrategy Used to resolve protocol-specific property names and verify whether the proxy combination is supported. Can be omitted
+	 *                          for a caller-supplied Session, in which case the supported <em>"mail.smtp.socks.*"</em> properties are used.
 	 * @return null in case of no proxy or anonymous proxy, or a AnonymousSocks5Server proxy bridging server instance in case of authenticated proxy.
 	 */
 	@Nullable
@@ -308,26 +309,17 @@ public class MailerImpl implements Mailer {
 		} else if (!proxyConfig.requiresProxy()) {
 			LOGGER.trace("No proxy set, skipping proxy.");
 		} else {
-			if (transportStrategy == TransportStrategy.SMTPS) {
+			final TransportStrategy proxyPropertyStrategy = transportStrategy != null ? transportStrategy : TransportStrategy.SMTP;
+			if (proxyPropertyStrategy == TransportStrategy.SMTPS) {
 				throw new MailerException(MailerException.INVALID_PROXY_SLL_COMBINATION);
 			}
 			final Properties sessionProperties = session.getProperties();
-			if (transportStrategy != null) {
-				sessionProperties.put(transportStrategy.propertyNameSocksHost(), verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost()));
-				sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
-			} else {
-				LOGGER.debug("no transport strategy provided, expecting mail.smtp(s).socks.host and .port properties to be set to proxy " +
-						"config on Session");
-			}
+			sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost()));
+			sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
 			if (proxyConfig.requiresAuthentication()) {
-				if (transportStrategy != null) {
-					// wire anonymous proxy request to our own proxy bridge, so we can perform authentication to the actual proxy
-					sessionProperties.put(transportStrategy.propertyNameSocksHost(), "localhost");
-					sessionProperties.put(transportStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getProxyBridgePort()));
-				} else {
-					LOGGER.debug("no transport strategy provided but authenticated proxy required, expecting mail.smtp(s).socks.host and .port " +
-							"properties to be set to localhost and port " + proxyConfig.getProxyBridgePort());
-				}
+				// wire anonymous proxy request to our own proxy bridge, so we can perform authentication to the actual proxy
+				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), "localhost");
+				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getProxyBridgePort()));
 				return ModuleLoader.loadAuthenticatedSocksModule().createAnonymousSocks5Server(proxyConfig);
 			}
 		}
