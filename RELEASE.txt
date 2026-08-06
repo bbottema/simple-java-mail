@@ -6,6 +6,10 @@ https://www.simplejavamail.org
     <version>9.1.5</version>
 </dependency>
 
+Unreleased
+
+- #681: **Spring configuration isolation:** stop packaging the Spring test application.properties in spring-module. Sample local-bind, SMTP client-hostname, transfer-encoding, and other test values can no longer override an application's YAML configuration or break SMTP connections.
+
 v9.1.0 - v9.1.5
 
 - **v9.1.5:** #674, #675: **SOCKS5 domain framing:** place the port after the UTF-8-encoded domain bytes and decode domain replies after their length octet, fixing internationalized-host requests and reply diagnostics.

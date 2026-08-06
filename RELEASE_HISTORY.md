@@ -2,6 +2,10 @@
 
 Full Simple Java Mail release history. [README.md](README.md#latest-progress) also mirrors recent progress for quick scanning.
 
+## Unreleased
+
+- [#681](https://github.com/bbottema/simple-java-mail/issues/681): **Spring configuration isolation:** stop packaging the Spring test `application.properties` in `spring-module`. Sample local-bind, SMTP client-hostname, transfer-encoding, and other test values can no longer override an application's YAML configuration or break SMTP connections.
+
 [v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.5](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.5) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.5/)
 
 - **v9.1.5:** [#674](https://github.com/bbottema/simple-java-mail/issues/674), [#675](https://github.com/bbottema/simple-java-mail/issues/675): **SOCKS5 domain framing:** place the port after the UTF-8-encoded domain bytes and decode domain replies after their length octet, fixing internationalized-host requests and reply diagnostics.
