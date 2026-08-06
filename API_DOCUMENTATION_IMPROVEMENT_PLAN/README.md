@@ -40,7 +40,7 @@ These items make the examples compile against 9.1.5 and behave as their surround
 - [x] [Add the CLI argument-file subcommand](02-copyable-api-examples/07-cli-argument-file-subcommand.md)
 - [x] [Correct the testConnection overload](02-copyable-api-examples/08-test-connection-overload.md)
 - [x] [Correct DKIM private-key overloads](02-copyable-api-examples/09-dkim-private-key-overloads.md)
-- [ ] [Define the DKIM property key format](02-copyable-api-examples/10-dkim-property-key-format.md)
+- [x] [Define the DKIM property key format](02-copyable-api-examples/10-dkim-property-key-format.md)
 - [ ] [Use a valid S/MIME content cipher](02-copyable-api-examples/11-smime-content-cipher.md)
 - [ ] [Repair remaining Java snippet syntax](02-copyable-api-examples/12-java-snippet-syntax.md)
 
