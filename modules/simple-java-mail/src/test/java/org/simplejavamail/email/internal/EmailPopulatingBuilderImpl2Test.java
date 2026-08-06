@@ -64,6 +64,8 @@ import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYN
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CIPHER;
+import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
@@ -101,6 +103,8 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(SMIME_SIGNING_KEY_ALIAS, "smime_test_user_alias_rsa");
 		value.put(SMIME_SIGNING_KEY_PASSWORD, "letmein");
 		value.put(SMIME_ENCRYPTION_CERTIFICATE, "src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
+		value.put(SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM, "RSA_OAEP_SHA384");
+		value.put(SMIME_ENCRYPTION_CIPHER, "AES256_CBC");
 		value.put(DKIM_PRIVATE_KEY_FILE_OR_DATA, "src/test/resources/dkim/dkim_dummy_key.der");
 		value.put(DKIM_SIGNING_DOMAIN, "ignore.com");
 		value.put(DKIM_SELECTOR, "ignore");
@@ -133,6 +137,8 @@ public class EmailPopulatingBuilderImpl2Test {
 						.build())
 				.hasSmimeEncryptionConfig(SmimeEncryptionConfig.builder()
 						.x509Certificate(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")))
+						.keyEncapsulationAlgorithm("RSA_OAEP_SHA384")
+						.cipherAlgorithm("AES256_CBC")
 						.build())
 				.hasDkimConfig(DkimConfig.builder()
 						.dkimPrivateKeyPath(RESOURCES_PATH + "/dkim/dkim_dummy_key.der")
