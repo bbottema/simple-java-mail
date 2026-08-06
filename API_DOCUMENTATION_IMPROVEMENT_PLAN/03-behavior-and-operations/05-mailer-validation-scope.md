@@ -1,25 +1,34 @@
 # Define Mailer.validate scope
 
-- Status: Planned
+- Status: Completed
 - Priority: Medium
 - Work: Documentation, Javadocs
 
 ## Problem
 
-The website says `mailer.validate(email)` performs all checks or applies configured message rules. It validates the supplied Email for completeness, addresses, and injection, but does not apply mailer defaults/overrides or check final serialized MIME size.
+The website said `mailer.validate(email)` performed all checks or applied configured message rules. The API Javadoc also claimed that subject and
+content were required and referred to undefined "NPM notification flags." In practice the method validates the supplied `Email` as-is for sender and
+recipient presence, addresses and injection-sensitive fields. It does not apply mailer defaults or overrides, convert to MIME, or check final encoded
+message size.
 
-## Plan
+## Resolution
 
-Enumerate the actual validation stages and explain which send-time checks are outside `Mailer.validate`.
+Documented the exact direct-validation scope, including strict and lenient modes. The API now distinguishes validation of the supplied instance from
+the send path, which applies defaults and overrides before validation and performs MIME conversion and size enforcement afterward. Capabilities and
+Get Started now use the same concrete wording.
 
 ## Acceptance criteria
 
-- [ ] Validation scope is listed concretely.
-- [ ] Defaults, overrides, conversion, and size checks are described separately.
-- [ ] Features and Get Started pages use consistent wording.
+- [x] Validation scope is listed concretely.
+- [x] Defaults, overrides, conversion, and size checks are described separately.
+- [x] Strict and lenient validation modes are distinguished.
+- [x] Features and Get Started pages use consistent wording.
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/features.hbs:1336`
-- Additional wording: `simplejavamail.org/src/pages/download.hbs:76`
-- Implementation: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java:460-477`
+- Public API: `modules/core-module/src/main/java/org/simplejavamail/api/mailer/Mailer.java`
+- Validation helpers: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/MailerHelper.java`
+- Documentation: `simplejavamail.org/src/pages/features.hbs`
+- Get Started: `simplejavamail.org/src/pages/download.hbs`
+- Send preparation: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java`
+- MIME size enforcement: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SessionBasedEmailToMimeMessageConverter.java`
