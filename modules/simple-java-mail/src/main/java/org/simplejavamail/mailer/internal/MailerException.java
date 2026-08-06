@@ -8,7 +8,6 @@ import org.simplejavamail.MailException;
 class MailerException extends MailException {
 
 	static final String MISSING_OAUTH2_TOKEN = "TransportStrategy is OAUTH2 but no OAUTH2 token provided as password";
-	static final String INVALID_PROXY_SLL_COMBINATION = "Proxy is not supported for SSL connections (this is a limitation by the underlying JavaMail framework)";
 	static final String ERROR_CONNECTING_SMTP_SERVER = "Was unable to connect to SMTP server";
 	static final String MAILER_ERROR = "Failed to send email [%s]";
 	static final String GENERIC_ERROR = "Failed to send email [%s], reason: Third party error";
