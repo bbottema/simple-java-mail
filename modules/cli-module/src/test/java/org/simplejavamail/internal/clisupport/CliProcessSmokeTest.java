@@ -15,6 +15,35 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CliProcessSmokeTest {
 
 	@Test
+	public void argumentFileMayContainTheSubcommand()
+			throws Exception {
+		final File argumentFile = File.createTempFile("simple-java-mail-cli-", ".args");
+		final File cliOutput = File.createTempFile("simple-java-mail-cli-smoke-", ".log");
+		try {
+			Files.write(argumentFile.toPath(), ("send" + System.lineSeparator() + "--help").getBytes(StandardCharsets.UTF_8));
+
+			final Process process = new ProcessBuilder(cliCommand("@" + argumentFile.getAbsolutePath()))
+					.redirectErrorStream(true)
+					.redirectOutput(cliOutput)
+					.start();
+
+			final boolean exited = process.waitFor(15, TimeUnit.SECONDS);
+			if (!exited) {
+				process.destroyForcibly();
+			}
+			final String output = readFile(cliOutput);
+			assertThat(exited).as(output).isTrue();
+			assertThat(process.exitValue()).as(output).isEqualTo(0);
+			assertThat(output).contains("send");
+		} finally {
+			//noinspection ResultOfMethodCallIgnored
+			argumentFile.delete();
+			//noinspection ResultOfMethodCallIgnored
+			cliOutput.delete();
+		}
+	}
+
+	@Test
 	public void validateCommandSupportsDedicatedRecipientOptionsAndTerminatesCleanlyWithBatchModuleOnClasspath()
 			throws Exception {
 		final File cliOutput = File.createTempFile("simple-java-mail-cli-smoke-", ".log");
