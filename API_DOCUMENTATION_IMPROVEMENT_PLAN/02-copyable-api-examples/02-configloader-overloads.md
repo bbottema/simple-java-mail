@@ -1,6 +1,6 @@
 # Replace removed ConfigLoader overloads
 
-- Status: Planned
+- Status: Done
 - Priority: High
 - Work: Documentation
 
@@ -14,12 +14,13 @@ Use `Files.newInputStream(Path.of(...))` with an explicit `addProperties` boolea
 
 ## Acceptance criteria
 
-- [ ] Every ConfigLoader example uses a current public overload.
-- [ ] Filesystem and classpath examples are clearly distinguished.
-- [ ] Stream ownership is documented.
-- [ ] Snippets compile against 9.1.5.
+- [x] Every ConfigLoader example uses a current public overload.
+- [x] Filesystem and classpath examples are clearly distinguished.
+- [x] Stream ownership is documented.
+- [x] Snippets compile against 9.1.5.
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/configuration.hbs:299-306,591-612`
-- API: `modules/core-module/src/main/java/org/simplejavamail/config/ConfigLoader.java:342-386`
+- Documentation: `simplejavamail.org/src/pages/configuration.hbs` now uses the current `String`, `InputStream`, and `Properties` overloads, with `Path.of(...)` for filesystem input.
+- API: `modules/core-module/src/main/java/org/simplejavamail/config/ConfigLoader.java:342-386` confirms the published overloads and stream-closing behavior.
+- Verification: `npm run check`, `npm run build`, and `npm run verifyLinks:internal` pass; the internal-link check covers 1,280 links across 20 generated pages.

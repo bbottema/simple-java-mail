@@ -32,7 +32,7 @@ Phase gate: targeted security tests pass, security examples use safe defaults, a
 These items make the examples compile against 9.1.5 and behave as their surrounding text promises.
 
 - [x] [Correct the validator reset example](02-copyable-api-examples/01-validator-reset-example.md)
-- [ ] [Replace removed ConfigLoader overloads](02-copyable-api-examples/02-configloader-overloads.md)
+- [x] [Replace removed ConfigLoader overloads](02-copyable-api-examples/02-configloader-overloads.md)
 - [ ] [Repair the delivery-receipt example](02-copyable-api-examples/03-delivery-receipt-example.md)
 - [ ] [Update both reply content alternatives](02-copyable-api-examples/04-reply-content-alternatives.md)
 - [ ] [Correct Outlook MSG conversion calls](02-copyable-api-examples/05-outlook-msg-conversion.md)
