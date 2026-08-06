@@ -13,6 +13,7 @@ import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
+import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -146,6 +147,24 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		assertThat(minimalValues.get(1)).isEqualTo(false);
 		assertThat(minimalValues.get(2)).isNull();
 		assertThat((String[]) minimalValues.get(3)).containsExactly("alice@example.com", "bob@example.com");
+	}
+
+	@Test
+	public void dedicatedRecipientOptionsRemainCliOnly() throws Exception {
+		Method to = CliEmailRecipientBuilder.class.getMethod("to", String.class, String.class);
+		assertThat(methodIsCliCompatible(to).isCompatible()).isTrue();
+		assertThat(getArgumentsForCliOption(to)).extracting("helpLabel")
+				.containsExactly("TEXT", "TEXT");
+		assertThat(getArgumentsForCliOption(to)).extracting("required")
+				.containsExactly(false, true);
+
+		List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
+				new Class<?>[] { EmailStartingBuilder.class, CliEmailRecipientBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class });
+		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
+				.contains("--email:to", "--email:cc", "--email:bcc");
+
+		assertThat(Arrays.stream(EmailPopulatingBuilder.class.getMethods()).map(Method::getName))
+				.doesNotContain("to", "cc", "bcc");
 	}
 
 	@Test

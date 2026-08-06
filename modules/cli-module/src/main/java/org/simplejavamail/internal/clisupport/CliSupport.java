@@ -5,6 +5,7 @@ import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
+import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
 import org.simplejavamail.internal.util.FileUtil;
 import org.slf4j.Logger;
@@ -28,7 +29,12 @@ public class CliSupport {
 
 	private static final File CLI_DATAFILE = new File(CliDataLocator.locateCLIDataFile());
 
-	private static final Class<?>[] RELEVANT_BUILDER_ROOT_API = new Class[] { EmailStartingBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class };
+	private static final Class<?>[] RELEVANT_BUILDER_ROOT_API = new Class[] {
+			EmailStartingBuilder.class,
+			CliEmailRecipientBuilder.class,
+			MailerRegularBuilder.class,
+			MailerFromSessionBuilder.class
+	};
 	private static final List<CliDeclaredOptionSpec> DECLARED_OPTIONS = produceCliDeclaredOptionSpec();
 	private static final CommandLine PICOCLI_COMMAND_LINE = configurePicoCli(DECLARED_OPTIONS, CONSOLE_TEXT_WIDTH);
 

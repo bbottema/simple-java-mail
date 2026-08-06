@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CliProcessSmokeTest {
 
 	@Test
-	public void validateCommandTerminatesCleanlyWithBatchModuleOnClasspath()
+	public void validateCommandSupportsDedicatedRecipientOptionsAndTerminatesCleanlyWithBatchModuleOnClasspath()
 			throws Exception {
 		final File cliOutput = File.createTempFile("simple-java-mail-cli-smoke-", ".log");
 		try {
@@ -25,7 +25,9 @@ public class CliProcessSmokeTest {
 					"--email:from", "sender@example.com",
 					"--email:withSubject", "Smoke",
 					"--email:withPlainText", "Body",
-					"--email:withRecipients", "Team", "false", "TO", "Alice <alice@example.com>;bob@example.com",
+					"--email:to", "Alice", "alice@example.com",
+					"--email:cc", "Reviewers", "bob@example.com;carol@example.com",
+					"--email:bcc", "Archive <archive@example.com>",
 					"--mailer:withSMTPServer", "localhost", "25"))
 					.redirectErrorStream(true)
 					.redirectOutput(cliOutput)

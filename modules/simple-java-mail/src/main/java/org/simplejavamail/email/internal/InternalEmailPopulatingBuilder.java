@@ -7,6 +7,7 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 
 import java.util.Collection;
 import java.util.List;
@@ -16,7 +17,7 @@ import java.util.Map;
  * This interface is only there to improve readability there where internal builder API is used.
  */
 @SuppressWarnings("UnusedReturnValue")
-public interface InternalEmailPopulatingBuilder  extends EmailPopulatingBuilder {
+public interface InternalEmailPopulatingBuilder extends EmailPopulatingBuilder, CliEmailRecipientBuilder {
 	@NotNull InternalEmailPopulatingBuilder withForward(@Nullable MimeMessage emailMessageToForward);
 	@NotNull <T> InternalEmailPopulatingBuilder withHeaders(@NotNull Map<String, Collection<T>> headers, boolean ignoreSmimeMessageId);
 	@NotNull InternalEmailPopulatingBuilder clearDecryptedAttachments();
