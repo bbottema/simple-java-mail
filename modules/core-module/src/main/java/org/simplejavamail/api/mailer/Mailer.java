@@ -190,21 +190,26 @@ public interface Mailer extends AutoCloseable {
 	@NotNull CompletableFuture<Void> sendMailsInSimpleBatch(Iterable<Email> emails, boolean async);
 	
 	/**
-	 * Validates an {@link Email} instance. Validation fails if the subject is missing, content is missing, or no recipients are defined or that
-	 * the addresses are missing for NPM notification flags.
+	 * Runs this mailer's client-side validation against the supplied {@link Email} instance as it stands.
 	 * <p>
-	 * It also checks for illegal characters that would facilitate injection attacks:
+	 * In normal validation mode this method:
 	 * <ul>
-	 * <li><a href="http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security">http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security</a></li>
-	 * <li><a href="https://security.stackexchange.com/a/54100/110048">https://security.stackexchange.com/a/54100/110048</a></li>
-	 * <li><a href="https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)">https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)</a></li>
-	 * <li><a href="http://cwe.mitre.org/data/definitions/93.html">http://cwe.mitre.org/data/definitions/93.html</a></li>
+	 *     <li>requires a From recipient and at least one To, Cc or Bcc recipient;</li>
+	 *     <li>rejects encoded-word content in address fields and applies the mailer's configured {@link com.sanctionco.jmail.EmailValidator}, if any;</li>
+	 *     <li>scans the subject, headers, address fields, attachment metadata and embedded-image metadata for CRLF injection.</li>
 	 * </ul>
+	 * Completeness here means a sender and recipient; an empty subject or body is permitted.
+	 * <p>
+	 * This method validates the supplied instance directly. It does not apply the mailer's email defaults or overrides first. The send methods produce
+	 * the effective email by applying defaults and overrides and then run the same client-side validation. MIME conversion and the configured maximum
+	 * encoded message-size check also happen later in the send pipeline.
+	 * <p>
+	 * When all client validation is disabled, this method uses lenient validation: findings are logged instead of being thrown to the caller.
 	 *
-	 * @param email The email that needs to be configured correctly.
+	 * @param email The email instance to validate as-is.
 	 *
 	 * @return Always <code>true</code> (throws a {@link MailException} exception if validation fails).
-	 * @throws MailException Is being thrown in any of the above causes.
+	 * @throws MailException If validation fails in normal validation mode.
 	 * @see com.sanctionco.jmail.EmailValidator
 	 */
 	@SuppressWarnings({"SameReturnValue" })
