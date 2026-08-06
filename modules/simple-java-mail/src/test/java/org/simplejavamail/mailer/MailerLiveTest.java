@@ -745,7 +745,7 @@ public class MailerLiveTest {
 				.withPlainText("non empty text")
 				.withSubject("email size test")
 				.from("a@b.com")
-				.withRecipients(null, false, TO, "a@b.com")
+				.withRecipients(new Recipient(null, "a@b.com", TO, null))
 				.buildEmail();
 
 		assertThatThrownBy(() -> mailer.sendMail(email))

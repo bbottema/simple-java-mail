@@ -16,6 +16,7 @@ import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
+import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
@@ -155,6 +156,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	// The name is a bit cryptic, but succinct (and it's only used internally)
 	private Email newDefaultsEmailWithDefaultDefaults(final boolean suppressDkimSigningDefault) {
 		final EmailPopulatingBuilder allDefaults = EmailBuilder.startingBlank();
+		final CliEmailRecipientBuilder recipientDefaults = (CliEmailRecipientBuilder) allDefaults;
 
 		if (hasProperty(DEFAULT_FROM_ADDRESS)) {
 			allDefaults.from(getStringProperty(DEFAULT_FROM_NAME), verifyNonnullOrEmpty(getStringProperty(DEFAULT_FROM_ADDRESS)));
@@ -173,23 +175,23 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		}
 		if (hasProperty(DEFAULT_TO_ADDRESS)) {
 			if (hasProperty(DEFAULT_TO_NAME)) {
-				allDefaults.withRecipients(getStringProperty(DEFAULT_TO_NAME), true, TO, getStringProperty(DEFAULT_TO_ADDRESS));
+				recipientDefaults.withRecipients(getStringProperty(DEFAULT_TO_NAME), true, TO, getStringProperty(DEFAULT_TO_ADDRESS));
 			} else {
-				allDefaults.withRecipients(null, false, TO, verifyNonnullOrEmpty(getStringProperty(DEFAULT_TO_ADDRESS)));
+				recipientDefaults.withRecipients(null, false, TO, verifyNonnullOrEmpty(getStringProperty(DEFAULT_TO_ADDRESS)));
 			}
 		}
 		if (hasProperty(DEFAULT_CC_ADDRESS)) {
 			if (hasProperty(DEFAULT_CC_NAME)) {
-				allDefaults.withRecipients(getStringProperty(DEFAULT_CC_NAME), true, CC, getStringProperty(DEFAULT_CC_ADDRESS));
+				recipientDefaults.withRecipients(getStringProperty(DEFAULT_CC_NAME), true, CC, getStringProperty(DEFAULT_CC_ADDRESS));
 			} else {
-				allDefaults.withRecipients(null, false, CC, verifyNonnullOrEmpty(getStringProperty(DEFAULT_CC_ADDRESS)));
+				recipientDefaults.withRecipients(null, false, CC, verifyNonnullOrEmpty(getStringProperty(DEFAULT_CC_ADDRESS)));
 			}
 		}
 		if (hasProperty(DEFAULT_BCC_ADDRESS)) {
 			if (hasProperty(DEFAULT_BCC_NAME)) {
-				allDefaults.withRecipients(getStringProperty(DEFAULT_BCC_NAME), true, BCC, getStringProperty(DEFAULT_BCC_ADDRESS));
+				recipientDefaults.withRecipients(getStringProperty(DEFAULT_BCC_NAME), true, BCC, getStringProperty(DEFAULT_BCC_ADDRESS));
 			} else {
-				allDefaults.withRecipients(null, false, BCC, verifyNonnullOrEmpty(getStringProperty(DEFAULT_BCC_ADDRESS)));
+				recipientDefaults.withRecipients(null, false, BCC, verifyNonnullOrEmpty(getStringProperty(DEFAULT_BCC_ADDRESS)));
 			}
 		}
 		if (hasProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)) {

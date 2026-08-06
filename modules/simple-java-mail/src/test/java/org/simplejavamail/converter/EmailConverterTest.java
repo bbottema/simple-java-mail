@@ -448,7 +448,7 @@ public class EmailConverterTest {
 				+ "END:VCALENDAR";
 		final Email email = EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, "recipient@example.com")
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Body CTE")
 				.withPlainText("plain body")
 				.withHTMLText("<b>html body</b>")
@@ -481,7 +481,7 @@ public class EmailConverterTest {
 		final String customContentId = "custom-id-12345";
 		final Email email = EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, "recipient@example.com")
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Test Content-ID")
 				.withPlainText("body")
 				.withAttachment("file.pdf", new ByteArrayDataSource("pdf content", "application/pdf"), null, BIT7, customContentId)
@@ -506,7 +506,7 @@ public class EmailConverterTest {
 		final String customContentId = "logo-content-id";
 		final Email email = EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, "recipient@example.com")
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Embedded image")
 				.withHTMLText("<img src=\"cid:" + customContentId + "\">")
 				.withEmbeddedImage("logo.png", new ByteArrayDataSource("image content", "image/png"), customContentId)
@@ -566,7 +566,7 @@ public class EmailConverterTest {
 		final String filename = "Attachment %^$(()_()&^&^^:@/\\|{}[]#~`- special chars.txt";
 		final Email email = EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, "recipient@example.com")
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Attachment")
 				.withPlainText("body")
 				.withAttachment(filename, new ByteArrayDataSource("Attachment with special chars", "text/plain"))
@@ -593,7 +593,7 @@ public class EmailConverterTest {
 
 		final Email email = EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, "recipient@example.com")
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Nested email attachment")
 				.withPlainText("body")
 				.withAttachment("nested.eml", new ByteArrayDataSource("payload", "message/rfc822\r\nX-Bad: yes"))
@@ -614,7 +614,7 @@ public class EmailConverterTest {
 
 		final Email email = EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, "recipient@example.com")
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Embedded image")
 				.withHTMLText("<img src=\"cid:logo\">")
 				.withEmbeddedImage("logo", new ByteArrayDataSource("image content", " "))
@@ -651,7 +651,7 @@ public class EmailConverterTest {
 
 		final Email email = EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, "receiver@example.com")
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "receiver@example.com"))
 				.withPlainText("See attachment")
 				.withPreEncodedAttachment("preencoded.txt", encodedAttachment.getBytes(UTF_8), "text/plain", BASE_64)
 				.buildEmail();
@@ -673,7 +673,7 @@ public class EmailConverterTest {
 
 		final Email email = EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, "receiver@example.com")
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "receiver@example.com"))
 				.withHTMLText("<img src='cid:logo'>")
 				.withPreEncodedEmbeddedImage("logo", encodedImage.getBytes(UTF_8), "image/png", BASE_64)
 				.buildEmail();

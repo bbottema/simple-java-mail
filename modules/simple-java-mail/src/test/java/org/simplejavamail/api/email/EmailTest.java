@@ -51,7 +51,7 @@ public class EmailTest {
 				.from("lollypop", "lol.pop@somemail.com")
 				.withReplyTo("lollypop-reply", "lol.pop.reply@somemail.com")
 				.withBounceTo("lollypop-bounce", "lol.pop.bounce@somemail.com")
-				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org")
+				.withRecipients(EmailHelper.parsedRecipients("C.Cane", true, TO, "candycane@candyshop.org"))
 				.withPlainText("We should meet up!")
 				.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'>")
 				.withSubject("hey")
@@ -95,7 +95,7 @@ public class EmailTest {
 				.from("lollypop", "lol.pop@somemail.com")
 				.withReplyTo("lollypop-reply", "lol.pop.reply@somemail.com")
 				.withBounceTo("lollypop-bounce", "lol.pop.bounce@somemail.com")
-				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org")
+				.withRecipients(EmailHelper.parsedRecipients("C.Cane", true, TO, "candycane@candyshop.org"))
 				.withPlainText("We should meet up!")
 				.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'>")
 				.withSubject("hey")
@@ -257,14 +257,14 @@ public class EmailTest {
 		assertEmailEqual(f(email).buildEmail(), f(emailOther).buildEmail(), false);
 		assertEmailEqual(f(emailOther).buildEmail(), f(emailOther).buildEmail(), true);
 		// recipients various combinations
-		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), true);
-		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), b().withRecipients(null, false, CC, "a@b.c").withRecipients(null, false, CC, "1@2.3").buildEmail(), true);
-		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c").withRecipients("name", true, BCC, "a@b.c").buildEmail(), b().withRecipients(null, false, CC, "a@b.c").withRecipients("name", true, BCC, "a@b.c").buildEmail(), true);
-		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c").withRecipients("name", true, BCC, "a@b.c").buildEmail(), b().withRecipients(null, false, CC, "a@b.c").withRecipients(null, false, BCC, "a@b.c").buildEmail(), false);
-		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), b().buildEmail(), false);
-		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), b().withRecipients(null, false, CC, "a@b.c;1@2.other").buildEmail(), false);
-		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c;1@2.3").buildEmail(), b().withRecipients(null, false, CC, "a@b.c").buildEmail(), false);
-		assertEmailEqual(b().withRecipients(null, false, CC, "a@b.c").withRecipients("name", true, BCC, "a@b.c").buildEmail(), b().withRecipients(null, false, BCC, "a@b.c").buildEmail(), false);
+		assertEmailEqual(b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c;1@2.3")).buildEmail(), b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c;1@2.3")).buildEmail(), true);
+		assertEmailEqual(b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c;1@2.3")).buildEmail(), b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c")).withRecipients(EmailHelper.parsedRecipients(null, false, CC, "1@2.3")).buildEmail(), true);
+		assertEmailEqual(b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c")).withRecipients(EmailHelper.parsedRecipients("name", true, BCC, "a@b.c")).buildEmail(), b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c")).withRecipients(EmailHelper.parsedRecipients("name", true, BCC, "a@b.c")).buildEmail(), true);
+		assertEmailEqual(b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c")).withRecipients(EmailHelper.parsedRecipients("name", true, BCC, "a@b.c")).buildEmail(), b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c")).withRecipients(EmailHelper.parsedRecipients(null, false, BCC, "a@b.c")).buildEmail(), false);
+		assertEmailEqual(b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c;1@2.3")).buildEmail(), b().buildEmail(), false);
+		assertEmailEqual(b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c;1@2.3")).buildEmail(), b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c;1@2.other")).buildEmail(), false);
+		assertEmailEqual(b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c;1@2.3")).buildEmail(), b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c")).buildEmail(), false);
+		assertEmailEqual(b().withRecipients(EmailHelper.parsedRecipients(null, false, CC, "a@b.c")).withRecipients(EmailHelper.parsedRecipients("name", true, BCC, "a@b.c")).buildEmail(), b().withRecipients(EmailHelper.parsedRecipients(null, false, BCC, "a@b.c")).buildEmail(), false);
 		// headers
 		assertEmailEqual(b().withHeader("name", 44).buildEmail(), b().withHeader("name", 44).buildEmail(), true);
 		assertEmailEqual(b().withHeaders(map("name1", 44, "name2", "value")).buildEmail(), b().withHeaders(map("name1", 44, "name2", "value")).buildEmail(), true);

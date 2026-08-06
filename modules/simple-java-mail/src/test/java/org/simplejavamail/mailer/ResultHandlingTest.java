@@ -27,6 +27,7 @@ import org.simplejavamail.internal.util.concurrent.NamedRunnable;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.mailer.internal.AbstractProxyServerSyncingClosure;
 import testutil.ConfigLoaderTestHelper;
+import testutil.EmailHelper;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
@@ -91,7 +92,7 @@ public class ResultHandlingTest {
                 .buildMailer()) {
 
 			final Email dkimMail = EmailBuilder.startingBlank()
-					.withRecipients(null, false, TO, "a@b.com")
+					.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
 					.from("Simple Java Mail demo", "simplejavamail@supersecret-testing-domain.com")
 					.withSubject("test")
 					.withPlainText("")
@@ -294,7 +295,7 @@ public class ResultHandlingTest {
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
 				.buildMailer().sendMail(EmailBuilder.startingBlank()
-						.withRecipients(null, false, TO, "a@b.com")
+						.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
 						.from("Simple Java Mail demo", "simplejavamail@demo.app")
 						.withPlainText("")
 						.buildEmail(), async);
@@ -307,7 +308,7 @@ public class ResultHandlingTest {
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
 				.async()
 				.buildMailer().sendMail(EmailBuilder.startingBlank()
-						.withRecipients(null, false, TO, "a@b.com")
+						.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
 						.from("Simple Java Mail demo", "simplejavamail@demo.app")
 						.withPlainText("")
 						.buildEmail());

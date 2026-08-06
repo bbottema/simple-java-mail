@@ -67,9 +67,9 @@ public class EmailStartingBuilderImplTest {
 
 		Email fullyPopulatedEmail = EmailBuilder
 				.startingBlank()
-				.withRecipients("mr moo to", true, TO, "mr@moo.com")
-				.withRecipients("mr moo cc", true, CC, "mr@moo.com")
-				.withRecipients("mr moo bcc", true, BCC, "mr@moo.com")
+				.withRecipients(EmailHelper.parsedRecipients("mr moo to", true, TO, "mr@moo.com"))
+				.withRecipients(EmailHelper.parsedRecipients("mr moo cc", true, CC, "mr@moo.com"))
+				.withRecipients(EmailHelper.parsedRecipients("mr moo bcc", true, BCC, "mr@moo.com"))
 				.withAttachment("mooxt", "attachment content".getBytes(), "text/plain")
 				.withEmbeddedImage("mooxt", "attachment content".getBytes(), "text/plain")
 				.withBounceTo("bounce@bouncy.com")

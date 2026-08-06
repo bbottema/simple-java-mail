@@ -809,7 +809,7 @@ public class MailerTest {
 	private static Email createBatchEmail(final String subject, final String recipient) {
 		return EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, recipient)
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, recipient))
 				.withSubject(subject)
 				.withPlainText("Simple batch body")
 				.buildEmail();
