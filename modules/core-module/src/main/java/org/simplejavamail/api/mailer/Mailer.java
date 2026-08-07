@@ -51,8 +51,11 @@ public interface Mailer extends AutoCloseable {
 	 * Tries to connect to the configured SMTP server, including (authenticated) proxy if set up.
 	 * <p>
 	 * Note: synchronizes on the thread for sending mails so that we don't get into race condition conflicts with emails actually being sent.
+	 * <p>
+	 * With {@code async=false}, this method throws operation failures directly and returns a completed future after a successful test. With
+	 * {@code async=true}, failures from scheduling, connecting and authentication complete the returned future exceptionally.
 	 *
-	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
+	 * @return A future representing the complete connection test.
 	 */
 	@NotNull CompletableFuture<Void> testConnection(boolean async);
 	
@@ -90,7 +93,7 @@ public interface Mailer extends AutoCloseable {
 	 * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and providing
 	 * a message id.
 	 * <p>
-	 * If the email should be sent asynchrounously - perhaps as part of a batch, then a new thread is started using the <em>executor</em> for
+	 * If the email should be sent asynchronously - perhaps as part of a batch, then a new thread is started using the <em>executor</em> for
 	 * thread pooling.
 	 * <p>
 	 * If the email should go through an authenticated proxy server, then the SOCKS proxy bridge is started if not already running. When the last
@@ -99,8 +102,10 @@ public interface Mailer extends AutoCloseable {
 	 * @param email The information for the email to be sent.
 	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
 	 *              send the email and this method returns immediately.
-	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
-	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
+	 * @return With {@code async=false}, a completed future after a successful send. With {@code async=true}, a future representing preparation,
+	 * validation, scheduling and sending; failures complete it exceptionally.
+	 * @throws IllegalArgumentException If {@code email} is {@code null}.
+	 * @throws MailException If {@code async=false} and the email isn't valid, or another problem occurs during preparation, connection or sending.
 	 * @see java.util.concurrent.Executors#newFixedThreadPool(int)
 	 * @see #validate(Email)
 	 */
@@ -120,8 +125,10 @@ public interface Mailer extends AutoCloseable {
 	 * @param email The information for the email to be sent.
 	 * @param async If false, this method blocks until the mail has been processed completely by the configured send path. If true, a new thread is
 	 *              started and this method returns immediately.
-	 * @return A {@link CompletableFuture} containing the submission receipt. It is completed immediately if not <em>async</em>.
-	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
+	 * @return With {@code async=false}, a completed future containing the receipt after a successful send. With {@code async=true}, a future
+	 * representing preparation, validation, scheduling and sending; failures complete it exceptionally.
+	 * @throws IllegalArgumentException If {@code email} is {@code null}.
+	 * @throws MailException If {@code async=false} and the email isn't valid, or another problem occurs during preparation, connection or sending.
 	 * @see SmtpServerResponse
 	 * @see #sendMail(Email, boolean)
 	 */
@@ -183,8 +190,10 @@ public interface Mailer extends AutoCloseable {
 	 * @param emails The emails to send in order.
 	 * @param async  If false, this method blocks until all emails have been processed by the SMTP server. If true, a new task is started for the whole
 	 *               sequential simple batch and this method returns immediately.
-	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
-	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during connection, sending etc.
+	 * @return With {@code async=false}, a completed future after every email has been sent successfully. With {@code async=true}, a future representing
+	 * scheduling and the complete sequential batch; failures complete it exceptionally.
+	 * @throws IllegalArgumentException If {@code emails} is {@code null}.
+	 * @throws MailException If {@code async=false} and an email isn't valid, or another problem occurs during preparation, connection or sending.
 	 * @see #sendMail(Email, boolean)
 	 */
 	@NotNull CompletableFuture<Void> sendMailsInSimpleBatch(Iterable<Email> emails, boolean async);

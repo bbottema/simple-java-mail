@@ -20,6 +20,16 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 public class AsyncOperationHelper {
 
 	/**
+	 * Java 8 compatible equivalent of {@code CompletableFuture.failedFuture(Throwable)}.
+	 */
+	@NotNull
+	public static <T> CompletableFuture<T> failedFuture(final @NotNull Throwable failure) {
+		final CompletableFuture<T> future = new CompletableFuture<>();
+		future.completeExceptionally(failure);
+		return future;
+	}
+
+	/**
 	 * Executes using a single-execution ExecutorService, which is shutdown immediately after the operation finishes.
 	 *
 	 * @see Executors#newSingleThreadExecutor()

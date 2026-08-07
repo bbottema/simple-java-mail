@@ -355,17 +355,22 @@ public class MailerImpl implements Mailer {
 	 */
 	@NotNull
 	public synchronized CompletableFuture<Void> testConnection(boolean async) {
-		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, async, smtpConnectionCounter);
-
 		if (!async) {
+			TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, false, smtpConnectionCounter);
 			testConnectionClosure.run();
 			return CompletableFuture.completedFuture(null);
-		} else
+		}
+
+		try {
+			TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, true, smtpConnectionCounter);
 			return ModuleLoader.batchModuleAvailable()
 					? ModuleLoader.loadBatchModule()
 						.executeAsync(operationalConfig.getExecutorService(), "testSMTPConnection process", testConnectionClosure)
 					: AsyncOperationHelper
 						.executeAsync(operationalConfig.getExecutorService(), "testSMTPConnection process", testConnectionClosure);
+		} catch (RuntimeException e) {
+			return AsyncOperationHelper.failedFuture(e);
+		}
 	}
 
 	/**
@@ -401,14 +406,20 @@ public class MailerImpl implements Mailer {
 	@Override
 	@NotNull
 	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(final Email userProvidedEmail, final boolean async) {
-		val email = prepareEmailForSending(userProvidedEmail);
-
-		SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
+		val checkedEmail = verifyNonnull(userProvidedEmail);
 
 		if (!async) {
+			val email = prepareEmailForSending(checkedEmail);
+			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer,
+					operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 			sendMailClosure.run();
 			return CompletableFuture.completedFuture(sendMailClosure.getReceipt());
-		} else
+		}
+
+		try {
+			val email = prepareEmailForSending(checkedEmail);
+			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer,
+					operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 			return ModuleLoader.batchModuleAvailable()
 					? ModuleLoader.loadBatchModule()
 						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
@@ -416,6 +427,9 @@ public class MailerImpl implements Mailer {
 					: AsyncOperationHelper
 						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
 						.thenApply(unused -> sendMailClosure.getReceipt());
+		} catch (RuntimeException e) {
+			return AsyncOperationHelper.failedFuture(e);
+		}
 	}
 
 	/**
@@ -445,18 +459,25 @@ public class MailerImpl implements Mailer {
 	@NotNull
 	public final CompletableFuture<Void> sendMailsInSimpleBatch(final Iterable<Email> emails, final boolean async) {
 		val checkedEmails = verifyNonnull(emails);
-		SendMailsInSimpleBatchClosure sendMailsInSimpleBatchClosure = new SendMailsInSimpleBatchClosure(operationalConfig, session, checkedEmails,
-				this::prepareEmailForSending, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 
 		if (!async) {
+			SendMailsInSimpleBatchClosure sendMailsInSimpleBatchClosure = new SendMailsInSimpleBatchClosure(operationalConfig, session, checkedEmails,
+					this::prepareEmailForSending, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 			sendMailsInSimpleBatchClosure.run();
 			return CompletableFuture.completedFuture(null);
-		} else
+		}
+
+		try {
+			SendMailsInSimpleBatchClosure sendMailsInSimpleBatchClosure = new SendMailsInSimpleBatchClosure(operationalConfig, session, checkedEmails,
+					this::prepareEmailForSending, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 			return ModuleLoader.batchModuleAvailable()
 					? ModuleLoader.loadBatchModule()
 						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", sendMailsInSimpleBatchClosure)
 					: AsyncOperationHelper
 						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", sendMailsInSimpleBatchClosure);
+		} catch (RuntimeException e) {
+			return AsyncOperationHelper.failedFuture(e);
+		}
 	}
 
 	@NotNull
