@@ -840,7 +840,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Override
 	public T resetConnectionPoolClaimTimeoutMillis() {
-		return this.withConnectionPoolExpireAfterMillis(DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS);
+		return this.withConnectionPoolClaimTimeoutMillis(DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS);
 	}
 
 	/**

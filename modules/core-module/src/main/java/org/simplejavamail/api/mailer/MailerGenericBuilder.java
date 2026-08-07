@@ -73,7 +73,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	int DEFAULT_CONNECTIONPOOL_MAX_SIZE = 4;
 	/**
-	 * {@value} ({@code Integer.MAX_VALUE}), effectively indefinately.
+	 * {@value} ({@code Integer.MAX_VALUE}), approximately 24.9 days.
 	 *
 	 * @see #withConnectionPoolClaimTimeoutMillis(Integer)
 	 */
@@ -497,7 +497,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 
 	/**
 	 * If {@code >0}, configures the connection pool to wait for a limited time after which the attempt to claim a Transport connection errors out.
-	 * The default is to wait indefinately until a connection becomes available in the pool.
+	 * The default is {@value #DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS} milliseconds, approximately 24.9 days.
 	 * <p>
 	 * When using clustered batch sending, the first {@link Mailer} registered for a cluster determines this setting for that cluster.
 	 * <p>
@@ -722,7 +722,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetConnectionPoolMaxSize();
 
 	/**
-	 * Resets connection pool connection claim timeout back to indefinately.
+	 * Resets the connection pool claim timeout to its default ({@value #DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS} milliseconds, approximately 24.9 days).
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
