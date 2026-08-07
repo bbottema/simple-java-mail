@@ -220,6 +220,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * This is useful when {@link #withDebugLogging(Boolean)} is enabled and Jakarta Mail's default {@link System#out} output should be redirected,
 	 * for example to an SLF4J-backed {@link PrintStream}.
 	 * <p>
+	 * Simple Java Mail does not close the supplied stream. Keep it open for as long as the Mailer may write debug output and close it after the Mailer
+	 * is no longer using it.
+	 * <p>
 	 * For property files and CLI usage, use {@link #withDebugOutput(SessionDebugOutput)} or configure {@code simplejavamail.javaxmail.debug.out}.
 	 *
 	 * @param debugPrinter The printer that should receive Jakarta Mail debug output.
