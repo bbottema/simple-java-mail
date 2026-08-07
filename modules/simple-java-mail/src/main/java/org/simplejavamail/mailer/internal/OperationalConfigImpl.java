@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
@@ -9,6 +10,7 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -162,4 +164,18 @@ class OperationalConfigImpl implements OperationalConfig {
 	 */
 	@Nullable
 	private final CustomMailer customMailer;
+
+	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withOAuth2AccessTokenProvider(OAuth2AccessTokenProvider)
+	 */
+	@Nullable
+	@ToString.Exclude
+	@Getter(AccessLevel.NONE)
+	private final OAuth2AccessTokenProvider oauth2AccessTokenProvider;
+
+	@Override
+	@Nullable
+	public OAuth2AccessTokenProvider getOAuth2AccessTokenProvider() {
+		return oauth2AccessTokenProvider;
+	}
 }

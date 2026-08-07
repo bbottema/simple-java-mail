@@ -5,6 +5,7 @@ import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import lombok.val;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.mailer.internal.OAuth2AccessTokenResolver;
 
 /**
  * @see #connectTransport(Transport, Session)
@@ -19,9 +20,10 @@ public class TransportConnectionHelper {
      * @see <a href="https://eclipse-ee4j.github.io/angus-mail/OAuth2">https://eclipse-ee4j.github.io/angus-mail/OAuth2</a>
      */
     public static void connectTransport(Transport transport, Session session) throws MessagingException {
-        if (session.getProperties().containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY)) {
+        if (session.getProperties().containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY)
+                || session.getProperties().containsKey(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY)) {
             val username = session.getProperties().getProperty(TransportStrategy.SMTP_TLS.propertyNameUsername());
-            val oauth2Token = session.getProperties().getProperty(TransportStrategy.OAUTH2_TOKEN_PROPERTY);
+            val oauth2Token = OAuth2AccessTokenResolver.resolveAccessToken(session);
             transport.connect(username, oauth2Token);
         } else {
             transport.connect();

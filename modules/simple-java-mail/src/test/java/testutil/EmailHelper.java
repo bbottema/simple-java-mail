@@ -12,6 +12,7 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
@@ -165,8 +166,9 @@ public class EmailHelper {
 				/*20*/trustAllSSLHost,
 				/*21*/verifyServerIdentity,
 				/*22*/newSingleThreadExecutor(),
-				/*23*/false,
-				/*24*/null);
+					/*23*/false,
+					/*24*/null,
+					/*25*/null);
 	}
 
 	@NotNull
@@ -196,7 +198,8 @@ public class EmailHelper {
 			/*21*/final boolean verifyingServerIdentity,
 			/*22*/@NotNull final ExecutorService executorService,
 			/*23*/final boolean isExecutorServiceUserProvided,
-			/*24*/@Nullable final CustomMailer customMailer) {
+			/*24*/@Nullable final CustomMailer customMailer,
+			/*25*/@Nullable final OAuth2AccessTokenProvider oauth2AccessTokenProvider) {
 		try {
 			Constructor<?> constructor = Class.forName("org.simplejavamail.mailer.internal.OperationalConfigImpl").getDeclaredConstructors()[0];
 			constructor.setAccessible(true);
@@ -225,7 +228,8 @@ public class EmailHelper {
 					/*21*/verifyingServerIdentity,
 					/*22*/executorService,
 					/*23*/isExecutorServiceUserProvided,
-					/*24*/customMailer);
+					/*24*/customMailer,
+					/*25*/oauth2AccessTokenProvider);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

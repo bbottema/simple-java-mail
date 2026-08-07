@@ -133,6 +133,10 @@ public class BatchSupport implements BatchModule {
 			props.setProperty(SmtpConnectionPool.OAUTH2_TOKEN_PROPERTY,
 					props.getProperty(TransportStrategy.OAUTH2_TOKEN_PROPERTY));
 		}
+		if (props.containsKey(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY)) {
+			props.put(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY,
+					props.get(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY));
+		}
 	}
 
 	/**

@@ -10,6 +10,7 @@ import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
@@ -626,6 +627,19 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withProperty(@NotNull String propertyName, @Nullable @Cli.Optional Object propertyValue);
 
 	/**
+	 * Configures a runtime provider for current OAuth2 access tokens. The provider is resolved whenever a physical SMTP connection
+	 * is opened or reconnected and must be used with {@link TransportStrategy#SMTP_OAUTH2}.
+	 * <p>
+	 * The provider can be called concurrently and should normally cache a valid token, refreshing it only when necessary. For a
+	 * short-lived fixed token, the existing SMTP password configuration remains available.
+	 * A caller-supplied {@link jakarta.mail.Session} must declare {@code mail.smtp.auth.mechanisms=XOAUTH2}.
+	 *
+	 * @param accessTokenProvider Thread-safe provider of current, nonblank OAuth2 access tokens.
+	 */
+	@Cli.ExcludeApi(reason = "OAuth2 access-token providers are runtime Java integrations and cannot be represented as CLI values")
+	T withOAuth2AccessTokenProvider(@NotNull OAuth2AccessTokenProvider accessTokenProvider);
+
+	/**
 	 * @see CustomMailer
 	 */
 	T withCustomMailer(@NotNull CustomMailer customMailer);
@@ -1041,4 +1055,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	CustomMailer getCustomMailer();
+
+	/**
+	 * @see #withOAuth2AccessTokenProvider(OAuth2AccessTokenProvider)
+	 */
+	@Nullable
+	OAuth2AccessTokenProvider getOAuth2AccessTokenProvider();
 }

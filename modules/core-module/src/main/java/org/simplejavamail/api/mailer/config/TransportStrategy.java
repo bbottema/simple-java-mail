@@ -793,6 +793,12 @@ public enum TransportStrategy {
 	 * manually manage this property.
 	 */
 	public static final String OAUTH2_TOKEN_PROPERTY = "simplejavamail.oauth2.token";
+
+	/**
+	 * Internal Session bridge for a runtime OAuth2 access-token provider. This property contains a {@link java.util.function.Supplier}
+	 * object and is intentionally not part of string-based property or CLI configuration.
+	 */
+	public static final String OAUTH2_TOKEN_PROVIDER_PROPERTY = "simplejavamail.oauth2.token.provider";
 	
 	/**
 	 * For internal use only.
@@ -923,7 +929,7 @@ public enum TransportStrategy {
 				properties.get(propertyNamePort()),
 				properties.get(propertyNameUsername()),
 				properties.get(propertyNameAuthenticate()),
-				properties.containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY),
+				properties.containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY) || properties.containsKey(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY),
 				this);
 	}
 }
