@@ -93,7 +93,7 @@ Phase gate: the newly covered APIs are reachable from the left navigation or a c
 
 These items repair implementation or source-Javadoc defects found while validating the website.
 
-- [ ] [Fix resetConnectionPoolMaxSize](05-code-and-javadoc-defects/01-reset-connection-pool-max-size.md)
+- [x] [Fix resetConnectionPoolMaxSize](05-code-and-javadoc-defects/01-reset-connection-pool-max-size.md)
 - [ ] [Fix resetConnectionPoolClaimTimeoutMillis](05-code-and-javadoc-defects/02-reset-connection-pool-claim-timeout.md)
 - [ ] [Correct resetDisableAllClientValidations Javadoc](05-code-and-javadoc-defects/03-reset-disable-client-validation-javadoc.md)
 - [ ] [Replace stale source-Javadoc website links](05-code-and-javadoc-defects/04-stale-source-javadoc-links.md)
