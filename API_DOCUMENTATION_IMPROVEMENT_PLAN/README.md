@@ -85,7 +85,7 @@ These items add important public behavior that is currently absent from the guid
 - [x] [Document proxy bridge-port collisions](04-missing-coverage/07-proxy-bridge-port-collisions.md)
 - [x] [Document withDebugPrinter](04-missing-coverage/08-custom-debug-printer.md)
 - [x] [Add the version 8 migration guide](04-missing-coverage/09-version-8-migration-guide.md)
-- [ ] [Clarify the template-engine boundary](04-missing-coverage/10-templating-boundary.md)
+- [x] [Clarify the template-engine boundary](04-missing-coverage/10-templating-boundary.md)
 
 Phase gate: the newly covered APIs are reachable from the left navigation or a closely related section and are indexed by site search.
 

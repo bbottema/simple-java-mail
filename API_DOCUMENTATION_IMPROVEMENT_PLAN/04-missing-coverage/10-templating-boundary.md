@@ -1,6 +1,6 @@
 # Clarify the template-engine boundary
 
-- Status: Planned
+- Status: Done
 - Priority: Low
 - Work: Documentation
 
@@ -14,11 +14,14 @@ Add one short note with a generic render-then-build flow. Distinguish general co
 
 ## Acceptance criteria
 
-- [ ] No built-in general template engine is implied.
-- [ ] The integration boundary is understandable without endorsing one engine.
-- [ ] Reply quoting templates are identified as a separate feature.
+- [x] No built-in general template engine is implied.
+- [x] The integration boundary is understandable without endorsing one engine.
+- [x] Reply quoting templates are identified as a separate feature.
 
 ## Evidence
 
-- Body APIs: `modules/core-module/src/main/java/org/simplejavamail/api/email/EmailPopulatingBuilder.java`
-- Reply templates: `modules/core-module/src/main/java/org/simplejavamail/api/email/EmailStartingBuilder.java:107-145`
+- Capabilities now shows the engine-neutral render-then-build flow beside basic usage, including paired plain-text and HTML output.
+- The same note links reply quoting separately and explains the narrow `%s` substitution without presenting it as general message rendering.
+- Future template support, an engine-neutral extension point, and optional integrations are tracked in [#695](https://github.com/bbottema/simple-java-mail/issues/695) for 10.0.0.
+- Verification: website type/check task, production build, and 1,404-link internal link check passed.
+- Website commit: `96bdfeb docs(content): explain template integration [skip ci]`.
