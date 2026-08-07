@@ -1,8 +1,8 @@
 # Update the CLI exec-plugin version
 
-- Status: Planned
+- Status: Done
 - Priority: Low
-- Work: Documentation, release-update automation
+- Work: Documentation
 
 ## Problem
 
@@ -12,11 +12,15 @@ The CLI Maven example pins `exec-maven-plugin` 1.6.0 while the current project u
 
 Update the example and decide whether plugin versions should come from the website manifest/release inventory or a lightweight POM-derived check.
 
+## Resolution
+
+Updated the CLI Maven example from `exec-maven-plugin` 1.6.0 to 3.6.3, matching the version used by the CLI module itself. This build-tool version is maintained with the example rather than added to the website release inventory: it changes independently of Simple Java Mail releases, while an automated cross-repository POM check would unnecessarily couple the website build to the library repository.
+
 ## Acceptance criteria
 
-- [ ] The published plugin version is current and supported.
-- [ ] The example runs successfully.
-- [ ] The release update list includes this pinned version or validates it automatically.
+- [x] The published plugin version matches the current CLI module build.
+- [x] The example runs successfully.
+- [x] The maintenance decision is recorded without expanding release-update automation.
 
 ## Evidence
 
