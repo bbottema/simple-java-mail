@@ -832,7 +832,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Override
 	public T resetConnectionPoolMaxSize() {
-		return this.withConnectionPoolCoreSize(DEFAULT_CONNECTIONPOOL_MAX_SIZE);
+		return this.withConnectionPoolMaxSize(DEFAULT_CONNECTIONPOOL_MAX_SIZE);
 	}
 
 	/**
