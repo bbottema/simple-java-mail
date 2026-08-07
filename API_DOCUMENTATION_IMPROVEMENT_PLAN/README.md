@@ -77,7 +77,7 @@ Phase gate: every default and operational claim has a source or test anchor, and
 These items add important public behavior that is currently absent from the guides.
 
 - [x] [Add Mailer lifecycle and ownership guidance](04-missing-coverage/01-mailer-lifecycle.md)
-- [ ] [Cover reply and body-editing APIs](04-missing-coverage/02-reply-and-body-api.md)
+- [x] [Cover reply and body-editing APIs](04-missing-coverage/02-reply-and-body-api.md)
 - [ ] [Explain OAuth2 token ownership](04-missing-coverage/03-oauth2-token-lifecycle.md)
 - [ ] [Document withOpenConnection limitations](04-missing-coverage/04-open-connection-custom-mailer.md)
 - [ ] [Explain ConfigLoader snapshot timing](04-missing-coverage/05-configloader-snapshot-timing.md)
