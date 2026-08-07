@@ -1,6 +1,6 @@
 # Update Outlook module dependencies
 
-- Status: Planned
+- Status: Done
 - Priority: Medium
 - Work: Documentation, build-derived inventory
 
@@ -8,15 +8,17 @@
 
 The module page lists Kryo and kryo-serializers for Outlook conversion, but the current Outlook module directly depends on `outlook-message-parser` and no longer declares Kryo.
 
-## Plan
+## Resolution
 
-Regenerate the dependency description from the current POM/dependency tree. Prefer describing why the dependency exists over maintaining a brittle full transitive list.
+Verified the module POM and runtime dependency tree, then replaced the stale Kryo inventory with the one direct Outlook-specific dependency:
+`org.simplejavamail:outlook-message-parser`. The page now explains that this parser handles Outlook OLE content through Apache POI and related conversion
+libraries without freezing its complete transitive dependency tree into the website.
 
 ## Acceptance criteria
 
-- [ ] Kryo dependencies are removed from the Outlook section.
-- [ ] Direct dependencies match `modules/outlook-module/pom.xml`.
-- [ ] Any transitive list is generated or clearly non-exhaustive.
+- [x] Kryo dependencies are removed from the Outlook section.
+- [x] Direct dependencies match `modules/outlook-module/pom.xml`.
+- [x] The transitive implementation is described without presenting an exhaustive list.
 
 ## Evidence
 
