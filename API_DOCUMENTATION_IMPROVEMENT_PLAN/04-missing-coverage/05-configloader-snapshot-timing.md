@@ -1,6 +1,6 @@
 # Explain ConfigLoader snapshot timing
 
-- Status: Planned
+- Status: Done
 - Priority: Medium
 - Work: Documentation
 
@@ -14,10 +14,13 @@ Add a concise timing model and an example that reloads configuration before crea
 
 ## Acceptance criteria
 
-- [ ] Existing Mailers are clearly described as unaffected.
-- [ ] Builder/object creation timing is explicit.
-- [ ] Multi-environment examples create objects after loading their intended configuration.
+- [x] Existing Mailers are clearly described as unaffected.
+- [x] Builder/object creation timing is explicit.
+- [x] Multi-environment examples create objects after loading their intended configuration.
 
 ## Evidence
 
-- Source contract: `modules/core-module/src/main/java/org/simplejavamail/config/ConfigLoader.java:334-336,368-370`
+- `ConfigLoader` Javadocs now describe its process-wide defaults, replacement-object semantics, and the requirement to start fresh builders after a reload for all three `loadProperties(...)` overloads.
+- `simplejavamail.org/src/pages/configuration.hbs` now has a dedicated "When changes take effect" section, a replacement-Mailer example, and explicit load-before-build ordering in the multi-environment example.
+- Architectural follow-up: [GitHub issue #693](https://github.com/bbottema/simple-java-mail/issues/693) tracks replacing the static loader with instance-based, injectable configuration for milestone `10.0.0`.
+- Verification: core-module Javadocs generated successfully; website type/check task, production build, and 1,321-link internal link check passed.

@@ -80,7 +80,7 @@ These items add important public behavior that is currently absent from the guid
 - [x] [Cover reply and body-editing APIs](04-missing-coverage/02-reply-and-body-api.md)
 - [x] [Support refresh-aware OAuth2 access-token providers](04-missing-coverage/03-oauth2-token-lifecycle.md)
 - [x] [Document withOpenConnection limitations](04-missing-coverage/04-open-connection-custom-mailer.md)
-- [ ] [Explain ConfigLoader snapshot timing](04-missing-coverage/05-configloader-snapshot-timing.md)
+- [x] [Explain ConfigLoader snapshot timing](04-missing-coverage/05-configloader-snapshot-timing.md)
 - [ ] [Document environment-variable syntax](04-missing-coverage/06-environment-variable-syntax.md)
 - [ ] [Document proxy bridge-port collisions](04-missing-coverage/07-proxy-bridge-port-collisions.md)
 - [ ] [Document withDebugPrinter](04-missing-coverage/08-custom-debug-printer.md)
