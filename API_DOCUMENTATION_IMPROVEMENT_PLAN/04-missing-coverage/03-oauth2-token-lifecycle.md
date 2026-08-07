@@ -1,25 +1,31 @@
-# Explain OAuth2 token ownership
+# Support refresh-aware OAuth2 access-token providers
 
-- Status: Planned
+- Status: In progress
 - Priority: Medium
-- Work: Documentation
+- Work: Code and documentation
 
 ## Gap
 
-OAuth2 examples show an access token in the password position but do not explain that acquisition and refresh are entirely caller-owned. There is no token supplier or refresh hook in Mailer.
+OAuth2 examples show one access token in the password position. That works for a short-lived mailer, but a reusable mailer or connection pool has no way to obtain a current token after the original one expires.
 
 ## Plan
 
-State that callers provide a current access token, not a refresh token, and must rebuild or update their mailer/session strategy when it expires. Point to provider SDKs without adding provider-specific flows.
+Add a plain-Java, thread-safe access-token provider to the generic Mailer builder. Resolve it only when a physical SMTP connection is opened or reconnected, including pooled connections. Keep the existing fixed-token form, add optional Spring bean discovery without a Spring Security dependency, and document that the provider owns acquisition, caching and refresh.
 
 ## Acceptance criteria
 
-- [ ] Access and refresh tokens are distinguished.
-- [ ] Token expiry ownership is explicit.
-- [ ] No text implies automatic refresh.
-- [ ] Reusable-mailer guidance acknowledges token lifetime.
+- [ ] A regular or custom-session Mailer can use an `OAuth2AccessTokenProvider`.
+- [ ] Direct, open-connection, simple-batch and pooled paths resolve the provider at the physical connection boundary.
+- [ ] Fixed tokens remain supported; mixed fixed/provider configuration fails clearly.
+- [ ] Provider failures and blank results fail without exposing token material.
+- [ ] Spring can auto-detect one provider bean without depending on Spring Security.
+- [ ] Documentation distinguishes access tokens from provider-owned acquisition and refresh.
+- [ ] The CLI and property surface do not pretend a runtime provider is string-configurable.
 
 ## Evidence
 
+- Simple Java Mail issue: https://github.com/bbottema/simple-java-mail/issues/692
+- SMTP connection pool issue: https://github.com/simple-java-mail/smtp-connection-pool/issues/9
+- Historical fixed-token support: https://github.com/bbottema/simple-java-mail/issues/421
 - Documentation: `simplejavamail.org/src/pages/security.hbs:212-221`
 - Session setup: `modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java:180-191`
