@@ -190,13 +190,17 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * Relevant only when using username authentication with a proxy.
 	 * <p>
-	 * Overrides the default for the intermediary SOCKS5 relay server bridge, which is a server that sits in between JavaMail and the remote proxy.
+	 * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to the JVM's
+	 * loopback address and owns this port while this Mailer has active proxy operations.
+	 * <p>
+	 * Concurrent operations through one Mailer share its relay. Separate authenticated-proxy Mailers that can be active at the same time must use
+	 * distinct bridge ports, otherwise one of the relays cannot bind. Anonymous proxy connections do not use a bridge port.
 	 * <p>
 	 * Defaults to {@value DEFAULT_PROXY_BRIDGE_PORT} if no custom default property was configured.
 	 * <p>
-	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
 	 *
-	 * @param proxyBridgePort The port to use for the proxy bridging server.
+	 * @param proxyBridgePort The loopback port to use for the proxy bridging server.
 	 *
 	 * @see #withProxyUsername(String)
 	 */
