@@ -1,6 +1,6 @@
 # Describe Spring dependencies as provided
 
-- Status: Planned
+- Status: Done
 - Priority: Low
 - Work: Documentation
 
@@ -12,11 +12,15 @@ The module page says Spring support adds Spring core. The POM declares Spring co
 
 Describe the module as integrating with an existing Spring or Spring Boot runtime and list the provided-scope expectation.
 
+## Resolution
+
+Reworded the module page to explain that the application supplies `spring-core`, `spring-context`, and `spring-beans`. The page no longer suggests that adding `spring-module` brings those libraries onto the runtime classpath.
+
 ## Acceptance criteria
 
-- [ ] No text promises Spring libraries transitively.
-- [ ] The expected host application responsibility is clear.
-- [ ] Module documentation matches the POM scopes.
+- [x] No text promises Spring libraries transitively.
+- [x] The expected host application responsibility is clear.
+- [x] Module documentation matches the POM scopes.
 
 ## Evidence
 
