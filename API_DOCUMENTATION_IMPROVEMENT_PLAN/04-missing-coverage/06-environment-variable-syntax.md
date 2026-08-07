@@ -1,6 +1,6 @@
 # Document environment-variable syntax
 
-- Status: Planned
+- Status: Done
 - Priority: Medium
 - Work: Documentation, tests
 
@@ -14,12 +14,14 @@ Provide concrete fixed-key examples such as `SIMPLEJAVAMAIL_SMTP_HOST`, then doc
 
 ## Acceptance criteria
 
-- [ ] At least three common environment-variable examples are shown.
-- [ ] Fixed and wildcard mapping rules are distinguished.
-- [ ] Tests anchor case and separator conversion.
-- [ ] Cluster environment limitations are explicit.
+- [x] At least three common environment-variable examples are shown.
+- [x] Fixed and wildcard mapping rules are distinguished.
+- [x] Tests anchor case and separator conversion.
+- [x] Cluster environment limitations are explicit.
 
 ## Evidence
 
-- Fixed mapping: `modules/core-module/src/main/java/org/simplejavamail/config/ConfigLoader.java:407-408`
-- Wildcard scanning: `modules/core-module/src/main/java/org/simplejavamail/config/ConfigLoader.java:465-495`
+- `simplejavamail.org/src/pages/configuration.hbs` now shows four common fixed-key environment variables, explains the uppercase/dot-to-underscore conversion, and separates it from literal wildcard scanning.
+- The guide explicitly recommends property files, exact dotted JVM system properties, or Java configuration for wildcard extra-property and per-cluster namespaces because literal dotted environment names are not portable.
+- `ConfigLoaderTest` now covers a multi-segment fixed key, literal dotted wildcard names, and the unsupported uppercase/underscore wildcard form without changing production behavior.
+- Verification: the targeted `ConfigLoaderTest` suite passed on JDK 8; website type/check task, production build, and 1,323-link internal link check passed.
