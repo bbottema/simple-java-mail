@@ -1,6 +1,6 @@
 # Remove Base64 security terminology
 
-- Status: Planned
+- Status: Done
 - Priority: Low
 - Work: Documentation
 
@@ -14,10 +14,10 @@ Describe Base64 in terms of binary safety and transport compatibility. Explicitl
 
 ## Acceptance criteria
 
-- [ ] “Obfuscation” is removed from the content-encoding section.
-- [ ] The explanation focuses on transport characteristics.
-- [ ] No encoding is presented as a security mechanism.
+- [x] “Obfuscation” is removed from the content-encoding section.
+- [x] The explanation focuses on transport characteristics.
+- [x] No encoding is presented as a security mechanism.
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/features.hbs:554-560`
+- Documentation: `simplejavamail.org/src/pages/features.hbs:565-568`
