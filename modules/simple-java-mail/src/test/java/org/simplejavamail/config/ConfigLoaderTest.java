@@ -396,10 +396,12 @@ public class ConfigLoaderTest {
 	@Test
 	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_SMTP_HOST", value = "smtp.environment.com")
 	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_SMTP_PORT", value = "2526")
+	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_DEFAULTS_FROM_ADDRESS", value = "sender@environment.com")
 	public void loadPropertiesFromEnvironmentVariables() {
 		// Ensure no properties are set in system properties
 		System.clearProperty("simplejavamail.smtp.host");
 		System.clearProperty("simplejavamail.smtp.port");
+		System.clearProperty("simplejavamail.defaults.from.address");
 
 		// Load properties from a non-existent file
 		ConfigLoader.loadProperties("non-existent.properties", false);
@@ -407,6 +409,30 @@ public class ConfigLoaderTest {
 		// Verify that properties are loaded from environment variables
 		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.environment.com");
 		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(2526);
+		assertThat(ConfigLoader.<String>getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("sender@environment.com");
+	}
+
+	@Test
+	@SetEnvironmentVariable(key = "simplejavamail.extraproperties.mail.smtp.timeout", value = "1234")
+	@SetEnvironmentVariable(key = "simplejavamail.defaults.connectionpool.clusters.00000000-0000-0000-0000-000000000301.maxsize", value = "4")
+	public void loadWildcardPropertiesFromLiteralDottedEnvironmentVariables() {
+		ConfigLoader.loadProperties(new Properties(), false);
+
+		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
+				.containsEntry("mail.smtp.timeout", "1234");
+		Map<UUID, ConnectionPoolClusterConfig> clusterConfigs = ConfigLoader.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		assertThat(clusterConfigs.get(UUID.fromString("00000000-0000-0000-0000-000000000301")).getMaxSize()).isEqualTo(4);
+	}
+
+	@Test
+	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_EXTRAPROPERTIES_MAIL_SMTP_TIMEOUT", value = "1234")
+	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_DEFAULTS_CONNECTIONPOOL_CLUSTERS_ORDERS_CLUSTERKEY_UUID", value = "00000000-0000-0000-0000-000000000301")
+	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_DEFAULTS_CONNECTIONPOOL_CLUSTERS_ORDERS_MAXSIZE", value = "4")
+	public void uppercaseUnderscoreMappingDoesNotApplyToWildcardEnvironmentVariables() {
+		ConfigLoader.loadProperties(new Properties(), false);
+
+		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES)).isEmpty();
+		assertThat(ConfigLoader.hasProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).isFalse();
 	}
 
 	@Test
