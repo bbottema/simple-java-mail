@@ -1,6 +1,6 @@
 # Document proxy bridge-port collisions
 
-- Status: Planned
+- Status: Done
 - Priority: Medium
 - Work: Documentation, possible code enhancement
 
@@ -14,13 +14,15 @@ Explain port ownership and require distinct bridge ports for concurrently active
 
 ## Acceptance criteria
 
-- [ ] Collision conditions are documented.
-- [ ] A multi-mailer example uses distinct ports.
-- [ ] The loopback-binding fix is complete before this item is closed.
-- [ ] Any automatic allocation proposal is tracked separately.
+- [x] Collision conditions are documented.
+- [x] A multi-mailer example uses distinct ports.
+- [x] The loopback-binding fix is complete before this item is closed.
+- [x] Any automatic allocation proposal is tracked separately.
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/configuration.hbs:211-214`
-- Bridge creation: `modules/authenticated-socks-module/src/main/java/org/simplejavamail/internal/authenticatedsockssupport/AuthenticatedSocksHelper.java:15-17`
-- Binding: `modules/authenticated-socks-module/src/main/java/org/simplejavamail/internal/authenticatedsockssupport/socks5server/AnonymousSocks5ServerImpl.java:45-50`
+- `MailerGenericBuilder.withProxyBridgePort(...)` now explains loopback binding, per-Mailer bridge ownership, sharing within one Mailer, collisions between separate Mailers, and the anonymous-proxy exception.
+- `simplejavamail.org/src/pages/configuration.hbs` now has a dedicated **Authenticated proxy bridge ports** section with a two-Mailer example using ports 1081 and 1082. The proxy capability links directly to it.
+- The loopback-only bridge fix is complete in [#676](https://github.com/bbottema/simple-java-mail/issues/676).
+- Automatic port allocation is tracked separately in [#694](https://github.com/bbottema/simple-java-mail/issues/694), including the session-update work required before port `0` can be supported.
+- Verification: core-module Javadocs passed; website type/check task, production build, and 1,325-link internal link check passed.

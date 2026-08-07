@@ -82,7 +82,7 @@ These items add important public behavior that is currently absent from the guid
 - [x] [Document withOpenConnection limitations](04-missing-coverage/04-open-connection-custom-mailer.md)
 - [x] [Explain ConfigLoader snapshot timing](04-missing-coverage/05-configloader-snapshot-timing.md)
 - [x] [Document environment-variable syntax](04-missing-coverage/06-environment-variable-syntax.md)
-- [ ] [Document proxy bridge-port collisions](04-missing-coverage/07-proxy-bridge-port-collisions.md)
+- [x] [Document proxy bridge-port collisions](04-missing-coverage/07-proxy-bridge-port-collisions.md)
 - [ ] [Document withDebugPrinter](04-missing-coverage/08-custom-debug-printer.md)
 - [ ] [Add the version 8 migration guide](04-missing-coverage/09-version-8-migration-guide.md)
 - [ ] [Clarify the template-engine boundary](04-missing-coverage/10-templating-boundary.md)
