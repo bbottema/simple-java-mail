@@ -226,7 +226,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the email address (or null if missing).
 	 *
-	 * @param bounceToAddress The address of the receiver of the bounced email
+	 * @param bounceToAddress The SMTP envelope sender to which delivery failures are normally returned.
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	@SuppressWarnings("unused")
@@ -234,9 +234,10 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
+	 * The name is retained on the {@link Email}, but it has no meaning in the SMTP envelope and is not sent with the address.
 	 *
-	 * @param name Name of the receiver of the bounced email
-	 * @param bounceToAddress The address of the receiver of the bounced email
+	 * @param name Name retained with the configured recipient; ignored when setting the SMTP envelope sender.
+	 * @param bounceToAddress The SMTP envelope sender to which delivery failures are normally returned.
 	 */
 	EmailPopulatingBuilder withBounceTo(@Nullable @Cli.Optional String name, @NotNull String bounceToAddress);
 
@@ -254,12 +255,15 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withBounceTo(@Nullable @Cli.Optional String name, @NotNull InternetAddress bounceToAddress);
 
 	/**
-	 * Sets the <em>bounceTo</em> address of this email with given {@link Recipient} (ignoring its {@link Message.RecipientType} if provided).
+	 * Sets the SMTP envelope sender ({@code MAIL FROM}) for this email using the given {@link Recipient}. The recipient's name and
+	 * {@link Message.RecipientType} are not part of the SMTP envelope.
 	 * <p>
-	 * If provided, SMTP server should return bounced emails to this address. This is also known as the {@code Return-Path} (or <em>Envelope
-	 * FROM</em>).
+	 * Delivery failures are normally returned to this address. The value is applied to this message only and does not modify the mailer's shared
+	 * {@link jakarta.mail.Session}. It is separate from {@link #withReplyTo(Recipient)}: {@code Reply-To} is a message header used by mail clients
+	 * when a recipient replies, while the envelope sender is used by mail servers during delivery. A receiving mail system may record the envelope
+	 * sender in a {@code Return-Path} header.
 	 *
-	 * @param recipient Preconfigured recipient which includes optional name and mandatory email address.
+	 * @param recipient Recipient containing the envelope address, or {@code null} to clear it.
 	 *
 	 * @see #withBounceTo(String, String)
 	 */
