@@ -400,10 +400,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * <strong>For advanced use cases.</strong>
 	 * <p>
-	 * Allows you to fully customize and manage the thread pool, threads and concurrency characteristics when
-	 * sending in batch mode.
+	 * Sets the executor service used for asynchronous operations, including individual sends and simple batches. This lets the caller manage the thread
+	 * pool, threads and concurrency characteristics directly.
 	 * <p>
-	 * Without calling this, by default the {@code NonJvmBlockingThreadPoolExecutor} is used:
+	 * Without a caller-provided executor, {@link Executors#newSingleThreadExecutor()} is used when the
+	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME} is absent. With the batch module present, the default is a
+	 * {@code NonJvmBlockingThreadPoolExecutor}:
 	 * <ul>
 	 *     <li>with max threads fixed to the given pool size (default is {@value #DEFAULT_POOL_SIZE})</li>
 	 *     <li>with keepAliveTime as specified (if greater than zero, core threads will also time out and die off), default is {@value #DEFAULT_POOL_KEEP_ALIVE_TIME}</li>
@@ -414,12 +416,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <strong>Note:</strong> What makes it NonJvm is that the default keepAliveTime is set to the lowest non-zero value (so 1), so that
 	 * any threads will die off as soon as possible, as not to block the JVM from shutting down.
 	 * <p>
-	 * <strong>Note:</strong> Simple Java Mail will <strong>not</strong> shut down the provided executor service, even if the connection pool is being shut down.
-	 * <em>This will block the JVM from shutting down</em>. The user is responsible for managing the provided executor's life cycle.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 * Simple Java Mail will <strong>not</strong> shut down the provided executor service when the Mailer or its connection pool is closed. The caller remains
+	 * responsible for the executor's lifecycle.
 	 *
-	 * @param executorService A custom executor service (ThreadPoolExecutor), replacing the {@code NonJvmBlockingThreadPoolExecutor}.
+	 * @param executorService A caller-owned executor service replacing Simple Java Mail's default executor.
+	 * @see <a href="https://www.simplejavamail.org/configuration.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
 	 */
 	T withExecutorService(@NotNull ExecutorService executorService);
 

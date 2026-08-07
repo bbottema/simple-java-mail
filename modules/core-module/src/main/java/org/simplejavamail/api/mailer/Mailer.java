@@ -216,14 +216,36 @@ public interface Mailer extends AutoCloseable {
 	boolean validate(Email email) throws MailException;
 
 	/**
-	 * Shuts down the connection pool associated with this {@link Mailer} instance and closes remaining open connections. Waits until all connections still in use become available again
-	 * to deallocate them as well.
+	 * Releases the resources owned by this {@link Mailer}. This initiates an orderly shutdown of an internally created executor service and, when the
+	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME} is present, closes the connection pool registered for this Mailer's {@link Session}.
 	 * <p>
-	 * <strong>Note:</strong> In order to shut down the whole connection pool (in case of clustering), each individual {@link Mailer} instance should be shutdown.
+	 * Wait for all {@link CompletableFuture}s returned by asynchronous operations before closing the Mailer. Closing waits for connection-pool cleanup,
+	 * but does not wait for those asynchronous results on the caller's behalf.
 	 * <p>
-	 * <strong>Note:</strong> This does *not* shut down the executor service if it was provided by the user.
+	 * An executor service provided through {@link MailerGenericBuilder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned
+	 * and is not shut down.
+	 *
+	 * @throws Exception If resource cleanup is interrupted or fails.
+	 * @see <a href="https://www.simplejavamail.org/configuration.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
+	 */
+	@Override
+	void close() throws Exception;
+
+	/**
+	 * Starts cleanup of the resources associated with this {@link Mailer}. Despite the historical method name, this always initiates an orderly shutdown
+	 * of an internally created executor service, including when the {@value org.simplejavamail.internal.modules.BatchModule#NAME} is absent.
 	 * <p>
-	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 * With the batch module present, this also closes the connection pool registered for this Mailer's {@link Session}. The returned future represents that
+	 * connection-pool cleanup; it does not represent completion of queued asynchronous sends or termination of the executor. Wait for all asynchronous
+	 * operation futures before calling this method.
+	 * <p>
+	 * In a cluster, call this method or {@link #close()} on every Mailer so every pool registration is removed. An executor service provided through
+	 * {@link MailerGenericBuilder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned and is not shut down.
+	 * <p>
+	 * Prefer {@link #close()} for normal application lifecycle management.
+	 *
+	 * @return A future that completes when this Mailer's connection-pool cleanup is finished, or an already-completed future when no batch module is present.
+	 * @see <a href="https://www.simplejavamail.org/configuration.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
 	 */
 	Future<Void> shutdownConnectionPool();
 
