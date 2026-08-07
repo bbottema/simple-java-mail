@@ -1,6 +1,6 @@
 # Document generated attachment Content-IDs
 
-- Status: Planned
+- Status: Completed
 - Priority: Medium
 - Work: Documentation
 
@@ -14,12 +14,19 @@ Show an opaque generated placeholder and separately demonstrate the overload for
 
 ## Acceptance criteria
 
-- [ ] Default MIME output uses the current ID shape.
-- [ ] Stable-ID behavior is shown only with an explicit ID.
-- [ ] Migration notes and feature docs agree.
+- [x] Default MIME output uses the current ID shape.
+- [x] Stable-ID behavior is shown only with an explicit ID.
+- [x] Migration notes and feature docs agree.
+
+## Resolution
+
+- Replaced the filename-shaped fallback in the attachment MIME example with a representative `sjm-<UUID>@simplejavamail.generated` value.
+- Explained that a new opaque attachment ID is generated when the MimeMessage is produced unless the caller supplies one.
+- Clarified that embedded images retain their resource-name fallback so HTML `cid:` references continue to work.
+- Kept stable-ID behavior tied to the explicit Content-ID overload.
 
 ## Evidence
 
-- Documentation: `simplejavamail.org/src/pages/features.hbs:861-870`
+- Documentation: `simplejavamail.org/src/pages/features.hbs:890-901`
 - Generator: `modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/MimeMessageHelper.java:343-355`
-- Migration note: `simplejavamail.org/src/pages/migration-notes-9.0.0.hbs:214`
+- Migration note: `simplejavamail.org/src/pages/migration-notes-9.0.0.hbs:215-224`
