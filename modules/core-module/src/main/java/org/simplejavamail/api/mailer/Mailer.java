@@ -169,7 +169,7 @@ public interface Mailer extends AutoCloseable {
 	 * <p>
 	 * This is a deliberately small "simple batch" API for caller-managed loops where the caller already owns the source queue or iteration and only
 	 * wants to avoid reconnecting for every message. It is <strong>not</strong> the main batch sending API. For queued sending, pooled SMTP
-	 * connections, concurrency, retry-oriented flow control, cluster coordination, or higher throughput workloads, use the
+	 * connections, concurrency, asynchronous queueing, cluster coordination, or higher throughput workloads, use the
 	 * <a href="https://www.simplejavamail.org/modules.html#batch-module">batch-module</a> instead.
 	 * <p>
 	 * Each {@link Email} is processed exactly like {@link #sendMail(Email, boolean)}: defaults and overrides are applied, validation runs, the email is
