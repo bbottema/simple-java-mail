@@ -432,7 +432,7 @@ After the deploy job finishes:
 3. Verify the published sources contain license headers.
 4. Verify `cli-module` includes `standalone-cli.tar` and `standalone-cli.zip`.
 5. Create or update the GitHub release with a self-contained, tag-specific body that permanently records that version's changes and compatibility notes without internal verification evidence.
-6. Attach the release assets: CLI standalone archives and sample logging configs.
+6. Attach the release assets: the versioned CLI standalone `.tar` and `.zip` archives and the sample `log4j2_example.xml` logging configuration.
 7. Recheck that every release-note issue/PR and summarized Dependabot item is in the exact-version milestone.
 8. Confirm every milestone item is closed, set the milestone due date to the actual published release date, then close it.
 9. Fast-forward `develop` to `master` and push `develop`.
@@ -495,7 +495,7 @@ For a release task:
 - The release tag exists remotely.
 - Maven Central has the released artifacts.
 - CLI standalone ZIP/TAR exist for `cli-module`.
-- The GitHub release has the CLI standalone ZIP/TAR and sample logging config assets.
+- The GitHub release has the CLI standalone ZIP/TAR and sample `log4j2_example.xml` logging configuration assets.
 - A separate GitHub release exists for the current tag; it is not folded into another tag's release.
 - The GitHub release body is self-contained and tag-specific: it identifies that version's changes and compatibility impact without relying on README, release-history, issue, or pull-request links for essential meaning.
 - The GitHub release body contains no build/test verification evidence or internal release-process commentary.
