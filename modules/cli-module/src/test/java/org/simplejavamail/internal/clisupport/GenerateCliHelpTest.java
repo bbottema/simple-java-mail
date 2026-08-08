@@ -35,6 +35,10 @@ public class GenerateCliHelpTest {
 	@Test
 	public void testListHelpForSendWithoutError() {
 		CliSupport.runCLI(new String[]{"send", "--help"});
+
+		assertThat(new String(outContent.toByteArray(), UTF_8))
+				.contains("https://www.simplejavamail.org/cli.html")
+				.doesNotContain("https://www.simplejavamail.org/#/cli");
 	}
 
 	@Test
@@ -65,6 +69,10 @@ public class GenerateCliHelpTest {
 	@Test
 	public void testListHelpForAsyncWithoutError() {
 		CliSupport.runCLI(new String[] {"send", "--mailer:async--help",});
+
+		assertThat(new String(outContent.toByteArray(), UTF_8))
+				.contains("https://www.simplejavamail.org/cli.html")
+				.doesNotContain("https://www.simplejavamail.org/#/cli");
 	}
 
 	@Test
