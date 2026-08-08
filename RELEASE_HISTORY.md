@@ -2,12 +2,15 @@
 
 Full Simple Java Mail release history. [README.md](README.md#latest-progress) also mirrors recent progress for quick scanning.
 
-[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.7](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.7) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.7/)
+[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.8](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.8) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.8/)
 
 > **Spring-module notice:** Versions 9.0.0 through 9.1.5 package test application settings that can override an application's YAML configuration and prevent SMTP connections. If you use `spring-module`, upgrade to 9.1.6 or later.
 
 > **CLI recipient notice:** Versions 9.0.0 through 9.1.6 cannot combine TO, CC, and BCC recipients in one CLI command. Repeated `--email:withRecipients` options are merged and rejected. Upgrade to 9.1.7 or later.
 
+- **v9.1.8:** [#686](https://github.com/bbottema/simple-java-mail/issues/686): **Custom-session proxy routing:** `usingSession(session).withProxy(...)` now updates the intended `mail.smtp.socks.*` route while leaving the rest of the caller's session configuration untouched.
+- **v9.1.8:** [#687](https://github.com/bbottema/simple-java-mail/issues/687): **SMTPS through SOCKS:** removed the obsolete restriction that rejected SOCKS proxying for implicit-TLS SMTP connections.
+- **v9.1.8:** [#696](https://github.com/bbottema/simple-java-mail/issues/696), [#697](https://github.com/bbottema/simple-java-mail/issues/697): **Connection-pool resets:** the max-size and claim-timeout reset methods now restore their own settings without changing the core size or connection expiry.
 - **v9.1.7:** [#682](https://github.com/bbottema/simple-java-mail/issues/682): **Dedicated CLI recipient options:** restore independent `--email:to`, `--email:cc`, and `--email:bcc` options so one command can combine all three recipient types.
 - **v9.1.6:** [#681](https://github.com/bbottema/simple-java-mail/issues/681): **Spring configuration isolation:** stop packaging the Spring test `application.properties` in `spring-module`. Sample local-bind, SMTP client-hostname, transfer-encoding, and other test values can no longer override an application's YAML configuration or break SMTP connections.
 - **v9.1.5:** [#674](https://github.com/bbottema/simple-java-mail/issues/674), [#675](https://github.com/bbottema/simple-java-mail/issues/675): **SOCKS5 domain framing:** place the port after the UTF-8-encoded domain bytes and decode domain replies after their length octet, fixing internationalized-host requests and reply diagnostics.
