@@ -1,6 +1,6 @@
 # Restore SMTPS proxy compatibility
 
-- Status: Completed
+- Status: Done
 - Priority: Low
 - Work: Bug fix, integration tests and documentation
 

@@ -1,6 +1,6 @@
 # Put governance options after email starters
 
-- Status: Completed
+- Status: Done
 - Priority: Medium
 - Work: API, tests, Javadocs, website documentation, and release notes
 

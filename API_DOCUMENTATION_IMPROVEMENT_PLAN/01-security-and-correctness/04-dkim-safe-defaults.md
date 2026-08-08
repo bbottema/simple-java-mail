@@ -1,6 +1,6 @@
 # Replace unsafe DKIM examples
 
-- Status: Complete
+- Status: Done
 - Priority: High
 - Work: Configuration validation, tests, documentation
 

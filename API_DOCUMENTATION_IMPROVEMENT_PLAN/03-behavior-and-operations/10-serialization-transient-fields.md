@@ -1,6 +1,6 @@
 # Overhaul Email serialization
 
-- Status: Completed
+- Status: Done
 - Priority: Medium
 - Work: API, compatibility handling, tests, Javadocs, website documentation, and release notes
 

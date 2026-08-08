@@ -1,6 +1,6 @@
 # Restore proxying with a custom Session
 
-- Status: Completed
+- Status: Done
 - Priority: Low
 - Work: Bug fix, Javadoc, regression tests
 

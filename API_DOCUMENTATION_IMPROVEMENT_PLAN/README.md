@@ -52,23 +52,23 @@ These items align explanations with actual defaults, lifecycle, conversion, modu
 
 - [x] [Clarify ConfigLoader replacement semantics](03-behavior-and-operations/01-configloader-replacement-semantics.md)
 - [x] [Resolve extra-property precedence](03-behavior-and-operations/02-extra-properties-precedence.md)
-- [ ] [Explain proxying with a custom Session](03-behavior-and-operations/03-custom-session-proxy.md)
-- [ ] [Document the SMTPS proxy restriction](03-behavior-and-operations/04-smtps-proxy-compatibility.md)
-- [ ] [Define Mailer.validate scope](03-behavior-and-operations/05-mailer-validation-scope.md)
+- [x] [Explain proxying with a custom Session](03-behavior-and-operations/03-custom-session-proxy.md)
+- [x] [Document the SMTPS proxy restriction](03-behavior-and-operations/04-smtps-proxy-compatibility.md)
+- [x] [Define Mailer.validate scope](03-behavior-and-operations/05-mailer-validation-scope.md)
 - [x] [Define clearEmailValidator scope](03-behavior-and-operations/06-clear-validator-scope.md)
-- [ ] [Separate startingBlank from mailer defaults](03-behavior-and-operations/07-starting-blank-and-defaults.md)
-- [ ] [Describe converter header preservation accurately](03-behavior-and-operations/08-converter-header-preservation.md)
-- [ ] [Document generated attachment Content-IDs](03-behavior-and-operations/09-generated-attachment-content-ids.md)
-- [ ] [Update serialization transient fields](03-behavior-and-operations/10-serialization-transient-fields.md)
-- [ ] [Update bounce-address implementation details](03-behavior-and-operations/11-bounce-address-implementation.md)
-- [ ] [Explain synchronous and asynchronous failures](03-behavior-and-operations/12-future-failure-semantics.md)
-- [ ] [Remove batch retry claims](03-behavior-and-operations/13-batch-retry-claims.md)
-- [ ] [Update Outlook module dependencies](03-behavior-and-operations/14-outlook-module-dependencies.md)
-- [ ] [Remove the obsolete Karaf artifact note](03-behavior-and-operations/15-karaf-artifact-note.md)
-- [ ] [Describe Spring dependencies as provided](03-behavior-and-operations/16-spring-provided-dependencies.md)
-- [ ] [Describe Log4j configuration as an example](03-behavior-and-operations/17-log4j-example-wording.md)
-- [ ] [Update the CLI exec-plugin version](03-behavior-and-operations/18-cli-exec-plugin-version.md)
-- [ ] [Remove Base64 security terminology](03-behavior-and-operations/19-base64-terminology.md)
+- [x] [Separate startingBlank from mailer defaults](03-behavior-and-operations/07-starting-blank-and-defaults.md)
+- [x] [Describe converter header preservation accurately](03-behavior-and-operations/08-converter-header-preservation.md)
+- [x] [Document generated attachment Content-IDs](03-behavior-and-operations/09-generated-attachment-content-ids.md)
+- [x] [Update serialization transient fields](03-behavior-and-operations/10-serialization-transient-fields.md)
+- [x] [Update bounce-address implementation details](03-behavior-and-operations/11-bounce-address-implementation.md)
+- [x] [Explain synchronous and asynchronous failures](03-behavior-and-operations/12-future-failure-semantics.md)
+- [x] [Remove batch retry claims](03-behavior-and-operations/13-batch-retry-claims.md)
+- [x] [Update Outlook module dependencies](03-behavior-and-operations/14-outlook-module-dependencies.md)
+- [x] [Remove the obsolete Karaf artifact note](03-behavior-and-operations/15-karaf-artifact-note.md)
+- [x] [Describe Spring dependencies as provided](03-behavior-and-operations/16-spring-provided-dependencies.md)
+- [x] [Describe Log4j configuration as an example](03-behavior-and-operations/17-log4j-example-wording.md)
+- [x] [Update the CLI exec-plugin version](03-behavior-and-operations/18-cli-exec-plugin-version.md)
+- [x] [Remove Base64 security terminology](03-behavior-and-operations/19-base64-terminology.md)
 
 Phase gate: every default and operational claim has a source or test anchor, and dependency descriptions match current POMs.
 
@@ -111,4 +111,4 @@ npm run verifyLinks
 
 From the repository root, run the targeted module tests for every code change, then the complete Maven test suite in a release-capable environment.
 
-The plan is complete when every item is `Done`, all checkboxes above are checked, website and Javadoc builds pass, concrete examples have been reviewed against the current API, and the website contains no claims contradicted by the 9.1.5 implementation.
+The plan is complete when every item is `Done`, all checkboxes above are checked, website and Javadoc builds pass, concrete examples have been reviewed against the current API, and every claim matches the implementation branch for the release that documents it.

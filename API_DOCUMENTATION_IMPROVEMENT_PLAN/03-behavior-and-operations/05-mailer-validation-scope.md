@@ -1,6 +1,6 @@
 # Define Mailer.validate scope
 
-- Status: Completed
+- Status: Done
 - Priority: Medium
 - Work: Documentation, Javadocs
 
