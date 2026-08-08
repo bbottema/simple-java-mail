@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.assertj.core.api.Assertions.assertThat;
+
 public class GenerateCliHelpTest {
 
 	private PrintStream sysOut;
@@ -62,6 +65,16 @@ public class GenerateCliHelpTest {
 	@Test
 	public void testListHelpForAsyncWithoutError() {
 		CliSupport.runCLI(new String[] {"send", "--mailer:async--help",});
+	}
+
+	@Test
+	public void resetDisableAllClientValidationsHelpReportsBlockingDefault() {
+		CliSupport.runCLI(new String[] {"send", "--mailer:resetDisableAllClientValidations--help"});
+
+		assertThat(new String(outContent.toByteArray(), UTF_8))
+				.contains("Restores blocking client-side validation")
+				.contains("default (false)")
+				.doesNotContain("default (true)");
 	}
 
 	@Test

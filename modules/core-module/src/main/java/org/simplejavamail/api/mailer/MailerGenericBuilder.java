@@ -639,8 +639,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withCustomMailer(@NotNull CustomMailer customMailer);
 
 	/**
-	 * Reverts to default value '{@value #DEFAULT_VERIFY_SERVER_IDENTITY}' for the behaviour of disabling client-sided
-	 * validations (email addresses and CRLF injection scanning).
+	 * Restores blocking client-side validation by resetting this option to its default ({@value #DEFAULT_DISABLE_ALL_CLIENTVALIDATION}).
 	 *
 	 * @see #disablingAllClientValidation(Boolean)
 	 */
