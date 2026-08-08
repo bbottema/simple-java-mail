@@ -3,10 +3,10 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.1.8</version>
+    <version>9.2.0</version>
 </dependency>
 
-Unreleased
+v9.2.0
 
 **Major OAuth2 feature in v9.2.0:** Long-lived Mailers can now use an OAuth2AccessTokenProvider instead of holding one fixed access token. Simple Java Mail asks the provider for a current token whenever it opens or reconnects a physical SMTP connection; an already-connected pooled transport is reused without another lookup. The provider owns acquisition, expiry checks, caching and refresh. This works with regular and custom-Session Mailers, open-connection and simple-batch sending, pooled or clustered connections, and the Spring module. Existing fixed-token configuration remains supported. See https://www.simplejavamail.org/migration-notes-9.2.0.html#refresh-aware-oauth2.
 
@@ -25,8 +25,12 @@ Unreleased
 - **Email governance builder fix in v9.2.0:** the legacy pre-start API lost the override opt-out for blank emails and the defaults opt-out for copied emails. Governance options now follow any email starter, removing that faulty hand-off. The old pre-start EmailBuilder.ignoringDefaults() and EmailStartingBuilder ignore methods have been removed; call .ignoringDefaults() and .ignoringOverrides() on the builder returned by startingBlank(), copying(...), forwarding(...), or a reply starter instead. The boolean variants remain available. See https://www.simplejavamail.org/migration-notes-9.2.0.html#email-governance-builder.
 
 - #692: **Refresh-aware OAuth2 access tokens:** ask a caller-supplied provider for a current token at each physical SMTP connection boundary, including reconnects and pooled or clustered allocation. Spring can apply a single provider bean automatically; fixed-token configuration remains available. Connection-pool support comes from smtp-connection-pool 3.1.0.
+- #691: **Complete asynchronous failures through the returned future:** use one error channel for email preparation, validation, scheduling and sending while leaving synchronous calls and null-argument checks unchanged.
+- #690: **Serialize send-ready email snapshots:** preserve resource bytes, forwarded MIME content and S/MIME signing configuration; give pre-9.2 attachment data an explicit failure mode.
 - #689: **Fix governance opt-outs lost by email starters:** remove the faulty pre-start flag forwarding and put the options on the builder returned by every starter.
 - #685: **Align extra Jakarta Mail property precedence:** let deployment-time system and environment settings override matching property-file values.
+- #684: **Valid S/MIME configuration example:** use AES256_CBC as the message-content cipher instead of the unrelated DES_EDE3_WRAP key-wrapping algorithm.
+- #683: **Keep CLI recipient parsing internal:** remove the CLI-only string parser from EmailPopulatingBuilder while preserving public recipient builders and all CLI/property behavior.
 - #680: **Make S/MIME verification metadata fail closed:** reserve true for signatures that were actually checked, preserve false when results are combined, and document the boundary between signature integrity and certificate trust.
 - #679: **Require DKIM signatures to include From:** reject From in header-exclusion configuration case-insensitively while retaining relay-specific exclusions for non-mandatory headers.
 - #678: **Contain embedded-image auto-resolution:** enforce real-path containment for files, segment containment for classpath resources, and same-origin normalized-path containment across URL redirects.

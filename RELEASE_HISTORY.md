@@ -2,7 +2,7 @@
 
 Full Simple Java Mail release history. [README.md](README.md#latest-progress) also mirrors recent progress for quick scanning.
 
-## Unreleased
+## [v9.2.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.2.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.2.0/)
 
 **Major OAuth2 feature in v9.2.0:** Long-lived Mailers can now use an `OAuth2AccessTokenProvider` instead of holding one fixed access token. Simple Java Mail asks the provider for a current token whenever it opens or reconnects a physical SMTP connection; an already-connected pooled transport is reused without another lookup. The provider owns acquisition, expiry checks, caching and refresh. This works with regular and custom-Session Mailers, open-connection and simple-batch sending, pooled or clustered connections, and the Spring module. Existing fixed-token configuration remains supported. See the [9.2 migration notes](https://www.simplejavamail.org/migration-notes-9.2.0.html#refresh-aware-oauth2).
 
@@ -29,6 +29,8 @@ Full Simple Java Mail release history. [README.md](README.md#latest-progress) al
 - [#690](https://github.com/bbottema/simple-java-mail/issues/690): **Serialize send-ready email snapshots:** preserve resource bytes, forwarded MIME content and S/MIME signing configuration; give pre-9.2 attachment data an explicit failure mode.
 - [#689](https://github.com/bbottema/simple-java-mail/issues/689): **Fix governance opt-outs lost by email starters:** remove the faulty pre-start flag forwarding and put the options on the builder returned by every starter.
 - [#685](https://github.com/bbottema/simple-java-mail/issues/685): **Align extra Jakarta Mail property precedence:** let deployment-time system and environment settings override matching property-file values.
+- [#684](https://github.com/bbottema/simple-java-mail/issues/684): **Valid S/MIME configuration example:** use `AES256_CBC` as the message-content cipher instead of the unrelated `DES_EDE3_WRAP` key-wrapping algorithm.
+- [#683](https://github.com/bbottema/simple-java-mail/issues/683): **Keep CLI recipient parsing internal:** remove the CLI-only string parser from `EmailPopulatingBuilder` while preserving public recipient builders and all CLI/property behavior.
 - [#680](https://github.com/bbottema/simple-java-mail/issues/680): **Make S/MIME verification metadata fail closed:** reserve `true` for signatures that were actually checked, preserve `false` when results are combined, and document the boundary between signature integrity and certificate trust.
 - [#679](https://github.com/bbottema/simple-java-mail/issues/679): **Require DKIM signatures to include From:** reject `From` in header-exclusion configuration case-insensitively while retaining relay-specific exclusions for non-mandatory headers.
 - [#678](https://github.com/bbottema/simple-java-mail/issues/678): **Contain embedded-image auto-resolution:** enforce real-path containment for files, segment containment for classpath resources, and same-origin normalized-path containment across URL redirects.

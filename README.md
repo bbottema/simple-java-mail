@@ -1,6 +1,6 @@
 [![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.1.8%22)
-[![Javadocs](https://img.shields.io/badge/javadoc-9.1.8-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
+[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.2.0%22)
+[![Javadocs](https://img.shields.io/badge/javadoc-9.2.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
 [![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
 ![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
 
@@ -35,7 +35,7 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.1.8</version>
+    <version>9.2.0</version>
 </dependency>
 ```
 
@@ -49,7 +49,7 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 
 ### Latest progress ###
 
-#### Unreleased ####
+[v9.2.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.2.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.2.0/)
 
 **Major OAuth2 feature in v9.2.0:** Long-lived Mailers can now use an `OAuth2AccessTokenProvider` instead of holding one fixed access token. Simple Java Mail asks the provider for a current token whenever it opens or reconnects a physical SMTP connection; an already-connected pooled transport is reused without another lookup. The provider owns acquisition, expiry checks, caching and refresh. This works with regular and custom-Session Mailers, open-connection and simple-batch sending, pooled or clustered connections, and the Spring module. Existing fixed-token configuration remains supported. See the [9.2 migration notes](https://www.simplejavamail.org/migration-notes-9.2.0.html#refresh-aware-oauth2).
 
@@ -76,6 +76,8 @@ Read about additional modules you can add here: [simplejavamail.org/modules](htt
 - [#690](https://github.com/bbottema/simple-java-mail/issues/690): **Serialize send-ready email snapshots:** preserve resource bytes, forwarded MIME content and S/MIME signing configuration; give pre-9.2 attachment data an explicit failure mode.
 - [#689](https://github.com/bbottema/simple-java-mail/issues/689): **Fix governance opt-outs lost by email starters:** remove the faulty pre-start flag forwarding and put the options on the builder returned by every starter.
 - [#685](https://github.com/bbottema/simple-java-mail/issues/685): **Align extra Jakarta Mail property precedence:** let deployment-time system and environment settings override matching property-file values.
+- [#684](https://github.com/bbottema/simple-java-mail/issues/684): **Valid S/MIME configuration example:** use `AES256_CBC` as the message-content cipher instead of the unrelated `DES_EDE3_WRAP` key-wrapping algorithm.
+- [#683](https://github.com/bbottema/simple-java-mail/issues/683): **Keep CLI recipient parsing internal:** remove the CLI-only string parser from `EmailPopulatingBuilder` while preserving public recipient builders and all CLI/property behavior.
 - [#680](https://github.com/bbottema/simple-java-mail/issues/680): **Make S/MIME verification metadata fail closed:** reserve `true` for signatures that were actually checked, preserve `false` when results are combined, and document the boundary between signature integrity and certificate trust.
 - [#679](https://github.com/bbottema/simple-java-mail/issues/679): **Require DKIM signatures to include From:** reject `From` in header-exclusion configuration case-insensitively while retaining relay-specific exclusions for non-mandatory headers.
 - [#678](https://github.com/bbottema/simple-java-mail/issues/678): **Contain embedded-image auto-resolution:** enforce real-path containment for files, segment containment for classpath resources, and same-origin normalized-path containment across URL redirects.
