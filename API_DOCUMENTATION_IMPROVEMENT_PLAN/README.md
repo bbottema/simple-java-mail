@@ -106,9 +106,18 @@ From `simplejavamail.org`:
 
 ```text
 npm run check
+npm run build
+npm run verifyLinks:internal
 npm run verifyLinks
 ```
 
 From the repository root, run the targeted module tests for every code change, then the complete Maven test suite in a release-capable environment.
 
 The plan is complete when every item is `Done`, all checkboxes above are checked, website and Javadoc builds pass, concrete examples have been reviewed against the current API, and every claim matches the implementation branch for the release that documents it.
+
+## Verification record — 2026-08-08
+
+- Patch/audit branch `codex/api-documentation-audit`: `mvn clean verify -Ppublish-cli -DexcludeLiveServerTests=true` passed on Oracle JDK 8u152 across all 13 reactor modules. Surefire recorded 407 tests, no failures or errors, and one skipped test. Maven produced ten module Javadoc jars.
+- Minor-release branch `codex/9.2.0`: the same JDK 8 command passed across all 13 modules. Surefire recorded 423 tests, no failures or errors, and seven skipped tests. Maven produced ten module Javadoc jars.
+- The publish profile exposed stale checked-in Therapi Javadoc metadata on both branches. Regeneration was identical under JDK 8 and the CircleCI release JDK 21; the refreshed files are recorded in `b131f4ae` and `f36ff342` respectively.
+- Website branch `codex/website-relaunch` at `dda2394`: the TypeScript/content check, production build, Pagefind indexing, and link checks passed. The verifier checked 1,404 local links across 21 pages and found no broken links. Of 84 unique external links, 78 were reachable, one Stack Exchange link was blocked by HTTP 403 bot protection, and five javadoc.io requests timed out as non-failing warnings.
