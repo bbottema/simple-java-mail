@@ -5,6 +5,7 @@ import org.eclipse.angus.mail.smtp.SMTPMessage;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
+import testutil.EmailHelper;
 
 import java.lang.reflect.Method;
 
@@ -20,7 +21,7 @@ public class DeliveryStatusNotificationMimeMessageProducerTest {
 	public void emailToMimeMessage_PrimesDeliveryStatusNotificationOnSmtpMessage() throws Exception {
 		MimeMessage message = EmailConverter.emailToMimeMessage(EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, "receiver@example.com")
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "receiver@example.com"))
 				.withPlainText("Hello")
 				.withDeliveryStatusNotification(HEADERS_ONLY, FAILURE, DELAY)
 				.buildEmail());

@@ -4,7 +4,6 @@ import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
-import org.simplejavamail.internal.config.EmailProperty;
 
 import java.util.regex.Pattern;
 
@@ -36,36 +35,6 @@ public interface EmailStartingBuilder {
 	String DEFAULT_QUOTING_MARKUP = "<blockquote style=\"color: gray; border-left: 1px solid #4f4f4f; padding-left: " +
 			"1cm\">%s</blockquote>";
 
-	/**
-	 * Configures the resulting email to ignore all defaults from system properties, config files, or the defaults email on
-	 * Mailer level in the {@link org.simplejavamail.api.mailer.config.EmailGovernance}. You can make individual exceptions with
-	 * {@link EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)}.
-	 * <br>
-	 * <strong>Note:</strong> This is irrelevant for Email instances used to set on {@link org.simplejavamail.api.mailer.config.EmailGovernance}
-	 * as defaults or overrides reference.
-	 *
-	 * @deprecated Select an email starting operation first, then call {@link EmailPopulatingBuilder#ignoringDefaults(boolean)} on the
-	 * returned builder.
-	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
-	 */
-	@Deprecated
-	EmailStartingBuilder ignoringDefaults();
-
-	/**
-	 * Configures the resulting email to ignore all overrides from system properties, config files, or the overrides email on Mailer level
-	 * in the {@link org.simplejavamail.api.mailer.config.EmailGovernance}. You can make individual exceptions with
-	 * {@link EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)}.
-	 * <br>
-	 * <strong>Note:</strong> This is irrelevant for Email instances used to set on {@link org.simplejavamail.api.mailer.config.EmailGovernance}
-	 * as defaults or overrides reference.
-	 *
-	 * @deprecated Select an email starting operation first, then call {@link EmailPopulatingBuilder#ignoringOverrides(boolean)} on the
-	 * returned builder.
-	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
-	 */
-	@Deprecated
-	EmailStartingBuilder ignoringOverrides();
-	
 	/**
 	 * Most common use case for creating a new email. Starts with an empty email; no defaults or overrides are applied while building it.
 	 * <p>

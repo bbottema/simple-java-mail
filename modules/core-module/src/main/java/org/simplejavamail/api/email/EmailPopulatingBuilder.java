@@ -87,7 +87,17 @@ public interface EmailPopulatingBuilder {
 	Email buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance);
 
 	/**
-	 * Indicates that when the email is sent, no default values whatsoever should be applied to the email.
+	 * Configures this email to ignore all default values when governance is applied.
+	 *
+	 * @return This builder.
+	 * @see #ignoringDefaults(boolean)
+	 * @see #dontApplyDefaultValueFor(EmailProperty...)
+	 */
+	@Cli.ExcludeApi(reason = "Convenience overload; CLI uses ignoringDefaults(boolean)")
+	EmailPopulatingBuilder ignoringDefaults();
+
+	/**
+	 * Sets whether this email should ignore all default values when governance is applied.
 	 *
 	 * @param ignoreDefaults Whether to ignore all default values or not for this email.
 	 *
@@ -98,9 +108,19 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder ignoringDefaults(boolean ignoreDefaults);
 
 	/**
-	 * Indicates that when the email is sent, no override values whatsoever should be applied to the email.
+	 * Configures this email to ignore all override values when governance is applied.
 	 *
-	 * @param ignoreOverrides Whether to ignore all overrides values or not for this email.
+	 * @return This builder.
+	 * @see #ignoringOverrides(boolean)
+	 * @see #dontApplyOverrideValueFor(EmailProperty...)
+	 */
+	@Cli.ExcludeApi(reason = "Convenience overload; CLI uses ignoringOverrides(boolean)")
+	EmailPopulatingBuilder ignoringOverrides();
+
+	/**
+	 * Sets whether this email should ignore all override values when governance is applied.
+	 *
+	 * @param ignoreOverrides Whether to ignore all override values or not for this email.
 	 *
 	 * @see #dontApplyOverrideValueFor(EmailProperty...)
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withEmailOverrides(Email)
@@ -117,7 +137,8 @@ public interface EmailPopulatingBuilder {
 	 * as defaults or overrides reference.
 	 *
 	 * @param configProperties The properties that should not be configured with default values, if any, when sending the email.
-	 * @see EmailStartingBuilder#ignoringDefaults()
+	 * @see #ignoringDefaults()
+	 * @see #ignoringDefaults(boolean)
 	 */
 	EmailPopulatingBuilder dontApplyDefaultValueFor(@NotNull EmailProperty @NotNull ...configProperties);
 
@@ -528,28 +549,6 @@ public interface EmailPopulatingBuilder {
 	 * @param contentTransferEncoding The encoder to use for the iCalendar content.
 	 */
 	EmailPopulatingBuilder withCalendarTextContentTransferEncoding(@NotNull ContentTransferEncoding contentTransferEncoding);
-
-	/**
-	 * Adds one or more recipients by parsing one or more RFC2822 address strings and applying the given recipient type to every parsed recipient.
-	 * <p>
-	 * This is the string-based recipient entry point used by the CLI and property-backed flows. For Java code that already has recipient data, prefer
-	 * {@link #withRecipients(Recipient...)} or {@link IRecipientsBuilder}.
-	 *
-	 * @param name Optional explicit name. If {@code fixedName} is {@code true}, it overwrites names found in the address strings; otherwise it is only
-	 *             used when an address string does not contain a name.
-	 * @param fixedName Indicates whether the provided name should be applied to all addresses, or only to addresses where a name is missing.
-	 * @param recipientType Recipient type to apply, for example {@link Message.RecipientType#TO}, {@link Message.RecipientType#CC} or
-	 *                      {@link Message.RecipientType#BCC}.
-	 * @param oneOrMoreAddressesEach One or more entries where each entry may be a single RFC2822 address or a delimited list of RFC2822 addresses.
-	 *                               Examples:
-	 *                               <ul>
-	 *                               <li>lolly.pop@pretzelfun.com</li>
-	 *                               <li>Moonpie &lt;moonpie@pies.com&gt;;Daisy &lt;daisy@pies.com&gt;</li>
-	 *                               <li>a1@b1.c1,a2@b2.c2,a3@b3.c3</li>
-	 *                               </ul>
-	 */
-	@NotNull
-	EmailPopulatingBuilder withRecipients(@Nullable @Cli.Optional String name, boolean fixedName, @Nullable @Cli.Optional Message.RecipientType recipientType, @NotNull String @NotNull ...oneOrMoreAddressesEach);
 
 	/**
 	 * Adds copies of the provided recipients, preserving name, address, recipient type and optional per-recipient S/MIME certificate.

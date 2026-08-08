@@ -27,6 +27,7 @@ import org.simplejavamail.internal.util.concurrent.NamedRunnable;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.mailer.internal.AbstractProxyServerSyncingClosure;
 import testutil.ConfigLoaderTestHelper;
+import testutil.EmailHelper;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
@@ -91,7 +92,7 @@ public class ResultHandlingTest {
                 .buildMailer()) {
 
 			final Email dkimMail = EmailBuilder.startingBlank()
-					.withRecipients(null, false, TO, "a@b.com")
+					.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
 					.from("Simple Java Mail demo", "simplejavamail@supersecret-testing-domain.com")
 					.withSubject("test")
 					.withPlainText("")
@@ -218,6 +219,69 @@ public class ResultHandlingTest {
 	}
 
 	@Test
+	public void validationFailureShouldFollowRequestedExecutionMode() throws Exception {
+		final Email incompleteEmail = EmailBuilder.startingBlank().buildEmail();
+
+		try (Mailer mailer = MailerBuilder
+				.withSMTPServer("localhost", 0)
+				.withCustomMailer(new MySimulatingMailer(true))
+				.buildMailer()) {
+			assertThatThrownBy(() -> mailer.sendMail(incompleteEmail, false))
+					.isInstanceOf(MailCompletenessException.class);
+
+			final CompletableFuture<Void> asyncResult = mailer.sendMail(incompleteEmail, true);
+			assertThat(asyncResult).isCompletedExceptionally();
+			assertThatThrownBy(asyncResult::get)
+					.isInstanceOf(ExecutionException.class)
+					.hasCauseInstanceOf(MailCompletenessException.class);
+		}
+	}
+
+	@Test
+	public void nullEmailShouldRemainAnImmediateContractViolation() throws Exception {
+		try (Mailer mailer = MailerBuilder
+				.withSMTPServer("localhost", 0)
+				.withCustomMailer(new MySimulatingMailer(true))
+				.buildMailer()) {
+			assertThatThrownBy(() -> mailer.sendMail(null, true))
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessageContaining("nonNull");
+		}
+	}
+
+	@Test
+	public void asyncEntryPointsShouldReportSchedulingFailuresThroughReturnedFuture() throws Exception {
+		final ExecutorService executorService = Executors.newSingleThreadExecutor();
+		try (Mailer mailer = MailerBuilder
+				.withSMTPServer("localhost", 0)
+				.withCustomMailer(new MySimulatingMailer(true))
+				.withExecutorService(executorService)
+				.buildMailer()) {
+			executorService.shutdown();
+			final Email email = EmailBuilder.startingBlank()
+					.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
+					.from("Simple Java Mail demo", "simplejavamail@demo.app")
+					.withPlainText("")
+					.buildEmail();
+
+			assertSchedulingFailure(mailer.sendMail(email, true));
+			assertSchedulingFailure(mailer.sendMailAndGetReceipt(email, true));
+			assertSchedulingFailure(mailer.sendMailsInSimpleBatch(Collections.singletonList(email), true));
+			assertSchedulingFailure(mailer.testConnection(true));
+		} finally {
+			executorService.shutdownNow();
+		}
+	}
+
+	private void assertSchedulingFailure(final CompletableFuture<?> asyncResult) {
+		assertThat(asyncResult).isCompletedExceptionally();
+		assertThatThrownBy(asyncResult::get)
+				.isInstanceOf(ExecutionException.class)
+				.hasCauseInstanceOf(IllegalArgumentException.class)
+				.hasRootCauseMessage("cannot send async email, executor service is already shut down!");
+	}
+
+	@Test
 	public void asyncTestConnectionFailureShouldCompleteFutureWithoutFrameworkErrorLog() throws Exception {
 		try (ErrorLogCaptor errorLogCaptor = ErrorLogCaptor.forLogger(AbstractProxyServerSyncingClosure.class.getName());
 			 Mailer mailer = MailerBuilder
@@ -294,7 +358,7 @@ public class ResultHandlingTest {
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
 				.buildMailer().sendMail(EmailBuilder.startingBlank()
-						.withRecipients(null, false, TO, "a@b.com")
+						.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
 						.from("Simple Java Mail demo", "simplejavamail@demo.app")
 						.withPlainText("")
 						.buildEmail(), async);
@@ -307,7 +371,7 @@ public class ResultHandlingTest {
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
 				.async()
 				.buildMailer().sendMail(EmailBuilder.startingBlank()
-						.withRecipients(null, false, TO, "a@b.com")
+						.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
 						.from("Simple Java Mail demo", "simplejavamail@demo.app")
 						.withPlainText("")
 						.buildEmail());

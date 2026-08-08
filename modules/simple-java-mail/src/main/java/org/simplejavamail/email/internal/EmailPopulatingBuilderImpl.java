@@ -482,6 +482,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#ignoringDefaults()
+	 */
+	@Override
+	public EmailPopulatingBuilder ignoringDefaults() {
+		return ignoringDefaults(true);
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
 	 */
 	@Override
@@ -491,11 +499,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
+	 * @see EmailPopulatingBuilder#ignoringOverrides()
+	 */
+	@Override
+	public EmailPopulatingBuilder ignoringOverrides() {
+		return ignoringOverrides(true);
+	}
+
+	/**
 	 * @see EmailPopulatingBuilder#ignoringOverrides(boolean)
 	 */
 	@Override
-	public EmailPopulatingBuilder ignoringOverrides(boolean ignoreDefaults) {
-		this.ignoringOverrides = ignoreDefaults;
+	public EmailPopulatingBuilder ignoringOverrides(boolean ignoreOverrides) {
+		this.ignoringOverrides = ignoreOverrides;
 		return this;
 	}
 
@@ -943,11 +959,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#withRecipients(String, boolean, RecipientType, String...)
+	 * @see org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder#withRecipients(String, boolean, RecipientType, String...)
 	 */
 	@Override
 	@NotNull
-	public EmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nullable RecipientType recipientType, @NotNull String @NotNull ... oneOrMoreAddressesEach) {
+	public InternalEmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nullable RecipientType recipientType, @NotNull String @NotNull ... oneOrMoreAddressesEach) {
 		for (String oneOrMoreAddresses : oneOrMoreAddressesEach) {
 			for (String emailAddress : extractEmailAddresses(oneOrMoreAddresses)) {
 				addParsedRecipient(name, fixedName, emailAddress, recipientType);
@@ -960,7 +976,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#withRecipients(Collection)
 	 */
 	@Override
-	public EmailPopulatingBuilder withRecipients(@NotNull final Collection<Recipient> recipients) {
+	public InternalEmailPopulatingBuilder withRecipients(@NotNull final Collection<Recipient> recipients) {
 		for (Recipient recipient : recipients) {
 			this.recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), recipient.getSmimeCertificate()));
 		}
@@ -971,7 +987,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#withRecipients(Recipient...)
 	 */
 	@Override
-	public EmailPopulatingBuilder withRecipients(@NotNull final Recipient @NotNull ... recipients) {
+	public InternalEmailPopulatingBuilder withRecipients(@NotNull final Recipient @NotNull ... recipients) {
 		return withRecipients(asList(recipients));
 	}
 	

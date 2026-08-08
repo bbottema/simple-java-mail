@@ -41,7 +41,7 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 
 		final Email email = EmailBuilder.startingBlank()
 				.from("lollypop", "lol.pop@somemail.com")
-				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org")
+				.withRecipients(EmailHelper.parsedRecipients("C.Cane", true, TO, "candycane@candyshop.org"))
 				.withPlainText("We should meet up!")
 				.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'><img src='cid:fixedNameWithoutFileExtensionForNamedEmbeddedImage'>")
 				.withSubject("hey")
@@ -76,7 +76,7 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 				.from("lollypop", "lol.pop@somemail.com")
 				.withReplyTo("lollypop-reply", "lol.pop.reply@somemail.com")
 				.withBounceTo("lollypop-bounce", "lol.pop.bounce@somemail.com")
-				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org")
+				.withRecipients(EmailHelper.parsedRecipients("C.Cane", true, TO, "candycane@candyshop.org"))
 				.withPlainText("We should meet up!")
 				.withHTMLText("<b>We should meet up!</b><img src='cid:thumbsup'><img src='cid:fixedNameWithoutFileExtensionForNamedEmbeddedImage'>")
 				.withSubject("hey")

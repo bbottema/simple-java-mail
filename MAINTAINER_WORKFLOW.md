@@ -170,9 +170,16 @@ milestone must never be left without a due date, because GitHub uses it to order
 
 Use existing labels. Common labels include:
 
-- `bug`, `enhancement`, `maintenance`, `documentation`, `security`, `dependencies`, `3rdparty-problem`
+- Added functionality, choose one when applicable: `enhancement` or `major feature`
+- Other work types: `bug`, `maintenance`, `documentation`, `security`, `dependencies`, `3rdparty-problem`
 - `Priority-Low`, `Priority-Medium`, `Priority-High`
 - `invalid`, `question`, `need-user-input`, `will close soon`
+
+`enhancement` and `major feature` are mutually exclusive levels of added functionality. Use `enhancement` for an incremental addition
+and `major feature` for a substantial new capability that deserves prominent treatment; a `major feature` can still ship in a SemVer
+minor release. Never apply both labels to one issue. Orthogonal labels such as `security` and a priority may be added alongside either
+one. Re-read the issue's current labels immediately before changing them, and treat a maintainer's removal or replacement of one of
+these labels as deliberate rather than restoring it from an older plan or task description.
 
 When an issue belongs upstream, confirm whether the fix belongs in a sibling repo first. If it does, create or update the upstream issue, fix and release the upstream library, then update Simple Java Mail.
 

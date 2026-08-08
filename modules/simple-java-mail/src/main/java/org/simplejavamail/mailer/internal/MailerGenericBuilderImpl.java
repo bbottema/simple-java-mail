@@ -12,6 +12,7 @@ import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.config.ConfigLoader.Property;
@@ -249,6 +250,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Nullable
 	private CustomMailer customMailer;
+
+	/**
+	 * @see MailerGenericBuilder#withOAuth2AccessTokenProvider(OAuth2AccessTokenProvider)
+	 */
+	@Nullable
+	private OAuth2AccessTokenProvider oauth2AccessTokenProvider;
 	
 	/**
 	 * Sets defaults configured for proxy host, proxy port, proxy username, proxy password and proxy bridge port (used in authenticated proxy).
@@ -364,7 +371,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				isVerifyingServerIdentity(),
 				getExecutorService() != null ? getExecutorService() : determineDefaultExecutorService(),
 				isExecutorServiceUserProvided(),
-				getCustomMailer());
+				getCustomMailer(),
+				getOAuth2AccessTokenProvider());
 	}
 	
 	/**
@@ -731,6 +739,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withCustomMailer(@NotNull CustomMailer customMailer) {
 		this.customMailer = customMailer;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withOAuth2AccessTokenProvider(OAuth2AccessTokenProvider)
+	 */
+	@Override
+	public T withOAuth2AccessTokenProvider(@NotNull OAuth2AccessTokenProvider accessTokenProvider) {
+		this.oauth2AccessTokenProvider = accessTokenProvider;
 		return (T) this;
 	}
 
@@ -1260,5 +1277,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	public CustomMailer getCustomMailer() {
 		return customMailer;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getOAuth2AccessTokenProvider()
+	 */
+	@Override
+	@Nullable
+	public OAuth2AccessTokenProvider getOAuth2AccessTokenProvider() {
+		return oauth2AccessTokenProvider;
 	}
 }

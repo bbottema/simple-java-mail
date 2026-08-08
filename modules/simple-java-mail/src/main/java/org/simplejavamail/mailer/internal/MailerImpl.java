@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Supplier;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -126,13 +127,19 @@ public class MailerImpl implements Mailer {
 		this.emailGovernance = emailGovernance;
 		this.proxyConfig = proxyConfig;
 		if (session == null) {
-			session = createMailSession(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"));
+			session = createMailSessionWithoutOAuth2Validation(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"));
 		}
 		this.session = session;
 		this.operationalConfig = operationalConfig;
-		TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orElse(findStrategyForSession(session));
+		final TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orElse(findStrategyForSession(session));
+		final Supplier<String> oauth2AccessTokenProvider = OAuth2AccessTokenResolver.validateConfiguration(
+				session, operationalConfig.getProperties(), effectiveTransportStrategy, operationalConfig.getOAuth2AccessTokenProvider()
+		);
 		this.proxyServer = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
 		initSession(session, operationalConfig, emailGovernance, effectiveTransportStrategy);
+		if (oauth2AccessTokenProvider != null) {
+			session.getProperties().put(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY, oauth2AccessTokenProvider);
+		}
 		initCluster(session, operationalConfig);
 	}
 
@@ -160,6 +167,13 @@ public class MailerImpl implements Mailer {
 	 */
 	@NotNull
 	public static Session createMailSession(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy) {
+		final Session session = createMailSessionWithoutOAuth2Validation(serverConfig, transportStrategy);
+		OAuth2AccessTokenResolver.validateConfiguration(session, new Properties(), transportStrategy, null);
+		return session;
+	}
+
+	@NotNull
+	private static Session createMailSessionWithoutOAuth2Validation(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy) {
 		final Properties props = transportStrategy.generateProperties();
 
 		if (ConfigLoader.hasProperty(EXTRA_PROPERTIES)) {
@@ -177,10 +191,6 @@ public class MailerImpl implements Mailer {
 				props.put(transportStrategy.propertyNameSSLSocketFactory(), serverConfig.getCustomSSLFactoryInstance());
 			} else if (serverConfig.getCustomSSLFactoryClass() != null) {
 				props.put(transportStrategy.propertyNameSSLSocketFactoryClass(), serverConfig.getCustomSSLFactoryClass());
-			}
-
-			if (transportStrategy == TransportStrategy.SMTP_OAUTH2 && serverConfig.getPassword() == null) {
-				throw new MailerException(MailerException.MISSING_OAUTH2_TOKEN);
 			}
 
 			if (serverConfig.getPassword() != null) {
@@ -344,17 +354,22 @@ public class MailerImpl implements Mailer {
 	 */
 	@NotNull
 	public synchronized CompletableFuture<Void> testConnection(boolean async) {
-		TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, async, smtpConnectionCounter);
-
 		if (!async) {
+			TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, false, smtpConnectionCounter);
 			testConnectionClosure.run();
 			return CompletableFuture.completedFuture(null);
-		} else
+		}
+
+		try {
+			TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, true, smtpConnectionCounter);
 			return ModuleLoader.batchModuleAvailable()
 					? ModuleLoader.loadBatchModule()
 						.executeAsync(operationalConfig.getExecutorService(), "testSMTPConnection process", testConnectionClosure)
 					: AsyncOperationHelper
 						.executeAsync(operationalConfig.getExecutorService(), "testSMTPConnection process", testConnectionClosure);
+		} catch (RuntimeException e) {
+			return AsyncOperationHelper.failedFuture(e);
+		}
 	}
 
 	/**
@@ -390,14 +405,20 @@ public class MailerImpl implements Mailer {
 	@Override
 	@NotNull
 	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(final Email userProvidedEmail, final boolean async) {
-		val email = prepareEmailForSending(userProvidedEmail);
-
-		SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
+		val checkedEmail = verifyNonnull(userProvidedEmail);
 
 		if (!async) {
+			val email = prepareEmailForSending(checkedEmail);
+			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer,
+					operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 			sendMailClosure.run();
 			return CompletableFuture.completedFuture(sendMailClosure.getReceipt());
-		} else
+		}
+
+		try {
+			val email = prepareEmailForSending(checkedEmail);
+			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer,
+					operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 			return ModuleLoader.batchModuleAvailable()
 					? ModuleLoader.loadBatchModule()
 						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
@@ -405,6 +426,9 @@ public class MailerImpl implements Mailer {
 					: AsyncOperationHelper
 						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
 						.thenApply(unused -> sendMailClosure.getReceipt());
+		} catch (RuntimeException e) {
+			return AsyncOperationHelper.failedFuture(e);
+		}
 	}
 
 	/**
@@ -434,18 +458,25 @@ public class MailerImpl implements Mailer {
 	@NotNull
 	public final CompletableFuture<Void> sendMailsInSimpleBatch(final Iterable<Email> emails, final boolean async) {
 		val checkedEmails = verifyNonnull(emails);
-		SendMailsInSimpleBatchClosure sendMailsInSimpleBatchClosure = new SendMailsInSimpleBatchClosure(operationalConfig, session, checkedEmails,
-				this::prepareEmailForSending, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 
 		if (!async) {
+			SendMailsInSimpleBatchClosure sendMailsInSimpleBatchClosure = new SendMailsInSimpleBatchClosure(operationalConfig, session, checkedEmails,
+					this::prepareEmailForSending, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 			sendMailsInSimpleBatchClosure.run();
 			return CompletableFuture.completedFuture(null);
-		} else
+		}
+
+		try {
+			SendMailsInSimpleBatchClosure sendMailsInSimpleBatchClosure = new SendMailsInSimpleBatchClosure(operationalConfig, session, checkedEmails,
+					this::prepareEmailForSending, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
 			return ModuleLoader.batchModuleAvailable()
 					? ModuleLoader.loadBatchModule()
 						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", sendMailsInSimpleBatchClosure)
 					: AsyncOperationHelper
 						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", sendMailsInSimpleBatchClosure);
+		} catch (RuntimeException e) {
+			return AsyncOperationHelper.failedFuture(e);
+		}
 	}
 
 	@NotNull

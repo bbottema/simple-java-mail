@@ -3,9 +3,11 @@ package org.simplejavamail.springsupport;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
+import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -136,6 +138,18 @@ public class SimpleJavaMailSpringSupport {
 	}
 
 	@Bean
+	public Mailer defaultMailer(MailerGenericBuilder<?> defaultMailerBuilder,
+			ObjectProvider<OAuth2AccessTokenProvider> oauth2AccessTokenProvider) {
+		final OAuth2AccessTokenProvider provider = oauth2AccessTokenProvider.getIfAvailable();
+		if (provider != null) {
+			defaultMailerBuilder.withOAuth2AccessTokenProvider(provider);
+		}
+		return defaultMailer(defaultMailerBuilder);
+	}
+
+	/**
+	 * Builds the default Mailer directly. Kept as a source-compatible convenience for callers that invoke the configuration class themselves.
+	 */
 	public Mailer defaultMailer(MailerGenericBuilder<?> defaultMailerBuilder) {
 		return defaultMailerBuilder.buildMailer();
 	}

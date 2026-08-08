@@ -14,11 +14,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 
 /**
+ * S/MIME signing configuration. Since 9.2.0 this object is serializable so an {@code Email} keeps its signing behavior across a Java serialization
+ * round trip. Its serialized form includes the complete {@link Pkcs12Config}, including private-key material and passwords, and must be protected
+ * as sensitive data.
+ *
  * @see SmimeSigningConfigBuilder#signatureAlgorithm(String)
  * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
  */
@@ -26,7 +31,9 @@ import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 @Getter
 @EqualsAndHashCode
 @AllArgsConstructor
-public class SmimeSigningConfig {
+public class SmimeSigningConfig implements Serializable {
+
+    private static final long serialVersionUID = 1234567L;
 
     /**
      * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)

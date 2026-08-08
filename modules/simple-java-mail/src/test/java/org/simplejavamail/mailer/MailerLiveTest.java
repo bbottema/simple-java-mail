@@ -299,7 +299,7 @@ public class MailerLiveTest {
 				.encryptWithSmime(SmimeEncryptionConfig.builder()
 						.x509Certificate(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"))
 						.keyEncapsulationAlgorithm("RSA_OAEP_SHA384")
-						.cipherAlgorithm("AES192_CBC")
+						.cipherAlgorithm("AES256_CBC")
 						.build());
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 		verifyReceivedOutlookEmail(email, false, true);
@@ -745,7 +745,7 @@ public class MailerLiveTest {
 				.withPlainText("non empty text")
 				.withSubject("email size test")
 				.from("a@b.com")
-				.withRecipients(null, false, TO, "a@b.com")
+				.withRecipients(new Recipient(null, "a@b.com", TO, null))
 				.buildEmail();
 
 		assertThatThrownBy(() -> mailer.sendMail(email))

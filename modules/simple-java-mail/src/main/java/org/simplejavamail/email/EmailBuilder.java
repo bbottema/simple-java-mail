@@ -23,18 +23,6 @@ import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 public class EmailBuilder {
 	
 	/**
-	 * Configures the resulting email to ignore defaults when governance is applied.
-	 *
-	 * @deprecated Start with an email operation such as {@link #startingBlank()}, then call
-	 * {@link EmailPopulatingBuilder#ignoringDefaults(boolean)} on the returned builder.
-	 */
-	@Deprecated
-	@SuppressWarnings("deprecation")
-	public static EmailStartingBuilder ignoringDefaults() {
-		return new EmailStartingBuilderImpl().ignoringDefaults();
-	}
-	
-	/**
 	 * Delegates to {@link EmailStartingBuilder#replyingTo(Email)}.
 	 */
 	@SuppressWarnings("deprecation")

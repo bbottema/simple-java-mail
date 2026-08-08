@@ -159,4 +159,10 @@ public interface OperationalConfig {
 	 */
 	@Nullable
 	CustomMailer getCustomMailer();
+
+	/**
+	 * @see MailerGenericBuilder#withOAuth2AccessTokenProvider(OAuth2AccessTokenProvider)
+	 */
+	@Nullable
+	OAuth2AccessTokenProvider getOAuth2AccessTokenProvider();
 }

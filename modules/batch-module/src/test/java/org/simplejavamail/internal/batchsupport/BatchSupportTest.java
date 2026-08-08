@@ -1,12 +1,15 @@
 package org.simplejavamail.internal.batchsupport;
 
 import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import org.bbottema.clusteredobjectpool.core.ClusterConfig;
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.smtpconnectionpool.SessionTransport;
+import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 
 import java.lang.reflect.Field;
@@ -15,12 +18,43 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.simplejavamail.api.mailer.config.TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY;
 
 class BatchSupportTest {
+
+	@Test
+	void acquireTransportShouldBridgeAndResolveOAuth2TokenProvider() throws Exception {
+		BatchSupport batchSupport = new BatchSupport();
+		UUID cluster = UUID.randomUUID();
+		Session session = mock(Session.class);
+		Transport transport = mock(Transport.class);
+		Properties properties = new Properties();
+		properties.setProperty("mail.smtp.user", "user@example.com");
+		AtomicInteger calls = new AtomicInteger();
+		Supplier<String> provider = () -> "token-" + calls.incrementAndGet();
+		properties.put(OAUTH2_TOKEN_PROVIDER_PROPERTY, provider);
+		when(session.getProperties()).thenReturn(properties);
+		when(session.getTransport()).thenReturn(transport);
+
+		try {
+			batchSupport.registerToCluster(operationalConfig(0, 1, 1000, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, session);
+			LifecycleDelegatingTransport pooledTransport = batchSupport.acquireTransport(cluster, session, true);
+
+			assertThat(properties.get(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY)).isSameAs(provider);
+			assertThat(calls).hasValue(1);
+			verify(transport).connect("user@example.com", "token-1");
+			pooledTransport.signalTransportUsed();
+		} finally {
+			batchSupport.shutdownConnectionPools(session).get();
+		}
+	}
 
 	@Test
 	void registerToClusterUsesSeparatePoolConfigPerClusterKey() throws Exception {

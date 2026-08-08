@@ -45,9 +45,10 @@ public class EmailStartingBuilderImplTest {
 		((InternalEmail) email1).setUserProvidedEmail(null);
 
 		val email2 = EmailBuilder
+				.copying(email1)
 				.ignoringDefaults()
 				.ignoringOverrides()
-				.copying(email1).buildEmail();
+				.buildEmail();
 
 		assertThat(email2).isEqualTo(email1);
 	}
@@ -55,7 +56,7 @@ public class EmailStartingBuilderImplTest {
 	@Test
 	public void testCopyingSmimeSignedOutlookMessage() {
 		final Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_TEST_MESSAGES + "/SMIME (signed and clear text).msg"));
-		final EmailPopulatingBuilder copyingEmailBuilder = EmailBuilder.ignoringDefaults().copying(emailParsedFromMsg);
+		final EmailPopulatingBuilder copyingEmailBuilder = EmailBuilder.copying(emailParsedFromMsg).ignoringDefaults();
 		assertThat(copyingEmailBuilder.getHeaders()).isEmpty(); // when copying S/MIME generated message id should be ignored
 		copyingEmailBuilder.withHeaders(emailParsedFromMsg.getHeaders()); // but for the equals check, manually add them
 		EmailAssert.assertThat(copyingEmailBuilder.buildEmail()).isEqualTo(emailParsedFromMsg);
@@ -67,9 +68,9 @@ public class EmailStartingBuilderImplTest {
 
 		Email fullyPopulatedEmail = EmailBuilder
 				.startingBlank()
-				.withRecipients("mr moo to", true, TO, "mr@moo.com")
-				.withRecipients("mr moo cc", true, CC, "mr@moo.com")
-				.withRecipients("mr moo bcc", true, BCC, "mr@moo.com")
+				.withRecipients(EmailHelper.parsedRecipients("mr moo to", true, TO, "mr@moo.com"))
+				.withRecipients(EmailHelper.parsedRecipients("mr moo cc", true, CC, "mr@moo.com"))
+				.withRecipients(EmailHelper.parsedRecipients("mr moo bcc", true, BCC, "mr@moo.com"))
 				.withAttachment("mooxt", "attachment content".getBytes(), "text/plain")
 				.withEmbeddedImage("mooxt", "attachment content".getBytes(), "text/plain")
 				.withBounceTo("bounce@bouncy.com")

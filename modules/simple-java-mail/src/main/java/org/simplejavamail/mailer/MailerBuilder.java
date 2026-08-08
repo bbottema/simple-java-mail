@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
+import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.MailerFromSessionBuilderImpl;
@@ -42,6 +43,14 @@ public class MailerBuilder {
 	@SuppressWarnings("deprecation")
 	public static MailerRegularBuilderImpl withTransportStrategy(@NotNull final TransportStrategy transportStrategy) {
 		return new MailerRegularBuilderImpl().withTransportStrategy(transportStrategy);
+	}
+
+	/**
+	 * Delegates to {@link MailerRegularBuilder#withOAuth2AccessTokenProvider(OAuth2AccessTokenProvider)}.
+	 */
+	@SuppressWarnings("deprecation")
+	public static MailerRegularBuilderImpl withOAuth2AccessTokenProvider(@NotNull final OAuth2AccessTokenProvider accessTokenProvider) {
+		return new MailerRegularBuilderImpl().withOAuth2AccessTokenProvider(accessTokenProvider);
 	}
 	
 	/**

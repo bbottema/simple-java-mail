@@ -19,6 +19,7 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
@@ -715,6 +716,30 @@ public class MailerTest {
 	}
 
 	@Test
+	public void testSimpleBatch_oauth2Provider_resolvesOnceForSharedConnection() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final Session session = createCountingTransportSession();
+		session.getProperties().setProperty("mail.smtp.auth.mechanisms", "XOAUTH2");
+		session.getProperties().setProperty("mail.smtp.user", "user@example.com");
+		final CountingTransportState transportState = getCountingTransportState(session);
+		final AtomicInteger providerCalls = new AtomicInteger();
+		final OAuth2AccessTokenProvider provider = () -> "token-" + providerCalls.incrementAndGet();
+
+		try (Mailer mailer = MailerBuilder.usingSession(session)
+				.withOAuth2AccessTokenProvider(provider)
+				.buildMailer()) {
+			mailer.sendMailsInSimpleBatch(Arrays.asList(
+					createBatchEmail("First batch email", "first@example.com"),
+					createBatchEmail("Second batch email", "second@example.com")), false);
+		}
+
+		assertThat(providerCalls).hasValue(1);
+		assertThat(transportState.connectedPasswords).containsExactly("token-1");
+		assertThat(transportState.sentMessages).hasSize(2);
+	}
+
+	@Test
 	public void testOpenConnection_sendEmails_allowsCallerCheckpointingBetweenSends() throws Exception {
 		ConfigLoaderTestHelper.clearConfigProperties();
 		final List<String> markedSent = new ArrayList<>();
@@ -738,6 +763,31 @@ public class MailerTest {
 		assertThat(transportState.sentMessages).hasSize(2);
 		assertThat(transportState.sentMessages.get(0).getSubject()).isEqualTo("First database email");
 		assertThat(transportState.sentMessages.get(1).getSubject()).isEqualTo("Second database email");
+	}
+
+	@Test
+	public void testOpenConnection_oauth2Provider_resolvesOnceForSharedConnection() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+
+		final Session session = createCountingTransportSession();
+		session.getProperties().setProperty("mail.smtp.auth.mechanisms", "XOAUTH2");
+		session.getProperties().setProperty("mail.smtp.user", "user@example.com");
+		final CountingTransportState transportState = getCountingTransportState(session);
+		final AtomicInteger providerCalls = new AtomicInteger();
+		final OAuth2AccessTokenProvider provider = () -> "token-" + providerCalls.incrementAndGet();
+
+		try (Mailer mailer = MailerBuilder.usingSession(session)
+				.withOAuth2AccessTokenProvider(provider)
+				.buildMailer()) {
+			mailer.withOpenConnection(sender -> {
+				sender.sendMail(createBatchEmail("First database email", "first@example.com"));
+				sender.sendMail(createBatchEmail("Second database email", "second@example.com"));
+			});
+		}
+
+		assertThat(providerCalls).hasValue(1);
+		assertThat(transportState.connectedPasswords).containsExactly("token-1");
+		assertThat(transportState.sentMessages).hasSize(2);
 	}
 
 	@Test
@@ -864,7 +914,7 @@ public class MailerTest {
 	private static Email createBatchEmail(final String subject, final String recipient) {
 		return EmailBuilder.startingBlank()
 				.from("sender@example.com")
-				.withRecipients(null, false, TO, recipient)
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, recipient))
 				.withSubject(subject)
 				.withPlainText("Simple batch body")
 				.buildEmail();
@@ -883,6 +933,7 @@ public class MailerTest {
 		@Override
 		protected boolean protocolConnect(final String host, final int port, final String user, final String password) {
 			state.connectCount.incrementAndGet();
+			state.connectedPasswords.add(password);
 			return true;
 		}
 
@@ -915,6 +966,7 @@ public class MailerTest {
 	private static final class CountingTransportState {
 		private final AtomicInteger connectCount = new AtomicInteger();
 		private final AtomicInteger closeCount = new AtomicInteger();
+		private final List<String> connectedPasswords = new CopyOnWriteArrayList<>();
 		private final List<MimeMessage> sentMessages = new CopyOnWriteArrayList<>();
 		private final List<Address[]> sentRecipients = new CopyOnWriteArrayList<>();
 	}

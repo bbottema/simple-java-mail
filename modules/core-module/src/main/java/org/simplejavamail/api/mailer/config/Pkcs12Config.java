@@ -9,14 +9,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 
 import static java.lang.String.format;
 
 /**
  * Config holder for PKCS12 store+key info used for S/MIME encrypting / decrypting.
+ * Since 9.2.0 it is serializable. The serialized form contains the PKCS12 bytes and both passwords, so it must be handled as sensitive data.
  */
 @EqualsAndHashCode
-public final class Pkcs12Config {
+public final class Pkcs12Config implements Serializable {
+
+	private static final long serialVersionUID = 1234567L;
 
 	@NotNull private final byte[] pkcs12StoreData;
 	@NotNull private final char[] storePassword;

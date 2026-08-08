@@ -12,7 +12,7 @@ The retained `--email:withRecipients` option cannot replace them in a command co
 
 ## Plan
 
-Restore `--email:to`, `--email:cc`, and `--email:bcc` through an internal CLI-only builder facade. Keep those convenience methods out of the public Java builder API, regenerate the packaged CLI metadata, and execute the published form in a subprocess smoke test.
+Restore `--email:to`, `--email:cc`, and `--email:bcc` through an internal CLI-only builder facade. Move the retained string-parsing `withRecipients(...)` bridge to that facade as well, while keeping the object-based recipient methods on the public Java builder API. Regenerate the packaged CLI metadata and execute the published form in a subprocess smoke test.
 
 ## Acceptance criteria
 
@@ -20,6 +20,7 @@ Restore `--email:to`, `--email:cc`, and `--email:bcc` through an internal CLI-on
 - [x] TO, CC, and BCC are all demonstrated correctly.
 - [x] A smoke test guards the published command.
 - [x] The dedicated methods remain outside `EmailPopulatingBuilder`.
+- [x] The CLI/property string parser remains available internally but is absent from `EmailPopulatingBuilder`.
 
 ## Evidence
 

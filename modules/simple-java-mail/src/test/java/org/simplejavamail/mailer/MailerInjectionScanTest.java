@@ -150,19 +150,19 @@ public class MailerInjectionScanTest {
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_RecipientAddress() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
 				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
-						.withRecipients(null, false, CC, "sweety pie <naughty%0Apie@evil.laugh>").buildEmail()))
+						.withRecipients(EmailHelper.parsedRecipients(null, false, CC, "sweety pie <naughty%0Apie@evil.laugh>")).buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
 				.hasMessage("Suspected of injection attack, field: email.recipient.address with suspicious value: naughty%0Apie@evil.laugh");
 
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
 				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
-						.withRecipients(null, false, TO, "naughty%0Apie <sweety_pie@evil.laugh>").buildEmail()))
+						.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "naughty%0Apie <sweety_pie@evil.laugh>")).buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
 				.hasMessage("Suspected of injection attack, field: email.recipient.name with suspicious value: naughty%0Apie");
 
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
 				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
-						.withRecipients(null, false, BCC, "sweety pie <sweety_pie@evil.laugh>, evil%0Alaugh <sweety_pie@evil.laugh>").buildEmail()))
+						.withRecipients(EmailHelper.parsedRecipients(null, false, BCC, "sweety pie <sweety_pie@evil.laugh>, evil%0Alaugh <sweety_pie@evil.laugh>")).buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
 				.hasMessage("Suspected of injection attack, field: email.recipient.name with suspicious value: evil%0Alaugh");
 	}

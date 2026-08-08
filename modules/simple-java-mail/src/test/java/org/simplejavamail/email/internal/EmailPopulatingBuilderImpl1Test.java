@@ -47,12 +47,12 @@ public class EmailPopulatingBuilderImpl1Test {
 	private static final String CREATE_SELF_SIGNED_S_MIME_CERTIFICATES = "Create Self-Signed S/MIME Certificates";
 	private static final String CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT = "<Console name=\"console\" target=\"SYSTEM_OUT\">";
 
-	private EmailPopulatingBuilder builder;
+	private InternalEmailPopulatingBuilder builder;
 
 	@BeforeEach
 	public void setup() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		builder = EmailBuilder.startingBlank();
+		builder = (InternalEmailPopulatingBuilder) EmailBuilder.startingBlank();
 	}
 
 	@Test

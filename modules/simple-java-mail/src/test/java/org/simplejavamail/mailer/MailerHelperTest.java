@@ -86,17 +86,17 @@ public class MailerHelperTest {
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid FROM address: invalid");
 
-        val emailInvalidBcc = newBuilder().withRecipients("invalid", true, BCC, "invalid").buildEmail();
+        val emailInvalidBcc = newBuilder().withRecipients(new Recipient("invalid", "invalid", BCC, null)).buildEmail();
         assertThatThrownBy(() -> MailerHelper.validateAddresses(emailInvalidBcc, JMail.validator()))
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid BCC address: invalid");
 
-        val emailInvalidCc = newBuilder().withRecipients("invalid", true, CC, "invalid").buildEmail();
+        val emailInvalidCc = newBuilder().withRecipients(new Recipient("invalid", "invalid", CC, null)).buildEmail();
         assertThatThrownBy(() -> MailerHelper.validateAddresses(emailInvalidCc, JMail.validator()))
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid CC address: invalid");
 
-        val emailInvalidTo = newBuilder().withRecipients("invalid", true, TO, "invalid").buildEmail();
+        val emailInvalidTo = newBuilder().withRecipients(new Recipient("invalid", "invalid", TO, null)).buildEmail();
         assertThatThrownBy(() -> MailerHelper.validateAddresses(emailInvalidTo, JMail.validator()))
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid TO address: invalid");
@@ -137,7 +137,7 @@ public class MailerHelperTest {
                 .hasMessageContaining("Invalid FROM address: " + encodedWordAddress);
 
         assertThatThrownBy(() -> MailerHelper.validateAddresses(newBuilder()
-                .withRecipients(null, true, TO, encodedWordAddress)
+                .withRecipients(EmailHelper.parsedRecipients(null, true, TO, encodedWordAddress))
                 .buildEmail(), null))
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid TO address: " + encodedWordAddress);

@@ -319,6 +319,29 @@ public class ConfigLoaderTest {
 	}
 
 	@Test
+	@SetEnvironmentVariable(key = "simplejavamail.extraproperties.mail.smtp.timeout", value = "environment")
+	public void loadPropertiesExtraPropertiesFollowStandardPrecedence() {
+		String propertyName = "simplejavamail.extraproperties.mail.smtp.timeout";
+		Properties source = new Properties();
+		source.setProperty(propertyName, "file");
+
+		try {
+			System.setProperty(propertyName, "system");
+			ConfigLoader.loadProperties(source, false);
+
+			assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
+						.containsEntry("mail.smtp.timeout", "system");
+		} finally {
+			System.clearProperty(propertyName);
+		}
+
+		ConfigLoader.loadProperties(source, false);
+
+		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
+					.containsEntry("mail.smtp.timeout", "environment");
+	}
+
+	@Test
 	public void loadPropertiesParsesConnectionPoolClusterConfigsByAliasAndUuid() {
 		UUID ordersCluster = UUID.fromString("00000000-0000-0000-0000-000000000101");
 		UUID bulkCluster = UUID.fromString("00000000-0000-0000-0000-000000000202");

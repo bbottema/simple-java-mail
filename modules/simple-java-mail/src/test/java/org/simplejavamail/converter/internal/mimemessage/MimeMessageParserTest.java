@@ -194,7 +194,7 @@ public class MimeMessageParserTest {
 
 		final Email initialEmail = EmailBuilder.startingBlank()
 				.from("lollypop", "lol.pop@somemail.com")
-				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org")
+				.withRecipients(EmailHelper.parsedRecipients("C.Cane", true, TO, "candycane@candyshop.org"))
 				.withPlainText("We should meet up!")
 				.buildEmail();
 

@@ -7,13 +7,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
+import org.simplejavamail.recipient.RecipientsBuilder;
 
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -21,6 +24,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -44,6 +48,14 @@ public class EmailHelper {
 
 	public static final Date CUSTOM_SENT_DATE = new GregorianCalendar(2011, SEPTEMBER, 15, 12, 5, 43).getTime();
 
+	@NotNull
+	public static Collection<Recipient> parsedRecipients(@Nullable String name, boolean fixedName,
+			@Nullable jakarta.mail.Message.RecipientType recipientType, @NotNull String @NotNull ... oneOrMoreAddressesEach) {
+		return new RecipientsBuilder()
+				.withRecipients(name, fixedName, recipientType, oneOrMoreAddressesEach)
+				.buildRecipients();
+	}
+
 	public static EmailPopulatingBuilder createDummyEmailBuilder(boolean includeSubjectAndBody, boolean skipReplyToAndBounceTo, boolean includeCustomHeaders, boolean useSmimeDetailsImplFromSmimeModule, boolean useDynamicImageEmbedding, final boolean includeCalendarText) {
 		return createDummyEmailBuilder(null, includeSubjectAndBody, skipReplyToAndBounceTo, includeCustomHeaders, useSmimeDetailsImplFromSmimeModule, false, useDynamicImageEmbedding, includeCalendarText);
 	}
@@ -55,7 +67,7 @@ public class EmailHelper {
 				.fixingMessageId(id)
 				.from("lollypop", "lol.pop@somemail.com")
 				// don't forget to add your own address here ->
-				.withRecipients("C.Cane", true, TO, "candycane@candyshop.org");
+				.withRecipients(parsedRecipients("C.Cane", true, TO, "candycane@candyshop.org"));
 
 		if (!skipReplyToAndBounceTo) {
 			// normally not needed, but for the test it is because the MimeMessage will
@@ -154,8 +166,9 @@ public class EmailHelper {
 				/*20*/trustAllSSLHost,
 				/*21*/verifyServerIdentity,
 				/*22*/newSingleThreadExecutor(),
-				/*23*/false,
-				/*24*/null);
+					/*23*/false,
+					/*24*/null,
+					/*25*/null);
 	}
 
 	@NotNull
@@ -185,7 +198,8 @@ public class EmailHelper {
 			/*21*/final boolean verifyingServerIdentity,
 			/*22*/@NotNull final ExecutorService executorService,
 			/*23*/final boolean isExecutorServiceUserProvided,
-			/*24*/@Nullable final CustomMailer customMailer) {
+			/*24*/@Nullable final CustomMailer customMailer,
+			/*25*/@Nullable final OAuth2AccessTokenProvider oauth2AccessTokenProvider) {
 		try {
 			Constructor<?> constructor = Class.forName("org.simplejavamail.mailer.internal.OperationalConfigImpl").getDeclaredConstructors()[0];
 			constructor.setAccessible(true);
@@ -214,7 +228,8 @@ public class EmailHelper {
 					/*21*/verifyingServerIdentity,
 					/*22*/executorService,
 					/*23*/isExecutorServiceUserProvided,
-					/*24*/customMailer);
+					/*24*/customMailer,
+					/*25*/oauth2AccessTokenProvider);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

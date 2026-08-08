@@ -123,14 +123,14 @@ public class BuilderApiToPicocliCommandsMapperTest {
 	}
 
 	@Test
-	public void stringVarargsBuilderApiIsMappedAndConvertedForCli() throws Exception {
-		Method withRecipients = EmailPopulatingBuilder.class.getMethod("withRecipients", String.class, boolean.class, Message.RecipientType.class, String[].class);
+	public void stringVarargsCliFacadeIsMappedAndConvertedForCli() throws Exception {
+		Method withRecipients = CliEmailRecipientBuilder.class.getMethod("withRecipients", String.class, boolean.class, Message.RecipientType.class, String[].class);
 		assertThat(methodIsCliCompatible(withRecipients).isCompatible()).isTrue();
 		assertThat(getArgumentsForCliOption(withRecipients)).extracting("helpLabel")
 				.containsExactly("TEXT", "BOOL", "NAME", "TEXT");
 
 		List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
-				new Class<?>[] { EmailStartingBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class });
+				new Class<?>[] { EmailStartingBuilder.class, CliEmailRecipientBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class });
 		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
 				.contains("--email:withRecipients");
 
@@ -165,6 +165,9 @@ public class BuilderApiToPicocliCommandsMapperTest {
 
 		assertThat(Arrays.stream(EmailPopulatingBuilder.class.getMethods()).map(Method::getName))
 				.doesNotContain("to", "cc", "bcc");
+		assertThatThrownBy(() -> EmailPopulatingBuilder.class.getMethod("withRecipients", String.class, boolean.class,
+				Message.RecipientType.class, String[].class))
+				.isInstanceOf(NoSuchMethodException.class);
 	}
 
 	@Test

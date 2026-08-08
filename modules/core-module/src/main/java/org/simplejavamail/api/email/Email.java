@@ -1,6 +1,8 @@
 package org.simplejavamail.api.email;
 
 import jakarta.activation.DataSource;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,13 +14,20 @@ import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.internal.config.EmailProperty;
 import org.simplejavamail.internal.util.MiscUtil;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -36,11 +45,23 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 /**
  * Email message with all necessary data for an effective mailing action, including attachments etc.
  * Exclusively created using <em>EmailBuilder</em>.
+ *
+ * <h2>Java serialization</h2>
+ * Since 9.2.0, Java serialization produces a send-ready snapshot. Attachment, embedded-image and decrypted-attachment data is read into
+ * byte-backed resources; a forwarded {@link MimeMessage} is stored in RFC 822 form; and {@link SmimeSigningConfig} is retained. Deserialized
+ * resources are read-only, and the concrete {@link DataSource} implementations and the forwarded message's original {@link Session} are not retained.
+ * Any lazy or remote data source is therefore consumed while the {@code Email} is serialized, and serialization fails if its data cannot be read.
+ *
+ * <p>The serialized form can contain message content, credentials, private keys and passwords. Protect it accordingly. Streams created before
+ * 9.2.0 remain readable for ordinary message fields, but those versions never stored attachment data, forwarded MIME content or S/MIME signing
+ * configuration. Accessing missing legacy attachment data fails with an exception that identifies the pre-9.2.0 format.</p>
  */
 @SuppressWarnings("SameParameterValue")
 public class Email implements Serializable {
 
 	private static final long serialVersionUID = 1234567L;
+	private static final int SERIALIZATION_FORMAT_VERSION = 1;
+	private final int serializationFormatVersion;
 
 	/**
 	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
@@ -205,8 +226,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailStartingBuilder#forwarding(MimeMessage)
 	 */
-	// mime message is not serializable, so transient
-	private transient final MimeMessage emailToForward;
+	private transient MimeMessage emailToForward;
 
 
 	/**
@@ -225,8 +245,7 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
 	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
 	 */
-	// data source is not serializable, so transient
-	private transient final SmimeSigningConfig smimeSigningConfig;
+	private final SmimeSigningConfig smimeSigningConfig;
 
 	/**
 	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
@@ -257,6 +276,7 @@ public class Email implements Serializable {
 	 */
 	public Email(@NotNull final EmailPopulatingBuilder builder) {
 		checkNonEmptyArgument(builder, "builder");
+		serializationFormatVersion = SERIALIZATION_FORMAT_VERSION;
 
 		ignoreDefaults = builder.isIgnoreDefaults();
 		ignoreOverrides = builder.isIgnoreOverrides();
@@ -305,6 +325,76 @@ public class Email implements Serializable {
 		smimeEncryptionConfig = builder.getSmimeEncryptionConfig();
 		smimeSigningConfig = builder.getSmimeSigningConfig();
 		dkimConfig = builder.getDkimConfig();
+	}
+
+	/**
+	 * Writes a versioned MIME snapshot of the forwarded message after serializing the regular Email state.
+	 */
+	private void writeObject(@NotNull final ObjectOutputStream outputStream)
+			throws IOException {
+		outputStream.defaultWriteObject();
+		outputStream.writeObject(snapshotForwardedMessage());
+	}
+
+	/**
+	 * Restores a forwarded message from its MIME snapshot. Streams produced before this snapshot was added leave the field empty.
+	 */
+	private void readObject(@NotNull final ObjectInputStream inputStream)
+			throws IOException, ClassNotFoundException {
+		inputStream.defaultReadObject();
+		if (serializationFormatVersion == 0) {
+			emailToForward = null;
+			return;
+		}
+		if (serializationFormatVersion != SERIALIZATION_FORMAT_VERSION) {
+			throw invalidSerializedForm("Unsupported Email serialization format version: " + serializationFormatVersion, null);
+		}
+
+		final Object serializedForwardedMessage = inputStream.readObject();
+		if (serializedForwardedMessage == null) {
+			emailToForward = null;
+		} else if (serializedForwardedMessage instanceof byte[]) {
+			emailToForward = restoreForwardedMessage((byte[]) serializedForwardedMessage);
+		} else {
+			throw invalidSerializedForm("Serialized Email does not contain a MIME snapshot for its forwarded message", null);
+		}
+	}
+
+	@Nullable
+	private byte[] snapshotForwardedMessage()
+			throws IOException {
+		if (emailToForward == null) {
+			return null;
+		}
+
+		final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		try {
+			emailToForward.writeTo(outputStream);
+			return outputStream.toByteArray();
+		} catch (final MessagingException e) {
+			throw new IOException("Unable to serialize the forwarded MIME message", e);
+		}
+	}
+
+	@NotNull
+	private static MimeMessage restoreForwardedMessage(byte @NotNull [] serializedForwardedMessage)
+			throws InvalidObjectException {
+		try {
+			return new MimeMessage(
+					Session.getInstance(new Properties()),
+					new ByteArrayInputStream(serializedForwardedMessage));
+		} catch (final MessagingException e) {
+			throw invalidSerializedForm("Unable to restore the forwarded MIME message", e);
+		}
+	}
+
+	@NotNull
+	private static InvalidObjectException invalidSerializedForm(@NotNull final String message, @Nullable final Exception cause) {
+		final InvalidObjectException exception = new InvalidObjectException(message);
+		if (cause != null) {
+			exception.initCause(cause);
+		}
+		return exception;
 	}
 
 	@SuppressWarnings("SameReturnValue")

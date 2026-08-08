@@ -18,20 +18,6 @@ import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
  * @see EmailStartingBuilder
  */
 public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
-
-	/**
-	 * Flag used when creating a new {@link EmailPopulatingBuilderImpl} indicating whether to use property defaults or to ignore them.
-	 * <p>
-	 * Flag can be enabled using {@link #ignoringDefaults()}.
-	 */
-	private boolean ignoreDefaults = false;
-
-	/**
-	 * Flag used when creating a new {@link EmailPopulatingBuilderImpl} indicating whether to use property overrides or to ignore them.
-	 * <p>
-	 * Flag can be enabled using {@link #ignoringOverrides()}.
-	 */
-	private boolean ignoreOverrides = false;
 	
 	/**
 	 * @deprecated Used internally. Don't use this. Use one of the {@link EmailBuilder#startingBlank()} instead.
@@ -42,31 +28,11 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	}
 
 	/**
-	 * @see EmailStartingBuilder#ignoringDefaults()
-	 */
-	@Deprecated
-	@Override
-	public EmailStartingBuilder ignoringDefaults() {
-		ignoreDefaults = true;
-		return this;
-	}
-
-	/**
-	 * @see EmailStartingBuilder#ignoringOverrides()
-	 */
-	@Deprecated
-	@Override
-	public EmailStartingBuilder ignoringOverrides() {
-		ignoreOverrides = true;
-		return this;
-	}
-	
-	/**
 	 * @see EmailStartingBuilder#startingBlank()
 	 */
 	@Override
 	public EmailPopulatingBuilder startingBlank() {
-		return new EmailPopulatingBuilderImpl().ignoringDefaults(ignoreDefaults);
+		return new EmailPopulatingBuilderImpl();
 	}
 	
 	/**
@@ -199,9 +165,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	@SuppressWarnings({"deprecation" })
 	@Override
 	public EmailPopulatingBuilder copying(@NotNull final Email email) {
-		EmailPopulatingBuilder builder = new EmailPopulatingBuilderImpl()
-				.ignoringOverrides(ignoreDefaults)
-				.ignoringOverrides(ignoreOverrides);
+		EmailPopulatingBuilder builder = new EmailPopulatingBuilderImpl();
 
 		if (email.getId() != null) {
 			builder.fixingMessageId(email.getId());

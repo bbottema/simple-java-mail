@@ -143,7 +143,7 @@ public class MailerImplTest {
 	public void checkForMissingOAuth2Token() {
 		val serverConfig = new ServerConfigImpl("hosty", 10, "usey", null, null, null);
 		assertThatThrownBy(() -> new MailerImpl(serverConfig, SMTP_OAUTH2, NO_GOVERNANCE(), createEmptyProxyConfig(), null, createDummyOperationalConfig(EMPTY_LIST, true, false)))
-				.hasMessage("TransportStrategy is OAUTH2 but no OAUTH2 token provided as password")
+				.hasMessage("TransportStrategy is OAUTH2 but no fixed access token or OAuth2 access-token provider was configured")
 				.isInstanceOf(MailException.class);
 	}
 	
