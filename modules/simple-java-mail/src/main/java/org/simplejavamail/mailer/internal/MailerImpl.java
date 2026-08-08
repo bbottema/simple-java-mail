@@ -25,6 +25,7 @@ import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -49,6 +50,7 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
 public class MailerImpl implements Mailer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MailerImpl.class);
+	private static final String LOOPBACK_HOST = InetAddress.getLoopbackAddress().getHostAddress();
 
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
@@ -315,7 +317,7 @@ public class MailerImpl implements Mailer {
 			sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
 			if (proxyConfig.requiresAuthentication()) {
 				// wire anonymous proxy request to our own proxy bridge, so we can perform authentication to the actual proxy
-				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), "localhost");
+				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), LOOPBACK_HOST);
 				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getProxyBridgePort()));
 				return ModuleLoader.loadAuthenticatedSocksModule().createAnonymousSocks5Server(proxyConfig);
 			}
@@ -548,10 +550,6 @@ public class MailerImpl implements Mailer {
 	}
 
 	/**
-	 * NOTE: this doesn't work with try-with resource if emails are sent asynchronously. This auto-close is only
-	 * meant for Spring integration, for when Spring wants to close the Mailer bean.
-	 *
-	 * @see <a href="https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/beans/factory/DisposableBean.html">Spring DisposableBean</a>
 	 * @see Mailer#close()
 	 */
 	@Override

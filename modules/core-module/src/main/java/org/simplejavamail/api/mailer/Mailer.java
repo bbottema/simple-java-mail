@@ -169,7 +169,7 @@ public interface Mailer extends AutoCloseable {
 	 * <p>
 	 * This is a deliberately small "simple batch" API for caller-managed loops where the caller already owns the source queue or iteration and only
 	 * wants to avoid reconnecting for every message. It is <strong>not</strong> the main batch sending API. For queued sending, pooled SMTP
-	 * connections, concurrency, retry-oriented flow control, cluster coordination, or higher throughput workloads, use the
+	 * connections, concurrency, asynchronous queueing, cluster coordination, or higher throughput workloads, use the
 	 * <a href="https://www.simplejavamail.org/modules.html#batch-module">batch-module</a> instead.
 	 * <p>
 	 * Each {@link Email} is processed exactly like {@link #sendMail(Email, boolean)}: defaults and overrides are applied, validation runs, the email is
@@ -190,35 +190,62 @@ public interface Mailer extends AutoCloseable {
 	@NotNull CompletableFuture<Void> sendMailsInSimpleBatch(Iterable<Email> emails, boolean async);
 	
 	/**
-	 * Validates an {@link Email} instance. Validation fails if the subject is missing, content is missing, or no recipients are defined or that
-	 * the addresses are missing for NPM notification flags.
+	 * Runs this mailer's client-side validation against the supplied {@link Email} instance as it stands.
 	 * <p>
-	 * It also checks for illegal characters that would facilitate injection attacks:
+	 * In normal validation mode this method:
 	 * <ul>
-	 * <li><a href="http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security">http://www.cakesolutions.net/teamblogs/2008/05/08/email-header-injection-security</a></li>
-	 * <li><a href="https://security.stackexchange.com/a/54100/110048">https://security.stackexchange.com/a/54100/110048</a></li>
-	 * <li><a href="https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)">https://www.owasp.org/index.php/Testing_for_IMAP/SMTP_Injection_(OTG-INPVAL-011)</a></li>
-	 * <li><a href="http://cwe.mitre.org/data/definitions/93.html">http://cwe.mitre.org/data/definitions/93.html</a></li>
+	 *     <li>requires a From recipient and at least one To, Cc or Bcc recipient;</li>
+	 *     <li>rejects encoded-word content in address fields and applies the mailer's configured {@link com.sanctionco.jmail.EmailValidator}, if any;</li>
+	 *     <li>scans the subject, headers, address fields, attachment metadata and embedded-image metadata for CRLF injection.</li>
 	 * </ul>
+	 * Completeness here means a sender and recipient; an empty subject or body is permitted.
+	 * <p>
+	 * This method validates the supplied instance directly. It does not apply the mailer's email defaults or overrides first. The send methods produce
+	 * the effective email by applying defaults and overrides and then run the same client-side validation. MIME conversion and the configured maximum
+	 * encoded message-size check also happen later in the send pipeline.
+	 * <p>
+	 * When all client validation is disabled, this method uses lenient validation: findings are logged instead of being thrown to the caller.
 	 *
-	 * @param email The email that needs to be configured correctly.
+	 * @param email The email instance to validate as-is.
 	 *
 	 * @return Always <code>true</code> (throws a {@link MailException} exception if validation fails).
-	 * @throws MailException Is being thrown in any of the above causes.
+	 * @throws MailException If validation fails in normal validation mode.
 	 * @see com.sanctionco.jmail.EmailValidator
 	 */
 	@SuppressWarnings({"SameReturnValue" })
 	boolean validate(Email email) throws MailException;
 
 	/**
-	 * Shuts down the connection pool associated with this {@link Mailer} instance and closes remaining open connections. Waits until all connections still in use become available again
-	 * to deallocate them as well.
+	 * Releases the resources owned by this {@link Mailer}. This initiates an orderly shutdown of an internally created executor service and, when the
+	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME} is present, closes the connection pool registered for this Mailer's {@link Session}.
 	 * <p>
-	 * <strong>Note:</strong> In order to shut down the whole connection pool (in case of clustering), each individual {@link Mailer} instance should be shutdown.
+	 * Wait for all {@link CompletableFuture}s returned by asynchronous operations before closing the Mailer. Closing waits for connection-pool cleanup,
+	 * but does not wait for those asynchronous results on the caller's behalf.
 	 * <p>
-	 * <strong>Note:</strong> This does *not* shut down the executor service if it was provided by the user.
+	 * An executor service provided through {@link MailerGenericBuilder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned
+	 * and is not shut down.
+	 *
+	 * @throws Exception If resource cleanup is interrupted or fails.
+	 * @see <a href="https://www.simplejavamail.org/configuration.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
+	 */
+	@Override
+	void close() throws Exception;
+
+	/**
+	 * Starts cleanup of the resources associated with this {@link Mailer}. Despite the historical method name, this always initiates an orderly shutdown
+	 * of an internally created executor service, including when the {@value org.simplejavamail.internal.modules.BatchModule#NAME} is absent.
 	 * <p>
-	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 * With the batch module present, this also closes the connection pool registered for this Mailer's {@link Session}. The returned future represents that
+	 * connection-pool cleanup; it does not represent completion of queued asynchronous sends or termination of the executor. Wait for all asynchronous
+	 * operation futures before calling this method.
+	 * <p>
+	 * In a cluster, call this method or {@link #close()} on every Mailer so every pool registration is removed. An executor service provided through
+	 * {@link MailerGenericBuilder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned and is not shut down.
+	 * <p>
+	 * Prefer {@link #close()} for normal application lifecycle management.
+	 *
+	 * @return A future that completes when this Mailer's connection-pool cleanup is finished, or an already-completed future when no batch module is present.
+	 * @see <a href="https://www.simplejavamail.org/configuration.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
 	 */
 	Future<Void> shutdownConnectionPool();
 

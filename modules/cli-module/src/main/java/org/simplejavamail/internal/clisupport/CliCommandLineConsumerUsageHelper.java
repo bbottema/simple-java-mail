@@ -56,7 +56,7 @@ class CliCommandLineConsumerUsageHelper {
                 .synopsisHeading(" ")
                 .descriptionHeading("%n@|bold,underline Description|@:%n")
                 .footerHeading("%n")
-                .footer("@|faint,italic https://www.simplejavamail.org/#/cli|@");
+                .footer("@|faint,italic https://www.simplejavamail.org/cli.html|@");
         return command;
     }
     

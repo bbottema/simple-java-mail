@@ -23,7 +23,6 @@ import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.config.EmailProperty;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -236,11 +235,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 					.bodyCanonicalization(hasProperty(DKIM_SIGNING_BODY_CANONICALIZATION) ? getProperty(DKIM_SIGNING_BODY_CANONICALIZATION) : null)
 					.signingAlgorithm(hasProperty(DKIM_SIGNING_ALGORITHM) ? getStringProperty(DKIM_SIGNING_ALGORITHM) : null);
 			val dkimPrivateKeyFileOrData = verifyNonnullOrEmpty(getStringProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA));
-			if (new File(dkimPrivateKeyFileOrData).exists()) {
-				dkimConfigBuilder.dkimPrivateKeyPath(dkimPrivateKeyFileOrData);
-			} else {
-				dkimConfigBuilder.dkimPrivateKeyData(dkimPrivateKeyFileOrData);
-			}
+			dkimConfigBuilder.dkimPrivateKeyData(DkimPrivateKeyPropertyResolver.resolve(dkimPrivateKeyFileOrData));
 			allDefaults.signWithDomainKey(dkimConfigBuilder.build());
 		}
 

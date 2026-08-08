@@ -27,8 +27,8 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 
 /**
  * Helper class that produces and populates a mime messages. Deals with jakarta.mail RFC MimeMessage stuff, as well as
- * <a href="https://www.simplejavamail.org/#section-dkim">DKIM signing</a> and
- * <a href="https://www.simplejavamail.org/#section-sending-smime">S/MIME signing / encryption</a>.
+ * <a href="https://www.simplejavamail.org/security.html#section-sending-dkim">DKIM signing</a> and
+ * <a href="https://www.simplejavamail.org/security.html#section-sending-smime">S/MIME signing / encryption</a>.
  * <p>
  * Some more <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/">helpful reading
  * material</a>.

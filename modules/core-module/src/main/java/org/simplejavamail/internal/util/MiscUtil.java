@@ -2,7 +2,6 @@ package org.simplejavamail.internal.util;
 
 import jakarta.activation.DataSource;
 import jakarta.activation.FileDataSource;
-import jakarta.activation.URLDataSource;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.ContentType;
@@ -28,15 +27,20 @@ import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLDecoder;
 import java.nio.charset.Charset;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.lang.Integer.toHexString;
-import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
@@ -52,6 +56,7 @@ public final class MiscUtil {
 	private static final Pattern TRAILING_TOKEN_DELIMITER_PATTERN = compile("<\\|>$");
 	private static final Pattern TOKEN_DELIMITER_PATTERN = compile("\\s*<\\|>\\s*");
 	private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
+	private static final int MAX_URL_REDIRECTS = 10;
 
 	private static final Random RANDOM = new Random();
 
@@ -233,45 +238,62 @@ public final class MiscUtil {
 
 	@Nullable
 	public static DataSource tryResolveImageFileDataSourceFromDisk(final @Nullable String baseDir, final boolean allowOutsideBaseDir, final @NotNull String srcLocation) {
-		DataSource dataSource;
-
 		if (baseDir == null) {
-			dataSource =  tryLoadingFromDisk(new File(srcLocation));
-			if (dataSource == null) {
-				dataSource =  tryLoadingFromDisk(new File(".", srcLocation));
-			}
-		} else {
-			if (srcLocation.startsWith(baseDir)) {
-				dataSource = tryLoadingFromDisk(new File(srcLocation));
-			} else {
-				dataSource = tryLoadingFromDisk(new File(baseDir, srcLocation));
-				if (dataSource == null && allowOutsideBaseDir) {
-					dataSource = tryLoadingFromDisk(new File(".", srcLocation));
-					if (dataSource == null) {
-						dataSource = tryLoadingFromDisk(new File(srcLocation));
-					}
-				}
-			}
+			return tryLoadingFromDiskWithoutBase(srcLocation);
 		}
-		return dataSource;
+
+		try {
+			final Path configuredBasePath = Paths.get(baseDir).toAbsolutePath().normalize();
+			final Path realBasePath = configuredBasePath.toRealPath();
+			final Path configuredSourcePath = Paths.get(srcLocation);
+			final Path directSourcePath = configuredSourcePath.toAbsolutePath().normalize();
+			final Path sourcePath;
+
+			if (configuredSourcePath.isAbsolute() || directSourcePath.startsWith(configuredBasePath)) {
+				sourcePath = directSourcePath;
+			} else {
+				sourcePath = realBasePath.resolve(configuredSourcePath).normalize();
+			}
+
+			DataSource dataSource = tryLoadingContainedFile(realBasePath, sourcePath, allowOutsideBaseDir);
+			if (dataSource == null && allowOutsideBaseDir && !sourcePath.equals(directSourcePath)) {
+				dataSource = tryLoadingContainedFile(realBasePath, directSourcePath, true);
+			}
+			return dataSource;
+		} catch (IOException | InvalidPathException e) {
+			return allowOutsideBaseDir ? tryLoadingFromDiskWithoutBase(srcLocation) : null;
+		}
 	}
 
 	@Nullable
 	public static DataSource tryResolveFileDataSourceFromClassPath(final @Nullable String baseClassPath, final boolean allowOutsideBaseClassPath, final @NotNull String srcLocation)
 			throws IOException {
-		DataSource dataSource;
-
 		if (baseClassPath == null) {
-			dataSource = tryLoadingFromClassPath(srcLocation);
+			return tryLoadingFromClassPath(srcLocation);
+		}
+
+		final String normalizedBaseClassPath = normalizeResourcePath(baseClassPath);
+		final String normalizedSourcePath = normalizeResourcePath(srcLocation);
+		if (normalizedBaseClassPath == null) {
+			return null;
+		}
+
+		final String sourceWithForwardSlashes = srcLocation.replace('\\', '/');
+		final boolean explicitlyTargetsBase = pathStartsWithBase(normalizedBaseClassPath, sourceWithForwardSlashes)
+				|| normalizedSourcePath != null && pathStartsWithBase(normalizedBaseClassPath, normalizedSourcePath);
+		final String containedSourcePath;
+		if (explicitlyTargetsBase) {
+			containedSourcePath = normalizedSourcePath;
 		} else {
-			if (srcLocation.startsWith(baseClassPath)) {
-				dataSource = tryLoadingFromClassPath(srcLocation);
-			} else {
-				dataSource = tryLoadingFromClassPath(baseClassPath + srcLocation);
-				if (dataSource == null && allowOutsideBaseClassPath) {
-					dataSource = tryLoadingFromClassPath(srcLocation);
-				}
-			}
+			containedSourcePath = normalizeResourcePath(normalizedBaseClassPath + "/" + stripLeadingSlashes(sourceWithForwardSlashes));
+		}
+
+		DataSource dataSource = null;
+		if (containedSourcePath != null && pathStartsWithBase(normalizedBaseClassPath, containedSourcePath)) {
+			dataSource = tryLoadingFromClassPath(containedSourcePath);
+		}
+		if (dataSource == null && allowOutsideBaseClassPath && normalizedSourcePath != null) {
+			dataSource = tryLoadingFromClassPath(normalizedSourcePath);
 		}
 		return dataSource;
 	}
@@ -279,25 +301,43 @@ public final class MiscUtil {
 	@Nullable
 	public static DataSource tryResolveUrlDataSource(@Nullable final URL baseUrl, final boolean allowOutsideBaseUrl, @NotNull final String srcLocation)
 			throws IOException {
-		DataSource dataSource;
-
 		if (baseUrl == null) {
-			dataSource = tryLoadingFromUrl(srcLocation);
-		} else {
-			if (isCorrectlyFormattedUrl(srcLocation) && new URL(srcLocation).getPath().startsWith(baseUrl.getPath())) {
-				dataSource = tryLoadingFromUrl(srcLocation);
-			} else {
-				final String authority = baseUrl.getAuthority() != null ? baseUrl.getAuthority() : "";
-				final String urlPath = (authority + baseUrl.getPath() + "/" + srcLocation)
-						.replaceAll("/\\\\", "/")
-						.replaceAll("//", "/");
-				final String url = format("%s://%s", baseUrl.getProtocol(), urlPath);
+			return isCorrectlyFormattedUrl(srcLocation)
+					? tryLoadingFromUrl(new URL(srcLocation), null, true)
+					: null;
+		}
 
-				dataSource = tryLoadingFromUrl(url);
-				if (dataSource == null && allowOutsideBaseUrl) {
-					dataSource = tryLoadingFromUrl(srcLocation);
-				}
+		final URL sourceUrl;
+		if (isCorrectlyFormattedUrl(srcLocation)) {
+			sourceUrl = new URL(srcLocation);
+		} else {
+			sourceUrl = resolveAgainstBaseUrl(baseUrl, srcLocation);
+		}
+
+		if (!allowOutsideBaseUrl && !urlIsWithinBase(baseUrl, sourceUrl)) {
+			return null;
+		}
+		return tryLoadingFromUrl(sourceUrl, baseUrl, allowOutsideBaseUrl);
+	}
+
+	@Nullable
+	private static DataSource tryLoadingContainedFile(@NotNull final Path realBasePath, @NotNull final Path sourcePath, final boolean allowOutsideBaseDir) {
+		try {
+			final Path realSourcePath = sourcePath.toRealPath();
+			if (!allowOutsideBaseDir && !realSourcePath.startsWith(realBasePath)) {
+				return null;
 			}
+			return tryLoadingFromDisk(realSourcePath.toFile());
+		} catch (IOException | InvalidPathException e) {
+			return null;
+		}
+	}
+
+	@Nullable
+	private static DataSource tryLoadingFromDiskWithoutBase(@NotNull final String srcLocation) {
+		DataSource dataSource = tryLoadingFromDisk(new File(srcLocation));
+		if (dataSource == null) {
+			dataSource = tryLoadingFromDisk(new File(".", srcLocation));
 		}
 		return dataSource;
 	}
@@ -333,14 +373,139 @@ public final class MiscUtil {
 	}
 
 	@Nullable
-	private static DataSource tryLoadingFromUrl(final String url) {
-		try {
-			final DataSource result = new URLDataSource(new URL(url));
-			result.getInputStream();
-			return result;
-		} catch (IOException e) {
+	private static DataSource tryLoadingFromUrl(@NotNull final URL sourceUrl, @Nullable final URL baseUrl, final boolean allowOutsideBaseUrl) {
+		URL currentUrl = sourceUrl;
+		for (int redirectCount = 0; redirectCount <= MAX_URL_REDIRECTS; redirectCount++) {
+			if (baseUrl != null && !allowOutsideBaseUrl && !urlIsWithinBase(baseUrl, currentUrl)) {
+				return null;
+			}
+
+			URLConnection connection = null;
+			try {
+				connection = currentUrl.openConnection();
+				if (connection instanceof HttpURLConnection) {
+					final HttpURLConnection httpConnection = (HttpURLConnection) connection;
+					httpConnection.setInstanceFollowRedirects(false);
+					final int responseCode = httpConnection.getResponseCode();
+					if (isRedirectResponse(responseCode)) {
+						final String location = httpConnection.getHeaderField("Location");
+						httpConnection.disconnect();
+						if (location == null || redirectCount == MAX_URL_REDIRECTS) {
+							return null;
+						}
+						currentUrl = new URL(currentUrl, location);
+						continue;
+					}
+				}
+
+				final String contentType = determineUrlContentType(connection, currentUrl);
+				try (InputStream inputStream = connection.getInputStream()) {
+					final ByteArrayDataSource dataSource = new ByteArrayDataSource(readInputStreamToBytes(inputStream), contentType);
+					dataSource.setName(currentUrl.toExternalForm());
+					return dataSource;
+				} finally {
+					if (connection instanceof HttpURLConnection) {
+						((HttpURLConnection) connection).disconnect();
+					}
+				}
+			} catch (IOException | IllegalArgumentException e) {
+				if (connection instanceof HttpURLConnection) {
+					((HttpURLConnection) connection).disconnect();
+				}
+				return null;
+			}
+		}
+		return null;
+	}
+
+	private static URL resolveAgainstBaseUrl(@NotNull final URL baseUrl, @NotNull final String srcLocation)
+			throws IOException {
+		final String basePath = baseUrl.getPath().endsWith("/") ? baseUrl.getPath() : baseUrl.getPath() + "/";
+		final URL directoryBaseUrl = new URL(baseUrl.getProtocol(), baseUrl.getHost(), baseUrl.getPort(), basePath);
+		return new URL(directoryBaseUrl, stripLeadingSlashes(srcLocation.replace('\\', '/')));
+	}
+
+	private static boolean urlIsWithinBase(@NotNull final URL baseUrl, @NotNull final URL sourceUrl) {
+		if (!baseUrl.getProtocol().equalsIgnoreCase(sourceUrl.getProtocol())
+				|| !baseUrl.getHost().equalsIgnoreCase(sourceUrl.getHost())
+				|| effectivePort(baseUrl) != effectivePort(sourceUrl)) {
+			return false;
+		}
+
+		final String normalizedBasePath = normalizeUrlPath(baseUrl.getPath());
+		final String normalizedSourcePath = normalizeUrlPath(sourceUrl.getPath());
+		return normalizedBasePath != null
+				&& normalizedSourcePath != null
+				&& pathStartsWithBase(normalizedBasePath, normalizedSourcePath);
+	}
+
+	private static int effectivePort(@NotNull final URL url) {
+		return url.getPort() >= 0 ? url.getPort() : url.getDefaultPort();
+	}
+
+	@Nullable
+	private static String normalizeUrlPath(@Nullable final String urlPath) {
+		if (urlPath == null) {
 			return null;
 		}
+		String decodedPath = urlPath.replace('\\', '/');
+		try {
+			for (int decodeCount = 0; decodeCount < 10; decodeCount++) {
+				final String nextDecodedPath = URLDecoder.decode(decodedPath.replace("+", "%2B"), UTF_8.name()).replace('\\', '/');
+				if (nextDecodedPath.equals(decodedPath)) {
+					return normalizeResourcePath(nextDecodedPath);
+				}
+				decodedPath = nextDecodedPath;
+			}
+			return null;
+		} catch (IllegalArgumentException | UnsupportedEncodingException e) {
+			return null;
+		}
+	}
+
+	@Nullable
+	private static String normalizeResourcePath(@NotNull final String resourcePath) {
+		final Deque<String> normalizedSegments = new ArrayDeque<>();
+		for (String segment : resourcePath.replace('\\', '/').split("/+")) {
+			if (segment.isEmpty() || ".".equals(segment)) {
+				continue;
+			}
+			if ("..".equals(segment)) {
+				if (normalizedSegments.isEmpty()) {
+					return null;
+				}
+				normalizedSegments.removeLast();
+			} else {
+				normalizedSegments.addLast(segment);
+			}
+		}
+		return "/" + String.join("/", normalizedSegments);
+	}
+
+	private static boolean pathStartsWithBase(@NotNull final String basePath, @NotNull final String sourcePath) {
+		final String baseWithoutTrailingSlash = basePath.length() > 1 && basePath.endsWith("/")
+				? basePath.substring(0, basePath.length() - 1)
+				: basePath;
+		return "/".equals(baseWithoutTrailingSlash)
+				|| sourcePath.equals(baseWithoutTrailingSlash)
+				|| sourcePath.startsWith(baseWithoutTrailingSlash + "/");
+	}
+
+	private static String stripLeadingSlashes(@NotNull final String path) {
+		return path.replaceFirst("^/+", "");
+	}
+
+	private static boolean isRedirectResponse(final int responseCode) {
+		return responseCode == HttpURLConnection.HTTP_MOVED_PERM
+				|| responseCode == HttpURLConnection.HTTP_MOVED_TEMP
+				|| responseCode == HttpURLConnection.HTTP_SEE_OTHER
+				|| responseCode == 307
+				|| responseCode == 308;
+	}
+
+	private static String determineUrlContentType(@NotNull final URLConnection connection, @NotNull final URL sourceUrl) {
+		final String connectionContentType = connection.getContentType();
+		return connectionContentType != null ? connectionContentType : ImageMimeType.getContentType(sourceUrl.getPath());
 	}
 
 	public static boolean isCorrectlyFormattedUrl(final String srcLocation) {

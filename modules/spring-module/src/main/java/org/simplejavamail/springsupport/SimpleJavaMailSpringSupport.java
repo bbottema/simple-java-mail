@@ -24,7 +24,7 @@ import java.util.Properties;
  * and due to the fact that Spring Boot does not support dashes.
  * <p>
  * Using profiles, you can have environment specific configurations that way. See
- * <a href="https://www.simplejavamail.org/#/configuration">simplejavamail.org</a> for example configuration.
+ * <a href="https://www.simplejavamail.org/configuration.html#section-spring-support">simplejavamail.org</a> for example configuration.
  * <p>
  * The following properties will be applied
  * <ul>

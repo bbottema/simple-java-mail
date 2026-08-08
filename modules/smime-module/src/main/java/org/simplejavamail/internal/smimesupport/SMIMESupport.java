@@ -132,13 +132,6 @@ public class SMIMESupport implements SMIMEModule {
 
 		decryptAttachments(smimeBuilder, attachments, pkcs12Config);
 
-		if (smimeBuilder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.SIGNED) {
-			// this is the only way for Outlook messages to know a valid signature was included
-			if (smimeBuilder.getOriginalSmimeDetails().getSmimeSignatureValid() == null) {
-				smimeBuilder.getOriginalSmimeDetails().completeWithSmimeSignatureValid(smimeBuilder.getSmimeSignedOrEncryptedEmail() != null);
-			}
-		}
-
 		return smimeBuilder;
 	}
 
@@ -351,7 +344,7 @@ public class SMIMESupport implements SMIMEModule {
 
 	private boolean checkSmimePartSignature(final MimeBodyPart mimeBodyPart) {
 		try {
-			return SmimeUtil.checkSignature(mimeBodyPart);
+			return hasSignerInformation(mimeBodyPart) && SmimeUtil.checkSignature(mimeBodyPart);
 		} catch (org.simplejavamail.utils.mail.smime.SmimeException e) {
 			LOGGER.warn("Content is S/MIME signed, but signature verification failed. Reason: {}", e.getMessage());
 			LOGGER.debug("S/MIME attachment signature verification failure: {}", e.getMessage());
@@ -446,7 +439,19 @@ public class SMIMESupport implements SMIMEModule {
 	}
 
 	public boolean verifyValidSignature(@NotNull MimeMessage mimeMessage, @NotNull OriginalSmimeDetails messageSmimeDetails) {
-		return determineStatus(mimeMessage, messageSmimeDetails) != SmimeState.SIGNED || SmimeUtil.checkSignature(mimeMessage);
+		final SmimeState smimeState = determineStatus(mimeMessage, messageSmimeDetails);
+		final boolean signedState = smimeState == SmimeState.SIGNED ||
+				smimeState == SmimeState.PROBABLY_SIGNED ||
+				smimeState == SmimeState.SIGNED_ENVELOPED;
+		return signedState && hasSignerInformation(mimeMessage) && SmimeUtil.checkSignature(mimeMessage);
+	}
+
+	private boolean hasSignerInformation(@NotNull final MimePart mimePart) {
+		try {
+			return !determineSMIMESigned(mimePart).getSignerInfos().getSigners().isEmpty();
+		} catch (SmimeException e) {
+			return false;
+		}
 	}
 
 	@NotNull

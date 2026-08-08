@@ -332,8 +332,10 @@ public final class ConfigLoader {
 	}
 
 	/**
-	 * Loads properties from property file on the classpath, if provided. Calling this method only has effect on new Email and Mailer instances after
-	 * this.
+	 * Loads properties from property file on the classpath, if provided.
+	 * <p>
+	 * ConfigLoader holds one process-wide set of defaults. This method does not reconfigure existing Email or Mailer instances. To apply the new values
+	 * consistently, call it before starting the builders that will create their replacement instances; do not keep a builder across a reload.
 	 *
 	 * @param filename      Any file that is on the classpath that holds a list of key=value pairs.
 	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
@@ -352,6 +354,9 @@ public final class ConfigLoader {
 
 	/**
 	 * Loads properties from another properties source, in case you want to provide your own list.
+	 * <p>
+	 * ConfigLoader holds one process-wide set of defaults. This method does not reconfigure existing Email or Mailer instances. To apply the new values
+	 * consistently, call it before starting the builders that will create their replacement instances; do not keep a builder across a reload.
 	 *
 	 * @param properties    Your own list of properties
 	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
@@ -366,7 +371,10 @@ public final class ConfigLoader {
 	}
 
 	/**
-	 * Loads properties from {@link InputStream}. Calling this method only has effect on new Email and Mailer instances after this.
+	 * Loads properties from {@link InputStream}.
+	 * <p>
+	 * ConfigLoader holds one process-wide set of defaults. This method does not reconfigure existing Email or Mailer instances. To apply the new values
+	 * consistently, call it before starting the builders that will create their replacement instances; do not keep a builder across a reload.
 	 *
 	 * @param inputStream   Source of property key=value pairs separated by newline \n characters.
 	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.

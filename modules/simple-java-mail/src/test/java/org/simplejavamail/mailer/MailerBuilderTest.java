@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import com.sanctionco.jmail.EmailValidator;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import testutil.ConfigLoaderTestHelper;
@@ -11,13 +12,27 @@ import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_CONNECT
 
 public class MailerBuilderTest {
 	@Test
-	public void testClearedEmailAddressCriteria() {
+	public void clearEmailValidatorRemovesAddressPolicy() {
 		ConfigLoaderTestHelper.clearConfigProperties();
-		MailerBuilder
-				.withSMTPServer("moo", 0)
+		final MailerRegularBuilderImpl builder = MailerBuilder.withSMTPServer("moo", 0);
+
+		builder.clearEmailValidator();
+
+		assertThat(builder.getEmailValidator()).isNull();
+		builder.buildMailer(); // clearing the address policy is a valid configuration; see #335
+	}
+
+	@Test
+	public void resetEmailValidatorRestoresStrictDefault() {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		final MailerRegularBuilderImpl builder = MailerBuilder.withSMTPServer("moo", 0)
 				.clearEmailValidator()
-				.buildMailer();
-		// good, no more errors due to #335
+				.resetEmailValidator();
+
+		final EmailValidator restoredValidator = builder.getEmailValidator();
+		assertThat(restoredValidator).isNotNull();
+		assertThat(restoredValidator.isValid("alice@example.com")).isTrue();
+		assertThat(restoredValidator.isValid("not-an-address")).isFalse();
 	}
 
 	@Test

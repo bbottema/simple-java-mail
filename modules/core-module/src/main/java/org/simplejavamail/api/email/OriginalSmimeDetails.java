@@ -25,6 +25,21 @@ public interface OriginalSmimeDetails extends Serializable {
 	@Nullable String getSmimeName();
 	@Nullable String getSmimeProtocol();
 	@Nullable String getSmimeMicalg();
+
+	/**
+	 * @return The common name (CN) from the first signer's certificate, or {@code null} when no signer name could be read.
+	 * This is metadata supplied with the S/MIME message, not a trusted identity. Simple Java Mail does not validate the certificate path,
+	 * certificate validity or revocation status, key usage, or whether the certificate identifies the message's {@code From} address.
+	 */
 	@Nullable String getSmimeSignedBy();
+
+	/**
+	 * @return {@code true} when every applicable signature represented by these details was cryptographically verified using the signer
+	 * certificate supplied with the S/MIME message; {@code false} when at least one signature failed or could not be verified; or
+	 * {@code null} when signature verification was not applicable or was not performed.
+	 * <p>
+	 * A {@code true} result confirms signature consistency and content integrity only. It does not establish certificate trust, certificate
+	 * validity or revocation status, key usage, or that the signer certificate belongs to the message's claimed sender.
+	 */
 	@Nullable Boolean getSmimeSignatureValid();
 }

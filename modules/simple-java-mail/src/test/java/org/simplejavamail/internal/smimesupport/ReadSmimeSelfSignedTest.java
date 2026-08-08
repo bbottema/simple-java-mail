@@ -12,12 +12,15 @@ import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import testutil.SecureTestDataHelper;
 
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Properties;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.TO;
@@ -126,6 +129,30 @@ public class ReadSmimeSelfSignedTest {
 				.smimeSignedBy("Benny Bottema")
 				.smimeSignatureValid(false)
 				.build());
+	}
+
+	@Test
+	public void testSignedMessageWithoutProtocolDoesNotSkipInvalidSignatureCheck()
+			throws Exception {
+		final String invalidSignedEmlWithoutProtocol = createInvalidSignedEml()
+				.replace("; protocol=\"application/pkcs7-signature\"", "");
+
+		final Email email = EmailConverter.emlToEmail(invalidSignedEmlWithoutProtocol);
+
+		assertThat(email.getOriginalSmimeDetails().getSmimeSignatureValid()).isFalse();
+	}
+
+	@Test
+	public void testUnsignedMessageCannotReportAValidSignature()
+			throws Exception {
+		final MimeMessage unsignedMessage = new MimeMessage(Session.getInstance(new Properties()));
+		unsignedMessage.setText("Not signed");
+		unsignedMessage.saveChanges();
+
+		final boolean signatureValid = new SMIMESupport().verifyValidSignature(unsignedMessage,
+				OriginalSmimeDetailsImpl.builder().smimeMode(SmimeMode.SIGNED).build());
+
+		assertThat(signatureValid).isFalse();
 	}
 
 	@Test

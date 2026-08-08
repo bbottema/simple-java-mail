@@ -558,19 +558,24 @@ public final class EmailConverter {
 
 	/**
 	 * Delegates to {@link #outlookMsgToMimeMessage(String, Pkcs12Config)}.
+	 *
+	 * @param msgFileName The file name of an Outlook (.msg) message to convert.
 	 */
 	@NotNull
-	public static MimeMessage outlookMsgToMimeMessage(@NotNull final String msgFile) {
-		return outlookMsgToMimeMessage(msgFile, null);
+	public static MimeMessage outlookMsgToMimeMessage(@NotNull final String msgFileName) {
+		return outlookMsgToMimeMessage(msgFileName, null);
 	}
 
 	/**
+	 * @param msgFileName The file name of an Outlook (.msg) message to convert.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                     (only needed when the message is encrypted rather than just signed).
 	 * @return Result of {@link #outlookMsgToEmail(String, Pkcs12Config)} and {@link #emailToMimeMessage(Email)}.
 	 */
 	@NotNull
-	public static MimeMessage outlookMsgToMimeMessage(@NotNull final String msgData, @Nullable final Pkcs12Config pkcs12Config) {
-		checkNonEmptyArgument(msgData, "outlookMsgData");
-		return emailToMimeMessage(outlookMsgToEmail(msgData, pkcs12Config));
+	public static MimeMessage outlookMsgToMimeMessage(@NotNull final String msgFileName, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(msgFileName, "msgFileName");
+		return emailToMimeMessage(outlookMsgToEmail(msgFileName, pkcs12Config));
 	}
 
 	/**
@@ -748,19 +753,24 @@ public final class EmailConverter {
 
 	/**
 	 * Delegates to {@link #outlookMsgToEML(String, Pkcs12Config)}.
+	 *
+	 * @param msgFileName The file name of an Outlook (.msg) message to convert.
 	 */
 	@NotNull
-	public static String outlookMsgToEML(@NotNull final String msgFile) {
-		return outlookMsgToEML(msgFile, null);
+	public static String outlookMsgToEML(@NotNull final String msgFileName) {
+		return outlookMsgToEML(msgFileName, null);
 	}
 
 	/**
+	 * @param msgFileName The file name of an Outlook (.msg) message to convert.
+	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
+	 *                     (only needed when the message is encrypted rather than just signed).
 	 * @return Result of {@link #outlookMsgToEmail(String, Pkcs12Config)} and {@link #emailToEML(Email)}
 	 */
 	@NotNull
-	public static String outlookMsgToEML(@NotNull final String msgData, @Nullable final Pkcs12Config pkcs12Config) {
-		checkNonEmptyArgument(msgData, "outlookMsgData");
-		return emailToEML(outlookMsgToEmail(msgData, pkcs12Config));
+	public static String outlookMsgToEML(@NotNull final String msgFileName, @Nullable final Pkcs12Config pkcs12Config) {
+		checkNonEmptyArgument(msgFileName, "msgFileName");
+		return emailToEML(outlookMsgToEmail(msgFileName, pkcs12Config));
 	}
 
 	/**

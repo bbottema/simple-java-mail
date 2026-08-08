@@ -226,7 +226,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the email address (or null if missing).
 	 *
-	 * @param bounceToAddress The address of the receiver of the bounced email
+	 * @param bounceToAddress The SMTP envelope sender to which delivery failures are normally returned.
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	@SuppressWarnings("unused")
@@ -234,9 +234,10 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
+	 * The name is retained on the {@link Email}, but it has no meaning in the SMTP envelope and is not sent with the address.
 	 *
-	 * @param name Name of the receiver of the bounced email
-	 * @param bounceToAddress The address of the receiver of the bounced email
+	 * @param name Name retained with the configured recipient; ignored when setting the SMTP envelope sender.
+	 * @param bounceToAddress The SMTP envelope sender to which delivery failures are normally returned.
 	 */
 	EmailPopulatingBuilder withBounceTo(@Nullable @Cli.Optional String name, @NotNull String bounceToAddress);
 
@@ -254,12 +255,15 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withBounceTo(@Nullable @Cli.Optional String name, @NotNull InternetAddress bounceToAddress);
 
 	/**
-	 * Sets the <em>bounceTo</em> address of this email with given {@link Recipient} (ignoring its {@link Message.RecipientType} if provided).
+	 * Sets the SMTP envelope sender ({@code MAIL FROM}) for this email using the given {@link Recipient}. The recipient's name and
+	 * {@link Message.RecipientType} are not part of the SMTP envelope.
 	 * <p>
-	 * If provided, SMTP server should return bounced emails to this address. This is also known as the {@code Return-Path} (or <em>Envelope
-	 * FROM</em>).
+	 * Delivery failures are normally returned to this address. The value is applied to this message only and does not modify the mailer's shared
+	 * {@link jakarta.mail.Session}. It is separate from {@link #withReplyTo(Recipient)}: {@code Reply-To} is a message header used by mail clients
+	 * when a recipient replies, while the envelope sender is used by mail servers during delivery. A receiving mail system may record the envelope
+	 * sender in a {@code Return-Path} header.
 	 *
-	 * @param recipient Preconfigured recipient which includes optional name and mandatory email address.
+	 * @param recipient Recipient containing the envelope address, or {@code null} to clear it.
 	 *
 	 * @see #withBounceTo(String, String)
 	 */
@@ -569,6 +573,9 @@ public interface EmailPopulatingBuilder {
 	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
 	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-file-resolution, you can just
 	 * refer to the file instead and the data will be included dynamically with a generated <em>cid</em>.
+	 * <p>
+	 * This option is disabled by default. Enabling it lets HTML image references read from the filesystem. When the HTML is not fully trusted, set
+	 * {@link #withEmbeddedImageBaseDir(String)} and leave {@link #allowingEmbeddedImageOutsideBaseDir(boolean)} disabled.
 	 *
 	 * @param embeddedImageAutoResolutionForFiles Enables auto resolution of file datasources for embedded images.
 	 *
@@ -583,6 +590,9 @@ public interface EmailPopulatingBuilder {
 	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
 	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-classpath-resolution, you can just
 	 * refer to the resource on the classpath instead and the data will be included dynamically with a generated <em>cid</em>.
+	 * <p>
+	 * This option is disabled by default. Enabling it lets HTML image references read classpath resources. When the HTML is not fully trusted, set
+	 * {@link #withEmbeddedImageBaseClassPath(String)} and leave {@link #allowingEmbeddedImageOutsideBaseClassPath(boolean)} disabled.
 	 *
 	 * @param embeddedImageAutoResolutionForClassPathResources Enables auto resolution of classpath datasources for embedded images.
 	 *
@@ -597,6 +607,9 @@ public interface EmailPopulatingBuilder {
 	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
 	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-URL-resolution, you can just
 	 * refer to the hosted image instead and the data will be downloaded and included dynamically with a generated <em>cid</em>.
+	 * <p>
+	 * This option is disabled by default. Enabling it lets HTML image references make network requests. When the HTML is not fully trusted, set
+	 * {@link #withEmbeddedImageBaseUrl(URL)} and leave {@link #allowingEmbeddedImageOutsideBaseUrl(boolean)} disabled.
 	 *
 	 * @param embeddedImageAutoResolutionForURLs Enables auto resolution of URL's for embedded images.
 	 *
@@ -607,9 +620,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImageAutoResolutionForURLs(final boolean embeddedImageAutoResolutionForURLs);
 
 	/**
-	 * Sets the base folder used when resolving images sources in HTML text. Without this, the folder needs to be an absolute path (or a classpath/url resource).
+	 * Sets the base folder used when resolving image sources in HTML text.
 	 * <p>
-	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 * By default, a resolved file must remain below this directory after normalizing the path and following symbolic links. Without a base directory,
+	 * file resolution is unrestricted and may use absolute paths or paths relative to the working directory.
 	 *
 	 * @param embeddedImageBaseDir The base folder used when resolving images sources in HTML text.
 	 *
@@ -619,9 +633,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImageBaseDir(@NotNull final String embeddedImageBaseDir);
 
 	/**
-	 * Sets the classpath base used when resolving images sources in HTML text. Without this, the resource needs to be an absolute path (or a file/url resource).
+	 * Sets the classpath base used when resolving image sources in HTML text.
 	 * <p>
-	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 * By default, normalized resource paths must remain below this classpath location. Without a classpath base, classpath resolution accepts absolute
+	 * classpath resource names without a containment boundary.
 	 *
 	 * @param embeddedImageBaseClassPath The classpath base used when resolving images sources in HTML text.
 	 *
@@ -641,9 +656,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final String embeddedImageBaseUrl);
 
 	/**
-	 * Sets the base URL used when resolving images sources in HTML text. Without this, the resource needs to be an absolute URL (or a file/classpath resource).
+	 * Sets the base URL used when resolving image sources in HTML text.
 	 * <p>
-	 * Generally you would manually use src="cid:image_name", but files and url's will be located as well dynamically.
+	 * By default, resolved URLs and every HTTP redirect must use the same scheme, host and effective port as this URL, and their normalized path must
+	 * remain below its path. Without a base URL, URL resolution accepts absolute URLs without a containment boundary.
 	 *
 	 * @param embeddedImageBaseUrl The base URL used when resolving images sources in HTML text.
 	 *
@@ -654,7 +670,9 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final URL embeddedImageBaseUrl);
 
 	/**
-	 * Dictates whether files will be resolved for embedded images when they are not nested under the baseDir (if baseDir is set).
+	 * Allows embedded-image file resolution outside the configured base directory. Disabled by default.
+	 * <p>
+	 * Enabling this deliberately removes the filesystem containment boundary and is unsafe for untrusted HTML.
 	 *
 	 * @param allowEmbeddedImageOutsideBaseDir Whether files should be resolved that reside outside the baseDir (if set)
 	 *
@@ -664,7 +682,9 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseDir(final boolean allowEmbeddedImageOutsideBaseDir);
 
 	/**
-	 * Dictates whether sources will be resolved for embedded images when they are not nested under the baseClassPath (if baseClassPath is set).
+	 * Allows embedded-image classpath resolution outside the configured classpath base. Disabled by default.
+	 * <p>
+	 * Enabling this deliberately removes the classpath containment boundary and is unsafe for untrusted HTML.
 	 *
 	 * @param allowEmbeddedImageOutsideBaseClassPath Whether image sources should be resolved that reside outside the baseClassPath (if set)
 	 *
@@ -674,7 +694,9 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseClassPath(final boolean allowEmbeddedImageOutsideBaseClassPath);
 
 	/**
-	 * Dictates whether url's will be resolved for embedded images when they are not nested under the baseUrl (if baseUrl is set).
+	 * Allows embedded-image URL resolution outside the configured base URL. Disabled by default.
+	 * <p>
+	 * Enabling this deliberately removes the URL origin and path boundary and is unsafe for untrusted HTML.
 	 *
 	 * @param allowEmbeddedImageOutsideBaseUrl Whether url's should be resolved that reside outside the baseUrl (if set)
 	 *
@@ -688,6 +710,7 @@ public interface EmailPopulatingBuilder {
 	 * When embedded image auto resolution is enabled, this option will make sure unresolved images sources result in an exception.
 	 * <p>
 	 * Not using this option effectively means a more lenient approach to image sources.
+	 * References blocked by a configured base boundary count as unresolved.
 	 * <p>
 	 * Note: It also allows you to work with URL's as image sources that can't be resolved at time of sending, but that makes sense
 	 * when viewing the email in some client (e.g. relative url's).
@@ -960,7 +983,9 @@ public interface EmailPopulatingBuilder {
 	 * @param dkimPrivateKey                            De key content used to sign for the sending party.
 	 * @param signingDomain                             The domain being authorized to send.
 	 * @param dkimSelector                              Additional domain specifier.
-	 * @param excludedHeadersFromDkimDefaultSigningList Allows you to exclude headers being signed, as might be the case when another mail transfer agent. For example, Amazon SES doesn't want Message-ID and Date Headers to be signed as they have internal mechanisms to handle these headers.
+	 * @param excludedHeadersFromDkimDefaultSigningList Headers that a known downstream relay rewrites, such as {@code Message-ID} or {@code Date}.
+	 *                                                 {@code From} is mandatory in a DKIM signature and cannot be excluded.
+	 * @throws IllegalArgumentException                  When the excluded-header list contains {@code From}, case-insensitively.
 	 *
 	 * @see <a href="https://postmarkapp.com/guides/dkim">more on DKIM 1</a>
 	 * @see <a href="https://github.com/markenwerk/java-utils-mail-dkim">more on DKIM 2</a>
@@ -1058,8 +1083,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder notMergingSingleSMIMESignedAttachment();
 
 	/**
-	 * Indicates that we want to use the NPM flag {@code dispositionNotificationTo}. The actual address will default to the {@code replyToRecipient}
-	 * first if set or else {@code fromRecipient} (the final address is determined when sending this email).
+	 * Requests a read receipt by adding the {@code Disposition-Notification-To} header. The actual address defaults to the first
+	 * {@code replyToRecipient} when present, or to the {@code fromRecipient} otherwise (the final address is determined when sending this email).
 	 *
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
@@ -1096,11 +1121,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withDispositionNotificationTo(@Nullable @Cli.Optional String fixedName, @NotNull InternetAddress address);
 
 	/**
-	 * Indicates this email should use the <a href="https://tools.ietf.org/html/rfc8098">NPM flag "Disposition-Notification-To"</a> with the given
-	 * preconfigred {@link Recipient}. This flag can be used to request a return receipt from the recipient to signal that the recipient has read the
-	 * email.
+	 * Indicates this email should use the <a href="https://www.rfc-editor.org/rfc/rfc8098.html">MDN header "Disposition-Notification-To"</a> with the given
+	 * preconfigured {@link Recipient}. This header requests a receipt from the recipient's mail client to signal that the email has been read.
 	 * <p>
-	 * This flag may be ignored by SMTP clients (for example gmail ignores it completely, while the Google Apps business suite honors it).
+	 * The receiving mail client or user controls whether a receipt is returned.
 	 *
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(String)
@@ -1109,8 +1133,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withDispositionNotificationTo(@NotNull Recipient recipient);
 
 	/**
-	 * Indicates that we want to use the flag {@code returnReceiptTo}. The actual address will default to the {@code replyToRecipient} first if set
-	 * or else {@code fromRecipient} (the final address is determined when sending the email).
+	 * Requests a receipt notification by adding the {@code Return-Receipt-To} header. The actual address defaults to the first
+	 * {@code replyToRecipient} when present, or to the {@code fromRecipient} otherwise (the final address is determined when sending the email).
 	 * <p>
 	 * For more detailed information, refer to {@link #withReturnReceiptTo(Recipient)}.
 	 */
@@ -1120,7 +1144,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
 	 *
-	 * @param address The address of the receiver of the bounced email
+	 * @param address The address of the receiver of the receipt notification
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull String address);
@@ -1146,12 +1170,10 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withReturnReceiptTo(@Nullable @Cli.Optional String fixedName, @NotNull InternetAddress address);
 
 	/**
-	 * Indicates that this email should use the <a href="https://en.wikipedia.org/wiki/Return_receipt">RRT flag "Return-Receipt-To"</a> with the
-	 * preconfigured {@link Recipient}. This flag can be used to request a notification from the SMTP server recipient to signal that the recipient
-	 * has read the email.
+	 * Indicates that this email should use the {@code Return-Receipt-To} request header with the preconfigured {@link Recipient}. Supporting mail servers or
+	 * clients may use this header to return a delivery or read notification, depending on their implementation.
 	 * <p>
-	 * This flag is rarely used, but your mail server / client might implement this flag to automatically send back a notification that the email was
-	 * received on the mail server or opened in the client, depending on the chosen implementation.
+	 * The receiving system controls whether a receipt is returned.
 	 */
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull Recipient recipient);
 

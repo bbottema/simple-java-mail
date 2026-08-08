@@ -48,7 +48,8 @@ public class MailerHelper {
 	}
 
 	/**
-	 * Delegates to all other validations for a full checkup.
+	 * Runs completeness, address and CRLF-injection validation against the supplied {@link Email}. If {@code emailValidator} is {@code null},
+	 * address-format validation is skipped while encoded-word address protection remains active.
 	 *
 	 * @see #validateCompleteness(Email)
 	 * @see #validateAddresses(Email, EmailValidator)
@@ -77,8 +78,8 @@ public class MailerHelper {
 	}
 
 	/**
-	 * Lenient validation only checks for missing fields (which implies incorrect configuration or missing data),
-	 * but only warns for invalid address and suspected CRLF injections.
+	 * Runs the same completeness, address and CRLF-injection checks as {@link #validate(Email, EmailValidator)}, but logs findings instead of throwing
+	 * them to the caller.
 	 *
 	 * @see #validateCompleteness(Email)
 	 * @see #validateAddresses(Email, EmailValidator)

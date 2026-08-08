@@ -36,7 +36,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @see #trustingAllHosts(boolean)
 	 */
-	boolean DEFAULT_TRUST_ALL_HOSTS = true;
+	boolean DEFAULT_TRUST_ALL_HOSTS = false;
 	/**
 	 * {@value}
 	 *
@@ -190,13 +190,17 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * Relevant only when using username authentication with a proxy.
 	 * <p>
-	 * Overrides the default for the intermediary SOCKS5 relay server bridge, which is a server that sits in between JavaMail and the remote proxy.
+	 * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to the JVM's
+	 * loopback address and owns this port while this Mailer has active proxy operations.
+	 * <p>
+	 * Concurrent operations through one Mailer share its relay. Separate authenticated-proxy Mailers that can be active at the same time must use
+	 * distinct bridge ports, otherwise one of the relays cannot bind. Anonymous proxy connections do not use a bridge port.
 	 * <p>
 	 * Defaults to {@value DEFAULT_PROXY_BRIDGE_PORT} if no custom default property was configured.
 	 * <p>
-	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
+	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
 	 *
-	 * @param proxyBridgePort The port to use for the proxy bridging server.
+	 * @param proxyBridgePort The loopback port to use for the proxy bridging server.
 	 *
 	 * @see #withProxyUsername(String)
 	 */
@@ -215,6 +219,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <p>
 	 * This is useful when {@link #withDebugLogging(Boolean)} is enabled and Jakarta Mail's default {@link System#out} output should be redirected,
 	 * for example to an SLF4J-backed {@link PrintStream}.
+	 * <p>
+	 * Simple Java Mail does not close the supplied stream. Keep it open for as long as the Mailer may write debug output and close it after the Mailer
+	 * is no longer using it.
 	 * <p>
 	 * For property files and CLI usage, use {@link #withDebugOutput(SessionDebugOutput)} or configure {@code simplejavamail.javaxmail.debug.out}.
 	 *
@@ -239,11 +246,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withDebugOutput(@NotNull SessionDebugOutput debugOutput);
 
 	/**
-	 * Controls whether there will be any client-sided validation, including email address validation and CRLF injection attack detection (which will be warning instead).
+	 * Controls whether client-side validation findings block sending or are reported as warnings.
 	 * <p>
-	 * If set to {@code true}, this silences the client completely and just delegates all responsibility of correctness/security to the server.
+	 * When set to {@code true}, sender and recipient completeness checks, the configured email address validator and CRLF injection scans still run,
+	 * but their findings are logged and sending continues. The default {@code false} keeps these validations blocking.
 	 *
-	 * @param disableAllClientValidation Enables or disables client-side email address validation (if configured) and CRLF injection scans. Default set to
+	 * @param disableAllClientValidation Whether client-side validation findings should be non-blocking. Defaults to
 	 *                                   {@value DEFAULT_DISABLE_ALL_CLIENTVALIDATION}.
 	 */
 	T disablingAllClientValidation(@NotNull Boolean disableAllClientValidation);
@@ -353,7 +361,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @param dkimPrivateKey                            The key content used to sign for the sending party.
 	 * @param signingDomain                             The domain being authorized to send.
 	 * @param dkimSelector                              Additional domain specifier.
-	 * @param excludedHeadersFromDkimDefaultSigningList Allows you to exclude headers from the DKIM library's default signing list.
+	 * @param excludedHeadersFromDkimDefaultSigningList Headers that a known downstream relay rewrites, such as {@code Message-ID} or {@code Date}.
+	 *                                                 {@code From} is mandatory in a DKIM signature and cannot be excluded.
+	 * @throws IllegalArgumentException                  When the excluded-header list contains {@code From}, case-insensitively.
 	 *
 	 * @see #withDefaultDkimSigning(DkimConfig)
 	 * @see #clearDefaultDkimSigning()
@@ -397,10 +407,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * <strong>For advanced use cases.</strong>
 	 * <p>
-	 * Allows you to fully customize and manage the thread pool, threads and concurrency characteristics when
-	 * sending in batch mode.
+	 * Sets the executor service used for asynchronous operations, including individual sends and simple batches. This lets the caller manage the thread
+	 * pool, threads and concurrency characteristics directly.
 	 * <p>
-	 * Without calling this, by default the {@code NonJvmBlockingThreadPoolExecutor} is used:
+	 * Without a caller-provided executor, {@link Executors#newSingleThreadExecutor()} is used when the
+	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME} is absent. With the batch module present, the default is a
+	 * {@code NonJvmBlockingThreadPoolExecutor}:
 	 * <ul>
 	 *     <li>with max threads fixed to the given pool size (default is {@value #DEFAULT_POOL_SIZE})</li>
 	 *     <li>with keepAliveTime as specified (if greater than zero, core threads will also time out and die off), default is {@value #DEFAULT_POOL_KEEP_ALIVE_TIME}</li>
@@ -411,12 +423,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <strong>Note:</strong> What makes it NonJvm is that the default keepAliveTime is set to the lowest non-zero value (so 1), so that
 	 * any threads will die off as soon as possible, as not to block the JVM from shutting down.
 	 * <p>
-	 * <strong>Note:</strong> Simple Java Mail will <strong>not</strong> shut down the provided executor service, even if the connection pool is being shut down.
-	 * <em>This will block the JVM from shutting down</em>. The user is responsible for managing the provided executor's life cycle.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 * Simple Java Mail will <strong>not</strong> shut down the provided executor service when the Mailer or its connection pool is closed. The caller remains
+	 * responsible for the executor's lifecycle.
 	 *
-	 * @param executorService A custom executor service (ThreadPoolExecutor), replacing the {@code NonJvmBlockingThreadPoolExecutor}.
+	 * @param executorService A caller-owned executor service replacing Simple Java Mail's default executor.
+	 * @see <a href="https://www.simplejavamail.org/configuration.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
 	 */
 	T withExecutorService(@NotNull ExecutorService executorService);
 
@@ -544,51 +555,53 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withTransportModeLoggingOnly(@NotNull Boolean transportModeLoggingOnly);
 
 	/**
-	 * Configures the new session to only accept server certificates issued to one of the provided hostnames. Note that verifying server identity
-	 * can be turned on and off with {@link #verifyingServerIdentity(boolean)}.
+	 * Configures Angus Mail to trust certificates from the provided SMTP hosts without requiring their issuer to be present in the JVM trust store.
+	 * Server identity verification is a separate check and can be controlled with {@link #verifyingServerIdentity(boolean)}.
 	 * <p>
-	 * Passing an empty list resets the current session's trust behavior to the default, and is equivalent to never calling this method in the first
-	 * place.
+	 * Passing an empty list removes the host-specific exception. With {@link #trustingAllHosts(boolean)} set to {@code false}, which is the default,
+	 * normal JVM trust-store validation then applies.
 	 * <p>
-	 * <strong>Security warning:</strong> Any certificate matching any of the provided host names will be accepted, regardless of the certificate
-	 * issuer; attackers can abuse this behavior by serving a matching self-signed certificate during a man-in-the-middle attack.
+	 * <strong>Security warning:</strong> This bypasses normal certificate-authority validation for the named hosts. Keep server identity verification
+	 * enabled, and prefer adding a private certificate authority to the JVM trust store when possible.
 	 * <p>
-	 * This method sets the property {@code mail.smtp.ssl.trust} to a space-separated list of the provided {@code hosts}. If the provided list is
-	 * empty, {@code mail.smtp.ssl.trust} is unset.
+	 * This method sets the transport-specific {@code mail.*.ssl.trust} property to a space-separated list of the provided {@code hosts}. If the
+	 * provided list is empty, the property is unset.
 	 *
-	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
+	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
 	 * @see #trustingAllHosts(boolean)
-	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
+	 * @see #verifyingServerIdentity(boolean)
 	 *
 	 * @param sslHostsToTrust See main description.
 	 */
 	T trustingSSLHosts(String... sslHostsToTrust);
 
 	/**
-	 * Configures the current session to trust all hosts. Defaults to true, but this allows you to whitelist <em>only</em> certain hosts.
+	 * Controls whether Angus Mail trusts certificates from every SMTP host without requiring their issuer to be present in the JVM trust store.
+	 * Defaults to {@value #DEFAULT_TRUST_ALL_HOSTS}, so normal JVM trust-store validation applies unless this method or
+	 * {@link #trustingSSLHosts(String...)} enables an exception.
 	 * <p>
-	 * Note that this is <em>not</em> the same as server identity verification, which is enabled through {@link #verifyingServerIdentity(boolean)}.
-	 * It would be prudent to have at least one of these features turned on, lest you be vulnerable to man-in-the-middle attacks.
+	 * <strong>Security warning:</strong> Setting this to {@code true} disables certificate-authority trust validation for all SMTP hosts. Server identity
+	 * verification remains a separate check and should stay enabled, but it does not make trusting every certificate safe against an active attacker.
+	 * Prefer configuring the JVM trust store or, when that is not possible, a narrow exception through {@link #trustingSSLHosts(String...)}.
 	 *
-	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
+	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
 	 * @see #trustingSSLHosts(String...)
-	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
+	 * @see #verifyingServerIdentity(boolean)
 	 *
 	 * @param trustAllHosts See main description.
 	 */
 	T trustingAllHosts(boolean trustAllHosts);
 
 	/**
-	 * Configures the current session to not verify the server's identity on an SSL connection. Defaults to true, even for SMTP which makes sense since
-	 * opportunistic TLS is also enabled by default (also see {@link TransportStrategy#setOpportunisticTLS(Boolean)}).
+	 * Controls whether Angus Mail verifies that the SMTP server certificate matches the host used for the connection. Defaults to
+	 * {@value #DEFAULT_VERIFY_SERVER_IDENTITY}, including for opportunistic TLS with {@link TransportStrategy#SMTP}.
 	 * <p>
-	 * Note that this is <em>not</em> the same as {@link #trustingAllHosts(boolean)} or {@link #trustingSSLHosts(String...)}.<br>
-	 * It would be prudent to have at least one of these features turned on, lest you be vulnerable to man-in-the-middle attacks.
+	 * Hostname verification and certificate-authority trust are independent checks. Normal secure TLS requires both a trusted certificate chain and a
+	 * matching server identity. Disabling this check is intended only for controlled compatibility or testing scenarios.
 	 *
-	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.ssl.checkserveridentity">mail.smtp.ssl.checkserveridentity</a>
+	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.checkserveridentity">mail.smtp.ssl.checkserveridentity</a>
 	 * @see #trustingAllHosts(boolean)
 	 * @see #trustingSSLHosts(String...)
-	 * @see <a href="https://www.oracle.com/technetwork/java/sslnotes-150073.txt">Notes for use of SSL with JavaMail</a>
 	 *
 	 * @param verifyingServerIdentity See main description.
 	 */
@@ -626,8 +639,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withCustomMailer(@NotNull CustomMailer customMailer);
 
 	/**
-	 * Reverts to default value '{@value #DEFAULT_VERIFY_SERVER_IDENTITY}' for the behaviour of disabling client-sided
-	 * validations (email addresses and CRLF injection scanning).
+	 * Restores blocking client-side validation by resetting this option to its default ({@value #DEFAULT_DISABLE_ALL_CLIENTVALIDATION}).
 	 *
 	 * @see #disablingAllClientValidation(Boolean)
 	 */
@@ -761,10 +773,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearProxy();
 
 	/**
-	 * Makes the email validator <code>null</code>, meaning validation won't take place.
+	 * Clears the configurable JMail email address validator. Required sender and recipient checks, encoded-word address protection and CRLF injection
+	 * scanning remain active.
 	 *
 	 * @see #withEmailValidator(EmailValidator)
 	 * @see #resetEmailValidator()
+	 * @see #disablingAllClientValidation(Boolean)
 	 */
 	T clearEmailValidator();
 

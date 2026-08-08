@@ -182,6 +182,25 @@ public class EmailPopulatingBuilderImpl2Test {
 	}
 
 	@Test
+	public void testPropertyDefaultDkimSigningRejectsFromExclusion() throws Exception {
+		final Map<Property, Object> values = new HashedMap<>();
+		values.put(DKIM_PRIVATE_KEY_FILE_OR_DATA, "src/test/resources/dkim/dkim_dummy_key.der");
+		values.put(DKIM_SIGNING_DOMAIN, "example.com");
+		values.put(DKIM_SELECTOR, "selector");
+		values.put(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST, "fRoM");
+
+		try {
+			ConfigLoaderTestHelper.setResolvedProperties(values);
+
+			assertThatThrownBy(() -> EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessage("DKIM signatures must include the From header; it cannot be excluded from the default signing list");
+		} finally {
+			ConfigLoaderTestHelper.clearConfigProperties();
+		}
+	}
+
+	@Test
 	public void testConstructorApplyingPreconfiguredBodyPartContentTransferEncodingDefaults() throws Exception {
 		Map<Property, Object> value = new HashedMap<>();
 		value.put(DEFAULT_CONTENT_TRANSFER_ENCODING, BASE_64);

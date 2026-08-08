@@ -5,6 +5,8 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.DkimConfig;
@@ -14,6 +16,7 @@ import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.mailer.MailerBuilder;
 import testutil.ConfigLoaderTestHelper;
 
@@ -21,10 +24,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
@@ -49,6 +55,43 @@ public class MailerImplTest {
 	@BeforeEach
 	public void setup() {
 		session = Session.getInstance(new Properties());
+	}
+
+	@Test
+	public void closeShutsDownMailerOwnedExecutorWithoutBatchModule() throws Exception {
+		final ExecutorService mailerOwnedExecutor;
+
+		try (MockedStatic<ModuleLoader> moduleLoader = mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+			moduleLoader.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
+
+			try (Mailer mailer = MailerBuilder.withSMTPServer("localhost", 25).buildMailer()) {
+				mailerOwnedExecutor = mailer.getOperationalConfig().getExecutorService();
+				assertThat(mailerOwnedExecutor.isShutdown()).isFalse();
+				assertThat(mailerOwnedExecutor.submit(() -> Thread.currentThread().isDaemon()).get()).isFalse();
+			}
+
+			assertThat(mailerOwnedExecutor.isShutdown()).isTrue();
+		}
+	}
+
+	@Test
+	public void closeLeavesCallerOwnedExecutorRunningWithoutBatchModule() throws Exception {
+		final ExecutorService callerOwnedExecutor = Executors.newSingleThreadExecutor();
+
+		try (MockedStatic<ModuleLoader> moduleLoader = mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+			moduleLoader.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
+
+			try (Mailer mailer = MailerBuilder
+					.withSMTPServer("localhost", 25)
+					.withExecutorService(callerOwnedExecutor)
+					.buildMailer()) {
+				assertThat(mailer.getOperationalConfig().getExecutorService()).isSameAs(callerOwnedExecutor);
+			}
+
+			assertThat(callerOwnedExecutor.isShutdown()).isFalse();
+		} finally {
+			callerOwnedExecutor.shutdownNow();
+		}
 	}
 	
 	@Test
