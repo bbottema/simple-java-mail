@@ -1,35 +1,23 @@
-[![APACHE v2 License](https://img.shields.io/badge/license-apachev2-blue.svg?style=flat)](modules/simple-java-mail/LICENSE-2.0.txt) 
-[![Latest Release](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.simplejavamail%22%20AND%20v%3A%229.2.0%22)
-[![Javadocs](https://img.shields.io/badge/javadoc-9.2.0-brightgreen.svg?color=brightgreen)](https://www.javadoc.io/doc/org.simplejavamail/maven-master-project)
-[![Codacy](https://img.shields.io/codacy/grade/c7506663a4ab41e49b9675d87cd900b7.svg?style=flat)](https://app.codacy.com/gh/bbottema/simple-java-mail)
-![Java 8+](https://img.shields.io/badge/java-8+-lightgray.svg)
+# Simple Java Mail
 
-# Simple Java Mail #
+[![Maven Central](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat&label=Maven%20Central)](https://central.sonatype.com/artifact/org.simplejavamail/simple-java-mail)
+[![Javadocs](https://javadoc.io/badge2/org.simplejavamail/maven-master-project/javadoc.svg)](https://javadoc.io/doc/org.simplejavamail/maven-master-project)
+[![Java 8+](https://img.shields.io/badge/Java-8%2B-607d8b.svg?style=flat)](DEVELOPMENT.md)
+[![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=flat)](LICENSE)
 
-Simple Java Mail is a robust Java mailing library built to make production email simple to use: rich content, recipient governance, signing and encryption, transport security, configuration, diagnostics, conversion, and high-throughput batch or clustered sending.
+**Simple to use. Built for the real world.**
 
-It keeps those concerns behind a consistent high-level API, while still giving you fluent builders, property/Spring configuration, defaults and overrides, validation, logging, and lower-level Jakarta Mail escape hatches when you need them.
+Simple Java Mail builds well-formed MIME through a streamlined Java API. That same API covers reusable message rules, transport security, DKIM, S/MIME, diagnostics, conversion, authenticated SOCKS, and advanced SMTP delivery.
 
-Under the hood, Simple Java Mail sits on top of [Angus Mail](https://eclipse-ee4j.github.io/angus-mail/) (previously [Jakarta Mail](https://jakartaee.github.io/mail-api/README-JakartaMail)).
+Jakarta Mail provides the standard mail API, and Angus Mail provides its transport implementation. You can still supply a `Session`, access the generated `MimeMessage`, set raw Jakarta Mail properties, or provide the final send operation.
 
-Simple Java Mail remains Java 8-compatible; Java 8 is the source, target, and minimum supported runtime.
+[Get started](https://www.simplejavamail.org/download.html) · [Capabilities](https://www.simplejavamail.org/features.html) · [Modules](https://www.simplejavamail.org/modules.html) · [Javadocs](https://javadoc.io/doc/org.simplejavamail/maven-master-project) · [9.2 migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) · [Compare libraries](https://www.simplejavamail.org/feature-matrix.html)
 
-### Documentation ###
+## Send a first email
 
-The full user documentation lives at [simplejavamail.org](https://www.simplejavamail.org). Start there for the minimal banner example, grand examples, feature guides, configuration reference, diagnostics, and module overview.
+Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, the core dependency. Add a feature module only when you need it, using the same version as the core dependency. Java 8 is the source, target, and minimum supported runtime.
 
-- [Features](https://www.simplejavamail.org/features.html#navigation)
-- [Configuration and Spring support](https://www.simplejavamail.org/configuration.html#navigation)
-- [Security](https://www.simplejavamail.org/security.html#navigation)
-- [Logging and debugging](https://www.simplejavamail.org/debugging.html#navigation)
-- [Modules](https://www.simplejavamail.org/modules.html)
-- [CLI](https://www.simplejavamail.org/cli.html#navigation)
-- [9.2 migration notes](https://www.simplejavamail.org/migration-notes-9.2.0.html)
-- [9.0 migration notes](https://www.simplejavamail.org/migration-notes-9.0.0.html)
-
-### Installation ###
-
-Simple Java Mail is available in [Maven Central](https://search.maven.org/search?q=g:org.simplejavamail):
+### Maven
 
 ```xml
 <dependency>
@@ -39,142 +27,116 @@ Simple Java Mail is available in [Maven Central](https://search.maven.org/search
 </dependency>
 ```
 
-Read about additional modules you can add here: [simplejavamail.org/modules](https://www.simplejavamail.org/modules.html). 
+### Gradle
 
-### Development ###
-
-- [Project mechanisms catalogue](PROJECT_MECHANISMS_CATALOGUE.md) for optional module loading, CLI metadata generation, MIME selection, proxy bridging, concurrency, and non-null instrumentation.
-- [API expansion workflow](API_EXPANSION_WORKFLOW.md) for adding public API fields or builder methods.
-- [Developer environment setup](DEVELOPMENT.md) for JDK and build constraints.
-
-### Latest progress ###
-
-[v9.2.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.2.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.2.0/)
-
-- [#692](https://github.com/bbottema/simple-java-mail/issues/692): added refresh-aware OAuth2 access-token providers for long-lived Mailers.
-- [#691](https://github.com/bbottema/simple-java-mail/issues/691): routed all asynchronous send failures through the returned `CompletableFuture`.
-- [#690](https://github.com/bbottema/simple-java-mail/issues/690): made serialized emails preserve send-ready content and fail clearly when pre-9.2 streams lack resource data.
-- [#689](https://github.com/bbottema/simple-java-mail/issues/689): moved governance opt-outs after email starters and removed the faulty pre-start methods.
-- [#685](https://github.com/bbottema/simple-java-mail/issues/685): corrected extra Jakarta Mail property precedence to system properties, environment variables, then property files.
-- [#684](https://github.com/bbottema/simple-java-mail/issues/684): corrected the S/MIME configuration example to use a valid message-content cipher.
-- [#683](https://github.com/bbottema/simple-java-mail/issues/683): moved CLI-only recipient parsing out of `EmailPopulatingBuilder` without changing CLI behavior.
-- [#680](https://github.com/bbottema/simple-java-mail/issues/680): made S/MIME signature status represent only verification that actually occurred and preserve failed combined results.
-- [#679](https://github.com/bbottema/simple-java-mail/issues/679): rejected DKIM configurations that exclude the mandatory `From` header.
-- [`55586ee6`](https://github.com/bbottema/simple-java-mail/commit/55586ee6f0836d0277f4a85beb267f0089d2ed22): added explicit `file:` and `base64:` DKIM private-key sources while preserving unprefixed values.
-- [#678](https://github.com/bbottema/simple-java-mail/issues/678): contained embedded-image auto-resolution within configured file, classpath, and URL bases.
-- [#677](https://github.com/bbottema/simple-java-mail/issues/677): replaced trust-all TLS defaults with the JVM trust store while retaining hostname verification.
-- [#676](https://github.com/bbottema/simple-java-mail/issues/676): bound the authenticated SOCKS bridge to JVM loopback instead of wildcard interfaces.
-
-See the [9.2 migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) for changes requiring source or configuration updates.
-
-[v9.1.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.0) - [v9.1.8](https://github.com/bbottema/simple-java-mail/releases/tag/9.1.8) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.1.8/)
-
-> **Spring-module notice:** Versions 9.0.0 through 9.1.5 package test application settings that can override an application's YAML configuration and prevent SMTP connections. If you use `spring-module`, upgrade to 9.1.6 or later.
-
-> **CLI recipient notice:** Versions 9.0.0 through 9.1.6 cannot combine TO, CC, and BCC recipients in one CLI command. Repeated `--email:withRecipients` options are merged and rejected. Upgrade to 9.1.7 or later.
-
-- **v9.1.8:** [#686](https://github.com/bbottema/simple-java-mail/issues/686): **Custom-session proxy routing:** `usingSession(session).withProxy(...)` now updates the intended `mail.smtp.socks.*` route while leaving the rest of the caller's session configuration untouched.
-- **v9.1.8:** [#687](https://github.com/bbottema/simple-java-mail/issues/687): **SMTPS through SOCKS:** removed the obsolete restriction that rejected SOCKS proxying for implicit-TLS SMTP connections.
-- **v9.1.8:** [#696](https://github.com/bbottema/simple-java-mail/issues/696), [#697](https://github.com/bbottema/simple-java-mail/issues/697): **Connection-pool resets:** the max-size and claim-timeout reset methods now restore their own settings without changing the core size or connection expiry.
-- **v9.1.7:** [#682](https://github.com/bbottema/simple-java-mail/issues/682): **Dedicated CLI recipient options:** restore independent `--email:to`, `--email:cc`, and `--email:bcc` options so one command can combine all three recipient types.
-- **v9.1.6:** [#681](https://github.com/bbottema/simple-java-mail/issues/681): **Spring configuration isolation:** stop packaging the Spring test `application.properties` in `spring-module`. Sample local-bind, SMTP client-hostname, transfer-encoding, and other test values can no longer override an application's YAML configuration or break SMTP connections.
-- **v9.1.5:** [#674](https://github.com/bbottema/simple-java-mail/issues/674), [#675](https://github.com/bbottema/simple-java-mail/issues/675): **SOCKS5 domain framing:** place the port after the UTF-8-encoded domain bytes and decode domain replies after their length octet, fixing internationalized-host requests and reply diagnostics.
-- **v9.1.4:** [#669](https://github.com/bbottema/simple-java-mail/issues/669), [#670](https://github.com/bbottema/simple-java-mail/issues/670): **EML file stream ownership:** close streams created internally by the `File`-based EML conversion overloads after synchronous parsing, while leaving caller-provided `InputStream` ownership unchanged.
-- **v9.1.4:** **Java 8-compatible dependency and release-tool maintenance:** updated SpotBugs annotations to 4.10.3 ([#671](https://github.com/bbottema/simple-java-mail/pull/671)), the Central Publishing Maven Plugin to 0.11.0 ([#672](https://github.com/bbottema/simple-java-mail/pull/672)), and Objenesis to 3.6 ([#673](https://github.com/bbottema/simple-java-mail/pull/673)).
-- **v9.1.3:** [#668](https://github.com/bbottema/simple-java-mail/issues/668): **New Outlook inline images:** updated `outlook-message-parser` to 1.16.2 so native-HTML-only `.msg` files match inline `cid:` images correctly and trailing NUL terminators no longer leak into attachment metadata.
-- **v9.1.2:** **Dependency and Java 8-compatible build-tool maintenance:** updated JMail to 2.2.0 ([#663](https://github.com/bbottema/simple-java-mail/pull/663)), Zip4j to 2.11.6 ([#666](https://github.com/bbottema/simple-java-mail/pull/666)), Exec Maven Plugin to 3.6.3 ([#664](https://github.com/bbottema/simple-java-mail/pull/664)), Maven Enforcer Plugin to 3.6.3 ([#665](https://github.com/bbottema/simple-java-mail/pull/665)), and Maven JAR Plugin to 3.5.1 ([#667](https://github.com/bbottema/simple-java-mail/pull/667)).
-- **v9.1.1:** **Java 8 build-tool maintenance** ([#662](https://github.com/bbottema/simple-java-mail/pull/662)): updated annotations and Maven compiler, JAR, OSGi bundle, and Karaf tooling to Java 8-compatible versions, with Dependabot guards against newer-Java-only upgrade lines.
-- **v9.1.0:** [#653](https://github.com/bbottema/simple-java-mail/issues/653): a configurable SMTP client hostname for the `EHLO` / `HELO` command.
-- **v9.1.0:** [#654](https://github.com/bbottema/simple-java-mail/issues/654): SMTP submission receipts for reading the server acceptance response after a send.
-- **v9.1.0:** No breaking changes; existing `sendMail(...)` behavior is unchanged.
-
-[v9.0.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.0) - [v9.0.4](https://github.com/bbottema/simple-java-mail/releases/tag/9.0.4) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.0.4/)
-
-> **Spring-module notice:** Versions 9.0.0 through 9.1.5 package test application settings that can override an application's YAML configuration and prevent SMTP connections. If you use `spring-module`, upgrade to 9.1.6 or later.
-
-#### The Short Version ####
-
-**Simple Java Mail has been going strong-ish for about 20 years**, and **9.0.0** rolls *roughly two years of backlog* into a new major release.
-
-```
-simple-java-mail
-└── outlook-message-parser
-    └── rtf-to-html
-└── java-utils-mail-dkim
-└── java-utils-mail-smime
-└── smtp-connection-pool
-    └── clustered-object-pool
-        └── generic-object-pool
-└── java-socks-proxy-server
+```groovy
+implementation 'org.simplejavamail:simple-java-mail:9.2.0'
 ```
 
-Across Simple Java Mail and the supporting libraries that keep the stack moving, **more than 100 GitHub issues and PRs** were reviewed, fixed, merged, or closed while keeping the project **Java 8-compatible**.
+### Build and send
 
-**Major features:** the dedicated recipient builder API, per-recipient S/MIME certificates, first-class Delivery Status Notification support, pre-encoded attachment and embedded-image sending, mailer-level DKIM defaults, and simple batch/open-connection sending without the batch module.
-**Enhancements:** broader Outlook conversion metadata, MIME resource handling, content-transfer encoding control, debug routing, local SMTP bind configuration, batch cluster configuration, and Java module support.
+```java
+Email email = EmailBuilder.startingBlank()
+    .from("Sender", "sender@example.org")
+    .withRecipients(new RecipientBuilder()
+        .withName("Recipient")
+        .withAddress("recipient@example.net")
+        .withType(Message.RecipientType.TO)
+        .build())
+    .withSubject("It works")
+    .withPlainText("Your first Simple Java Mail message.")
+    .buildEmail();
 
-#### Migration Note ####
+Mailer mailer = MailerBuilder.withSMTPServer(
+        System.getenv("SMTP_HOST"),
+        587,
+        System.getenv("SMTP_USER"),
+        System.getenv("SMTP_PASSWORD"))
+    .withTransportStrategy(TransportStrategy.SMTP_TLS)
+    .buildMailer();
 
-**This is a breaking major release.** The old recipient-addition method jungle has been cleaned up in favor of the **recipient builder API**, so code that relied on the removed recipient overloads needs to migrate. Start with the [9.0 migration notes](https://www.simplejavamail.org/migration-notes-9.0.0.html) before upgrading.
+mailer.sendMail(email);
+```
 
-#### Major Features ####
+The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Before sending, `mailer.testConnection()` checks the SMTP path and `mailer.validate(email)` checks the message. The [complete getting-started guide](https://www.simplejavamail.org/download.html) explains each step.
 
-- **v9.0.0:** [#613](https://github.com/bbottema/simple-java-mail/issues/613): **Recipient builder API:** added dedicated builders for constructing single recipients and recipient collections.
-- **v9.0.0:** [#297](https://github.com/bbottema/simple-java-mail/issues/297): **Per-recipient S/MIME certificates:** enabled encrypted mail for multiple recipients with different certificates.
-- **v9.0.0:** [#574](https://github.com/bbottema/simple-java-mail/issues/574): **Delivery Status Notification (DSN):** added first-class DSN configuration.
-- **v9.0.0:** [#573](https://github.com/bbottema/simple-java-mail/issues/573): **Pre-encoded resources:** added pre-encoded attachment and embedded-image APIs.
-- **v9.0.0:** [#196](https://github.com/bbottema/simple-java-mail/issues/196): **Mailer-level DKIM defaults:** added default DKIM signing configuration so DKIM can be configured once per `Mailer`.
-- **v9.0.0:** [#569](https://github.com/bbottema/simple-java-mail/issues/569): **Simple batch and open-connection sending:** added `sendMailsInSimpleBatch(...)` for sequential batch work without the batch module and `withOpenConnection(...)` for callback-scoped reuse of a single SMTP connection.
+## What the API handles
 
-#### Enhancements ####
+| Job | Support |
+| --- | --- |
+| [Messages and MIME](https://www.simplejavamail.org/features.html#section-basic-usage) | Plain text and HTML alternatives, embedded images, attachments, calendar content, headers, encodings, and the corresponding multipart structure. |
+| [Shared message rules](https://www.simplejavamail.org/configuration.html#section-config-mailer) | Recipient builders, address validation, defaults, enforced overrides, bounce addresses, receipts, and maximum message size. |
+| [Security](https://www.simplejavamail.org/security.html) | TLS and SMTPS, server identity and certificate checks, fixed or refresh-aware OAuth2 tokens, header-injection protection, DKIM, and S/MIME. |
+| [Delivery](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering) | Synchronous and asynchronous sends, a scoped open connection, simple batches, connection pools, and independently configured SMTP clusters. |
+| [Diagnostics](https://www.simplejavamail.org/debugging.html) | Connection tests, message validation, configuration inspection, Jakarta Mail debug routing, logging integrations, and SMTP submission replies. |
+| [Conversion and interoperability](https://www.simplejavamail.org/features.html#section-converting) | Conversion between `Email`, `MimeMessage`, and EML, send-ready serialization, Outlook `.msg` conversion, and custom sending logic. |
 
-- **v9.0.2:** [#645](https://github.com/bbottema/simple-java-mail/issues/645): **Outlook last-modifier metadata:** exposed `PR_LAST_MODIFIER_NAME` / `0x3FFA` as `OutlookMessageData#getLastModifierName()` without treating it as sender identity.
-- **v9.0.0:** [#614](https://github.com/bbottema/simple-java-mail/issues/614): **Outlook conversion metadata:** added explicit result APIs for inspecting source `.msg` headers and metadata without copying structural headers into converted emails, resolving [#609](https://github.com/bbottema/simple-java-mail/issues/609).
-- **v9.0.0:** [#605](https://github.com/bbottema/simple-java-mail/issues/605): **Per-body content-transfer encoding:** added `Content-Transfer-Encoding` configuration for plain text, HTML, and calendar content.
-- **v9.0.0:** [#566](https://github.com/bbottema/simple-java-mail/issues/566), [#597](https://github.com/bbottema/simple-java-mail/issues/597), [#602](https://github.com/bbottema/simple-java-mail/issues/602), [#607](https://github.com/bbottema/simple-java-mail/issues/607): **MIME resource `Content-ID` handling:** improved explicit IDs, parsed embedded images, and generated fallback IDs.
-- **v9.0.0:** [#589](https://github.com/bbottema/simple-java-mail/issues/589): **Jakarta Mail debug output:** added configurable debug output routing.
-- **v9.0.0:** [#568](https://github.com/bbottema/simple-java-mail/issues/568): **Local SMTP bind address:** added configuration for multi-IP SMTP hosts.
-- **v9.0.0:** [#565](https://github.com/bbottema/simple-java-mail/issues/565), [#618](https://github.com/bbottema/simple-java-mail/issues/618): **Batch cluster configuration:** fixed Java API cluster configuration and added property-defined cluster configurations for property-file and Spring-configured clustered sending.
-- **v9.0.0:** [#572](https://github.com/bbottema/simple-java-mail/issues/572), [#571](https://github.com/bbottema/simple-java-mail/issues/571): **S/MIME conversion leniency:** tolerate unsupported S/MIME payloads during Outlook conversion and preserve parsed email content when signature verification fails.
-- **v9.0.0:** [#606](https://github.com/bbottema/simple-java-mail/issues/606): **MIME type sanitizing:** sanitize malformed resource MIME types before generating attachment and embedded-image headers.
-- **v9.0.0:** [#541](https://github.com/bbottema/simple-java-mail/issues/541): **Resource headers:** removed the non-standard `filename` parameter from resource `Content-Type` headers; filenames remain available through `Content-Disposition`.
-- **v9.0.0:** [#265](https://github.com/bbottema/simple-java-mail/issues/265), [#237](https://github.com/bbottema/simple-java-mail/issues/237): **Java module support:** added Java 9 module descriptors to the core and facade jars so modular applications can require `org.simplejavamail` directly.
+## Configure once, reuse everywhere
 
-#### Fixes and Compatibility ####
+A `Mailer` keeps SMTP settings, transport policy, defaults, overrides, validation, signing, proxy configuration, and delivery behavior out of individual call sites. Configure it with the [Java builder API](https://www.simplejavamail.org/configuration.html#section-programmatic-api-common), [property files, system properties, or environment variables](https://www.simplejavamail.org/configuration.html#section-config-properties), or let the [Spring module](https://www.simplejavamail.org/configuration.html#section-spring-support) create and inject it.
 
-- **v9.0.4:** [#652](https://github.com/bbottema/simple-java-mail/issues/652): **RFC 2047 address validation:** reject encoded-word syntax inside address specs during validation while keeping encoded display names valid.
-- **v9.0.3:** [#651](https://github.com/bbottema/simple-java-mail/issues/651): **Outlook plain-text RTF rendering:** preserved line breaks without exposing browser-default `<pre>` styling in converted HTML.
-- **v9.0.0:** [#615](https://github.com/bbottema/simple-java-mail/issues/615): **Async test connections:** fixed `MailerGenericBuilder.async()` so no-arg `testConnection()` uses the configured async default.
-- **v9.0.0:** [#611](https://github.com/bbottema/simple-java-mail/issues/611): **SMTPS custom SSL socket factories:** fixed custom SSL socket factory configuration for SMTPS mailers.
-- **v9.0.0:** [#535](https://github.com/bbottema/simple-java-mail/issues/535): **Async failure reporting:** let async send and connection-test failures surface through the returned `CompletableFuture` without duplicate framework error logs.
-- **v9.0.0:** [#583](https://github.com/bbottema/simple-java-mail/issues/583): **Java 25 CLI startup:** fixed CLI startup on Java 25.
-- **v9.0.0:** [#616](https://github.com/bbottema/simple-java-mail/issues/616): **CLI optional-argument detection:** removed the runtime JetBrains annotation fork from CLI optional-argument detection.
-- **v9.0.0:** **Standalone CLI command cleanup:** `send`, `connect`, and `validate` now wait for command work and close mailer resources, preventing batch-module resources from keeping the process alive.
+This leaves application code to describe each email while shared rules stay in one reusable place.
 
-#### Dependency and Supporting-Library Updates ####
+## Add only what you need
 
-- **v9.0.3:** **Angus runtime alignment:** bumped Angus Mail to 2.0.5 and added Angus Activation 2.0.3.
-- **v9.0.3:** **Logging dependencies:** bumped Log4j from 2.25.4 to 2.26.1.
-- **v9.0.2:** **Jakarta API alignment:** bumped Jakarta Mail API to 2.1.5 and Jakarta Activation API to 2.1.4.
-- **v9.0.0:** **Core dependency maintenance:** bumped JMail to 2.1.0 ([#634](https://github.com/bbottema/simple-java-mail/pull/634)), commons-io to 2.22.0 ([#579](https://github.com/bbottema/simple-java-mail/pull/579), [#627](https://github.com/bbottema/simple-java-mail/pull/627)), Kryo to 5.6.2 ([#586](https://github.com/bbottema/simple-java-mail/pull/586)), Zip4j to 2.11.5 ([#587](https://github.com/bbottema/simple-java-mail/pull/587)), SubEthaSMTP to 7.2.2 ([#593](https://github.com/bbottema/simple-java-mail/pull/593), [#632](https://github.com/bbottema/simple-java-mail/pull/632)), Angus Mail to 2.0.4 ([#604](https://github.com/bbottema/simple-java-mail/pull/604)), Objenesis to 3.5 ([#580](https://github.com/bbottema/simple-java-mail/pull/580), [#635](https://github.com/bbottema/simple-java-mail/pull/635)), Lombok to 1.18.46 ([#636](https://github.com/bbottema/simple-java-mail/pull/636)), AssertJ Core to 3.27.7 ([#622](https://github.com/bbottema/simple-java-mail/pull/622)), and SpotBugs annotations to 4.10.2 ([#629](https://github.com/bbottema/simple-java-mail/pull/629)).
-- **v9.0.0:** **Logging dependencies:** aligned Log4j to 2.25.4 ([#624](https://github.com/bbottema/simple-java-mail/pull/624)) and SLF4J API to 2.0.18 ([#631](https://github.com/bbottema/simple-java-mail/pull/631)), keeping the Log4j bridge on `log4j-slf4j2-impl` for SLF4J 2.x.
+Optional modules extend the same API and add their dependencies only when selected. Use the same Simple Java Mail version for every module. Some integration artifacts already depend on `simple-java-mail`; the modules guide notes when you do not need to declare it separately.
 
-##### Supporting Libraries #####
+| Requirement | Artifact |
+| --- | --- |
+| [DKIM domain signing](https://www.simplejavamail.org/modules.html#dkim-module) | `dkim-module` |
+| [S/MIME signing, encryption, and reading](https://www.simplejavamail.org/modules.html#smime-module) | `smime-module` |
+| [Pooled and clustered delivery](https://www.simplejavamail.org/modules.html#batch-module) | `batch-module` |
+| [Authenticated SOCKS proxies](https://www.simplejavamail.org/modules.html#authenticated-socks-module) | `authenticated-socks-module` |
+| [Outlook `.msg` parsing and conversion](https://www.simplejavamail.org/modules.html#outlook-module) | `outlook-module` |
+| [Spring-managed configuration](https://www.simplejavamail.org/modules.html#spring-module) | `spring-module` |
+| [Command-line sending and validation](https://www.simplejavamail.org/modules.html#cli-module) | `cli-module` |
+| [OSGi and Apache Karaf](https://www.simplejavamail.org/modules.html#karaf-module) | `karaf-module` |
 
-- **v9.0.3:** **`outlook-message-parser` 1.16.1 / `rtf-to-html` 2.0.2:** fixed browser-default `<pre>` styling in Outlook plain-text RTF conversion ([#651](https://github.com/bbottema/simple-java-mail/issues/651)).
-- **v9.0.2:** **`outlook-message-parser` 1.16.0:** added source last-modifier metadata used by `OutlookMessageData#getLastModifierName()`.
-- **v9.0.0:** **`utils-mail-dkim` 3.3.0:** added configurable DNS provider URL support for DKIM domain-key TXT lookups, fixed the published automatic module name, and kept packaged artifacts free of JaCoCo probes.
-- **v9.0.0:** **`clustered-object-pool` 4.0.1** ([#6](https://github.com/bbottema/clustered-object-pool/issues/6)): added cluster-specific Java configuration for pool defaults, claim timeout, and load balancing.
-- **v9.0.0:** **`smtp-connection-pool` 3.0.1** ([#8](https://github.com/simple-java-mail/smtp-connection-pool/issues/8)): pulled in `clustered-object-pool` 4.0.1 so the batch-module fix for [#565](https://github.com/bbottema/simple-java-mail/issues/565) can keep connection-pool defaults per cluster key.
-- **v9.0.0:** **`smtp-connection-pool` 3.0.0:** made clustered SMTP pools generic over their cluster-key type and kept already-unusable connections from surfacing as generic pool error logs during transport close.
-- **v9.0.0:** **`java-socks-proxy-server` 4.2.0:** updated SOCKS live tests to use dynamic proxy ports instead of fixed ports.
-- **v9.0.0:** **`outlook-message-parser` 1.15.0:** improved Outlook `.msg` conversion by preserving nested message attachment metadata, fixing sent-date extraction ([#534](https://github.com/bbottema/simple-java-mail/issues/534)), fixing recipient bucket parsing ([#504](https://github.com/bbottema/simple-java-mail/issues/504)), broadening S/MIME detection, improving RTF-only body conversion ([#576](https://github.com/bbottema/simple-java-mail/issues/576)), and updating Apache POI.
+The [modules guide](https://www.simplejavamail.org/modules.html) lists each coordinate, its main transitive dependencies, and the capabilities it enables.
 
-##### Build and Test Maintenance #####
+## Jakarta Mail remains available
 
-- **v9.0.3:** **Build maintenance:** bumped Maven Source Plugin to 3.4.0, NotNull Instrumenter Maven Plugin to 1.1.1, and Mycila License Maven Plugin to 4.6.
-- **v9.0.2:** **Build maintenance:** bumped Maven Assembly Plugin to 3.8.0 and Nexus Staging Maven Plugin to 1.7.0, and extended Dependabot guards for Java 11-only plugin lines.
-- **v9.0.1:** **Release packaging:** restored generated license headers in published source JARs and enabled publication of the standalone CLI ZIP and TAR classifier artifacts.
-- **v9.0.0:** **Build plugins and test stack:** bumped Maven Surefire Plugin to 3.5.6 ([#592](https://github.com/bbottema/simple-java-mail/pull/592), [#625](https://github.com/bbottema/simple-java-mail/pull/625)), Maven Clean Plugin to 3.5.0 ([#626](https://github.com/bbottema/simple-java-mail/pull/626)), Appassembler Maven Plugin to 2.1.0 ([#581](https://github.com/bbottema/simple-java-mail/pull/581)), Exec Maven Plugin to 3.5.0 ([#582](https://github.com/bbottema/simple-java-mail/pull/582)), Maven Deploy Plugin to 3.1.4 ([#619](https://github.com/bbottema/simple-java-mail/pull/619)), Maven Install Plugin to 3.1.4 ([#639](https://github.com/bbottema/simple-java-mail/pull/639)), Maven Javadoc Plugin to 3.12.0 ([#637](https://github.com/bbottema/simple-java-mail/pull/637)), Maven GPG Plugin to 3.2.8 ([#621](https://github.com/bbottema/simple-java-mail/pull/621)), and JaCoCo Maven Plugin to 0.8.15 ([#638](https://github.com/bbottema/simple-java-mail/pull/638)); aligned JUnit Platform/Jupiter at 1.14.4/5.14.4 while preserving Java 8 compatibility ([#596](https://github.com/bbottema/simple-java-mail/pull/596), [#633](https://github.com/bbottema/simple-java-mail/pull/633)); kept JUnit Pioneer on 1.9.1 because 2.x is Java 11 bytecode ([#630](https://github.com/bbottema/simple-java-mail/pull/630)); added Java 8 Dependabot guards; and replaced live embedded-image URL tests with deterministic local coverage ([#617](https://github.com/bbottema/simple-java-mail/issues/617)).
+Simple Java Mail handles the higher-level work involved in outbound email while keeping Jakarta Mail within reach. When needed, you can:
 
-The full stand-alone release history is maintained in [RELEASE_HISTORY.md](RELEASE_HISTORY.md).
+- [build a mailer around your own `Session`](https://www.simplejavamail.org/features.html#section-custom-session);
+- [add raw Jakarta Mail properties](https://www.simplejavamail.org/features.html#section-custom-properties);
+- [access the effective `Session`](https://www.simplejavamail.org/features.html#section-session-access);
+- convert an `Email` to a `MimeMessage` for inspection or integration;
+- [provide the final sending implementation](https://www.simplejavamail.org/features.html#section-custom-mailer).
+
+## Documentation by task
+
+| If you want to... | Start here |
+| --- | --- |
+| Send the first message | [Get started](https://www.simplejavamail.org/download.html) |
+| Build rich content and recipients | [Capabilities](https://www.simplejavamail.org/features.html) |
+| Configure an application | [Configuration](https://www.simplejavamail.org/configuration.html) |
+| Protect transport and message content | [Security](https://www.simplejavamail.org/security.html) |
+| Test, inspect, or diagnose a send | [Diagnostics](https://www.simplejavamail.org/debugging.html) |
+| Understand multipart structures | [MIME and interoperability](https://www.simplejavamail.org/rfc-compliant.html) |
+| Choose an optional artifact | [Modules](https://www.simplejavamail.org/modules.html) |
+| Compare Java mail libraries | [Comparison](https://www.simplejavamail.org/feature-matrix.html) |
+| Upgrade existing code | [9.2 migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) |
+| Ask a question or contribute | [Help and contribute](https://www.simplejavamail.org/contact.html) |
+
+## Current release
+
+The current release is **9.2.0**.
+
+[GitHub release](https://github.com/bbottema/simple-java-mail/releases/tag/9.2.0) · [Maven Central artifacts](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.2.0/) · [Migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) · [Complete release history](RELEASE_HISTORY.md)
+
+Read the migration guide before upgrading from an older release when source compatibility, defaults, security behavior, or configuration precedence matters to your application.
+
+## Develop and contribute
+
+Simple Java Mail is open source under the Apache License 2.0. It was first published in 2009 and is maintained by Benny Bottema with contributions from its users and the surrounding open-source projects.
+
+- Use the [issue tracker](https://github.com/bbottema/simple-java-mail/issues) for reproducible bugs and concrete feature ideas.
+- Read [DEVELOPMENT.md](DEVELOPMENT.md) for the supported JDKs and local build setup.
+- Read the [project mechanisms catalogue](PROJECT_MECHANISMS_CATALOGUE.md) before changing module loading, CLI metadata, MIME selection, proxy bridging, concurrency, or non-null instrumentation.
+- Follow the [API expansion workflow](API_EXPANSION_WORKFLOW.md) when adding a public field or builder method.
+- Use [Help and contribute](https://www.simplejavamail.org/contact.html) to choose the right public channel or arrange private follow-up for a sensitive report.
+
+## License
+
+Simple Java Mail is licensed under the [Apache License 2.0](LICENSE).

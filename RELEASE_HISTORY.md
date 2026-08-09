@@ -1,6 +1,6 @@
 # Release History
 
-Full Simple Java Mail release history. [README.md](README.md#latest-progress) also mirrors recent progress for quick scanning.
+Full Simple Java Mail release history. The [README](README.md#current-release) links to the current release without duplicating these notes.
 
 ## [v9.2.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.2.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.2.0/)
 

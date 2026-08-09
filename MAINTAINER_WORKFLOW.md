@@ -263,21 +263,20 @@ For release artifact checks, inspect the published source jars rather than commi
 
 For user-facing changes:
 
-- Update `README.md` release notes.
-- Keep `RELEASE.txt` in sync with the README release notes.
-- Keep `RELEASE_HISTORY.md` complete and stand-alone.
+- Update the current version, dependency examples, and versioned release links in `README.md`. Keep its landing-page copy stable unless the release changes the project's lasting developer story.
+- Keep `RELEASE.txt` and `RELEASE_HISTORY.md` aligned and complete.
 - Update website source under `simplejavamail.org` for API/config documentation changes, but do not push the website unless explicitly approved.
 - Add migration notes for behavior changes, removed API, changed defaults, or compatibility-impacting fixes.
 
 Release-note retention:
 
 - `RELEASE.txt` keeps the full release history.
-- `RELEASE_HISTORY.md` also keeps the full release history and must stand alone. It starts with the latest release and continues through the archive; do not move notes out of it just because README shows recent progress too.
-- `README.md` shows recent progress, not the full archive. Keep everything under one `Latest progress` heading.
-- Keep the last major release visible in `README.md` until a newer major release exists, even after minor or patch releases ship.
+- `RELEASE_HISTORY.md` also keeps the full release history and must stand alone. It starts with the latest release and continues through the archive.
+- `README.md` is the repository's developer landing page, not a release-note surface. Keep its `Current release` section to the current version and direct links to the GitHub release, Maven Central artifacts, migration guide, and `RELEASE_HISTORY.md`; do not copy release bullets or retain previous release lines there.
+- Update the Maven example, Gradle example, `Current release` label, tag link, and Maven Central directory together. Review the migration link separately and keep it pointed at the guide that actually applies to the release line.
 - Major releases create the primary release-note story. A narrative section such as `The Short Version` is acceptable for a major release when it helps explain the release line.
 - Regular minor and patch releases should usually be concise bullets that speak for themselves and link to GitHub issues for details. Do not force the major-release narrative format onto ordinary releases.
-- Keep the latest-release notes aligned across `README.md`, `RELEASE.txt`, `RELEASE_HISTORY.md`, and the GitHub release body, with detail level adjusted to each surface. Alignment does not permit the GitHub release body to delegate its content to another file.
+- Keep the latest-release notes aligned across `RELEASE.txt`, `RELEASE_HISTORY.md`, and the GitHub release body, with detail level adjusted to each surface. Keep the README's version and release links aligned without duplicating those notes. Alignment does not permit the GitHub release body to delegate its content to another file.
 - Minor releases normally create their own primary release-note entry. If a minor release follows closely in the wake of a major release and is still part of that same release wave, absorb it into the current major-line notes instead.
 - Patch releases are absorbed into their parent minor release notes in the same primary note style. Do not create a separate patch-release story unless the user explicitly asks.
 - When a patch is absorbed, place each change in the section where it belongs: bug fixes under fixes, dependency bumps under dependencies, packaging fixes under build/release maintenance, and API/docs additions under the relevant feature or enhancement section.
@@ -368,7 +367,7 @@ Before release:
 1. Perform the defensive Dependabot sweep below against the current `develop` branch.
 2. Merge every safe, release-ready patch-level library update selected by the sweep into `develop`.
 3. Run the full JDK 8 verification on the final release candidate, including the lifted dependency patches.
-4. Confirm README and `RELEASE.txt` are in sync and include a compact dependency-maintenance note when patches were lifted.
+4. Confirm the README's current version and release links match the release candidate, and confirm `RELEASE.txt` and `RELEASE_HISTORY.md` include a compact dependency-maintenance note when patches were lifted.
 5. Create or reuse the exact-version GitHub milestone, without a `v` prefix, set its due date to the planned release date, and keep it open during the release.
 6. Assign all release issues and PRs to it, including applicable closed Dependabot PRs and maintenance roll-ups.
 7. Cross-check the version's release-note issue and PR links against milestone membership.
@@ -497,6 +496,7 @@ For a release task:
 - CLI standalone ZIP/TAR exist for `cli-module`.
 - The GitHub release has the CLI standalone ZIP/TAR and sample `log4j2_example.xml` logging configuration assets.
 - A separate GitHub release exists for the current tag; it is not folded into another tag's release.
+- The README's Maven and Gradle examples, current-release label, tag link, and Maven Central link all match the published version, and its migration link points to the applicable guide.
 - The GitHub release body is self-contained and tag-specific: it identifies that version's changes and compatibility impact without relying on README, release-history, issue, or pull-request links for essential meaning.
 - The GitHub release body contains no build/test verification evidence or internal release-process commentary.
 - Every multi-version repository release-note section has version-prefixed bullets ordered newest first.
