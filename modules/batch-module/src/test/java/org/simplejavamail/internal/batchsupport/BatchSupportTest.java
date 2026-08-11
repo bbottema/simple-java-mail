@@ -8,6 +8,7 @@ import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.batch.BatchTransportException;
 import org.simplejavamail.smtpconnectionpool.SessionTransport;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
@@ -22,12 +23,33 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY;
 
 class BatchSupportTest {
+
+	@Test
+	void registerToClusterDoesNotInstantiateAProbeTransportForTheMailerAdapter() throws Exception {
+		BatchSupport batchSupport = new BatchSupport();
+		UUID cluster = UUID.randomUUID();
+		Session session = mock(Session.class);
+		when(session.getProperties()).thenReturn(new Properties());
+
+		try {
+			batchSupport.registerToCluster(operationalConfig(0, 1, 1000, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, session);
+
+			verify(session, never()).getTransport();
+		} finally {
+			batchSupport.shutdownConnectionPools(session).get();
+		}
+		assertThatThrownBy(() -> batchSupport.acquireTransport(cluster, session, true))
+				.isInstanceOf(BatchTransportException.class)
+				.hasMessageContaining("No Sessions are registered");
+	}
 
 	@Test
 	void acquireTransportShouldBridgeAndResolveOAuth2TokenProvider() throws Exception {

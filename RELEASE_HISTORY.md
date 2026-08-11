@@ -2,6 +2,14 @@
 
 Full Simple Java Mail release history. The [README](README.md#current-release) links to the current release without duplicating these notes.
 
+## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.0/)
+
+- [#698](https://github.com/bbottema/simple-java-mail/issues/698): **Standalone batch-module API:** added `BatchTransportExecutor` for applications that build their own Jakarta Mail messages but want clustered or exact-Session callbacks, futures, automatic connection release/invalidation, and deterministic lifecycle management.
+
+### Supporting Libraries
+
+- **smtp-connection-pool 4.0.1:** adopted the explicit `SmtpTransportLease` contract used by both the standalone facade and the existing Simple Java Mail `Mailer` integration. The complete generic, clustered, SMTP, and batch dependency chain now publishes stable JPMS automatic module names. The Jakarta `smtppool` provider remains a parallel choice and must not be nested beneath the batch-owned pool.
+
 ## [v9.2.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.2.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.2.0/)
 
 - [#692](https://github.com/bbottema/simple-java-mail/issues/692): added refresh-aware OAuth2 access-token providers for long-lived Mailers.

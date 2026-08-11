@@ -33,7 +33,65 @@
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>smtp-connection-pool</artifactId>
-            <version>3.1.0</version>
+            <version>4.0.1</version>
         </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>verify-jpms-module-path</id>
+            <activation>
+                <jdk>[9,)</jdk>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.8.1</version>
+                        <executions>
+                            <execution>
+                                <id>build-jpms-module-path</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>build-classpath</goal>
+                                </goals>
+                                <configuration>
+                                    <includeArtifactIds>jakarta.mail-api,jakarta.activation-api,generic-object-pool,clustered-object-pool,smtp-connection-pool</includeArtifactIds>
+                                    <includeScope>compile</includeScope>
+                                    <outputFile>${project.build.directory}/jpms-module-path.txt</outputFile>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>verify-jpms-module-path</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <loadfile property="dependencyModulePath"
+                                                  srcFile="${project.build.directory}/jpms-module-path.txt" />
+                                        <mkdir dir="${project.build.directory}/jpms-consumer-classes" />
+                                        <javac srcdir="${project.basedir}/src/test/jpms"
+                                               destdir="${project.build.directory}/jpms-consumer-classes"
+                                               modulepath="${project.build.directory}/${project.build.finalName}.jar${path.separator}${dependencyModulePath}"
+                                               release="9"
+                                               includeantruntime="false" />
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

@@ -1,20 +1,13 @@
 package org.simplejavamail.internal.batchsupport;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.mail.Session;
-import lombok.val;
-import org.bbottema.clusteredobjectpool.core.api.ResourceKey.ResourceClusterAndPoolKey;
-import org.bbottema.genericobjectpool.PoolableObject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
-import org.simplejavamail.smtpconnectionpool.SessionTransport;
-import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +17,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
-import static java.util.Optional.ofNullable;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.simplejavamail.internal.batchsupport.BatchException.ERROR_ACQUIRING_KEYED_POOLABLE;
-import static org.simplejavamail.internal.batchsupport.ClusterHelper.compareClusterConfig;
-import static org.simplejavamail.internal.batchsupport.ClusterHelper.configureSmtpClusterConfig;
 
 /**
  * This class only serves to hide the Batch implementation behind an easy-to-load-with-reflection class.
@@ -41,6 +29,8 @@ public class BatchSupport implements BatchModule {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchSupport.class);
 
 	// no need to make this static, because this module itself is already static in the ModuleLoader
+	@Nullable private BatchTransportEngine<UUID> batchTransportEngine;
+	// Retained as a direct field for diagnostics and compatibility with existing internal tests.
 	@Nullable private SmtpConnectionPoolClustered<UUID> smtpConnectionPool;
 
 	/**
@@ -74,28 +64,18 @@ public class BatchSupport implements BatchModule {
 	 */
 	@Override
 	public synchronized void registerToCluster(@NotNull final OperationalConfig operationalConfig, @NotNull final UUID clusterKey, @NotNull final Session session) {
-		ensureClusterInitialized(operationalConfig);
-		ensureClusterRegistered(operationalConfig, clusterKey);
-		final ResourceClusterAndPoolKey<UUID, Session> poolKey = new ResourceClusterAndPoolKey<>(clusterKey, session);
-		if (!requireNonNull(smtpConnectionPool).isPoolRegistered(poolKey)) {
-			smtpConnectionPool.registerResourcePool(poolKey);
+		ensureEngineInitialized(operationalConfig);
+		if (requireNonNull(batchTransportEngine).register(clusterKey, session, PoolSettings.from(operationalConfig, clusterKey))) {
+			LOGGER.warn("SMTP Connection pool cluster {} is already configured with pool defaults from the first Mailer instance in that cluster; ignoring later pool settings",
+					clusterKey);
 		}
 	}
 
-	private void ensureClusterInitialized(@NotNull OperationalConfig operationalConfig) {
-		if (smtpConnectionPool == null) {
+	private void ensureEngineInitialized(@NotNull OperationalConfig operationalConfig) {
+		if (batchTransportEngine == null) {
 			LOGGER.warn("Starting SMTP connection pool cluster: JVM won't shutdown until the pool is manually closed with mailer.shutdownConnectionPool() (for each mailer in the cluster)");
-			smtpConnectionPool = new SmtpConnectionPoolClustered<>(configureSmtpClusterConfig(operationalConfig));
-		}
-	}
-
-	private void ensureClusterRegistered(@NotNull OperationalConfig operationalConfig, @NotNull UUID clusterKey) {
-		val smtpConnectionPool = requireNonNull(this.smtpConnectionPool);
-		if (!smtpConnectionPool.isClusterRegistered(clusterKey)) {
-			smtpConnectionPool.registerResourceCluster(clusterKey, configureSmtpClusterConfig(operationalConfig, clusterKey).getConfigBuilder().build());
-		} else if (compareClusterConfig(operationalConfig, clusterKey, smtpConnectionPool.getClusterConfig(clusterKey))) {
-			LOGGER.warn("SMTP Connection pool cluster {} is already configured with pool defaults from the first Mailer instance in that cluster, ignoring relevant properties from {}",
-					clusterKey, operationalConfig);
+			batchTransportEngine = new BatchTransportEngine<>(PoolSettings.from(operationalConfig, null));
+			smtpConnectionPool = batchTransportEngine.getSmtpConnectionPool();
 		}
 	}
 
@@ -104,39 +84,10 @@ public class BatchSupport implements BatchModule {
 	 */
 	@NotNull
 	@Override
-	@SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH", justification = "This is bullshit, Spotbugs. There's a requireNonNull() right in front of you, you numbnuts")
 	public LifecycleDelegatingTransport acquireTransport(@NotNull final UUID clusterKey, @NotNull final Session session, boolean stickySession) {
-		val smtpConnectionPool = requireNonNull(this.smtpConnectionPool, "Connection pool used before it was initialized. This shouldn't be possible.");
-		checkConfigureOAuth2Token(session);
-
-		return ofNullable(getSessionTransportPoolableObject(smtpConnectionPool, clusterKey, session, stickySession))
-					.map(LifecycleDelegatingTransportImpl::new)
-					.orElseThrow(() -> new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session)));
-	}
-
-	@Nullable
-	private PoolableObject<SessionTransport> getSessionTransportPoolableObject(SmtpConnectionPoolClustered<UUID> smtpConnectionPool, UUID clusterKey, Session session, boolean stickySession) {
-		try {
-			return stickySession
-					? smtpConnectionPool.claimResourceFromPool(new ResourceClusterAndPoolKey<>(clusterKey, session))
-					: smtpConnectionPool.claimResourceFromCluster(clusterKey);
-		} catch (InterruptedException e) {
-			throw new BatchException(format(ERROR_ACQUIRING_KEYED_POOLABLE, session), e);
-		}
-	}
-
-	// since the SMTP connection pool doesn't know about Simple Java Mail,
-	// it won't know where to look for the OAUTH2 token unless we copy the property
-	private void checkConfigureOAuth2Token(Session session) {
-		val props = session.getProperties();
-		if (props.containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY)) {
-			props.setProperty(SmtpConnectionPool.OAUTH2_TOKEN_PROPERTY,
-					props.getProperty(TransportStrategy.OAUTH2_TOKEN_PROPERTY));
-		}
-		if (props.containsKey(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY)) {
-			props.put(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY,
-					props.get(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY));
-		}
+		final BatchTransportEngine<UUID> engine = requireNonNull(batchTransportEngine,
+				"Connection pool used before it was initialized. This shouldn't be possible.");
+		return new LifecycleDelegatingTransportImpl(engine, engine.claim(clusterKey, stickySession ? session : null));
 	}
 
 	/**
@@ -145,10 +96,10 @@ public class BatchSupport implements BatchModule {
 	@NotNull
 	@Override
 	public Future<Void> shutdownConnectionPools(@NotNull Session session) {
-		if (smtpConnectionPool == null) {
+		if (batchTransportEngine == null) {
 			LOGGER.warn("user requested connection pool shutdown, but there is no connection pool to shut down (yet)");
 			return completedFuture(null);
 		}
-		return smtpConnectionPool.shutdownPool(session);
+		return batchTransportEngine.shutdownPool(session);
 	}
 }

@@ -23,14 +23,14 @@ Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, t
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.2.0</version>
+    <version>9.3.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'org.simplejavamail:simple-java-mail:9.2.0'
+implementation 'org.simplejavamail:simple-java-mail:9.3.0'
 ```
 
 ### Build and send
@@ -121,9 +121,9 @@ Simple Java Mail handles the higher-level work involved in outbound email while 
 
 ## Current release
 
-The current release is **9.2.0**.
+The current release is **9.3.0**.
 
-[GitHub release](https://github.com/bbottema/simple-java-mail/releases/tag/9.2.0) · [Maven Central artifacts](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.2.0/) · [Migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) · [Complete release history](RELEASE_HISTORY.md)
+[GitHub release](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) · [Maven Central artifacts](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.0/) · [Migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) · [Complete release history](RELEASE_HISTORY.md)
 
 Read the migration guide before upgrading from an older release when source compatibility, defaults, security behavior, or configuration precedence matters to your application.
 
