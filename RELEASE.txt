@@ -3,11 +3,12 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.3.1</version>
+    <version>9.3.2</version>
 </dependency>
 
-v9.3.0 - v9.3.1
+v9.3.0 - v9.3.2
 
+- **v9.3.2:** #702: clarified the single-address contract of RecipientBuilder by renaming its misleading implementation parameter and validation label; use RecipientsBuilder for comma- or semicolon-delimited address lists.
 - **v9.3.1:** Updated Maven Antrun Plugin from 3.1.0 to 3.2.0 (#700) and Maven Dependency Plugin from 3.8.1 to 3.11.0 (#701), retaining Java 8 compatibility.
 - **v9.3.0:** #698: exposed batch-module as a supported standalone Jakarta Mail orchestration API with clustered and exact-Session callbacks, asynchronous submission, automatic lease release/invalidation, and deterministic graceful or forced shutdown.
 - **v9.3.0:** Updated smtp-connection-pool from 3.1.0 to 4.0.1 and migrated the existing Mailer integration to its explicit SmtpTransportLease contract. The complete generic, clustered, SMTP, and batch dependency chain now publishes stable JPMS automatic module names.

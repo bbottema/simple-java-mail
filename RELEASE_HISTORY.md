@@ -2,8 +2,9 @@
 
 Full Simple Java Mail release history. The [README](README.md#current-release) links to the current release without duplicating these notes.
 
-## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [v9.3.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.1) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.1/)
+## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [v9.3.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.1) - [v9.3.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.2) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.2/)
 
+- **v9.3.2:** [#702](https://github.com/bbottema/simple-java-mail/issues/702): **Recipient address clarity:** renamed the misleading `oneOrMoreAddresses` implementation parameter and validation label to `address`; `RecipientBuilder` builds one recipient, while `RecipientsBuilder` accepts comma- or semicolon-delimited address lists.
 - **v9.3.1:** **Java 8-compatible JPMS build-tool maintenance:** updated Maven Antrun Plugin from 3.1.0 to 3.2.0 ([#700](https://github.com/bbottema/simple-java-mail/pull/700)) and Maven Dependency Plugin from 3.8.1 to 3.11.0 ([#701](https://github.com/bbottema/simple-java-mail/pull/701)).
 - **v9.3.0:** [#698](https://github.com/bbottema/simple-java-mail/issues/698): **Standalone batch-module API:** added `BatchTransportExecutor` for applications that build their own Jakarta Mail messages but want clustered or exact-Session callbacks, futures, automatic connection release/invalidation, and deterministic lifecycle management.
 
