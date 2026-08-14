@@ -286,11 +286,12 @@ Release-note retention:
 - Never combine changes first released in different versions into one bullet. Split mixed maintenance or dependency summaries by release version so every prefix remains unambiguous.
 - Create one GitHub release for every published tag, including patches whose repository notes are absorbed into a version range. Never omit a patch release or fold it into an adjacent tag's GitHub release.
 - Every GitHub release title and body must describe one tag only; never roll multiple versions into a GitHub release title or treat another tag's changes as part of that release.
-- Write every GitHub release body as one concise, natural-language sentence. Lead with linked issue or pull-request references, summarize the user-visible outcome, and optionally end with one directly relevant documentation link.
-- Keep the one-sentence format when a release contains multiple items: link each included issue or pull request and summarize the group without expanding into headings or bullets.
-- Do not add an introductory blurb, headings, bullet lists, compatibility boilerplate, implementation detail, or release-process commentary. Include a compatibility fact only when users need it, and keep it inside the same sentence.
+- For a release with one issue or pull request, write the GitHub release body as one concise, natural-language sentence. Lead with the linked issue or pull request, summarize the user-visible outcome, and optionally end with one directly relevant documentation link.
+- For a release with multiple issues or pull requests, use one concise bullet per item. Start every bullet with its linked issue or pull request, summarize that item's user-visible outcome in one sentence, and optionally end that bullet with one directly relevant documentation link.
+- Do not add an introductory blurb, headings, compatibility boilerplate, implementation detail, or release-process commentary. Use bullets only for releases with multiple items, and include a compatibility fact only when users need it.
 - A documentation link may support the summary but must not replace it. Do not point readers generically to `README.md`, `RELEASE_HISTORY.md`, or "the release notes."
-- Use this shape: `Fixed [#702](issue-url): clarified that RecipientBuilder accepts one address, while RecipientsBuilder handles address lists; see the [recipient builder examples](docs-url).`
+- Use this single-item shape: `Fixed [#702](issue-url): clarified that RecipientBuilder accepts one address, while RecipientsBuilder handles address lists; see the [recipient builder examples](docs-url).`
+- Use this multi-item shape, with no text before or after the list: `- Fixed [#701](issue-url): corrected the first user-visible problem.` followed by `- Added [#702](issue-url): introduced the second user-visible outcome; see the [usage guide](docs-url).`
 - Write GitHub release notes from facts fixed at the tag. Do not depend on mutable branch content or on documentation whose visible focus will change with a later release.
 - Keep build, test, packaging-validation, and release-process evidence out of GitHub release bodies. Verification belongs in the internal release checklist; published notes should contain only changes and compatibility information readers need.
 - Attach release assets only to their matching tag. Versioned asset filenames and artifact contents must agree with the GitHub release tag.
@@ -432,13 +433,13 @@ After the deploy job finishes:
 2. Verify the new version exists in Maven Central.
 3. Verify the published sources contain license headers.
 4. Verify `cli-module` includes `standalone-cli.tar` and `standalone-cli.zip`.
-5. Create or update the GitHub release using the required one-sentence, linked-issue format above.
+5. Create or update the GitHub release using the required single-item sentence or multi-item bullet format above.
 6. Attach the release assets: the versioned CLI standalone `.tar` and `.zip` archives and the sample `log4j2_example.xml` logging configuration.
 7. Recheck that every release-note issue/PR and summarized Dependabot item is in the exact-version milestone.
 8. Confirm every milestone item is closed, set the milestone due date to the actual published release date, then close it.
 9. Fast-forward `develop` to `master` and push `develop`.
 
-If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane and ship a patch release. Fold the patch changes into the parent repository notes using the release-note decision tree above, while giving the patch tag its own GitHub release in the required one-sentence format.
+If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane and ship a patch release. Fold the patch changes into the parent repository notes using the release-note decision tree above, while giving the patch tag its own GitHub release in the required concise format.
 
 Useful checks:
 
@@ -456,7 +457,7 @@ For a normal release, create a GitHub release for the tag:
 & $gh release create $version --repo bbottema/simple-java-mail --title "v$version" --notes-file RELEASE_NOTES.md
 ```
 
-For a special packaging patch, the repository notes still roll into the parent release range, but the patch tag must always have its own GitHub release whose one-sentence body states the packaging problem and correction directly. Do not attach the patch's versioned artifacts to another tag.
+For a special packaging patch, the repository notes still roll into the parent release range, but the patch tag must always have its own GitHub release whose body states the packaging problem and correction directly using the required format. Do not attach the patch's versioned artifacts to another tag.
 
 ---
 
@@ -499,7 +500,7 @@ For a release task:
 - The GitHub release has the CLI standalone ZIP/TAR and sample `log4j2_example.xml` logging configuration assets.
 - A separate GitHub release exists for the current tag; it is not folded into another tag's release.
 - The README's Maven and Gradle examples, current-release label, tag link, and Maven Central link all match the published version, and its migration link points to the applicable guide.
-- The GitHub release body is one concise, natural-language sentence that links the included issue(s) or pull request(s), summarizes the user-visible outcome, and includes no headings or bullets; it has at most one directly relevant documentation link.
+- The GitHub release body is one concise sentence for a single item or one concise bullet per item for multiple items; every item starts with its linked issue or pull request, summarizes the user-visible outcome, and has at most one directly relevant documentation link.
 - The GitHub release body contains no build/test verification evidence or internal release-process commentary.
 - Every multi-version repository release-note section has version-prefixed bullets ordered newest first.
 - The exact-version GitHub milestone contains every release issue, PR, and accounted-for Dependabot item; all items and the milestone are closed, and its due date equals the actual published release date.
