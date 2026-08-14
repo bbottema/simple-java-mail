@@ -78,8 +78,8 @@ public class RecipientBuilder implements IRecipientBuilder {
      * @see IRecipientBuilder#withAddress(String)
      */
     @Override
-    public IRecipientBuilder withAddress(@NotNull String oneOrMoreAddresses) {
-        this.address = checkNonEmptyArgument(oneOrMoreAddresses, "oneOrMoreAddresses");
+    public IRecipientBuilder withAddress(@NotNull String address) {
+        this.address = checkNonEmptyArgument(address, "address");
         return this;
     }
 
@@ -95,8 +95,8 @@ public class RecipientBuilder implements IRecipientBuilder {
      * @see IRecipientBuilder#withAddressOnlyFrom(String)
      */
     @Override
-    public IRecipientBuilder withAddressOnlyFrom(@NotNull String oneOrMoreAddresses) {
-        return interpretAddressData(null, false, checkNonEmptyArgument(oneOrMoreAddresses, "oneOrMoreAddresses"));
+    public IRecipientBuilder withAddressOnlyFrom(@NotNull String address) {
+        return interpretAddressData(null, false, checkNonEmptyArgument(address, "address"));
     }
 
     /**
@@ -112,8 +112,8 @@ public class RecipientBuilder implements IRecipientBuilder {
      * @see IRecipientBuilder#withAddressAndNameOrDefault(String, String)
      */
     @Override
-    public IRecipientBuilder withAddressAndNameOrDefault(@NotNull String oneOrMoreAddresses, @Nullable String defaultName) {
-        return interpretAddressData(defaultName, false, checkNonEmptyArgument(oneOrMoreAddresses, "oneOrMoreAddresses"));
+    public IRecipientBuilder withAddressAndNameOrDefault(@NotNull String address, @Nullable String defaultName) {
+        return interpretAddressData(defaultName, false, checkNonEmptyArgument(address, "address"));
     }
 
     /**
@@ -129,8 +129,8 @@ public class RecipientBuilder implements IRecipientBuilder {
      * @see IRecipientBuilder#withAddressAndFixedNameOrProvided(String, String)
      */
     @Override
-    public IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull String oneOrMoreAddresses, @Nullable String fixedName) {
-        return interpretAddressData(fixedName, true, checkNonEmptyArgument(oneOrMoreAddresses, "oneOrMoreAddresses"));
+    public IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull String address, @Nullable String fixedName) {
+        return interpretAddressData(fixedName, true, checkNonEmptyArgument(address, "address"));
     }
 
     /**
