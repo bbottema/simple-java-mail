@@ -56,11 +56,11 @@ Prove the new architecture across artifact, provider, module, transport, and cry
 - Oracle JDK 21 / Maven 3.9.10: `mvn -q verify "-Dlicense.skip=true"` — passed, 211.6 seconds. This run includes clean classpath and JPMS provider-neutral consumers.
 - OpenPGP.js: `node interop.mjs verify-sjm ../../../../target/openpgpjs-interop/sjm-signed.eml ../../../../target/openpgpjs-interop/sjm-encrypted.eml` — verified the Simple Java Mail signature and decrypted its ciphertext.
 - The focused real-SMTP `protectedOpenPgpSurvivesAngusEightBitMimeTransport` test passed with DKIM, OpenPGP, bounce, DSN, and `mail.smtp.allow8bitmime=true`.
-- The provider-neutral compile dependency tree contains no `org.eclipse.angus` artifact. Packaged JPMS descriptors place the Angus requirement and adapter service only in `angus-mail-provider-module`.
+- The facade's compile dependency tree and the runtime tree with its default adapter excluded contain no `org.eclipse.angus` artifact. The normal runtime tree includes the adapter and Angus implementation automatically. Packaged JPMS descriptors place the Angus requirement and adapter service only in `angus-mail-provider-module`.
 - Production-source scans find no obsolete subtype hooks or Angus imports outside the isolated adapter. `git diff --check` passes.
 
 ### Migration and release notes
 
-- `MIGRATION-10.0.md` contains copyable Maven and Gradle dependency replacements, alternate-provider guidance, the provider SPI contract, OpenPGP configuration, protection ordering/trust semantics, and repeatable-storage behavior.
+- `MIGRATION-10.0.md` contains a copyable one-dependency default setup, Angus exclusion and alternate-provider guidance, the provider SPI contract, OpenPGP configuration, protection ordering/trust semantics, and repeatable-storage behavior.
 - No artifact was published as part of this implementation task. Version/tag creation remains with the normal 10.0.0 release workflow.
 - The implementation remains available as working-tree changes; the completed plan and removal of the superseded API documentation plan are committed separately as requested.
