@@ -1,0 +1,42 @@
+Date: Mon, 17 Aug 2026 12:00:00 +0200
+From: OpenPGP.js Fixture <fixture@example.com>
+To: Receiver <receiver@example.com>
+Message-ID: <openpgp-js-signed-fixture@openpgpjs.test>
+Subject: OpenPGP.js signed fixture
+MIME-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature"; micalg=pgp-sha256; boundary="openpgpjs-signed-boundary"
+
+--openpgpjs-signed-boundary
+Content-Type: multipart/mixed; boundary="openpgpjs-inner"
+
+--openpgpjs-inner
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+H=C3=A9llo from OpenPGP.js
+--openpgpjs-inner
+Content-Type: application/octet-stream; name="proof.txt"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="proof.txt"
+
+aW5kZXBlbmRlbnQgZml4dHVyZQ==
+--openpgpjs-inner--
+
+--openpgpjs-signed-boundary
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+wsCpBAABCABdBYJqgxbGCRAtEiJmqB1F0TUUAAAAAAAcABBzYWx0QG5vdGF0
+aW9ucy5vcGVucGdwanMub3Jns1oOr7UH+ES7WDyk9L0NRxYhBHRBv/x6KV/S
+ERdcGC0SImaoHUXRAABOMAf+PoCLPv5w6U2wjng2Y3VJFyNPfO5bOjL8PxeC
+jFuBDbPXK1wLHbboIcM3TIGc5qVg7krITW7YFsF9a/BZQt85JtW6cAzeGVJk
+9WMhwcUKQNz+alyAS4rzYmG+80gqpXoEmJw4ipGNQwaI5zsx7xhAfFb8fDkR
+KttP2JXB753Qu0LeiYVyxXB8nEr6zmRaLMW8Gg9z/1A618pBpxHtYlpyn29G
+Z3WILgUilQribHscS54ABABoeyrJBNpy2I9W33zupOuU1tQ5uYZYjXWuoT3f
+GXdLz+2Y+3ThvXack8wksTJ8e4Y4s0GsAZA4kemVCUwBkWWK+A5ylPDGwUbD
+AKhCrg==
+=Mg4t
+-----END PGP SIGNATURE-----
+--openpgpjs-signed-boundary--

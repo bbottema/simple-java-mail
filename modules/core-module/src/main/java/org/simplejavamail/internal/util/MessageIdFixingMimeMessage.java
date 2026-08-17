@@ -1,4 +1,4 @@
-package org.simplejavamail.mailer.internal.util;
+package org.simplejavamail.internal.util;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -8,11 +8,13 @@ import org.jetbrains.annotations.Nullable;
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
+/** A mutable MIME assembly message that preserves a caller-supplied Message-ID during finalization. */
 public class MessageIdFixingMimeMessage extends MimeMessage {
+
     @Nullable
     private final String messageId;
 
-    public MessageIdFixingMimeMessage(Session session, @Nullable String messageId) {
+    public MessageIdFixingMimeMessage(final Session session, @Nullable final String messageId) {
         super(session);
         this.messageId = messageId;
     }

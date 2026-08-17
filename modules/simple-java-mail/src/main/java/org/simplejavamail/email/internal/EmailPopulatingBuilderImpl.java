@@ -16,9 +16,13 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.OpenPgpDetails;
+import org.simplejavamail.api.email.OriginalOpenPgpDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
+import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
@@ -294,6 +298,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	private SmimeEncryptionConfig smimeEncryptionConfig;
 
+	@Nullable
+	private OpenPgpSigningConfig openPgpSigningConfig;
+
+	@Nullable
+	private OpenPgpEncryptionConfig openPgpEncryptionConfig;
+
 	/**
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
@@ -337,6 +347,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@NotNull
 	private OriginalSmimeDetails originalSmimeDetails = new PlainSmimeDetails();
+
+	@NotNull
+	private OriginalOpenPgpDetails originalOpenPgpDetails = OpenPgpDetails.plain();
 
 	/**
 	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
@@ -396,9 +409,18 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmail() {
 		validateDkim();
+		validateProtectionFamilies();
 		resolveDynamicEmbeddedImageDataSources();
 		//noinspection deprecation
 		return new InternalEmail(this);
+	}
+
+	private void validateProtectionFamilies() {
+		final boolean smimeConfigured = smimeSigningConfig != null || smimeEncryptionConfig != null;
+		final boolean openPgpConfigured = openPgpSigningConfig != null || openPgpEncryptionConfig != null;
+		if (smimeConfigured && openPgpConfigured) {
+			throw new IllegalArgumentException("S/MIME and OpenPGP/MIME cannot be configured on the same email");
+		}
 	}
 
 	/**
@@ -1465,6 +1487,18 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
+	@Override
+	public EmailPopulatingBuilder signWithOpenPgp(@NotNull final OpenPgpSigningConfig openPgpSigningConfig) {
+		this.openPgpSigningConfig = checkNonEmptyArgument(openPgpSigningConfig, "openPgpSigningConfig");
+		return this;
+	}
+
+	@Override
+	public EmailPopulatingBuilder encryptWithOpenPgp(@NotNull final OpenPgpEncryptionConfig openPgpEncryptionConfig) {
+		this.openPgpEncryptionConfig = checkNonEmptyArgument(openPgpEncryptionConfig, "openPgpEncryptionConfig");
+		return this;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
 	 */
@@ -1609,6 +1643,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public InternalEmailPopulatingBuilder withOriginalSmimeDetails(@NotNull final OriginalSmimeDetails originalSmimeDetails) {
 		this.originalSmimeDetails = originalSmimeDetails;
+		return this;
+	}
+
+	@Override
+	public InternalEmailPopulatingBuilder withOriginalOpenPgpDetails(@NotNull final OriginalOpenPgpDetails originalOpenPgpDetails) {
+		this.originalOpenPgpDetails = originalOpenPgpDetails;
 		return this;
 	}
 
@@ -1843,6 +1883,13 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder clearSmime() {
 		this.smimeSigningConfig = null;
 		this.smimeEncryptionConfig = null;
+		return this;
+	}
+
+	@Override
+	public EmailPopulatingBuilder clearOpenPgp() {
+		this.openPgpSigningConfig = null;
+		this.openPgpEncryptionConfig = null;
 		return this;
 	}
 
@@ -2198,6 +2245,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public SmimeEncryptionConfig getSmimeEncryptionConfig() {
 		return smimeEncryptionConfig;
+	}
+
+	@Override
+	@Nullable
+	public OpenPgpSigningConfig getOpenPgpSigningConfig() {
+		return openPgpSigningConfig;
+	}
+
+	@Override
+	@Nullable
+	public OpenPgpEncryptionConfig getOpenPgpEncryptionConfig() {
+		return openPgpEncryptionConfig;
+	}
+
+	@Override
+	@NotNull
+	public OriginalOpenPgpDetails getOriginalOpenPgpDetails() {
+		return originalOpenPgpDetails;
 	}
 
 	/**

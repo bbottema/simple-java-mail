@@ -47,13 +47,16 @@ public class MimeMessageParserTest {
 
 	@Test
 	public void testBasicParsing()
-			throws IOException {
+			throws IOException, MessagingException {
 		Email originalEmail = EmailHelper.createDummyEmailBuilder(true, true, false, true, false, false).buildEmail();
 
 		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(originalEmail);
 		ParsedMimeMessageComponents mimeMessageParts = MimeMessageParser.parseMimeMessage(mimeMessage);
 
-		assertThat(mimeMessageParts.getMessageId()).isNull();
+		assertThat(mimeMessageParts.getMessageId())
+				.as("the finalized MIME entity has one stable Message-ID")
+				.isEqualTo(mimeMessage.getMessageID())
+				.isNotBlank();
 
 		assertThat(mimeMessageParts.getFromAddress().getPersonal()).isEqualTo(originalEmail.getFromRecipient().getName());
 		assertThat(mimeMessageParts.getFromAddress().getAddress()).isEqualTo(originalEmail.getFromRecipient().getAddress());

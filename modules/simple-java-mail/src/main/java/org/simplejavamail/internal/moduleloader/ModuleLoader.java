@@ -4,6 +4,7 @@ import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
 import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.modules.DKIMModule;
 import org.simplejavamail.internal.modules.OutlookModule;
+import org.simplejavamail.internal.modules.OpenPgpModule;
 import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.internal.util.MiscUtil;
 
@@ -19,6 +20,7 @@ public class ModuleLoader {
 	private static final boolean BATCH_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.batchsupport.BatchSupport");
 	private static final boolean SMIME_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
 	private static final boolean DKIM_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner");
+	private static final boolean OPENPGP_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.openpgpsupport.OpenPgpSupport");
 
 	private static final Map<Class, Object> LOADED_MODULES = new HashMap<>();
 
@@ -72,6 +74,17 @@ public class ModuleLoader {
 		return (SMIMEModule) LOADED_MODULES.get(SMIMEModule.class);
 	}
 
+	public static OpenPgpModule loadOpenPgpModule() {
+		if (!LOADED_MODULES.containsKey(OpenPgpModule.class)) {
+			LOADED_MODULES.put(OpenPgpModule.class, loadModule(
+					OpenPgpModule.class,
+					"OpenPGP",
+					"org.simplejavamail.internal.openpgpsupport.OpenPgpSupport",
+					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/openpgp-module"));
+		}
+		return (OpenPgpModule) LOADED_MODULES.get(OpenPgpModule.class);
+	}
+
 	public static BatchModule loadBatchModule() {
 		if (FORCED_DISABLED_MODULES.contains(BatchModule.class)) {
 			throw new IllegalStateException("BatchModule forcefully disabled");
@@ -108,6 +121,13 @@ public class ModuleLoader {
 						DKIM_SUPPORT_CLASS_AVAILABLE);
 	}
 
+	public static boolean openPgpModuleAvailable() {
+		return !FORCED_DISABLED_MODULES.contains(OpenPgpModule.class) &&
+				((FORCED_RECHECK_MODULES.contains(OpenPgpModule.class) &&
+						MiscUtil.classAvailable("org.simplejavamail.internal.openpgpsupport.OpenPgpSupport")) ||
+						OPENPGP_SUPPORT_CLASS_AVAILABLE);
+	}
+
 	@SuppressWarnings("unchecked")
 	private static <T> T loadModule(Class moduleClass,String moduleName, String moduleImplClassName, String moduleHome) {
 		try {
@@ -134,5 +154,6 @@ public class ModuleLoader {
 	public static void _forceRecheckModule() {
 		FORCED_RECHECK_MODULES.add(BatchModule.class);
 		FORCED_RECHECK_MODULES.add(SMIMEModule.class);
+		FORCED_RECHECK_MODULES.add(OpenPgpModule.class);
 	}
 }

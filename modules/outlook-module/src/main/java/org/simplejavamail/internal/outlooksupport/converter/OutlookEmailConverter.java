@@ -122,6 +122,11 @@ public class OutlookEmailConverter implements OutlookModule {
 				final OutlookMessage nestedMsg = ((OutlookMsgAttachment) attachment).getOutlookMessage();
 				final Email email = buildEmailFromOutlookMessage(builderFactory.create(), nestedMsg, builderFactory, internalEmailConverter)
 						.getEmailBuilder().buildEmail();
+				if (hasNoMimeContent(email)) {
+					// Some Exchange delivery receipts contain a nominal .msg attachment without any MIME body.
+					// It could not be serialized before MIME finalization became eager, so retain that behavior explicitly.
+					continue;
+				}
 				final MimeMessage message = internalEmailConverter.emailToMimeMessage(email);
 				try {
 					final byte[] mimedata = internalEmailConverter.mimeMessageToEMLByteArray(message);
@@ -136,6 +141,15 @@ public class OutlookEmailConverter implements OutlookModule {
 		}
 
 		return new EmailFromOutlookMessage(builder, new OutlookMessageProxy(outlookMessage), extractOutlookMessageData(outlookMessage));
+	}
+
+	private static boolean hasNoMimeContent(@NotNull final Email email) {
+		return email.getPlainText() == null
+				&& email.getHTMLText() == null
+				&& email.getCalendarText() == null
+				&& email.getAttachments().isEmpty()
+				&& email.getEmbeddedImages().isEmpty()
+				&& email.getEmailToForward() == null;
 	}
 
 	@NotNull

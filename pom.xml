@@ -26,6 +26,7 @@
         <lombok.version>1.18.46</lombok.version>
         <log4j.version>2.26.1</log4j.version>
         <mockito.version>4.11.0</mockito.version>
+		<bouncycastle.version>1.78.1</bouncycastle.version>
         <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
     </properties>
 
@@ -77,11 +78,13 @@
     <modules>
         <module>modules/core-module</module>
         <module>modules/core-test-module</module>
+        <module>modules/angus-mail-provider-module</module>
         <module>modules/batch-module</module>
         <module>modules/authenticated-socks-module</module>
         <module>modules/outlook-module</module>
         <module>modules/dkim-module</module>
         <module>modules/smime-module</module>
+		<module>modules/openpgp-module</module>
         <module>modules/simple-java-mail</module>
         <module>modules/spring-module</module>
         <module>modules/cli-module</module>
@@ -244,6 +247,16 @@
                 <artifactId>angus-mail</artifactId>
                 <version>2.0.5</version>
             </dependency>
+			<dependency>
+				<groupId>org.bouncycastle</groupId>
+				<artifactId>bcpg-jdk18on</artifactId>
+				<version>${bouncycastle.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.bouncycastle</groupId>
+				<artifactId>bcprov-jdk18on</artifactId>
+				<version>${bouncycastle.version}</version>
+			</dependency>
             <dependency>
                 <groupId>org.eclipse.angus</groupId>
                 <artifactId>angus-activation</artifactId>

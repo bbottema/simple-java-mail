@@ -1,14 +1,16 @@
 module org.simplejavamail {
+	uses org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+
 	requires static com.github.spotbugs.annotations;
 	requires static org.jetbrains.annotations;
 	requires static org.simplejavamail.smime;
+	requires static org.simplejavamail.openpgp;
 
 	requires com.pivovarit.function;
 
 	requires transitive com.sanctionco.jmail;
 	requires transitive jakarta.activation;
 	requires transitive jakarta.mail;
-	requires transitive org.eclipse.angus.mail;
 	requires transitive org.simplejavamail.core;
 	requires transitive org.slf4j;
 

@@ -3,13 +3,11 @@ package org.simplejavamail.converter.internal.mimemessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
-import org.eclipse.angus.mail.smtp.SMTPMessage;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
-import org.simplejavamail.mailer.internal.util.MessageIdFixingMimeMessage;
+import org.simplejavamail.internal.util.FinalizedMimeMessage;
+import org.simplejavamail.internal.util.MessageIdFixingMimeMessage;
 
 import java.io.UnsupportedEncodingException;
 import java.security.cert.X509Certificate;
@@ -51,6 +49,7 @@ public abstract class SpecializedMimeMessageProducer {
 			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
+		ProviderNeutralDataContentHandlers.install();
 
 		MimeMessage message = new MessageIdFixingMimeMessage(session, email.getId());
 		
@@ -64,16 +63,25 @@ public abstract class SpecializedMimeMessageProducer {
 		
 		MimeMessageHelper.setHeaders(email, message);
 		message.setSentDate(ofNullable(email.getSentDate()).orElse(new Date()));
+		message = FinalizedMimeMessage.finalizeMessage(message, FinalizedMimeMessage.ProtectionState.NONE);
 
 		/*
 			The following order is important:
 			1. S/MIME signing
 			2. S/MIME encryption
-			3. DKIM signing
+			3. OpenPGP signing/encryption (when S/MIME is not configured)
+			4. DKIM signing
 		 */
 
 		if (email.getSmimeSigningConfig() != null) {
-			message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, email, message, email.getSmimeSigningConfig());
+			final MimeMessage input = message;
+			try {
+				final MimeMessage signed = ModuleLoader.loadSmimeModule().signMessageWithSmime(
+						session, email, input, email.getSmimeSigningConfig());
+				message = FinalizedMimeMessage.finalizeMessage(signed, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
+			} finally {
+				closeFinalized(input);
+			}
 		}
 
 		/*
@@ -105,67 +113,61 @@ public abstract class SpecializedMimeMessageProducer {
 						? email.getSmimeEncryptionConfig().getKeyEncapsulationAlgorithm() : null;
 				final String cipherAlg = email.getSmimeEncryptionConfig() != null
 						? email.getSmimeEncryptionConfig().getCipherAlgorithm() : null;
-				message = ModuleLoader.loadSmimeModule()
-						.encryptMessageWithSmimeForRecipients(session, email, message, effectiveCerts, keyAlg, cipherAlg);
+				final MimeMessage input = message;
+				try {
+					final MimeMessage encrypted = ModuleLoader.loadSmimeModule()
+							.encryptMessageWithSmimeForRecipients(session, email, input, effectiveCerts, keyAlg, cipherAlg);
+					message = FinalizedMimeMessage.finalizeMessage(encrypted, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
+				} finally {
+					closeFinalized(input);
+				}
 			}
 		} else if (email.getSmimeEncryptionConfig() != null) {
-			message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, email, message, email.getSmimeEncryptionConfig());
+			final MimeMessage input = message;
+			try {
+				final MimeMessage encrypted = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(
+						session, email, input, email.getSmimeEncryptionConfig());
+				message = FinalizedMimeMessage.finalizeMessage(encrypted, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
+			} finally {
+				closeFinalized(input);
+			}
+		}
+
+		if (email.getOpenPgpSigningConfig() != null) {
+			final MimeMessage input = message;
+			try {
+				message = ModuleLoader.loadOpenPgpModule().signMessage(
+						session, email, input, email.getOpenPgpSigningConfig());
+			} finally {
+				closeFinalized(input);
+			}
+		}
+		if (email.getOpenPgpEncryptionConfig() != null) {
+			final MimeMessage input = message;
+			try {
+				message = ModuleLoader.loadOpenPgpModule().encryptMessage(
+						session, email, input, email.getOpenPgpEncryptionConfig());
+			} finally {
+				closeFinalized(input);
+			}
 		}
 
 		if (email.getDkimConfig() != null) {
-			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(email, message, email.getDkimConfig(), checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
-		}
-
-		if (email.getBounceToRecipient() != null || email.getDeliveryStatusNotification() != null) {
-			// display name not applicable: https://tools.ietf.org/html/rfc5321#section-4.1.2
-			message = new ImmutableDelegatingSMTPMessage(message,
-					email.getBounceToRecipient() != null ? email.getBounceToRecipient().getAddress() : null,
-					toSmtpNotifyOptions(email.getDeliveryStatusNotification()),
-					toSmtpReturnOption(email.getDeliveryStatusNotification()));
+			final MimeMessage input = message;
+			try {
+				message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(email, input, email.getDkimConfig(),
+						checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
+			} finally {
+				closeFinalized(input);
+			}
 		}
 
 		return message;
 	}
 
-	@Nullable
-	private static Integer toSmtpNotifyOptions(@Nullable final DeliveryStatusNotification deliveryStatusNotification) {
-		if (deliveryStatusNotification == null || deliveryStatusNotification.getNotifyOptions().isEmpty()) {
-			return null;
-		}
-		if (deliveryStatusNotification.getNotifyOptions().contains(DeliveryStatusNotification.NotifyOption.NEVER)) {
-			return SMTPMessage.NOTIFY_NEVER;
-		}
-		int smtpNotifyOptions = 0;
-		for (final DeliveryStatusNotification.NotifyOption notifyOption : deliveryStatusNotification.getNotifyOptions()) {
-			switch (notifyOption) {
-				case SUCCESS:
-					smtpNotifyOptions |= SMTPMessage.NOTIFY_SUCCESS;
-					break;
-				case FAILURE:
-					smtpNotifyOptions |= SMTPMessage.NOTIFY_FAILURE;
-					break;
-				case DELAY:
-					smtpNotifyOptions |= SMTPMessage.NOTIFY_DELAY;
-					break;
-				default:
-					throw new AssertionError("Unsupported DSN notify option: " + notifyOption);
-			}
-		}
-		return smtpNotifyOptions;
-	}
-
-	@Nullable
-	private static Integer toSmtpReturnOption(@Nullable final DeliveryStatusNotification deliveryStatusNotification) {
-		if (deliveryStatusNotification == null || deliveryStatusNotification.getReturnOption() == null) {
-			return null;
-		}
-		switch (deliveryStatusNotification.getReturnOption()) {
-			case FULL_MESSAGE:
-				return SMTPMessage.RETURN_FULL;
-			case HEADERS_ONLY:
-				return SMTPMessage.RETURN_HDRS;
-			default:
-				throw new AssertionError("Unsupported DSN return option: " + deliveryStatusNotification.getReturnOption());
+	private static void closeFinalized(@NotNull final MimeMessage message) {
+		if (message instanceof FinalizedMimeMessage) {
+			((FinalizedMimeMessage) message).close();
 		}
 	}
 

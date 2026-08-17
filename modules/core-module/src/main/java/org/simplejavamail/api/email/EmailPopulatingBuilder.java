@@ -10,6 +10,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
+import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
@@ -1071,6 +1073,20 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder encryptWithSmime(@NotNull SmimeEncryptionConfig smimeEncryptionConfig);
 
 	/**
+	 * Signs this email as RFC 3156 {@code multipart/signed}. OpenPGP and S/MIME cannot be configured on the same email.
+	 * The optional {@value org.simplejavamail.internal.modules.OpenPgpModule#NAME} must be present when converting or sending.
+	 */
+	@Cli.ExcludeApi(reason = "OpenPGP key material is Java-only")
+	EmailPopulatingBuilder signWithOpenPgp(@NotNull OpenPgpSigningConfig openPgpSigningConfig);
+
+	/**
+	 * Encrypts this email as RFC 3156 {@code multipart/encrypted}, including all configured recipient keys.
+	 * OpenPGP and S/MIME cannot be configured on the same email.
+	 */
+	@Cli.ExcludeApi(reason = "OpenPGP key material is Java-only")
+	EmailPopulatingBuilder encryptWithOpenPgp(@NotNull OpenPgpEncryptionConfig openPgpEncryptionConfig);
+
+	/**
 	 * When the S/MIME module is loaded, S/MIME signed / encrypted attachments are decrypted and kept in a separate list. However,
 	 * if it is a single attachment and the actual attachment has mimetype "message/rfc822", it is assumed to be the message
 	 * itself and by default will be merged with the top level email (basically overriding body, headers and attachments).
@@ -1339,6 +1355,10 @@ public interface EmailPopulatingBuilder {
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearSmime();
 
+	/** Clears email-level OpenPGP signing and encryption configuration. */
+	@SuppressWarnings("unused")
+	EmailPopulatingBuilder clearOpenPgp();
+
 	/**
 	 * Resets <em>dispositionNotificationTo</em> to empty.
 	 */
@@ -1601,6 +1621,15 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Nullable
 	SmimeEncryptionConfig getSmimeEncryptionConfig();
+
+	@Nullable
+	OpenPgpSigningConfig getOpenPgpSigningConfig();
+
+	@Nullable
+	OpenPgpEncryptionConfig getOpenPgpEncryptionConfig();
+
+	@NotNull
+	OriginalOpenPgpDetails getOriginalOpenPgpDetails();
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingSentDate(Date)

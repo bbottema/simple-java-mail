@@ -69,7 +69,12 @@ class EmailSerializationSmtpTest {
 		final MimeMessage receivedMessage = SMTP_SERVER.getOnlyMessage("recipient@example.org");
 		final Email received = EmailConverter.mimeMessageToEmailBuilder(receivedMessage, loadPkcs12KeyStore()).buildEmail();
 
-		assertThat(received.getOriginalSmimeDetails().getSmimeSignatureValid()).isTrue();
+		assertThat(received.getOriginalSmimeDetails().getSmimeSignatureValid())
+				.as("received S/MIME details: %s; verification=%s; failure=%s",
+						received.getOriginalSmimeDetails(),
+						received.getOriginalSmimeDetails().getVerificationStatus(),
+						received.getOriginalSmimeDetails().getFailureReason())
+				.isTrue();
 		assertThat(received.getSubject()).isEqualTo("Fwd: Forwarded subject");
 		assertThat(received.getPlainText()).isEqualTo("Serialized body");
 		assertThat(received.getHTMLText()).isEqualTo("<p>Serialized body</p><img src=\"cid:logo.png\">");

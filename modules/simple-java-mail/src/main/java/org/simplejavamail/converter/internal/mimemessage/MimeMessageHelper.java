@@ -147,6 +147,9 @@ public class MimeMessageHelper {
 	static void setTexts(@NotNull final Email email, final MimePart messagePart)
 			throws MessagingException {
 		ContentTransferEncoding bodyPartContentTransferEncoding = null;
+		if (email.getPlainText() == null && email.getHTMLText() == null && email.getCalendarText() == null) {
+			messagePart.setText("", CHARACTER_ENCODING.name());
+		}
 		if (email.getPlainText() != null) {
 			messagePart.setText(email.getPlainText(), CHARACTER_ENCODING.name());
 			bodyPartContentTransferEncoding = email.getPlainTextContentTransferEncoding();

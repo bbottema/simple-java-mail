@@ -11,7 +11,6 @@ import jakarta.mail.internet.*;
 import jakarta.mail.util.ByteArrayDataSource;
 import lombok.Getter;
 import lombok.val;
-import org.eclipse.angus.mail.handlers.text_plain;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.general.MessageHeader;
@@ -46,9 +45,7 @@ public final class MimeMessageParser {
 	private static final Pattern CALENDAR_BODY_METHOD_PATTERN = Pattern.compile("(?i)^METHOD:(\\w+)", Pattern.MULTILINE);
 
 	static {
-		MailcapCommandMap mc = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
-		mc.addMailcap("text/calendar;; x-java-content-handler=" + text_calendar.class.getName());
-		CommandMap.setDefaultCommandMap(mc);
+		ProviderNeutralDataContentHandlers.install();
 	}
 
 	/**
@@ -591,19 +588,4 @@ public final class MimeMessageParser {
 		}
 	}
 
-	/**
-	 * DataContentHandler for text/calendar, based on {@link org.eclipse.angus.mail.handlers.text_html}.
-	 * <p>
-	 * The unfortunate class name matches Java Mail's handler naming convention.
-	 */
-	static class text_calendar extends text_plain {
-		private static final ActivationDataFlavor[] myDF = {
-				new ActivationDataFlavor(String.class, "text/calendar", "iCalendar String")
-		};
-
-		@Override
-		protected ActivationDataFlavor[] getDataFlavors() {
-			return myDF;
-		}
-	}
 }

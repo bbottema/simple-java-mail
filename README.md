@@ -7,7 +7,7 @@
 
 **Simple to use. Built for the real world.**
 
-Simple Java Mail builds well-formed MIME through a streamlined Java API. That same API covers reusable message rules, transport security, DKIM, S/MIME, diagnostics, conversion, authenticated SOCKS, and advanced SMTP delivery.
+Simple Java Mail builds well-formed MIME through a streamlined Java API. That same API covers reusable message rules, transport security, DKIM, S/MIME, OpenPGP/MIME, diagnostics, conversion, authenticated SOCKS, and advanced SMTP delivery.
 
 Jakarta Mail provides the standard mail API, and Angus Mail provides its transport implementation. You can still supply a `Session`, access the generated `MimeMessage`, set raw Jakarta Mail properties, or provide the final send operation.
 
@@ -83,8 +83,10 @@ Optional modules extend the same API and add their dependencies only when select
 
 | Requirement | Artifact |
 | --- | --- |
+| Default Angus SMTP provider and delivery adapter (included transitively; exclude it only when replacing the provider) | `angus-mail-provider-module` |
 | [DKIM domain signing](https://www.simplejavamail.org/modules.html#dkim-module) | `dkim-module` |
 | [S/MIME signing, encryption, and reading](https://www.simplejavamail.org/modules.html#smime-module) | `smime-module` |
+| OpenPGP/MIME signing, encryption, verification, and decryption | `openpgp-module` |
 | [Pooled and clustered delivery](https://www.simplejavamail.org/modules.html#batch-module) | `batch-module` |
 | [Authenticated SOCKS proxies](https://www.simplejavamail.org/modules.html#authenticated-socks-module) | `authenticated-socks-module` |
 | [Outlook `.msg` parsing and conversion](https://www.simplejavamail.org/modules.html#outlook-module) | `outlook-module` |
@@ -117,6 +119,7 @@ Simple Java Mail handles the higher-level work involved in outbound email while 
 | Choose an optional artifact | [Modules](https://www.simplejavamail.org/modules.html) |
 | Compare Java mail libraries | [Comparison](https://www.simplejavamail.org/feature-matrix.html) |
 | Upgrade existing code | [9.2 migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) |
+| Understand the replaceable provider boundary in 10.0 | [10.0 migration guide](MIGRATION-10.0.md) |
 | Ask a question or contribute | [Help and contribute](https://www.simplejavamail.org/contact.html) |
 
 ## Current release

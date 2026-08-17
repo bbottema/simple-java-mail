@@ -5,6 +5,8 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.internal.smimesupport.SmimeRecognitionUtil;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.Objects;
 
 import static java.util.Optional.ofNullable;
@@ -24,11 +26,17 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 	@Nullable private String smimeMicalg;
 	@Nullable private String smimeSignedBy;
 	@Nullable private Boolean smimeSignatureValid;
+	@NotNull private VerificationStatus verificationStatus;
+	@NotNull private DecryptionStatus decryptionStatus;
+	@Nullable private String failureReason;
+	@Nullable private byte[] originalProtectedMessage;
 
-	@java.beans.ConstructorProperties({ "smimeMime", "smimeType", "smimeName", "smimeProtocol", "smimeMicalg", "smimeSignedBy", "smimeSignatureValid" })
+	@java.beans.ConstructorProperties({ "smimeMode", "smimeMime", "smimeType", "smimeName", "smimeProtocol", "smimeMicalg", "smimeSignedBy", "smimeSignatureValid", "verificationStatus", "decryptionStatus", "failureReason", "originalProtectedMessage" })
 	private OriginalSmimeDetailsImpl(@Nullable SmimeMode smimeMode, @Nullable String smimeMime, @Nullable String smimeType, @Nullable String smimeName, @Nullable String smimeProtocol,
 			@Nullable String smimeMicalg,
-			@Nullable String smimeSignedBy, @Nullable Boolean smimeSignatureValid) {
+			@Nullable String smimeSignedBy, @Nullable Boolean smimeSignatureValid,
+			@Nullable VerificationStatus verificationStatus, @Nullable DecryptionStatus decryptionStatus,
+			@Nullable String failureReason, final byte @Nullable [] originalProtectedMessage) {
 		this.smimeMime = smimeMime;
 		this.smimeType = smimeType;
 		this.smimeName = smimeName;
@@ -36,8 +44,25 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 		this.smimeMicalg = smimeMicalg;
 		this.smimeSignedBy = smimeSignedBy;
 		this.smimeSignatureValid = smimeSignatureValid;
+		this.verificationStatus = verificationStatus != null ? verificationStatus
+				: smimeSignatureValid == null ? VerificationStatus.NOT_SIGNED
+				: smimeSignatureValid ? VerificationStatus.VALID : VerificationStatus.INVALID;
+		this.decryptionStatus = decryptionStatus != null ? decryptionStatus : DecryptionStatus.NOT_ENCRYPTED;
+		this.failureReason = failureReason;
+		this.originalProtectedMessage = originalProtectedMessage == null ? null : originalProtectedMessage.clone();
 
 		this.smimeMode = determineSmode(smimeMode);
+	}
+
+	private void readObject(final ObjectInputStream input) throws IOException, ClassNotFoundException {
+		input.defaultReadObject();
+		if (verificationStatus == null) {
+			verificationStatus = smimeSignatureValid == null ? VerificationStatus.NOT_SIGNED
+					: smimeSignatureValid ? VerificationStatus.VALID : VerificationStatus.INVALID;
+		}
+		if (decryptionStatus == null) {
+			decryptionStatus = DecryptionStatus.NOT_ENCRYPTED;
+		}
 	}
 
 	public static OriginalSmimeDetailsBuilder builder() {
@@ -55,6 +80,16 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 		this.smimeMicalg = ofNullable(smimeMicalg).orElse(attachmentSmimeDetails.getSmimeMicalg());
 		this.smimeSignedBy = ofNullable(smimeSignedBy).orElse(attachmentSmimeDetails.getSmimeSignedBy());
 		this.smimeSignatureValid = mergeSmimeSignatureValidity(smimeSignatureValid, attachmentSmimeDetails.getSmimeSignatureValid());
+		if (verificationStatus == VerificationStatus.NOT_SIGNED) {
+			this.verificationStatus = attachmentSmimeDetails.getVerificationStatus();
+		}
+		if (decryptionStatus == DecryptionStatus.NOT_ENCRYPTED) {
+			this.decryptionStatus = attachmentSmimeDetails.getDecryptionStatus();
+		}
+		this.failureReason = ofNullable(failureReason).orElse(attachmentSmimeDetails.getFailureReason());
+		if (originalProtectedMessage == null && attachmentSmimeDetails.getOriginalProtectedMessage() != null) {
+			this.originalProtectedMessage = attachmentSmimeDetails.getOriginalProtectedMessage().clone();
+		}
 		this.smimeMode = determineSmode(ofNullable(this.smimeMode).orElse(attachmentSmimeDetails.getSmimeMode()));
 	}
 
@@ -71,6 +106,7 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 
 	public void completeWithSmimeSignatureValid(final boolean signatureValid) {
 		this.smimeSignatureValid = mergeSmimeSignatureValidity(this.smimeSignatureValid, signatureValid);
+		this.verificationStatus = signatureValid ? VerificationStatus.VALID : VerificationStatus.INVALID;
 	}
 
 	@Nullable
@@ -166,6 +202,29 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 		return this.smimeSignatureValid;
 	}
 
+	@NotNull
+	@Override
+	public VerificationStatus getVerificationStatus() {
+		return verificationStatus;
+	}
+
+	@NotNull
+	@Override
+	public DecryptionStatus getDecryptionStatus() {
+		return decryptionStatus;
+	}
+
+	@Nullable
+	@Override
+	public String getFailureReason() {
+		return failureReason;
+	}
+
+	@Override
+	public byte @Nullable [] getOriginalProtectedMessage() {
+		return originalProtectedMessage == null ? null : originalProtectedMessage.clone();
+	}
+
 	@SuppressWarnings("unused")
 	public static class OriginalSmimeDetailsBuilder {
 		@Nullable private SmimeMode smimeMode = SmimeMode.PLAIN;
@@ -176,6 +235,10 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 		@Nullable private String smimeMicalg;
 		@Nullable private String smimeSignedBy;
 		@Nullable private Boolean smimeSignatureValid;
+		@Nullable private VerificationStatus verificationStatus;
+		@Nullable private DecryptionStatus decryptionStatus;
+		@Nullable private String failureReason;
+		@Nullable private byte[] originalProtectedMessage;
 
 		OriginalSmimeDetailsBuilder() {
 		}
@@ -220,8 +283,29 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 			return this;
 		}
 
+		public OriginalSmimeDetailsImpl.OriginalSmimeDetailsBuilder verificationStatus(@Nullable VerificationStatus verificationStatus) {
+			this.verificationStatus = verificationStatus;
+			return this;
+		}
+
+		public OriginalSmimeDetailsImpl.OriginalSmimeDetailsBuilder decryptionStatus(@Nullable DecryptionStatus decryptionStatus) {
+			this.decryptionStatus = decryptionStatus;
+			return this;
+		}
+
+		public OriginalSmimeDetailsImpl.OriginalSmimeDetailsBuilder failureReason(@Nullable String failureReason) {
+			this.failureReason = failureReason;
+			return this;
+		}
+
+		public OriginalSmimeDetailsImpl.OriginalSmimeDetailsBuilder originalProtectedMessage(final byte @Nullable [] originalProtectedMessage) {
+			this.originalProtectedMessage = originalProtectedMessage == null ? null : originalProtectedMessage.clone();
+			return this;
+		}
+
 		public OriginalSmimeDetailsImpl build() {
-			return new OriginalSmimeDetailsImpl(smimeMode, smimeMime, smimeType, smimeName, smimeProtocol, smimeMicalg, smimeSignedBy, smimeSignatureValid);
+			return new OriginalSmimeDetailsImpl(smimeMode, smimeMime, smimeType, smimeName, smimeProtocol, smimeMicalg,
+					smimeSignedBy, smimeSignatureValid, verificationStatus, decryptionStatus, failureReason, originalProtectedMessage);
 		}
 
 		@Override

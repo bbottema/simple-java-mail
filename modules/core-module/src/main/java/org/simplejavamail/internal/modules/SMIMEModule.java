@@ -14,6 +14,7 @@ import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
 import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionResult;
 import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
+import org.simplejavamail.api.internal.smimesupport.model.SmimePreprocessingResult;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import java.security.cert.X509Certificate;
@@ -23,9 +24,14 @@ import java.util.List;
 /**
  * This interface only serves to hide the S/MIME implementation behind an easy-to-load-with-reflection class.
  */
-public interface SMIMEModule {
+public interface SMIMEModule extends InboundProtectionHandler<Pkcs12Config, OriginalSmimeDetails> {
 
 	String NAME = "S/MIME module";
+
+	@NotNull
+	@Override
+	SmimePreprocessingResult processIncoming(@NotNull Session session, @NotNull MimeMessage originalMessage,
+			@Nullable Pkcs12Config pkcs12Config);
 
 	/**
 	 * @return The results of the S/MIME decryption of any compatible encrypted / signed attachments.
@@ -98,13 +104,6 @@ public interface SMIMEModule {
                         @NotNull Collection<X509Certificate> recipientCerts,
                         @Nullable String keyEncapsulationAlgorithm,
                         @Nullable String cipherAlgorithm);
-
-	/**
-	 * @return Whether the email has been properly wrapped in a MimeMessage subtype that overrides Message-ID. This is to
-	 * make sure we never send an email without making sure the Message-ID is properly customized (using
-	 * {@link org.simplejavamail.api.email.EmailPopulatingBuilder#fixingMessageId(String)}.
-	 */
-    boolean isMessageIdFixingMessage(MimeMessage message);
 
 	/**
 	 * @return Whether the given attachment is S/MIME signed / encrypted. Defers to {@code SmimeRecognitionUtil.isGeneratedSmimeMessageId(..)}.

@@ -12,14 +12,21 @@ import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.OpenPgpDetails;
+import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
+import org.simplejavamail.api.email.OriginalOpenPgpDetails.OpenPgpMode;
+import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
+import org.simplejavamail.api.internal.smimesupport.model.SmimePreprocessingResult;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
+import org.simplejavamail.api.internal.openpgpsupport.model.OpenPgpParseResult;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.converter.internal.InternalEmailConverterImpl;
 import org.simplejavamail.converter.internal.mimemessage.MimeDataSource;
@@ -32,6 +39,7 @@ import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
+import org.simplejavamail.internal.util.FinalizedMimeMessage;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -52,7 +60,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
 import static org.simplejavamail.internal.moduleloader.ModuleLoader.loadSmimeModule;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
-import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToString;
+import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
@@ -100,6 +108,14 @@ public final class EmailConverter {
 		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, fetchAttachmentData).buildEmail();
 	}
 
+	/** Converts a message after OpenPGP verification/decryption and optional S/MIME processing. */
+	@NotNull
+	public static Email mimeMessageToEmail(@NotNull final MimeMessage mimeMessage,
+			@Nullable final Pkcs12Config pkcs12Config,
+			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig) {
+		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, true).buildEmail();
+	}
+
 	/**
 	 * Delegates to {@link #mimeMessageToEmailBuilder(MimeMessage, Pkcs12Config)}.
 	 */
@@ -124,11 +140,134 @@ public final class EmailConverter {
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@NotNull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config, final boolean fetchAttachmentData) {
+		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, null, fetchAttachmentData);
+	}
+
+	@NotNull
+	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@NotNull final MimeMessage mimeMessage,
+			@Nullable final Pkcs12Config pkcs12Config,
+			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
+			final boolean fetchAttachmentData) {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
+		final OpenPgpParseResult openPgpResult = preprocessOpenPgp(mimeMessage, openPgpReceiveConfig);
+		final SmimePreprocessingResult smimeResult = openPgpResult.isRecognized()
+				? null
+				: preprocessSmime(openPgpResult.getEffectiveMimeMessage(), pkcs12Config);
+		final MimeMessage effectiveMessage = smimeResult != null && smimeResult.isRecognized()
+				? smimeResult.getEffectiveMimeMessage()
+				: openPgpResult.getEffectiveMimeMessage();
 		val builder = EmailBuilder.startingBlank();
-		val parsed = MimeMessageParser.parseMimeMessage(mimeMessage, fetchAttachmentData);
+		val parsed = MimeMessageParser.parseMimeMessage(effectiveMessage, fetchAttachmentData);
 		val emailBuilder = buildEmailFromMimeMessage(builder, parsed);
-		return decryptAttachments(emailBuilder, mimeMessage, pkcs12Config);
+		((InternalEmailPopulatingBuilder) emailBuilder).withOriginalOpenPgpDetails(openPgpResult.getDetails());
+		if (openPgpResult.isRecognized()) {
+			return emailBuilder;
+		}
+		if (smimeResult != null && smimeResult.isRecognized()) {
+			return applySmimePreprocessingResult(emailBuilder, smimeResult);
+		}
+		return decryptAttachments(emailBuilder, effectiveMessage, pkcs12Config);
+	}
+
+	@Nullable
+	private static SmimePreprocessingResult preprocessSmime(@NotNull final MimeMessage mimeMessage,
+			@Nullable final Pkcs12Config pkcs12Config) {
+		if (!ModuleLoader.smimeModuleAvailable()) {
+			return null;
+		}
+		final Session session = mimeMessage.getSession() != null ? mimeMessage.getSession() : createDummySession();
+		return ModuleLoader.loadSmimeModule().processIncoming(session, mimeMessage, pkcs12Config);
+	}
+
+	@NotNull
+	private static EmailPopulatingBuilder applySmimePreprocessingResult(
+			@NotNull final EmailPopulatingBuilder emailBuilder,
+			@NotNull final SmimePreprocessingResult result) {
+		final java.util.List<org.simplejavamail.api.email.AttachmentResource> clearAttachments =
+				new java.util.ArrayList<>(emailBuilder.getAttachments());
+		org.simplejavamail.api.email.AttachmentResource effectiveMessageArtifact = null;
+		for (org.simplejavamail.api.email.AttachmentResource artifact : result.getDecryptedArtifacts()) {
+			if ("message/rfc822".equalsIgnoreCase(artifact.getDataSource().getContentType())) {
+				effectiveMessageArtifact = artifact;
+				break;
+			}
+		}
+		if (effectiveMessageArtifact != null) {
+			emailBuilder.clearAttachments();
+			emailBuilder.clearEmbeddedImages();
+			emailBuilder.clearContentTransferEncoding();
+		}
+		for (org.simplejavamail.api.email.AttachmentResource protectedAttachment : result.getProtectedAttachments()) {
+			if (!hasAttachmentNamed(emailBuilder.getAttachments(), protectedAttachment.getName())) {
+				emailBuilder.withAttachments(java.util.Collections.singletonList(protectedAttachment));
+			}
+		}
+		final java.util.List<org.simplejavamail.api.email.AttachmentResource> decrypted =
+				new java.util.ArrayList<>(result.getDecryptedArtifacts());
+		if (effectiveMessageArtifact == null) {
+			decrypted.addAll(clearAttachments);
+		}
+		final InternalEmailPopulatingBuilder internal = (InternalEmailPopulatingBuilder) emailBuilder;
+		internal.withDecryptedAttachments(decrypted);
+		internal.withOriginalSmimeDetails(result.getDetails());
+		if (effectiveMessageArtifact != null) {
+			final EmailPopulatingBuilder nestedBuilder = emlToEmailBuilder(effectiveMessageArtifact.getDataSourceInputStream());
+			if (result.getNestedSignedDetails() != null) {
+				((InternalEmailPopulatingBuilder) nestedBuilder).withOriginalSmimeDetails(result.getNestedSignedDetails());
+			}
+			internal.withSmimeSignedEmail(nestedBuilder.buildEmail());
+		}
+		return emailBuilder;
+	}
+
+	private static boolean hasAttachmentNamed(
+			@NotNull final java.util.List<org.simplejavamail.api.email.AttachmentResource> attachments,
+			@Nullable final String name) {
+		for (org.simplejavamail.api.email.AttachmentResource attachment : attachments) {
+			if (java.util.Objects.equals(attachment.getName(), name)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@NotNull
+	private static OpenPgpParseResult preprocessOpenPgp(@NotNull final MimeMessage mimeMessage,
+			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig) {
+		try {
+			final Session session = mimeMessage.getSession() != null ? mimeMessage.getSession() : createDummySession();
+			final boolean protectedWithOpenPgp = isOpenPgpMime(mimeMessage);
+			if (ModuleLoader.openPgpModuleAvailable()) {
+				return ModuleLoader.loadOpenPgpModule().processIncoming(
+						session, mimeMessage, openPgpReceiveConfig);
+			}
+			if (openPgpReceiveConfig != null) {
+				return ModuleLoader.loadOpenPgpModule().processIncoming(
+						session, mimeMessage, openPgpReceiveConfig);
+			}
+			if (protectedWithOpenPgp) {
+				final boolean signed = mimeMessage.isMimeType("multipart/signed");
+				return new OpenPgpParseResult(true, mimeMessage, OpenPgpDetails.builder()
+						.openPgpMode(signed ? OpenPgpMode.SIGNED : OpenPgpMode.ENCRYPTED)
+						.signatureStatus(signed ? SignatureStatus.ERROR : SignatureStatus.NOT_PRESENT)
+						.decryptionStatus(signed ? DecryptionStatus.NOT_ENCRYPTED : DecryptionStatus.FAILED)
+						.failureReason("OpenPGP/MIME message was preserved because openpgp-module is not available")
+						.originalProtectedMessage(mimeMessageToEMLByteArray(mimeMessage))
+						.build());
+			}
+			return new OpenPgpParseResult(false, mimeMessage, OpenPgpDetails.plain());
+		} catch (MessagingException e) {
+			return new OpenPgpParseResult(false, mimeMessage, OpenPgpDetails.plain());
+		}
+	}
+
+	private static boolean isOpenPgpMime(final MimeMessage mimeMessage) throws MessagingException {
+		if (!mimeMessage.isMimeType("multipart/signed") && !mimeMessage.isMimeType("multipart/encrypted")) {
+			return false;
+		}
+		final String protocol = new jakarta.mail.internet.ContentType(mimeMessage.getContentType()).getParameter("protocol");
+		return "application/pgp-signature".equalsIgnoreCase(protocol)
+				|| "application/pgp-encrypted".equalsIgnoreCase(protocol);
 	}
 
 	/**
@@ -397,6 +536,21 @@ public final class EmailConverter {
 		return emlToEmailBuilder(emlInputStream, pkcs12Config, session).buildEmail();
 	}
 
+	/** Reads exact EML bytes before OpenPGP/MIME verification or decryption. */
+	@NotNull
+	public static Email emlToEmail(@NotNull final InputStream emlInputStream,
+			@Nullable final Pkcs12Config pkcs12Config,
+			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
+			@NotNull final Session session) {
+		return emlToEmailBuilder(emlInputStream, pkcs12Config, openPgpReceiveConfig, session).buildEmail();
+	}
+
+	@NotNull
+	public static Email emlToEmailWithOpenPgp(@NotNull final InputStream emlInputStream,
+			@NotNull final OpenPgpReceiveConfig openPgpReceiveConfig) {
+		return emlToEmail(emlInputStream, null, openPgpReceiveConfig, createDummySession());
+	}
+
 	/**
 	 * Delegates to {@link #emlToEmail(String, Pkcs12Config)}.
 	 */
@@ -510,10 +664,21 @@ public final class EmailConverter {
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final InputStream emlInputStream, @Nullable final Pkcs12Config pkcs12Config, @NotNull final Session session) {
+		return emlToEmailBuilder(emlInputStream, pkcs12Config, null, session);
+	}
+
+	@NotNull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final InputStream emlInputStream,
+			@Nullable final Pkcs12Config pkcs12Config,
+			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
+			@NotNull final Session session) {
 		try {
-			String emlStr = readInputStreamToString(checkNonEmptyArgument(emlInputStream, "emlInputStream"), UTF_8);
-			return emlToEmailBuilder(emlStr, pkcs12Config, session);
-		} catch (IOException e) {
+			final byte[] emlBytes = readInputStreamToBytes(checkNonEmptyArgument(emlInputStream, "emlInputStream"));
+			final MimeMessage mimeMessage = FinalizedMimeMessage.fromMessageBytes(
+					checkNonEmptyArgument(session, "session"), emlBytes,
+					FinalizedMimeMessage.ProtectionState.NONE);
+			return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, true);
+		} catch (IOException | MessagingException e) {
 			throw new EmailConverterException(EmailConverterException.ERROR_READING_EML_INPUTSTREAM, e);
 		}
 	}
@@ -548,8 +713,8 @@ public final class EmailConverter {
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final String eml, @Nullable final Pkcs12Config pkcs12Config, @NotNull final Session session) {
-		final MimeMessage mimeMessage = emlToMimeMessage(checkNonEmptyArgument(eml, "eml"), session);
-		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config);
+		return emlToEmailBuilder(new ByteArrayInputStream(checkNonEmptyArgument(eml, "eml").getBytes(UTF_8)),
+				pkcs12Config, null, session);
 	}
 
 	/*

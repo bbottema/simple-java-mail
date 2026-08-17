@@ -110,6 +110,15 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getSmimeEncryptionConfig(), email2.getSmimeEncryptionConfig(), "smimeEncryptionConfig")) {
             return false;
         }
+        if (!fieldIsEqual(email1.getOpenPgpSigningConfig(), email2.getOpenPgpSigningConfig(), "openPgpSigningConfig")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getOpenPgpEncryptionConfig(), email2.getOpenPgpEncryptionConfig(), "openPgpEncryptionConfig")) {
+            return false;
+        }
+        if (!fieldIsEqual(email1.getOriginalOpenPgpDetails(), email2.getOriginalOpenPgpDetails(), "originalOpenPgpDetails")) {
+            return false;
+        }
         return fieldIsEqual(email1.getReturnReceiptTo(), email2.getReturnReceiptTo(), "returnReceiptTo");
     }
 

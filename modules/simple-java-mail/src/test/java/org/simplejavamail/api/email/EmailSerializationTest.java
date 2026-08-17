@@ -179,8 +179,10 @@ class EmailSerializationTest {
 
 		assertLegacyContentUnavailable(restored.getAttachments().get(0));
 		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(restored).writeTo(new ByteArrayOutputStream()))
-				.isInstanceOf(IOException.class)
-				.hasMessage("Attachment data is unavailable because this Email was serialized by Simple Java Mail before 9.2.0");
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessage("Unable to finalize MIME message")
+				.hasRootCauseInstanceOf(IOException.class)
+				.hasRootCauseMessage("Attachment data is unavailable because this Email was serialized by Simple Java Mail before 9.2.0");
 	}
 
 	private static void assertAttachment(AttachmentResource attachment, String name, String description,

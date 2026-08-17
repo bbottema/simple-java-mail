@@ -6,6 +6,8 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
+import org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus;
+import org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
@@ -74,7 +76,8 @@ public class ReadSmimeSelfSignedTest {
 
 	@Test
 	public void testSignedMessageEml() {
-		Email emailParsedFromEml = EmailConverter.emlToEmail(new File(RESOURCES_MESSAGES + "/S_MIME test message signed.eml"));
+		final File source = new File(RESOURCES_MESSAGES + "/S_MIME test message signed.eml");
+		Email emailParsedFromEml = EmailConverter.emlToEmail(source);
 
 		EmailAssert.assertThat(emailParsedFromEml).hasFromRecipient(new Recipient("Benny Bottema", "benny@bennybottema.com", null, null));
 		EmailAssert.assertThat(emailParsedFromEml).hasSubject("S/MIME test message signed");
@@ -104,6 +107,9 @@ public class ReadSmimeSelfSignedTest {
 				.smimeSignedBy("Benny Bottema")
 				.smimeSignatureValid(true)
 				.build());
+		assertThat(emailParsedFromEml.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.VALID);
+		assertThat(emailParsedFromEml.getOriginalSmimeDetails().getOriginalProtectedMessage())
+				.containsExactly(readFile(source));
 	}
 
 	@Test
@@ -129,6 +135,20 @@ public class ReadSmimeSelfSignedTest {
 				.smimeSignedBy("Benny Bottema")
 				.smimeSignatureValid(false)
 				.build());
+		assertThat(emailParsedFromEml.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.INVALID);
+		assertThat(emailParsedFromEml.getOriginalSmimeDetails().getFailureReason()).contains("does not match");
+	}
+
+	@Test
+	public void testEncryptedMessageWithoutKeyPreservesProtectedEntityAndReportsKeyMissing() {
+		final File source = new File(RESOURCES_MESSAGES + "/S_MIME test message encrypted.eml");
+
+		final Email email = EmailConverter.emlToEmail(source);
+
+		assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.KEY_MISSING);
+		assertThat(email.getOriginalSmimeDetails().getFailureReason()).contains("No PKCS12 decryption key");
+		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(readFile(source));
+		assertThat(email.getAttachments()).extracting("name").contains("smime.p7m");
 	}
 
 	@Test
@@ -244,6 +264,7 @@ public class ReadSmimeSelfSignedTest {
 				.smimeType("enveloped-data")
 				.smimeName("smime.p7m")
 				.build());
+		assertThat(emailParsedFromEml.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
 	}
 
 	@Test
@@ -364,6 +385,14 @@ public class ReadSmimeSelfSignedTest {
 			return eml.substring(lfBodyStart + 2);
 		}
 		throw new IllegalArgumentException("Could not find message body in test fixture");
+	}
+
+	private static byte[] readFile(final File file) {
+		try {
+			return Files.readAllBytes(file.toPath());
+		} catch (java.io.IOException e) {
+			throw new AssertionError(e);
+		}
 	}
 
 	private static void assertEmbeddedModuleArchitectureImage(final AttachmentResource embeddedImg, final String contentId) {

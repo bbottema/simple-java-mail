@@ -8,6 +8,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
+import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
@@ -52,7 +54,8 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * resources are read-only, and the concrete {@link DataSource} implementations and the forwarded message's original {@link Session} are not retained.
  * Any lazy or remote data source is therefore consumed while the {@code Email} is serialized, and serialization fails if its data cannot be read.
  *
- * <p>The serialized form can contain message content, credentials, private keys and passwords. Protect it accordingly. Streams created before
+ * <p>The serialized form can contain message content, credentials, S/MIME private keys and passwords. Protect it accordingly. OpenPGP sending
+ * configuration, secret keys and passphrases are deliberately excluded and must be supplied again after deserialization. Streams created before
  * 9.2.0 remain readable for ordinary message fields, but those versions never stored attachment data, forwarded MIME content or S/MIME signing
  * configuration. Accessing missing legacy attachment data fails with an exception that identifies the pre-9.2.0 format.</p>
  */
@@ -247,6 +250,15 @@ public class Email implements Serializable {
 	 */
 	private final SmimeSigningConfig smimeSigningConfig;
 
+	/** OpenPGP secret material is deliberately excluded from Java serialization. */
+	private final transient OpenPgpSigningConfig openPgpSigningConfig;
+
+	/** OpenPGP sending configuration is deliberately excluded from Java serialization. */
+	private final transient OpenPgpEncryptionConfig openPgpEncryptionConfig;
+
+	@NotNull
+	private OriginalOpenPgpDetails originalOpenPgpDetails;
+
 	/**
 	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
 	 */
@@ -321,9 +333,12 @@ public class Email implements Serializable {
 		overrideReceivers = builder.getOverrideReceivers();
 		emailToForward = builder.getEmailToForward();
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
+		originalOpenPgpDetails = builder.getOriginalOpenPgpDetails();
 		sentDate = builder.getSentDate();
 		smimeEncryptionConfig = builder.getSmimeEncryptionConfig();
 		smimeSigningConfig = builder.getSmimeSigningConfig();
+		openPgpSigningConfig = builder.getOpenPgpSigningConfig();
+		openPgpEncryptionConfig = builder.getOpenPgpEncryptionConfig();
 		dkimConfig = builder.getDkimConfig();
 	}
 
@@ -342,6 +357,9 @@ public class Email implements Serializable {
 	private void readObject(@NotNull final ObjectInputStream inputStream)
 			throws IOException, ClassNotFoundException {
 		inputStream.defaultReadObject();
+		if (originalOpenPgpDetails == null) {
+			originalOpenPgpDetails = OpenPgpDetails.plain();
+		}
 		if (serializationFormatVersion == 0) {
 			emailToForward = null;
 			return;
@@ -474,6 +492,17 @@ public class Email implements Serializable {
 			}
 			s += "\t\toriginalSmimeDetails=" + originalSmimeDetails + "\n";
 			s += "\t----------------------\n\t}";
+		}
+		if (openPgpSigningConfig != null || openPgpEncryptionConfig != null
+				|| originalOpenPgpDetails.getOpenPgpMode() != OriginalOpenPgpDetails.OpenPgpMode.PLAIN) {
+			s += ",\n\topenpgp details: {\n";
+			if (openPgpSigningConfig != null) {
+				s += "\t\tsigning=*** configured,\n";
+			}
+			if (openPgpEncryptionConfig != null) {
+				s += "\t\tencryptionRecipients=" + openPgpEncryptionConfig.getRecipientPublicKeyRings().size() + ",\n";
+			}
+			s += "\t\tresult=" + originalOpenPgpDetails + "\n\t}";
 		}
 		s +=  "\n}";
 		return s;
@@ -744,6 +773,21 @@ public class Email implements Serializable {
 	@Nullable
 	public SmimeSigningConfig getSmimeSigningConfig() {
 		return smimeSigningConfig;
+	}
+
+	@Nullable
+	public OpenPgpSigningConfig getOpenPgpSigningConfig() {
+		return openPgpSigningConfig;
+	}
+
+	@Nullable
+	public OpenPgpEncryptionConfig getOpenPgpEncryptionConfig() {
+		return openPgpEncryptionConfig;
+	}
+
+	@NotNull
+	public OriginalOpenPgpDetails getOriginalOpenPgpDetails() {
+		return originalOpenPgpDetails;
 	}
 
 	/**

@@ -48,12 +48,6 @@
             <groupId>jakarta.mail</groupId>
             <artifactId>jakarta.mail-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.angus</groupId>
-            <artifactId>angus-mail</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
         <dependency><!-- email validation framework -->
             <groupId>com.sanctionco.jmail</groupId>
             <artifactId>jmail</artifactId>

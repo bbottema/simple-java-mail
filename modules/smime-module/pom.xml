@@ -30,10 +30,16 @@
         </dependency>
 
         <!-- needed for S/MIME support -->
-        <dependency>
+		<dependency>
 			<groupId>org.simplejavamail</groupId>
 			<artifactId>utils-mail-smime</artifactId>
 			<version>2.3.12</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.eclipse.angus</groupId>
+					<artifactId>angus-mail</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
     </dependencies>
 </project>

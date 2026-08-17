@@ -19,6 +19,14 @@ public interface OriginalSmimeDetails extends Serializable {
 		PLAIN, SIGNED, ENCRYPTED, SIGNED_ENCRYPTED
 	}
 
+	enum VerificationStatus {
+		NOT_SIGNED, VALID, INVALID, ERROR
+	}
+
+	enum DecryptionStatus {
+		NOT_ENCRYPTED, DECRYPTED, KEY_MISSING, FAILED
+	}
+
 	@Nullable SmimeMode getSmimeMode();
 	@Nullable String getSmimeMime();
 	@Nullable String getSmimeType();
@@ -42,4 +50,24 @@ public interface OriginalSmimeDetails extends Serializable {
 	 * validity or revocation status, key usage, or that the signer certificate belongs to the message's claimed sender.
 	 */
 	@Nullable Boolean getSmimeSignatureValid();
+
+	/** Cryptographic signature result; it does not assert certificate or sender trust. */
+	default VerificationStatus getVerificationStatus() {
+		if (getSmimeSignatureValid() == null) return VerificationStatus.NOT_SIGNED;
+		return getSmimeSignatureValid() ? VerificationStatus.VALID : VerificationStatus.INVALID;
+	}
+
+	default DecryptionStatus getDecryptionStatus() {
+		return DecryptionStatus.NOT_ENCRYPTED;
+	}
+
+	@Nullable
+	default String getFailureReason() {
+		return null;
+	}
+
+	/** Exact protected message bytes when conversion started from an S/MIME entity. */
+	default byte @Nullable [] getOriginalProtectedMessage() {
+		return null;
+	}
 }

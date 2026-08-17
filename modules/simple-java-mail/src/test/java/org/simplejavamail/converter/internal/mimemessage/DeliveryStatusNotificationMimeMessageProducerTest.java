@@ -1,13 +1,13 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
-import jakarta.mail.internet.MimeMessage;
-import org.eclipse.angus.mail.smtp.SMTPMessage;
 import org.junit.jupiter.api.Test;
-import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.util.FinalizedMimeMessage;
+import org.simplejavamail.mailer.MailerBuilder;
+import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import testutil.EmailHelper;
-
-import java.lang.reflect.Method;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static jakarta.mail.Message.RecipientType.TO;
@@ -18,25 +18,22 @@ import static org.simplejavamail.api.email.config.DeliveryStatusNotification.Ret
 public class DeliveryStatusNotificationMimeMessageProducerTest {
 
 	@Test
-	public void emailToMimeMessage_PrimesDeliveryStatusNotificationOnSmtpMessage() throws Exception {
-		MimeMessage message = EmailConverter.emailToMimeMessage(EmailBuilder.startingBlank()
+	public void preparedMailCarriesDeliveryStatusNotificationOutsideMimeMessage() throws Exception {
+		final Mailer mailer = MailerBuilder.withSMTPServer("localhost", 25).buildMailer();
+		final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(
+				mailer.getSession(), EmailBuilder.startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "receiver@example.com"))
 				.withPlainText("Hello")
+				.withBounceTo("bounce@example.com")
 				.withDeliveryStatusNotification(HEADERS_ONLY, FAILURE, DELAY)
-				.buildEmail());
+				.buildEmailCompletedWithDefaultsAndOverrides());
 
-		assertThat(message).isInstanceOf(ImmutableDelegatingSMTPMessage.class);
-		SMTPMessage smtpMessage = (SMTPMessage) message;
-		assertThat(smtpMessage.getNotifyOptions()).isEqualTo(SMTPMessage.NOTIFY_FAILURE | SMTPMessage.NOTIFY_DELAY);
-		assertThat(smtpMessage.getReturnOption()).isEqualTo(SMTPMessage.RETURN_HDRS);
-		assertThat(invokePackagePrivateSmtpMessageMethod(smtpMessage, "getDSNNotify")).isEqualTo("FAILURE,DELAY");
-		assertThat(invokePackagePrivateSmtpMessageMethod(smtpMessage, "getDSNRet")).isEqualTo("HDRS");
-	}
-
-	private static Object invokePackagePrivateSmtpMessageMethod(SMTPMessage smtpMessage, String methodName) throws Exception {
-		Method method = SMTPMessage.class.getDeclaredMethod(methodName);
-		method.setAccessible(true);
-		return method.invoke(smtpMessage);
+		assertThat(preparedMail.getMimeMessage()).isInstanceOf(FinalizedMimeMessage.class);
+		assertThat(preparedMail.getDeliveryEnvelope().getEnvelopeFrom()).isEqualTo("bounce@example.com");
+		assertThat(preparedMail.getDeliveryEnvelope().getDeliveryStatusNotification().getNotifyOptions())
+				.containsExactlyInAnyOrder(FAILURE, DELAY);
+		assertThat(preparedMail.getDeliveryEnvelope().getDeliveryStatusNotification().getReturnOption())
+				.isEqualTo(HEADERS_ONLY);
 	}
 }

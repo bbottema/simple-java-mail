@@ -1,0 +1,38 @@
+Date: Mon, 17 Aug 2026 12:00:00 +0200
+From: OpenPGP.js Fixture <fixture@example.com>
+To: Receiver <receiver@example.com>
+Message-ID: <openpgp-js-encrypted-fixture@openpgpjs.test>
+Subject: OpenPGP.js encrypted fixture
+MIME-Version: 1.0
+Content-Type: multipart/encrypted; protocol="application/pgp-encrypted"; boundary="openpgpjs-encrypted-boundary"
+
+--openpgpjs-encrypted-boundary
+Content-Type: application/pgp-encrypted
+
+Version: 1
+--openpgpjs-encrypted-boundary
+Content-Type: application/octet-stream; name="encrypted.asc"
+Content-Disposition: inline; filename="encrypted.asc"
+
+-----BEGIN PGP MESSAGE-----
+
+wcBMA8mEp8IAkVjTAQgAqxmgW74L7HFtcDVy4R3+gwWM2X4TjTL5Oi7XjUK+
+hyPFQPbXaKK5gjcc+PyyOHkFGhNCP/LPbb8c8dyNElWjcyfKkdatMr93bxS9
+u8PTWwHfnK+1xNQ06O6U1ql2zGTzelTsi8Elh6GUwbnTcu+7oFaGt67rKG73
+5sn5xDBej0AZtLlY47+tzDpOBGYbvnW/MkD/hBGOFdBj+ZHXTEpFp97Yltb7
+Ijvmf4h4YjBkVx5IIVRznFIEhxXTfAg/54cvFZPF6k6vweWWhoT3ocBUkU9Q
+EMplVDws75l6QCneMxsog7l8LomU7OW4o0IybtuMvv4H2qMVnD2IEycHQ/M3
+y9LBEgHRrjkTBLZ6jHEpN6OFwwmvwJqytfzfDpG845MsE0M7nuQA8r18flNW
+5FxyOtsbpe0EDDBsAdYJQGkJf0WTQu7tJPqy2yQ7pTmIxRO+0dhsb+1yKGzc
+vFC4ZwcZYeyOUCc/3MSkLNjY9j0iATc2CZGkto3vZpxmaF9FBPmZ5//eJOo1
+eufsUOYolZShTAhfzUG7l5EWeNP0gbxyGU09B7v5PFcUIXh5xSJbDUe+Qf0N
+ieQ3UdeT7TJF5t6daBCHovTk07Cjfh2wpGYW8v/zp5TMj7U8DlQZkLY4Cq4M
+xyWSRC4Qp2qYuns9pLy2ZnEYabzZkjajylqMLmFaEjJ7lym88g28WuEum1dm
+1SyNF6lUk21DlVMI/sRcBa8OnmQr0RjJM3MRTlkKc0kyiWc5R1tHIw5APYv+
+80mu6s3eP+h+pvyy+S4Ai7vmyNOvbdt9kUKb8YMWXLade5zGEzxHw3YTOvpz
+/OSYrD6uh6JDL5/CQx0S6C4uxUtXUIzvDJ7UkYZr3GHgm94DRdqenFNli192
+MWwUHYyegHyFue9GJE5jNYwKP5syWS/8gHaRD3bPpHMx8K2+DpCvqGfvyFhJ
+xYkiKUyi8AZT2cWryb+YNbLM/Ko=
+=NY6S
+-----END PGP MESSAGE-----
+--openpgpjs-encrypted-boundary--

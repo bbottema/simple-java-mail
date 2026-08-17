@@ -1,0 +1,136 @@
+package org.simplejavamail.mailer.internal.util;
+
+import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.URLName;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
+import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+import org.simplejavamail.api.mailer.spi.PreparedMail;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Properties;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class MailTransportAdapterResolverTest {
+
+    @Test
+    void unknownProviderUsesGenericFallbackForOrdinaryMail() throws Exception {
+        final RecordingTransport transport = new RecordingTransport();
+        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
+
+        final SmtpServerResponse response = MailTransportAdapterResolver.sendMessage(
+                transport, preparedMail, Collections.<MailTransportAdapter>emptyList());
+
+        assertThat(response).isNull();
+        assertThat(transport.sentMessage).isSameAs(preparedMail.getMimeMessage());
+        assertThat(transport.sentRecipients).containsExactly(preparedMail.getRecipients());
+    }
+
+    @Test
+    void unknownProviderRejectsDeliveryCapabilitiesBeforeSending() throws Exception {
+        final RecordingTransport transport = new RecordingTransport();
+        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(
+                "bounce@example.com",
+                DeliveryStatusNotification.of(DeliveryStatusNotification.NotifyOption.FAILURE)));
+
+        assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(
+                transport, preparedMail, Collections.<MailTransportAdapter>emptyList()))
+                .isInstanceOf(MessagingException.class)
+                .hasMessageContaining(RecordingTransport.class.getName())
+                .hasMessageContaining("envelope sender or delivery-status notification")
+                .hasMessageContaining("matching MailTransportAdapter");
+        assertThat(transport.sentMessage).isNull();
+    }
+
+    @Test
+    void exactlyOneSupportingAdapterOwnsSubmission() throws Exception {
+        final RecordingTransport transport = new RecordingTransport();
+        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
+        final RecordingAdapter adapter = new RecordingAdapter(true);
+
+        final SmtpServerResponse response = MailTransportAdapterResolver.sendMessage(
+                transport, preparedMail, Arrays.<MailTransportAdapter>asList(new RecordingAdapter(false), adapter));
+
+        assertThat(adapter.preparedMail).isSameAs(preparedMail);
+        assertThat(response.getReturnCode()).isEqualTo(250);
+        assertThat(response.getResponse()).isEqualTo("queued");
+        assertThat(transport.sentMessage).isNull();
+    }
+
+    @Test
+    void ambiguousAdaptersFailInDeterministicClassNameOrder() throws Exception {
+        final RecordingTransport transport = new RecordingTransport();
+        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
+
+        assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(
+                transport, preparedMail, Arrays.<MailTransportAdapter>asList(new ZAdapter(), new AAdapter())))
+                .isInstanceOf(MessagingException.class)
+                .hasMessageContaining(AAdapter.class.getName() + ", " + ZAdapter.class.getName());
+    }
+
+    private static PreparedMail preparedMail(final DeliveryEnvelope envelope) throws MessagingException {
+        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+        message.setText("body");
+        message.saveChanges();
+        return new PreparedMail(message,
+                new Address[]{new InternetAddress("receiver@example.com")}, envelope, false);
+    }
+
+    private static final class RecordingTransport extends Transport {
+        private Message sentMessage;
+        private Address[] sentRecipients;
+
+        private RecordingTransport() {
+            super(Session.getInstance(new Properties()), new URLName("test", null, -1, null, null, null));
+        }
+
+        @Override
+        public void sendMessage(final Message message, final Address[] addresses) {
+            sentMessage = message;
+            sentRecipients = addresses.clone();
+        }
+    }
+
+    private static class RecordingAdapter implements MailTransportAdapter {
+        private final boolean supports;
+        private PreparedMail preparedMail;
+
+        private RecordingAdapter(final boolean supports) {
+            this.supports = supports;
+        }
+
+        @Override
+        public boolean supports(final Transport transport) {
+            return supports;
+        }
+
+        @Override
+        public SmtpServerResponse sendMessage(final Transport transport, final PreparedMail preparedMail) {
+            this.preparedMail = preparedMail;
+            return new SmtpServerResponse(250, "queued");
+        }
+    }
+
+    private static final class AAdapter extends RecordingAdapter {
+        private AAdapter() {
+            super(true);
+        }
+    }
+
+    private static final class ZAdapter extends RecordingAdapter {
+        private ZAdapter() {
+            super(true);
+        }
+    }
+}

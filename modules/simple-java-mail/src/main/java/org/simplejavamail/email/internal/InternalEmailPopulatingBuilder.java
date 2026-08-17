@@ -7,6 +7,7 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.OriginalOpenPgpDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 
@@ -32,4 +33,5 @@ public interface InternalEmailPopulatingBuilder extends EmailPopulatingBuilder, 
 	@NotNull InternalEmailPopulatingBuilder withDecryptedAttachments(List<AttachmentResource> decryptedAttachments);
 	@NotNull InternalEmailPopulatingBuilder withSmimeSignedEmail(@NotNull Email smimeSignedEmail);
 	@NotNull InternalEmailPopulatingBuilder withOriginalSmimeDetails(@NotNull OriginalSmimeDetails originalSmimeDetails);
+	@NotNull InternalEmailPopulatingBuilder withOriginalOpenPgpDetails(@NotNull OriginalOpenPgpDetails originalOpenPgpDetails);
 }

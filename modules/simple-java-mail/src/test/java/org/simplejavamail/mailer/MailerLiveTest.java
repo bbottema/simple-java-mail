@@ -15,6 +15,10 @@ import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
+import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
+import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.CustomMailer;
@@ -35,6 +39,9 @@ import testutil.testrules.SmtpServerExtension;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.KeyPairGenerator;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -51,6 +58,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmail;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEmailBuilder;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
@@ -149,6 +158,46 @@ public class MailerLiveTest {
 	}
 
 	@Test
+	public void protectedOpenPgpSurvivesAngusEightBitMimeTransport() throws Exception {
+		final byte[] publicKey = Files.readAllBytes(Paths.get(RESOURCES, "openpgpjs", "public-key.asc"));
+		final byte[] privateKey = Files.readAllBytes(Paths.get(RESOURCES, "openpgpjs", "private-key.asc"));
+		final KeyPairGenerator dkimKeyGenerator = KeyPairGenerator.getInstance("RSA");
+		dkimKeyGenerator.initialize(1024);
+		final byte[] dkimKey = dkimKeyGenerator.generateKeyPair().getPrivate().getEncoded();
+		mailer.getSession().getProperties().setProperty("mail.smtp.allow8bitmime", "true");
+		final Email signed = EmailBuilder.startingBlank()
+				.from("fixture@supersecret-testing-domain.com")
+				.withRecipients(new Recipient(null, "receiver@example.com", TO, null))
+				.withBounceTo("bounce@example.com")
+				.withDeliveryStatusNotification(HEADERS_ONLY, FAILURE)
+				.withSubject("8BITMIME protected transport")
+				.withPlainText("Héllo over a server advertising 8BITMIME")
+				.withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE)
+				.signWithOpenPgp(OpenPgpSigningConfig.builder()
+						.secretKeyRing(privateKey)
+						.passphrase("openpgpjs-fixture-passphrase")
+						.build())
+				.signWithDomainKey(DkimConfig.builder()
+						.dkimPrivateKeyData(dkimKey)
+						.dkimSigningDomain("supersecret-testing-domain.com")
+						.dkimSelector("selector")
+						.build())
+				.buildEmail();
+
+		mailer.sendMail(signed);
+		final MimeMessageAndEnvelope capturedMail = smtpServerExtension.getOnlyMessage();
+		final MimeMessage captured = capturedMail.getMimeMessage();
+		final Email verified = EmailConverter.mimeMessageToEmail(captured, null,
+				OpenPgpReceiveConfig.builder().addVerificationKeyRing(publicKey).build());
+
+		assertThat(capturedMail.getEnvelopeSender()).isEqualTo("bounce@example.com");
+		assertThat(captured.getHeader("DKIM-Signature", null)).isNotBlank();
+		assertThat(verified.getPlainText()).isEqualTo("Héllo over a server advertising 8BITMIME");
+		assertThat(verified.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+		assertThat(mailer.getSession().getProperty("mail.smtp.allow8bitmime")).isEqualTo("true");
+	}
+
+	@Test
 	public void createMailSession_OutlookMessageTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		val builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
@@ -199,7 +248,7 @@ public class MailerLiveTest {
 	}
 
 	@Test
-	public void createMailSession_OutlookMessageDefaultSmimeSignTest()
+	public void createMailSession_OutlookMessageIgnoresDefaultSmimeSigningTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		// override the default from the @BeforeEach test
 		mailer = MailerBuilder
@@ -212,26 +261,20 @@ public class MailerLiveTest {
 				.buildMailer();
 
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
-		Email email = assertSendingEmail(builder, false, true, false, true, false);
+		assertThat(builder.isIgnoreDefaults()).isTrue();
+		assertThat(mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(builder.buildEmail()).getSmimeSigningConfig()).isNull();
+		Email email = assertSendingEmail(builder, false, false, false, true, false);
 
-		// verify that S/MIME was indeed only configured on the mailer instance
-		assertThat(mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(email).getSmimeSigningConfig()).isNotNull();
+		// Outlook conversion preserves source content and deliberately opts out of mailer defaults.
 		assertThat(builder.getSmimeSigningConfig()).isNull();
 		assertThat(email.getSmimeEncryptionConfig()).isNull();
 
-		verifyReceivedOutlookEmail(email, true, false);
+		verifyReceivedOutlookEmail(email, false, false);
 
 		//noinspection deprecation
 		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isFalse();
 
-		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.SIGNED)
-				.smimeMime("multipart/signed")
-				.smimeProtocol("application/pkcs7-signature")
-				.smimeMicalg("sha-256")
-				.smimeSignedBy("Benny Bottema")
-				.smimeSignatureValid(true)
-				.build());
+		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder().build());
 	}
 
 	@Test
@@ -456,43 +499,28 @@ public class MailerLiveTest {
 				"<b>We should meet up!</b><img src=\"cid:thumbsup\">");
 		// the RTF was probably created by Outlook based on the HTML when the message was saved
 
-		final AttachmentResource attachment1;
-		final AttachmentResource attachment2;
-
-		if (smimeSigned && smimeEncrypted) {
-			assertThat(email.getAttachments()).hasSize(4);
-			attachment1 = email.getAttachments().get(1);
-			attachment2 = email.getAttachments().get(2);
-		} else if (smimeSigned) {
-			assertThat(email.getAttachments()).hasSize(3);
-			attachment1 = email.getAttachments().get(0);
-			attachment2 = email.getAttachments().get(1);
-		} else if (smimeEncrypted) {
-			assertThat(email.getAttachments()).hasSize(3);
-			attachment1 = email.getAttachments().get(1);
-			attachment2 = email.getAttachments().get(2);
-		} else {
-			assertThat(email.getAttachments()).hasSize(2);
-			attachment1 = email.getAttachments().get(0);
-			attachment2 = email.getAttachments().get(1);
-		}
+		assertThat(email.getAttachments()).hasSize(smimeSigned || smimeEncrypted
+				? (smimeSigned && smimeEncrypted ? 4 : 3)
+				: 2);
+		assertThat(email.getAttachments()).extracting(AttachmentResource::getName)
+				.contains("dresscode.txt", "location.txt");
+		final AttachmentResource attachment1 = email.getAttachments().stream()
+				.filter(attachment -> "dresscode.txt".equals(attachment.getName()))
+				.findFirst()
+				.get();
+		final AttachmentResource attachment2 = email.getAttachments().stream()
+				.filter(attachment -> "location.txt".equals(attachment.getName()))
+				.findFirst()
+				.get();
 
 		assertThat(email.getEmbeddedImages()).hasSize(1);
 		AttachmentResource embeddedImg = email.getEmbeddedImages().get(0);
 		// Outlook overrode dresscode.txt, presumably because it was more than 8 character long??
 
-		try {
-			assertAttachmentMetadata(attachment1, "text/plain", "dresscode.txt");
-			assertAttachmentMetadata(attachment2, "text/plain", "location.txt");
-			assertThat(normalizeNewlines(attachment1.readAllData())).isEqualTo("Black Tie Optional");
-			assertThat(normalizeNewlines(attachment2.readAllData())).isEqualTo("On the moon!");
-		} catch (AssertionError e) {
-			// might be sorting problem, try the only other possible order of attachments...
-			assertAttachmentMetadata(attachment2, "text/plain", "dresscode.txt");
-			assertAttachmentMetadata(attachment1, "text/plain", "location.txt");
-			assertThat(normalizeNewlines(attachment2.readAllData())).isEqualTo("Black Tie Optional");
-			assertThat(normalizeNewlines(attachment1.readAllData())).isEqualTo("On the moon!");
-		}
+		assertAttachmentMetadata(attachment1, "text/plain", "dresscode.txt");
+		assertAttachmentMetadata(attachment2, "text/plain", "location.txt");
+		assertThat(normalizeNewlines(attachment1.readAllData())).isEqualTo("Black Tie Optional");
+		assertThat(normalizeNewlines(attachment2.readAllData())).isEqualTo("On the moon!");
 
 		assertAttachmentMetadata(embeddedImg, "image/png", "thumbsup");
 	}
@@ -579,12 +607,16 @@ public class MailerLiveTest {
 			TestDataHelper.retrofitLostOriginalAttachmentNames(receivedEmail);
 		}
 
-		assertThat(receivedEmail.getHeaders()).containsEntry("governanceDefaultTest1", singletonList("defaulted"));
+		if (originalEmail.isIgnoreDefaults()) {
+			assertThat(receivedEmail.getHeaders()).doesNotContainKey("governanceDefaultTest1");
+		} else {
+			assertThat(receivedEmail.getHeaders()).containsEntry("governanceDefaultTest1", singletonList("defaulted"));
+			originalEmailPopulatingBuilder.withHeader("governanceDefaultTest1", "defaulted", true);
+		}
 		assertThat(receivedEmail.getHeaders()).containsEntry("governanceOverrideTest1", singletonList("overridden"));
 		assertThat(receivedEmail.getHeaders()).containsEntry("governanceOverrideTest2", singletonList("also overridden"));
 
 		originalEmailPopulatingBuilder
-				.withHeader("governanceDefaultTest1", "defaulted", true)
 				.withHeader("governanceOverrideTest1", "overridden", true)
 				.withHeader("governanceOverrideTest2", "also overridden", true);
 

@@ -214,6 +214,12 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getSmimeEncryptionConfig() != null) {
 			builder.encryptWithSmime(email.getSmimeEncryptionConfig());
 		}
+		if (email.getOpenPgpSigningConfig() != null) {
+			builder.signWithOpenPgp(email.getOpenPgpSigningConfig());
+		}
+		if (email.getOpenPgpEncryptionConfig() != null) {
+			builder.encryptWithOpenPgp(email.getOpenPgpEncryptionConfig());
+		}
 		if (email.getDkimConfig() != null) {
 			builder.signWithDomainKey(email.getDkimConfig());
 		}
@@ -234,6 +240,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			((InternalEmailPopulatingBuilder) builder).withSmimeSignedEmail(email.getSmimeSignedEmail());
 		}
 		((InternalEmailPopulatingBuilder) builder).withOriginalSmimeDetails(email.getOriginalSmimeDetails());
+		((InternalEmailPopulatingBuilder) builder).withOriginalOpenPgpDetails(email.getOriginalOpenPgpDetails());
 
 		if (!(email instanceof InternalEmail)) {
 			throw new AssertionError("Email is not of type InternalEmail, this should not be possible");

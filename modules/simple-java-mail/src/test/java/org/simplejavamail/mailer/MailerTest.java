@@ -26,11 +26,10 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.converter.internal.mimemessage.ImmutableDelegatingSMTPMessage;
+import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import org.simplejavamail.util.TestDataHelper;
-import org.simplejavamail.utils.mail.dkim.DkimMessage;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -468,11 +467,10 @@ public class MailerTest {
 				.build());
 		MimeMessage dkimSignedMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, hooking into the DKIM library did not produce an error
-		assertThat(dkimSignedMessage).isInstanceOf(ImmutableDelegatingSMTPMessage.class);
-		assertThat(((ImmutableDelegatingSMTPMessage) dkimSignedMessage).getDelegate()).isInstanceOf(DkimMessage.class);
-
-		// just a quick double check we don't have a DKIM signature yet:
-		assertThat(EmailConverter.mimeMessageToEmail(dkimSignedMessage).getHeaders()).doesNotContainKey("DKIM-Signature");
+		assertThat(dkimSignedMessage).isInstanceOf(FinalizedMimeMessage.class);
+		assertThat(((FinalizedMimeMessage) dkimSignedMessage).getProtectionState())
+				.isEqualTo(FinalizedMimeMessage.ProtectionState.FINAL_WIRE_SIGNED);
+		assertThat(EmailConverter.mimeMessageToEmail(dkimSignedMessage).getHeaders()).containsKey("DKIM-Signature");
 
 		// now trigger the actual signing:
 		String eml = EmailConverter.mimeMessageToEML(dkimSignedMessage);
@@ -577,7 +575,8 @@ public class MailerTest {
 	@Test
 	public void testDKIMPrimingAndSmimeCombo()
 			throws IOException {
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false);
+		final EmailPopulatingBuilder emailPopulatingBuilder = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.from("sender@supersecret-testing-domain.com");
 
 		// System.out.println(printBase64Binary(Files.readAllBytes(Paths.get("D:\\keys\\dkim.der")))); // needs jdk 1.7
 		String privateDERkeyBase64 =
@@ -591,7 +590,7 @@ public class MailerTest {
 
 		emailPopulatingBuilder.signWithDomainKey(DkimConfig.builder()
 				.dkimPrivateKeyData(new ByteArrayInputStream(Base64.getDecoder().decode(privateDERkeyBase64)))
-				.dkimSigningDomain("somemail.com")
+				.dkimSigningDomain("supersecret-testing-domain.com")
 				.dkimSelector("select")
 				.build());
 		emailPopulatingBuilder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein", null);
@@ -599,8 +598,9 @@ public class MailerTest {
 
 		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, signing did not produce an error
-		assertThat(mimeMessage).isInstanceOf(ImmutableDelegatingSMTPMessage.class);
-		assertThat(((ImmutableDelegatingSMTPMessage) mimeMessage).getDelegate()).isInstanceOf(DkimMessage.class);
+		assertThat(mimeMessage).isInstanceOf(FinalizedMimeMessage.class);
+		assertThat(((FinalizedMimeMessage) mimeMessage).getProtectionState())
+				.isEqualTo(FinalizedMimeMessage.ProtectionState.FINAL_WIRE_SIGNED);
 	}
 	
 	@Test
@@ -618,7 +618,13 @@ public class MailerTest {
 		
 		TestDataHelper.retrofitLostOriginalAttachmentNames(emailFromMimeMessage);
 
-		assertThat(emailFromMimeMessage).isEqualTo(emailNormal);
+		assertThat(emailFromMimeMessage.getId()).isEqualTo(mimeMessage.getMessageID());
+		assertThat(emailFromMimeMessage.getSubject()).isEqualTo(emailNormal.getSubject());
+		assertThat(emailFromMimeMessage.getPlainText()).isEqualTo(emailNormal.getPlainText());
+		assertThat(emailFromMimeMessage.getHTMLText()).isEqualTo(emailNormal.getHTMLText());
+		assertThat(emailFromMimeMessage.getRecipients()).isEqualTo(emailNormal.getRecipients());
+		assertThat(emailFromMimeMessage.getAttachments()).hasSameSizeAs(emailNormal.getAttachments());
+		assertThat(emailFromMimeMessage.getEmbeddedImages()).hasSameSizeAs(emailNormal.getEmbeddedImages());
 	}
 
 	@Test

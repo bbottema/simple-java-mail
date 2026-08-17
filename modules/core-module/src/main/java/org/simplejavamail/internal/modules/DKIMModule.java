@@ -26,10 +26,4 @@ public interface DKIMModule {
 	 */
 	MimeMessage signMessageWithDKIM(@NotNull Email email, @NotNull MimeMessage messageToSign, @NotNull DkimConfig dkimConfig, @NotNull Recipient fromRecipient);
 
-	/**
-	 * @return Whether the email has been properly wrapped in a MimeMessage subtype that overrides Message-ID. This is to
-	 * make sure we never send an email without making sure the Message-ID is properly customized (using
-	 * {@link org.simplejavamail.api.email.EmailPopulatingBuilder#fixingMessageId(String)}.
-	 */
-    boolean isMessageIdFixingMessage(MimeMessage message);
 }

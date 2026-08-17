@@ -34,6 +34,12 @@
             <groupId>org.simplejavamail</groupId>
             <artifactId>utils-mail-dkim</artifactId>
             <version>3.3.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.eclipse.angus</groupId>
+                    <artifactId>angus-mail</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>

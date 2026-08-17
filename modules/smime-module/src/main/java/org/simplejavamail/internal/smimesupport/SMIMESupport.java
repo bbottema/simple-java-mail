@@ -49,16 +49,17 @@ import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.Outlook
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeMultipartSigned;
 import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionResult;
 import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
+import org.simplejavamail.api.internal.smimesupport.model.SmimePreprocessingResult;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.internal.smimesupport.builder.SmimeParseResultBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.smimesupport.model.SmimeDetailsImpl;
+import org.simplejavamail.internal.util.MessageIdFixingMimeMessage;
+import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.utils.mail.smime.KeyEncapsulationAlgorithm;
 import org.simplejavamail.utils.mail.smime.SmimeKey;
 import org.simplejavamail.utils.mail.smime.SmimeKeyStore;
-import org.simplejavamail.utils.mail.smime.SmimeMessageIdFixingMimeMessage;
-import org.simplejavamail.utils.mail.smime.SmimeMessageIdFixingSMTPMessage;
 import org.simplejavamail.utils.mail.smime.SmimeState;
 import org.simplejavamail.utils.mail.smime.SmimeUtil;
 import org.slf4j.Logger;
@@ -73,8 +74,10 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.MGF1ParameterSpec;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -108,6 +111,350 @@ public class SMIMESupport implements SMIMEModule {
 
 	static {
 		Security.addProvider(new BouncyCastleProvider());
+	}
+
+	/** Inspect and unwrap top-level S/MIME before the ordinary MIME parser traverses the entity. */
+	@NotNull
+	@Override
+	public SmimePreprocessingResult processIncoming(@NotNull final Session session,
+			@NotNull final MimeMessage originalMessage,
+			@Nullable final Pkcs12Config pkcs12Config) {
+		byte[] originalBytes = null;
+		try {
+			final ContentType contentType = new ContentType(originalMessage.getContentType());
+			if (!SmimeRecognitionUtil.isSmimeContentType(contentType)) {
+				return unrecognized(originalMessage);
+			}
+			originalBytes = serializeMessage(originalMessage);
+			final OriginalSmimeDetailsImpl baseDetails = details(contentType, originalBytes);
+			final SmimeState state = determineIncomingState(originalMessage, baseDetails);
+			if (state == SmimeState.ENCRYPTED) {
+				return processIncomingEncrypted(session, originalMessage, originalBytes, baseDetails, pkcs12Config);
+			}
+			if (state == SmimeState.SIGNED || state == SmimeState.PROBABLY_SIGNED || state == SmimeState.SIGNED_ENVELOPED) {
+				final boolean opaqueSigned = !originalMessage.isMimeType("multipart/signed");
+				return processIncomingSigned(session, originalMessage, originalMessage, originalBytes, baseDetails,
+						opaqueSigned ? protectedTopLevelAttachment(originalMessage) : Collections.emptyList(),
+						false, opaqueSigned);
+			}
+			return unrecognized(originalMessage);
+		} catch (Exception e) {
+			LOGGER.debug("Unable to process S/MIME message before MIME parsing", e);
+			final boolean encrypted = isEncrypted(originalMessage);
+			final OriginalSmimeDetailsImpl failed = OriginalSmimeDetailsImpl.builder()
+					.smimeMode(encrypted ? SmimeMode.ENCRYPTED : SmimeMode.SIGNED)
+					.verificationStatus(encrypted
+							? OriginalSmimeDetails.VerificationStatus.NOT_SIGNED
+							: OriginalSmimeDetails.VerificationStatus.ERROR)
+					.decryptionStatus(encrypted
+							? OriginalSmimeDetails.DecryptionStatus.FAILED
+							: OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED)
+					.failureReason("Unable to process S/MIME message before MIME parsing: "
+							+ e.getClass().getSimpleName() + ": " + e.getMessage())
+					.originalProtectedMessage(originalBytes)
+					.build();
+			return new SmimePreprocessingResult(true, originalMessage, failed,
+					protectedTopLevelAttachment(originalMessage), Collections.emptyList());
+		}
+	}
+
+	@NotNull
+	private SmimePreprocessingResult processIncomingEncrypted(@NotNull final Session session,
+			@NotNull final MimeMessage originalMessage,
+			final byte @NotNull [] originalBytes,
+			@NotNull final OriginalSmimeDetailsImpl baseDetails,
+			@Nullable final Pkcs12Config pkcs12Config) throws Exception {
+		final List<AttachmentResource> protectedAttachments = protectedTopLevelAttachment(originalMessage);
+		if (pkcs12Config == null) {
+			final OriginalSmimeDetailsImpl details = copyDetails(baseDetails)
+					.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.KEY_MISSING)
+					.failureReason("No PKCS12 decryption key was provided for the S/MIME message")
+					.build();
+			return new SmimePreprocessingResult(true, originalMessage, details,
+					protectedAttachments, Collections.emptyList());
+		}
+
+		final MimeBodyPart encryptedPart = messageBodyPart(originalMessage, originalBytes);
+		final MimeBodyPart decryptedPart = SmimeUtil.decrypt(encryptedPart,
+				retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
+		final SmimeState nestedState = SmimeUtil.getStatus(decryptedPart);
+		if (nestedState == SmimeState.SIGNED || nestedState == SmimeState.PROBABLY_SIGNED
+				|| nestedState == SmimeState.SIGNED_ENVELOPED) {
+			protectedAttachments.addAll(detachedSignatureAttachments(decryptedPart));
+			return processIncomingSigned(session, originalMessage, decryptedPart, originalBytes, baseDetails,
+					protectedAttachments, true, true);
+		}
+
+		final MimeMessage effective = effectiveMessage(session, originalMessage, decryptedPart);
+		final List<AttachmentResource> decryptedArtifacts = Collections.singletonList(asMessageAttachment(decryptedPart, effective));
+		final OriginalSmimeDetailsImpl details = copyDetails(baseDetails)
+				.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.DECRYPTED)
+				.build();
+		return new SmimePreprocessingResult(true, effective, details, protectedAttachments, decryptedArtifacts);
+	}
+
+	@NotNull
+	private SmimePreprocessingResult processIncomingSigned(@NotNull final Session session,
+			@NotNull final MimeMessage originalMessage,
+			@NotNull final MimePart signedPart,
+			final byte @NotNull [] originalBytes,
+			@NotNull final OriginalSmimeDetailsImpl baseDetails,
+			@NotNull final List<AttachmentResource> existingProtectedAttachments,
+			final boolean wasEncrypted,
+			final boolean exposeEffectiveMessageArtifact) throws Exception {
+		final boolean valid = verifyIncomingSignature(signedPart);
+		final String signedBy = getSignedByAddress(signedPart);
+		final ContentType signedContentType = new ContentType(signedPart.getContentType());
+		final MimeBodyPart clearPart = SmimeUtil.getSignedContent(signedPart);
+		final MimeMessage effective = effectiveMessage(session, originalMessage, clearPart);
+		final List<AttachmentResource> protectedAttachments = new ArrayList<>(existingProtectedAttachments);
+		final List<AttachmentResource> signatures = detachedSignatureAttachments(signedPart);
+		for (AttachmentResource signature : signatures) {
+			if (!containsAttachment(protectedAttachments, signature.getName())) {
+				protectedAttachments.add(signature);
+			}
+		}
+		final List<AttachmentResource> decryptedArtifacts = new ArrayList<>(signatures);
+		if (exposeEffectiveMessageArtifact) {
+			decryptedArtifacts.add(asMessageAttachment(clearPart, effective));
+		}
+		final OriginalSmimeDetailsImpl details = copyDetails(baseDetails)
+				.smimeMode(wasEncrypted ? SmimeMode.SIGNED_ENCRYPTED : SmimeMode.SIGNED)
+				.smimeSignedBy(wasEncrypted ? null : signedBy)
+				.smimeSignatureValid(wasEncrypted ? null : valid)
+				.verificationStatus(valid
+						? OriginalSmimeDetails.VerificationStatus.VALID
+						: OriginalSmimeDetails.VerificationStatus.INVALID)
+				.decryptionStatus(wasEncrypted
+						? OriginalSmimeDetails.DecryptionStatus.DECRYPTED
+						: OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED)
+				.failureReason(valid ? null : "S/MIME signature does not match the signed MIME entity")
+				.build();
+		final OriginalSmimeDetailsImpl nestedSignedDetails = OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.SIGNED)
+				.smimeMime(signedContentType.getBaseType())
+				.smimeType(signedContentType.getParameter("smime-type"))
+				.smimeName(signedContentType.getParameter("name"))
+				.smimeProtocol(signedContentType.getParameter("protocol"))
+				.smimeMicalg(signedContentType.getParameter("micalg"))
+				.smimeSignedBy(signedBy)
+				.smimeSignatureValid(valid)
+				.verificationStatus(valid
+						? OriginalSmimeDetails.VerificationStatus.VALID
+						: OriginalSmimeDetails.VerificationStatus.INVALID)
+				.failureReason(valid ? null : "S/MIME signature does not match the signed MIME entity")
+				.build();
+		return new SmimePreprocessingResult(true, effective, details, protectedAttachments, decryptedArtifacts,
+				exposeEffectiveMessageArtifact ? nestedSignedDetails : null);
+	}
+
+	private static boolean verifyIncomingSignature(@NotNull final MimePart signedPart) {
+		try {
+			return hasSignerInformationStatic(signedPart) && SmimeUtil.checkSignature(signedPart);
+		} catch (org.simplejavamail.utils.mail.smime.SmimeException e) {
+			LOGGER.warn("Content is S/MIME signed, but signature verification failed. Reason: {}", e.getMessage());
+			LOGGER.debug("S/MIME pre-parse signature verification failure: {}", e.getMessage());
+			return false;
+		}
+	}
+
+	private static boolean hasSignerInformationStatic(@NotNull final MimePart mimePart) {
+		try {
+			return !determineSMIMESigned(mimePart).getSignerInfos().getSigners().isEmpty();
+		} catch (SmimeException e) {
+			return false;
+		}
+	}
+
+	private static SmimeState determineIncomingState(@NotNull final MimeMessage message,
+			@NotNull final OriginalSmimeDetails details) {
+		final SmimeState detected = SmimeUtil.getStatus(message);
+		if (detected == SmimeState.ENCRYPTED && "signed-data".equals(details.getSmimeType())) {
+			return SmimeState.SIGNED;
+		}
+		return detected;
+	}
+
+	@NotNull
+	private static OriginalSmimeDetailsImpl details(@NotNull final ContentType contentType,
+			final byte @NotNull [] originalBytes) {
+		return OriginalSmimeDetailsImpl.builder()
+				.smimeMime(contentType.getBaseType())
+				.smimeType(contentType.getParameter("smime-type"))
+				.smimeName(contentType.getParameter("name"))
+				.smimeProtocol(contentType.getParameter("protocol"))
+				.smimeMicalg(contentType.getParameter("micalg"))
+				.originalProtectedMessage(originalBytes)
+				.build();
+	}
+
+	@NotNull
+	private static OriginalSmimeDetailsImpl.OriginalSmimeDetailsBuilder copyDetails(
+			@NotNull final OriginalSmimeDetails details) {
+		return OriginalSmimeDetailsImpl.builder()
+				.smimeMode(details.getSmimeMode())
+				.smimeMime(details.getSmimeMime())
+				.smimeType(details.getSmimeType())
+				.smimeName(details.getSmimeName())
+				.smimeProtocol(details.getSmimeProtocol())
+				.smimeMicalg(details.getSmimeMicalg())
+				.smimeSignedBy(details.getSmimeSignedBy())
+				.smimeSignatureValid(details.getSmimeSignatureValid())
+				.verificationStatus(details.getVerificationStatus())
+				.decryptionStatus(details.getDecryptionStatus())
+				.failureReason(details.getFailureReason())
+				.originalProtectedMessage(details.getOriginalProtectedMessage());
+	}
+
+	@NotNull
+	private static SmimePreprocessingResult unrecognized(@NotNull final MimeMessage message) {
+		return new SmimePreprocessingResult(false, message, OriginalSmimeDetailsImpl.builder().build(),
+				Collections.emptyList(), Collections.emptyList());
+	}
+
+	@NotNull
+	private static MimeBodyPart messageBodyPart(@NotNull final MimeMessage message,
+			final byte @NotNull [] serialized) throws MessagingException {
+		final InternetHeaders contentHeaders = new InternetHeaders();
+		final Enumeration<Header> headers = message.getAllHeaders();
+		while (headers.hasMoreElements()) {
+			final Header header = headers.nextElement();
+			if (header.getName().toLowerCase(java.util.Locale.ROOT).startsWith("content-")) {
+				contentHeaders.addHeader(header.getName(), header.getValue());
+			}
+		}
+		final int bodyOffset = bodyOffset(serialized);
+		return new MimeBodyPart(contentHeaders, java.util.Arrays.copyOfRange(serialized, bodyOffset, serialized.length));
+	}
+
+	@NotNull
+	private static MimeMessage effectiveMessage(@NotNull final Session session,
+			@NotNull final MimeMessage original,
+			@NotNull final MimeBodyPart clearPart) throws MessagingException, IOException {
+		final ByteArrayOutputStream output = new ByteArrayOutputStream();
+		final Enumeration<String> headerLines = original.getAllHeaderLines();
+		boolean skipContinuation = false;
+		while (headerLines.hasMoreElements()) {
+			final String line = headerLines.nextElement();
+			final boolean continuation = !line.isEmpty() && (line.charAt(0) == ' ' || line.charAt(0) == '\t');
+			if (!continuation) {
+				final int colon = line.indexOf(':');
+				final String name = colon < 0 ? line : line.substring(0, colon);
+				skipContinuation = name.toLowerCase(java.util.Locale.ROOT).startsWith("content-");
+			}
+			if (!skipContinuation) {
+				output.write(line.getBytes(StandardCharsets.ISO_8859_1));
+				output.write('\r');
+				output.write('\n');
+			}
+		}
+		clearPart.writeTo(output);
+		return FinalizedMimeMessage.fromMessageBytes(session, output.toByteArray(),
+				FinalizedMimeMessage.ProtectionState.NONE);
+	}
+
+	@NotNull
+	private static List<AttachmentResource> protectedTopLevelAttachment(@NotNull final MimeMessage message) {
+		try {
+			if (message.isMimeType("multipart/signed")) {
+				return detachedSignatureAttachments(message);
+			}
+			final String contentType = message.getContentType();
+			final ContentType parsed = new ContentType(contentType);
+			final String name = ofNullable(parsed.getParameter("name")).orElse("smime.p7m");
+			final ByteArrayDataSource dataSource = new ByteArrayDataSource(
+					readAll(message.getInputStream()), parsed.getBaseType());
+			dataSource.setName(name);
+			return new ArrayList<>(Collections.singletonList(new AttachmentResource(name, dataSource)));
+		} catch (Exception e) {
+			return new ArrayList<>();
+		}
+	}
+
+	@NotNull
+	private static List<AttachmentResource> detachedSignatureAttachments(@NotNull final MimePart signedPart) {
+		try {
+			if (!signedPart.isMimeType("multipart/signed")) {
+				return new ArrayList<>();
+			}
+			final MimeMultipart multipart = (MimeMultipart) signedPart.getContent();
+			if (multipart.getCount() < 2) {
+				return new ArrayList<>();
+			}
+			final MimeBodyPart signature = (MimeBodyPart) multipart.getBodyPart(1);
+			final String name = ofNullable(signature.getFileName()).orElse("smime.p7s");
+			return new ArrayList<>(Collections.singletonList(new AttachmentResource(name,
+					new ByteArrayDataSource(readAll(signature.getInputStream()), signature.getContentType()))));
+		} catch (Exception e) {
+			return new ArrayList<>();
+		}
+	}
+
+	@NotNull
+	private static AttachmentResource asMessageAttachment(@NotNull final MimeMessage message)
+			throws MessagingException, IOException {
+		return new AttachmentResource("signed-email.eml",
+				new ByteArrayDataSource(serializeMessage(message), "message/rfc822"));
+	}
+
+	@NotNull
+	private AttachmentResource asMessageAttachment(@NotNull final MimeBodyPart clearPart,
+			@NotNull final MimeMessage effectiveMessage) throws MessagingException, IOException {
+		final AttachmentResource legacyView = handleLiberatedContent(clearPart.getContent());
+		return legacyView != null ? legacyView : asMessageAttachment(effectiveMessage);
+	}
+
+	private static boolean containsAttachment(@NotNull final List<AttachmentResource> attachments,
+			@Nullable final String name) {
+		for (AttachmentResource attachment : attachments) {
+			if (java.util.Objects.equals(attachment.getName(), name)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static byte[] serializeMessage(@NotNull final MimeMessage message) throws MessagingException, IOException {
+		final ByteArrayOutputStream output = new ByteArrayOutputStream();
+		message.writeTo(output);
+		return output.toByteArray();
+	}
+
+	private static byte[] readAll(@NotNull final java.io.InputStream input) throws IOException {
+		try (java.io.InputStream closeable = input; ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+			final byte[] buffer = new byte[64 * 1024];
+			int read;
+			while ((read = closeable.read(buffer)) != -1) {
+				output.write(buffer, 0, read);
+			}
+			return output.toByteArray();
+		}
+	}
+
+	private static int bodyOffset(final byte[] serialized) throws MessagingException {
+		for (int i = 0; i <= serialized.length - 4; i++) {
+			if (serialized[i] == '\r' && serialized[i + 1] == '\n'
+					&& serialized[i + 2] == '\r' && serialized[i + 3] == '\n') {
+				return i + 4;
+			}
+		}
+		for (int i = 0; i <= serialized.length - 2; i++) {
+			if (serialized[i] == '\n' && serialized[i + 1] == '\n') {
+				return i + 2;
+			}
+		}
+		throw new MessagingException("S/MIME message has no header/body separator");
+	}
+
+	private static boolean isEncrypted(@NotNull final MimeMessage message) {
+		try {
+			final ContentType type = new ContentType(message.getContentType());
+			return ("application/pkcs7-mime".equals(type.getBaseType())
+					|| "application/x-pkcs7-mime".equals(type.getBaseType()))
+					&& !"signed-data".equals(type.getParameter("smime-type"));
+		} catch (MessagingException e) {
+			return false;
+		}
 	}
 
 	public SmimeParseResultBuilder decryptAttachments(@NotNull final List<AttachmentResource> attachments, @NotNull final OutlookMessage outlookMessage,
@@ -519,20 +866,32 @@ public class SMIMESupport implements SMIMEModule {
 	@NotNull
 	@Override
 	public MimeMessage signMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final SmimeSigningConfig smimeSigningConfig) {
-		return SmimeUtil.sign(session, email.getId(), messageToProtect, retrieveSmimeKeyFromPkcs12Keystore(smimeSigningConfig.getPkcs12Config()),
-				defaultTo(smimeSigningConfig.getSignatureAlgorithm(), SmimeUtil.DEFAULT_SIGNATURE_ALGORITHM_NAME));
+		try {
+			final MimeBodyPart signedBodyPart = SmimeUtil.sign(extractMimeBodyPart(messageToProtect),
+					retrieveSmimeKeyFromPkcs12Keystore(smimeSigningConfig.getPkcs12Config()),
+					defaultTo(smimeSigningConfig.getSignatureAlgorithm(), SmimeUtil.DEFAULT_SIGNATURE_ALGORITHM_NAME));
+			return createProtectedMessage(session, email, messageToProtect, signedBodyPart);
+		} catch (MessagingException | IOException e) {
+			throw new SmimeException("Error signing message with S/MIME", e);
+		}
 	}
 
 	@NotNull
 	@Override
-	public MimeMessage encryptMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final SmimeEncryptionConfig smimeEncryptionConfige) {
-        return SmimeUtil.encrypt(session, messageToProtect, email.getId(), smimeEncryptionConfige.getX509Certificate(),
-                ofNullable(smimeEncryptionConfige.getKeyEncapsulationAlgorithm())
-                        .map(KeyEncapsulationAlgorithm::valueOf)
-                        .orElse(SmimeUtil.DEFAULT_KEY_ENCAPSULATION_ALGORITHM),
-                ofNullable(smimeEncryptionConfige.getCipherAlgorithm())
-                        .map(CMSAlgorithmResolver::resolve)
-                        .orElse(SmimeUtil.DEFAULT_CIPHER));
+	public MimeMessage encryptMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final SmimeEncryptionConfig smimeEncryptionConfig) {
+		try {
+			final MimeBodyPart encryptedBodyPart = SmimeUtil.encrypt(extractMimeBodyPart(messageToProtect),
+					smimeEncryptionConfig.getX509Certificate(),
+					ofNullable(smimeEncryptionConfig.getKeyEncapsulationAlgorithm())
+							.map(KeyEncapsulationAlgorithm::valueOf)
+							.orElse(SmimeUtil.DEFAULT_KEY_ENCAPSULATION_ALGORITHM),
+					ofNullable(smimeEncryptionConfig.getCipherAlgorithm())
+							.map(CMSAlgorithmResolver::resolve)
+							.orElse(SmimeUtil.DEFAULT_CIPHER));
+			return createProtectedMessage(session, email, messageToProtect, encryptedBodyPart);
+		} catch (MessagingException | IOException e) {
+			throw new SmimeException("Error encrypting message with S/MIME", e);
+		}
 	}
 
 	@NotNull
@@ -556,14 +915,8 @@ public class SMIMESupport implements SMIMEModule {
 			final OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(cmsAlgorithm)
 					.setProvider(BouncyCastleProvider.PROVIDER_NAME).build();
 
-			final MimeMessage encryptedMessage = new SmimeMessageIdFixingMimeMessage(session, email.getId());
-			copyAllHeaders(messageToProtect, encryptedMessage);
-
-			final MimeBodyPart encryptedBodyPart = generator.generate(messageToProtect, encryptor);
-			encryptedMessage.setContent(encryptedBodyPart.getContent(), encryptedBodyPart.getContentType());
-			copyAllHeaders(encryptedBodyPart, encryptedMessage);
-			encryptedMessage.saveChanges();
-			return encryptedMessage;
+			final MimeBodyPart encryptedBodyPart = generator.generate(extractMimeBodyPart(messageToProtect), encryptor);
+			return createProtectedMessage(session, email, messageToProtect, encryptedBodyPart);
 		} catch (Exception e) {
 			throw new SmimeException(ERROR_ENCRYPTING_SMIME_FOR_RECIPIENTS, e);
 		}
@@ -595,11 +948,42 @@ public class SMIMESupport implements SMIMEModule {
 		throw new InvalidAlgorithmParameterException("Unknown S/MIME key encapsulation algorithm: " + alg.name());
 	}
 
-	private static void copyAllHeaders(@NotNull final MimeMessage from, @NotNull final MimeMessage to) throws MessagingException {
-		final Enumeration<Header> headers = from.getAllHeaders();
-		while (headers.hasMoreElements()) {
-			final Header h = headers.nextElement();
-			to.setHeader(h.getName(), h.getValue());
+	@NotNull
+	private static MimeBodyPart extractMimeBodyPart(@NotNull final MimeMessage message)
+			throws MessagingException, IOException {
+		final Object content = message.getContent();
+		final UpdatableMimeBodyPart bodyPart = new UpdatableMimeBodyPart();
+		if (content instanceof Multipart) {
+			bodyPart.setContent((Multipart) content);
+		} else {
+			bodyPart.setContent(content, message.getDataHandler().getContentType());
+		}
+		bodyPart.updateHeadersPublic();
+		return bodyPart;
+	}
+
+	@NotNull
+	private static MimeMessage createProtectedMessage(@Nullable final Session session,
+			@NotNull final Email email,
+			@NotNull final MimeMessage original,
+			@NotNull final MimeBodyPart protectedBodyPart)
+			throws MessagingException, IOException {
+		final Session effectiveSession = session != null ? session : original.getSession();
+		if (effectiveSession == null) {
+			throw new MessagingException("A Session is required to create an S/MIME message");
+		}
+		final MimeMessage protectedMessage = new MessageIdFixingMimeMessage(effectiveSession, email.getId());
+		copyAllHeaderLines(original, protectedMessage);
+		protectedMessage.setContent(protectedBodyPart.getContent(), protectedBodyPart.getContentType());
+		copyAllHeaders(protectedBodyPart, protectedMessage);
+		return protectedMessage;
+	}
+
+	private static void copyAllHeaderLines(@NotNull final MimeMessage from, @NotNull final MimeMessage to)
+			throws MessagingException {
+		final Enumeration<String> headerLines = from.getAllHeaderLines();
+		while (headerLines.hasMoreElements()) {
+			to.addHeaderLine(headerLines.nextElement());
 		}
 	}
 
@@ -611,9 +995,10 @@ public class SMIMESupport implements SMIMEModule {
 		}
 	}
 
-	@Override
-	public boolean isMessageIdFixingMessage(MimeMessage message) {
-		return message instanceof SmimeMessageIdFixingMimeMessage || message instanceof SmimeMessageIdFixingSMTPMessage;
+	private static final class UpdatableMimeBodyPart extends MimeBodyPart {
+		private void updateHeadersPublic() throws MessagingException {
+			super.updateHeaders();
+		}
 	}
 
 	@NotNull

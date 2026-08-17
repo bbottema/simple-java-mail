@@ -1,27 +1,25 @@
 package org.simplejavamail.mailer.internal.util;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.NoSuchProviderException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
-import jakarta.mail.internet.InternetAddress;
 import lombok.val;
-import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.BatchModule;
-import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import org.slf4j.Logger;
 
 import java.time.Instant;
 import java.util.UUID;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -48,13 +46,18 @@ public class TransportRunner {
 
 	public static MailSubmissionReceipt sendMessageOnTransport(@NotNull final Transport transport, @NotNull final Session actualSessionUsed, @NotNull Email email)
 			throws MessagingException {
-		val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(actualSessionUsed, email);
-		val actualRecipients = email.getOverrideReceivers().isEmpty()
-				? message.getAllRecipients()
-				: MiscUtil.asInternetAddresses(email.getOverrideReceivers(), UTF_8).toArray(new InternetAddress[0]);
-		transport.sendMessage(message, actualRecipients);
-		LOGGER.trace("...email sent");
-		return buildReceipt(email, transport);
+		final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
+		try {
+			final SmtpServerResponse smtpServerResponse = MailTransportAdapterResolver.sendMessage(transport, preparedMail);
+			LOGGER.trace("...email sent");
+			return buildReceipt(email, smtpServerResponse);
+		} finally {
+			try {
+				preparedMail.close();
+			} catch (RuntimeException cleanupFailure) {
+				LOGGER.warn("Unable to release finalized MIME storage", cleanupFailure);
+			}
+		}
 	}
 
 	public static void connect(@NotNull UUID clusterKey, final Session session)
@@ -67,17 +70,8 @@ public class TransportRunner {
 	}
 
 	@NotNull
-	public static MailSubmissionReceipt buildReceipt(@NotNull final Email email, @Nullable final Transport transport) {
-		return new MailSubmissionReceipt(email.getId(), extractSmtpServerResponse(transport), Instant.now());
-	}
-
-	@Nullable
-	private static SmtpServerResponse extractSmtpServerResponse(@Nullable final Transport transport) {
-		if (transport instanceof SMTPTransport) {
-			val smtpTransport = (SMTPTransport) transport;
-			return new SmtpServerResponse(smtpTransport.getLastReturnCode(), smtpTransport.getLastServerResponse());
-		}
-		return null;
+	public static MailSubmissionReceipt buildReceipt(@NotNull final Email email, @Nullable final SmtpServerResponse smtpServerResponse) {
+		return new MailSubmissionReceipt(email.getId(), smtpServerResponse, Instant.now());
 	}
 
 	private static <T> T runOnSessionTransport(@NotNull UUID clusterKey, Session session, final boolean stickySession, TransportOperation<T> operation)
@@ -85,12 +79,25 @@ public class TransportRunner {
 		if (ModuleLoader.batchModuleAvailable()) {
 			return sendUsingConnectionPool(ModuleLoader.loadBatchModule(), clusterKey, session, stickySession, operation);
 		} else {
-			try (Transport transport = session.getTransport()) {
+			try (Transport transport = transportFor(session)) {
 				TransportConnectionHelper.connectTransport(transport, session);
 				return operation.run(transport, session);
 			} finally {
 				LOGGER.trace("closing transport");
 			}
+		}
+	}
+
+	@NotNull
+	static Transport transportFor(@NotNull final Session session) throws MessagingException {
+		try {
+			return session.getTransport();
+		} catch (NoSuchProviderException e) {
+			final String protocol = session.getProperty("mail.transport.protocol");
+			throw new MessagingException("No Jakarta Mail transport provider is available"
+					+ (protocol == null ? "" : " for protocol '" + protocol + "'")
+					+ ". Sending requires a Jakarta Mail implementation and a matching MailTransportAdapter. "
+					+ "For the supported Angus stack, add org.simplejavamail:angus-mail-provider-module.", e);
 		}
 	}
 

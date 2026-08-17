@@ -2,6 +2,7 @@ package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.Address;
 import jakarta.mail.internet.MimeMessage;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
@@ -12,11 +13,10 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.converter.internal.mimemessage.ImmutableDelegatingSMTPMessage;
+import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
+import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.email.internal.InternalEmail;
-import org.simplejavamail.internal.moduleloader.ModuleLoader;
-import org.simplejavamail.mailer.internal.util.MessageIdFixingMimeMessage;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +27,7 @@ import java.io.UnsupportedEncodingException;
 
 import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
+import static org.simplejavamail.internal.util.MiscUtil.asInternetAddresses;
 import static org.simplejavamail.mailer.internal.MailerException.INVALID_ENCODING;
 
 /**
@@ -73,7 +74,37 @@ public class SessionBasedEmailToMimeMessageConverter {
         return mimeMessage;
     }
 
-    private static int calculateEmailSize(MimeMessage mimeMessage) throws MessagingException {
+    @NotNull
+    public static PreparedMail convertAndLogPreparedMail(Session session, final Email email) throws MessagingException {
+        final MimeMessage mimeMessage = convertAndLogMimeMessage(session, email);
+        final Address[] recipients = email.getOverrideReceivers().isEmpty()
+                ? recipientsOrEmpty(mimeMessage)
+                : asInternetAddresses(email.getOverrideReceivers(), java.nio.charset.StandardCharsets.UTF_8)
+                        .toArray(new Address[0]);
+        final String envelopeFrom = email.getBounceToRecipient() == null
+                ? null
+                : email.getBounceToRecipient().getAddress();
+        final boolean stableContentRequired = email.getDkimConfig() != null
+                || email.getSmimeSigningConfig() != null
+                || email.getSmimeEncryptionConfig() != null
+				|| email.getOpenPgpSigningConfig() != null
+				|| email.getOpenPgpEncryptionConfig() != null
+                || email.getRecipients().stream().anyMatch(recipient -> recipient.getSmimeCertificate() != null);
+        return new PreparedMail(mimeMessage, recipients,
+                new DeliveryEnvelope(envelopeFrom, email.getDeliveryStatusNotification()),
+                stableContentRequired);
+    }
+
+    @NotNull
+    private static Address[] recipientsOrEmpty(@NotNull final MimeMessage message) throws MessagingException {
+        final Address[] recipients = message.getAllRecipients();
+        return recipients == null ? new Address[0] : recipients;
+    }
+
+    private static long calculateEmailSize(MimeMessage mimeMessage) throws MessagingException {
+        if (mimeMessage instanceof org.simplejavamail.internal.util.FinalizedMimeMessage) {
+            return ((org.simplejavamail.internal.util.FinalizedMimeMessage) mimeMessage).getSerializedSize();
+        }
         try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
             mimeMessage.writeTo(os);
             return os.size();
@@ -88,23 +119,11 @@ public class SessionBasedEmailToMimeMessageConverter {
 
         SessionLogger.logSession(session, operationalConfig.isAsync(), "mail");
 
-        if (!messageIsProperlyWrappedForCustomMessageId(message)) {
-            throw new AssertionError("Wrong MimeMessage type; would be unable to fix Message-ID on message.saveChanges()");
-        }
-
-        message.saveChanges(); // some headers and id's will be set for this specific message
-
-        //noinspection deprecation
-        ((InternalEmail) email).updateId(message.getMessageID());
+		//noinspection deprecation
+		((InternalEmail) email).updateId(message.getMessageID());
 
         logEmail(message, operationalConfig.isTransportModeLoggingOnly(), email);
         return message;
-    }
-
-    private static boolean messageIsProperlyWrappedForCustomMessageId(MimeMessage message) {
-        return message instanceof MessageIdFixingMimeMessage || message instanceof ImmutableDelegatingSMTPMessage ||
-                (ModuleLoader.dkimModuleAvailable() && ModuleLoader.loadDKIMModule().isMessageIdFixingMessage(message)) ||
-                (ModuleLoader.smimeModuleAvailable() && ModuleLoader.loadSmimeModule().isMessageIdFixingMessage(message));
     }
 
     static private MimeMessage convertMimeMessage(final Email email, final Session session) throws MessagingException {
