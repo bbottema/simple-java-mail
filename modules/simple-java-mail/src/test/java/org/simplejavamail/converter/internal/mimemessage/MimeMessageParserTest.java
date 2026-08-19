@@ -20,7 +20,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.internal.util.NamedDataSource;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -42,7 +42,6 @@ public class MimeMessageParserTest {
 
 	@BeforeEach
 	public void setup() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 	}
 
 	@Test
@@ -193,9 +192,8 @@ public class MimeMessageParserTest {
 	@Test
 	// https://github.com/bbottema/simple-java-mail/issues/227
 	public void testSemiColonSeparatedToAddresses() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
-		final Email initialEmail = EmailBuilder.startingBlank()
+		final Email initialEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("lollypop", "lol.pop@somemail.com")
 				.withRecipients(EmailHelper.parsedRecipients("C.Cane", true, TO, "candycane@candyshop.org"))
 				.withPlainText("We should meet up!")

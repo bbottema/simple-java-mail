@@ -28,12 +28,13 @@ import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.internal.config.EmailProperty;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.FileUtil;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
+import org.simplejavamail.mailer.internal.EmailGovernanceImpl;
 
 import java.io.File;
 import java.io.IOException;
@@ -64,9 +65,6 @@ import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYN
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL;
-import static org.simplejavamail.config.ConfigLoader.getBooleanProperty;
-import static org.simplejavamail.config.ConfigLoader.getStringProperty;
-import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.email.internal.EmailException.ERROR_PARSING_URL;
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_FILE;
 import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_IMAGE_DATASOURCE;
@@ -81,13 +79,14 @@ import static org.simplejavamail.internal.util.MiscUtil.tryResolveUrlDataSource;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
-import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNANCE;
 
 /**
  * @see EmailPopulatingBuilder
  */
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilder {
+	@NotNull
+	private final SimpleJavaMailConfig config;
 
 	/**
 	 * @see #ignoringDefaults(boolean)
@@ -338,7 +337,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private final List<Recipient> overrideReceivers = new ArrayList<>();
 
 	/**
-	 * @see EmailBuilder#forwarding(MimeMessage)
+	 * @see EmailStartingBuilder#forwarding(MimeMessage)
 	 */
 	private MimeMessage emailToForward;
 
@@ -368,41 +367,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private Date sentDate;
 
 	/**
-	 * @see EmailStartingBuilder#startingBlank()
-	 */
-	EmailPopulatingBuilderImpl() {
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)) {
-				withEmbeddedImageAutoResolutionForFiles(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)));
-			}
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)) {
-				withEmbeddedImageAutoResolutionForClassPathResources(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)));
-			}
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)) {
-				withEmbeddedImageAutoResolutionForURLs(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)));
-			}
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)) {
-				withEmbeddedImageBaseDir(verifyNonnullOrEmpty(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)));
-			}
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)) {
-				withEmbeddedImageBaseClassPath(verifyNonnullOrEmpty(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
-			}
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)) {
-				withEmbeddedImageBaseUrl(verifyNonnullOrEmpty(getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
-			}
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)) {
-				allowingEmbeddedImageOutsideBaseDir(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)));
-			}
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)) {
-				allowingEmbeddedImageOutsideBaseClassPath(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)));
-			}
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)) {
-				allowingEmbeddedImageOutsideBaseUrl(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)));
-			}
-			if (hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)) {
-				embeddedImageAutoResolutionMustBeSuccesful(verifyNonnullOrEmpty(getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)));
-			}
-	}
-	/**
 	 * @see EmailPopulatingBuilder#buildEmail()
 	 */
 	@Override
@@ -423,13 +387,47 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		}
 	}
 
+	EmailPopulatingBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
+		this.config = requireNonNull(config, "config");
+		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)) {
+			withEmbeddedImageAutoResolutionForFiles(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)));
+		}
+		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)) {
+			withEmbeddedImageAutoResolutionForClassPathResources(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)));
+		}
+		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)) {
+			withEmbeddedImageAutoResolutionForURLs(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)));
+		}
+		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)) {
+			withEmbeddedImageBaseDir(verifyNonnullOrEmpty(config.getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)));
+		}
+		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)) {
+			withEmbeddedImageBaseClassPath(verifyNonnullOrEmpty(config.getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
+		}
+		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)) {
+			withEmbeddedImageBaseUrl(verifyNonnullOrEmpty(config.getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
+		}
+		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)) {
+			allowingEmbeddedImageOutsideBaseDir(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)));
+		}
+		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)) {
+			allowingEmbeddedImageOutsideBaseClassPath(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)));
+		}
+		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)) {
+			allowingEmbeddedImageOutsideBaseUrl(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)));
+		}
+		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)) {
+			embeddedImageAutoResolutionMustBeSuccesful(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)));
+		}
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides()
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmailCompletedWithDefaultsAndOverrides() {
-		return buildEmailCompletedWithDefaultsAndOverrides(NO_GOVERNANCE());
+		return buildEmailCompletedWithDefaultsAndOverrides(EmailGovernanceImpl.withConfig(config));
 	}
 
 	/**

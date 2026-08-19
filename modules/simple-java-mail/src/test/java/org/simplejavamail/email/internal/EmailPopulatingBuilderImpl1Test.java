@@ -15,7 +15,7 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -51,8 +51,7 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	@BeforeEach
 	public void setup() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		builder = (InternalEmailPopulatingBuilder) EmailBuilder.startingBlank();
+		builder = (InternalEmailPopulatingBuilder) SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank();
 	}
 
 	@Test

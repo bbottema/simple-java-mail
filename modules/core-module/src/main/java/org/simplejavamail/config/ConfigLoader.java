@@ -1,129 +1,38 @@
 package org.simplejavamail.config;
 
-import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.email.ContentTransferEncoding;
-import org.simplejavamail.api.email.config.DeliveryStatusNotification;
-import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
-import org.simplejavamail.api.mailer.config.SessionDebugOutput;
-import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.util.SimpleConversions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.util.Collections.unmodifiableMap;
 import static java.util.regex.Pattern.compile;
-import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
-import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 /**
- * Contains list of possible properties names and can produce a map of property values, if provided as file {@value #DEFAULT_CONFIG_FILENAME} on the
- * classpath or as environment property.
+ * Ordered, instance-based configuration resolver. Add sources from lowest to highest priority and call {@link #load()} to create a detached immutable
+ * {@link SimpleJavaMailConfig}. Later non-blank values win. The loader owns no process-wide configuration state and can be reused to produce independent
+ * snapshots.
  * <p>
- * The following properties are allowed:
- * <ul>
- * <li>simplejavamail.javaxmail.debug</li>
- * <li>simplejavamail.javaxmail.debug.out</li>
- * <li>simplejavamail.transportstrategy</li>
- * <li>simplejavamail.smtp.host</li>
- * <li>simplejavamail.smtp.port</li>
- * <li>simplejavamail.smtp.username</li>
- * <li>simplejavamail.smtp.password</li>
- * <li>simplejavamail.smtp.clienthostname</li>
- * <li>simplejavamail.smtp.localaddress</li>
- * <li>simplejavamail.smtp.localport</li>
- * <li>simplejavamail.disable.all.clientvalidation</li>
- * <li>simplejavamail.custom.sslfactory.class</li>
- * <li>simplejavamail.proxy.host</li>
- * <li>simplejavamail.proxy.port</li>
- * <li>simplejavamail.proxy.username</li>
- * <li>simplejavamail.proxy.password</li>
- * <li>simplejavamail.proxy.socks5bridge.port</li>
- * <li>simplejavamail.defaults.content.transfer.encoding</li>
- * <li>simplejavamail.defaults.body.text.content.transfer.encoding</li>
- * <li>simplejavamail.defaults.body.html.content.transfer.encoding</li>
- * <li>simplejavamail.defaults.body.calendar.content.transfer.encoding</li>
- * <li>simplejavamail.defaults.subject</li>
- * <li>simplejavamail.defaults.from.name</li>
- * <li>simplejavamail.defaults.from.address</li>
- * <li>simplejavamail.defaults.replyto.name</li>
- * <li>simplejavamail.defaults.replyto.address</li>
- * <li>simplejavamail.defaults.bounceto.name</li>
- * <li>simplejavamail.defaults.bounceto.address</li>
- * <li>simplejavamail.defaults.delivery.status.notification.notify</li>
- * <li>simplejavamail.defaults.delivery.status.notification.return.option</li>
- * <li>simplejavamail.defaults.to.name</li>
- * <li>simplejavamail.defaults.to.address</li>
- * <li>simplejavamail.defaults.cc.name</li>
- * <li>simplejavamail.defaults.cc.address</li>
- * <li>simplejavamail.defaults.bcc.name</li>
- * <li>simplejavamail.defaults.bcc.address</li>
- * <li>simplejavamail.defaults.poolsize</li>
- * <li>simplejavamail.defaults.poolsize.keepalivetime</li>
- * <li>simplejavamail.defaults.connectionpool.clusterkey.uuid</li>
- * <li>simplejavamail.defaults.connectionpool.coresize</li>
- * <li>simplejavamail.defaults.connectionpool.maxsize</li>
- * <li>simplejavamail.defaults.connectionpool.claimtimeout.millis</li>
- * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
- * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
- * <li>simplejavamail.defaults.connectionpool.clusters.*.clusterkey.uuid</li>
- * <li>simplejavamail.defaults.connectionpool.clusters.*.coresize</li>
- * <li>simplejavamail.defaults.connectionpool.clusters.*.maxsize</li>
- * <li>simplejavamail.defaults.connectionpool.clusters.*.claimtimeout.millis</li>
- * <li>simplejavamail.defaults.connectionpool.clusters.*.expireafter.millis</li>
- * <li>simplejavamail.defaults.connectionpool.clusters.*.loadbalancing.strategy</li>
- * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
- * <li>simplejavamail.defaults.trustallhosts</li>
- * <li>simplejavamail.defaults.trustedhosts</li>
- * <li>simplejavamail.defaults.verifyserveridentity</li>
- * <li>simplejavamail.transport.mode.logging.only</li>
- * <li>simplejavamail.opportunistic.tls</li>
- * <li>simplejavamail.smime.signing.keystore</li>
- * <li>simplejavamail.smime.signing.keystore_password</li>
- * <li>simplejavamail.smime.signing.key_alias</li>
- * <li>simplejavamail.smime.signing.key_password</li>
- * <li>simplejavamail.smime.encryption.certificate</li>
- * <li>simplejavamail.smime.signing.algorithm</li>
- * <li>simplejavamail.smime.encryption.key_encapsulation_algorithm</li>
- * <li>simplejavamail.smime.encryption.cipher</li>
- * <li>simplejavamail.dkim.signing.private_key_file_or_data</li>
- * <li>simplejavamail.dkim.signing.selector</li>
- * <li>simplejavamail.dkim.signing.signing_domain</li>
- * <li>simplejavamail.dkim.signing.use_length_param</li>
- * <li>simplejavamail.dkim.signing.excluded_headers_from_default_signing_list</li>
- * <li>simplejavamail.dkim.signing.header_canonicalization</li>
- * <li>simplejavamail.dkim.signing.body_canonicalization</li>
- * <li>simplejavamail.dkim.signing.algorithm</li>
- * <li>simplejavamail.embeddedimages.dynamicresolution.enable.dir</li>
- * <li>simplejavamail.embeddedimages.dynamicresolution.enable.url</li>
- * <li>simplejavamail.embeddedimages.dynamicresolution.enable.classpath</li>
- * <li>simplejavamail.embeddedimages.dynamicresolution.base.dir</li>
- * <li>simplejavamail.embeddedimages.dynamicresolution.base.url</li>
- * <li>simplejavamail.embeddedimages.dynamicresolution.base.classpath</li>
- * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.dir</li>
- * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath</li>
- * <li>simplejavamail.embeddedimages.dynamicresolution.outside.base.url</li>
- * <li>simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful</li>
- * </ul>
+ * {@link #builder()} creates an empty loader. Use {@code SimpleJavaMail.fromDefaults()} when the conventional classpath, environment and system-property
+ * recipe is wanted.
  */
 public final class ConfigLoader {
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
 
 	/**
 	 * By default, the optional file {@value} will be loaded from classpath to load initial defaults.
@@ -137,20 +46,7 @@ public final class ConfigLoader {
 	private static final Pattern CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN = compile(
 			"^simplejavamail\\.defaults\\.connectionpool\\.clusters\\.(?<clusterAlias>[^.]+)\\.(?<clusterProperty>clusterkey\\.uuid|coresize|maxsize|claimtimeout\\.millis|expireafter\\.millis|loadbalancing\\.strategy)$");
 
-	/**
-	 * Initially try to load properties from "{@value #DEFAULT_CONFIG_FILENAME}".
-	 *
-	 * @see #loadProperties(String, boolean)
-	 * @see #loadProperties(InputStream, boolean)
-	 */
-	private static final Map<Property, Object> RESOLVED_PROPERTIES = new HashMap<>();
-
-	static {
-		// static initializer block, because loadProperties needs to modify RESOLVED_PROPERTIES while loading
-		// this is not possible when we are initializing the same field.
-		// RESOLVED_PROPERTIES = loadProperties(DEFAULT_CONFIG_FILENAME); <-- not possible
-		loadProperties(DEFAULT_CONFIG_FILENAME, false);
-	}
+	private final List<ConfigSource> sources = new ArrayList<>();
 
 	/**
 	 * List of all the properties recognized by Simple Java Mail. Can be used to programmatically get, set or remove default values.
@@ -232,8 +128,8 @@ public final class ConfigLoader {
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH("simplejavamail.embeddedimages.dynamicresolution.base.classpath"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL("simplejavamail.embeddedimages.dynamicresolution.base.url"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR("simplejavamail.embeddedimages.dynamicresolution.outside.base.dir"),
-		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL("simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath"),
-		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH("simplejavamail.embeddedimages.dynamicresolution.outside.base.url"),
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL("simplejavamail.embeddedimages.dynamicresolution.outside.base.url"),
+		EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH("simplejavamail.embeddedimages.dynamicresolution.outside.base.classpath"),
 		EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL("simplejavamail.embeddedimages.dynamicresolution.mustbesuccesful"),
 		EXTRA_PROPERTIES("simplejavamail.extraproperties.*");
 
@@ -252,254 +148,316 @@ public final class ConfigLoader {
 	}
 
 	/**
-	 * @return The value if not null or else the value from config file if provided or else <code>null</code>.
+	 * Starts an independent ordered configuration loader. Every call returns a new loader and owns no process-wide Simple Java Mail configuration state.
 	 */
-	@Nullable
-	public static <T> T valueOrProperty(final @Nullable T value, final Property property) {
-		return valueOrProperty(value, property, null);
+	public static ConfigLoader builder() {
+		return new ConfigLoader();
 	}
 
 	/**
-	 * See {@link #valueOrProperty(Object, Property, Object)}.
+	 * Adds a custom source at the current priority. Sources are read once per {@link #load()} call and later non-blank values win.
 	 */
-	@Nullable
-	public static String valueOrPropertyAsString(@Nullable final String value, @NotNull final Property property, @Nullable final String defaultValue) {
-		return SimpleConversions.convertToString(valueOrProperty(value, property, defaultValue));
+	public ConfigLoader withSource(final @NotNull ConfigSource source) {
+        sources.add(source);
+		return this;
 	}
 
 	/**
-	 * See {@link #valueOrProperty(Object, Property, Object)}.
+	 * Adds strict caller properties using the diagnostic name {@code properties}.
 	 */
-	@Nullable
-	public static Boolean valueOrPropertyAsBoolean(@Nullable final Boolean value, @NotNull final Property property, @Nullable final Boolean defaultValue) {
-		return SimpleConversions.convertToBoolean(valueOrProperty(value, property, defaultValue));
+	public ConfigLoader withProperties(final @NotNull Properties properties) {
+		return withProperties("properties", properties);
 	}
 
 	/**
-	 * See {@link #valueOrProperty(Object, Property, Object)}.
+	 * Adds strict caller properties. The source is sampled during each {@link #load()} and the resulting snapshot is detached from it.
 	 */
-	@Nullable
-	public static Integer valueOrPropertyAsInteger(@Nullable final Integer value, @NotNull final Property property, @Nullable final Integer defaultValue) {
-		return SimpleConversions.convertToInteger(valueOrProperty(value, property, defaultValue));
+	public ConfigLoader withProperties(final @NotNull String sourceName, final @NotNull Properties properties) {
+		return withSource(mapSource(sourceName, properties, true));
 	}
 
 	/**
-	 * Returns the given value if not null and not empty, otherwise tries to resolve the given property and if still not found resort to the default value if
-	 * provided.
-	 * <p>
-	 * Null or blank values are never allowed, so they are always ignored.
-	 *
-	 * @return The value if not null or else the value from config file if provided or else <code>defaultValue</code>.
+	 * Adds a strict caller map using the diagnostic name {@code map}.
 	 */
-	@Nullable
-	public static <T> T valueOrProperty(@Nullable final T value, @NotNull final Property property, @Nullable final T defaultValue) {
-		if (!valueNullOrEmpty(value)) {
-			LOGGER.trace("using provided argument value {} for property {}", value, property);
-			return value;
-		} else if (hasProperty(property)) {
-			final T propertyValue = getProperty(property);
-			LOGGER.trace("using value {} from config file for property {}", propertyValue, property);
-			return propertyValue;
-		} else {
-			LOGGER.trace("no value provided as argument or in config file for property {}, using default value {}", property, defaultValue);
-			return defaultValue;
-		}
-	}
-
-	public static synchronized boolean hasProperty(final Property property) {
-		return !valueNullOrEmpty(RESOLVED_PROPERTIES.get(property));
-	}
-
-	@SuppressWarnings("unchecked")
-	@Nullable
-	public static synchronized <T> T getProperty(final Property property) {
-		return (T) RESOLVED_PROPERTIES.get(property);
-	}
-
-	@Nullable
-	public static synchronized String getStringProperty(final Property property) {
-		return SimpleConversions.convertToString(RESOLVED_PROPERTIES.get(property));
-	}
-
-	@Nullable
-	public static synchronized Integer getIntegerProperty(final Property property) {
-		return SimpleConversions.convertToInteger(RESOLVED_PROPERTIES.get(property));
-	}
-
-	@Nullable
-	public static synchronized Boolean getBooleanProperty(final Property property) {
-		return SimpleConversions.convertToBoolean(RESOLVED_PROPERTIES.get(property));
+	public ConfigLoader withMap(final @NotNull Map<String, ?> properties) {
+		return withMap("map", properties);
 	}
 
 	/**
-	 * Loads properties from property file on the classpath, if provided.
-	 * <p>
-	 * ConfigLoader holds one process-wide set of defaults. This method does not reconfigure existing Email or Mailer instances. To apply the new values
-	 * consistently, call it before starting the builders that will create their replacement instances; do not keep a builder across a reload.
-	 *
-	 * @param filename      Any file that is on the classpath that holds a list of key=value pairs.
-	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
-	 * @return The updated properties map that is used internally.
+	 * Adds a strict caller map. The source is sampled during each {@link #load()} and the resulting snapshot is detached from it.
 	 */
-	public static Map<Property, Object> loadProperties(final String filename, final boolean addProperties) {
-		final InputStream input = ConfigLoader.class.getClassLoader().getResourceAsStream(filename);
-		if (input != null) {
-			LOGGER.debug("Property file {} found on classpath, loading System properties and environment variables", filename);
-			return loadProperties(input, addProperties);
-		} else {
-			LOGGER.debug("Property file not found on classpath, loading System properties and environment variables");
-			return loadProperties(new Properties(), addProperties);
-		}
+	public ConfigLoader withMap(final @NotNull String sourceName, final @NotNull Map<String, ?> properties) {
+		return withSource(mapSource(sourceName, properties, true));
 	}
 
 	/**
-	 * Loads properties from another properties source, in case you want to provide your own list.
-	 * <p>
-	 * ConfigLoader holds one process-wide set of defaults. This method does not reconfigure existing Email or Mailer instances. To apply the new values
-	 * consistently, call it before starting the builders that will create their replacement instances; do not keep a builder across a reload.
-	 *
-	 * @param properties    Your own list of properties
-	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
-	 * @return The updated properties map that is used internally.
+	 * Consumes and closes a caller stream immediately, then adds the loaded values as a strict source named {@code input stream}.
 	 */
-	public static Map<Property, Object> loadProperties(final Properties properties, final boolean addProperties) {
-		if (!addProperties) {
-			RESOLVED_PROPERTIES.clear();
-		}
-		RESOLVED_PROPERTIES.putAll(readProperties(properties));
-		return unmodifiableMap(RESOLVED_PROPERTIES);
+	public ConfigLoader withInputStream(final @NotNull InputStream inputStream) {
+		return withInputStream("input stream", inputStream);
 	}
 
 	/**
-	 * Loads properties from {@link InputStream}.
-	 * <p>
-	 * ConfigLoader holds one process-wide set of defaults. This method does not reconfigure existing Email or Mailer instances. To apply the new values
-	 * consistently, call it before starting the builders that will create their replacement instances; do not keep a builder across a reload.
-	 *
-	 * @param inputStream   Source of property key=value pairs separated by newline \n characters.
-	 * @param addProperties Flag to indicate if the new properties should be added or replacing the old properties.
-	 * @return The updated properties map that is used internally.
+	 * Consumes and closes a caller stream immediately and adds its loaded values as a strict named source.
 	 */
-	public static synchronized Map<Property, Object> loadProperties(final @Nullable InputStream inputStream, final boolean addProperties) {
-		final Properties prop = new Properties();
+	public ConfigLoader withInputStream(final @NotNull String sourceName, final @NotNull InputStream inputStream) {
+		final Properties properties = readAndClose(inputStream, sourceName);
+		return withProperties(sourceName, properties);
+	}
 
-		try {
-			prop.load(checkArgumentNotEmpty(inputStream, "InputStream was null"));
-		} catch (final IOException e) {
-			throw new IllegalStateException("error reading properties file from inputstream", e);
-		} finally {
-			if (inputStream != null) {
-				try {
-					inputStream.close();
-				} catch (final IOException e) {
-					LOGGER.error(e.getMessage(), e);
-				}
+	/**
+	 * Adds an optional classpath resource using the same ClassLoader as {@link ConfigLoader}. A missing resource contributes no values.
+	 */
+	public ConfigLoader withClasspathResource(final @NotNull String resourceName) {
+		return withClasspathResource(resourceName, ConfigLoader.class.getClassLoader());
+	}
+
+	/**
+	 * Adds an optional classpath resource from the given ClassLoader. A missing resource contributes no values.
+	 */
+	public ConfigLoader withClasspathResource(final @NotNull String resourceName, final @NotNull ClassLoader classLoader) {
+		return withSource(new ConfigSource() {
+			@Override
+			public String getName() {
+				return "classpath:" + resourceName;
 			}
-		}
 
-		if (!addProperties) {
-			RESOLVED_PROPERTIES.clear();
-		}
-		RESOLVED_PROPERTIES.putAll(readProperties(prop));
-		return unmodifiableMap(RESOLVED_PROPERTIES);
+			@Override
+			public Map<String, ?> getProperties() {
+				final InputStream inputStream = classLoader.getResourceAsStream(resourceName);
+				return inputStream == null ? Collections.<String, Object>emptyMap() : toMap(readAndClose(inputStream, getName()));
+			}
+		});
 	}
 
 	/**
-	 * @return All properties in priority of System property {@code >} Environment variable {@code >} File properties.
+	 * Adds the current process environment. Scalar names use uppercase underscore notation; wildcard names retain their literal dotted form for compatibility.
 	 */
-	private static Map<Property, Object> readProperties(final @NotNull Properties fileProperties) {
-		final Properties filePropertiesLeft = new Properties();
-		filePropertiesLeft.putAll(fileProperties);
-		final Map<Property, Object> resolvedProps = new HashMap<>();
-		for (final Property prop : Property.values()) {
-			String systemValue = System.getProperty(prop.key);
-			String envValue = System.getenv(prop.key.replace('.', '_').toUpperCase());
+	public ConfigLoader withEnvironmentVariables() {
+		return withEnvironmentVariables(System.getenv());
+	}
 
-			if (!valueNullOrEmpty(systemValue)) {
-				LOGGER.debug("{}: {}", prop.key, systemValue);
-				final Object parsedValue = parsePropertyValue(systemValue);
-				resolvedProps.put(prop, parsedValue);
-				filePropertiesLeft.remove(prop.key);
-			} else if (!valueNullOrEmpty(envValue)) {
-				LOGGER.debug("{}: {}", prop.key, envValue);
-				final Object parsedValue = parsePropertyValue(envValue);
-				resolvedProps.put(prop, parsedValue);
-				filePropertiesLeft.remove(prop.key);
-			} else {
-				final Object rawValue = filePropertiesLeft.remove(prop.key);
-				if (rawValue != null) {
-					if (rawValue instanceof String) {
-						resolvedProps.put(prop, parsePropertyValue((String) rawValue));
-					} else {
-						resolvedProps.put(prop, rawValue);
+	ConfigLoader withEnvironmentVariables(final Map<String, String> environment) {
+		return withSource(new ConfigSource() {
+			@Override
+			public String getName() {
+				return "environment variables";
+			}
+
+			@Override
+			public Map<String, ?> getProperties() {
+				final Map<String, Object> normalized = new LinkedHashMap<>();
+				for (Property property : Property.values()) {
+					if (property == Property.EXTRA_PROPERTIES || property == Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS) {
+						continue;
+					}
+					final String value = environment.get(property.key().replace('.', '_').toUpperCase(Locale.ROOT));
+					if (value != null) {
+						normalized.put(property.key(), value);
 					}
 				}
-			}
-		}
-
-		@SuppressWarnings("unchecked")
-		val connectionPoolClusterConfigs = RESOLVED_PROPERTIES.containsKey(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)
-				? new HashMap<>((Map<UUID, ConnectionPoolClusterConfig>) RESOLVED_PROPERTIES.get(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS))
-				: new HashMap<UUID, ConnectionPoolClusterConfig>();
-
-		final Map<String, Object> connectionPoolClusterProperties = new HashMap<>();
-		collectConnectionPoolClusterProperties(filePropertiesLeft, fileProperties.entrySet(), connectionPoolClusterProperties);
-		collectConnectionPoolClusterProperties(null, System.getenv().entrySet(), connectionPoolClusterProperties);
-		collectConnectionPoolClusterProperties(null, System.getProperties().entrySet(), connectionPoolClusterProperties);
-		connectionPoolClusterConfigs.putAll(parseConnectionPoolClusterProperties(connectionPoolClusterProperties));
-
-		if (!connectionPoolClusterConfigs.isEmpty()) {
-			resolvedProps.put(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, unmodifiableMap(connectionPoolClusterConfigs));
-		}
-
-		@SuppressWarnings("unchecked")
-		val extraProperties = RESOLVED_PROPERTIES.containsKey(Property.EXTRA_PROPERTIES)
-					? new HashMap<>((Map<String, String>) RESOLVED_PROPERTIES.get(Property.EXTRA_PROPERTIES))
-					: new HashMap<String, String>();
-
-		extraProperties.putAll(filterExtraJavaMailProperties(filePropertiesLeft, fileProperties.entrySet()));
-		extraProperties.putAll(filterExtraJavaMailProperties(null, System.getenv().entrySet()));
-		extraProperties.putAll(filterExtraJavaMailProperties(null, System.getProperties().entrySet()));
-
-		resolvedProps.put(Property.EXTRA_PROPERTIES, extraProperties);
-
-		if (!filePropertiesLeft.isEmpty()) {
-			throw new IllegalStateException("unknown properties provided " + filePropertiesLeft);
-		}
-
-		return resolvedProps;
-	}
-
-	private static Map<String, String> filterExtraJavaMailProperties(@Nullable final Properties filePropertiesLeft, final Set<? extends Map.Entry<?, ?>> entries) {
-		final Map<String, String> extraProperties = new HashMap<>();
-		for (Map.Entry<?, ?> propertyKey : entries) {
-			if (propertyKey.getKey() instanceof String) {
-				final Matcher matcher = EXTRA_PROPERTY_PATTERN.matcher((String) propertyKey.getKey());
-				if (matcher.matches()) {
-					assumeTrue(propertyKey.getValue() instanceof String, "Simple Java Mail property value can only be of type String");
-					extraProperties.put(matcher.group("actualProperty"), (String) propertyKey.getValue());
-					if (filePropertiesLeft != null) {
-						filePropertiesLeft.remove(propertyKey.getKey());
+				for (Map.Entry<String, String> entry : environment.entrySet()) {
+					if (isWildcardKey(entry.getKey())) {
+						normalized.put(entry.getKey(), entry.getValue());
 					}
 				}
+				return normalized;
 			}
-		}
-		return extraProperties;
+
+			@Override
+			public boolean isStrict() {
+				return false;
+			}
+		});
 	}
 
-	private static void collectConnectionPoolClusterProperties(@Nullable final Properties filePropertiesLeft,
-															   final Set<? extends Map.Entry<?, ?>> entries,
-															   @NotNull final Map<String, Object> target) {
-		for (Map.Entry<?, ?> propertyKey : entries) {
-			if (propertyKey.getKey() instanceof String) {
-				final String propertyName = (String) propertyKey.getKey();
-				if (CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(propertyName).matches()) {
-					target.put(propertyName, propertyKey.getValue());
-					if (filePropertiesLeft != null) {
-						filePropertiesLeft.remove(propertyName);
+	/**
+	 * Adds the current JVM system properties using their canonical dotted names.
+	 */
+	public ConfigLoader withSystemProperties() {
+		return withSystemProperties(System.getProperties());
+	}
+
+	ConfigLoader withSystemProperties(final Properties systemProperties) {
+		return withSource(mapSource("system properties", systemProperties, false));
+	}
+
+	/**
+	 * Adds an existing immutable snapshot as a lower or higher-priority source according to its position in this loader.
+	 */
+	public ConfigLoader withConfig(final @NotNull SimpleJavaMailConfig config) {
+		return withMap("existing SimpleJavaMailConfig", config.asSourceMap());
+	}
+
+	/**
+	 * Resolves the registered sources into a new detached immutable snapshot. Later non-blank values win and only each winning value is parsed.
+	 */
+	public SimpleJavaMailConfig load() {
+		final Map<String, RawValue> winners = new LinkedHashMap<>();
+		long sourceOrder = 0;
+		for (ConfigSource source : sources) {
+			final String sourceName = requireSourceName(source.getName());
+			final Map<String, ?> sourceProperties = source.getProperties();
+			if (sourceProperties == null) {
+				throw new IllegalArgumentException("ConfigSource " + sourceName + " returned null properties");
+			}
+			for (Map.Entry<String, ?> entry : new LinkedHashMap<>(sourceProperties).entrySet()) {
+				final String key = entry.getKey();
+				if (!isRecognizedKey(key)) {
+					if (source.isStrict()) {
+						throw new IllegalStateException("Unknown Simple Java Mail property " + key + " from source " + sourceName);
 					}
+					continue;
+				}
+				if (!isBlankValue(entry.getValue())) {
+					winners.put(key, new RawValue(entry.getValue(), sourceName, sourceOrder));
 				}
 			}
+			sourceOrder++;
+		}
+		return resolve(winners);
+	}
+
+	private static SimpleJavaMailConfig resolve(final Map<String, RawValue> winners) {
+		final Map<Property, Object> resolved = new EnumMap<>(Property.class);
+		final Map<Property, String> origins = new EnumMap<>(Property.class);
+
+		for (Property property : Property.values()) {
+			if (property == Property.EXTRA_PROPERTIES || property == Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS) {
+				continue;
+			}
+			final RawValue winner = winners.get(property.key());
+			if (winner != null) {
+				resolved.put(property, PropertySchema.parse(property, winner.value, winner.sourceName));
+				origins.put(property, winner.sourceName);
+			}
+		}
+
+		final Map<String, String> extraProperties = new LinkedHashMap<>();
+		RawValue latestExtra = null;
+		final Map<String, Object> clusterProperties = new LinkedHashMap<>();
+		RawValue latestCluster = null;
+		for (Map.Entry<String, RawValue> entry : winners.entrySet()) {
+			if (EXTRA_PROPERTY_PATTERN.matcher(entry.getKey()).matches()) {
+				final Matcher matcher = EXTRA_PROPERTY_PATTERN.matcher(entry.getKey());
+				matcher.matches();
+				if (!(entry.getValue().value instanceof String)) {
+					throw invalidWildcardValue(entry.getKey(), entry.getValue(), "text");
+				}
+				extraProperties.put(matcher.group("actualProperty"), (String) entry.getValue().value);
+				latestExtra = later(latestExtra, entry.getValue());
+			} else if (CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(entry.getKey()).matches()) {
+				clusterProperties.put(entry.getKey(), entry.getValue().value);
+				latestCluster = later(latestCluster, entry.getValue());
+			}
+		}
+
+		if (!extraProperties.isEmpty()) {
+			resolved.put(Property.EXTRA_PROPERTIES, extraProperties);
+			origins.put(Property.EXTRA_PROPERTIES, latestExtra.sourceName);
+		}
+		if (!clusterProperties.isEmpty()) {
+			resolved.put(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, parseConnectionPoolClusterProperties(clusterProperties));
+			origins.put(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, latestCluster.sourceName);
+		}
+
+		return new SimpleJavaMailConfig(resolved, origins);
+	}
+
+	private static RawValue later(@Nullable final RawValue first, final RawValue second) {
+		return first == null || second.sourceOrder >= first.sourceOrder ? second : first;
+	}
+
+	private static IllegalArgumentException invalidWildcardValue(final String key, final RawValue rawValue, final String expectedType) {
+		return new IllegalArgumentException("Invalid value for " + key + " from source " + rawValue.sourceName + "; expected " + expectedType);
+	}
+
+	private static ConfigSource mapSource(final String sourceName, final Map<?, ?> properties, final boolean strict) {
+		return new ConfigSource() {
+			@Override
+			public String getName() {
+				return sourceName;
+			}
+
+			@Override
+			public Map<String, ?> getProperties() {
+				final Map<String, Object> copy = new LinkedHashMap<>();
+				for (Map.Entry<?, ?> entry : properties.entrySet()) {
+					if (entry.getKey() instanceof String) {
+						copy.put((String) entry.getKey(), entry.getValue());
+					} else if (strict) {
+						throw new IllegalStateException("Simple Java Mail property keys must be text in source " + sourceName);
+					}
+				}
+				return copy;
+			}
+
+			@Override
+			public boolean isStrict() {
+				return strict;
+			}
+		};
+	}
+
+	private static Properties readAndClose(final InputStream inputStream, final String sourceName) {
+		if (inputStream == null) {
+			throw new IllegalArgumentException("InputStream was null for source " + sourceName);
+		}
+		final Properties properties = new Properties();
+		try (InputStream stream = inputStream) {
+			properties.load(stream);
+			return properties;
+		} catch (IOException e) {
+			throw new IllegalStateException("Error reading configuration from source " + sourceName, e);
+		}
+	}
+
+	private static Map<String, Object> toMap(final Properties properties) {
+		final Map<String, Object> result = new LinkedHashMap<>();
+		for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+			result.put(String.valueOf(entry.getKey()), entry.getValue());
+		}
+		return result;
+	}
+
+	private static String requireSourceName(final String sourceName) {
+		if (sourceName == null || sourceName.trim().isEmpty()) {
+			throw new IllegalArgumentException("ConfigSource name was blank");
+		}
+		return sourceName;
+	}
+
+	private static boolean isRecognizedKey(@Nullable final String key) {
+		if (key == null) {
+			return false;
+		}
+		for (Property property : Property.values()) {
+			if (property != Property.EXTRA_PROPERTIES
+					&& property != Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS
+					&& property.key().equals(key)) {
+				return true;
+			}
+		}
+		return isWildcardKey(key);
+	}
+
+	private static boolean isWildcardKey(final String key) {
+		return EXTRA_PROPERTY_PATTERN.matcher(key).matches() || CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(key).matches();
+	}
+
+	private static boolean isBlankValue(@Nullable final Object value) {
+		return value == null || value instanceof String && ((String) value).trim().isEmpty();
+	}
+
+	private static final class RawValue {
+		private final Object value;
+		private final String sourceName;
+		private final long sourceOrder;
+
+		private RawValue(final Object value, final String sourceName, final long sourceOrder) {
+			this.value = value;
+			this.sourceName = sourceName;
+			this.sourceOrder = sourceOrder;
 		}
 	}
 
@@ -589,68 +547,4 @@ public final class ConfigLoader {
 		}
 	}
 
-	/**
-	 * @return The property value in boolean, integer, enum, or as the original string value.
-	 */
-	@Nullable
-	static Object parsePropertyValue(final @Nullable String propertyValue) {
-		if (propertyValue == null) {
-			return null;
-		}
-		// read boolean value
-		final Map<String, Boolean> booleanConversionMap = new HashMap<>();
-		booleanConversionMap.put("0", false);
-		booleanConversionMap.put("1", true);
-		booleanConversionMap.put("false", false);
-		booleanConversionMap.put("true", true);
-		booleanConversionMap.put("no", false);
-		booleanConversionMap.put("yes", true);
-		if (booleanConversionMap.containsKey(propertyValue.toLowerCase())) {
-			return booleanConversionMap.get(propertyValue.toLowerCase());
-		}
-		// read number value
-		try {
-			return Integer.valueOf(propertyValue);
-		} catch (final NumberFormatException nfe) {
-			// Not a number
-		}
-		// read enum values
-		try {
-			return TransportStrategy.valueOf(propertyValue);
-		} catch (final IllegalArgumentException nfe) {
-			// Not a TransportStrategy
-		}
-		try {
-			return SessionDebugOutput.valueOf(propertyValue);
-		} catch (final IllegalArgumentException nfe) {
-			// Not a SessionDebugOutput
-		}
-		try {
-			return ContentTransferEncoding.valueOf(propertyValue);
-		} catch (final IllegalArgumentException nfe) {
-			// Not a ContentTransferEncoding
-		}
-		try {
-			return DkimConfig.Canonicalization.valueOf(propertyValue);
-		} catch (final IllegalArgumentException nfe) {
-			// Not a Canonicalization
-		}
-		try {
-			return DeliveryStatusNotification.NotifyOption.valueOf(propertyValue);
-		} catch (final IllegalArgumentException nfe) {
-			// Not a DeliveryStatusNotification.NotifyOption
-		}
-		try {
-			return DeliveryStatusNotification.parseReturnOption(propertyValue);
-		} catch (final IllegalArgumentException nfe) {
-			// Not a DeliveryStatusNotification.ReturnOption
-		}
-		try {
-			return LoadBalancingStrategy.valueOf(propertyValue);
-		} catch (final IllegalArgumentException nfe) {
-			// Not a LoadBalancingStrategy
-		}
-		// return value as is (string)
-		return propertyValue;
-	}
 }

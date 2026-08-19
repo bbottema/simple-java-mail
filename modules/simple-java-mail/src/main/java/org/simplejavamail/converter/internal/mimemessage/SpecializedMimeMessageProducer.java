@@ -49,7 +49,6 @@ public abstract class SpecializedMimeMessageProducer {
 			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
-		ProviderNeutralDataContentHandlers.install();
 
 		MimeMessage message = new MessageIdFixingMimeMessage(session, email.getId());
 		
@@ -63,7 +62,7 @@ public abstract class SpecializedMimeMessageProducer {
 		
 		MimeMessageHelper.setHeaders(email, message);
 		message.setSentDate(ofNullable(email.getSentDate()).orElse(new Date()));
-		message = FinalizedMimeMessage.finalizeMessage(message, FinalizedMimeMessage.ProtectionState.NONE);
+		message.saveChanges();
 
 		/*
 			The following order is important:
@@ -74,14 +73,9 @@ public abstract class SpecializedMimeMessageProducer {
 		 */
 
 		if (email.getSmimeSigningConfig() != null) {
-			final MimeMessage input = message;
-			try {
-				final MimeMessage signed = ModuleLoader.loadSmimeModule().signMessageWithSmime(
-						session, email, input, email.getSmimeSigningConfig());
-				message = FinalizedMimeMessage.finalizeMessage(signed, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
-			} finally {
-				closeFinalized(input);
-			}
+			final MimeMessage signed = ModuleLoader.loadSmimeModule().signMessageWithSmime(
+					session, email, message, email.getSmimeSigningConfig());
+			message = FinalizedMimeMessage.finalizeMessage(signed, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
 		}
 
 		/*
@@ -113,62 +107,31 @@ public abstract class SpecializedMimeMessageProducer {
 						? email.getSmimeEncryptionConfig().getKeyEncapsulationAlgorithm() : null;
 				final String cipherAlg = email.getSmimeEncryptionConfig() != null
 						? email.getSmimeEncryptionConfig().getCipherAlgorithm() : null;
-				final MimeMessage input = message;
-				try {
-					final MimeMessage encrypted = ModuleLoader.loadSmimeModule()
-							.encryptMessageWithSmimeForRecipients(session, email, input, effectiveCerts, keyAlg, cipherAlg);
-					message = FinalizedMimeMessage.finalizeMessage(encrypted, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
-				} finally {
-					closeFinalized(input);
-				}
+				final MimeMessage encrypted = ModuleLoader.loadSmimeModule()
+						.encryptMessageWithSmimeForRecipients(session, email, message, effectiveCerts, keyAlg, cipherAlg);
+				message = FinalizedMimeMessage.finalizeMessage(encrypted, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
 			}
 		} else if (email.getSmimeEncryptionConfig() != null) {
-			final MimeMessage input = message;
-			try {
-				final MimeMessage encrypted = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(
-						session, email, input, email.getSmimeEncryptionConfig());
-				message = FinalizedMimeMessage.finalizeMessage(encrypted, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
-			} finally {
-				closeFinalized(input);
-			}
+			final MimeMessage encrypted = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(
+					session, email, message, email.getSmimeEncryptionConfig());
+			message = FinalizedMimeMessage.finalizeMessage(encrypted, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
 		}
 
 		if (email.getOpenPgpSigningConfig() != null) {
-			final MimeMessage input = message;
-			try {
-				message = ModuleLoader.loadOpenPgpModule().signMessage(
-						session, email, input, email.getOpenPgpSigningConfig());
-			} finally {
-				closeFinalized(input);
-			}
+			message = ModuleLoader.loadOpenPgpModule().signMessage(
+					session, email, message, email.getOpenPgpSigningConfig());
 		}
 		if (email.getOpenPgpEncryptionConfig() != null) {
-			final MimeMessage input = message;
-			try {
-				message = ModuleLoader.loadOpenPgpModule().encryptMessage(
-						session, email, input, email.getOpenPgpEncryptionConfig());
-			} finally {
-				closeFinalized(input);
-			}
+			message = ModuleLoader.loadOpenPgpModule().encryptMessage(
+					session, email, message, email.getOpenPgpEncryptionConfig());
 		}
 
 		if (email.getDkimConfig() != null) {
-			final MimeMessage input = message;
-			try {
-				message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(email, input, email.getDkimConfig(),
-						checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
-			} finally {
-				closeFinalized(input);
-			}
+			message = ModuleLoader.loadDKIMModule().signMessageWithDKIM(email, message, email.getDkimConfig(),
+					checkNonEmptyArgument(email.getFromRecipient(), "fromRecipient"));
 		}
 
 		return message;
-	}
-
-	private static void closeFinalized(@NotNull final MimeMessage message) {
-		if (message instanceof FinalizedMimeMessage) {
-			((FinalizedMimeMessage) message).close();
-		}
 	}
 
 	abstract void populateMimeMessageMultipartStructure(MimeMessage  message, Email email) throws MessagingException;

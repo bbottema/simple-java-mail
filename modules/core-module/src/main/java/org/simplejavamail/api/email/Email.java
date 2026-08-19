@@ -1,5 +1,7 @@
 package org.simplejavamail.api.email;
 
+
+
 import jakarta.activation.DataSource;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -46,7 +48,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 
 /**
  * Email message with all necessary data for an effective mailing action, including attachments etc.
- * Exclusively created using <em>EmailBuilder</em>.
+ * Exclusively created through the email builder API obtained from a configured {@code SimpleJavaMail} factory.
  *
  * <h2>Java serialization</h2>
  * Since 9.2.0, Java serialization produces a send-ready snapshot. Attachment, embedded-image and decrypted-attachment data is read into

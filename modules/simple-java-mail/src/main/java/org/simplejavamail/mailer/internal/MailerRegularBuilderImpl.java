@@ -7,18 +7,18 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
-import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.config.SimpleJavaMailConfig;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
+import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_USERNAME;
 import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY;
-import static org.simplejavamail.config.ConfigLoader.hasProperty;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.emptyAsNull;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
@@ -28,72 +28,74 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
  */
 @Slf4j
 public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerRegularBuilderImpl> implements MailerRegularBuilder<MailerRegularBuilderImpl> {
+
+	private static final boolean DEFAULT_OPPORTUNISTIC_TLS = true;
 	
 	/**
-	 * @see #withSMTPServerHost(String)
+	 * @see MailerRegularBuilder#withSMTPServerHost(String)
 	 */
 	private String host;
 	
 	/**
-	 * @see #withSMTPServerPort(Integer)
+	 * @see MailerRegularBuilder#withSMTPServerPort(Integer)
 	 */
 	private Integer port;
 	
 	/**
-	 * @see #withSMTPServerUsername(String)
+	 * @see MailerRegularBuilder#withSMTPServerUsername(String)
 	 */
 	private String username;
 	
 	/**
-	 * @see #withSMTPServerPassword(String)
+	 * @see MailerRegularBuilder#withSMTPServerPassword(String)
 	 */
 	private String password;
 
 	/**
-	 * @see #withTransportStrategy(TransportStrategy)
+	 * @see MailerRegularBuilder#withTransportStrategy(TransportStrategy)
 	 */
 	@NotNull
 	private TransportStrategy transportStrategy;
 
 	/**
-	 * @see #withCustomSSLFactoryClass(String)
+	 * @see MailerRegularBuilder#withCustomSSLFactoryClass(String)
 	 */
 	private String customSSLFactory;
 
 	/**
-	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
+	 * @see MailerRegularBuilder#withCustomSSLFactoryInstance(SSLSocketFactory)
 	 */
 	private SSLSocketFactory customSSLFactoryInstance;
 
 	/**
-	 * Sets defaults configured for SMTP host, SMTP port, SMTP username, SMTP password and transport strategy.
-	 * <p>
-	 * <strong>Note:</strong> Any builder methods invoked after this will override the default value.
-	 *
-	 * @deprecated Used internally. Don't use this. Use one of the static {@link org.simplejavamail.mailer.MailerBuilder} methods instead.
+	 * @see MailerRegularBuilder#withOpportunisticTLS(boolean)
 	 */
-	@Deprecated
-	@SuppressWarnings("DeprecatedIsStillUsed")
-	public MailerRegularBuilderImpl() {
-		if (hasProperty(SMTP_HOST)) {
-			withSMTPServerHost(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(SMTP_HOST)));
-		}
-		if (hasProperty(SMTP_PORT)) {
-			withSMTPServerPort(verifyNonnullOrEmpty(ConfigLoader.getIntegerProperty(SMTP_PORT)));
-		}
-		if (hasProperty(SMTP_USERNAME)) {
-			withSMTPServerUsername(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(SMTP_USERNAME)));
-		}
-		if (hasProperty(SMTP_PASSWORD)) {
-			withSMTPServerPassword(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(SMTP_PASSWORD)));
-		}
-		this.transportStrategy = TransportStrategy.SMTP;
-		if (hasProperty(TRANSPORT_STRATEGY)) {
-			withTransportStrategy(verifyNonnullOrEmpty(ConfigLoader.getProperty(TRANSPORT_STRATEGY)));
-		}
-		if (hasProperty(CUSTOM_SSLFACTORY_CLASS)) {
-			withCustomSSLFactoryClass(verifyNonnullOrEmpty(ConfigLoader.getStringProperty(CUSTOM_SSLFACTORY_CLASS)));
-		}
+	private boolean opportunisticTLS;
+
+	public MailerRegularBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
+		super(config);
+		this.opportunisticTLS = config.valueOrProperty(null, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS);
+		this.host = config.getStringProperty(SMTP_HOST);
+		this.port = config.getIntegerProperty(SMTP_PORT);
+		this.username = config.getStringProperty(SMTP_USERNAME);
+		this.password = config.getStringProperty(SMTP_PASSWORD);
+		this.transportStrategy = config.hasProperty(TRANSPORT_STRATEGY)
+				? verifyNonnullOrEmpty(config.getProperty(TRANSPORT_STRATEGY))
+				: TransportStrategy.SMTP;
+		this.customSSLFactory = config.getStringProperty(CUSTOM_SSLFACTORY_CLASS);
+	}
+
+	/**
+	 * @see MailerRegularBuilder#withOpportunisticTLS(boolean)
+	 */
+	@Override
+	public MailerRegularBuilderImpl withOpportunisticTLS(final boolean opportunisticTLS) {
+		this.opportunisticTLS = opportunisticTLS;
+		return this;
+	}
+
+	boolean isOpportunisticTLS() {
+		return opportunisticTLS;
 	}
 	
 	/**

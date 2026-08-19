@@ -8,7 +8,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.internal.util.CertificationUtil;
 import testutil.ConfigLoaderTestHelper;
 
@@ -30,8 +30,7 @@ public class SmimeSignAndEncryptTest {
 
     @BeforeEach
     public void setup() {
-        ConfigLoaderTestHelper.clearConfigProperties();
-        builder = EmailBuilder.startingBlank();
+        builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank();
     }
 
     @Test

@@ -27,7 +27,6 @@ import org.bouncycastle.cms.SignerInformationVerifier;
 import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.mail.smime.SMIMEEnvelopedGenerator;
 import org.bouncycastle.mail.smime.SMIMEException;
 import org.bouncycastle.mail.smime.SMIMESigned;
@@ -59,9 +58,7 @@ import org.simplejavamail.internal.util.MessageIdFixingMimeMessage;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.utils.mail.smime.KeyEncapsulationAlgorithm;
 import org.simplejavamail.utils.mail.smime.SmimeKey;
-import org.simplejavamail.utils.mail.smime.SmimeKeyStore;
 import org.simplejavamail.utils.mail.smime.SmimeState;
-import org.simplejavamail.utils.mail.smime.SmimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,13 +66,16 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
-import java.security.Security;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.MGF1ParameterSpec;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -108,10 +108,6 @@ public class SMIMESupport implements SMIMEModule {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMESupport.class);
 	private static final List<String> SMIME_MIMETYPES = asList("application/pkcs7-mime", "application/x-pkcs7-mime", "multipart/signed");
 	private static final Map<Pkcs12Config, SmimeKey> SIMPLE_SMIMESTORE_CACHE = new HashMap<>();
-
-	static {
-		Security.addProvider(new BouncyCastleProvider());
-	}
 
 	/** Inspect and unwrap top-level S/MIME before the ordinary MIME parser traverses the entity. */
 	@NotNull
@@ -175,9 +171,9 @@ public class SMIMESupport implements SMIMEModule {
 		}
 
 		final MimeBodyPart encryptedPart = messageBodyPart(originalMessage, originalBytes);
-		final MimeBodyPart decryptedPart = SmimeUtil.decrypt(encryptedPart,
+		final MimeBodyPart decryptedPart = SmimeCryptoSupport.decrypt(encryptedPart,
 				retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
-		final SmimeState nestedState = SmimeUtil.getStatus(decryptedPart);
+		final SmimeState nestedState = SmimeCryptoSupport.getStatus(decryptedPart);
 		if (nestedState == SmimeState.SIGNED || nestedState == SmimeState.PROBABLY_SIGNED
 				|| nestedState == SmimeState.SIGNED_ENVELOPED) {
 			protectedAttachments.addAll(detachedSignatureAttachments(decryptedPart));
@@ -205,7 +201,7 @@ public class SMIMESupport implements SMIMEModule {
 		final boolean valid = verifyIncomingSignature(signedPart);
 		final String signedBy = getSignedByAddress(signedPart);
 		final ContentType signedContentType = new ContentType(signedPart.getContentType());
-		final MimeBodyPart clearPart = SmimeUtil.getSignedContent(signedPart);
+		final MimeBodyPart clearPart = SmimeCryptoSupport.getSignedContent(signedPart);
 		final MimeMessage effective = effectiveMessage(session, originalMessage, clearPart);
 		final List<AttachmentResource> protectedAttachments = new ArrayList<>(existingProtectedAttachments);
 		final List<AttachmentResource> signatures = detachedSignatureAttachments(signedPart);
@@ -250,8 +246,8 @@ public class SMIMESupport implements SMIMEModule {
 
 	private static boolean verifyIncomingSignature(@NotNull final MimePart signedPart) {
 		try {
-			return hasSignerInformationStatic(signedPart) && SmimeUtil.checkSignature(signedPart);
-		} catch (org.simplejavamail.utils.mail.smime.SmimeException e) {
+			return hasSignerInformationStatic(signedPart) && SmimeCryptoSupport.checkSignature(signedPart);
+		} catch (SmimeException e) {
 			LOGGER.warn("Content is S/MIME signed, but signature verification failed. Reason: {}", e.getMessage());
 			LOGGER.debug("S/MIME pre-parse signature verification failure: {}", e.getMessage());
 			return false;
@@ -268,7 +264,7 @@ public class SMIMESupport implements SMIMEModule {
 
 	private static SmimeState determineIncomingState(@NotNull final MimeMessage message,
 			@NotNull final OriginalSmimeDetails details) {
-		final SmimeState detected = SmimeUtil.getStatus(message);
+		final SmimeState detected = SmimeCryptoSupport.getStatus(message);
 		if (detected == SmimeState.ENCRYPTED && "signed-data".equals(details.getSmimeType())) {
 			return SmimeState.SIGNED;
 		}
@@ -649,8 +645,8 @@ public class SMIMESupport implements SMIMEModule {
 			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate)
 			throws MessagingException, IOException {
 		if (pkcs12Config != null) {
-			MimeBodyPart liberatedBodyPart = SmimeUtil.decrypt(mimeBodyPart, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
-			if (SmimeUtil.getStatus(liberatedBodyPart) == SmimeState.SIGNED_ENVELOPED) {
+			MimeBodyPart liberatedBodyPart = SmimeCryptoSupport.decrypt(mimeBodyPart, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
+			if (SmimeCryptoSupport.getStatus(liberatedBodyPart) == SmimeState.SIGNED_ENVELOPED) {
 				final AttachmentDecryptionResult signedContent = getSignedContent(liberatedBodyPart, null);
 				if (signedContent != null) {
 					return new AttachmentDecryptionResultImpl(SmimeMode.SIGNED_ENCRYPTED, signedContent.getAttachmentResource());
@@ -673,7 +669,7 @@ public class SMIMESupport implements SMIMEModule {
 		if (!validSignature) {
 			LOGGER.warn("Content is S/MIME signed, but signature is not valid; keeping the signed content for parsing.");
 		}
-		MimeBodyPart liberatedBodyPart = SmimeUtil.getSignedContent(mimeBodyPart);
+		MimeBodyPart liberatedBodyPart = SmimeCryptoSupport.getSignedContent(mimeBodyPart);
 		return toAttachmentDecryptionResult(SmimeMode.SIGNED, handleLiberatedContent(liberatedBodyPart.getContent()));
 	}
 
@@ -682,7 +678,7 @@ public class SMIMESupport implements SMIMEModule {
 			throws MessagingException, IOException {
 		try {
 			return getSignedContent(mimeBodyPart, smimeDetailsToUpdate);
-		} catch (MessagingException | IOException | org.simplejavamail.utils.mail.smime.SmimeException e) {
+		} catch (MessagingException | IOException | SmimeException e) {
 			// ignore, apparently not S/MIME after all
 		}
 		LOGGER.warn("Content classified as signed, but apparently not using S/MIME; skipping S/MIME interpreter...");
@@ -691,8 +687,8 @@ public class SMIMESupport implements SMIMEModule {
 
 	private boolean checkSmimePartSignature(final MimeBodyPart mimeBodyPart) {
 		try {
-			return hasSignerInformation(mimeBodyPart) && SmimeUtil.checkSignature(mimeBodyPart);
-		} catch (org.simplejavamail.utils.mail.smime.SmimeException e) {
+			return hasSignerInformation(mimeBodyPart) && SmimeCryptoSupport.checkSignature(mimeBodyPart);
+		} catch (SmimeException e) {
 			LOGGER.warn("Content is S/MIME signed, but signature verification failed. Reason: {}", e.getMessage());
 			LOGGER.debug("S/MIME attachment signature verification failure: {}", e.getMessage());
 			return false;
@@ -736,7 +732,7 @@ public class SMIMESupport implements SMIMEModule {
 	}
 
 	private SmimeState determineStatus(@NotNull final MimePart mimeBodyPart, @NotNull final OriginalSmimeDetails messageSmimeDetails) {
-		SmimeState status = SmimeUtil.getStatus(mimeBodyPart);
+		SmimeState status = SmimeCryptoSupport.getStatus(mimeBodyPart);
 		boolean trustStatus = status != SmimeState.ENCRYPTED || messageSmimeDetails.getSmimeMode() == SmimeMode.PLAIN;
 		if (trustStatus) {
 			return status;
@@ -790,7 +786,7 @@ public class SMIMESupport implements SMIMEModule {
 		final boolean signedState = smimeState == SmimeState.SIGNED ||
 				smimeState == SmimeState.PROBABLY_SIGNED ||
 				smimeState == SmimeState.SIGNED_ENVELOPED;
-		return signedState && hasSignerInformation(mimeMessage) && SmimeUtil.checkSignature(mimeMessage);
+		return signedState && hasSignerInformation(mimeMessage) && SmimeCryptoSupport.checkSignature(mimeMessage);
 	}
 
 	private boolean hasSignerInformation(@NotNull final MimePart mimePart) {
@@ -848,7 +844,7 @@ public class SMIMESupport implements SMIMEModule {
 		X509CertificateHolder certificateHolder = (X509CertificateHolder) certificates.getMatches(signerId).iterator()
 				.next();
 		JcaX509CertificateConverter certificateConverter = new JcaX509CertificateConverter();
-		certificateConverter.setProvider(BouncyCastleProvider.PROVIDER_NAME);
+		certificateConverter.setProvider(SmimeCryptoSupport.BOUNCY_CASTLE);
 		return certificateConverter.getCertificate(certificateHolder);
 	}
 
@@ -859,7 +855,7 @@ public class SMIMESupport implements SMIMEModule {
 	@Deprecated
 	private static SignerInformationVerifier getVerifier(X509Certificate certificate) throws OperatorCreationException {
 		JcaSimpleSignerInfoVerifierBuilder builder = new JcaSimpleSignerInfoVerifierBuilder();
-		builder.setProvider(BouncyCastleProvider.PROVIDER_NAME);
+		builder.setProvider(SmimeCryptoSupport.BOUNCY_CASTLE);
 		return builder.build(certificate);
 	}
 
@@ -867,9 +863,9 @@ public class SMIMESupport implements SMIMEModule {
 	@Override
 	public MimeMessage signMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final SmimeSigningConfig smimeSigningConfig) {
 		try {
-			final MimeBodyPart signedBodyPart = SmimeUtil.sign(extractMimeBodyPart(messageToProtect),
+			final MimeBodyPart signedBodyPart = SmimeCryptoSupport.sign(extractMimeBodyPart(messageToProtect),
 					retrieveSmimeKeyFromPkcs12Keystore(smimeSigningConfig.getPkcs12Config()),
-					defaultTo(smimeSigningConfig.getSignatureAlgorithm(), SmimeUtil.DEFAULT_SIGNATURE_ALGORITHM_NAME));
+					defaultTo(smimeSigningConfig.getSignatureAlgorithm(), SmimeCryptoSupport.DEFAULT_SIGNATURE_ALGORITHM_NAME));
 			return createProtectedMessage(session, email, messageToProtect, signedBodyPart);
 		} catch (MessagingException | IOException e) {
 			throw new SmimeException("Error signing message with S/MIME", e);
@@ -880,14 +876,14 @@ public class SMIMESupport implements SMIMEModule {
 	@Override
 	public MimeMessage encryptMessageWithSmime(@Nullable final Session session, @NotNull final Email email, @NotNull final MimeMessage messageToProtect, @NotNull final SmimeEncryptionConfig smimeEncryptionConfig) {
 		try {
-			final MimeBodyPart encryptedBodyPart = SmimeUtil.encrypt(extractMimeBodyPart(messageToProtect),
+			final MimeBodyPart encryptedBodyPart = SmimeCryptoSupport.encrypt(extractMimeBodyPart(messageToProtect),
 					smimeEncryptionConfig.getX509Certificate(),
 					ofNullable(smimeEncryptionConfig.getKeyEncapsulationAlgorithm())
 							.map(KeyEncapsulationAlgorithm::valueOf)
-							.orElse(SmimeUtil.DEFAULT_KEY_ENCAPSULATION_ALGORITHM),
+							.orElse(SmimeCryptoSupport.DEFAULT_KEY_ENCAPSULATION_ALGORITHM),
 					ofNullable(smimeEncryptionConfig.getCipherAlgorithm())
 							.map(CMSAlgorithmResolver::resolve)
-							.orElse(SmimeUtil.DEFAULT_CIPHER));
+							.orElse(SmimeCryptoSupport.DEFAULT_CIPHER));
 			return createProtectedMessage(session, email, messageToProtect, encryptedBodyPart);
 		} catch (MessagingException | IOException e) {
 			throw new SmimeException("Error encrypting message with S/MIME", e);
@@ -902,10 +898,10 @@ public class SMIMESupport implements SMIMEModule {
 		try {
 			final KeyEncapsulationAlgorithm keyEncapsulationAlgorithm = ofNullable(keyEncapsulationAlgorithmStr)
 					.map(KeyEncapsulationAlgorithm::valueOf)
-					.orElse(SmimeUtil.DEFAULT_KEY_ENCAPSULATION_ALGORITHM);
+					.orElse(SmimeCryptoSupport.DEFAULT_KEY_ENCAPSULATION_ALGORITHM);
 			final ASN1ObjectIdentifier cmsAlgorithm = ofNullable(cipherAlgorithmStr)
 					.map(CMSAlgorithmResolver::resolve)
-					.orElse(SmimeUtil.DEFAULT_CIPHER);
+					.orElse(SmimeCryptoSupport.DEFAULT_CIPHER);
 
 			final SMIMEEnvelopedGenerator generator = new SMIMEEnvelopedGenerator();
 			for (X509Certificate cert : recipientCerts) {
@@ -913,7 +909,7 @@ public class SMIMESupport implements SMIMEModule {
 			}
 
 			final OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(cmsAlgorithm)
-					.setProvider(BouncyCastleProvider.PROVIDER_NAME).build();
+					.setProvider(SmimeCryptoSupport.BOUNCY_CASTLE).build();
 
 			final MimeBodyPart encryptedBodyPart = generator.generate(extractMimeBodyPart(messageToProtect), encryptor);
 			return createProtectedMessage(session, email, messageToProtect, encryptedBodyPart);
@@ -935,7 +931,7 @@ public class SMIMESupport implements SMIMEModule {
 					new OAEPParameterSpec(digestName, "MGF1", new MGF1ParameterSpec(digestName), PSource.PSpecified.DEFAULT));
 			infoGenerator = new JceKeyTransRecipientInfoGenerator(certificate, oaepParams);
 		}
-		infoGenerator.setProvider(BouncyCastleProvider.PROVIDER_NAME);
+		infoGenerator.setProvider(SmimeCryptoSupport.BOUNCY_CASTLE);
 		return infoGenerator;
 	}
 
@@ -1015,8 +1011,27 @@ public class SMIMESupport implements SMIMEModule {
 
 	@Nullable
 	private SmimeKey produceSmimeKey(final @NotNull Pkcs12Config pkcs12) {
-		return new SmimeKeyStore(new ByteArrayInputStream(pkcs12.getPkcs12StoreData()), pkcs12.getStorePassword())
-				.getPrivateKey(pkcs12.getKeyAlias(), pkcs12.getKeyPassword());
+		final char[] storePassword = pkcs12.getStorePassword();
+		final char[] keyPassword = pkcs12.getKeyPassword();
+		try {
+			final KeyStore keyStore = KeyStore.getInstance("PKCS12", SmimeCryptoSupport.BOUNCY_CASTLE);
+			keyStore.load(new ByteArrayInputStream(pkcs12.getPkcs12StoreData()), storePassword);
+			if (!keyStore.isKeyEntry(pkcs12.getKeyAlias())) {
+				return null;
+			}
+			final PrivateKey privateKey = (PrivateKey) keyStore.getKey(pkcs12.getKeyAlias(), keyPassword);
+			final Certificate[] certificateChain = keyStore.getCertificateChain(pkcs12.getKeyAlias());
+			final X509Certificate[] x509CertificateChain = new X509Certificate[certificateChain.length];
+			for (int index = 0; index < certificateChain.length; index++) {
+				x509CertificateChain[index] = (X509Certificate) certificateChain[index];
+			}
+			return new SmimeKey(privateKey, x509CertificateChain);
+		} catch (Exception e) {
+			throw new SmimeException("Could not load the supplied PKCS12 S/MIME key", e);
+		} finally {
+			Arrays.fill(storePassword, '\0');
+			Arrays.fill(keyPassword, '\0');
+		}
 	}
 
 	@Override

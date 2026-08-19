@@ -2,15 +2,12 @@ package org.simplejavamail.api.mailer.config;
 
 import jakarta.mail.Session;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.config.ConfigLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
 import static java.lang.String.format;
-import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
  * Defines the various types of transport protocols and implements respective properties so that a {@link Session} may be configured using a
@@ -51,32 +48,14 @@ public enum TransportStrategy {
 		private static final int DEFAULT_SMTP_PORT = 25;
 
 		/**
-		 * Defaults to enabled opportunistic TLS behavior ({@link #opportunisticTLS}), in case value was not programmatically set or provided
-		 * as property value.
-		 */
-		private static final boolean DEFAULT_OPPORTUNISTIC_TLS = true;
-		
-		/**
-		 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
-		 * was provided, this value defaults to {@value DEFAULT_OPPORTUNISTIC_TLS}.
-		 * <p>
-		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert to the legacy behavior.
-		 */
-		@Nullable
-		private Boolean opportunisticTLS;
-		
-		/**
 		 * @see TransportStrategy#SMTP
 		 */
 		@Override
 		public Properties generateProperties() {
 			final Properties props = super.generateProperties();
 			props.put("mail.transport.protocol", "smtp");
-			if (verifyNonnullOrEmpty(ConfigLoader.valueOrPropertyAsBoolean(opportunisticTLS, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS))) {
-				LOGGER.debug("Opportunistic TLS mode enabled for SMTP plain protocol.");
-				props.put("mail.smtp.starttls.enable", "true");
-				props.put("mail.smtp.starttls.required", "false");
-			}
+			props.put("mail.smtp.starttls.enable", "true");
+			props.put("mail.smtp.starttls.required", "false");
 			return props;
 		}
 
@@ -214,20 +193,6 @@ public enum TransportStrategy {
 		@Override
 		public String propertyNameCheckServerIdentity() {
 			return "mail.smtp.ssl.checkserveridentity";
-		}
-
-		/**
-		 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
-		 * was provided, this value defaults to {@value DEFAULT_OPPORTUNISTIC_TLS}.
-		 * <p>
-		 * Setting this flag to false causes the {@link TransportStrategy#SMTP} to revert to the legacy behavior.
-		 * <p>
-		 * Setting <code>null</code> will revert to property value if available in config or default to {@value
-		 * DEFAULT_OPPORTUNISTIC_TLS}
-		 */
-		@Override
-		public void setOpportunisticTLS(@Nullable final Boolean opportunisticTLS) {
-			this.opportunisticTLS = opportunisticTLS;
 		}
 
 		/**
@@ -808,7 +773,7 @@ public enum TransportStrategy {
 		properties.put(TRANSPORT_STRATEGY_MARKER, name());
 		return properties;
 	}
-	
+
 	/**
 	 * For internal use only.
 	 */
@@ -893,18 +858,6 @@ public enum TransportStrategy {
 	 * For internal use only.
 	 */
 	public abstract int getDefaultServerPort();
-	
-	/**
-	 * Determines whether TLS should be attempted for SMTP plain protocol (optional if offered by the SMTP server). If not set and no property
-	 * was provided, this value defaults to it default.
-	 * <p>
-	 * Setting this flag to false causes {@link TransportStrategy#SMTP} to revert to the legacy behavior.
-	 * <p>
-	 * Only has any effect when invoked via {@code TransportStrategy.SMTP.setOpportunisticTLS(true/false)}
-	 */
-	public void setOpportunisticTLS(@Nullable final Boolean opportunisticTLS) {
-		// Only has any effect when invoked via {@code TransportStrategy.SMTP.setOpportunisticTLS(true/false)}
-	}
 	
 	/**
 	 * For internal use only.

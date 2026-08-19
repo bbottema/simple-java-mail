@@ -2,7 +2,7 @@ package demo;
 
 import lombok.SneakyThrows;
 import lombok.val;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.ModuleLoaderTestHelper;
@@ -43,7 +43,7 @@ public class DependencyChecker extends DemoAppBase {
                     mailerTLSBuilder
                             .withDebugLogging(false)
                             .buildMailer()
-                            .sendMail(EmailBuilder.startingBlank()
+                            .sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
                                     .from("Dependency Checker", "no-reply@dependency-checker.com")
                                     .withRecipients(new RecipientBuilder()
                                             .withAddress(YOUR_GMAIL_ADDRESS)

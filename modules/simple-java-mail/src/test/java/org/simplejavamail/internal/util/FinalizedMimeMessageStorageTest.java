@@ -4,9 +4,14 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.SimpleJavaMail;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.recipient.RecipientBuilder;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -24,40 +29,70 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FinalizedMimeMessageStorageTest {
 
-    private String originalThreshold;
+    private static final String REMOVED_TEMP_FILE_PREFIX = "simple-java-mail-mime-";
 
-    @AfterEach
-    void restoreThreshold() {
-        if (originalThreshold == null) {
-            System.clearProperty(RepeatableMimeEntity.MEMORY_THRESHOLD_PROPERTY);
-        } else {
-            System.setProperty(RepeatableMimeEntity.MEMORY_THRESHOLD_PROPERTY, originalThreshold);
-        }
+    @Test
+    void plainMessageIsStructurallyFinalizedWithoutMaterializingItsBytes() throws Exception {
+        final Email email = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().startingBlank()
+                .from("sender@example.com")
+                .withRecipients(RecipientBuilder.to(null, "receiver@example.com"))
+                .withSubject("plain")
+                .withPlainText("No cryptographic protection")
+                .buildEmail();
+
+        final MimeMessage converted = EmailConverter.emailToMimeMessage(email);
+        final String messageId = converted.getMessageID();
+        converted.saveChanges();
+
+        assertThat(converted).isNotInstanceOf(FinalizedMimeMessage.class);
+        assertThat(messageId).isNotBlank();
+        assertThat(converted.getMessageID()).isEqualTo(messageId);
+        assertThat(bytes(converted)).containsExactly(bytes(converted));
     }
 
     @Test
-    void largeFinalizedMessageIsRepeatableAndDeterministicallyDeleted() throws Exception {
-        lowerThresholdTo(32);
+    void protectedMessageIsRepeatableWithoutTemporaryStorageOrCleanupContract() throws Exception {
+        final Set<Path> before = temporaryMimeFiles();
         final FinalizedMimeMessage finalized = FinalizedMimeMessage.finalizeMessage(
-                message(repeat('x', 4096)), FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
+                message(repeat('x', 2 * 1024 * 1024)), FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
 
-        assertThat(finalized.usesTemporaryFile()).isTrue();
-        assertThat(finalized.storageAvailable()).isTrue();
+        assertThat((Object) finalized).isNotInstanceOf(AutoCloseable.class);
         assertThat(bytes(finalized)).containsExactly(bytes(finalized));
         assertThat(finalized.getSerializedSize()).isEqualTo(bytes(finalized).length);
-
-        finalized.close();
-
-        assertThat(finalized.storageAvailable()).isFalse();
-        assertThatThrownBy(() -> bytes(finalized))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("released");
+        assertThat(temporaryMimeFiles()).isEqualTo(before);
     }
 
     @Test
-    void failedFinalizationRemovesItsTemporaryFile() throws Exception {
-        lowerThresholdTo(32);
+    void finalizedMessageAlwaysHonorsIgnoredHeadersRegardlessOfHeaderSize() throws Exception {
+        final MimeMessage message = message("body");
+        message.setRecipients(jakarta.mail.Message.RecipientType.BCC, "hidden@example.com");
+        message.setHeader("X-Large", repeat('x', 1024 * 1024 + 1));
+        final FinalizedMimeMessage finalized = FinalizedMimeMessage.finalizeMessage(
+                message, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        finalized.writeTo(output, new String[] {"Bcc"});
+
+        final String serialized = new String(output.toByteArray(), java.nio.charset.StandardCharsets.ISO_8859_1);
+        assertThat(serialized.contains("Bcc:")).isFalse();
+        assertThat(serialized.contains("hidden@example.com")).isFalse();
+        assertThat(serialized.contains("X-Large:")).isTrue();
+        assertThat(serialized.contains("body")).isTrue();
+    }
+
+    @Test
+    void ordinaryEmlParsingDoesNotCreateTemporaryStorage() throws Exception {
+        final byte[] eml = bytes(message(repeat('x', 2 * 1024 * 1024)));
         final Set<Path> before = temporaryMimeFiles();
+
+        final Email parsed = EmailConverter.emlToEmail(new ByteArrayInputStream(eml));
+
+        assertThat(parsed.getPlainText()).contains("xxxx");
+        assertThat(temporaryMimeFiles()).isEqualTo(before);
+    }
+
+    @Test
+    void failedFinalizationReportsTheSerializationFailure() throws Exception {
         final MimeMessage failing = new MimeMessage(Session.getInstance(new Properties())) {
             @Override
             public void writeTo(final OutputStream outputStream) throws IOException, MessagingException {
@@ -70,13 +105,6 @@ class FinalizedMimeMessageStorageTest {
                 failing, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED))
                 .isInstanceOf(MessagingException.class)
                 .hasMessageContaining("finalize MIME");
-
-        assertThat(temporaryMimeFiles()).isEqualTo(before);
-    }
-
-    private void lowerThresholdTo(final int threshold) {
-        originalThreshold = System.getProperty(RepeatableMimeEntity.MEMORY_THRESHOLD_PROPERTY);
-        System.setProperty(RepeatableMimeEntity.MEMORY_THRESHOLD_PROPERTY, Integer.toString(threshold));
     }
 
     private static MimeMessage message(final String body) throws Exception {
@@ -106,7 +134,7 @@ class FinalizedMimeMessageStorageTest {
             return new HashSet<>();
         }
         try (Stream<Path> files = Files.list(tempDirectory)) {
-            return files.filter(path -> path.getFileName().toString().startsWith(RepeatableMimeEntity.TEMP_FILE_PREFIX))
+            return files.filter(path -> path.getFileName().toString().startsWith(REMOVED_TEMP_FILE_PREFIX))
                     .collect(Collectors.toSet());
         }
     }

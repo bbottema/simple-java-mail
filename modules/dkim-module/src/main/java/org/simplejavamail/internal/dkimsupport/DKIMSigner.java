@@ -21,7 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
-import java.security.Security;
+import java.security.Provider;
 import java.security.Signature;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
@@ -45,9 +45,10 @@ import java.util.regex.Pattern;
 public final class DKIMSigner implements DKIMModule {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DKIMSigner.class);
-    private static final int MAX_HEADER_LENGTH = 67;
+    private static final int MAX_HEADER_LINE_LENGTH = 78;
     private static final String DKIM_SIGNATURE = "DKIM-Signature";
     private static final Pattern SIGNING_DOMAIN_PATTERN = Pattern.compile("(.+)\\.(.+)");
+    private static final Provider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
 
     private static final Set<String> DEFAULT_HEADERS_TO_SIGN = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
             "From", "To", "Subject", "Content-Description", "Content-ID", "Content-Type",
@@ -57,25 +58,16 @@ public final class DKIMSigner implements DKIMModule {
             "References", "Resent-Message-ID", "Resent-From", "Sender"
     )));
 
-    static {
-        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-            Security.addProvider(new BouncyCastleProvider());
-        }
-    }
-
     @Override
     public MimeMessage signMessageWithDKIM(@NotNull final Email email,
                                            @NotNull final MimeMessage messageToSign,
                                            @NotNull final DkimConfig dkimConfig,
                                            @NotNull final Recipient fromRecipient) {
         LOGGER.debug("signing finalized MimeMessage with DKIM...");
-        FinalizedMimeMessage finalized = null;
-        boolean ownsFinalized = false;
         try {
-            finalized = messageToSign instanceof FinalizedMimeMessage
+            final FinalizedMimeMessage finalized = messageToSign instanceof FinalizedMimeMessage
                     ? (FinalizedMimeMessage) messageToSign
                     : FinalizedMimeMessage.finalizeMessage(messageToSign, FinalizedMimeMessage.ProtectionState.NONE);
-            ownsFinalized = finalized != messageToSign;
             final byte[] signedBytes = new WireSigner(dkimConfig, fromRecipient.getAddress())
                     .sign(finalized, finalized.getSerializedBytes());
             final Session session = finalized.getSession() != null
@@ -85,10 +77,6 @@ public final class DKIMSigner implements DKIMModule {
                     FinalizedMimeMessage.ProtectionState.FINAL_WIRE_SIGNED);
         } catch (Exception e) {
             throw new DKIMSigningException(DKIMSigningException.ERROR_SIGNING_DKIM_INVALID_DOMAINKEY, e);
-        } finally {
-            if (ownsFinalized && finalized != null) {
-                finalized.close();
-            }
         }
     }
 
@@ -165,7 +153,7 @@ public final class DKIMSigner implements DKIMModule {
             canonicalHeaders.append(headerCanonicalization.canonicalizeHeader(DKIM_SIGNATURE, unsignedValue));
 
             final Signature signature = algorithm.ed25519
-                    ? Signature.getInstance(algorithm.signatureName, BouncyCastleProvider.PROVIDER_NAME)
+                    ? Signature.getInstance(algorithm.signatureName, BOUNCY_CASTLE_PROVIDER)
                     : Signature.getInstance(algorithm.signatureName);
             signature.initSign(privateKey);
             signature.update(canonicalHeaders.toString().getBytes(StandardCharsets.UTF_8));
@@ -196,7 +184,7 @@ public final class DKIMSigner implements DKIMModule {
     private enum Algorithm {
         SHA256_WITH_RSA("rsa-sha256", "SHA256withRSA", "SHA-256", "RSA", false),
         SHA1_WITH_RSA("rsa-sha1", "SHA1withRSA", "SHA-1", "RSA", false),
-        SHA256_WITH_ED25519("ed25519-sha256", "NONEwithEdDSA", "SHA-256", "EdDSA", true);
+        SHA256_WITH_ED25519("ed25519-sha256", "Ed25519", "SHA-256", "Ed25519", true);
 
         private final String dkimName;
         private final String signatureName;
@@ -241,7 +229,7 @@ public final class DKIMSigner implements DKIMModule {
         private byte[] canonicalizeBody(final byte[] body) {
             String value = new String(body, StandardCharsets.UTF_8);
             if (this == RELAXED) {
-                value = value.replaceAll("[ \\t]+\\r\\n", "\\r\\n")
+                value = value.replaceAll("[ \\t]+\\r\\n", "\r\n")
                         .replaceAll("[ \\t]+", " ");
             }
             if (!value.endsWith("\r\n")) {
@@ -276,7 +264,7 @@ public final class DKIMSigner implements DKIMModule {
                     .replaceAll("\\s", ""));
         }
         final KeyFactory keyFactory = algorithm.ed25519
-                ? KeyFactory.getInstance(algorithm.keyFactoryName, BouncyCastleProvider.PROVIDER_NAME)
+                ? KeyFactory.getInstance(algorithm.keyFactoryName, BOUNCY_CASTLE_PROVIDER)
                 : KeyFactory.getInstance(algorithm.keyFactoryName);
         return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
     }
@@ -313,26 +301,67 @@ public final class DKIMSigner implements DKIMModule {
     }
 
     private static String serializeTags(final Map<String, String> tags) {
-        int position = 0;
+        int position = DKIM_SIGNATURE.length() + 2;
         final StringBuilder builder = new StringBuilder();
         for (Map.Entry<String, String> tag : tags.entrySet()) {
             final String entry = tag.getKey() + "=" + tag.getValue() + ";";
-            if (position + entry.length() + 1 > MAX_HEADER_LENGTH) {
-                position = entry.length();
-                builder.append("\r\n\t").append(entry);
+            final int separatorLength = builder.length() == 0 ? 0 : 1;
+            if ("h".equals(tag.getKey())) {
+                if (position + separatorLength + 2 + firstHeaderNameLength(tag.getValue()) + 1 > MAX_HEADER_LINE_LENGTH) {
+                    builder.append("\r\n\t");
+                    position = 1;
+                } else if (separatorLength > 0) {
+                    builder.append(' ');
+                    position++;
+                }
+                position = appendHeaderListTag(builder, tag.getValue(), position);
             } else {
-                builder.append(' ').append(entry);
-                position += entry.length() + 1;
+                if (position + separatorLength + entry.length() > MAX_HEADER_LINE_LENGTH) {
+                    builder.append("\r\n\t");
+                    position = 1;
+                } else if (separatorLength > 0) {
+                    builder.append(' ');
+                    position++;
+                }
+                builder.append(entry);
+                position += entry.length();
             }
         }
-        return builder.append("\r\n\tb=").toString().trim();
+        return builder.append("\r\n\tb=").toString();
+    }
+
+    private static int appendHeaderListTag(final StringBuilder builder, final String value, int position) {
+        builder.append("h=");
+        position += 2;
+        final String[] headerNames = value.split(":");
+        for (int i = 0; i < headerNames.length; i++) {
+            final int separatorLength = i == 0 ? 0 : 1;
+            if (i > 0 && position + separatorLength + headerNames[i].length() + 1 > MAX_HEADER_LINE_LENGTH) {
+                builder.append(":\r\n\t");
+                position = 1;
+            } else if (i > 0) {
+                builder.append(':');
+                position++;
+            }
+            builder.append(headerNames[i]);
+            position += headerNames[i].length();
+        }
+        builder.append(';');
+        return position + 1;
+    }
+
+    private static int firstHeaderNameLength(final String value) {
+        final int separator = value.indexOf(':');
+        return separator >= 0 ? separator : value.length();
     }
 
     private static String fold(final String value, int offset) {
         int position = 0;
         final StringBuilder folded = new StringBuilder();
         while (position < value.length()) {
-            final int available = offset > 0 ? MAX_HEADER_LENGTH - offset : MAX_HEADER_LENGTH;
+            final int available = offset > 0
+                    ? MAX_HEADER_LINE_LENGTH - 1 - offset
+                    : MAX_HEADER_LINE_LENGTH - 1;
             final int end = Math.min(value.length(), position + available);
             if (position > 0 || offset == 0) {
                 folded.append("\r\n\t");

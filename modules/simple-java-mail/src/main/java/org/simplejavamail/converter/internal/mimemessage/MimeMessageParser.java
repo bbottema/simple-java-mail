@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
+import org.simplejavamail.internal.util.JakartaMailImplementation;
 import org.simplejavamail.internal.util.Preconditions;
 import org.slf4j.Logger;
 
@@ -44,10 +45,6 @@ public final class MimeMessageParser {
 	private static final Pattern CONTENT_TYPE_METHOD_PATTERN = Pattern.compile("method=\"?(\\w+)");
 	private static final Pattern CALENDAR_BODY_METHOD_PATTERN = Pattern.compile("(?i)^METHOD:(\\w+)", Pattern.MULTILINE);
 
-	static {
-		ProviderNeutralDataContentHandlers.install();
-	}
-
 	/**
 	 * Delegates to {@link #parseMimeMessage(MimeMessage, boolean)}.
 	 */
@@ -59,6 +56,7 @@ public final class MimeMessageParser {
 	 * Extracts the content of a MimeMessage recursively.
 	 */
 	public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage, boolean fetchAttachmentData) {
+		JakartaMailImplementation.requireAvailable();
 		final ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
 		parsedComponents.messageId = parseMessageId(mimeMessage);
 		parsedComponents.sentDate = parseSentDate(mimeMessage);
@@ -191,6 +189,11 @@ public final class MimeMessageParser {
      */
 	@NotNull
     public static String parseCalendarContent(@NotNull MimePart currentPart) {
+		try {
+			CalendarDataContentHandler.configure(currentPart.getDataHandler());
+		} catch (MessagingException e) {
+			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CALENDAR_CONTENT, e);
+		}
         Object content = parseContent(currentPart);
         if (content instanceof InputStream) {
             final InputStream calendarContent = (InputStream) content;

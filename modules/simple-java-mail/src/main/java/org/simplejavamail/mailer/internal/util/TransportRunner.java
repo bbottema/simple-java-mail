@@ -47,17 +47,9 @@ public class TransportRunner {
 	public static MailSubmissionReceipt sendMessageOnTransport(@NotNull final Transport transport, @NotNull final Session actualSessionUsed, @NotNull Email email)
 			throws MessagingException {
 		final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
-		try {
-			final SmtpServerResponse smtpServerResponse = MailTransportAdapterResolver.sendMessage(transport, preparedMail);
-			LOGGER.trace("...email sent");
-			return buildReceipt(email, smtpServerResponse);
-		} finally {
-			try {
-				preparedMail.close();
-			} catch (RuntimeException cleanupFailure) {
-				LOGGER.warn("Unable to release finalized MIME storage", cleanupFailure);
-			}
-		}
+		final SmtpServerResponse smtpServerResponse = MailTransportAdapterResolver.sendMessage(transport, preparedMail);
+		LOGGER.trace("...email sent");
+		return buildReceipt(email, smtpServerResponse);
 	}
 
 	public static void connect(@NotNull UUID clusterKey, final Session session)

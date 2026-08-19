@@ -121,6 +121,7 @@ public class MimeMessageHelper {
 			val calendarMethod = requireNonNull(email.getCalendarMethod(), "calendarMethod is required when calendarText is set");
 			val messagePartCalendar = new MimeBodyPart();
 			messagePartCalendar.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING.name(), calendarMethod));
+			CalendarDataContentHandler.configure(messagePartCalendar.getDataHandler());
 			messagePartCalendar.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email, email.getCalendarTextContentTransferEncoding()));
 			multipartAlternativeMessages.addBodyPart(messagePartCalendar);
 		}
@@ -161,6 +162,7 @@ public class MimeMessageHelper {
 		if (email.getCalendarText() != null) {
 			val calendarMethod = requireNonNull(email.getCalendarMethod(), "CalendarMethod must be set when CalendarText is set");
 			messagePart.setContent(email.getCalendarText(), format("text/calendar; charset=\"%s\"; method=\"%s\"", CHARACTER_ENCODING.name(), calendarMethod));
+			CalendarDataContentHandler.configure(messagePart.getDataHandler());
 			bodyPartContentTransferEncoding = email.getCalendarTextContentTransferEncoding();
 		}
 		messagePart.addHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), determineContentTransferEncoder(email, bodyPartContentTransferEncoding));

@@ -1,8 +1,11 @@
 package org.simplejavamail.mailer;
 
+
+import org.simplejavamail.api.SimpleJavaMail;
+
 import com.sanctionco.jmail.EmailValidator;
 import org.junit.jupiter.api.Test;
-import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
+import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import testutil.ConfigLoaderTestHelper;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,8 +16,7 @@ import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_CONNECT
 public class MailerBuilderTest {
 	@Test
 	public void clearEmailValidatorRemovesAddressPolicy() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		final MailerRegularBuilderImpl builder = MailerBuilder.withSMTPServer("moo", 0);
+		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0);
 
 		builder.clearEmailValidator();
 
@@ -24,8 +26,7 @@ public class MailerBuilderTest {
 
 	@Test
 	public void resetEmailValidatorRestoresStrictDefault() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		final MailerRegularBuilderImpl builder = MailerBuilder.withSMTPServer("moo", 0)
+		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0)
 				.clearEmailValidator()
 				.resetEmailValidator();
 
@@ -37,8 +38,7 @@ public class MailerBuilderTest {
 
 	@Test
 	public void resetConnectionPoolMaxSizeRestoresOnlyMaxSize() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		final MailerRegularBuilderImpl builder = MailerBuilder.withSMTPServer("moo", 0)
+		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0)
 				.withConnectionPoolCoreSize(2)
 				.withConnectionPoolMaxSize(12)
 				.resetConnectionPoolMaxSize();
@@ -49,8 +49,7 @@ public class MailerBuilderTest {
 
 	@Test
 	public void resetConnectionPoolClaimTimeoutRestoresOnlyClaimTimeout() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		final MailerRegularBuilderImpl builder = MailerBuilder.withSMTPServer("moo", 0)
+		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0)
 				.withConnectionPoolClaimTimeoutMillis(1_000)
 				.withConnectionPoolExpireAfterMillis(60_000)
 				.resetConnectionPoolClaimTimeoutMillis();
@@ -61,8 +60,7 @@ public class MailerBuilderTest {
 
 	@Test
 	public void resetConnectionPoolExpiryRestoresOnlyExpiry() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		final MailerRegularBuilderImpl builder = MailerBuilder.withSMTPServer("moo", 0)
+		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0)
 				.withConnectionPoolClaimTimeoutMillis(1_000)
 				.withConnectionPoolExpireAfterMillis(60_000)
 				.resetConnectionPoolExpireAfterMillis();

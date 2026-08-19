@@ -6,9 +6,10 @@ import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.converter.ConfiguredEmailConverter;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.config.SimpleJavaMailConfig;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -18,13 +19,11 @@ import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
  * @see EmailStartingBuilder
  */
 public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
+
+	private final SimpleJavaMailConfig config;
 	
-	/**
-	 * @deprecated Used internally. Don't use this. Use one of the {@link EmailBuilder#startingBlank()} instead.
-	 */
-	@Deprecated
-	@SuppressWarnings("DeprecatedIsStillUsed")
-	public EmailStartingBuilderImpl() {
+	public EmailStartingBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
+		this.config = requireNonNull(config, "config");
 	}
 
 	/**
@@ -32,7 +31,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder startingBlank() {
-		return new EmailPopulatingBuilderImpl();
+		return newPopulatingBuilder();
 	}
 	
 	/**
@@ -113,8 +112,8 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			throw new EmailException("was unable to parse mimemessage to produce a reply for", e);
 		}
 
-		final Email repliedTo = EmailConverter.mimeMessageToEmail(emailMessage);
-		final Email generatedReply = EmailConverter.mimeMessageToEmail(replyMessage);
+		final Email repliedTo = converter().mimeMessageToEmailBuilder(emailMessage).buildEmail();
+		final Email generatedReply = converter().mimeMessageToEmailBuilder(replyMessage).buildEmail();
 
 		return startingBlank()
 				.withSubject(generatedReply.getSubject())
@@ -148,7 +147,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder copying(@NotNull final MimeMessage message) {
-		return copying(EmailConverter.mimeMessageToEmail(message));
+		return copying(converter().mimeMessageToEmailBuilder(message).buildEmail());
 	}
 	
 	/**
@@ -165,7 +164,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	@SuppressWarnings({"deprecation" })
 	@Override
 	public EmailPopulatingBuilder copying(@NotNull final Email email) {
-		EmailPopulatingBuilder builder = new EmailPopulatingBuilderImpl();
+		EmailPopulatingBuilder builder = newPopulatingBuilder();
 
 		if (email.getId() != null) {
 			builder.fixingMessageId(email.getId());
@@ -250,5 +249,13 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			builder.notMergingSingleSMIMESignedAttachment();
 		}
 		return builder;
+	}
+
+	private ConfiguredEmailConverter converter() {
+		return new ConfiguredEmailConverter(config);
+	}
+
+	private EmailPopulatingBuilderImpl newPopulatingBuilder() {
+		return new EmailPopulatingBuilderImpl(config);
 	}
 }

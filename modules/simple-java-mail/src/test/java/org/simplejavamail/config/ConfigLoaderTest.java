@@ -1,511 +1,179 @@
 package org.simplejavamail.config;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.simplejavamail.api.email.ContentTransferEncoding;
-import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
-import org.simplejavamail.config.ConfigLoader.Property;
-import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
-import java.util.AbstractMap.SimpleEntry;
-import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.api.email.ContentTransferEncoding.BINARY;
-import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
-import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
-import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
-import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_BCC_NAME;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
-import static org.simplejavamail.config.ConfigLoader.Property.DISABLE_ALL_CLIENTVALIDATION;
-import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH;
-import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR;
-import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.config.ConfigLoader.Property.JAVAXMAIL_DEBUG;
 import static org.simplejavamail.config.ConfigLoader.Property.JAVAXMAIL_DEBUG_OUTPUT;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PORT;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_SOCKS5BRIDGE_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_ENCRYPTION_CERTIFICATE;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
-import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
-import static org.simplejavamail.config.ConfigLoader.Property.SMTP_CLIENT_HOSTNAME;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
-import static org.simplejavamail.config.ConfigLoader.Property.SMTP_LOCAL_ADDRESS;
-import static org.simplejavamail.config.ConfigLoader.Property.SMTP_LOCAL_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PORT;
-import static org.simplejavamail.config.ConfigLoader.Property.SMTP_USERNAME;
 import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY;
 
-public class ConfigLoaderTest {
+class ConfigLoaderTest {
 
-	@BeforeEach
-	public void restoreOriginalStaticProperties() {
-		// Reset ConfigLoader to default state before each test
-		ConfigLoader.loadProperties(new Properties(), false);
-		System.getProperties().clear();
+	@Test
+	void snapshotValueSelectionUsesExplicitThenConfiguredThenFallback() {
+		final Properties source = new Properties();
+		source.setProperty(DEFAULT_SUBJECT.key(), "configured");
+		final SimpleJavaMailConfig config = ConfigLoader.builder().withProperties(source).load();
+
+		assertThat(config.valueOrProperty("explicit", DEFAULT_SUBJECT, "fallback")).isEqualTo("explicit");
+		assertThat(config.valueOrProperty(null, DEFAULT_SUBJECT, "fallback")).isEqualTo("configured");
+		assertThat(config.valueOrProperty("", DEFAULT_SUBJECT, "fallback")).isEqualTo("configured");
+		assertThat(config.valueOrProperty(null, SMTP_HOST, "fallback")).isEqualTo("fallback");
+		assertThat(config.hasProperty(DEFAULT_SUBJECT)).isTrue();
+		assertThat(config.hasProperty(SMTP_HOST)).isFalse();
 	}
 
 	@Test
-	public void valueOrProperty()
-				throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
-		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
-		ConfigLoaderTestHelper.setResolvedProperties(properties);
+	void loadsConventionalClasspathPropertiesIntoDeclaredTypes() {
+		final SimpleJavaMailConfig config = ConfigLoader.builder()
+				.withClasspathResource(ConfigLoader.DEFAULT_CONFIG_FILENAME)
+				.load();
 
-		assertThat(ConfigLoader.valueOrProperty("value", TRANSPORT_STRATEGY)).isEqualTo("value");
-		assertThat(ConfigLoader.valueOrProperty((String) null, TRANSPORT_STRATEGY)).isEqualTo("preconfiguredValue");
-		assertThat(ConfigLoader.valueOrProperty((String) null, SMTP_HOST)).isNull();
+		assertThat(config.getBooleanProperty(JAVAXMAIL_DEBUG)).isTrue();
+		assertThat(config.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
+		assertThat(config.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTPS);
+		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
+		assertThat(config.getIntegerProperty(SMTP_PORT)).isEqualTo(25);
+		assertThat(config.getStringProperty(SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(config.getStringProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("from@default.com");
+		assertThat(config.<ContentTransferEncoding>getProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)).isEqualTo(ContentTransferEncoding.BINARY);
+		assertThat(config.getPropertySource(SMTP_HOST)).isEqualTo("classpath:" + ConfigLoader.DEFAULT_CONFIG_FILENAME);
 	}
 
 	@Test
-	public void valueOrPropertyDefaultValue()
-				throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
-		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue");
-		ConfigLoaderTestHelper.setResolvedProperties(properties);
+	void laterInputStreamAddsAndOverridesValuesWithoutMutatingEarlierSnapshot() {
+		final SimpleJavaMailConfig first = ConfigLoader.builder()
+				.withInputStream("base", stream(
+						"simplejavamail.smtp.host=base.example.test\n" +
+								"simplejavamail.smtp.port=25\n"))
+				.load();
+		final SimpleJavaMailConfig merged = ConfigLoader.builder()
+				.withConfig(first)
+				.withInputStream("override", stream(
+						"simplejavamail.smtp.host=override.example.test\n" +
+								"simplejavamail.proxy.username=proxy-user\n"))
+				.load();
 
-		assertThat(ConfigLoader.valueOrPropertyAsString("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
-		assertThat(ConfigLoader.valueOrPropertyAsString(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("preconfiguredValue");
-		assertThat(ConfigLoader.valueOrPropertyAsString(null, SMTP_HOST, "backup")).isEqualTo("backup");
-		assertThat(ConfigLoader.valueOrPropertyAsString(null, SMTP_HOST, null)).isNull();
+		assertThat(first.getStringProperty(SMTP_HOST)).isEqualTo("base.example.test");
+		assertThat(merged.getStringProperty(SMTP_HOST)).isEqualTo("override.example.test");
+		assertThat(merged.getIntegerProperty(SMTP_PORT)).isEqualTo(25);
+		assertThat(merged.getStringProperty(PROXY_USERNAME)).isEqualTo("proxy-user");
+		assertThat(merged.getPropertySource(SMTP_HOST)).isEqualTo("override");
 	}
 
 	@Test
-	public void valueOrPropertyEmptyDefaultValue()
-				throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
-		properties.put(TRANSPORT_STRATEGY, "default");
-		ConfigLoaderTestHelper.setResolvedProperties(properties);
+	void environmentAndSystemSourcesUseTheirDocumentedNamesAndPrecedence() {
+		final Map<String, String> environment = new LinkedHashMap<>();
+		environment.put("SIMPLEJAVAMAIL_SMTP_HOST", "environment.example.test");
+		environment.put("SIMPLEJAVAMAIL_SMTP_PORT", "2525");
+		final Properties system = new Properties();
+		system.setProperty(SMTP_HOST.key(), "system.example.test");
 
-		assertThat(ConfigLoader.valueOrPropertyAsString("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
-		assertThat(ConfigLoader.valueOrPropertyAsString(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("default");
-		assertThat(ConfigLoader.valueOrPropertyAsString("", TRANSPORT_STRATEGY, "backup")).isEqualTo("default");
-		assertThat(ConfigLoader.valueOrPropertyAsString(null, TRANSPORT_STRATEGY, null)).isEqualTo("default");
+		final SimpleJavaMailConfig config = ConfigLoader.builder()
+				.withMap("file", singleton(SMTP_HOST.key(), "file.example.test"))
+				.withEnvironmentVariables(environment)
+				.withSystemProperties(system)
+				.load();
+
+		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("system.example.test");
+		assertThat(config.getIntegerProperty(SMTP_PORT)).isEqualTo(2525);
+		assertThat(config.getPropertySource(SMTP_HOST)).isEqualTo("system properties");
+		assertThat(config.getPropertySource(SMTP_PORT)).isEqualTo("environment variables");
 	}
 
 	@Test
-	public void valueOrPropertyDefaultValueEmptyDefault()
-				throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
-		properties.put(TRANSPORT_STRATEGY, "");
-		ConfigLoaderTestHelper.setResolvedProperties(properties);
+	void wildcardEnvironmentPropertiesKeepLiteralDottedNames() {
+		final UUID clusterKey = UUID.fromString("00000000-0000-0000-0000-000000000301");
+		final Map<String, String> environment = new LinkedHashMap<>();
+		environment.put("simplejavamail.extraproperties.mail.smtp.timeout", "1234");
+		environment.put("simplejavamail.defaults.connectionpool.clusters." + clusterKey + ".maxsize", "4");
+		environment.put("SIMPLEJAVAMAIL_EXTRAPROPERTIES_IGNORED", "ignored");
 
-		assertThat(ConfigLoader.valueOrPropertyAsString("value", TRANSPORT_STRATEGY, "backup")).isEqualTo("value");
-		assertThat(ConfigLoader.valueOrPropertyAsString(null, TRANSPORT_STRATEGY, "backup")).isEqualTo("backup");
-		assertThat(ConfigLoader.valueOrPropertyAsString("", TRANSPORT_STRATEGY, "backup")).isEqualTo("backup");
-		assertThat(ConfigLoader.valueOrPropertyAsString(null, TRANSPORT_STRATEGY, null)).isNull();
-	}
+		final SimpleJavaMailConfig config = ConfigLoader.builder().withEnvironmentVariables(environment).load();
 
-	@Test
-	public void overrideFromSystemProperties() {
-		System.setProperty("simplejavamail.proxy.username", "override2");
-		ConfigLoader.loadProperties(new Properties(), false);
-
-		assertThat(ConfigLoader.valueOrPropertyAsString(null, PROXY_USERNAME, "backup")).isEqualTo("override2");
-
-		// Clean up system property
-		System.clearProperty("simplejavamail.proxy.username");
-	}
-
-	@Test
-	public void hasProperty()
-				throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
-		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue1");
-		properties.put(DEFAULT_FROM_ADDRESS, "preconfiguredValue2");
-		properties.put(DEFAULT_BCC_NAME, null);
-		ConfigLoaderTestHelper.setResolvedProperties(properties);
-
-		assertThat(ConfigLoader.hasProperty(TRANSPORT_STRATEGY)).isTrue();
-		assertThat(ConfigLoader.hasProperty(DEFAULT_FROM_ADDRESS)).isTrue();
-		assertThat(ConfigLoader.hasProperty(DEFAULT_BCC_NAME)).isFalse();
-		assertThat(ConfigLoader.hasProperty(PROXY_HOST)).isFalse();
-	}
-
-	@Test
-	public void getProperty()
-				throws Exception {
-		Map<Property, Object> properties = new HashMap<>();
-		properties.put(TRANSPORT_STRATEGY, "preconfiguredValue1");
-		properties.put(DEFAULT_FROM_ADDRESS, "preconfiguredValue2");
-		properties.put(DEFAULT_BCC_NAME, null);
-		ConfigLoaderTestHelper.setResolvedProperties(properties);
-
-		assertThat(ConfigLoader.<String>getProperty(TRANSPORT_STRATEGY)).isEqualTo("preconfiguredValue1");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("preconfiguredValue2");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_BCC_NAME)).isNull();
-		assertThat(ConfigLoader.<String>getProperty(PROXY_HOST)).isNull();
-	}
-
-	@Test
-	public void parsePropertyValue() {
-		assertThat(ConfigLoader.parsePropertyValue("simple string value")).isEqualTo("simple string value");
-		assertThat(ConfigLoader.parsePropertyValue("12345")).isEqualTo(12345);
-		assertThat(ConfigLoader.parsePropertyValue("123d45")).isEqualTo("123d45");
-		assertThat(ConfigLoader.parsePropertyValue("0")).isEqualTo(false);
-		assertThat(ConfigLoader.parsePropertyValue("false")).isEqualTo(false);
-		assertThat(ConfigLoader.parsePropertyValue("no")).isEqualTo(false);
-		assertThat(ConfigLoader.parsePropertyValue("1")).isEqualTo(true);
-		assertThat(ConfigLoader.parsePropertyValue("true")).isEqualTo(true);
-		assertThat(ConfigLoader.parsePropertyValue("yes")).isEqualTo(true);
-		assertThat(ConfigLoader.parsePropertyValue("yesno")).isEqualTo("yesno");
-		assertThat(ConfigLoader.parsePropertyValue("SMTP")).isEqualTo(TransportStrategy.SMTP);
-		assertThat(ConfigLoader.parsePropertyValue("SMTP_TLS")).isEqualTo(TransportStrategy.SMTP_TLS);
-		assertThat(ConfigLoader.parsePropertyValue("STDERR")).isEqualTo(SessionDebugOutput.STDERR);
-		assertThat(ConfigLoader.parsePropertyValue("FAILURE")).isEqualTo(FAILURE);
-		assertThat(ConfigLoader.parsePropertyValue("HEADERS_ONLY")).isEqualTo(HEADERS_ONLY);
-	}
-
-	@Test
-	public void loadPropertiesFromFileClassPath() {
-		ConfigLoader.loadProperties("simplejavamail.properties", false);
-		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
-		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
-
-		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
-		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_CLIENT_HOSTNAME)).isEqualTo("mailer.default.example.com");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.10");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_LOCAL_PORT)).isEqualTo(25252);
-
-		assertThat(ConfigLoader.<String>getProperty(PROXY_HOST)).isEqualTo("proxy.default.com");
-		assertThat(ConfigLoader.<Integer>getProperty(PROXY_PORT)).isEqualTo(1080);
-		assertThat(ConfigLoader.<String>getProperty(PROXY_USERNAME)).isEqualTo("username proxy");
-		assertThat(ConfigLoader.<String>getProperty(PROXY_PASSWORD)).isEqualTo("password proxy");
-		assertThat(ConfigLoader.<Boolean>getProperty(DISABLE_ALL_CLIENTVALIDATION)).isFalse();
-		assertThat(ConfigLoader.<Integer>getProperty(PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(1081);
-
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_FROM_NAME)).isEqualTo("From Default");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("from@default.com");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_REPLYTO_NAME)).isEqualTo("Reply-To Default");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_REPLYTO_ADDRESS)).isEqualTo("reply-to@default.com");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_ADDRESS)).isEqualTo("to@default.com");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_CC_NAME)).isEqualTo("CC Default");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_CC_ADDRESS)).isEqualTo("cc@default.com");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_BCC_NAME)).isEqualTo("BCC Default");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_BCC_ADDRESS)).isEqualTo("bcc@default.com");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_SUBJECT)).isEqualTo("Default Subject");
-		assertThat(ConfigLoader.<ContentTransferEncoding>getProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)).isSameAs(BINARY);
-
-		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEYSTORE)).isEqualTo("src/test/resources/pkcs12/smime_keystore.pkcs12");
-		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEYSTORE_PASSWORD)).isEqualTo("letmein");
-		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEY_ALIAS)).isEqualTo("smime_test_user_alias_rsa");
-		assertThat(ConfigLoader.<String>getProperty(SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("letmein");
-		assertThat(ConfigLoader.<String>getProperty(SMIME_ENCRYPTION_CERTIFICATE)).isEqualTo("src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
-
-		assertThat(ConfigLoader.<String>getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)).isEqualTo("");
-		assertThat(ConfigLoader.<String>getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)).isEqualTo("");
-		assertThat(ConfigLoader.<String>getProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)).isEqualTo("");
-	}
-
-	@Test
-	public void loadPropertiesAddingMode() {
-		String s1 = "simplejavamail.javaxmail.debug=true\n"
-					+ "simplejavamail.javaxmail.debug.out=SLF4J\n"
-					+ "simplejavamail.transportstrategy=SMTPS";
-		String s2 = "simplejavamail.defaults.to.name=To Default\n"
-					+ "simplejavamail.defaults.to.address=to@default.com\n"
-					+ "simplejavamail.defaults.delivery.status.notification.notify=FAILURE,DELAY\n"
-					+ "simplejavamail.defaults.delivery.status.notification.return.option=HEADERS_ONLY";
-
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s1.getBytes()), false);
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s2.getBytes()), true);
-
-		// some checks from the config file
-		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.SLF4J);
-		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTPS);
-		// now check if the extra properties were added
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_NAME)).isEqualTo("To Default");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_TO_ADDRESS)).isEqualTo("to@default.com");
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)).isEqualTo("FAILURE,DELAY");
-		assertThat(ConfigLoader.<DeliveryStatusNotification.ReturnOption>getProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)).isEqualTo(HEADERS_ONLY);
-	}
-
-	@Test
-	public void loadPropertiesFromInputStream() {
-		String s = "simplejavamail.javaxmail.debug=true\n"
-				   + "simplejavamail.javaxmail.debug.out=STDERR\n"
-				   + "simplejavamail.transportstrategy=SMTPS\n"
-				   + "simplejavamail.smtp.host=smtp.default.com\n"
-				   + "simplejavamail.smtp.port=25\n"
-				   + "simplejavamail.smtp.username=username\n"
-				   + "simplejavamail.smtp.password=password\n"
-				   + "simplejavamail.smtp.clienthostname=mailer.input.example.com\n"
-				   + "simplejavamail.smtp.localaddress=192.0.2.11\n"
-				   + "simplejavamail.smtp.localport=25253\n"
-				   + "simplejavamail.custom.sslfactory.class=teh_class\n";
-
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
-		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
-		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
-		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
-		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_CLIENT_HOSTNAME)).isEqualTo("mailer.input.example.com");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.11");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_LOCAL_PORT)).isEqualTo(25253);
-		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
-	}
-
-	@Test
-	public void loadPropertiesFromProperties() {
-		Properties source = new Properties();
-		source.put("simplejavamail.javaxmail.debug", "true");
-		source.put("simplejavamail.javaxmail.debug.out", "STDERR");
-		source.put("simplejavamail.transportstrategy", "SMTPS");
-		source.put("simplejavamail.smtp.host", "smtp.default.com");
-		source.put("simplejavamail.smtp.port", "25");
-		source.put("simplejavamail.smtp.username", "username");
-		source.put("simplejavamail.smtp.password", "password");
-		source.put("simplejavamail.smtp.clienthostname", "mailer.properties.example.com");
-		source.put("simplejavamail.smtp.localaddress", "192.0.2.12");
-		source.put("simplejavamail.smtp.localport", "25254");
-		source.put("simplejavamail.custom.sslfactory.class", "teh_class");
-		source.put("simplejavamail.extraproperties.a", "A");
-		source.put("simplejavamail.extraproperties.b", "B");
-
-		ConfigLoader.loadProperties(source, false);
-		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
-		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
-		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
-		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_CLIENT_HOSTNAME)).isEqualTo("mailer.properties.example.com");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.12");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_LOCAL_PORT)).isEqualTo(25254);
-		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
-		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
-					.containsExactly(new SimpleEntry<>("a", "A"), new SimpleEntry<>("b", "B"));
-	}
-
-	@Test
-	@SetEnvironmentVariable(key = "simplejavamail.extraproperties.mail.smtp.timeout", value = "environment")
-	public void loadPropertiesExtraPropertiesFollowStandardPrecedence() {
-		String propertyName = "simplejavamail.extraproperties.mail.smtp.timeout";
-		Properties source = new Properties();
-		source.setProperty(propertyName, "file");
-
-		try {
-			System.setProperty(propertyName, "system");
-			ConfigLoader.loadProperties(source, false);
-
-			assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
-						.containsEntry("mail.smtp.timeout", "system");
-		} finally {
-			System.clearProperty(propertyName);
-		}
-
-		ConfigLoader.loadProperties(source, false);
-
-		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
-					.containsEntry("mail.smtp.timeout", "environment");
-	}
-
-	@Test
-	public void loadPropertiesParsesConnectionPoolClusterConfigsByAliasAndUuid() {
-		UUID ordersCluster = UUID.fromString("00000000-0000-0000-0000-000000000101");
-		UUID bulkCluster = UUID.fromString("00000000-0000-0000-0000-000000000202");
-		Properties source = new Properties();
-		source.put("simplejavamail.defaults.connectionpool.clusters.orders.clusterkey.uuid", ordersCluster.toString());
-		source.put("simplejavamail.defaults.connectionpool.clusters.orders.coresize", "0");
-		source.put("simplejavamail.defaults.connectionpool.clusters.orders.maxsize", "2");
-		source.put("simplejavamail.defaults.connectionpool.clusters.orders.claimtimeout.millis", "30000");
-		source.put("simplejavamail.defaults.connectionpool.clusters.orders.expireafter.millis", "600000");
-		source.put("simplejavamail.defaults.connectionpool.clusters.orders.loadbalancing.strategy", "ROUND_ROBIN");
-		source.put("simplejavamail.defaults.connectionpool.clusters." + bulkCluster + ".maxsize", "8");
-		source.put("simplejavamail.defaults.connectionpool.clusters." + bulkCluster + ".loadbalancing.strategy", "RANDOM_ACCESS");
-
-		ConfigLoader.loadProperties(source, false);
-
-		Map<UUID, ConnectionPoolClusterConfig> clusterConfigs = ConfigLoader.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
-		assertThat(clusterConfigs).containsOnlyKeys(ordersCluster, bulkCluster);
-		assertThat(clusterConfigs.get(ordersCluster).getCoreSize()).isEqualTo(0);
-		assertThat(clusterConfigs.get(ordersCluster).getMaxSize()).isEqualTo(2);
-		assertThat(clusterConfigs.get(ordersCluster).getClaimTimeoutMillis()).isEqualTo(30000);
-		assertThat(clusterConfigs.get(ordersCluster).getExpireAfterMillis()).isEqualTo(600000);
-		assertThat(clusterConfigs.get(ordersCluster).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.ROUND_ROBIN);
-		assertThat(clusterConfigs.get(bulkCluster).getCoreSize()).isNull();
-		assertThat(clusterConfigs.get(bulkCluster).getMaxSize()).isEqualTo(8);
-		assertThat(clusterConfigs.get(bulkCluster).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.RANDOM_ACCESS);
-	}
-
-	@Test
-	public void loadPropertiesFromObjectProperties() {
-		Properties source = new Properties();
-		source.put("simplejavamail.javaxmail.debug", true);
-		source.put("simplejavamail.javaxmail.debug.out", SessionDebugOutput.STDERR);
-		source.put("simplejavamail.transportstrategy", TransportStrategy.SMTPS);
-		source.put("simplejavamail.smtp.host", "smtp.default.com");
-		source.put("simplejavamail.smtp.port", 25);
-		source.put("simplejavamail.smtp.username", "username");
-		source.put("simplejavamail.smtp.password", "password");
-		source.put("simplejavamail.smtp.clienthostname", "mailer.object.example.com");
-		source.put("simplejavamail.smtp.localaddress", "192.0.2.13");
-		source.put("simplejavamail.smtp.localport", 25255);
-		source.put("simplejavamail.custom.sslfactory.class", "teh_class");
-
-		ConfigLoader.loadProperties(source, false);
-		assertThat(ConfigLoader.<Boolean>getProperty(JAVAXMAIL_DEBUG)).isEqualTo(true);
-		assertThat(ConfigLoader.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
-		assertThat(ConfigLoader.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isSameAs(SMTPS);
-		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(25);
-		assertThat(ConfigLoader.<String>getProperty(SMTP_USERNAME)).isEqualTo("username");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_PASSWORD)).isEqualTo("password");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_CLIENT_HOSTNAME)).isEqualTo("mailer.object.example.com");
-		assertThat(ConfigLoader.<String>getProperty(SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.13");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_LOCAL_PORT)).isEqualTo(25255);
-		assertThat(ConfigLoader.<String>getProperty(CUSTOM_SSLFACTORY_CLASS)).isEqualTo("teh_class");
-	}
-
-	@Test
-	public void loadPropertiesFileNotAvailable() {
-		// Set system properties
-		System.setProperty("simplejavamail.smtp.host", "smtp.systemproperty.com");
-		System.setProperty("simplejavamail.smtp.port", "2525");
-
-		// Load properties from a non-existent file
-		ConfigLoader.loadProperties("non-existent.properties", false);
-
-		// Verify that properties are loaded from system properties
-		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.systemproperty.com");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(2525);
-
-		// Clean up system properties
-		System.clearProperty("simplejavamail.smtp.host");
-		System.clearProperty("simplejavamail.smtp.port");
-	}
-
-	@Test
-	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_SMTP_HOST", value = "smtp.environment.com")
-	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_SMTP_PORT", value = "2526")
-	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_DEFAULTS_FROM_ADDRESS", value = "sender@environment.com")
-	public void loadPropertiesFromEnvironmentVariables() {
-		// Ensure no properties are set in system properties
-		System.clearProperty("simplejavamail.smtp.host");
-		System.clearProperty("simplejavamail.smtp.port");
-		System.clearProperty("simplejavamail.defaults.from.address");
-
-		// Load properties from a non-existent file
-		ConfigLoader.loadProperties("non-existent.properties", false);
-
-		// Verify that properties are loaded from environment variables
-		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.environment.com");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(2526);
-		assertThat(ConfigLoader.<String>getProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("sender@environment.com");
-	}
-
-	@Test
-	@SetEnvironmentVariable(key = "simplejavamail.extraproperties.mail.smtp.timeout", value = "1234")
-	@SetEnvironmentVariable(key = "simplejavamail.defaults.connectionpool.clusters.00000000-0000-0000-0000-000000000301.maxsize", value = "4")
-	public void loadWildcardPropertiesFromLiteralDottedEnvironmentVariables() {
-		ConfigLoader.loadProperties(new Properties(), false);
-
-		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
+		assertThat(config.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
+				.hasSize(1)
 				.containsEntry("mail.smtp.timeout", "1234");
-		Map<UUID, ConnectionPoolClusterConfig> clusterConfigs = ConfigLoader.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
-		assertThat(clusterConfigs.get(UUID.fromString("00000000-0000-0000-0000-000000000301")).getMaxSize()).isEqualTo(4);
+		assertThat(config.<Map<UUID, ConnectionPoolClusterConfig>>getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)
+				.get(clusterKey).getMaxSize()).isEqualTo(4);
 	}
 
 	@Test
-	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_EXTRAPROPERTIES_MAIL_SMTP_TIMEOUT", value = "1234")
-	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_DEFAULTS_CONNECTIONPOOL_CLUSTERS_ORDERS_CLUSTERKEY_UUID", value = "00000000-0000-0000-0000-000000000301")
-	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_DEFAULTS_CONNECTIONPOOL_CLUSTERS_ORDERS_MAXSIZE", value = "4")
-	public void uppercaseUnderscoreMappingDoesNotApplyToWildcardEnvironmentVariables() {
-		ConfigLoader.loadProperties(new Properties(), false);
+	void parsesConnectionPoolClustersByAliasAndUuid() {
+		final UUID ordersKey = UUID.fromString("00000000-0000-0000-0000-000000000101");
+		final UUID bulkKey = UUID.fromString("00000000-0000-0000-0000-000000000202");
+		final Properties source = new Properties();
+		source.setProperty("simplejavamail.defaults.connectionpool.clusters.orders.clusterkey.uuid", ordersKey.toString());
+		source.setProperty("simplejavamail.defaults.connectionpool.clusters.orders.coresize", "0");
+		source.setProperty("simplejavamail.defaults.connectionpool.clusters.orders.maxsize", "2");
+		source.setProperty("simplejavamail.defaults.connectionpool.clusters.orders.loadbalancing.strategy", "ROUND_ROBIN");
+		source.setProperty("simplejavamail.defaults.connectionpool.clusters." + bulkKey + ".maxsize", "8");
 
-		assertThat(ConfigLoader.<Map<String, String>>getProperty(EXTRA_PROPERTIES)).isEmpty();
-		assertThat(ConfigLoader.hasProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).isFalse();
+		final Map<UUID, ConnectionPoolClusterConfig> clusters = ConfigLoader.builder()
+				.withProperties(source)
+				.load()
+				.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+
+		assertThat(clusters).containsOnlyKeys(ordersKey, bulkKey);
+		assertThat(clusters.get(ordersKey).getCoreSize()).isEqualTo(0);
+		assertThat(clusters.get(ordersKey).getMaxSize()).isEqualTo(2);
+		assertThat(clusters.get(ordersKey).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.ROUND_ROBIN);
+		assertThat(clusters.get(bulkKey).getMaxSize()).isEqualTo(8);
 	}
 
 	@Test
-	public void loadPropertiesSystemPropertiesOverrideFileProperties() {
-		// Load properties from a valid file
-		String s = "simplejavamail.smtp.host=smtp.file.com\n"
-				   + "simplejavamail.smtp.port=25";
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
+	void ignoresUnknownProcessPropertiesButRejectsUnknownCallerProperties() {
+		final Properties process = new Properties();
+		process.setProperty("unrelated.jvm.property", "ignored");
+		process.setProperty(SMTP_HOST.key(), "smtp.example.test");
 
-		// Set system properties that should override file properties
-		System.setProperty("simplejavamail.smtp.host", "smtp.systemproperty.com");
-		System.setProperty("simplejavamail.smtp.port", "2525");
-
-		// Reload properties to ensure system properties are considered
-		ConfigLoader.loadProperties(new Properties(), false);
-
-		// Verify that system properties override file properties
-		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.systemproperty.com");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(2525);
-
-		// Clean up system properties
-		System.clearProperty("simplejavamail.smtp.host");
-		System.clearProperty("simplejavamail.smtp.port");
+		assertThat(ConfigLoader.builder().withSystemProperties(process).load().getStringProperty(SMTP_HOST))
+				.isEqualTo("smtp.example.test");
+		assertThatThrownBy(() -> ConfigLoader.builder()
+				.withMap(singleton("simplejavamail.unknown", "value"))
+				.load())
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("simplejavamail.unknown")
+				.hasMessageContaining("map");
 	}
 
 	@Test
-	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_SMTP_HOST", value = "smtp.environment.com")
-	@SetEnvironmentVariable(key = "SIMPLEJAVAMAIL_SMTP_PORT", value = "2526")
-	public void loadPropertiesEnvironmentVariablesOverrideFileProperties() {
-		// Load properties from a valid file
-		String s = "simplejavamail.smtp.host=smtp.file.com\n"
-				   + "simplejavamail.smtp.port=25";
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
-
-		// Ensure no system properties are set
-		System.clearProperty("simplejavamail.smtp.host");
-		System.clearProperty("simplejavamail.smtp.port");
-
-		// Reload properties to ensure environment variables are considered
-		ConfigLoader.loadProperties(new Properties(), false);
-
-		// Verify that environment variables override file properties
-		assertThat(ConfigLoader.<String>getProperty(SMTP_HOST)).isEqualTo("smtp.environment.com");
-		assertThat(ConfigLoader.<Integer>getProperty(SMTP_PORT)).isEqualTo(2526);
+	void missingClasspathResourceIsEmptyAndMalformedResourceIsReported() {
+		assertThat(ConfigLoader.builder().withClasspathResource("missing.properties").load().asMap()).isEmpty();
+		assertThatThrownBy(() -> ConfigLoader.builder().withClasspathResource("malformed.properties").load())
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("classpath:malformed.properties");
 	}
 
-	@Test
-	public void loadPropertiesFileMalformed() {
-		assertThatThrownBy(() -> ConfigLoader.loadProperties("malformed.properties", false))
-					.describedAs("error: malformed properties file should cause an illegal state exception")
-					.isInstanceOf(IllegalStateException.class);
+	private static ByteArrayInputStream stream(final String properties) {
+		return new ByteArrayInputStream(properties.getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static <K, V> Map<K, V> singleton(final K key, final V value) {
+		final Map<K, V> map = new LinkedHashMap<>();
+		map.put(key, value);
+		return map;
 	}
 }

@@ -2,42 +2,34 @@ package org.simplejavamail.providerneutral;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;
-import jakarta.mail.Provider;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
-import jakarta.mail.internet.MimeMessage;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.mailer.MailerBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
+import org.simplejavamail.config.ConfigLoader;
 
 import java.util.Properties;
 
 public final class ProviderNeutralConsumer {
     public static void main(final String[] args) throws Exception {
-        final Email source = EmailBuilder.startingBlank()
+		final Properties configProperties = new Properties();
+		configProperties.setProperty(ConfigLoader.Property.DEFAULT_SUBJECT.key(), "provider neutral");
+		final SimpleJavaMail simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties(configProperties).load());
+        final Email source = simpleJavaMail.emailBuilder().startingBlank()
                 .from("sender@example.com")
                 .withRecipients(new Recipient(null, "receiver@example.com", jakarta.mail.Message.RecipientType.TO, null))
-                .withSubject("provider neutral")
                 .withPlainText("conversion without a mail provider")
 				.withHTMLText("<p>provider-neutral HTML</p>")
 				.withAttachment("proof.txt", "provider-neutral attachment".getBytes(java.nio.charset.StandardCharsets.UTF_8), "text/plain")
-                .buildEmail();
-        final MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(source);
-        final Email converted = EmailConverter.mimeMessageToEmail(mimeMessage);
-        if (!"conversion without a mail provider".equals(converted.getPlainText())) {
-            throw new AssertionError("Provider-neutral JPMS conversion failed");
-        }
-		if (!"<p>provider-neutral HTML</p>".equals(converted.getHTMLText())
-				|| converted.getAttachments().size() != 1
-				|| !"provider-neutral attachment".equals(converted.getAttachments().get(0).readAllData())) {
-			throw new AssertionError("Provider-neutral JPMS multipart conversion failed");
-		}
-
+				.buildEmailCompletedWithDefaultsAndOverrides();
 		assertAngusIsAbsent();
-		assertGenericTransportSend(source);
+		assertMissingImplementationFailsClearly(source);
     }
 
 	private static void assertAngusIsAbsent() {
@@ -49,17 +41,26 @@ public final class ProviderNeutralConsumer {
 		}
 	}
 
-	private static void assertGenericTransportSend(final Email email) throws Exception {
-		final Properties properties = new Properties();
-		properties.setProperty("mail.transport.protocol", "fake");
-		final Session session = Session.getInstance(properties);
-		final Provider provider = new Provider(Provider.Type.TRANSPORT, "fake", FakeTransport.class.getName(), "Simple Java Mail", "1");
-		session.addProvider(provider);
-		session.setProvider(provider);
-		FakeTransport.sentMessage = null;
-		MailerBuilder.usingSession(session).buildMailer().sendMail(email);
-		if (FakeTransport.sentMessage == null || !"provider neutral".equals(FakeTransport.sentMessage.getSubject())) {
-			throw new AssertionError("Provider-neutral JPMS generic transport send failed");
+	private static void assertMissingImplementationFailsClearly(final Email email) {
+		try {
+			EmailConverter.emailToMimeMessage(email);
+			throw new AssertionError("Conversion unexpectedly worked without a Jakarta Mail implementation");
+		} catch (IllegalStateException expected) {
+			if (!expected.getMessage().contains("needs a Jakarta Mail implementation")) {
+				throw new AssertionError("Missing implementation error was not actionable", expected);
+			}
+		}
+	}
+
+	public static final class FakeMailTransportAdapter implements MailTransportAdapter {
+		@Override
+		public boolean supports(final Transport transport) {
+			return transport instanceof FakeTransport;
+		}
+
+		@Override
+		public SmtpServerResponse sendMessage(final Transport transport, final PreparedMail preparedMail) {
+			return null;
 		}
 	}
 

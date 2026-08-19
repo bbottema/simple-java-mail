@@ -38,10 +38,10 @@ import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.internal.openpgpsupport.OpenPgpSupport;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
-import org.simplejavamail.mailer.MailerBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 
 import java.io.ByteArrayInputStream;
@@ -211,6 +211,30 @@ class OpenPgpMimeTest {
     }
 
     @Test
+    void stopsBeforeProcessingAThirdOpenPgpProtectionLayer() throws Exception {
+        final Email source = basicEmail("bounded nesting")
+                .signWithOpenPgp(signing(firstKey))
+                .buildEmail();
+        final MimeMessage signed = EmailConverter.emailToMimeMessage(source);
+        final OpenPgpSupport support = new OpenPgpSupport();
+        final MimeMessage encryptedOnce = support.encryptMessage(
+                signed.getSession(), source, signed, encryption(firstKey));
+        final MimeMessage encryptedTwice = support.encryptMessage(
+                signed.getSession(), source, encryptedOnce, encryption(firstKey));
+        final byte[] outerProtectedBytes = EmailConverter.mimeMessageToEMLByteArray(encryptedTwice);
+
+        final Email parsed = EmailConverter.mimeMessageToEmail(encryptedTwice, null, receiving(firstKey));
+
+        assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.SIGNED_ENCRYPTED);
+        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.ERROR);
+        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        assertThat(parsed.getOriginalOpenPgpDetails().getFailureReason())
+                .isEqualTo("OpenPGP/MIME nesting limit exceeded");
+        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage())
+                .containsExactly(outerProtectedBytes);
+    }
+
+    @Test
     void missingDecryptionKeyPreservesOriginalProtectedBytes() throws Exception {
         final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(
                 basicEmail("secret").encryptWithOpenPgp(encryption(firstKey)).buildEmail());
@@ -294,7 +318,7 @@ class OpenPgpMimeTest {
                         .dkimSelector("selector")
                         .build())
                 .buildEmailCompletedWithDefaultsAndOverrides();
-        final Mailer mailer = MailerBuilder.withSMTPServer("localhost", 25).buildMailer();
+        final Mailer mailer = SimpleJavaMail.fromDefaults().mailerBuilder().withSMTPServer("localhost", 25).buildMailer();
 
         final PreparedMail prepared = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(
                 mailer.getSession(), email);
@@ -389,7 +413,7 @@ class OpenPgpMimeTest {
 	}
 
     private static org.simplejavamail.api.email.EmailPopulatingBuilder basicEmail(final String body) {
-        return EmailBuilder.startingBlank()
+        return SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.ignoringDefaults(true)
                 .from("sender@example.com")
                 .withRecipients(new Recipient(null, "receiver@example.com", RecipientType.TO, null))

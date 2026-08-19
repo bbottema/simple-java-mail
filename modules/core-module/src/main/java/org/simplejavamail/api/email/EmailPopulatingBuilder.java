@@ -34,7 +34,8 @@ import static java.util.regex.Pattern.compile;
 /**
  * Fluent interface Builder for populating {@link Email} instances. An instance of this builder can only be obtained through one of the builder
  * starters on {@link EmailStartingBuilder}.
- * <strong>Note:</strong> To start creating a new Email, you use {@code EmailBuilder} directly instead.
+ * Start with {@code SimpleJavaMail.emailBuilder()}. The resulting {@link EmailStartingBuilder} documents the available blank, copy, reply and forward
+ * entry routes.
  * <p>
  * <strong>Note:</strong> For some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
@@ -67,8 +68,8 @@ public interface EmailPopulatingBuilder {
 	Email buildEmail();
 
 	/**
-	 * Delegates to {@link #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)} with an empty default email governance, which
-	 * will still apply default config (System) properties (files).
+	 * Delegates to {@link #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)} using governance created from the immutable configuration snapshot
+	 * captured by this builder. This applies any email defaults configured on that snapshot without consulting later configuration loads.
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	Email buildEmailCompletedWithDefaultsAndOverrides();

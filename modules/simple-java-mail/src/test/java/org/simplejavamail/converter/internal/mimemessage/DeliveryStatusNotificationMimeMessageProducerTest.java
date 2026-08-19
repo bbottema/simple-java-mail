@@ -3,9 +3,8 @@ package org.simplejavamail.converter.internal.mimemessage;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
-import org.simplejavamail.mailer.MailerBuilder;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import testutil.EmailHelper;
 
@@ -19,9 +18,9 @@ public class DeliveryStatusNotificationMimeMessageProducerTest {
 
 	@Test
 	public void preparedMailCarriesDeliveryStatusNotificationOutsideMimeMessage() throws Exception {
-		final Mailer mailer = MailerBuilder.withSMTPServer("localhost", 25).buildMailer();
+		final Mailer mailer = SimpleJavaMail.fromDefaults().mailerBuilder().withSMTPServer("localhost", 25).buildMailer();
 		final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(
-				mailer.getSession(), EmailBuilder.startingBlank()
+				mailer.getSession(), SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "receiver@example.com"))
 				.withPlainText("Hello")

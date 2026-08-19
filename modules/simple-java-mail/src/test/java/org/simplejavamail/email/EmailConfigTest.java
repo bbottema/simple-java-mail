@@ -1,15 +1,15 @@
 package org.simplejavamail.email;
 
-import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.util.MiscUtil;
-import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 
 import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;
@@ -18,9 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("unused")
 public class EmailConfigTest {
+	private SimpleJavaMail configuredMail;
 
 	@BeforeEach
-	public void restoreOriginalStaticProperties() {
+	public void configureDefaults() {
 		String s = "simplejavamail.defaults.from.name=From Default\n"
 				+ "simplejavamail.defaults.from.address=from@default.com\n"
 				+ "simplejavamail.defaults.replyto.name=Reply-To Default\n"
@@ -33,13 +34,14 @@ public class EmailConfigTest {
 				+ "simplejavamail.defaults.cc.address=cc@default.com\n"
 				+ "simplejavamail.defaults.bcc.name=BCC Default\n"
 				+ "simplejavamail.defaults.bcc.address=bcc@default.com";
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
+		configuredMail = SimpleJavaMail.withConfig(ConfigLoader.builder()
+				.withInputStream(new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)))
+				.load());
 	}
 
 	@Test
 	public void emailConstructor_WithoutConfig() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		Email email = EmailBuilder.startingBlank().buildEmail();
+		Email email = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().startingBlank().buildEmail();
 		assertThat(email.getFromRecipient()).isNull();
 		assertThat(email.getReplyToRecipients()).isEmpty();
 		assertThat(email.getBounceToRecipient()).isNull();
@@ -48,7 +50,7 @@ public class EmailConfigTest {
 
 	@Test
 	public void emailConstructor_WithConfig() {
-		val email = EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides();
+		Email email = configuredMail.emailBuilder().startingBlank().buildEmailCompletedWithDefaultsAndOverrides();
 		assertThat(email.getFromRecipient()).isEqualToComparingFieldByField(new Recipient("From Default", "from@default.com", null, null));
 		assertThat(email.getReplyToRecipients()).hasSize(1);
 		assertThat(email.getReplyToRecipients().get(0)).isEqualToComparingFieldByField(new Recipient("Reply-To Default", "reply-to@default.com", null, null));

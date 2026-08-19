@@ -6,7 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.internal.util.NamedDataSource;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -42,12 +42,11 @@ public class EmailTest {
 
 	@BeforeEach
 	public void clearDefaults() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 	}
 
 	@Test
 	public void testSerialization() throws IOException {
-		Email e = EmailBuilder.startingBlank()
+		Email e = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("lollypop", "lol.pop@somemail.com")
 				.withReplyTo("lollypop-reply", "lol.pop.reply@somemail.com")
 				.withBounceTo("lollypop-bounce", "lol.pop.bounce@somemail.com")
@@ -69,7 +68,7 @@ public class EmailTest {
 
 	@Test
 	public void testToStringEmpty() {
-		assertThat(EmailBuilder.startingBlank().buildEmail().toString()).isEqualTo("Email{\n"
+		assertThat(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail().toString()).isEqualTo("Email{\n"
 				+ "\tid=null\n"
 				+ "\tsentDate=null\n"
 				+ "\tfromRecipient=null,\n"
@@ -89,7 +88,7 @@ public class EmailTest {
 
 	@Test
 	public void testToStringFull() {
-		Email e = EmailBuilder.forwarding(EmailBuilder.startingBlank().buildEmail())
+		Email e = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().forwarding(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail())
 				.fixingMessageId("some_id")
 				.fixingSentDate(date(2011, APRIL, 11))
 				.from("lollypop", "lol.pop@somemail.com")
@@ -349,12 +348,12 @@ public class EmailTest {
 	@NotNull
 	// keeps the test code terse
 	private static EmailPopulatingBuilder b() {
-		return EmailBuilder.startingBlank();
+		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank();
 	}
 
 	@NotNull
 	private EmailPopulatingBuilder f(Email email) {
-		return EmailBuilder.forwarding(email);
+		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().forwarding(email);
 	}
 
 	@NotNull

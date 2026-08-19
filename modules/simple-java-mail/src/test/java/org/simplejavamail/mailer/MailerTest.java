@@ -12,22 +12,23 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.MailException;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
-import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
@@ -40,6 +41,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,13 +69,15 @@ import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 
 @SuppressWarnings("unused")
 public class MailerTest {
+	private SimpleJavaMailConfig config;
+	private SimpleJavaMail simpleJavaMail;
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 	private static final String COUNTING_TRANSPORT_STATE_KEY = MailerTest.class.getName() + ".countingTransportState";
 	private static final String LOOPBACK_HOST = InetAddress.getLoopbackAddress().getHostAddress();
 
 	@BeforeEach
-	public void restoreOriginalStaticProperties() {
+	public void configureMailerDefaults() {
 		String s = "simplejavamail.javaxmail.debug=true\n"
 				+ "simplejavamail.transportstrategy=SMTP_TLS\n"
 				+ "simplejavamail.smtp.host=smtp.default.com\n"
@@ -90,15 +94,18 @@ public class MailerTest {
 				+ "simplejavamail.extraproperties.extra-properties-property1=value1\n"
 				+ "simplejavamail.extraproperties.extra-properties-property2=value2";
 
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
+		config = ConfigLoader.builder()
+				.withInputStream(new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)))
+				.load();
+		simpleJavaMail = SimpleJavaMail.withConfig(config);
 	}
 	
 	@Test
 	public void createMailSession_MinimalConstructor_WithoutConfig() {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		final UUID clusterKey = UUID.randomUUID();
-		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null).withClusterKey(clusterKey).buildMailer();
+		Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null).withClusterKey(clusterKey).buildMailer();
 		assertThat(mailer.getOperationalConfig().getSslHostsToTrust()).isEmpty();
 
 		Session session = mailer.getSession();
@@ -127,10 +134,10 @@ public class MailerTest {
 
 		assertThat(mailer.getOperationalConfig().getClusterKey()).isEqualTo(clusterKey);
 
-		Mailer otherMailerSameSession = MailerBuilder.usingSession(session).withClusterKey(clusterKey).buildMailer();
+		Mailer otherMailerSameSession = simpleJavaMail.mailerBuilder(session).withClusterKey(clusterKey).buildMailer();
 		assertThat(session.getProperties()).isEqualTo(otherMailerSameSession.getSession().getProperties());
 
-		Mailer otherMailerOtherSession = MailerBuilder.withSMTPServer("host", 25).withClusterKey(clusterKey).buildMailer();
+		Mailer otherMailerOtherSession = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25).withClusterKey(clusterKey).buildMailer();
 		assertThat(session.getProperties()).isNotEqualTo(otherMailerOtherSession.getSession().getProperties());
 
 		SessionBasedEmailToMimeMessageConverter.unprimeSession(session);
@@ -140,7 +147,7 @@ public class MailerTest {
 
 	@Test
 	public void createMailSession_SecureTLSDefaults_AllTransportStrategies() {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		assertSecureTLSDefaults(TransportStrategy.SMTP, "mail.smtp");
 		assertSecureTLSDefaults(SMTP_TLS, "mail.smtp");
@@ -149,9 +156,9 @@ public class MailerTest {
 
 	@Test
 	public void createMailSession_ExplicitTLSCertificateTrustOverrides() {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
-		Mailer trustAllMailer = MailerBuilder.withSMTPServer("host", 25)
+		Mailer trustAllMailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25)
 				.withTransportStrategy(SMTP_TLS)
 				.trustingAllHosts(true)
 				.buildMailer();
@@ -159,7 +166,7 @@ public class MailerTest {
 		assertThat(trustAllMailer.getSession().getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
 		assertThat(trustAllMailer.getSession().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 
-		Mailer trustedHostMailer = MailerBuilder.withSMTPServer("smtp.internal.example", 465)
+		Mailer trustedHostMailer = simpleJavaMail.mailerBuilder().withSMTPServer("smtp.internal.example", 465)
 				.withTransportStrategy(SMTPS)
 				.trustingSSLHosts("smtp.internal.example")
 				.buildMailer();
@@ -170,9 +177,9 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_AnonymousProxyConstructor_WithoutConfig() {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
-		Mailer mailer = createFullyConfiguredMailerBuilder(false, "", SMTP_TLS).buildMailer();
+		Mailer mailer = createConfiguredMailerBuilder(false, "", SMTP_TLS).buildMailer();
 		
 		Session session = mailer.getSession();
 		
@@ -197,7 +204,7 @@ public class MailerTest {
 
 	@Test
 	public void usingSession_AnonymousProxy_OverridesOnlySocksRoute() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final Properties properties = new Properties();
 		properties.setProperty("mail.smtp.host", "caller-smtp.example.com");
 		properties.setProperty("mail.smtp.port", "2525");
@@ -207,8 +214,7 @@ public class MailerTest {
 		properties.setProperty("caller.property", "unchanged");
 		final Session session = Session.getInstance(properties);
 
-		try (Mailer mailer = MailerBuilder
-				.usingSession(session)
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
 				.withProxy("proxy.example.com", 1080)
 				.buildMailer()) {
 			assertThat(mailer.getSession()).isSameAs(session);
@@ -224,7 +230,7 @@ public class MailerTest {
 
 	@Test
 	public void usingSession_AuthenticatedProxy_RoutesThroughLocalBridge() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final Properties properties = new Properties();
 		properties.setProperty("mail.smtp.host", "caller-smtp.example.com");
 		properties.setProperty("mail.smtp.socks.host", "old-proxy.example.com");
@@ -232,8 +238,7 @@ public class MailerTest {
 		properties.setProperty("caller.property", "unchanged");
 		final Session session = Session.getInstance(properties);
 
-		try (Mailer mailer = MailerBuilder
-				.usingSession(session)
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
 				.withProxy("proxy.example.com", 1080, "proxy-user", "proxy-password")
 				.withProxyBridgePort(8181)
 				.buildMailer()) {
@@ -252,9 +257,9 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_MaximumConstructor_WithoutConfig() {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
-		Mailer mailer = createFullyConfiguredMailerBuilder(true, "", SMTP_TLS).buildMailer();
+		Mailer mailer = createConfiguredMailerBuilder(true, "", SMTP_TLS).buildMailer();
 		
 		Session session = mailer.getSession();
 		
@@ -278,7 +283,7 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_MinimalConstructor_WithConfig() {
-		Mailer mailer = MailerBuilder.buildMailer();
+		Mailer mailer = simpleJavaMail.mailerBuilder().buildMailer();
 		Session session = mailer.getSession();
 
 		assertThat(mailer.getOperationalConfig().getSslHostsToTrust()).containsExactlyInAnyOrder(
@@ -305,10 +310,10 @@ public class MailerTest {
 
 	@Test
 	public void createMailSession_WithJavaDebugPrinter() {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		PrintStream debugPrinter = new PrintStream(new ByteArrayOutputStream());
 
-		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null)
+		Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null)
 				.withDebugLogging(true)
 				.withDebugPrinter(debugPrinter)
 				.buildMailer();
@@ -320,9 +325,9 @@ public class MailerTest {
 
 	@Test
 	public void createMailSession_WithBuiltInDebugOutput() {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
-		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null)
+		Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null)
 				.withDebugLogging(true)
 				.withDebugOutput(SessionDebugOutput.STDERR)
 				.buildMailer();
@@ -334,9 +339,9 @@ public class MailerTest {
 
 	@Test
 	public void createMailSession_WithBuiltInSlf4jDebugOutput() {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
-		Mailer mailer = MailerBuilder.withSMTPServer("host", 25, null, null)
+		Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null)
 				.withDebugLogging(true)
 				.withDebugOutput(SessionDebugOutput.SLF4J)
 				.buildMailer();
@@ -352,9 +357,12 @@ public class MailerTest {
 		Properties properties = new Properties();
 		properties.setProperty(OPPORTUNISTIC_TLS.key(), "false");
 		properties.setProperty("simplejavamail.extraproperties.extra-properties-property2", "override");
-		ConfigLoader.loadProperties(properties, true);
+		final SimpleJavaMail configuredMail = SimpleJavaMail.withConfig(ConfigLoader.builder()
+				.withConfig(config)
+				.withProperties("test overrides", properties)
+				.load());
 
-		Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
+		Mailer mailer = configuredMail.mailerBuilder().withTransportStrategy(TransportStrategy.SMTP).buildMailer();
 		Session session = mailer.getSession();
 
 		assertThat(session.getDebug()).isTrue();
@@ -376,14 +384,18 @@ public class MailerTest {
 	}
 
 	@Test
-	public void createMailSession_MinimalConstructor_WithConfig_OPPORTUNISTIC_TLS_Manually_Disabled() {
+	public void createMailSession_MinimalConstructor_WithConfig_OPPORTUNISTIC_TLS_BuilderOverride() {
 		Properties properties = new Properties();
 		properties.setProperty(OPPORTUNISTIC_TLS.key(), "false");
-		ConfigLoader.loadProperties(properties, true);
-		
-		TransportStrategy.SMTP.setOpportunisticTLS(true);
-		
-		Mailer mailer = MailerBuilder.withTransportStrategy(TransportStrategy.SMTP).buildMailer();
+		final SimpleJavaMail configuredMail = SimpleJavaMail.withConfig(ConfigLoader.builder()
+				.withConfig(config)
+				.withProperties("test overrides", properties)
+				.load());
+
+		Mailer mailer = configuredMail.mailerBuilder()
+				.withTransportStrategy(TransportStrategy.SMTP)
+				.withOpportunisticTLS(true)
+				.buildMailer();
 		Session session = mailer.getSession();
 		
 		assertThat(session.getDebug()).isTrue();
@@ -405,7 +417,7 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_MaximumConstructor_WithConfig() {
-		Mailer mailer = createFullyConfiguredMailerBuilder(false, "overridden ", SMTP_TLS).buildMailer();
+		Mailer mailer = createConfiguredMailerBuilder(false, "overridden ", SMTP_TLS).buildMailer();
 		
 		Session session = mailer.getSession();
 		
@@ -427,7 +439,7 @@ public class MailerTest {
 	
 	@Test
 	public void createMailSession_MaximumConstructor_WithConfig_TLS() {
-		Mailer mailer = createFullyConfiguredMailerBuilder(false, "overridden ", SMTPS).buildMailer();
+		Mailer mailer = createConfiguredMailerBuilder(false, "overridden ", SMTPS).buildMailer();
 		
 		Session session = mailer.getSession();
 		
@@ -483,6 +495,7 @@ public class MailerTest {
 				.first()
 				.isInstanceOf(String.class)
 				.asString()
+				.satisfies(signature -> assertThat(signature.replaceAll("\\s+", ""))
 				.contains(
 						"v=1;",
 						"a=rsa-sha256;",
@@ -491,12 +504,12 @@ public class MailerTest {
 						"s=dkim1;",
 						"d=supersecret-testing-domain.com;",
 						"i=mr.sender@supersecret-testing-domain.com;",
-						"h=Content-Type:MIME-Version:Subject:Message-ID:To:"+/*Reply-To:*/"From:Date;");
+						"h=Content-Type:MIME-Version:Subject:Message-ID:To:"+/*Reply-To:*/"From:Date;"));
 	}
 
 	@Test
 	public void testSSLSocketFactoryClassConfig() {
-		final Mailer mailer = MailerBuilder
+		final Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
 				.withCustomSSLFactoryClass("teh_class")
 				.buildMailer();
@@ -509,7 +522,7 @@ public class MailerTest {
 
 	@Test
 	public void testSSLSocketFactoryClassConfig_SMTPS() {
-		final Mailer mailer = MailerBuilder
+		final Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
 				.withTransportStrategy(SMTPS)
 				.clearProxy()
@@ -527,7 +540,7 @@ public class MailerTest {
 	public void testSSLSocketFactoryInstanceConfig() {
 		final SSLSocketFactory mockFactory = mock(SSLSocketFactory.class);
 
-		final Mailer mailer = MailerBuilder
+		final Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
 				.withCustomSSLFactoryInstance(mockFactory)
 				.buildMailer();
@@ -542,7 +555,7 @@ public class MailerTest {
 	public void testSSLSocketFactoryInstanceConfig_SMTPS() {
 		final SSLSocketFactory mockFactory = mock(SSLSocketFactory.class);
 
-		final Mailer mailer = MailerBuilder
+		final Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
 				.withTransportStrategy(SMTPS)
 				.clearProxy()
@@ -560,7 +573,7 @@ public class MailerTest {
 	public void testSSLSocketFactoryCombinedConfig() {
 		final SSLSocketFactory mockFactory = mock(SSLSocketFactory.class);
 
-		final Mailer mailer = MailerBuilder
+		final Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
 				.withCustomSSLFactoryInstance(mockFactory)
 				.withCustomSSLFactoryClass("teh_class")
@@ -640,13 +653,13 @@ public class MailerTest {
 
 	@Test
 	public void testSendMailAndGetReceipt_returnsSmtpServerResponse() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		final Session session = createCountingTransportSession();
 		final CountingTransportState transportState = getCountingTransportState(session);
 
 		MailSubmissionReceipt receipt;
-		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			receipt = mailer.sendMailAndGetReceipt(createBatchEmail("Receipt email", "receipt@example.com"), false).get();
 		}
 
@@ -665,13 +678,13 @@ public class MailerTest {
 
 	@Test
 	public void testSendMailAndGetReceipt_asyncCompletesWithReceipt() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		final Session session = createCountingTransportSession();
 		final CountingTransportState transportState = getCountingTransportState(session);
 
 		MailSubmissionReceipt receipt;
-		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			receipt = mailer.sendMailAndGetReceipt(createBatchEmail("Async receipt email", "receipt@example.com"), true).get();
 		}
 
@@ -701,12 +714,12 @@ public class MailerTest {
 
 	@Test
 	public void testSimpleBatch_sendEmails_usesSingleTransportConnection() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		final Session session = createCountingTransportSession();
 		final CountingTransportState transportState = getCountingTransportState(session);
 
-		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			mailer.sendMailsInSimpleBatch(Arrays.asList(
 					createBatchEmail("First batch email", "first@example.com"),
 					createBatchEmail("Second batch email", "second@example.com")), false);
@@ -723,7 +736,7 @@ public class MailerTest {
 
 	@Test
 	public void testSimpleBatch_oauth2Provider_resolvesOnceForSharedConnection() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		final Session session = createCountingTransportSession();
 		session.getProperties().setProperty("mail.smtp.auth.mechanisms", "XOAUTH2");
@@ -732,7 +745,7 @@ public class MailerTest {
 		final AtomicInteger providerCalls = new AtomicInteger();
 		final OAuth2AccessTokenProvider provider = () -> "token-" + providerCalls.incrementAndGet();
 
-		try (Mailer mailer = MailerBuilder.usingSession(session)
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
 				.withOAuth2AccessTokenProvider(provider)
 				.buildMailer()) {
 			mailer.sendMailsInSimpleBatch(Arrays.asList(
@@ -747,13 +760,13 @@ public class MailerTest {
 
 	@Test
 	public void testOpenConnection_sendEmails_allowsCallerCheckpointingBetweenSends() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final List<String> markedSent = new ArrayList<>();
 
 		final Session session = createCountingTransportSession();
 		final CountingTransportState transportState = getCountingTransportState(session);
 
-		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			mailer.withOpenConnection(sender -> {
 				sender.sendMail(createBatchEmail("First database email", "first@example.com"));
 				markedSent.add("first");
@@ -773,7 +786,7 @@ public class MailerTest {
 
 	@Test
 	public void testOpenConnection_oauth2Provider_resolvesOnceForSharedConnection() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		final Session session = createCountingTransportSession();
 		session.getProperties().setProperty("mail.smtp.auth.mechanisms", "XOAUTH2");
@@ -782,7 +795,7 @@ public class MailerTest {
 		final AtomicInteger providerCalls = new AtomicInteger();
 		final OAuth2AccessTokenProvider provider = () -> "token-" + providerCalls.incrementAndGet();
 
-		try (Mailer mailer = MailerBuilder.usingSession(session)
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
 				.withOAuth2AccessTokenProvider(provider)
 				.buildMailer()) {
 			mailer.withOpenConnection(sender -> {
@@ -798,13 +811,13 @@ public class MailerTest {
 
 	@Test
 	public void testOpenConnection_sendMailAndGetReceipt_returnsSmtpServerResponses() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final List<MailSubmissionReceipt> receipts = new ArrayList<>();
 
 		final Session session = createCountingTransportSession();
 		final CountingTransportState transportState = getCountingTransportState(session);
 
-		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			mailer.withOpenConnection(sender -> {
 				receipts.add(sender.sendMailAndGetReceipt(createBatchEmail("First database email", "first@example.com")));
 				receipts.add(sender.sendMailAndGetReceipt(createBatchEmail("Second database email", "second@example.com")));
@@ -822,13 +835,13 @@ public class MailerTest {
 
 	@Test
 	public void testOpenConnection_sendEmails_propagatesCallerCheckedException() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		final IOException checkpointFailure = new IOException("database unavailable");
 		final Session session = createCountingTransportSession();
 		final CountingTransportState transportState = getCountingTransportState(session);
 
-		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			assertThatThrownBy(() -> mailer.withOpenConnection(sender -> {
 						sender.sendMail(createBatchEmail("First database email", "first@example.com"));
 						throw checkpointFailure;
@@ -843,13 +856,13 @@ public class MailerTest {
 
 	@Test
 	public void testOpenConnection_sendEmails_propagatesCallerRuntimeException() throws Exception {
-		ConfigLoaderTestHelper.clearConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		final IllegalStateException checkpointFailure = new IllegalStateException("database unavailable");
 		final Session session = createCountingTransportSession();
 		final CountingTransportState transportState = getCountingTransportState(session);
 
-		try (Mailer mailer = MailerBuilder.usingSession(session).buildMailer()) {
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			assertThatThrownBy(() -> mailer.withOpenConnection(sender -> {
 						sender.sendMail(createBatchEmail("First database email", "first@example.com"));
 						throw checkpointFailure;
@@ -896,7 +909,7 @@ public class MailerTest {
 	}
 
 	private Mailer getMailerWithCustomMailer(final CustomMailer customMailerMock) {
-		return createFullyConfiguredMailerBuilder(false, "", null)
+		return createConfiguredMailerBuilder(false, "", null)
 				.withCustomMailer(customMailerMock)
 				.buildMailer();
 	}
@@ -918,7 +931,7 @@ public class MailerTest {
 	}
 
 	private static Email createBatchEmail(final String subject, final String recipient) {
-		return EmailBuilder.startingBlank()
+		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, recipient))
 				.withSubject(subject)
@@ -977,8 +990,17 @@ public class MailerTest {
 		private final List<Address[]> sentRecipients = new CopyOnWriteArrayList<>();
 	}
 
-	public static MailerRegularBuilderImpl createFullyConfiguredMailerBuilder(final boolean authenticateProxy, final String prefix, @Nullable final TransportStrategy transportStrategy) {
-		MailerRegularBuilderImpl mailerBuilder = MailerBuilder
+	public static MailerRegularBuilder<?> createFullyConfiguredMailerBuilder(final boolean authenticateProxy, final String prefix, @Nullable final TransportStrategy transportStrategy) {
+		return createFullyConfiguredMailerBuilder(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()), authenticateProxy, prefix, transportStrategy);
+	}
+
+	private MailerRegularBuilder<?> createConfiguredMailerBuilder(final boolean authenticateProxy, final String prefix, @Nullable final TransportStrategy transportStrategy) {
+		return createFullyConfiguredMailerBuilder(simpleJavaMail, authenticateProxy, prefix, transportStrategy);
+	}
+
+	private static MailerRegularBuilder<?> createFullyConfiguredMailerBuilder(final SimpleJavaMail configuredMail, final boolean authenticateProxy, final String prefix,
+			@Nullable final TransportStrategy transportStrategy) {
+		MailerRegularBuilder<?> mailerBuilder = configuredMail.mailerBuilder()
 				.withSMTPServer(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp")
 				.verifyingServerIdentity(true)
 				.withDebugLogging(true);
@@ -1005,7 +1027,7 @@ public class MailerTest {
 	}
 
 	private static void assertSecureTLSDefaults(final TransportStrategy transportStrategy, final String propertyPrefix) {
-		Mailer mailer = MailerBuilder.withSMTPServer("host", 25)
+		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("host", 25)
 				.withTransportStrategy(transportStrategy)
 				.buildMailer();
 

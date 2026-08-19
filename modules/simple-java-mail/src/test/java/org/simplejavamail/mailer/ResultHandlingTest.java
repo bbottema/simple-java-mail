@@ -22,7 +22,7 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.internal.util.concurrent.NamedRunnable;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.mailer.internal.AbstractProxyServerSyncingClosure;
@@ -57,7 +57,6 @@ public class ResultHandlingTest {
 
 	@BeforeEach
 	public void setup() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 	}
 
 	@Test
@@ -85,13 +84,13 @@ public class ResultHandlingTest {
 				.excludedHeadersFromDkimDefaultSigningList("Reply-To")
 				.build();
 
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
                 .withSMTPServer("localhost", 0)
 				.withDefaultDkimSigning(defaultDkimConfig)
                 .withCustomMailer(mimeMessageExtractingMailer)
                 .buildMailer()) {
 
-			final Email dkimMail = EmailBuilder.startingBlank()
+			final Email dkimMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 					.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
 					.from("Simple Java Mail demo", "simplejavamail@supersecret-testing-domain.com")
 					.withSubject("test")
@@ -220,9 +219,9 @@ public class ResultHandlingTest {
 
 	@Test
 	public void validationFailureShouldFollowRequestedExecutionMode() throws Exception {
-		final Email incompleteEmail = EmailBuilder.startingBlank().buildEmail();
+		final Email incompleteEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail();
 
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(true))
 				.buildMailer()) {
@@ -239,7 +238,7 @@ public class ResultHandlingTest {
 
 	@Test
 	public void nullEmailShouldRemainAnImmediateContractViolation() throws Exception {
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(true))
 				.buildMailer()) {
@@ -252,13 +251,13 @@ public class ResultHandlingTest {
 	@Test
 	public void asyncEntryPointsShouldReportSchedulingFailuresThroughReturnedFuture() throws Exception {
 		final ExecutorService executorService = Executors.newSingleThreadExecutor();
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(true))
 				.withExecutorService(executorService)
 				.buildMailer()) {
 			executorService.shutdown();
-			final Email email = EmailBuilder.startingBlank()
+			final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 					.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
 					.from("Simple Java Mail demo", "simplejavamail@demo.app")
 					.withPlainText("")
@@ -284,7 +283,7 @@ public class ResultHandlingTest {
 	@Test
 	public void asyncTestConnectionFailureShouldCompleteFutureWithoutFrameworkErrorLog() throws Exception {
 		try (ErrorLogCaptor errorLogCaptor = ErrorLogCaptor.forLogger(AbstractProxyServerSyncingClosure.class.getName());
-			 Mailer mailer = MailerBuilder
+			 Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					 .withSMTPServer("localhost", 0)
 					 .withCustomMailer(new FailingConnectionTestMailer())
 					 .async()
@@ -300,7 +299,7 @@ public class ResultHandlingTest {
 	@Test
 	public void testConnectionShouldUseBuilderAsyncDefault() throws Exception {
 		final BlockingTestConnectionMailer blockingMailer = new BlockingTestConnectionMailer();
-		final Mailer mailer = MailerBuilder
+		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(blockingMailer)
 				.async()
@@ -315,7 +314,7 @@ public class ResultHandlingTest {
 			moduleLoaderMockedStatic.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
 
 			final BlockingTestConnectionMailer blockingMailer = new BlockingTestConnectionMailer();
-			final Mailer mailer = MailerBuilder
+			final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServer("localhost", 0)
 					.withCustomMailer(blockingMailer)
 					.async()
@@ -354,10 +353,10 @@ public class ResultHandlingTest {
 	@NotNull
 	private CompletableFuture<Void> sendAsyncMailUsingMailerAPI(boolean sendSuccesfully) {
 		final boolean async = true;
-		return MailerBuilder
+		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
-				.buildMailer().sendMail(EmailBuilder.startingBlank()
+				.buildMailer().sendMail(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 						.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
 						.from("Simple Java Mail demo", "simplejavamail@demo.app")
 						.withPlainText("")
@@ -366,11 +365,11 @@ public class ResultHandlingTest {
 
 	@NotNull
 	private CompletableFuture<Void> sendAsyncMailUsingMailerBuilderAPI(boolean sendSuccesfully) {
-		return MailerBuilder
+		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
 				.async()
-				.buildMailer().sendMail(EmailBuilder.startingBlank()
+				.buildMailer().sendMail(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 						.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
 						.from("Simple Java Mail demo", "simplejavamail@demo.app")
 						.withPlainText("")

@@ -15,9 +15,8 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.config.ConfigLoader;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
-import org.simplejavamail.mailer.MailerBuilder;
 import testutil.ConfigLoaderTestHelper;
 
 import java.util.Arrays;
@@ -64,7 +63,7 @@ public class MailerImplTest {
 		try (MockedStatic<ModuleLoader> moduleLoader = mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
 			moduleLoader.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
 
-			try (Mailer mailer = MailerBuilder.withSMTPServer("localhost", 25).buildMailer()) {
+			try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", 25).buildMailer()) {
 				mailerOwnedExecutor = mailer.getOperationalConfig().getExecutorService();
 				assertThat(mailerOwnedExecutor.isShutdown()).isFalse();
 				assertThat(mailerOwnedExecutor.submit(() -> Thread.currentThread().isDaemon()).get()).isFalse();
@@ -81,7 +80,7 @@ public class MailerImplTest {
 		try (MockedStatic<ModuleLoader> moduleLoader = mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
 			moduleLoader.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
 
-			try (Mailer mailer = MailerBuilder
+			try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServer("localhost", 25)
 					.withExecutorService(callerOwnedExecutor)
 					.buildMailer()) {
@@ -169,7 +168,7 @@ public class MailerImplTest {
 
 	@Test
 	public void testSignWithSmime_WithConfigObject() {
-		final Email emailWithDefaultPkcs12KeyStoreDefault = EmailBuilder.startingBlank()
+		final Email emailWithDefaultPkcs12KeyStoreDefault = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.signWithSmime(SmimeSigningConfig.builder()
 						.pkcs12Config(loadPkcs12KeyStore())
 						.build())
@@ -194,36 +193,30 @@ public class MailerImplTest {
 		properties.setProperty(DEFAULT_FROM_ADDRESS.key(), "default@domain.com");
 		properties.setProperty(DEFAULT_SUBJECT.key(), "default subject");
 
-		try {
-			ConfigLoader.loadProperties(properties, false);
+		final SimpleJavaMail configuredMail = SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties(properties).load());
+		final DkimConfig dkimConfig = dkimConfig("java-default.com", "java-default");
+		final Mailer mailer = configuredMail.mailerBuilder()
+				.withSMTPServer("host", 25, null, null)
+				.withDefaultDkimSigning(dkimConfig)
+				.buildMailer();
 
-			final DkimConfig dkimConfig = dkimConfig("java-default.com", "java-default");
-			final Mailer mailer = MailerBuilder
-					.withSMTPServer("host", 25, null, null)
-					.withDefaultDkimSigning(dkimConfig)
-					.buildMailer();
+		final Email resolved = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(configuredMail.emailBuilder().startingBlank().buildEmail());
 
-			final Email resolved = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(EmailBuilder.startingBlank().buildEmail());
-
-			assertThat(resolved.getFromRecipient().getAddress()).isEqualTo("default@domain.com");
-			assertThat(resolved.getSubject()).isEqualTo("default subject");
-			assertThat(resolved.getDkimConfig()).isEqualTo(dkimConfig);
-		} finally {
-			ConfigLoaderTestHelper.clearConfigProperties();
-		}
+		assertThat(resolved.getFromRecipient().getAddress()).isEqualTo("default@domain.com");
+		assertThat(resolved.getSubject()).isEqualTo("default subject");
+		assertThat(resolved.getDkimConfig()).isEqualTo(dkimConfig);
 	}
 
 	@Test
 	public void testDefaultDkimSigning_UserEmailTakesPrecedence() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final DkimConfig defaultDkimConfig = dkimConfig("java-default.com", "java-default");
 		final DkimConfig userDkimConfig = dkimConfig("user.com", "user");
-		final Mailer mailer = MailerBuilder
+		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
 				.withDefaultDkimSigning(defaultDkimConfig)
 				.buildMailer();
-		final Email userEmail = EmailBuilder.startingBlank()
+		final Email userEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("from@user.com")
 				.signWithDomainKey(userDkimConfig)
 				.buildEmail();
@@ -235,13 +228,12 @@ public class MailerImplTest {
 
 	@Test
 	public void testDefaultDkimSigning_WithInlineArguments() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
-		final Mailer mailer = MailerBuilder
+		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
 				.withDefaultDkimSigning("key".getBytes(), "inline-default.com", "inline-default", Collections.singleton("Reply-To"))
 				.buildMailer();
-		final Email userEmail = EmailBuilder.startingBlank()
+		final Email userEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("from@inline-default.com")
 				.buildEmail();
 
@@ -265,21 +257,16 @@ public class MailerImplTest {
 		properties.setProperty(DKIM_SELECTOR.key(), "property-default");
 		properties.setProperty(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST.key(), "Reply-To");
 
-		try {
-			ConfigLoader.loadProperties(properties, false);
+		final SimpleJavaMail configuredMail = SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties(properties).load());
+		final Mailer mailer = configuredMail.mailerBuilder()
+				.withSMTPServer("host", 25, null, null)
+				.clearDefaultDkimSigning()
+				.buildMailer();
+		final Email resolved = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(configuredMail.emailBuilder().startingBlank().buildEmail());
 
-			final Mailer mailer = MailerBuilder
-					.withSMTPServer("host", 25, null, null)
-					.clearDefaultDkimSigning()
-					.buildMailer();
-			final Email resolved = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(EmailBuilder.startingBlank().buildEmail());
-
-			assertThat(resolved.getFromRecipient().getAddress()).isEqualTo("default@domain.com");
-			assertThat(resolved.getSubject()).isEqualTo("default subject");
-			assertThat(resolved.getDkimConfig()).isNull();
-		} finally {
-			ConfigLoaderTestHelper.clearConfigProperties();
-		}
+		assertThat(resolved.getFromRecipient().getAddress()).isEqualTo("default@domain.com");
+		assertThat(resolved.getSubject()).isEqualTo("default subject");
+		assertThat(resolved.getDkimConfig()).isNull();
 	}
 
 	@NotNull

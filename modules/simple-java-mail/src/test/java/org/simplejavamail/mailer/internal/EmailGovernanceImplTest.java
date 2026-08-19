@@ -9,7 +9,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -29,17 +29,16 @@ public class EmailGovernanceImplTest {
 
 	@Test
 	public void governanceOptOutsAreConfiguredAfterStartingAnEmail() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
-		val defaults = EmailBuilder.startingBlank()
+		val defaults = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.withSubject("default subject")
 				.buildEmail();
-		val overrides = EmailBuilder.startingBlank()
+		val overrides = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.withPlainText("override body")
 				.buildEmail();
 		val governance = new EmailGovernanceImpl(null, defaults, overrides, null);
 
-		Email blankIgnoringBoth = EmailBuilder.startingBlank()
+		Email blankIgnoringBoth = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.ignoringDefaults()
 				.ignoringOverrides()
 				.buildEmail();
@@ -50,7 +49,7 @@ public class EmailGovernanceImplTest {
 		assertThat(resolvedBlank.getSubject()).isNull();
 		assertThat(resolvedBlank.getPlainText()).isNull();
 
-		Email copyIgnoringOnlyDefaults = EmailBuilder.copying(EmailBuilder.startingBlank().buildEmail())
+		Email copyIgnoringOnlyDefaults = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail())
 				.ignoringDefaults()
 				.ignoringOverrides(false)
 				.buildEmail();
@@ -59,7 +58,7 @@ public class EmailGovernanceImplTest {
 		assertThat(resolvedCopy.getSubject()).isNull();
 		assertThat(resolvedCopy.getPlainText()).isEqualTo("override body");
 
-		Email copyIgnoringOnlyOverrides = EmailBuilder.copying(EmailBuilder.startingBlank().buildEmail())
+		Email copyIgnoringOnlyOverrides = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail())
 				.ignoringDefaults(false)
 				.ignoringOverrides()
 				.buildEmail();
@@ -71,7 +70,6 @@ public class EmailGovernanceImplTest {
 
     @Test
     public void produceEmailApplyingDefaultsAndOverrides_DispositionNotificationTo() {
-        ConfigLoaderTestHelper.clearConfigProperties();
 
         val defaults = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
                 .clearDispositionNotificationTo()
@@ -119,7 +117,6 @@ public class EmailGovernanceImplTest {
 
     @Test
     public void produceEmailApplyingDefaultsAndOverrides_ReturnReceiptTo() {
-        ConfigLoaderTestHelper.clearConfigProperties();
 
         val defaults = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
                 .clearReturnReceiptTo()
@@ -167,7 +164,6 @@ public class EmailGovernanceImplTest {
 
     @Test
     public void produceEmailApplyingDefaultsAndOverrides_DeliveryStatusNotification() {
-        ConfigLoaderTestHelper.clearConfigProperties();
 
         val defaults = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
                 .withDeliveryStatusNotification(HEADERS_ONLY, FAILURE)
@@ -203,7 +199,6 @@ public class EmailGovernanceImplTest {
 
     @Test
     public void produceEmailApplyingDefaultsAndOverrides_PreEncodedAttachmentResources() throws Exception {
-        ConfigLoaderTestHelper.clearConfigProperties();
 
         val defaults = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
                 .withPreEncodedAttachment("default-preencoded.txt", new ByteArrayDataSource("ZGVmYXVsdA==", "text/plain"), "default description", BASE_64, "default-attachment-cid")

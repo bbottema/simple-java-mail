@@ -16,7 +16,6 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
-import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
@@ -35,9 +34,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Optional.ofNullable;
+import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_OAUTH2;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
-import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -108,7 +107,8 @@ public class MailerImpl implements Mailer {
 				fromSessionBuilder.buildEmailGovernance(),
 				fromSessionBuilder.buildProxyConfig(),
 				fromSessionBuilder.getSession(),
-				fromSessionBuilder.buildOperationalConfig());
+				fromSessionBuilder.buildOperationalConfig(),
+				true);
 	}
 	
 	MailerImpl(@NotNull final MailerRegularBuilderImpl regularBuilder) {
@@ -117,17 +117,23 @@ public class MailerImpl implements Mailer {
 				regularBuilder.buildEmailGovernance(),
 				regularBuilder.buildProxyConfig(),
 				null,
-				regularBuilder.buildOperationalConfig());
+				regularBuilder.buildOperationalConfig(),
+				regularBuilder.isOpportunisticTLS());
 	}
 
 	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance, @NotNull ProxyConfig proxyConfig,
 			@Nullable Session session, @NotNull OperationalConfig operationalConfig) {
+		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig, true);
+	}
+
+	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance, @NotNull ProxyConfig proxyConfig,
+			@Nullable Session session, @NotNull OperationalConfig operationalConfig, final boolean opportunisticTLS) {
 		this.serverConfig = serverConfig;
 		this.transportStrategy = transportStrategy;
 		this.emailGovernance = emailGovernance;
 		this.proxyConfig = proxyConfig;
 		if (session == null) {
-			session = createMailSessionWithoutOAuth2Validation(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"));
+			session = createMailSessionWithoutOAuth2Validation(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"), opportunisticTLS);
 		}
 		this.session = session;
 		this.operationalConfig = operationalConfig;
@@ -167,17 +173,21 @@ public class MailerImpl implements Mailer {
 	 */
 	@NotNull
 	public static Session createMailSession(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy) {
-		final Session session = createMailSessionWithoutOAuth2Validation(serverConfig, transportStrategy);
+		final Session session = createMailSessionWithoutOAuth2Validation(serverConfig, transportStrategy, true);
 		OAuth2AccessTokenResolver.validateConfiguration(session, new Properties(), transportStrategy, null);
 		return session;
 	}
 
 	@NotNull
-	private static Session createMailSessionWithoutOAuth2Validation(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy) {
+	private static Session createMailSessionWithoutOAuth2Validation(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy,
+			final boolean opportunisticTLS) {
 		final Properties props = transportStrategy.generateProperties();
-
-		if (ConfigLoader.hasProperty(EXTRA_PROPERTIES)) {
-			props.putAll(ConfigLoader.getProperty(EXTRA_PROPERTIES));
+		if (transportStrategy == SMTP) {
+			LOGGER.debug("Opportunistic TLS mode {} for SMTP plain protocol.", opportunisticTLS ? "enabled" : "disabled");
+			if (!opportunisticTLS) {
+				props.remove("mail.smtp.starttls.enable");
+				props.remove("mail.smtp.starttls.required");
+			}
 		}
 
 		if (serverConfig != null) {

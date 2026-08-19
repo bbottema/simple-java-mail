@@ -7,6 +7,7 @@ This catalogue records project mechanisms that are easy to miss because they spa
 | Mechanism | Main reason it exists | Primary anchors |
 | --- | --- | --- |
 | API expansion workflow | Keep model, builders, CLI, config, conversion, and modules in sync when the public API grows. | [API_EXPANSION_WORKFLOW.md](API_EXPANSION_WORKFLOW.md) |
+| Immutable configuration snapshots | Resolve ordered sources once and propagate one detached configuration through a factory, its builders, conversion, governance, Sessions, Spring, and CLI. | [ConfigLoader.java](modules/core-module/src/main/java/org/simplejavamail/config/ConfigLoader.java), [SimpleJavaMailConfig.java](modules/core-module/src/main/java/org/simplejavamail/config/SimpleJavaMailConfig.java), [SimpleJavaMail.java](modules/simple-java-mail/src/main/java/org/simplejavamail/api/SimpleJavaMail.java) |
 | Dynamic module loading | Keep optional features out of the core runtime until their module jars are present and used. | [ModuleLoader.java](modules/simple-java-mail/src/main/java/org/simplejavamail/internal/moduleloader/ModuleLoader.java), [modules package](modules/core-module/src/main/java/org/simplejavamail/internal/modules) |
 | CLI generation from builder Javadocs | Turn builder API methods and Javadocs into picocli options and committed binary metadata. | [Cli.java](modules/core-module/src/main/java/org/simplejavamail/api/internal/clisupport/model/Cli.java), [BuilderApiToPicocliCommandsMapper.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/BuilderApiToPicocliCommandsMapper.java), [CliSupport.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java), `modules/cli-module/src/main/resources/cli.data`, `modules/cli-module/src/main/resources/therapi.data` |
 | Async send and batch connection pooling | Reuse SMTP transports when the batch module is present; otherwise fall back to direct session transports. | [MailerImpl.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [TransportRunner.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java), [BatchSupport.java](modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java) |
@@ -49,6 +50,30 @@ Gotchas:
 - `ModuleLoader` caches loaded module instances in a static map. Batch, S/MIME, and DKIM availability checks are also cached unless tests force a recheck.
 - Missing modules are a runtime failure only when the feature is requested. Do not add compile-time references from `simple-java-mail` implementation code to optional module classes.
 - Test helpers can force-disable/recheck modules through reflection because the loader is intentionally hidden from `core-module`.
+
+## Immutable Configuration Snapshots
+
+`ConfigLoader` is an ordered instance resolver, not a process-wide registry. Each loader contains `ConfigSource` instances from lowest to highest priority. Calling `load()` samples every source once, lets a later non-blank value win, parses only the winning value according to `PropertySchema`, and returns a detached `SimpleJavaMailConfig`.
+
+The normal runtime flow is:
+
+1. Build a snapshot with `ConfigLoader.builder()` or use the conventional lazy snapshot from `SimpleJavaMail.fromDefaults()`.
+2. Create an application-scoped `SimpleJavaMail` factory with `SimpleJavaMail.withConfig(config)`.
+3. Request a fresh email, Mailer, Session-based Mailer, or conversion builder from that factory.
+4. Keep the resulting `Mailer` for its intended application lifetime and close it when replaced or shut down.
+
+Important boundaries:
+
+- `fromDefaults()` means classpath `simplejavamail.properties`, then environment variables, then system properties. It does not inspect Spring and it resolves once on first use.
+- Explicit Java builder calls override the values copied from the snapshot when that builder was created.
+- `SimpleJavaMailConfig` and its wildcard maps are immutable. Loading another snapshot does not alter any prior factory, builder, Mailer, Session, or governance object.
+- `ConfigSource` names appear in provenance and validation errors. Error messages name the key and expected type without echoing the configured value.
+- Strict caller sources reject unknown keys. The full process environment and JVM system-property sources ignore unrelated keys.
+- Spring creates one snapshot and `SimpleJavaMail` factory per application context. Spring's `Environment` owns profile, placeholder, system-property, and environment-variable precedence; Simple Java Mail does not apply a second raw overlay.
+- Static inbound `EmailConverter` routes use `fromDefaults()`. Use a configured factory's `converter()` when parsed builders need another snapshot.
+- The public builder interfaces own option Javadocs. Implementation methods and integration surfaces link to those contracts instead of duplicating them.
+
+Tests for new configuration must include a conflicting two-factory case. Mutate source collections after `load()`, build objects in both contexts, and verify there is no cross-talk. A property used by wildcard Session or connection-pool configuration also needs an immutability check for its returned map.
 
 ## CLI Generation From Builder API Javadocs
 
@@ -94,7 +119,7 @@ Key pieces:
 - `withThreadPoolSize(...)` and `simplejavamail.defaults.poolsize` limit concurrent async work, not queued backlog; the built-in executor does not expose a queue-capacity setting.
 - Bounded queues and custom rejection/backpressure behavior require `withExecutorService(...)`. Caller-provided executors are caller-owned, so Simple Java Mail leaves their lifecycle and shutdown to the application.
 - `BatchSupport.registerToCluster(...)` creates/registers SMTP connection pools using `SmtpConnectionPoolClustered`.
-- Cluster-specific property defaults are parsed from `simplejavamail.defaults.connectionpool.clusters.*` by `ConfigLoader` and overlaid on the global connection-pool defaults when `BatchSupport` registers a matching cluster key.
+- Cluster-specific property defaults are parsed from `simplejavamail.defaults.connectionpool.clusters.*` into the immutable configuration snapshot and overlaid on the global connection-pool defaults when `BatchSupport` registers a matching cluster key.
 - `TransportRunner` sends through `BatchModule.acquireTransport(...)` when batch is available; otherwise it opens a normal `Session.getTransport()` connection for the operation.
 - `LifecycleDelegatingTransportImpl` wraps the pooled transport so the caller can signal success with `release()` or failure with `invalidate()`.
 - `MailerImpl.shutdownConnectionPool()` shuts down the default executor if it is library-owned and delegates pool shutdown to the batch module when present.
@@ -182,7 +207,7 @@ Implications:
 
 These are not expanded as separate catalogue entries yet, but they are common places to inspect when changing core behavior:
 
-- Config resolution and defaults/overrides: `ConfigLoader`, `EmailProperty`, and `EmailGovernanceImpl`.
-- Spring property mapping: `SimpleJavaMailProperties` and `SimpleJavaMailSpringSupport`.
+- Config resolution and defaults/overrides: `ConfigLoader`, `PropertySchema`, `SimpleJavaMailConfig`, `EmailProperty`, and `EmailGovernanceImpl`.
+- Spring property mapping: `SimpleJavaMailSpringSupport`, which produces context-local config, factory, and Mailer beans.
 - Outlook and EML conversion: `EmailConverter`, `OutlookEmailConverter`, and `MimeMessageParser`.
 - Transport strategy properties: `TransportStrategy` and `MailerImpl.createMailSession(...)`.

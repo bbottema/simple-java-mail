@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer;
 
+
+import org.simplejavamail.api.SimpleJavaMail;
+
 import org.bbottema.javasocksproxyserver.RunningSocksServer;
 import org.bbottema.javasocksproxyserver.SyncSocksServer;
 import org.junit.jupiter.api.AfterEach;
@@ -39,7 +42,6 @@ public class MailerSOCKSLiveTest {
 
 	@BeforeEach
 	public void setup() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 		proxyServer = socksServer.startServer(0, new CountingServerSocketFactory(acceptedProxyConnections));
 	}
 
@@ -58,7 +60,7 @@ public class MailerSOCKSLiveTest {
 	@Test
 	public void testSOCKSPassthrough_Anonymous() throws Exception {
 		startPlainSmtpServer();
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
 				.withProxy("localhost", proxyServer.getPort())
 				.buildMailer()) {
@@ -71,7 +73,7 @@ public class MailerSOCKSLiveTest {
 	// but it triggers the code on the mailer side, which should not produce errors either
 	public void testSOCKSPassthrough_Authenticating() throws Exception {
 		startPlainSmtpServer();
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
 				.withProxy("localhost", proxyServer.getPort(), "username", "password")
 				.buildMailer()) {
@@ -97,13 +99,13 @@ public class MailerSOCKSLiveTest {
 		try {
 			final int smtpsPort = smtpsServer.getServer().getPortAllocated();
 			try (Mailer mailer = authenticatingProxy
-					? MailerBuilder.withSMTPServer("localhost", smtpsPort)
+					? SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", smtpsPort)
 							.withTransportStrategy(TransportStrategy.SMTPS)
 							.withProxy("localhost", proxyServer.getPort(), "username", "password")
 							.trustingAllHosts(true)
 							.verifyingServerIdentity(false)
 							.buildMailer()
-					: MailerBuilder.withSMTPServer("localhost", smtpsPort)
+					: SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", smtpsPort)
 							.withTransportStrategy(TransportStrategy.SMTPS)
 							.withProxy("localhost", proxyServer.getPort())
 							.trustingAllHosts(true)

@@ -72,6 +72,7 @@ import java.util.UUID;
 public final class OpenPgpSupport implements OpenPgpModule {
 
     private static final Provider BOUNCY_CASTLE = new BouncyCastleProvider();
+    // Two wrappers cover the normal sign-then-encrypt shape. Stopping there bounds work on hostile recursive input.
     private static final int MAX_PROTECTION_DEPTH = 2;
     private static final int BUFFER_SIZE = 64 * 1024;
 
@@ -132,14 +133,18 @@ public final class OpenPgpSupport implements OpenPgpModule {
     private OpenPgpParseResult process(final Session session, final MimeMessage message, final byte[] raw,
                                        @Nullable final OpenPgpReceiveConfig receiveConfig, final int depth)
             throws MessagingException {
-        if (isOpenPgpSigned(message)) {
+        final boolean signed = isOpenPgpSigned(message);
+        final boolean encrypted = isOpenPgpEncrypted(message);
+        if ((signed || encrypted) && depth >= MAX_PROTECTION_DEPTH) {
+            return failure(message, signed ? OpenPgpMode.SIGNED : OpenPgpMode.ENCRYPTED,
+                    signed ? SignatureStatus.ERROR : SignatureStatus.NOT_PRESENT,
+                    encrypted ? DecryptionStatus.FAILED : DecryptionStatus.NOT_ENCRYPTED,
+                    "OpenPGP/MIME nesting limit exceeded", raw);
+        }
+        if (signed) {
             return processSigned(session, message, raw, receiveConfig);
         }
-        if (isOpenPgpEncrypted(message)) {
-            if (depth >= MAX_PROTECTION_DEPTH) {
-                return failure(message, OpenPgpMode.ENCRYPTED, SignatureStatus.NOT_PRESENT,
-                        DecryptionStatus.FAILED, "OpenPGP/MIME nesting limit exceeded", raw);
-            }
+        if (encrypted) {
             return processEncrypted(session, message, raw, receiveConfig, depth);
         }
         return new OpenPgpParseResult(false, message, OpenPgpDetails.plain());
@@ -236,23 +241,27 @@ public final class OpenPgpSupport implements OpenPgpModule {
             final byte[] clearMessageBytes = MimeEntitySupport.restoreMessage(raw, clearEntity);
             final MimeMessage clearMessage = FinalizedMimeMessage.fromMessageBytes(session, clearMessageBytes,
                     FinalizedMimeMessage.ProtectionState.NONE);
-            if (isOpenPgpSigned(clearMessage)) {
-                final OpenPgpParseResult signed = process(session, clearMessage, clearMessageBytes, config, depth + 1);
-                final OriginalOpenPgpDetails signedDetails = signed.getDetails();
+            if (isOpenPgpSigned(clearMessage) || isOpenPgpEncrypted(clearMessage)) {
+                final OpenPgpParseResult nested = process(session, clearMessage, clearMessageBytes, config, depth + 1);
+                final OriginalOpenPgpDetails nestedDetails = nested.getDetails();
+                final boolean containsSignature = nestedDetails.getOpenPgpMode() == OpenPgpMode.SIGNED
+                        || nestedDetails.getOpenPgpMode() == OpenPgpMode.SIGNED_ENCRYPTED;
+                final DecryptionStatus nestedDecryption = nestedDetails.getDecryptionStatus();
                 final OpenPgpDetails combined = OpenPgpDetails.builder()
-                        .openPgpMode(OpenPgpMode.SIGNED_ENCRYPTED)
-                        .signatureStatus(signedDetails.getSignatureStatus())
-                        .decryptionStatus(DecryptionStatus.DECRYPTED)
-                        .signerKeyId(signedDetails.getSignerKeyId())
-                        .signerFingerprint(signedDetails.getSignerFingerprint())
-                        .signatureAlgorithm(signedDetails.getSignatureAlgorithm())
-                        .hashAlgorithm(signedDetails.getHashAlgorithm())
+                        .openPgpMode(containsSignature ? OpenPgpMode.SIGNED_ENCRYPTED : OpenPgpMode.ENCRYPTED)
+                        .signatureStatus(nestedDetails.getSignatureStatus())
+                        .decryptionStatus(nestedDecryption == DecryptionStatus.NOT_ENCRYPTED
+                                ? DecryptionStatus.DECRYPTED : nestedDecryption)
+                        .signerKeyId(nestedDetails.getSignerKeyId())
+                        .signerFingerprint(nestedDetails.getSignerFingerprint())
+                        .signatureAlgorithm(nestedDetails.getSignatureAlgorithm())
+                        .hashAlgorithm(nestedDetails.getHashAlgorithm())
                         .encryptionAlgorithm(symmetricAlgorithmName(symmetricAlgorithm))
                         .recipientKeyIds(recipientIds)
-                        .failureReason(signedDetails.getFailureReason())
+                        .failureReason(nestedDetails.getFailureReason())
                         .originalProtectedMessage(raw)
                         .build();
-                return new OpenPgpParseResult(true, signed.getEffectiveMimeMessage(), combined);
+                return new OpenPgpParseResult(true, nested.getEffectiveMimeMessage(), combined);
             }
             return new OpenPgpParseResult(true, clearMessage, OpenPgpDetails.builder()
                     .openPgpMode(OpenPgpMode.ENCRYPTED)

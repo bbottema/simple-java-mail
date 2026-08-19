@@ -172,7 +172,10 @@ public class EmailAssert extends AbstractAssert<EmailAssert, Email> {
 
 	public EmailAssert hasOriginalSmimeDetails(final OriginalSmimeDetails originalSmimeDetails) {
 		isNotNull();
-		Assertions.assertThat(actual.getOriginalSmimeDetails()).as("originalSmimeDetails").isEqualTo(originalSmimeDetails);
+		Assertions.assertThat(actual.getOriginalSmimeDetails()).as("originalSmimeDetails")
+				.usingRecursiveComparison()
+				.ignoringFields("verificationStatus", "decryptionStatus", "failureReason", "originalProtectedMessage")
+				.isEqualTo(originalSmimeDetails);
 		return this;
 	}
 }

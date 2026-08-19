@@ -36,18 +36,16 @@ implementation 'org.simplejavamail:simple-java-mail:9.3.2'
 ### Build and send
 
 ```java
-Email email = EmailBuilder.startingBlank()
+SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
+
+Email email = mail.emailBuilder().startingBlank()
     .from("Sender", "sender@example.org")
-    .withRecipients(new RecipientBuilder()
-        .withName("Recipient")
-        .withAddress("recipient@example.net")
-        .withType(Message.RecipientType.TO)
-        .build())
+    .withRecipients(RecipientBuilder.to("Recipient", "recipient@example.net"))
     .withSubject("It works")
     .withPlainText("Your first Simple Java Mail message.")
     .buildEmail();
 
-Mailer mailer = MailerBuilder.withSMTPServer(
+Mailer mailer = mail.mailerBuilder().withSMTPServer(
         System.getenv("SMTP_HOST"),
         587,
         System.getenv("SMTP_USER"),
@@ -74,6 +72,8 @@ The port and transport strategy must match your SMTP server. Build the `Mailer` 
 ## Configure once, reuse everywhere
 
 A `Mailer` keeps SMTP settings, transport policy, defaults, overrides, validation, signing, proxy configuration, and delivery behavior out of individual call sites. Configure it with the [Java builder API](https://www.simplejavamail.org/configuration.html#section-programmatic-api-common), [property files, system properties, or environment variables](https://www.simplejavamail.org/configuration.html#section-config-properties), or let the [Spring module](https://www.simplejavamail.org/configuration.html#section-spring-support) create and inject it.
+
+`SimpleJavaMail.fromDefaults()` resolves the conventional classpath file, environment variables, and system properties into one lazy immutable snapshot. For explicit source ordering or more than one mail setup in the same JVM, build a `SimpleJavaMailConfig` with `ConfigLoader.builder()` and pass it to `SimpleJavaMail.withConfig(config)`.
 
 This leaves application code to describe each email while shared rules stay in one reusable place.
 

@@ -13,7 +13,7 @@ import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.recipient.RecipientsBuilder;
@@ -63,7 +63,7 @@ public class EmailHelper {
 	@SneakyThrows
 	public static EmailPopulatingBuilder createDummyEmailBuilder(@Nullable String id, boolean includeSubjectAndBody, boolean skipReplyToAndBounceTo, boolean includeCustomHeaders,
 																 boolean useSmimeDetailsImplFromSmimeModule, final boolean fixSentDate, final boolean useDynamicImageEmbedding, final boolean includeCalendarText) {
-		EmailPopulatingBuilder builder = EmailBuilder.startingBlank()
+		EmailPopulatingBuilder builder = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.fixingMessageId(id)
 				.from("lollypop", "lol.pop@somemail.com")
 				// don't forget to add your own address here ->

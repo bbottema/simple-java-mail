@@ -11,7 +11,7 @@ import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.config.ConfigLoader.Property;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.internal.util.CertificationUtil;
 import testutil.ConfigLoaderTestHelper;
 
@@ -110,9 +110,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(DKIM_SELECTOR, "ignore");
 		value.put(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST, "Ignored");
 
-		ConfigLoaderTestHelper.setResolvedProperties(value);
-
-		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmail())
+		EmailAssert.assertThat(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank().buildEmail())
 				.hasFromRecipient(null)
 				.hasNoReplyToRecipients()
 				.hasBounceToRecipient(null)
@@ -122,7 +120,7 @@ public class EmailPopulatingBuilderImpl2Test {
 				.hasSmimeEncryptionConfig(null)
 				.hasDkimConfig(null);
 
-		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
+		EmailAssert.assertThat(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
 				.hasFromRecipient(new Recipient("Test From", "test_from@domain.com", null, null))
 				.hasReplyToRecipients(new Recipient("Test Replyto", "test_replyto@domain.com", null, null))
 				.hasBounceToRecipient(new Recipient("Test Bounceto", "test_boundeto@domain.com", null, null))
@@ -159,21 +157,16 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(DEFAULT_BCC_ADDRESS, "test_bcc1@domain.com,test_bcc2@domain.com");
 		value.put(SMIME_ENCRYPTION_CERTIFICATE, "src/test/resources/pkcs12/smime_test_user.pem.standard.crt");
 
-		ConfigLoaderTestHelper.setResolvedProperties(value);
-
-		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmail())
+		EmailAssert.assertThat(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank().buildEmail())
 				.hasFromRecipient(null)
 				.hasNoReplyToRecipients()
 				.hasBounceToRecipient(null)
 				.hasNoRecipients()
 				.hasSmimeEncryptionConfig(null);
 
-		assertThat(NO_GOVERNANCE().produceEmailApplyingDefaultsAndOverrides(null).getSmimeEncryptionConfig())
-				.isEqualTo(SmimeEncryptionConfig.builder()
-						.x509Certificate(CertificationUtil.readFromPem(new File(RESOURCES_PATH + "/pkcs12/smime_test_user.pem.standard.crt")))
-						.build());
+		assertThat(NO_GOVERNANCE().produceEmailApplyingDefaultsAndOverrides(null).getSmimeEncryptionConfig()).isNull();
 
-		EmailAssert.assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
+		EmailAssert.assertThat(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
 				.hasFromRecipient(new Recipient(null, "test_from@domain.com", null, null))
 				.hasReplyToRecipients(new Recipient(null, "test_replyto@domain.com", null, null))
 				.hasBounceToRecipient(new Recipient(null, "test_boundeto@domain.com", null, null))
@@ -195,15 +188,9 @@ public class EmailPopulatingBuilderImpl2Test {
 		values.put(DKIM_SELECTOR, "selector");
 		values.put(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST, "fRoM");
 
-		try {
-			ConfigLoaderTestHelper.setResolvedProperties(values);
-
-			assertThatThrownBy(() -> EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
-					.isInstanceOf(IllegalArgumentException.class)
-					.hasMessage("DKIM signatures must include the From header; it cannot be excluded from the default signing list");
-		} finally {
-			ConfigLoaderTestHelper.clearConfigProperties();
-		}
+		assertThatThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(values)).emailBuilder().startingBlank().buildEmailCompletedWithDefaultsAndOverrides())
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessage("DKIM signatures must include the From header; it cannot be excluded from the default signing list");
 	}
 
 	@Test
@@ -214,9 +201,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING, QUOTED_PRINTABLE);
 		value.put(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING, BIT7);
 
-		ConfigLoaderTestHelper.setResolvedProperties(value);
-
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank()
 				.withPlainText("plain")
 				.withHTMLText("<b>html</b>")
 				.withHTMLTextContentTransferEncoding(BINARY)
@@ -234,10 +219,8 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY, "FAILURE,DELAY");
 		value.put(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION, "HEADERS_ONLY");
 
-		ConfigLoaderTestHelper.setResolvedProperties(value);
-
-		assertThat(EmailBuilder.startingBlank().buildEmail().getDeliveryStatusNotification()).isNull();
-		assertThat(EmailBuilder.startingBlank().buildEmailCompletedWithDefaultsAndOverrides().getDeliveryStatusNotification())
+		assertThat(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank().buildEmail().getDeliveryStatusNotification()).isNull();
+		assertThat(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank().buildEmailCompletedWithDefaultsAndOverrides().getDeliveryStatusNotification())
 				.isEqualTo(org.simplejavamail.api.email.config.DeliveryStatusNotification.of(HEADERS_ONLY, FAILURE, DELAY));
 	}
 
@@ -252,9 +235,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, testResourceUrlString("pkcs12"));
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/");
 
-		ConfigLoaderTestHelper.setResolvedProperties(value);
-
-		Email email = EmailBuilder.startingBlank()
+		Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank()
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"how-to.html\"/>") // comes from URL
 				.appendTextHTML("<img src=\"/log4j2.xml\"/>") // comes from classpath
@@ -282,9 +263,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL, "true");
 
-		ConfigLoaderTestHelper.setResolvedProperties(value);
-
-		final EmailPopulatingBuilder emailPopulatingBuilder = EmailBuilder.startingBlank()
+		final EmailPopulatingBuilder emailPopulatingBuilder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank()
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"missing.html\"/>");
 
@@ -305,9 +284,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, "/");
 		value.put(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL, "false");
 
-		ConfigLoaderTestHelper.setResolvedProperties(value);
-
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank()
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"missing.html\"/>")
 				.appendTextHTML("<img src=\"/missing.html\"/>")

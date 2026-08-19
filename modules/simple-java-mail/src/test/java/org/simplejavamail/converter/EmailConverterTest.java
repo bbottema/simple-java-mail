@@ -19,7 +19,7 @@ import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 import testutil.SecureTestDataHelper;
@@ -385,7 +385,6 @@ public class EmailConverterTest {
 
 	@Test
 	public void testContentTransferEncodingQuotedPrintable() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false).buildEmail();
 		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
@@ -408,7 +407,6 @@ public class EmailConverterTest {
 
 	@Test
 	public void testContentTransferEncodingBase64() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false)
 				.withContentTransferEncoding(ContentTransferEncoding.BASE_64).buildEmail();
@@ -434,7 +432,6 @@ public class EmailConverterTest {
 
 	@Test
 	public void testGithub605_BodyPartContentTransferEncodingsAreIndependent() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final String calendarText = "BEGIN:VCALENDAR\r\n"
 				+ "METHOD:REQUEST\r\n"
@@ -446,7 +443,7 @@ public class EmailConverterTest {
 				+ "SUMMARY:Body CTE test\r\n"
 				+ "END:VEVENT\r\n"
 				+ "END:VCALENDAR";
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Body CTE")
@@ -476,10 +473,9 @@ public class EmailConverterTest {
 
 	@Test
 	public void testGithub566_AttachmentContentIdSurvivesRoundtrip() throws IOException {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final String customContentId = "custom-id-12345";
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Test Content-ID")
@@ -501,10 +497,9 @@ public class EmailConverterTest {
 
 	@Test
 	public void testGithub597_EmbeddedImageContentIdCanDifferFromFilename() throws IOException {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final String customContentId = "logo-content-id";
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Embedded image")
@@ -523,7 +518,6 @@ public class EmailConverterTest {
 
 	@Test
 	public void testGithub602_EmbeddedImageFilenameAndContentIdStaySeparateAfterParsing() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final String contentId = "emf08a6e26-b330-4662-b8b1-5122ade7f2f2@2856f0a1.com";
 		final String eml = normalizeNewlines("From: sender@example.com\n"
@@ -561,10 +555,9 @@ public class EmailConverterTest {
 
 	@Test
 	public void testGithub607_GeneratedAttachmentContentIdIsValidEvenWhenFilenameContainsSpecialCharacters() throws IOException {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final String filename = "Attachment %^$(()_()&^&^^:@/\\|{}[]#~`- special chars.txt";
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Attachment")
@@ -589,9 +582,8 @@ public class EmailConverterTest {
 	@Test
 	public void testGithub606_AttachmentContentTypeIsNormalizedBeforeSerializing()
 			throws IOException {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Nested email attachment")
@@ -610,9 +602,8 @@ public class EmailConverterTest {
 	@Test
 	public void testGithub606_InvalidEmbeddedImageContentTypeFallsBackBeforeSerializing()
 			throws IOException {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Embedded image")
@@ -643,13 +634,12 @@ public class EmailConverterTest {
 
 	@Test
 	public void testPreEncodedAttachmentIsNotReencoded() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final String rawAttachment = "The stored database payload is already base64 encoded.";
 		final String encodedAttachment = asBase64(rawAttachment);
 		final String reencodedAttachment = asBase64(encodedAttachment);
 
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "receiver@example.com"))
 				.withPlainText("See attachment")
@@ -665,13 +655,12 @@ public class EmailConverterTest {
 
 	@Test
 	public void testPreEncodedEmbeddedImageIsNotReencoded() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		final String rawImage = "fake image bytes already stored as base64";
 		final String encodedImage = asBase64(rawImage);
 		final String reencodedImage = asBase64(encodedImage);
 
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "receiver@example.com"))
 				.withHTMLText("<img src='cid:logo'>")
@@ -687,7 +676,6 @@ public class EmailConverterTest {
 
 	@Test
 	public void testContentDescriptionAndContentTransferEncoding() throws IOException {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		String dummyAttachment1 = "Cupcake ipsum dolor sit amet donut. Apple pie caramels oat cake fruitcake sesame snaps. Bear claw cotton candy toffee danish sweet roll.";
 		String dummyAttachment2 = "I love pie I love donut sugar plum. I love halvah topping bonbon fruitcake brownie chocolate. Sweet tootsie roll wafer caramels sesame snaps.";

@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.mailer.MailerHelper;
 import testutil.ConfigLoaderTestHelper;
@@ -45,7 +45,6 @@ class EmailSerializationTest {
 
 	@BeforeEach
 	void clearDefaults() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 	}
 
 	@Test
@@ -93,7 +92,7 @@ class EmailSerializationTest {
 				.build();
 		final byte[] alreadyBase64Encoded = Base64.getEncoder().encode("pre-encoded data".getBytes(UTF_8));
 
-		final InternalEmailPopulatingBuilder builder = (InternalEmailPopulatingBuilder) EmailBuilder.forwarding(messageToForward)
+		final InternalEmailPopulatingBuilder builder = (InternalEmailPopulatingBuilder) SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().forwarding(messageToForward)
 				.from("sender@example.org")
 				.withRecipients(new Recipient(null, "recipient@example.org", RecipientType.TO, null))
 				.withPlainText("Main message")
@@ -127,12 +126,12 @@ class EmailSerializationTest {
 		assertForwardedMessage(restored.getEmailToForward());
 
 		assertThat(MailerHelper.validate(restored)).isTrue();
-		assertThatNoException().isThrownBy(() -> EmailBuilder.copying(restored).buildEmail());
+		assertThatNoException().isThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(restored).buildEmail());
 	}
 
 	@Test
 	void reportsUnreadableAttachmentWhileSerializing() {
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.org")
 				.withRecipients(new Recipient(null, "recipient@example.org", RecipientType.TO, null))
 				.withSubject("Unreadable attachment")
@@ -175,14 +174,12 @@ class EmailSerializationTest {
 		assertThat(restored.getEmailToForward()).isNull();
 		assertThat(restored.getSmimeSigningConfig()).isNull();
 		assertThat(restored.toString()).contains("9.1.7 serialized email", "legacy.txt");
-		assertThatNoException().isThrownBy(() -> EmailBuilder.copying(restored).buildEmail());
+		assertThatNoException().isThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(restored).buildEmail());
 
 		assertLegacyContentUnavailable(restored.getAttachments().get(0));
 		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(restored).writeTo(new ByteArrayOutputStream()))
-				.isInstanceOf(IllegalStateException.class)
-				.hasMessage("Unable to finalize MIME message")
-				.hasRootCauseInstanceOf(IOException.class)
-				.hasRootCauseMessage("Attachment data is unavailable because this Email was serialized by Simple Java Mail before 9.2.0");
+				.isInstanceOf(IOException.class)
+				.hasMessage("Attachment data is unavailable because this Email was serialized by Simple Java Mail before 9.2.0");
 	}
 
 	private static void assertAttachment(AttachmentResource attachment, String name, String description,

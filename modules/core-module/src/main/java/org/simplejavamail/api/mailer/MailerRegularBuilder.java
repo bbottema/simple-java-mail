@@ -13,7 +13,8 @@ import javax.net.ssl.SSLSocketFactory;
  * Default builder for generating Mailer instances. Sets defaults configured for SMTP host, SMTP port, SMTP username, SMTP password and transport
  * strategy.
  * <p>
- * <strong>Note:</strong> To start creating a new Mailer, you use {@code MailerBuilder} directly instead.
+ * Obtain this builder from {@code SimpleJavaMail.mailerBuilder()}. Explicit calls on the returned builder override values from that factory's immutable
+ * configuration snapshot.
  * <p>
  * <strong>Note:</strong> Any builder methods invoked after this will override the default value.
  * <p>
@@ -24,6 +25,20 @@ import javax.net.ssl.SSLSocketFactory;
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends MailerGenericBuilder<T> {
+	/**
+	 * Controls whether plain {@link TransportStrategy#SMTP} attempts an optional STARTTLS upgrade when the server offers it. It defaults to {@code true};
+	 * setting it to {@code false} is an escape hatch for SMTP servers that break during STARTTLS negotiation.
+	 * <p>
+	 * A configured snapshot supplies the initial value when this builder is created. Calling this method afterwards overrides that value for the Mailer
+	 * built from this builder.
+	 * <p>
+	 * This setting is deliberately limited to plain SMTP. It has no effect on mandatory TLS in {@link TransportStrategy#SMTP_TLS}, OAuth2 transport, or
+	 * implicit TLS in {@link TransportStrategy#SMTPS}.
+	 *
+	 * @param opportunisticTLS Whether plain SMTP should attempt STARTTLS when offered.
+	 */
+	T withOpportunisticTLS(boolean opportunisticTLS);
+
 	/**
 	 * To learn more about the various transport modes, the properties they set and the security
 	 * implications, please refer to the full TransportStrategy<br>
@@ -139,7 +154,8 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	/**
 	 * Builds the actual {@link Mailer} instance with everything configured on this builder instance.
 	 * <p>
-	 * For all configurable values: if omitted, a default value will be attempted by looking at property files or manually defined defauls.
+	 * Values not set directly on this builder keep the immutable configuration snapshot captured when the builder was requested from its configured
+	 * factory. Later configuration loads do not change the resulting Mailer.
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	Mailer buildMailer();

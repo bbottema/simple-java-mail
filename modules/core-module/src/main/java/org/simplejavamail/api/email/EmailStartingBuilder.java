@@ -12,7 +12,8 @@ import static java.util.regex.Pattern.compile;
 /**
  * Entry Builder API for starting new emails.
  * <p>
- * <strong>Note:</strong> To start creating a new Email, you use {@code EmailBuilder} directly instead.
+ * Obtain this starting builder from {@code SimpleJavaMail.emailBuilder()}. Every builder created from it retains that factory's immutable configuration
+ * snapshot.
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 public interface EmailStartingBuilder {

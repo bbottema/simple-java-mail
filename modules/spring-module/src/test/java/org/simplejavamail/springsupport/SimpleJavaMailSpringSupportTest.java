@@ -1,9 +1,14 @@
 package org.simplejavamail.springsupport;
 
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.SimpleJavaMail;
+import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.config.SimpleJavaMailConfig;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +19,18 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTION
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 
 public abstract class SimpleJavaMailSpringSupportTest {
+
+	@Autowired
+	private SimpleJavaMailConfig config;
+
+	@Autowired
+	private SimpleJavaMail simpleJavaMail;
+
+	@Autowired
+	private Mailer defaultMailer;
+
+	@Autowired
+	private ApplicationContext applicationContext;
 
     protected void performConfigAssertions() {
         assertThat(getProperty(ConfigLoader.Property.DEFAULT_CC_NAME)).isEqualTo("CC Default"); // from normal simplejavamail.properties
@@ -26,25 +43,30 @@ public abstract class SimpleJavaMailSpringSupportTest {
         assertThat(getProperty(ConfigLoader.Property.JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo("STDERR"); // from Spring application.properties
         assertThat(getProperty(ConfigLoader.Property.SMTP_CLIENT_HOSTNAME)).isEqualTo("mailer.spring.example.com"); // from Spring application.properties
         assertThat(getProperty(ConfigLoader.Property.SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.30"); // from Spring application.properties
-        assertThat(ConfigLoader.<Integer>getProperty(ConfigLoader.Property.SMTP_LOCAL_PORT)).isEqualTo(25259); // from Spring application.properties
+		assertThat(config.getIntegerProperty(ConfigLoader.Property.SMTP_LOCAL_PORT)).isEqualTo(25259); // from Spring application.properties
         assertThat(getProperty(ConfigLoader.Property.DKIM_SELECTOR)).isEqualTo(null); // not set in any properties
 
         UUID ordersCluster = UUID.fromString("00000000-0000-0000-0000-000000000301");
-        Map<UUID, ConnectionPoolClusterConfig> clusterConfigs = ConfigLoader.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		Map<UUID, ConnectionPoolClusterConfig> clusterConfigs = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
         assertThat(clusterConfigs).containsKey(ordersCluster);
         assertThat(clusterConfigs.get(ordersCluster).getCoreSize()).isEqualTo(0);
         assertThat(clusterConfigs.get(ordersCluster).getMaxSize()).isEqualTo(3);
         assertThat(clusterConfigs.get(ordersCluster).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.RANDOM_ACCESS);
 
-        Map<String, String> loaded = ConfigLoader.getProperty(EXTRA_PROPERTIES);
+		Map<String, String> loaded = config.getProperty(EXTRA_PROPERTIES);
         Map<String, String> expected = new HashMap<>();
         expected.put("one", "1"); // from normal simplejavamail.properties
         expected.put("two", "two"); // overridden from Spring application.properties
         expected.put("three", "three"); // from Spring application.properties only
-        assertThat(loaded).containsExactlyInAnyOrderEntriesOf(expected);
+		assertThat(loaded).containsExactlyInAnyOrderEntriesOf(expected);
+
+		assertThat(simpleJavaMail.mailerBuilder()).isNotSameAs(simpleJavaMail.mailerBuilder());
+		assertThat(defaultMailer).isNotNull();
+		assertThat(applicationContext.containsBean("defaultMailerBuilder")).isFalse();
     }
 
-    private static @Nullable String getProperty(ConfigLoader.Property property) {
-        return ConfigLoader.valueOrPropertyAsString(null, property, null);
+	private @Nullable String getProperty(ConfigLoader.Property property) {
+		final Object value = config.getProperty(property);
+		return value != null ? value.toString() : null;
     }
 }

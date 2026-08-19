@@ -35,7 +35,15 @@
             <artifactId>smtp-connection-pool</artifactId>
             <version>4.0.1</version>
         </dependency>
-    </dependencies>
+
+		<!-- Tests instantiate Jakarta Mail Sessions directly; production remains provider-neutral. -->
+		<dependency>
+			<groupId>org.simplejavamail</groupId>
+			<artifactId>angus-mail-provider-module</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
 
     <profiles>
         <profile>

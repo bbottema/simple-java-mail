@@ -13,7 +13,7 @@ import static java.util.Objects.requireNonNull;
  * {@code Transport}. Provider adapters must not change bytes covered by a cryptographic signature when
  * {@link #requiresStableContent()} returns {@code true}.</p>
  */
-public final class PreparedMail implements AutoCloseable {
+public final class PreparedMail {
 
     @NotNull
     private final MimeMessage mimeMessage;
@@ -52,17 +52,4 @@ public final class PreparedMail implements AutoCloseable {
         return stableContentRequired;
     }
 
-    /** Releases temporary storage owned by a finalized MIME message. */
-    @Override
-    public void close() {
-        if (mimeMessage instanceof AutoCloseable) {
-            try {
-                ((AutoCloseable) mimeMessage).close();
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new IllegalStateException("Unable to release prepared MIME message", e);
-            }
-        }
-    }
 }

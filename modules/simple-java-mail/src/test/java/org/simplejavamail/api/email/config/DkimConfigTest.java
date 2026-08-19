@@ -1,8 +1,7 @@
 package org.simplejavamail.api.email.config;
 
 import org.junit.jupiter.api.Test;
-import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.mailer.MailerBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,12 +31,12 @@ public class DkimConfigTest {
 
     @Test
     public void rejectsFromExclusionsFromConvenienceBuilders() {
-        assertThatThrownBy(() -> EmailBuilder.startingBlank()
+        assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
                 .signWithDomainKey("key".getBytes(), "example.com", "selector", Collections.singleton(" FROM ")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must include the From header");
 
-        assertThatThrownBy(() -> MailerBuilder
+        assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().mailerBuilder()
                 .withSMTPServer("host", 25, null, null)
                 .withDefaultDkimSigning("key".getBytes(), "example.com", "selector", Collections.singleton("fRoM")))
                 .isInstanceOf(IllegalArgumentException.class)

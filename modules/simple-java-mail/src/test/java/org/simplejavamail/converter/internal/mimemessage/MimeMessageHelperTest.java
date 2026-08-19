@@ -27,7 +27,6 @@ public class MimeMessageHelperTest {
 	
 	@BeforeEach
 	public void setup() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 		ModuleLoader._forceRecheckModule();
 	}
 

@@ -9,7 +9,7 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -44,7 +44,7 @@ public class EmailStartingBuilderImplTest {
 
 		((InternalEmail) email1).setUserProvidedEmail(null);
 
-		val email2 = EmailBuilder
+		val email2 = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
 				.copying(email1)
 				.ignoringDefaults()
 				.ignoringOverrides()
@@ -56,7 +56,7 @@ public class EmailStartingBuilderImplTest {
 	@Test
 	public void testCopyingSmimeSignedOutlookMessage() {
 		final Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_TEST_MESSAGES + "/SMIME (signed and clear text).msg"));
-		final EmailPopulatingBuilder copyingEmailBuilder = EmailBuilder.copying(emailParsedFromMsg).ignoringDefaults();
+		final EmailPopulatingBuilder copyingEmailBuilder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(emailParsedFromMsg).ignoringDefaults();
 		assertThat(copyingEmailBuilder.getHeaders()).isEmpty(); // when copying S/MIME generated message id should be ignored
 		copyingEmailBuilder.withHeaders(emailParsedFromMsg.getHeaders()); // but for the equals check, manually add them
 		EmailAssert.assertThat(copyingEmailBuilder.buildEmail()).isEqualTo(emailParsedFromMsg);
@@ -64,9 +64,8 @@ public class EmailStartingBuilderImplTest {
 
 	@Test
 	public void testCopyingCompleteAndEquals() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
-		Email fullyPopulatedEmail = EmailBuilder
+		Email fullyPopulatedEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
 				.startingBlank()
 				.withRecipients(EmailHelper.parsedRecipients("mr moo to", true, TO, "mr@moo.com"))
 				.withRecipients(EmailHelper.parsedRecipients("mr moo cc", true, CC, "mr@moo.com"))
@@ -107,7 +106,7 @@ public class EmailStartingBuilderImplTest {
 				.embeddedImageAutoResolutionMustBeSuccesful(true)
 				.buildEmail();
 
-		Email copiedEmail = EmailBuilder
+		Email copiedEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
 				.copying(fullyPopulatedEmail)
 				.buildEmail();
 

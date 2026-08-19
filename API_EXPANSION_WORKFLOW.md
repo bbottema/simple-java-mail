@@ -21,6 +21,7 @@ The foundation of any new feature usually starts with updating the core model ob
 New fields must be accessible through the fluent Builder API.
 
 - **Update Builder Interfaces**: Add new methods to the public builder interfaces (e.g., `EmailPopulatingBuilder`, `IRecipientsBuilder`, `IRecipientBuilder`).
+- **Javadoc Source of Truth**: Put the complete behavior contract on the public builder interface. Document convenience overloads well enough to stand on their own and link them to the full overload. Builder implementations, factories, Spring support, and other entry points should use `@see` links to the public builder method instead of maintaining a second copy of its semantics.
 - **CLI Compatibility Rules**:
   - **Parameter Types**: Use simple types (`String`, `boolean`, `int`, `long`) or types that have an existing `ValueInterpreter` in the `cli-module` (e.g., `X509Certificate`, `File`, `URL`, `Date`).
   - **Avoid Collections**: Picocli mapping works best with individual values or arrays. Avoid `Collection` or `Map` in signatures intended for CLI use. Provide overloads if necessary.
@@ -34,7 +35,7 @@ Implement the new API methods and ensure data propagation.
 - **Update Builder Implementations**: Update `EmailPopulatingBuilderImpl`, `RecipientsBuilder`, `RecipientBuilder`, etc.
 - **CRITICAL: Data Propagation**:
   - Ensure that "copy" methods (e.g., `withRecipient(Recipient)`) and delegation methods correctly copy the new field.
-  - Failure to do this will result in data being lost when `EmailBuilder.copying(email)` is used or when builders delegate to each other.
+  - Failure to do this will result in data being lost when `simpleJavaMail.emailBuilder().copying(email)` is used or when builders delegate to each other.
 - **Update Email Constructor**: Ensure the `Email` constructor copies the new field from the builder.
 - **Utility Classes**: Update `MiscUtil` if it contains helper methods for object creation or parsing (e.g., `interpretRecipient`).
 
@@ -55,8 +56,8 @@ If the feature relates to a specific module, update that module.
 - **Outlook (`outlook-module`)**:
   - Update `OutlookEmailConverter` if the new field has an equivalent in Outlook `.msg` files.
 - **Spring (`spring-module`)**:
-  - Update `SimpleJavaMailProperties` to include the new property.
-  - Update `SimpleJavaMailSpringSupport` to map the Spring property to the `ConfigLoader` and builders.
+  - Update `SimpleJavaMailProperties` and Spring Boot metadata for the new property.
+  - Update `SimpleJavaMailSpringSupport` so its context-local source includes the property and its `SimpleJavaMailConfig` bean supplies it to builders.
 
 ## 6. Defaults & Overrides (EmailGovernance)
 
@@ -68,7 +69,7 @@ Only skip defaults/overrides integration when the value cannot sensibly be repre
   - If the field is on Email and needs default/override resolution, add a corresponding constant to org.simplejavamail.internal.config.EmailProperty.
   - Mark it as collection-based when the value is a collection so merging is applied instead of replacement.
 - Apply default values (simple-java-mail)
-  - In EmailGovernanceImpl.newDefaultsEmailWithDefaultDefaults(), derive a sensible default from ConfigLoader.Property if applicable and set it on the builder.
+  - In `EmailGovernanceImpl.newDefaultsEmailWithDefaultDefaults()`, derive a sensible default from the Mailer's `SimpleJavaMailConfig` snapshot if applicable and set it on the builder.
 - Apply defaults/overrides to provided Email (simple-java-mail)
   - In EmailGovernanceImpl.produceEmailApplyingDefaultsAndOverrides(), resolve values using MiscUtil.overrideOrProvideOrDefaultProperty / overrideAndOrProvideAndOrDefaultCollection and apply them to the builder.
   - Ensure ignoringDefaults / ignoringOverrides and the per-property suppression sets are respected (this comes for free when using the MiscUtil helpers).
@@ -85,6 +86,7 @@ Mailer configuration API changes are separate from Email model/defaults/override
 - **Public API**: Add methods to `MailerGenericBuilder`, `MailerRegularBuilder`, or `MailerFromSessionBuilder` based on ownership. Provide complete Javadoc and CLI annotations because the CLI help text is generated from these builder APIs.
 - **Operational Ownership**: Add state to `OperationalConfig`, `ServerConfig`, `ProxyConfig`, or another existing Mailer config interface according to the behavior being configured.
 - **Property Defaults**: If the setting is property-friendly, add a `ConfigLoader.Property` entry and resolve it when creating the builder/config object. This keeps property-file driven projects configurable without Java code.
+- **Typed Schema**: Register the property's declared value type in `PropertySchema`. Do not infer a type from the text shape or parse values independently at individual read points.
 - **Transport Strategy Mapping**: When a Mailer setting maps to Jakarta Mail properties, keep the `mail.smtp.*` / `mail.smtps.*` names behind `TransportStrategy` helper methods and apply them only after the effective strategy is known.
 - **Spring Mapping**: If the property belongs to the public configuration surface, add it to Spring support and Spring Boot metadata generation classes.
 - **Verification**: Test the Java builder path, property/config path, Spring mapping when applicable, and the final `Session` properties.
@@ -96,9 +98,10 @@ Public API configuration should also have parity with property-backed configurat
 
 Only skip property configuration when the value cannot be expressed safely or clearly in properties, has no sensible global default, or would require complex object construction that belongs in Java code. Document the reason in the implementing issue or PR.
 
-- **ConfigLoader**: Add a new entry to the `Property` enum.
-- **Data Resolution**: Ensure the new property is used in `EmailGovernanceImpl`, the Mailer builder/config object, or wherever defaults are applied.
-- **Spring Mapping**: If the property belongs to the public configuration surface, add the corresponding Spring property and map it through `SimpleJavaMailSpringSupport`.
+- **Property Identifier**: Add a new entry to `ConfigLoader.Property` using the canonical public key.
+- **Typed Resolution**: Register the property in `PropertySchema`, then read it from the injected `SimpleJavaMailConfig` snapshot in `EmailGovernanceImpl`, the Mailer builder/config object, or wherever defaults are applied. Do not add a static read or a second parser.
+- **Factory Propagation**: Prove that builders from `SimpleJavaMail.withConfig(config)` retain the snapshot through copy, reply, conversion, Session creation, governance, and any applicable optional-module route.
+- **Spring Mapping**: If the property belongs to the public configuration surface, make `SimpleJavaMailSpringSupport` expose its canonical value through the context-local snapshot. Spring's `Environment` remains the source of precedence and placeholder resolution.
 - **Dynamic Property Collections**: For collection-style namespaces such as `simplejavamail.defaults.connectionpool.clusters.*`, keep parsing and validation centralized in `ConfigLoader`. Spring support should forward the whole namespace into `ConfigLoader` and Spring Boot metadata should describe the nested shape, rather than duplicating alias/key resolution.
 
 ## 9. Verification Surface Areas
@@ -106,7 +109,7 @@ Only skip property configuration when the value cannot be expressed safely or cl
 Always verify the following areas:
 
 - **Builder Chain**: Verify the field is preserved across multiple builder calls.
-- **Email Copying**: Use `EmailBuilder.copying(email).buildEmail()` and verify the field is still there.
+- **Email Copying**: Use `simpleJavaMail.emailBuilder().copying(email).buildEmail()` and verify the field is still there.
 - **CLI Help**: Run the CLI with `--help` for the relevant command to ensure the new option is documented and has the correct parameter labels.
 - **End-to-End**: Verify the field actually affects the final `MimeMessage` (e.g., by inspecting the produced EML or using a dummy SMTP server).
 

@@ -3,13 +3,12 @@ package org.simplejavamail.internal.clisupport;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedOptionData;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
-import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
-import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import org.slf4j.Logger;
 
 import java.lang.reflect.InvocationTargetException;
@@ -29,18 +28,18 @@ class CliCommandLineConsumerResultHandler {
 		LOGGER.debug("invoking Builder API in order of provided options...");
 		
 		final List<CliReceivedOptionData> receivedOptions = cliReceivedCommand.getReceivedOptions();
+		final SimpleJavaMail simpleJavaMail = SimpleJavaMail.fromDefaults();
 		
 		switch (cliReceivedCommand.getMatchedCommand()) {
-			case send: processCliSend(receivedOptions); break;
-			case validate: processCliValidate(receivedOptions); break;
-			case connect: processCliTestConnection(receivedOptions); break;
+			case send: processCliSend(receivedOptions, simpleJavaMail); break;
+			case validate: processCliValidate(receivedOptions, simpleJavaMail); break;
+			case connect: processCliTestConnection(receivedOptions, simpleJavaMail); break;
 		}
 	}
 	
-	@SuppressWarnings("deprecation")
-	private static void processCliSend(List<CliReceivedOptionData> receivedOptions) {
-		final EmailPopulatingBuilder emailBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.EMAIL, new EmailStartingBuilderImpl());
-		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, new MailerRegularBuilderImpl());
+	private static void processCliSend(List<CliReceivedOptionData> receivedOptions, SimpleJavaMail simpleJavaMail) {
+		final EmailPopulatingBuilder emailBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.EMAIL, simpleJavaMail.emailBuilder());
+		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, simpleJavaMail.mailerBuilder());
 		final Email email = emailBuilder.buildEmail();
 		final Mailer mailer = mailerBuilder.buildMailer();
 		try {
@@ -50,9 +49,8 @@ class CliCommandLineConsumerResultHandler {
 		}
 	}
 	
-	@SuppressWarnings("deprecation")
-	private static void processCliTestConnection(List<CliReceivedOptionData> receivedOptions) {
-		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, new MailerRegularBuilderImpl());
+	private static void processCliTestConnection(List<CliReceivedOptionData> receivedOptions, SimpleJavaMail simpleJavaMail) {
+		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, simpleJavaMail.mailerBuilder());
 		final Mailer mailer = mailerBuilder.buildMailer();
 		try {
 			waitFor(mailer.testConnection(mailer.getOperationalConfig().isAsync()), "testing connection");
@@ -61,10 +59,9 @@ class CliCommandLineConsumerResultHandler {
 		}
 	}
 	
-	@SuppressWarnings("deprecation")
-	private static void processCliValidate(List<CliReceivedOptionData> receivedOptions) {
-		final EmailPopulatingBuilder emailBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.EMAIL, new EmailStartingBuilderImpl());
-		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, new MailerRegularBuilderImpl());
+	private static void processCliValidate(List<CliReceivedOptionData> receivedOptions, SimpleJavaMail simpleJavaMail) {
+		final EmailPopulatingBuilder emailBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.EMAIL, simpleJavaMail.emailBuilder());
+		final MailerGenericBuilder<?> mailerBuilder = invokeBuilderApi(receivedOptions, CliBuilderApiType.MAILER, simpleJavaMail.mailerBuilder());
 		final Email email = emailBuilder.buildEmailCompletedWithDefaultsAndOverrides();
 		final Mailer mailer = mailerBuilder.buildMailer();
 		try {

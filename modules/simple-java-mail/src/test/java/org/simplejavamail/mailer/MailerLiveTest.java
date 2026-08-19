@@ -26,7 +26,7 @@ import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
@@ -94,20 +94,19 @@ public class MailerLiveTest {
 
 	// FIXME the builder should be reusable, but it fails this test when resused as a (static) field instance
 	private static EmailPopulatingBuilder EMAIL_DEFAULTS() {
-		return EmailBuilder.startingBlank()
+		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 			.withHeader("governanceOverrideTest1", "ignored")
 			.withHeader("governanceDefaultTest1", "defaulted");
 	}
 	private static EmailPopulatingBuilder EMAIL_OVERRIDES() {
-		return EmailBuilder.startingBlank()
+		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.withHeader("governanceOverrideTest1", "overridden") // overrides header from defaults-mail
 				.withHeader("governanceOverrideTest2", "also overridden"); // overrides header from in-mail
 	}
 
 	@BeforeEach
 	public void setup() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-		mailer = MailerBuilder.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
+		mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
 				.withEmailDefaults(EMAIL_DEFAULTS().buildEmail())
 				.withEmailOverrides(EMAIL_OVERRIDES().buildEmail())
 				.buildMailer();
@@ -165,7 +164,7 @@ public class MailerLiveTest {
 		dkimKeyGenerator.initialize(1024);
 		final byte[] dkimKey = dkimKeyGenerator.generateKeyPair().getPrivate().getEncoded();
 		mailer.getSession().getProperties().setProperty("mail.smtp.allow8bitmime", "true");
-		final Email signed = EmailBuilder.startingBlank()
+		final Email signed = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("fixture@supersecret-testing-domain.com")
 				.withRecipients(new Recipient(null, "receiver@example.com", TO, null))
 				.withBounceTo("bounce@example.com")
@@ -251,7 +250,7 @@ public class MailerLiveTest {
 	public void createMailSession_OutlookMessageIgnoresDefaultSmimeSigningTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		// override the default from the @BeforeEach test
-		mailer = MailerBuilder
+		mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
 				.withEmailDefaults(EMAIL_DEFAULTS()
 						.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein", null)
@@ -377,6 +376,7 @@ public class MailerLiveTest {
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("enveloped-data")
 				.smimeName("smime.p7m")
+				.smimeSignatureValid(true)
 				.build());
 		EmailAssert.assertThat(email.getSmimeSignedEmail()).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED)
@@ -430,7 +430,7 @@ public class MailerLiveTest {
 				.build().getX509Certificate();
 
 		// Build email with per-recipient cert only — no email-level encrypt config
-		mailer.sendMail(EmailBuilder.startingBlank()
+		mailer.sendMail(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@test.com")
 				.withRecipients(new Recipient("Benny", "benny.bottema@aegon.nl", TO, recipientCert))
 				.withPlainText("Hello, this is per-recipient encrypted!")
@@ -470,7 +470,7 @@ public class MailerLiveTest {
 				.x509Certificate(new File(RESOURCES_PKCS + "/ca.crt"))
 				.build().getX509Certificate();
 
-		mailer.sendMail(EmailBuilder.startingBlank()
+		mailer.sendMail(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@test.com")
 				.withRecipients(new Recipient("Benny", "benny.bottema@aegon.nl", TO, correctCert))
 				.encryptWithSmime(SmimeEncryptionConfig.builder().x509Certificate(wrongCert).build()) // email-level: wrong cert
@@ -657,7 +657,7 @@ public class MailerLiveTest {
 		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
 		// send reply to initial mail
-		Email reply = EmailBuilder
+		Email reply = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
 				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, true, false))
 				.from("dummy@domain.com")
 				.withPlainText("This is the reply")
@@ -690,7 +690,7 @@ public class MailerLiveTest {
 		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
 		// send reply to initial mail
-		Email reply = EmailBuilder
+		Email reply = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
 				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, true, false))
 				.from("Moo Shmoo", "dummy@domain.com")
 				.withPlainText("This is the reply")
@@ -708,7 +708,7 @@ public class MailerLiveTest {
 
 		EmailPopulatingBuilder receivedEmailReplyPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessageReply);
 
-		Email replyToReply = EmailBuilder
+		Email replyToReply = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
 				.replyingTo(assertSendingEmail(receivedEmailReplyPopulatingBuilder, false, false, false, false, false))
 				.from("Pappa Moo", "dummy@domain.com")
 				.withPlainText("This is the reply to the reply")
@@ -734,7 +734,7 @@ public class MailerLiveTest {
 
 	@Test
 	public void testMaximumEmailSize() {
-		val mailer = MailerBuilder
+		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
 				.withMaximumEmailSize(4)
 				.buildMailer();
@@ -744,7 +744,7 @@ public class MailerLiveTest {
 
 	@Test
 	public void testMaximumEmailSize_CustomMailer() {
-		val mailer = MailerBuilder
+		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withCustomMailer(new CustomMailer() {
 					@Override
 					public void testConnection(@NotNull OperationalConfig operationalConfig, @NotNull Session session) {
@@ -764,8 +764,8 @@ public class MailerLiveTest {
 
 	@Test
 	public void testMaximumEmailSize_DontSendOnlyLog() {
-		val mailer = MailerBuilder
-				.withTransportModeLoggingOnly()
+		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
+				.withTransportModeLoggingOnly(true)
 				.withMaximumEmailSize(4)
 				.buildMailer();
 
@@ -773,7 +773,7 @@ public class MailerLiveTest {
 	}
 
 	private static void sendAndVerifyEmailTooBigException(Mailer mailer) {
-		val email = EmailBuilder.startingBlank()
+		val email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.withPlainText("non empty text")
 				.withSubject("email size test")
 				.from("a@b.com")

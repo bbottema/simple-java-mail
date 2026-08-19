@@ -21,8 +21,8 @@ import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
 import static java.lang.String.format;
@@ -105,11 +105,30 @@ public class SessionBasedEmailToMimeMessageConverter {
         if (mimeMessage instanceof org.simplejavamail.internal.util.FinalizedMimeMessage) {
             return ((org.simplejavamail.internal.util.FinalizedMimeMessage) mimeMessage).getSerializedSize();
         }
-        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
-            mimeMessage.writeTo(os);
-            return os.size();
+        final CountingOutputStream counter = new CountingOutputStream();
+        try {
+            mimeMessage.writeTo(counter);
+            return counter.getCount();
         } catch (IOException e) {
             throw new RuntimeException("error trying to calculate email size", e);
+        }
+    }
+
+    private static final class CountingOutputStream extends OutputStream {
+        private long count;
+
+        @Override
+        public void write(final int value) {
+            count++;
+        }
+
+        @Override
+        public void write(final byte[] bytes, final int offset, final int length) {
+            count += length;
+        }
+
+        private long getCount() {
+            return count;
         }
     }
 

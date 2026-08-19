@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -21,11 +21,11 @@ import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
+	private SimpleJavaMail simpleJavaMail;
 
 	@BeforeEach
-	// normally not needed, but IntelliJ test coverage doesn't work with JVM forking (which normally solves static mutation issues)
 	public void setup() {
-		ConfigLoaderTestHelper.restoreOriginalConfigProperties();
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.defaultConfig());
 	}
 
 	@Test
@@ -37,9 +37,9 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 		ByteArrayDataSource namedEmbeddedImage = new ByteArrayDataSource(Base64.getDecoder().decode(base64StringOfThumbsupImage), "image/png");
 		namedEmbeddedImage.setName("thumbsupNamed-ignored-because-of-override.png");
 
-		fixLoadedPropertyPath(Property.SMIME_ENCRYPTION_CERTIFICATE);
+		simpleJavaMail = withFixedPropertyPath(Property.SMIME_ENCRYPTION_CERTIFICATE);
 
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = simpleJavaMail.emailBuilder().startingBlank()
 				.from("lollypop", "lol.pop@somemail.com")
 				.withRecipients(EmailHelper.parsedRecipients("C.Cane", true, TO, "candycane@candyshop.org"))
 				.withPlainText("We should meet up!")
@@ -56,11 +56,14 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private void fixLoadedPropertyPath(@NotNull final Property property) {
-		final String originalProperty = ConfigLoader.getStringProperty(property);
+	private SimpleJavaMail withFixedPropertyPath(@NotNull final Property property) {
+		final String originalProperty = ConfigLoaderTestHelper.defaultConfig().getStringProperty(property);
 		final Properties properties = new Properties();
 		properties.put(property.key(), determineResourceFolder("simple-java-mail").replace("src", "") + originalProperty);
-		ConfigLoader.loadProperties(properties, false);
+		return SimpleJavaMail.withConfig(ConfigLoader.builder()
+				.withConfig(ConfigLoaderTestHelper.defaultConfig())
+				.withProperties("test path correction", properties)
+				.load());
 	}
 
 	@Test
@@ -72,7 +75,7 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 		ByteArrayDataSource namedEmbeddedImage = new ByteArrayDataSource(Base64.getDecoder().decode(base64StringOfThumbsupImage), "image/png");
 		namedEmbeddedImage.setName("thumbsupNamed-ignored-because-of-override.png");
 
-		final Email email = EmailBuilder.startingBlank()
+		final Email email = simpleJavaMail.emailBuilder().startingBlank()
 				.from("lollypop", "lol.pop@somemail.com")
 				.withReplyTo("lollypop-reply", "lol.pop.reply@somemail.com")
 				.withBounceTo("lollypop-bounce", "lol.pop.bounce@somemail.com")

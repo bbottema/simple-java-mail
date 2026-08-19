@@ -8,11 +8,11 @@ import org.jetbrains.annotations.Nullable;
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
-/** A mutable MIME assembly message that preserves a caller-supplied Message-ID during finalization. */
+/** A mutable MIME assembly message that preserves its caller-supplied or first generated Message-ID. */
 public class MessageIdFixingMimeMessage extends MimeMessage {
 
     @Nullable
-    private final String messageId;
+    private String messageId;
 
     public MessageIdFixingMimeMessage(final Session session, @Nullable final String messageId) {
         super(session);
@@ -23,6 +23,7 @@ public class MessageIdFixingMimeMessage extends MimeMessage {
     protected void updateMessageID() throws MessagingException {
         if (valueNullOrEmpty(messageId)) {
             super.updateMessageID();
+            messageId = getMessageID();
         } else {
             setHeader("Message-ID", messageId);
         }

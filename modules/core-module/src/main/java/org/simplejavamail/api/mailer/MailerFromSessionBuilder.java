@@ -10,7 +10,7 @@ import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
  * Intermediate builder interface that supports a caller-supplied {@link Session}. Allows configuring generic Mailer settings, but not SMTP server or transport
  * strategy details.
  * <p>
- * <strong>Note:</strong> To start creating a new Mailer, you use {@code MailerBuilder} directly instead.
+ * Obtain this builder by passing the Session to {@code SimpleJavaMail.mailerBuilder(Session)}.
  * <p>
  * <strong>Note:</strong> SMTP server and transport properties are presumed to be present in the supplied {@link Session}. Proxy routing is the deliberate exception:
  * configuring a proxy through this builder overwrites the supported {@code mail.smtp.socks.host} and {@code mail.smtp.socks.port} properties.
@@ -33,7 +33,8 @@ public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>>
 	/**
 	 * Builds the actual {@link Mailer} instance with everything configured on this builder instance.
 	 * <p>
-	 * For all configurable values: if omitted, a default value will be attempted by looking at property files or manually defined defauls.
+	 * Generic values not set directly on this builder keep the immutable configuration snapshot captured when the builder was requested from its
+	 * configured factory. SMTP connection and transport values remain owned by the supplied {@link Session}, as documented by {@link #usingSession(Session)}.
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	Mailer buildMailer();

@@ -1,28 +1,23 @@
 package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.Session;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
-import org.simplejavamail.mailer.MailerBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MailerBuilderLocalBindConfigTest {
 
-	@BeforeEach
-	public void restoreOriginalStaticProperties() {
-		ConfigLoaderTestHelper.clearConfigProperties();
-	}
-
 	@Test
 	public void localBindAddressUsesSmtpPropertiesForStartTls() throws Exception {
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
 				.withLocalBindAddress("192.0.2.20", 25256)
@@ -38,7 +33,7 @@ public class MailerBuilderLocalBindConfigTest {
 
 	@Test
 	public void localBindAddressUsesSmtpsPropertiesForSmtps() throws Exception {
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 465)
 				.withTransportStrategy(TransportStrategy.SMTPS)
 				.withLocalBindAddress("192.0.2.21")
@@ -53,11 +48,9 @@ public class MailerBuilderLocalBindConfigTest {
 
 	@Test
 	public void localBindConfigPropertiesAreAppliedThroughTransportStrategy() throws Exception {
-		ConfigLoader.loadProperties(new ByteArrayInputStream((
+		try (Mailer mailer = configuredMail(
 				"simplejavamail.smtp.localaddress=192.0.2.22\n" +
-				"simplejavamail.smtp.localport=25257\n").getBytes()), false);
-
-		try (Mailer mailer = MailerBuilder
+						"simplejavamail.smtp.localport=25257\n").mailerBuilder()
 				.withSMTPServer("smtp.example.com", 465)
 				.withTransportStrategy(TransportStrategy.SMTPS)
 				.buildMailer()) {
@@ -71,11 +64,9 @@ public class MailerBuilderLocalBindConfigTest {
 
 	@Test
 	public void localBindAddressCanBeClearedAfterConfigDefaults() throws Exception {
-		ConfigLoader.loadProperties(new ByteArrayInputStream((
+		try (Mailer mailer = configuredMail(
 				"simplejavamail.smtp.localaddress=192.0.2.23\n" +
-				"simplejavamail.smtp.localport=25258\n").getBytes()), false);
-
-		try (Mailer mailer = MailerBuilder
+						"simplejavamail.smtp.localport=25258\n").mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
 				.clearLocalBindAddress()
@@ -89,7 +80,7 @@ public class MailerBuilderLocalBindConfigTest {
 
 	@Test
 	public void smtpClientHostnameUsesSmtpPropertiesForStartTls() throws Exception {
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
 				.withSmtpClientHostname("orders-service.prod.example.com")
@@ -104,7 +95,7 @@ public class MailerBuilderLocalBindConfigTest {
 
 	@Test
 	public void smtpClientHostnameUsesSmtpsPropertiesForSmtps() throws Exception {
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 465)
 				.withTransportStrategy(TransportStrategy.SMTPS)
 				.withSmtpClientHostname("bulk-mailer.corp.example.com")
@@ -118,10 +109,8 @@ public class MailerBuilderLocalBindConfigTest {
 
 	@Test
 	public void smtpClientHostnameConfigPropertyIsAppliedThroughTransportStrategy() throws Exception {
-		ConfigLoader.loadProperties(new ByteArrayInputStream((
-				"simplejavamail.smtp.clienthostname=relay-identity.example.com\n").getBytes()), false);
-
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = configuredMail(
+				"simplejavamail.smtp.clienthostname=relay-identity.example.com\n").mailerBuilder()
 				.withSMTPServer("smtp.example.com", 465)
 				.withTransportStrategy(TransportStrategy.SMTPS)
 				.buildMailer()) {
@@ -134,10 +123,8 @@ public class MailerBuilderLocalBindConfigTest {
 
 	@Test
 	public void smtpClientHostnameCanBeClearedAfterConfigDefaults() throws Exception {
-		ConfigLoader.loadProperties(new ByteArrayInputStream((
-				"simplejavamail.smtp.clienthostname=relay-identity.example.com\n").getBytes()), false);
-
-		try (Mailer mailer = MailerBuilder
+		try (Mailer mailer = configuredMail(
+				"simplejavamail.smtp.clienthostname=relay-identity.example.com\n").mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
 				.clearSmtpClientHostname()
@@ -148,5 +135,11 @@ public class MailerBuilderLocalBindConfigTest {
 			assertThat(session.getProperty("mail.smtp.localhost")).isNull();
 			assertThat(session.getProperty("mail.smtps.localhost")).isNull();
 		}
+	}
+
+	private static SimpleJavaMail configuredMail(final String properties) {
+		return SimpleJavaMail.withConfig(ConfigLoader.builder()
+				.withInputStream(new ByteArrayInputStream(properties.getBytes(StandardCharsets.UTF_8)))
+				.load());
 	}
 }

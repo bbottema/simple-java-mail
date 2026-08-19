@@ -6,7 +6,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.CalendarHelper;
 import testutil.ModuleLoaderTestHelper;
@@ -14,7 +14,6 @@ import testutil.ModuleLoaderTestHelper;
 import java.io.IOException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
-import static jakarta.mail.Message.RecipientType.TO;
 import static java.nio.charset.Charset.defaultCharset;
 import static testutil.ThumbsUpImage.produceThumbsUpImage;
 
@@ -46,18 +45,14 @@ public class FullEmailDemoApp extends DemoAppBase {
 	static Email produceMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailersEmail() throws IOException {
 		final String resourcesPathOnDisk = determineResourceFolder("simple-java-mail") + "/test/resources";
 
-		final EmailPopulatingBuilder emailPopulatingBuilderNormal = EmailBuilder.startingBlank()
+		final EmailPopulatingBuilder emailPopulatingBuilderNormal = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.withEmbeddedImageAutoResolutionForFiles(true)
 				.withEmbeddedImageAutoResolutionForClassPathResources(true)
 				.withEmbeddedImageAutoResolutionForURLs(true);
 
 		emailPopulatingBuilderNormal.from("Simple Java Mail demo", "simplejavamail@demo.app");
 		// don't forget to add your own address here ->
-		emailPopulatingBuilderNormal.withRecipients(new RecipientBuilder()
-				.withName("C.Cane")
-				.withAddress(YOUR_GMAIL_ADDRESS)
-				.withType(TO)
-				.build());
+		emailPopulatingBuilderNormal.withRecipients(RecipientBuilder.to("C.Cane", YOUR_GMAIL_ADDRESS));
 		emailPopulatingBuilderNormal.withPlainText("Plain text content (ignored in favor of HTML by modern browsers)");
 		emailPopulatingBuilderNormal.withHTMLText("<p>This is an email with \"mixed\", \"related\" and \"alternative\" content: it contains a plain " +
 				"text part (ignored in favor of HTML by modern clients), an HTML content part (this HTML text) which references a related " +

@@ -3,11 +3,11 @@ package org.simplejavamail.internal.util;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.util.SharedByteArrayInputStream;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
@@ -15,12 +15,13 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * A parsed {@link MimeMessage} backed by one finalized RFC 822 representation.
+ * A parsed {@link MimeMessage} backed by one finalized in-memory RFC 822 representation.
  *
- * <p>The raw representation is authoritative: repeated writes are byte-identical, and {@link #saveChanges()}
- * deliberately does nothing. Pipeline stages create a new instance when they transform protected content.</p>
+ * <p>This type is reserved for the cryptographic pipeline. The raw representation is authoritative: repeated writes
+ * are byte-identical, and {@link #saveChanges()} deliberately does nothing. Pipeline stages create a new instance
+ * when they transform or sign content.</p>
  */
-public final class FinalizedMimeMessage extends MimeMessage implements AutoCloseable {
+public final class FinalizedMimeMessage extends MimeMessage {
 
     public enum ProtectionState {
         NONE,
@@ -29,90 +30,62 @@ public final class FinalizedMimeMessage extends MimeMessage implements AutoClose
     }
 
     private static final byte[] CRLF = new byte[] {'\r', '\n'};
-    private static final int MAX_HEADER_BYTES = 1024 * 1024;
-    @NotNull
-    private final RepeatableMimeEntity serialized;
+    private final byte @NotNull [] serialized;
     @NotNull
     private final ProtectionState protectionState;
 
     private FinalizedMimeMessage(@NotNull final Session session,
-                                 @NotNull final RepeatableMimeEntity serialized,
+                                 final byte @NotNull [] serialized,
                                  @NotNull final ProtectionState protectionState)
             throws MessagingException {
-        super(session, serialized.openSharedInputStream());
+        super(session, new SharedByteArrayInputStream(serialized));
         this.serialized = serialized;
         this.protectionState = protectionState;
     }
 
-    /** Finalizes a mutable message, including headers, encodings, boundaries, Date, and Message-ID. */
+    /** Finalizes a message for cryptographic processing, including headers, encodings, boundaries, Date, and Message-ID. */
     @NotNull
     public static FinalizedMimeMessage finalizeMessage(@NotNull final MimeMessage message,
                                                        @NotNull final ProtectionState protectionState)
             throws MessagingException {
         message.saveChanges();
-        final RepeatableMimeEntity entity = RepeatableMimeEntity.capture(message::writeTo);
-        return fromEntity(message.getSession(), entity, protectionState);
+        try {
+            final ByteArrayOutputStream output = new ByteArrayOutputStream();
+            message.writeTo(output);
+            return fromOwnedBytes(message.getSession(), output.toByteArray(), protectionState);
+        } catch (IOException e) {
+            throw new MessagingException("Unable to finalize MIME message", e);
+        }
     }
 
-    /** Wraps already-finalized bytes without invoking {@code saveChanges()}. */
+    /** Wraps already-finalized cryptographic-pipeline bytes without invoking {@code saveChanges()}. */
     @NotNull
     public static FinalizedMimeMessage fromMessageBytes(@NotNull final Session session,
                                                         final byte @NotNull [] serialized,
                                                         @NotNull final ProtectionState protectionState)
             throws MessagingException {
-        try {
-            return fromEntity(session, RepeatableMimeEntity.fromBytes(serialized), protectionState);
-        } catch (IOException e) {
-            throw new MessagingException("Unable to store finalized MIME message", e);
-        }
+        return fromOwnedBytes(session, serialized.clone(), protectionState);
     }
 
     @NotNull
-    private static FinalizedMimeMessage fromEntity(@NotNull final Session session,
-                                                   @NotNull final RepeatableMimeEntity entity,
-                                                   @NotNull final ProtectionState protectionState)
+    private static FinalizedMimeMessage fromOwnedBytes(@NotNull final Session session,
+                                                       final byte @NotNull [] serialized,
+                                                       @NotNull final ProtectionState protectionState)
             throws MessagingException {
-        try {
-            return new FinalizedMimeMessage(session, entity, protectionState);
-        } catch (MessagingException | RuntimeException e) {
-            try {
-                entity.close();
-            } catch (IOException cleanupFailure) {
-                e.addSuppressed(cleanupFailure);
-            }
-            throw e;
-        }
+        return new FinalizedMimeMessage(session, serialized, protectionState);
     }
 
     public byte @NotNull [] getSerializedBytes() {
-        try {
-            return serialized.readAllBytes();
-        } catch (IOException e) {
-            throw new IllegalStateException("Unable to read finalized MIME message", e);
-        }
+        return serialized.clone();
     }
 
     public long getSerializedSize() {
-        return serialized.size();
-    }
-
-    /** Exposed for lifecycle diagnostics and tests; callers should normally remain storage-agnostic. */
-    public boolean usesTemporaryFile() {
-        return serialized.isFileBacked();
-    }
-
-    /** Exposed for lifecycle diagnostics and tests. */
-    public boolean storageAvailable() {
-        return serialized.exists();
+        return serialized.length;
     }
 
     @NotNull
     public ProtectionState getProtectionState() {
         return protectionState;
-    }
-
-    public boolean requiresStableTransportContent() {
-        return protectionState != ProtectionState.NONE;
     }
 
     @Override
@@ -122,7 +95,7 @@ public final class FinalizedMimeMessage extends MimeMessage implements AutoClose
 
     @Override
     public void writeTo(@NotNull final OutputStream outputStream) throws IOException {
-        serialized.writeTo(outputStream);
+        outputStream.write(serialized);
     }
 
     @Override
@@ -137,6 +110,12 @@ public final class FinalizedMimeMessage extends MimeMessage implements AutoClose
 
     private void writeWithoutHeaders(@NotNull final OutputStream outputStream, @NotNull final String[] ignoreList)
             throws IOException {
+        final int bodyOffset = findHeaderBodySeparator(serialized);
+        if (bodyOffset < 0) {
+            outputStream.write(serialized);
+            return;
+        }
+
         final Set<String> ignored = new HashSet<>();
         for (String header : ignoreList) {
             if (header != null) {
@@ -144,14 +123,7 @@ public final class FinalizedMimeMessage extends MimeMessage implements AutoClose
             }
         }
 
-        final byte[] headerBytes = readHeaders();
-        final int bodyOffset = findHeaderBodySeparator(headerBytes);
-        if (bodyOffset < 0) {
-            serialized.writeTo(outputStream);
-            return;
-        }
-
-        final String headers = new String(headerBytes, 0, bodyOffset, StandardCharsets.ISO_8859_1);
+        final String headers = new String(serialized, 0, bodyOffset, StandardCharsets.ISO_8859_1);
         final String[] lines = headers.split("\\r\\n", -1);
         boolean skip = false;
         for (String line : lines) {
@@ -165,35 +137,7 @@ public final class FinalizedMimeMessage extends MimeMessage implements AutoClose
             }
         }
         outputStream.write(CRLF);
-        try (InputStream body = serialized.openInputStream(bodyOffset + 4L)) {
-            final byte[] buffer = new byte[64 * 1024];
-            int read;
-            while ((read = body.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, read);
-            }
-        }
-    }
-
-    private byte[] readHeaders() throws IOException {
-        try (InputStream input = serialized.openInputStream(0);
-             ByteArrayOutputStream headers = new ByteArrayOutputStream()) {
-            int matched = 0;
-            int value;
-            while ((value = input.read()) != -1 && headers.size() <= MAX_HEADER_BYTES) {
-                headers.write(value);
-                if ((matched == 0 || matched == 2) && value == '\r') {
-                    matched++;
-                } else if ((matched == 1 || matched == 3) && value == '\n') {
-                    matched++;
-                    if (matched == 4) {
-                        return headers.toByteArray();
-                    }
-                } else {
-                    matched = value == '\r' ? 1 : 0;
-                }
-            }
-            return new byte[0];
-        }
+        outputStream.write(serialized, bodyOffset + 4, serialized.length - bodyOffset - 4);
     }
 
     private static int findHeaderBodySeparator(final byte[] bytes) {
@@ -203,23 +147,5 @@ public final class FinalizedMimeMessage extends MimeMessage implements AutoClose
             }
         }
         return -1;
-    }
-
-    @Override
-    public void close() {
-        try {
-            serialized.close();
-        } catch (IOException e) {
-            throw new IllegalStateException("Unable to release finalized MIME storage", e);
-        }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        try {
-            close();
-        } finally {
-            super.finalize();
-        }
     }
 }

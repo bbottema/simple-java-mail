@@ -1,33 +1,18 @@
 package org.simplejavamail.mailer.internal;
 
 import org.jetbrains.annotations.Nullable;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
-import org.simplejavamail.config.ConfigLoader;
-import org.simplejavamail.mailer.MailerBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import testutil.ConfigLoaderTestHelper;
-
-import java.io.ByteArrayInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 public class MailerBuilderProxyConfigTest {
 
-	@BeforeEach
-	public void restoreOriginalStaticProperties() {
-		String s = "simplejavamail.proxy.host=proxy.default.com\n"
-				+ "simplejavamail.proxy.port=1080\n"
-				+ "simplejavamail.proxy.username=username proxy\n"
-				+ "simplejavamail.proxy.password=password proxy\n"
-				+ "simplejavamail.proxy.socks5bridge.port=1081\n";
-		ConfigLoader.loadProperties(new ByteArrayInputStream(s.getBytes()), false);
-	}
-
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_WithoutHost() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 		ProxyConfig emptyProxyConfig = new ProxyConfigImpl(null, null, null, null, null);
 		verifyProxyConfig(emptyProxyConfig, null, null, null, null, null);
 		assertThat(emptyProxyConfig.requiresProxy()).isFalse();
@@ -36,9 +21,8 @@ public class MailerBuilderProxyConfigTest {
 
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_WithoutPort() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 		try {
-			MailerBuilder
+			SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServerHost("host")
 					.withSMTPServerPort(1234)
 					.withProxy("host", null)
@@ -48,7 +32,7 @@ public class MailerBuilderProxyConfigTest {
 			assertThat(e.getMessage()).containsIgnoringCase("proxyHost provided, but not a proxyPort");
 		}
 		try {
-			MailerBuilder
+			SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServerHost("host")
 					.withSMTPServerPort(1234)
 					.withProxy("host", null, null, null)
@@ -61,10 +45,9 @@ public class MailerBuilderProxyConfigTest {
 
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 
 		try {
-			MailerBuilder.withSMTPServerHost("host")
+			SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServerHost("host")
 					.withSMTPServerPort(123)
 					.withProxy("host", 1234, "username", null)
 					.buildMailer();
@@ -73,7 +56,7 @@ public class MailerBuilderProxyConfigTest {
 			assertThat(e.getMessage()).containsIgnoringCase("password");
 		}
 		try {
-			MailerBuilder
+			SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServerHost("host")
 					.withSMTPServerPort(1234)
 					.withProxy("host", 1234, null, "password")

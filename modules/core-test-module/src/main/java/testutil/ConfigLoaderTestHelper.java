@@ -2,30 +2,34 @@ package testutil;
 
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
+import org.simplejavamail.config.SimpleJavaMailConfig;
 
-import java.lang.reflect.Field;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Properties;
 
 /**
- * Test helper that can empty any properties loaded by the ConfigLoader.
+ * Test helper for creating explicit configuration snapshots without changing process-wide state.
  */
-public class ConfigLoaderTestHelper {
-	public static void setResolvedProperties(Map<Property, Object> value)
-			throws Exception {
-		Field field = ConfigLoader.class.getDeclaredField("RESOLVED_PROPERTIES");
-		field.setAccessible(true);
-		@SuppressWarnings("unchecked")
-		final Map<Property, Object> resolvedProperties = (Map<Property, Object>) field.get(null);
-		resolvedProperties.clear();
-		resolvedProperties.putAll(value);
+public final class ConfigLoaderTestHelper {
+
+	public static SimpleJavaMailConfig emptyConfig() {
+		return ConfigLoader.builder().load();
 	}
 
-	public static void clearConfigProperties() {
-		ConfigLoader.loadProperties(new Properties(), false);
+	public static SimpleJavaMailConfig defaultConfig() {
+		return ConfigLoader.builder()
+				.withClasspathResource(ConfigLoader.DEFAULT_CONFIG_FILENAME)
+				.load();
 	}
 
-	public static void restoreOriginalConfigProperties() {
-		ConfigLoader.loadProperties(ConfigLoader.DEFAULT_CONFIG_FILENAME, false);
+	public static SimpleJavaMailConfig config(final Map<Property, Object> values) {
+		final Map<String, Object> properties = new LinkedHashMap<>();
+		for (final Map.Entry<Property, Object> entry : values.entrySet()) {
+			properties.put(entry.getKey().key(), entry.getValue());
+		}
+		return ConfigLoader.builder().withMap(properties).load();
+	}
+
+	private ConfigLoaderTestHelper() {
 	}
 }

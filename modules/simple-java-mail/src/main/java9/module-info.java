@@ -14,10 +14,10 @@ module org.simplejavamail {
 	requires transitive org.simplejavamail.core;
 	requires transitive org.slf4j;
 
+	exports org.simplejavamail.api;
 	exports org.simplejavamail.converter;
 	exports org.simplejavamail.converter.internal;
 	exports org.simplejavamail.converter.internal.mimemessage;
-	exports org.simplejavamail.email;
 	exports org.simplejavamail.email.internal;
 	exports org.simplejavamail.internal.moduleloader;
 	exports org.simplejavamail.mailer;

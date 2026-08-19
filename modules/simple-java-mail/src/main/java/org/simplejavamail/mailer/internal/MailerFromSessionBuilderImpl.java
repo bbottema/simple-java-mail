@@ -4,6 +4,7 @@ import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
+import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /**
  * @see MailerFromSessionBuilder
@@ -17,12 +18,8 @@ public class MailerFromSessionBuilderImpl
 	 */
 	private Session session;
 	
-	/**
-	 * @deprecated Used internally. Don't use this. Instead use {@link org.simplejavamail.mailer.MailerBuilder#usingSession(Session)}.
-	 */
-	@Deprecated
-	@SuppressWarnings("DeprecatedIsStillUsed")
-	public MailerFromSessionBuilderImpl() {
+	public MailerFromSessionBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
+		super(config);
 	}
 	
 	/**

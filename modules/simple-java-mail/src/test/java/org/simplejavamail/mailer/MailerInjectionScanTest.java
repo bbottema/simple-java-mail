@@ -3,16 +3,13 @@ package org.simplejavamail.mailer;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.util.NamedDataSource;
 import testutil.EmailHelper;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -30,11 +27,6 @@ import static org.simplejavamail.mailer.MailerTest.createFullyConfiguredMailerBu
 public class MailerInjectionScanTest {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
-
-	@BeforeEach
-	public void restoreOriginalStaticProperties() {
-		ConfigLoader.loadProperties(new ByteArrayInputStream("simplejavamail.javaxmail.debug=true".getBytes()), false);
-	}
 
 	@Test
 	public void testCustomMailer_sendEmail_dontFailOn_injectionAttackOrInvalidAddress() throws IOException {

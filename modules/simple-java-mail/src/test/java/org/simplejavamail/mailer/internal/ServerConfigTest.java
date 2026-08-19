@@ -12,7 +12,6 @@ public class ServerConfigTest {
 
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_MissingPasswordOrUsername() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, "username", null, null, null);
 		verifyServerConfig(serverConfig, "host", 1234, "username", null, null, null);
 
@@ -26,14 +25,12 @@ public class ServerConfigTest {
 
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_Authenticated() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, "username", "password", null, null);
 		verifyServerConfig(serverConfig, "host", 1234, "username", "password", null, null);
 	}
 
 	@Test
 	public void testToString() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 		ServerConfig serverConfig = new ServerConfigImpl("host", 1234, null, null, null, null);
 		assertThat(serverConfig.toString()).isEqualTo("host:1234");
 		serverConfig = new ServerConfigImpl("host", 1234, "username", null, null, null);

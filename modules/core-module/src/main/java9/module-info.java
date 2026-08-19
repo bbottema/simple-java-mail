@@ -1,7 +1,4 @@
 module org.simplejavamail.core {
-	provides jakarta.mail.util.StreamProvider with org.simplejavamail.internal.util.ProviderNeutralStreamProvider;
-	provides jakarta.activation.spi.MailcapRegistryProvider with org.simplejavamail.internal.util.ProviderNeutralMailcapRegistryProvider;
-	provides jakarta.activation.spi.MimeTypeRegistryProvider with org.simplejavamail.internal.util.ProviderNeutralMimeTypeRegistryProvider;
 	requires static com.github.spotbugs.annotations;
 	requires static org.jetbrains.annotations;
 

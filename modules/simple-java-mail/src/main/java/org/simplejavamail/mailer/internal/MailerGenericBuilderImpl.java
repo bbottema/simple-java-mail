@@ -16,6 +16,7 @@ import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.config.ConfigLoader.Property;
+import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.PrintStream;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -30,13 +32,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.simplejavamail.config.ConfigLoader.getStringProperty;
-import static org.simplejavamail.config.ConfigLoader.hasProperty;
-import static org.simplejavamail.config.ConfigLoader.valueOrProperty;
-import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsBoolean;
-import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsInteger;
-import static org.simplejavamail.config.ConfigLoader.valueOrPropertyAsString;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY;
+import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
@@ -44,44 +41,48 @@ import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
+import static java.util.Objects.requireNonNull;
 
 /**
  * @see MailerGenericBuilder
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
 abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements InternalMailerBuilder<T> {
-	
+
+	@NotNull
+	private final SimpleJavaMailConfig config;
+
 	/**
 	 * @see MailerGenericBuilder#async()
 	 */
 	private boolean async;
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxyHost(String)
 	 */
 	private String proxyHost;
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxyPort(Integer)
 	 */
 	private Integer proxyPort;
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxyUsername(String)
 	 */
 	private String proxyUsername;
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxyPassword(String)
 	 */
 	private String proxyPassword;
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxyBridgePort(Integer)
 	 */
 	@NotNull
 	private Integer proxyBridgePort;
-	
+
 	/**
 	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
 	 */
@@ -97,7 +98,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * @see #disablingAllClientValidation(Boolean)
 	 */
 	private boolean disableAllClientValidation;
-	
+
 	/**
 	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
@@ -239,7 +240,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@NotNull
 	private final Properties properties = new Properties();
-	
+
 	/**
 	 * @see MailerGenericBuilder#withTransportModeLoggingOnly(Boolean)
 	 */
@@ -256,55 +257,52 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Nullable
 	private OAuth2AccessTokenProvider oauth2AccessTokenProvider;
-	
-	/**
-	 * Sets defaults configured for proxy host, proxy port, proxy username, proxy password and proxy bridge port (used in authenticated proxy).
-	 * <p>
-	 * <strong>Note:</strong> Any builder methods invoked after this will override the default value.
-	 */
-	MailerGenericBuilderImpl() {
-		if (hasProperty(PROXY_HOST)) {
-			this.proxyHost = getStringProperty(PROXY_HOST);
-		}
-		if (hasProperty(PROXY_USERNAME)) {
-			this.proxyUsername = getStringProperty(PROXY_USERNAME);
-		}
-		if (hasProperty(PROXY_PASSWORD)) {
-			this.proxyPassword = getStringProperty(PROXY_PASSWORD);
-		}
-		this.clusterKey = hasProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)
-				? UUID.fromString(verifyNonnullOrEmpty(getStringProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))
-				: UUID.randomUUID(); // <-- this makes sure it won't form a cluster with another mailer
 
-		this.proxyPort 								= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
-		this.proxyBridgePort 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
-		this.disableAllClientValidation				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
-		this.debugLogging 							= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
-		this.debugPrinter							= resolveDebugPrinter(valueOrProperty(null, Property.JAVAXMAIL_DEBUG_OUTPUT, null));
-		this.sessionTimeout 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
-		this.localBindAddress						= valueOrPropertyAsString(null, Property.SMTP_LOCAL_ADDRESS, null);
-		this.localBindPort							= valueOrPropertyAsInteger(null, Property.SMTP_LOCAL_PORT, null);
-		this.smtpClientHostname					= valueOrPropertyAsString(null, Property.SMTP_CLIENT_HOSTNAME, null);
-		this.trustAllSSLHost 						= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
-		this.verifyingServerIdentity 				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY));
-		this.threadPoolSize 						= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
-		this.threadPoolKeepAliveTime 				= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
-		this.connectionPoolCoreSize 				= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
-		this.connectionPoolMaxSize 					= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
-		this.connectionPoolClaimTimeoutMillis 		= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS));
-		this.connectionPoolExpireAfterMillis 		= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
-		this.connectionPoolLoadBalancingStrategy	= verifyNonnullOrEmpty(valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
-		this.connectionPoolClusterConfigs			= valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, Collections.emptyMap());
-		this.transportModeLoggingOnly 				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
+	MailerGenericBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
+		this.config = requireNonNull(config, "config");
+		final Map<String, String> extraProperties = config.getProperty(EXTRA_PROPERTIES);
+		if (extraProperties != null) {
+			this.properties.putAll(extraProperties);
+		}
+		this.proxyHost = config.getStringProperty(PROXY_HOST);
+		this.proxyUsername = config.getStringProperty(PROXY_USERNAME);
+		this.proxyPassword = config.getStringProperty(PROXY_PASSWORD);
+		this.clusterKey = config.hasProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)
+				? UUID.fromString(verifyNonnullOrEmpty(config.getStringProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))
+				: UUID.randomUUID();
 
-		final String trustedHosts = valueOrPropertyAsString(null, Property.DEFAULT_TRUSTED_HOSTS, null);
+		this.proxyPort =  							verifyNonnullOrEmpty(config.valueOrProperty(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
+		this.proxyBridgePort = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
+		this.disableAllClientValidation = 			verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
+		this.debugLogging = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
+		this.debugPrinter = 						resolveDebugPrinter(config.getProperty(Property.JAVAXMAIL_DEBUG_OUTPUT));
+		this.sessionTimeout = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
+		this.localBindAddress = 					config.getStringProperty(Property.SMTP_LOCAL_ADDRESS);
+		this.localBindPort = 						config.getIntegerProperty(Property.SMTP_LOCAL_PORT);
+		this.smtpClientHostname = 					config.getStringProperty(Property.SMTP_CLIENT_HOSTNAME);
+		this.trustAllSSLHost = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
+		this.verifyingServerIdentity = 				verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY));
+		this.threadPoolSize = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
+		this.threadPoolKeepAliveTime = 				verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
+		this.connectionPoolCoreSize = 				verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
+		this.connectionPoolMaxSize = 				verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
+		this.connectionPoolClaimTimeoutMillis = 	verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS));
+		this.connectionPoolExpireAfterMillis = 		verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
+		this.connectionPoolLoadBalancingStrategy = 	verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY,
+				LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
+		final Map<UUID, ConnectionPoolClusterConfig> configuredClusters = config.getProperty(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		this.connectionPoolClusterConfigs = 		configuredClusters == null
+				? Collections.<UUID, ConnectionPoolClusterConfig>emptyMap()
+				: new LinkedHashMap<>(configuredClusters);
+		this.transportModeLoggingOnly = 			verifyNonnullOrEmpty(config.valueOrProperty(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
+
+		final String trustedHosts = config.getStringProperty(Property.DEFAULT_TRUSTED_HOSTS);
 		if (trustedHosts != null) {
-			this.sslHostsToTrust = Arrays.asList(trustedHosts.split(";"));
+			this.sslHostsToTrust = new ArrayList<>(Arrays.asList(trustedHosts.split(";")));
 		}
-
 		this.emailValidator = JMail.strictValidator();
 	}
-	
+
 	/**
 	 * For internal use.
 	 */
@@ -312,11 +310,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		validateProxy();
 		return new ProxyConfigImpl(getProxyHost(), getProxyPort(), getProxyUsername(), getProxyPassword(), getProxyBridgePort());
 	}
-	
+
 	private void validateProxy() {
 		if (!valueNullOrEmpty(proxyHost)) {
 			checkArgumentNotEmpty(proxyPort, "proxyHost provided, but not a proxyPort");
-			
+
 			if (!valueNullOrEmpty(proxyUsername) && valueNullOrEmpty(proxyPassword)) {
 				throw new IllegalArgumentException("Proxy username provided but not a password");
 			}
@@ -334,6 +332,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	EmailGovernance buildEmailGovernance() {
 		return new EmailGovernanceImpl(
+				config,
+				new org.simplejavamail.email.internal.EmailStartingBuilderImpl(config),
 				getEmailValidator(),
 				getEmailDefaults(),
 				getEmailOverrides(),
@@ -341,7 +341,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getDefaultDkimSigningConfig(),
 				isDefaultDkimSigningConfigured());
 	}
-	
+
 	/**
 	 * For internal use.
 	 */
@@ -361,7 +361,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getConnectionPoolClaimTimeoutMillis(),
 				getConnectionPoolExpireAfterMillis(),
 				getConnectionPoolLoadBalancingStrategy(),
-				connectionPoolClusterConfigs,
+				Collections.unmodifiableMap(new LinkedHashMap<>(connectionPoolClusterConfigs)),
 				isTransportModeLoggingOnly(),
 				isDebugLogging(),
 				getDebugPrinter(),
@@ -374,7 +374,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getCustomMailer(),
 				getOAuth2AccessTokenProvider());
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#async()
 	 */
@@ -383,7 +383,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.async = true;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxy(String, Integer)
 	 */
@@ -392,7 +392,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		return (T) withProxyHost(proxyHost)
 				.withProxyPort(proxyPort);
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxy(String, Integer, String, String)
 	 */
@@ -403,7 +403,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				.withProxyUsername(proxyUsername)
 				.withProxyPassword(proxyPassword);
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxyHost(String)
 	 */
@@ -412,7 +412,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.proxyHost = proxyHost;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxyPort(Integer)
 	 */
@@ -421,7 +421,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.proxyPort = proxyPort;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxyUsername(String)
 	 */
@@ -430,7 +430,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.proxyUsername = proxyUsername;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxyPassword(String)
 	 */
@@ -439,7 +439,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.proxyPassword = proxyPassword;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProxyBridgePort(Integer)
 	 */
@@ -483,7 +483,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.disableAllClientValidation = disableAllClientValidation;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
@@ -544,7 +544,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Override
 	public T withDefaultDkimSigning(final byte@NotNull[] dkimPrivateKey, @NotNull final String signingDomain, @NotNull final String dkimSelector,
-			@Nullable final Set<String> excludedHeadersFromDkimDefaultSigningList) {
+									@Nullable final Set<String> excludedHeadersFromDkimDefaultSigningList) {
 		return withDefaultDkimSigning(DkimConfig.builder()
 				.dkimPrivateKeyData(checkNonEmptyArgument(dkimPrivateKey, "dkimPrivateKey"))
 				.dkimSigningDomain(checkNonEmptyArgument(signingDomain, "dkimSigningDomain"))
@@ -670,7 +670,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
@@ -679,7 +679,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.sslHostsToTrust = Arrays.asList(sslHostsToTrust);
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#trustingAllHosts(boolean)
 	 */
@@ -708,7 +708,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		}
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProperties(Map)
 	 */
@@ -719,7 +719,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		}
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#withProperty(String, Object)
 	 */
@@ -782,7 +782,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public T resetVerifyingServerIdentity() {
 		return verifyingServerIdentity(DEFAULT_VERIFY_SERVER_IDENTITY);
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#resetEmailValidator()
 	 */
@@ -883,7 +883,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public T resetTransportModeLoggingOnly() {
 		return withTransportModeLoggingOnly(DEFAULT_TRANSPORT_MODE_LOGGING_ONLY);
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#clearProxy()
 	 */
@@ -962,7 +962,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public T clearSmtpClientHostname() {
 		return withSmtpClientHostname(null);
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#clearProperties()
 	 */
@@ -971,7 +971,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		properties.clear();
 		return (T) this;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#isAsync()
 	 */
@@ -979,7 +979,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public boolean isAsync() {
 		return async;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#getProxyHost()
 	 */
@@ -988,7 +988,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public String getProxyHost() {
 		return proxyHost;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#getProxyPort()
 	 */
@@ -997,7 +997,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public Integer getProxyPort() {
 		return proxyPort;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#getProxyUsername()
 	 */
@@ -1006,7 +1006,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public String getProxyUsername() {
 		return proxyUsername;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#getProxyPassword()
 	 */
@@ -1015,7 +1015,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public String getProxyPassword() {
 		return proxyPassword;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#getProxyBridgePort()
 	 */
@@ -1049,7 +1049,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public boolean isDisableAllClientValidation() {
 		return disableAllClientValidation;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#getSessionTimeout()
 	 */
@@ -1260,7 +1260,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public boolean isTransportModeLoggingOnly() {
 		return transportModeLoggingOnly;
 	}
-	
+
 	/**
 	 * @see MailerGenericBuilder#getProperties()
 	 */

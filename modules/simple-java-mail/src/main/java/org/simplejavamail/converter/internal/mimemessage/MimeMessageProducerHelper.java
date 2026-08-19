@@ -5,6 +5,7 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.email.internal.InternalEmail;
+import org.simplejavamail.internal.util.JakartaMailImplementation;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
@@ -36,6 +37,7 @@ public final class MimeMessageProducerHelper {
 	
 	@SuppressWarnings("deprecation")
 	public static MimeMessage produceMimeMessage(Email email, Session session) throws UnsupportedEncodingException, MessagingException {
+		JakartaMailImplementation.requireAvailable();
 		assert email instanceof InternalEmail;
 		((InternalEmail) email).verifyDefaultsAndOverridesApplied();
 		for (SpecializedMimeMessageProducer mimeMessageProducer : mimeMessageProducers) {

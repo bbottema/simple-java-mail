@@ -303,6 +303,7 @@ public class ReadSmimeSelfSignedTest {
 					.smimeMime("application/pkcs7-mime")
 					.smimeType("enveloped-data")
 					.smimeName("smime.p7m")
+					.smimeSignatureValid(true)
 					.build());
 		});
 	}

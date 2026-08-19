@@ -10,7 +10,7 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.EmailBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
 import testutil.ConfigLoaderTestHelper;
 import testutil.testrules.SmtpServerExtension;
 
@@ -33,12 +33,11 @@ class EmailSerializationSmtpTest {
 
 	@BeforeEach
 	void clearDefaults() {
-		ConfigLoaderTestHelper.clearConfigProperties();
 	}
 
 	@Test
 	void deserializedSnapshotCanStillBeSignedAndSentWithAllContent() throws Exception {
-		final MimeMessage forwardedMessage = EmailConverter.emailToMimeMessage(EmailBuilder.startingBlank()
+		final MimeMessage forwardedMessage = EmailConverter.emailToMimeMessage(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("original-sender@example.org")
 				.withRecipients(new Recipient(null, "original-recipient@example.org", TO, null))
 				.withSubject("Forwarded subject")
@@ -48,7 +47,7 @@ class EmailSerializationSmtpTest {
 				.pkcs12Config(loadPkcs12KeyStore())
 				.signatureAlgorithm("SHA256withRSA")
 				.build();
-		final Email email = EmailBuilder.forwarding(forwardedMessage)
+		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().forwarding(forwardedMessage)
 				.from("sender@example.org")
 				.withRecipients(new Recipient(null, "recipient@example.org", TO, null))
 				.withPlainText("Serialized body")
@@ -59,7 +58,7 @@ class EmailSerializationSmtpTest {
 				.buildEmail();
 		final Email restored = roundTrip(email);
 
-		final Mailer mailer = MailerBuilder.withSMTPServer("localhost", SMTP_PORT).buildMailer();
+		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", SMTP_PORT).buildMailer();
 		try {
 			mailer.sendMail(restored);
 		} finally {
