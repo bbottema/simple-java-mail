@@ -91,7 +91,7 @@ Optional modules extend the same API and add their dependencies only when select
 | [Authenticated SOCKS proxies](https://www.simplejavamail.org/modules.html#authenticated-socks-module) | `authenticated-socks-module` |
 | [Outlook `.msg` parsing and conversion](https://www.simplejavamail.org/modules.html#outlook-module) | `outlook-module` |
 | [Spring-managed configuration](https://www.simplejavamail.org/modules.html#spring-module) | `spring-module` |
-| [Command-line sending and validation](https://www.simplejavamail.org/modules.html#cli-module) | `cli-module` |
+| [Command-line sending and validation](https://www.simplejavamail.org/modules.html#cli-module) | `cli-module` (Java 17+; the libraries remain Java 8-compatible) |
 | [OSGi and Apache Karaf](https://www.simplejavamail.org/modules.html#karaf-module) | `karaf-module` |
 
 The [modules guide](https://www.simplejavamail.org/modules.html) lists each coordinate, its main transitive dependencies, and the capabilities it enables.

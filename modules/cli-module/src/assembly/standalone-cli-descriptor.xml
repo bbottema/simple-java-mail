@@ -10,8 +10,19 @@
 	<includeBaseDirectory>false</includeBaseDirectory>
 	<fileSets>
 		<fileSet>
+			<directory>${project.build.directory}/appassembler/bin</directory>
+			<outputDirectory>bin</outputDirectory>
+			<fileMode>0755</fileMode>
+			<includes>
+				<include>**/**</include>
+			</includes>
+		</fileSet>
+		<fileSet>
 			<directory>${project.build.directory}/appassembler</directory>
 			<outputDirectory>./</outputDirectory>
+			<excludes>
+				<exclude>bin/**</exclude>
+			</excludes>
 			<includes>
 				<include>**/**</include>
 			</includes>
@@ -21,6 +32,20 @@
 			<outputDirectory>./</outputDirectory>
 			<includes>
 				<include>NOTICE.txt</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.basedir}/src/main/distribution</directory>
+			<outputDirectory>./</outputDirectory>
+			<includes>
+				<include>daemon/systemd/**</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.basedir}</directory>
+			<outputDirectory>./</outputDirectory>
+			<includes>
+				<include>DAEMON.md</include>
 			</includes>
 		</fileSet>
 		<fileSet>

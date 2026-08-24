@@ -5,6 +5,8 @@
 - Target release: 10.0.0
 - Primary areas: full verification, public API audit, cleanup, completion evidence
 
+> Historical gate: this records the plan 01 release matrix as executed. Plan 02 later replaces only its full-reactor Java 8 CLI gate with a Java 8 library-only lane plus Java 17/21 CLI lanes.
+
 ## Goal
 
 Prove that the refactor works as one architecture across Java versions, module systems, frameworks, runtime routes, and documentation. Then remove every temporary bridge and record the evidence.

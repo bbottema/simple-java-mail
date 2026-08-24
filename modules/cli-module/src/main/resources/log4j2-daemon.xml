@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <RollingFile name="daemonFile"
+                     fileName="${sys:simplejavamail.cli.daemon.log-file}"
+                     filePattern="${sys:simplejavamail.cli.daemon.log-file}.%i.gz">
+            <PatternLayout pattern="%d{ISO8601} %-5level %c{1} - %msg%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Logger name="org.simplejavamail.internal.clisupport.daemon" level="info" additivity="false">
+            <AppenderRef ref="daemonFile"/>
+        </Logger>
+        <Logger name="org.simplejavamail" level="off"/>
+        <Root level="off">
+            <AppenderRef ref="daemonFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

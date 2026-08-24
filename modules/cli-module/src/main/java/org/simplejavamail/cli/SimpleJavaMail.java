@@ -1,6 +1,6 @@
 package org.simplejavamail.cli;
 
-import static org.simplejavamail.internal.clisupport.CliSupport.runCLI;
+import org.simplejavamail.internal.clisupport.daemon.DaemonBootstrap;
 
 /**
  * Entry class when using the command line interface. Wires all the args into the CLI support.
@@ -13,6 +13,7 @@ import static org.simplejavamail.internal.clisupport.CliSupport.runCLI;
  */
 public class SimpleJavaMail {
 	public static void main(String[] args) {
-		runCLI(args);
+		final int exitCode = DaemonBootstrap.run(args);
+		System.exit(exitCode);
 	}
 }

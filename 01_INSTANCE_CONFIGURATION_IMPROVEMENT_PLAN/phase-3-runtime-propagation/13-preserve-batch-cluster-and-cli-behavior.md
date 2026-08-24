@@ -5,6 +5,8 @@
 - Primary modules: `batch-module` and `cli-module`
 - Primary files: `OperationalConfig` consumers, `BatchSupport`/cluster helpers, `CliCommandLineConsumerResultHandler.java`, generated CLI metadata
 
+> Historical gate: the Java 8 CLI evidence in this completed step predates plan 02. Plan 02 supersedes the ongoing `cli-module` and metadata-generation baseline with Java 17; the batch and library Java 8 contract remains current.
+
 ## Goal
 
 Carry the resolved snapshot through the two indirect consumers that currently depend on globally seeded builders: batch cluster registration and CLI command execution.

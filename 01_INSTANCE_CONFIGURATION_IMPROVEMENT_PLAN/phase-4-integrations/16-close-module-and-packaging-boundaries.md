@@ -4,6 +4,8 @@
 - Depends on: Steps 14 and 15
 - Primary areas: JPMS, classpath, OSGi/Karaf, generated CLI data, Spring Boot metadata, dependency trees, public API diff
 
+> Historical gate: the Java 8 CLI-generation evidence in this completed step predates plan 02. Plan 02 now generates `cli.data` and `therapi.data` on supported Java 17+ CLI JDKs while preserving Java 8 library artifacts.
+
 ## Goal
 
 Make the new API real in every published artifact form. The refactor is incomplete if it only works from the Maven reactor's classpath.

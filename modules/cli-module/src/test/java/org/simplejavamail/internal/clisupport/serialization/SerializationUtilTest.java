@@ -5,6 +5,11 @@ import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,6 +38,29 @@ public class SerializationUtilTest {
 				.containsExactly("optional", "mandatory");
 		assertThat(deserialized.getSourceMethod()).isEqualTo(method);
 		assertThatThrownBy(() -> deserialized.getDescription().add("mutation"))
+				.isInstanceOf(UnsupportedOperationException.class);
+	}
+
+	@Test
+	public void serializesTheUnmodifiableListsUsedByTherapiJavadoc() {
+		final List<String> source = Collections.unmodifiableList(new ArrayList<>(List.of("first", "second")));
+
+		final List<String> deserialized = SerializationUtil.deserialize(SerializationUtil.serialize(source));
+
+		assertThat(deserialized).containsExactly("first", "second");
+		assertThatThrownBy(() -> deserialized.add("mutation"))
+				.isInstanceOf(UnsupportedOperationException.class);
+	}
+
+	@Test
+	public void serializesTheUnmodifiableMapsUsedByTherapiJavadoc() {
+		final Map<String, String> source = Collections.unmodifiableMap(
+				new LinkedHashMap<>(Map.of("name", "description")));
+
+		final Map<String, String> deserialized = SerializationUtil.deserialize(SerializationUtil.serialize(source));
+
+		assertThat(deserialized).containsExactly(Map.entry("name", "description"));
+		assertThatThrownBy(() -> deserialized.put("mutation", "rejected"))
 				.isInstanceOf(UnsupportedOperationException.class);
 	}
 

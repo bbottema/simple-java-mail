@@ -17,7 +17,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +25,13 @@ import java.util.Map.Entry;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static org.bbottema.javareflection.TypeUtils.containsAnnotation;
-import static org.simplejavamail.internal.util.ListUtil.getLast;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Converts a successfully parsed, non-help Picocli command into ordered builder invocations.
+ * Declared option order is restored before string values are converted to the exact builder parameter types.
+ */
 class CliCommandLineConsumer {
     
     private static final Logger LOGGER = getLogger(CliCommandLineConsumer.class);
@@ -42,7 +44,7 @@ class CliCommandLineConsumer {
         final CliCommandType matchedCommand = CliCommandType.valueOf(mailCommand.commandSpec().name());
         final Map<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision = matchProvidedOptions(declaredOptions, mailCommand.matchedOptions());
     
-        logParsedInput(matchedCommand, matchedOptionsInOrderProvision);
+		LOGGER.debug("processing mail command: {}", matchedCommand);
 		
         List<CliReceivedOptionData> receivedOptions = new ArrayList<>();
         for (Entry<CliDeclaredOptionSpec, OptionSpec> cliOption : matchedOptionsInOrderProvision.entrySet()) {
@@ -54,7 +56,6 @@ class CliCommandLineConsumer {
             assumeTrue(providedStringValues.size() <= sourceMethod.getParameterTypes().length,
                     format("provided %s arguments for '%s', but need at most %s", providedStringValues.size(), cliOption.getKey(), sourceMethod.getParameterTypes().length));
 			receivedOptions.add(new CliReceivedOptionData(cliOption.getKey(), convertProvidedOptionValues(providedStringValues, sourceMethod)));
-			LOGGER.debug("\tconverted option values: {}", getLast(receivedOptions).getProvidedOptionValues());
         }
         
         return new CliReceivedCommand(matchedCommand, receivedOptions);
@@ -100,21 +101,9 @@ class CliCommandLineConsumer {
 		try {
 			return ValueConversionHelper.convert(stringValue, targetType);
 		} catch (IncompatibleTypeException e) {
-			LOGGER.error("Was unable to parse input from command line. The following conversions were tried and failed:");
-			for (IncompatibleTypeException cause : e.getCauses()) {
-				LOGGER.error(cause.getMessage(), cause);
-			}
-			throw e;
+			LOGGER.error("Unable to parse one command-line value as {}", targetType.getName());
+			throw new CliExecutionException("Unable to parse a command-line value as " + targetType.getSimpleName(), e);
 		}
 	}
     
-    private static void logParsedInput(CliCommandType matchedCommand, Map<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision) {
-        LOGGER.debug("processing mail command: {}", matchedCommand);
-        for (Entry<CliDeclaredOptionSpec, OptionSpec> cliOption : matchedOptionsInOrderProvision.entrySet()) {
-            CliDeclaredOptionSpec declaredOption = cliOption.getKey();
-            OptionSpec providedOption = cliOption.getValue();
-            Collection<String> values = providedOption.getValue();
-            LOGGER.debug("\tgot option: {}, with {} value(s): {}", declaredOption.getName(), values.size(), values);
-        }
-    }
 }

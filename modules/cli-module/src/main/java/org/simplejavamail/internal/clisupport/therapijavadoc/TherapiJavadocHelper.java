@@ -12,10 +12,11 @@ import org.bbottema.javareflection.MethodUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.clisupport.CliDataLocator;
+import org.simplejavamail.internal.clisupport.CliSourceApiFingerprint;
+import org.simplejavamail.internal.clisupport.serialization.CliMetadataCache;
 import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
-import org.simplejavamail.internal.util.FileUtil;
+import org.slf4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 
 import static java.lang.String.format;
@@ -32,31 +34,46 @@ import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.StringUtil.padRight;
+import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Converts runtime builder-API Javadoc into CLI option descriptions and cross-references.
+ * A validated pre-generated cache avoids repeated runtime traversal during normal startup; development generation
+ * persists a canonically ordered cache so supported JDKs produce the same artifact.
+ */
 public final class TherapiJavadocHelper {
+	private static final Logger LOGGER = getLogger(TherapiJavadocHelper.class);
+	private static final String REGENERATE_METADATA_PROPERTY = "simplejavamail.cli.metadata.regenerate";
 
-	// using a pregenerated cache file shaves off 10% runtime
-	private static final File THERAPI_DATAFILE = new File(CliDataLocator.locateTherapiDataFile());
-	// this caches roughly halves runtime (doubles performance)
 	private static final Map<String, MethodJavadoc> THERAPI_CACHE = loadTherapiCache();
 
 	private static Map<String, MethodJavadoc> loadTherapiCache() {
-		if (THERAPI_DATAFILE.exists()) {
-			try {
-				return SerializationUtil.deserialize(FileUtil.readFileBytes(THERAPI_DATAFILE));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			} catch (RuntimeException e) {
-				return new HashMap<>();
+		try {
+			final byte[] encodedCache = Boolean.getBoolean(REGENERATE_METADATA_PROPERTY)
+					? null : CliDataLocator.readTherapiDataFile();
+			if (encodedCache != null) {
+				try {
+					final byte[] payload = CliMetadataCache.unwrap(CliMetadataCache.Kind.THERAPI_JAVADOC,
+							CliSourceApiFingerprint.calculate(), encodedCache);
+					return SerializationUtil.deserialize(payload);
+				} catch (RuntimeException e) {
+					LOGGER.warn("Could not use therapi.data; regenerating the internal cache: {}", e.getMessage());
+					return new HashMap<>();
+				}
 			}
-		} else {
 			return new HashMap<>();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
 	public static void persistCache() {
 		try {
-			FileUtil.writeFileBytes(THERAPI_DATAFILE, SerializationUtil.serialize(THERAPI_CACHE));
+			// Reflection order is not specified and differs between supported JDKs. Persist a
+			// canonical key order so Java 17 and newer JDKs produce byte-identical caches.
+			final byte[] payload = SerializationUtil.serialize(new TreeMap<>(THERAPI_CACHE));
+			CliDataLocator.persistTherapiDataFile(CliMetadataCache.wrap(CliMetadataCache.Kind.THERAPI_JAVADOC,
+					CliSourceApiFingerprint.calculate(), payload));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -176,6 +193,7 @@ public final class TherapiJavadocHelper {
 		return colorizeDescriptions(basicExplanationPlusFurtherDetails);
 	}
 
+	/** Pairs a builder parameter name with the Javadoc text rendered for CLI help. */
 	public static class DocumentedMethodParam {
 		@NotNull private final String name;
 		@NotNull private final String javadoc;

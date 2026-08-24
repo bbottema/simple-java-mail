@@ -5,6 +5,7 @@ import org.bbottema.javareflection.valueconverter.IncompatibleTypeException;
 import org.bbottema.javareflection.valueconverter.ValueFunction;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.MailException;
+import org.simplejavamail.internal.clisupport.CliRequestContext;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -26,9 +27,9 @@ abstract class FileBasedFunction<T> implements ValueFunction<String, T> {
 	}
 	
 	private File getAsFile(String value) {
-		File file = new File(value);
+		File file = CliRequestContext.resolveFile(value);
 		if (!file.exists()) {
-			LOGGER.debug("file not found for [" + value + "]");
+			LOGGER.debug("A command-line file value did not resolve to an existing file");
 		}
 		return file;
 	}

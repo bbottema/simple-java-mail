@@ -11,16 +11,16 @@ public class CliBuilderApiTypeTest {
 	
 	@Test
 	public void findInSynopsis() {
-		String testStr = colorizeOptionsInText("\tsend [--help -h, --version -v] --moo:options --options", "yellow");
+		String testStr = colorizeOptionsInText("\tsend [--help -h, --version -V] --moo:options --options", "yellow");
 		assertThat(CliBuilderApiType.findForCliSynopsis(testStr)).isEmpty();
 		
-		testStr = colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options --mailer:options", "yellow");
+		testStr = colorizeOptionsInText("\tsend [--help -h, --version -V] --email:options --mailer:options", "yellow");
 		assertThat(CliBuilderApiType.findForCliSynopsis(testStr)).containsExactlyInAnyOrder(EMAIL, MAILER);
 		
-		testStr = colorizeOptionsInText("\tconvert [--help -h, --version -v] --email:options", "yellow");
+		testStr = colorizeOptionsInText("\tconvert [--help -h, --version -V] --email:options", "yellow");
 		assertThat(CliBuilderApiType.findForCliSynopsis(testStr)).containsExactlyInAnyOrder(EMAIL);
 		
-		testStr = colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", "yellow");
+		testStr = colorizeOptionsInText("\tconnect [--help -h, --version -V] --mailer:options", "yellow");
 		assertThat(CliBuilderApiType.findForCliSynopsis(testStr)).containsExactlyInAnyOrder(MAILER);
 	}
 }

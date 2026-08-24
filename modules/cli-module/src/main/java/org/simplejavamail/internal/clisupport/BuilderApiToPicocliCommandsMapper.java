@@ -62,6 +62,11 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Traverses the annotated builder API and produces the serializable option model consumed by Picocli.
+ * Method signatures, parameter conversion rules, ordering constraints, and rendered Javadoc are captured once so
+ * normal CLI startup can load the validated generated model instead of repeating reflection.
+ */
 public final class BuilderApiToPicocliCommandsMapper {
 
 	private static final Logger LOGGER = getLogger(BuilderApiToPicocliCommandsMapper.class);
@@ -222,7 +227,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	@NotNull
 	public static String colorizeOptionsInText(String text, String ansiStyles) {
 		final StringFormatter TOKEN_REPLACER = StringFormatter.formatterForPattern("@|" + ansiStyles + " %s|@");
-		final String optionRegex = "(?:--(?:help|version)|-(?:h|v)|(?:--?\\w+:\\w+))(?!\\w)"; // https://regex101.com/r/SOs17K/4
+		final String optionRegex = "(?:--(?:help|version)|-(?:h|V)|(?:--?\\w+:\\w+))(?!\\w)"; // https://regex101.com/r/SOs17K/4
 		return StringUtil.replaceNestedTokens(text, 0, "@|", "|@", optionRegex, TOKEN_REPLACER);
 	}
 	

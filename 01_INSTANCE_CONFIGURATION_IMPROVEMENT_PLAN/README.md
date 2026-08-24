@@ -2,7 +2,7 @@
 
 - Status: Done
 - Plan order: 01 of 02
-- Followed by: [02 - CLI daemon improvement plan](../02_CLI_DAEMON_IMPROVEMENT_PLAN/README.md), which must wait for this plan to be completed
+- Followed by: [02 - CLI daemon improvement plan](../02_CLI_DAEMON_IMPROVEMENT_PLAN/README.md), implemented after this plan
 - GitHub issue: [#693 Replace static ConfigLoader with instance-based, injectable configuration](https://github.com/bbottema/simple-java-mail/issues/693)
 - Target release: 10.0.0
 - Working branch: `codex/10.0.0`
@@ -11,6 +11,8 @@
 This plan replaces Simple Java Mail's mutable process-wide configuration with immutable snapshots that can be passed around, injected, and used by more than one independent mail setup in the same JVM. It is intentionally split into phases and one file per implementation step. The refactor is large enough that the public contract, source precedence, lifecycle timing, Spring behavior, CLI behavior, and module boundaries need to move together.
 
 The implementation is complete on `codex/10.0.0`. Each step file records the tests and release gates that proved its part of the contract.
+
+Plan 02 subsequently raises only `cli-module` and its metadata-generation path to Java 17. The Java 8 CLI evidence below remains the historical completion evidence for this plan; it is not the current CLI release gate. All non-CLI library modules retain the Java 8 contract proved here.
 
 ## Why this is a large refactor
 

@@ -20,6 +20,10 @@ import static org.simplejavamail.internal.clisupport.CliColorScheme.COMMAND_OPTI
 import static org.simplejavamail.internal.clisupport.CliColorScheme.OPTION_VALUE_STYLE;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 
+/**
+ * Builds a fresh Picocli command tree from the generated builder-API option model.
+ * Each builder option receives both its executable form and an option-specific help command backed by runtime Javadoc.
+ */
 class CliCommandLineProducer {
     
     static final String OPTION_HELP_POSTFIX = "--help";
@@ -38,20 +42,20 @@ class CliCommandLineProducer {
                         "%n" +
                         "Note: All the regular functionality regarding properties and config files work with the CLI so you can provide defaults in a " +
                         "property file as long as it is visible (on class path) or as system environment variables.")
-                .version("Simple Java Mail 9.0.2");
+                .version("Simple Java Mail " + CliVersion.value());
         
         rootCommandsHolder.usageMessage()
                 .customSynopsis("",
-                        colorizeOptionsInText("\tsend     [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE),
-                        colorizeOptionsInText("\tconnect  [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE),
-                        colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options", COMMAND_OPTION_STYLE));
+                        colorizeOptionsInText("\tsend     [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE),
+                        colorizeOptionsInText("\tconnect  [--help -h, --version -V] --mailer:options", COMMAND_OPTION_STYLE),
+                        colorizeOptionsInText("\tvalidate [--help -h, --version -V] --email:options", COMMAND_OPTION_STYLE));
     
         createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email.",
-                colorizeOptionsInText("\tsend [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+                colorizeOptionsInText("\tsend [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         createRootCommand(rootCommandsHolder, "connect", "Test a server connection, including possible authentication and any proxy settings",
-                colorizeOptionsInText("\tconnect [--help -h, --version -v] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+                colorizeOptionsInText("\tconnect [--help -h, --version -V] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         createRootCommand(rootCommandsHolder, "validate", "Validate an email for mandatory fields, injection detection and optional email address validation",
-                colorizeOptionsInText("\tvalidate [--help -h, --version -v] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+                colorizeOptionsInText("\tvalidate [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         
         return new CommandLine(rootCommandsHolder).setUsageHelpWidth(maxTextWidth).setSeparator(" ");
     }

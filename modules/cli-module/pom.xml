@@ -18,7 +18,51 @@
 
     <properties>
         <automaticModuleName>org.simplejavamail.cli</automaticModuleName>
+        <maven.compiler.source>${cli.java.release}</maven.compiler.source>
+        <maven.compiler.target>${cli.java.release}</maven.compiler.target>
+        <maven.compiler.release>${cli.java.release}</maven.compiler.release>
     </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration combine.self="override">
+                    <release>${cli.java.release}</release>
+                    <encoding>${compiler.encoding}</encoding>
+                    <compilerArgument>-Xlint:all</compilerArgument>
+                    <useIncrementalCompilation>false</useIncrementalCompilation>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-build</id>
+                        <configuration combine.self="override">
+                            <rules>
+                                <banDuplicatePomDependencyVersions/>
+                                <dependencyConvergence/>
+                                <requireUpperBoundDeps/>
+                                <requireJavaVersion>
+                                    <version>[${cli.java.release},)</version>
+                                </requireJavaVersion>
+                                <requireProperty>
+                                    <property>maven.compiler.release</property>
+                                    <regex>${cli.java.release}</regex>
+                                </requireProperty>
+                                <requireReleaseDeps>
+                                    <onlyWhenRelease>true</onlyWhenRelease>
+                                </requireReleaseDeps>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
     <dependencies>
 
@@ -118,6 +162,12 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency><!-- SMTP test server used by the daemon connection-reuse process test -->
+            <groupId>com.github.davidmoten</groupId>
+            <artifactId>subethasmtp</artifactId>
+            <version>7.2.2</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <profiles>
@@ -133,7 +183,7 @@
                         <executions>
                             <execution>
                                 <id>generateCliData</id>
-                                <phase>package</phase>
+                                <phase>prepare-package</phase>
                                 <goals>
                                     <goal>java</goal>
                                 </goals>

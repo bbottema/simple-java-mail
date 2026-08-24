@@ -2,6 +2,37 @@
 
 Simple Java Mail 10 replaces process-wide mutable configuration with immutable configuration snapshots. It also separates MIME processing from the Jakarta Mail implementation that performs SMTP submission. Angus remains the default sending implementation, but provider-specific SMTP behavior now lives behind a replaceable adapter at the final transport boundary.
 
+## The CLI now has an optional local daemon
+
+The Java libraries remain Java 8-compatible. The `cli-module` artifact and standalone `sjm` command now require Java 17 or newer. Existing one-shot commands remain valid and remain the default:
+
+```text
+sjm send ...
+sjm connect ...
+sjm validate ...
+```
+
+Opt into the per-user daemon when repeated commands should avoid JVM, parser, and Mailer setup:
+
+```text
+sjm daemon start
+sjm send -d ...
+sjm daemon status
+sjm daemon stop
+```
+
+`-d`, bare `--daemon`, and `--daemon=acquire` use a compatible daemon or start one. `--daemon=require` uses only an already-running daemon. `--daemon=off` and `--no-daemon` explicitly select one-shot execution. Help, version, and daemon management remain local.
+
+One daemon can safely retain several Mailers. Existing mailer options choose the effective configuration automatically, so two SMTP hosts or credentials become separate bounded entries without a public profile name. Use `--daemon-instance=<name>` only when you want a separate process, startup configuration, lifecycle, or security boundary.
+
+The daemon captures classpath, environment, and system-property configuration when it starts. Restart it after those defaults, fixed OAuth2 tokens, or security material change. Explicit request options continue to override captured defaults. Relative attachment, body, EML, MSG, and certificate paths resolve against the invoking client's working directory.
+
+The standalone distribution includes `batch-module`. A retained Mailer can therefore keep its connection pool alive between compatible requests, subject to the configured pool core size and idle expiry. Custom distributions without `batch-module` still reuse Mailers and daemon initialization, but cannot reuse pooled SMTP transports. The daemon does not change pool defaults.
+
+Daemon requests remain synchronous from the caller's perspective. The command succeeds only after the existing send future completes. If the client loses an authenticated response after submission, it reports an ambiguous outcome and does not automatically resend or fall back to one-shot mode. The daemon is local-only and is not a durable queue, scheduler, or exactly-once delivery service.
+
+See [CLI daemon operations](modules/cli-module/DAEMON.md) for exit codes, state locations, optional background supervision, package-manager status, shutdown, and recovery.
+
 ## Builder entry points now come from `SimpleJavaMail`
 
 The fluent email and Mailer builder APIs remain. The secondary static `EmailBuilder` and `MailerBuilder` entry classes are gone. Start both kinds of builder from one `SimpleJavaMail` instance instead.

@@ -1,0 +1,18 @@
+[Unit]
+Description=Simple Java Mail per-user CLI daemon
+Documentation=https://www.simplejavamail.org/cli.html
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart="@SJM_EXECUTABLE@" daemon run
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=120
+SuccessExitStatus=143
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

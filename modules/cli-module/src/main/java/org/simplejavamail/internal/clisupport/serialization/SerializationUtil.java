@@ -5,17 +5,25 @@ import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.ImmutableCollectionsSerializers;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
 import org.jetbrains.annotations.NotNull;
 import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.RandomAccess;
 
 /**
- * Used to serialize attachments of nested Outlook messages. This is needed because outlook-message-parser returns a Java structure from a .msg source, but this conversion is 1-way. An Email object
- * represents attachments as DataSources however, so for this we need to serialize back from the java structure to a binary format. This Util does this.
- * <br>
- * Then for users to obtain the Javastructure again, they must use this util to deserialize the relevant attachment.
+ * Central Kryo boundary for nested Outlook-message attachments and generated CLI metadata.
+ * The shared, synchronized Kryo instance registers deterministic representations for reflection methods and immutable
+ * collection wrappers so caches survive supported JDK changes without unsafe reflective allocation. Outlook conversion
+ * uses the same boundary because its parsed Java structure must be stored inside an attachment and reconstructed later.
  *
  * @see <a href="https://github.com/bbottema/simple-java-mail/issues/298">GitHub issue #314</a>
  */
@@ -30,15 +38,31 @@ public class SerializationUtil {
 
 	@NotNull
 	private static Kryo initKryo() {
-		Kryo kryo = new Kryo();
+		final Kryo kryo = new Kryo();
 		kryo.setRegistrationRequired(false);
 		kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
+		ImmutableCollectionsSerializers.addDefaultSerializers(kryo);
+		registerUnmodifiableListSerializers(kryo);
+		registerUnmodifiableMapSerializer(kryo);
 		kryo.register(Method.class, new MethodSerializer());
 		return kryo;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private static void registerUnmodifiableListSerializers(final Kryo kryo) {
+		final UnmodifiableListSerializer serializer = new UnmodifiableListSerializer();
+		kryo.register((Class) Collections.unmodifiableList(new ArrayList<>()).getClass(), serializer);
+		kryo.register((Class) Collections.unmodifiableList(new LinkedList<>()).getClass(), serializer);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private static void registerUnmodifiableMapSerializer(final Kryo kryo) {
+		kryo.register((Class) Collections.unmodifiableMap(new LinkedHashMap<>()).getClass(),
+				new UnmodifiableMapSerializer());
+	}
+
 	@NotNull
-	public static byte[] serialize(@NotNull final Object serializable) {
+	public static synchronized byte[] serialize(@NotNull final Object serializable) {
 		final Output output = new Output(1024, -1);
 		KRYO.writeClassAndObject(output, serializable);
 		return output.toBytes();
@@ -46,17 +70,18 @@ public class SerializationUtil {
 
 	@SuppressWarnings("unchecked")
 	@NotNull
-	public static <T> T deserialize(final byte@NotNull[] serialized) {
+	public static synchronized <T> T deserialize(final byte@NotNull[] serialized) {
 		return (T) KRYO.readClassAndObject(new Input(serialized));
 	}
 
-	private static class MethodSerializer extends Serializer<Method> {
+	/** Stores a method descriptor and resolves it against the classes loaded in the reading JVM. */
+	private static final class MethodSerializer extends Serializer<Method> {
 		@Override
 		public void write(final Kryo kryo, final Output output, final Method method) {
 			output.writeString(method.getDeclaringClass().getName());
 			output.writeString(method.getName());
 			output.writeInt(method.getParameterTypes().length, true);
-			for (Class<?> parameterType : method.getParameterTypes()) {
+			for (final Class<?> parameterType : method.getParameterTypes()) {
 				output.writeString(parameterType.getName());
 			}
 		}
@@ -66,7 +91,7 @@ public class SerializationUtil {
 			try {
 				final Class<?> declaringClass = Class.forName(input.readString());
 				final String methodName = input.readString();
-				final Class<?>[] parameterTypes = new Class[input.readInt(true)];
+				final Class<?>[] parameterTypes = new Class<?>[input.readInt(true)];
 				for (int i = 0; i < parameterTypes.length; i++) {
 					parameterTypes[i] = resolveType(input.readString());
 				}
@@ -78,18 +103,66 @@ public class SerializationUtil {
 
 		private static Class<?> resolveType(final String typeName)
 				throws ClassNotFoundException {
-			switch (typeName) {
-				case "boolean": return boolean.class;
-				case "byte": return byte.class;
-				case "char": return char.class;
-				case "double": return double.class;
-				case "float": return float.class;
-				case "int": return int.class;
-				case "long": return long.class;
-				case "short": return short.class;
-				case "void": return void.class;
-				default: return Class.forName(typeName);
+			return switch (typeName) {
+				case "boolean" -> boolean.class;
+				case "byte" -> byte.class;
+				case "char" -> char.class;
+				case "double" -> double.class;
+				case "float" -> float.class;
+				case "int" -> int.class;
+				case "long" -> long.class;
+				case "short" -> short.class;
+				case "void" -> void.class;
+				default -> Class.forName(typeName);
+			};
+		}
+	}
+
+	/** Reconstructs an unmodifiable list while retaining its random-access or linked representation. */
+	private static final class UnmodifiableListSerializer extends Serializer<List<?>> {
+		@Override
+		public void write(final Kryo kryo, final Output output, final List<?> list) {
+			output.writeInt(list.size(), true);
+			for (final Object element : list) {
+				kryo.writeClassAndObject(output, element);
 			}
+		}
+
+		@Override
+		public List<?> read(final Kryo kryo, final Input input, final Class<? extends List<?>> type) {
+			final int size = input.readInt(true);
+			final List<Object> mutable = RandomAccess.class.isAssignableFrom(type)
+					? new ArrayList<>(size) : new LinkedList<>();
+			final List<Object> result = Collections.unmodifiableList(mutable);
+			kryo.reference(result);
+			for (int i = 0; i < size; i++) {
+				mutable.add(kryo.readClassAndObject(input));
+			}
+			return result;
+		}
+	}
+
+	/** Reconstructs insertion-ordered unmodifiable maps used by generated option metadata. */
+	private static final class UnmodifiableMapSerializer extends Serializer<Map<?, ?>> {
+		@Override
+		public void write(final Kryo kryo, final Output output, final Map<?, ?> map) {
+			output.writeInt(map.size(), true);
+			for (final Map.Entry<?, ?> entry : map.entrySet()) {
+				kryo.writeClassAndObject(output, entry.getKey());
+				kryo.writeClassAndObject(output, entry.getValue());
+			}
+		}
+
+		@Override
+		public Map<?, ?> read(final Kryo kryo, final Input input, final Class<? extends Map<?, ?>> type) {
+			final int size = input.readInt(true);
+			final Map<Object, Object> mutable = new LinkedHashMap<>(size);
+			final Map<Object, Object> result = Collections.unmodifiableMap(mutable);
+			kryo.reference(result);
+			for (int i = 0; i < size; i++) {
+				mutable.put(kryo.readClassAndObject(input), kryo.readClassAndObject(input));
+			}
+			return result;
 		}
 	}
 }
