@@ -109,6 +109,8 @@ Deferred or out-of-scope issues:
 
 Verification notes:
 
+> These results record the Java 8 baseline in use when this repair landed. Issue [#707](https://github.com/bbottema/simple-java-mail/issues/707) later moves the 10.0.0 libraries to Java 11 and removes the Java 8-only JUnit Pioneer constraint.
+
 - New focused regression coverage was added to `EmailConverterTest` for `#566`, `#597`, `#602`, and `#607`.
 - The full `modules/simple-java-mail -am test` suite passes under `C:\Program Files\Java\jdk1.8.0_152` with 303 tests run, 0 failures/errors, and 12 skipped.
 - The test dependency `junit-pioneer` is kept at `1.9.1` because `2.3.0` ships Java 11 class files and breaks Java 8 test compilation.

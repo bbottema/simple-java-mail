@@ -33,7 +33,7 @@ class StandaloneConsumerCompilationTest {
 	}
 
 	@Test
-	void publicOnlyJava8ConsumerCompilesAndRunsWithoutSimpleJavaMailFacade() throws Exception {
+	void publicOnlyJava11ConsumerCompilesAndRunsWithoutSimpleJavaMailFacade() throws Exception {
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		assertThat(compiler).as("A JDK is required to run the standalone consumer test").isNotNull();
 		String classPath = System.getProperty("java.class.path");
@@ -49,7 +49,7 @@ class StandaloneConsumerCompilationTest {
 
 		try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null)) {
 			Boolean compiled = compiler.getTask(compilerOutput, fileManager, null,
-					Arrays.asList("-source", "8", "-target", "8", "-classpath", classPath, "-d", output.toString()),
+					Arrays.asList("--release", "11", "-classpath", classPath, "-d", output.toString()),
 					null, fileManager.getJavaFileObjects(source.toFile())).call();
 			assertThat(compiled).withFailMessage(compilerOutput.toString()).isTrue();
 		}

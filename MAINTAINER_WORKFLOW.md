@@ -61,13 +61,13 @@ $gh = if ($env:SJM_GH) { $env:SJM_GH } else { "gh" }
 & $gh auth status
 ```
 
-Local verification should use JDK 8:
+Use JDK 17 or newer for a full-reactor build. Use a real JDK 11 for the separate library compatibility check:
 
 ```powershell
 if (-not $env:JAVA_HOME) {
-    throw "Load .maintainer-env.ps1 or set JAVA_HOME to a Java 8 JDK first."
+    throw "Load .maintainer-env.ps1 or set JAVA_HOME first."
 }
-java -version   # should report 1.8.x
+java -version   # should report 17 or newer for a full build
 ```
 
 Do not work around Maven Central or TLS failures with insecure SSL flags until the Windows trust-store option above has been tried.
@@ -210,12 +210,12 @@ For CLI-related changes:
 - CLI generation depends on Javadocs and builder reflection.
 - Regenerate and commit `modules/cli-module/src/main/resources/cli.data` and `modules/cli-module/src/main/resources/therapi.data` when the CLI surface changes.
 - Use `-Ppublish-cli` when verifying release packaging.
-- Avoid Java 12+ for local CLI metadata regeneration; use JDK 8.
+- Regenerate CLI metadata on JDK 17 or the current release JDK.
 
 For dependency PRs:
 
-- Preserve Java 8 compatibility. Do not accept dependency lines that require Java 9+ or Java 11+.
-- Update `.github/dependabot.yml` ignore rules when Dependabot repeatedly proposes non-Java-8-compatible versions.
+- Preserve Java 11 compatibility for non-CLI modules. Do not accept library or build dependency lines that require Java 17+ in the JDK 11 lane.
+- Update `.github/dependabot.yml` ignore rules when Dependabot repeatedly proposes versions that cannot run in the supported Java lanes.
 - Keep release notes concise. Prefer one dependency-maintenance roll-up over one noisy bullet per automated PR unless the change matters to users.
 
 ---
@@ -231,7 +231,13 @@ mvn -pl modules/simple-java-mail -Dtest=SomeTest test
 mvn -pl modules/cli-module -am -Ppublish-cli -DskipTests package
 ```
 
-Before merging to `master` for a release, run a full JDK 8 verification:
+Before merging to `master` for a release, run the library reactor on a real JDK 11:
+
+```powershell
+mvn -pl '!modules/cli-module' clean verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true
+```
+
+Then run the full reactor, including CLI publication metadata, on JDK 17 or newer:
 
 ```powershell
 mvn clean verify -Ppublish-cli -DexcludeLiveServerTests=true
@@ -369,7 +375,7 @@ Before release:
 
 1. Perform the defensive Dependabot sweep below against the current `develop` branch.
 2. Merge every safe, release-ready patch-level library update selected by the sweep into `develop`.
-3. Run the full JDK 8 verification on the final release candidate, including the lifted dependency patches.
+3. Run the JDK 11 library verification and JDK 17+ full-reactor verification on the final release candidate, including the lifted dependency patches.
 4. Confirm the README's current version and release links match the release candidate, and confirm `RELEASE.txt` and `RELEASE_HISTORY.md` include a compact dependency-maintenance note when patches were lifted.
 5. Create or reuse the exact-version GitHub milestone, without a `v` prefix, set its due date to the planned release date, and keep it open during the release.
 6. Assign all release issues and PRs to it, including applicable closed Dependabot PRs and maintenance roll-ups.
@@ -377,6 +383,12 @@ Before release:
 8. Confirm no unrelated local changes remain.
 9. Merge `develop` into `master` with a fast-forward merge.
 10. Push `master`.
+
+### Java 8 maintenance line
+
+After 10.0.0, treat 9.x as maintenance-only. New features, routine fixes, and routine dependency updates belong on 10.x. Consider a 9.x backport only for a critical problem, and only when the fix can keep the Java 8 and public API contracts intact.
+
+Start that work from the latest 9.x release tag rather than from the 10.x development branch. Keep the patch narrow and run the Java 8 verification documented on that branch before releasing it.
 
 ### Defensive Dependabot Sweep
 
@@ -393,14 +405,14 @@ Inspect every open Dependabot PR and lift a patch-level Java library update into
 
 - The PR targets `develop`, is current or can be updated cleanly, and has no merge conflict.
 - The proposed version is a patch update. Do not classify an update from its title alone when the versioning scheme is unusual.
-- The library, its bytecode, and its transitive runtime dependencies remain Java 8-compatible.
+- The library, its bytecode, and its transitive runtime dependencies remain Java 11-compatible.
 - Existing checks pass and the update does not introduce a known behavioral, API, packaging, or licensing change that deserves
   separate release scope.
-- The patch can be merged before the final full JDK 8 verification and release-note freeze.
+- The patch can be merged before the final JDK 11 library and JDK 17+ full-build verification and release-note freeze.
 
 Do not hold up or silently broaden the release for minor/major upgrades, failing or uncertain patches, incompatible Java baselines,
 or updates that need dedicated investigation. Leave those PRs for separate handling and record an ignore rule when an upgrade line
-can never support Java 8. For every patch that is lifted, add its PR to the release milestone and include it in the compact
+cannot run in the supported Java lanes. For every patch that is lifted, add its PR to the release milestone and include it in the compact
 dependency-maintenance release-note entry before publishing.
 
 Do not modify project POM versions to prepare a release. The CircleCI release workflow owns version bumping and tagging.
@@ -463,13 +475,13 @@ For a special packaging patch, the repository notes still roll into the parent r
 
 ## 11. Dependabot Patch Release
 
-Dependabot PR handling follows the same workflow with extra Java 8 caution:
+Dependabot PR handling follows the same workflow with extra Java-baseline caution:
 
 1. List open PRs and identify Dependabot PRs.
-2. Check each proposed dependency for Java 8 bytecode/runtime compatibility.
+2. Check each proposed dependency against the Java 11 library and Java 17 CLI baselines.
 3. Update or add `.github/dependabot.yml` ignores for impossible upgrade lines.
 4. Merge compatible PRs into `develop`.
-5. Run full JDK 8 verification.
+5. Run the JDK 11 library and JDK 17+ full-reactor verification.
 6. Once the release version is selected, create or reuse its exact-version milestone without a `v` prefix.
 7. Assign every Dependabot PR accounted for by the release, including closed PRs consolidated into a maintainer roll-up.
 8. Add a compact dependency-maintenance release-note entry.

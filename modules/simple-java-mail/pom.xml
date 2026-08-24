@@ -145,7 +145,7 @@
 		<profile>
 			<id>verify-provider-neutral-consumers</id>
 			<activation>
-				<jdk>[9,)</jdk>
+				<jdk>[11,)</jdk>
 			</activation>
 			<build>
 				<plugins>
@@ -179,10 +179,16 @@
 									<target>
 										<loadfile property="providerNeutralPath" srcFile="${project.build.directory}/provider-neutral-runtime-path.txt" />
 										<mkdir dir="${project.build.directory}/provider-neutral-jpms-classes" />
+										<!-- JDK 11 javac treats a JAR whose descriptor lives under META-INF/versions/9 as an automatic module.
+										     Point it at the descriptor directly and patch in the packaged classes. The runtime check below
+										     still launches against the packaged multi-release JAR. -->
 										<javac srcdir="${project.basedir}/src/test/provider-neutral-jpms"
 											   destdir="${project.build.directory}/provider-neutral-jpms-classes"
-											   modulepath="${project.build.directory}/${project.build.finalName}.jar${path.separator}${providerNeutralPath}"
-											   release="9" includeantruntime="false" />
+											   modulepath="${project.build.directory}/classes/META-INF/versions/9${path.separator}${providerNeutralPath}"
+											   release="${library.java.release}" includeantruntime="false">
+											<compilerarg value="--patch-module" />
+											<compilerarg value="org.simplejavamail=${project.build.directory}/${project.build.finalName}.jar" />
+										</javac>
 										<exec executable="${java.home}/bin/java" failonerror="true">
 											<arg value="--module-path" />
 											<arg path="${project.build.directory}/provider-neutral-jpms-classes${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${providerNeutralPath}" />
@@ -193,7 +199,7 @@
 										<javac srcdir="${project.basedir}/src/test/provider-neutral-classpath"
 											   destdir="${project.build.directory}/provider-neutral-classpath-classes"
 											   classpath="${project.build.directory}/${project.build.finalName}.jar${path.separator}${providerNeutralPath}"
-											   release="8" includeantruntime="false" />
+											   release="${library.java.release}" includeantruntime="false" />
 										<java classname="org.simplejavamail.providerneutral.ProviderNeutralClasspathConsumer"
 											  fork="true" failonerror="true"
 											  classpath="${project.build.directory}/provider-neutral-classpath-classes${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${providerNeutralPath}" />

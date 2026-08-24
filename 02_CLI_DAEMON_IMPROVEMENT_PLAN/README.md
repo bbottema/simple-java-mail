@@ -2,6 +2,8 @@
 
 > **Sequence requirement:** This is improvement plan 02. Implementation must not begin until [01 - Instance-based configuration](../01_INSTANCE_CONFIGURATION_IMPROVEMENT_PLAN/README.md) is complete. The daemon relies on its immutable configuration snapshot and configured factory; it must not build a second configuration model in parallel.
 
+> **Baseline update:** Issue [#707](https://github.com/bbottema/simple-java-mail/issues/707) later raises the 10.0.0 library baseline to Java 11. Java 8 statements below record the compatibility gates used while this completed daemon plan was implemented; the CLI baseline remains Java 17.
+
 - Status: Portable daemon implementation complete; package-manager publication deferred to issue #708
 - Plan order: 02 of 02
 - Hard dependency: [01 - Instance-based configuration improvement plan](../01_INSTANCE_CONFIGURATION_IMPROVEMENT_PLAN/README.md) must be completed first
@@ -14,13 +16,13 @@
 
 This plan turns the one-command-per-JVM CLI into an optional per-user client and daemon. The daemon keeps the expensive CLI model and selected `Mailer` instances alive, so repeated commands avoid most startup work and can reuse SMTP connection pools. It also retains the existing one-shot route for scripts and recovery.
 
-The Java compatibility decision is deliberately different from the rest of Simple Java Mail. `cli-module` moves to Java 17. Every library artifact remains Java 8-compatible. Java 17 is recommended instead of exactly Java 16 because it is the next LTS release, contains the Unix-domain socket API introduced in Java 16, and contains the Windows Server 2019 fix that was missing from the first JDK 16 implementation.
+When this plan was implemented, the Java compatibility decision was deliberately different from the rest of Simple Java Mail: `cli-module` moved to Java 17 while every library artifact remained Java 8-compatible. Java 17 was selected instead of exactly Java 16 because it is the next LTS release, contains the Unix-domain socket API introduced in Java 16, and contains the Windows Server 2019 fix that was missing from the first JDK 16 implementation.
 
 The production implementation now follows the approved portable direction below. The daemon core, Java baseline split, documentation, and cross-platform portable-archive CI jobs are present. Homebrew and Chocolatey publication tooling and lifecycle validation are parked under issue #708 and do not block the portable 10.0.0 release.
 
 ## Implementation result
 
-- Java 8 remains the library baseline; `cli-module` is Java 17 bytecode and is tested on Java 17 and 21.
+- At completion time, Java 8 remained the library baseline; `cli-module` used Java 17 bytecode and was tested on Java 17 and 21.
 - One-shot remains the default. `-d`/`--daemon=acquire`, `require`, `off`, named instances, and all management commands are implemented.
 - The daemon uses private authenticated local state, Unix-domain sockets with a strict `127.0.0.1` fallback, bounded request/result storage, and a bounded reusable Mailer registry.
 - The official archive retains `batch-module`; controlled SMTP tests prove two compatible daemon sends share one SMTP session, while a no-batch classpath remains functional.

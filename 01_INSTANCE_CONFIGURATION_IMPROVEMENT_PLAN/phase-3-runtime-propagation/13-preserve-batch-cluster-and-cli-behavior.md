@@ -5,7 +5,7 @@
 - Primary modules: `batch-module` and `cli-module`
 - Primary files: `OperationalConfig` consumers, `BatchSupport`/cluster helpers, `CliCommandLineConsumerResultHandler.java`, generated CLI metadata
 
-> Historical gate: the Java 8 CLI evidence in this completed step predates plan 02. Plan 02 supersedes the ongoing `cli-module` and metadata-generation baseline with Java 17; the batch and library Java 8 contract remains current.
+> Historical gate: the Java 8 CLI evidence in this completed step predates plan 02. Plan 02 moved `cli-module` and metadata generation to Java 17, and issue #707 later moved the 10.0.0 library baseline to Java 11. The Java 8 results below remain historical evidence for this completed step.
 
 ## Goal
 

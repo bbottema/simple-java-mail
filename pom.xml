@@ -15,8 +15,8 @@
 
     <properties>
         <automaticModuleName>org.simplejavamail.undefined</automaticModuleName> <!-- update in individual modules -->
-        <java.version>1.8</java.version>
-        <library.java.release>8</library.java.release>
+        <java.version>11</java.version>
+        <library.java.release>11</library.java.release>
         <cli.java.release>17</cli.java.release>
         <compiler.encoding>UTF-8</compiler.encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -193,7 +193,6 @@
                 <artifactId>objenesis</artifactId>
                 <version>3.6</version>
             </dependency>
-            <!-- Keep managed JUnit artifacts Java 8-compatible; junit-pioneer itself must stay on 1.x for Java 8 bytecode. -->
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>
@@ -452,15 +451,15 @@
                                 <dependencyConvergence/>
                                 <requireUpperBoundDeps/>
                                 <requireJavaVersion>
-                                    <version>[1.8,)</version>
+                                    <version>[11,)</version>
                                 </requireJavaVersion>
                                 <requireProperty>
                                     <property>maven.compiler.source</property>
-                                    <regex>1\.8</regex>
+                                    <regex>11</regex>
                                 </requireProperty>
                                 <requireProperty>
                                     <property>maven.compiler.target</property>
-                                    <regex>1\.8</regex>
+                                    <regex>11</regex>
                                 </requireProperty>
                                 <requireReleaseDeps>
                                     <onlyWhenRelease>true</onlyWhenRelease>
@@ -532,6 +531,7 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <release>${library.java.release}</release>
                     <encoding>${compiler.encoding}</encoding>
                     <compilerArgument>-Xlint:all</compilerArgument>
                     <useIncrementalCompilation>false</useIncrementalCompilation>
@@ -604,24 +604,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>modern-jdk-java8-api</id>
-            <activation>
-                <jdk>[9,)</jdk>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <release>${library.java.release}</release>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
         <profile>
             <id>clean-java9-generated-output</id>
             <activation>

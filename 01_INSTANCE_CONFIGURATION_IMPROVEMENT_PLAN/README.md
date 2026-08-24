@@ -12,7 +12,7 @@ This plan replaces Simple Java Mail's mutable process-wide configuration with im
 
 The implementation is complete on `codex/10.0.0`. Each step file records the tests and release gates that proved its part of the contract.
 
-Plan 02 subsequently raises only `cli-module` and its metadata-generation path to Java 17. The Java 8 CLI evidence below remains the historical completion evidence for this plan; it is not the current CLI release gate. All non-CLI library modules retain the Java 8 contract proved here.
+Plan 02 subsequently raised only `cli-module` and its metadata-generation path to Java 17. Issue [#707](https://github.com/bbottema/simple-java-mail/issues/707) later raised the 10.0.0 library baseline to Java 11. The Java 8 evidence below remains the historical completion evidence for this plan; it is not the current release gate.
 
 ## Why this is a large refactor
 

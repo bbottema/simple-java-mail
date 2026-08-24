@@ -2,7 +2,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/org.simplejavamail/simple-java-mail.svg?style=flat&label=Maven%20Central)](https://central.sonatype.com/artifact/org.simplejavamail/simple-java-mail)
 [![Javadocs](https://javadoc.io/badge2/org.simplejavamail/maven-master-project/javadoc.svg)](https://javadoc.io/doc/org.simplejavamail/maven-master-project)
-[![Java 8+](https://img.shields.io/badge/Java-8%2B-607d8b.svg?style=flat)](DEVELOPMENT.md)
+[![Java 11+](https://img.shields.io/badge/Java-11%2B-607d8b.svg?style=flat)](DEVELOPMENT.md)
 [![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=flat)](LICENSE)
 
 **Simple to use. Built for the real world.**
@@ -15,7 +15,7 @@ Jakarta Mail provides the standard mail API, and Angus Mail provides its transpo
 
 ## Send a first email
 
-Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, the core dependency. Add a feature module only when you need it, using the same version as the core dependency. Java 8 is the source, target, and minimum supported runtime.
+Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, the core dependency. Add a feature module only when you need it, using the same version as the core dependency. The 10.x libraries require Java 11 or newer; 9.x is the last line that runs on Java 8. After 10.0.0, 9.x is maintenance-only: new work goes to 10.x, while critical fixes may be backported when that can be done safely without dropping Java 8 support.
 
 ### Maven
 
@@ -91,7 +91,7 @@ Optional modules extend the same API and add their dependencies only when select
 | [Authenticated SOCKS proxies](https://www.simplejavamail.org/modules.html#authenticated-socks-module) | `authenticated-socks-module` |
 | [Outlook `.msg` parsing and conversion](https://www.simplejavamail.org/modules.html#outlook-module) | `outlook-module` |
 | [Spring-managed configuration](https://www.simplejavamail.org/modules.html#spring-module) | `spring-module` |
-| [Command-line sending and validation](https://www.simplejavamail.org/modules.html#cli-module) | `cli-module` (Java 17+; the libraries remain Java 8-compatible) |
+| [Command-line sending and validation](https://www.simplejavamail.org/modules.html#cli-module) | `cli-module` (Java 17+; the other modules require Java 11+) |
 | [OSGi and Apache Karaf](https://www.simplejavamail.org/modules.html#karaf-module) | `karaf-module` |
 
 The [modules guide](https://www.simplejavamail.org/modules.html) lists each coordinate, its main transitive dependencies, and the capabilities it enables.

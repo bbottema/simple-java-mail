@@ -20,7 +20,7 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 public class AsyncOperationHelper {
 
 	/**
-	 * Java 8 compatible equivalent of {@code CompletableFuture.failedFuture(Throwable)}.
+	 * Creates a future that has already completed exceptionally.
 	 */
 	@NotNull
 	public static <T> CompletableFuture<T> failedFuture(final @NotNull Throwable failure) {

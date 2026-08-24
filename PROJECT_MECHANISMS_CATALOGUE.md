@@ -103,7 +103,7 @@ The `publish-cli` profile runs `demo.CliListAllSupportedOptionsDemoApp`, which c
 
 Constraints:
 
-- Use JDK 17 or the current release JDK for CLI data regeneration. The CLI artifact itself emits Java 17 bytecode; library artifacts still emit Java 8 bytecode.
+- Use JDK 17 or the current release JDK for CLI data regeneration. The CLI artifact itself emits Java 17 bytecode; library artifacts emit Java 11 bytecode.
 - Every CLI-exposed method needs complete Javadoc, including `@param` text for every parameter. A parameter count mismatch becomes an assertion error in `TherapiJavadocHelper.getParamDescriptions(...)`.
 - Optional CLI arguments must be annotated with `@Cli.Optional`. Keep `@Nullable` as the Java/API nullability contract; do not use it as CLI metadata.
 - Methods using complex Java-only objects, collection/map parameters, ambiguous overloads, or APIs that are only a subset of a better option should be excluded with `@Cli.ExcludeApi(reason = "...")`.

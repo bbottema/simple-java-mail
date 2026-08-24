@@ -5,7 +5,7 @@
 - Target release: 10.0.0
 - Primary areas: full verification, public API audit, cleanup, completion evidence
 
-> Historical gate: this records the plan 01 release matrix as executed. Plan 02 later replaces only its full-reactor Java 8 CLI gate with a Java 8 library-only lane plus Java 17/21 CLI lanes.
+> Historical gate: this records the plan 01 release matrix as executed. Plan 02 later split it into a Java 8 library lane and Java 17/21 CLI lanes; issue #707 then moved the 10.0.0 library baseline to Java 11. The results below remain historical evidence for this completed step.
 
 ## Goal
 

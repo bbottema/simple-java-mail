@@ -2,9 +2,17 @@
 
 Simple Java Mail 10 replaces process-wide mutable configuration with immutable configuration snapshots. It also separates MIME processing from the Jakarta Mail implementation that performs SMTP submission. Angus remains the default sending implementation, but provider-specific SMTP behavior now lives behind a replaceable adapter at the final transport boundary.
 
+## The libraries now require Java 11
+
+Simple Java Mail 10 no longer runs on Java 8. All library modules require Java 11 or newer. Applications that must stay on Java 8 should remain on the 9.x release line.
+
+The `cli-module` artifact and standalone `sjm` command require Java 17 or newer.
+
+After 10.0.0, the 9.x line is maintenance-only. It will not receive new features or routine dependency updates. Critical fixes may be backported when the change is small enough to keep the existing Java 8 and public API contracts intact.
+
 ## The CLI now has an optional local daemon
 
-The Java libraries remain Java 8-compatible. The `cli-module` artifact and standalone `sjm` command now require Java 17 or newer. Existing one-shot commands remain valid and remain the default:
+Existing one-shot commands remain valid and remain the default:
 
 ```text
 sjm send ...

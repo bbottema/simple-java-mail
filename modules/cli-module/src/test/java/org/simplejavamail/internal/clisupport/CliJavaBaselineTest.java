@@ -31,9 +31,9 @@ class CliJavaBaselineTest {
 	}
 
 	@Test
-	void consumedLibraryProductionClassesRemainJava8Bytecode() throws IOException {
-		assertThat(classFileMajorVersion(org.simplejavamail.api.SimpleJavaMail.class)).isEqualTo(52);
-		assertThat(classFileMajorVersion(org.simplejavamail.api.mailer.Mailer.class)).isEqualTo(52);
+	void consumedLibraryProductionClassesUseJava11Bytecode() throws IOException {
+		assertThat(classFileMajorVersion(org.simplejavamail.api.SimpleJavaMail.class)).isEqualTo(55);
+		assertThat(classFileMajorVersion(org.simplejavamail.api.mailer.Mailer.class)).isEqualTo(55);
 	}
 
 	private static int classFileMajorVersion(final Class<?> type) throws IOException {

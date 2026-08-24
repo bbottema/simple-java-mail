@@ -1,6 +1,6 @@
 # Simple Java Mail CLI daemon
 
-The daemon is optional. Ordinary `sjm send`, `connect`, and `validate` commands still run once in the current process and close their Mailer. The CLI requires Java 17 or newer; the non-CLI libraries retain their Java 8 runtime contract.
+The daemon is optional. Ordinary `sjm send`, `connect`, and `validate` commands still run once in the current process and close their Mailer. The CLI requires Java 17 or newer; the non-CLI libraries require Java 11 or newer.
 
 ## Commands
 

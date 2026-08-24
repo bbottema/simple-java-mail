@@ -4,7 +4,7 @@
 - Depends on: Steps 14 and 15
 - Primary areas: JPMS, classpath, OSGi/Karaf, generated CLI data, Spring Boot metadata, dependency trees, public API diff
 
-> Historical gate: the Java 8 CLI-generation evidence in this completed step predates plan 02. Plan 02 now generates `cli.data` and `therapi.data` on supported Java 17+ CLI JDKs while preserving Java 8 library artifacts.
+> Historical gate: the Java 8 CLI-generation evidence in this completed step predates plan 02. Plan 02 moved `cli.data` and `therapi.data` generation to Java 17+, and issue #707 later moved the 10.0.0 library baseline to Java 11. The Java 8 results below remain historical evidence for this completed step.
 
 ## Goal
 
