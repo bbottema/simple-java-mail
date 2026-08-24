@@ -1,0 +1,28 @@
+class Sjm < Formula
+  desc "Simple Java Mail command-line interface"
+  homepage "https://www.simplejavamail.org/"
+  url "@RELEASE_ARCHIVE_URL@"
+  sha256 "@RELEASE_ARCHIVE_SHA256@"
+  license "Apache-2.0"
+  version "@VERSION@"
+
+  depends_on "openjdk@21"
+
+  def install
+    libexec.install Dir["*"]
+    java_env = Language::Java.overridable_java_home_env("21")
+    (bin/"sjm").write_env_script libexec/"bin/sjm", java_env
+  end
+
+  service do
+    run [opt_bin/"sjm", "daemon", "run"]
+    keep_alive crashed: true
+    process_type :background
+    log_path var/"log/sjm-daemon.log"
+    error_log_path var/"log/sjm-daemon.error.log"
+  end
+
+  test do
+    assert_match "Simple Java Mail daemon commands", shell_output("#{bin}/sjm daemon --help")
+  end
+end

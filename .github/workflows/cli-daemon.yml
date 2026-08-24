@@ -31,6 +31,35 @@ jobs:
         run: mvn -pl modules/cli-module -am -Ppublish-cli "-DskipTests" clean install "-Dlicense.skip=true"
       - name: Verify generated metadata is current and cross-JDK stable
         run: git diff --exit-code -- modules/cli-module/src/main/resources/cli.data modules/cli-module/src/main/resources/therapi.data
+      - name: Render and pack Chocolatey release source
+        if: runner.os == 'Windows' && matrix.java == 17
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP 'sjm-package-sources'
+          $checksum = '0' * 64
+          & modules/cli-module/packaging/Render-PackageTemplates.ps1 -Version 10.0.0 -ReleaseArchiveUrl https://example.invalid/sjm.tar -ReleaseArchiveSha256 $checksum -WindowsArchiveUrl https://example.invalid/sjm.zip -WindowsArchiveSha256 $checksum -PackageSourceRevision ('0' * 40) -OutputDirectory $output
+          Get-ChildItem (Join-Path $output 'chocolatey/tools') -Filter '*.ps1' | ForEach-Object {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref] $tokens, [ref] $parseErrors) | Out-Null
+            if ($parseErrors.Count -ne 0) { throw "PowerShell syntax validation failed for '$($_.FullName)'" }
+          }
+          Push-Location (Join-Path $output 'chocolatey')
+          try {
+            & choco pack sjm.nuspec --outputdirectory $output
+            if ($LASTEXITCODE -ne 0) { throw 'Chocolatey package validation failed' }
+          } finally {
+            Pop-Location
+          }
+      - name: Render and parse Homebrew release source
+        if: runner.os == 'macOS' && matrix.java == 17
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP 'sjm-package-sources'
+          $checksum = '0' * 64
+          & modules/cli-module/packaging/Render-PackageTemplates.ps1 -Version 10.0.0 -ReleaseArchiveUrl https://example.invalid/sjm.tar -ReleaseArchiveSha256 $checksum -WindowsArchiveUrl https://example.invalid/sjm.zip -WindowsArchiveSha256 $checksum -PackageSourceRevision ('0' * 40) -OutputDirectory $output
+          & ruby -c (Join-Path $output 'homebrew/sjm.rb')
+          if ($LASTEXITCODE -ne 0) { throw 'Homebrew formula syntax validation failed' }
       - name: Test one-shot and daemon routes
         run: mvn -pl modules/cli-module test "-Dlicense.skip=true"
       - name: Exercise portable Windows archive and daemon lifecycle

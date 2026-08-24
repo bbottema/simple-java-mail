@@ -1,0 +1,14 @@
+$ErrorActionPreference = 'Stop'
+$toolsDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$archive = Join-Path $toolsDir 'sjm.zip'
+
+Get-ChocolateyWebFile -PackageName 'sjm' -FileFullPath $archive -Url64bit '@WINDOWS_ARCHIVE_URL@' -Checksum64 '@WINDOWS_ARCHIVE_SHA256@' -ChecksumType64 'sha256'
+Get-ChocolateyUnzip -FileFullPath $archive -Destination $toolsDir
+Remove-Item -LiteralPath $archive -Force
+$sjm = Get-ChildItem -LiteralPath $toolsDir -Filter 'sjm.bat' -Recurse -File | Select-Object -First 1
+if ($null -eq $sjm) {
+    throw 'The SJM release archive did not contain bin\sjm.bat'
+}
+Install-BinFile -Name 'sjm' -Path $sjm.FullName
+
+Write-Output 'SJM installed. The daemon was not started and no autostart task or service was registered.'

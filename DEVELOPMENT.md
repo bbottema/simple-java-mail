@@ -53,6 +53,8 @@ Regenerate and exercise the committed CLI metadata on JDK 17+:
 mvn -pl modules/cli-module -am -Ppublish-cli -DskipTests clean package
 ```
 
+Homebrew and Chocolatey authoring files are maintained separately from the portable archive on the issue #708 branch. After publishing the versioned tar and ZIP, follow [the package-source renderer instructions](modules/cli-module/packaging/README.md) to produce checksum-pinned release inputs.
+
 Record repeatable local one-shot and warm-daemon process timings without adding a CI timing threshold:
 
 ```powershell

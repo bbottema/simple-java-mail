@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>sjm</id>
+    <version>@VERSION@</version>
+    <title>Simple Java Mail CLI</title>
+    <authors>Simple Java Mail contributors</authors>
+    <projectUrl>https://www.simplejavamail.org/</projectUrl>
+    <projectSourceUrl>https://github.com/bbottema/simple-java-mail</projectSourceUrl>
+    <packageSourceUrl>https://github.com/bbottema/simple-java-mail/tree/@PACKAGE_SOURCE_REVISION@/modules/cli-module/packaging/chocolatey</packageSourceUrl>
+    <docsUrl>https://www.simplejavamail.org/cli.html</docsUrl>
+    <bugTrackerUrl>https://github.com/bbottema/simple-java-mail/issues</bugTrackerUrl>
+    <licenseUrl>https://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <summary>Simple Java Mail command-line client with an optional local daemon.</summary>
+    <tags>email smtp cli daemon java</tags>
+    <description>Simple Java Mail command-line sending, validation, and optional per-user daemon.</description>
+    <dependencies>
+      <dependency id="microsoft-openjdk17" version="[17.0,)" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

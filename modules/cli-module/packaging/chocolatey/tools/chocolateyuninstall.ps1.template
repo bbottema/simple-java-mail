@@ -1,0 +1,13 @@
+$ErrorActionPreference = 'Stop'
+$toolsDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$sjm = Get-ChildItem -LiteralPath $toolsDir -Filter 'sjm.bat' -Recurse -File | Select-Object -First 1
+
+if ($null -ne $sjm) {
+    & $sjm.FullName daemon stop | Out-Null
+    if ($LASTEXITCODE -notin 0, 10) {
+        Write-Warning "The default per-user daemon did not confirm a clean stop (exit $LASTEXITCODE)."
+    }
+    Uninstall-BinFile -Name 'sjm' -Path $sjm.FullName
+}
+
+Write-Output 'SJM package files will be removed. Per-user daemon configuration and logs are retained.'
