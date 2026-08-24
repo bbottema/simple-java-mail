@@ -146,23 +146,25 @@ JavaMail supports SOCKS proxy properties, but not authenticated SOCKS proxy logi
 Flow:
 
 1. `MailerImpl.configureSessionWithProxy(...)` first writes normal SOCKS host/port settings for anonymous proxy usage.
-2. If the proxy config requires authentication, it rewrites the session SOCKS host to `localhost` and port to `proxyBridgePort`.
+2. If the proxy config requires authentication, it rewrites the session SOCKS host to `localhost` and initially writes the configured bridge port.
 3. It then loads `AuthenticatedSocksModule` and creates an `AnonymousSocks5Server`.
 4. `AuthenticatedSocksHelper` constructs `AnonymousSocks5ServerImpl` with an `AuthenticatingSocks5Bridge`.
-5. The local server accepts anonymous JavaMail SOCKS connections and the bridge opens authenticated sockets to the real remote proxy.
-6. `AbstractProxyServerSyncingClosure` starts the local bridge only while SMTP/test-connection work is active and stops it after the last in-flight SMTP request finishes.
+5. `AbstractProxyServerSyncingClosure` starts the local bridge before the transport connects. The default configured port is `0`, so the operating system selects an available loopback port. The selected port is then written to the effective Session.
+6. The local server accepts anonymous JavaMail SOCKS connections and the bridge opens authenticated sockets to the real remote proxy.
+7. The listener stops after the last in-flight SMTP request finishes. Already accepted bridge sockets remain alive for pooled SMTP transports.
 
 Concurrency and lifecycle:
 
 - `MailerImpl` tracks active SMTP requests with an `AtomicInteger`.
 - Bridge start/stop is synchronized around the proxy server instance.
+- Separate authenticated-proxy Mailers receive separate automatic ports, so they can run concurrently without coordinating bridge settings.
+- A positive `withProxyBridgePort(...)` value keeps the old fixed-port behavior.
 - The bridge server uses a fixed thread pool for accepted SOCKS sessions; each session pipes client and remote sockets until the pipe stops.
 
 Gotchas:
 
-- SMTPS plus proxy is rejected in `MailerImpl` because the underlying JavaMail combination is not supported.
 - The authenticated SOCKS module must be available when authenticated proxy settings are used.
-- `getProxyBridgePort()` exposes the local bridge port, not the remote proxy port.
+- `getProxyBridgePort()` exposes the configured value. When that value is `0`, inspect the effective Session's `mail.smtp.socks.port` or `mail.smtps.socks.port` property for the currently selected port.
 
 ## Smart MIME Message Structure Selection
 

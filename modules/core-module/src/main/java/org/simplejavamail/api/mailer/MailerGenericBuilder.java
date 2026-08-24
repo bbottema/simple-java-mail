@@ -98,9 +98,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	int DEFAULT_PROXY_PORT = 1080;
 	/**
 	 * The temporary intermediary SOCKS5 relay server bridge is a server that sits in between JavaMail and the remote proxy.
-	 * Default port is <code>{@value}</code>.
+	 * A value of {@value} asks the operating system to allocate an available loopback port when the bridge starts.
 	 */
-	int DEFAULT_PROXY_BRIDGE_PORT = 1081;
+	int DEFAULT_PROXY_BRIDGE_PORT = 0;
 	/**
 	 * Defaults to <code>{@value}</code>, sending mails rather than just only logging the mails.
 	 */
@@ -195,14 +195,15 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to the JVM's
 	 * loopback address and owns this port while this Mailer has active proxy operations.
 	 * <p>
-	 * Concurrent operations through one Mailer share its relay. Separate authenticated-proxy Mailers that can be active at the same time must use
-	 * distinct bridge ports, otherwise one of the relays cannot bind. Anonymous proxy connections do not use a bridge port.
+	 * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
+	 * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do
+	 * not use a bridge port.
 	 * <p>
-	 * Defaults to {@value DEFAULT_PROXY_BRIDGE_PORT} if no custom default property was configured.
+	 * Defaults to automatic allocation ({@value DEFAULT_PROXY_BRIDGE_PORT}) if no custom default property was configured.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
 	 *
-	 * @param proxyBridgePort The loopback port to use for the proxy bridging server.
+	 * @param proxyBridgePort The loopback port to use, or {@code 0} to allocate an available port automatically.
 	 *
 	 * @see #withProxyUsername(String)
 	 */

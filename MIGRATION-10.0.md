@@ -202,6 +202,23 @@ Mailer mailer = mail.mailerBuilder()
 
 This is still a narrow compatibility escape hatch. It only controls the optional STARTTLS upgrade attempted by plain `SMTP`. It has no effect on mandatory TLS with `SMTP_TLS`, OAuth2 transport, or implicit TLS with `SMTPS`. The `simplejavamail.opportunistic.tls` property supplies the builder's initial value, and an explicit builder call wins.
 
+## Authenticated SOCKS bridge ports are now automatic
+
+Authenticated SOCKS proxies still use a small loopback-only bridge between Jakarta Mail and the remote proxy. In 9.x that bridge used port `1081` by default, so applications with more than one authenticated-proxy Mailer had to assign a different bridge port to each one.
+
+In 10.0 the default is `0`, which asks the operating system for an available loopback port whenever the bridge starts. Separate Mailers can therefore use authenticated proxies at the same time without coordinating ports. Simple Java Mail writes the selected port to the effective Session before opening the SMTP connection. If the bridge stops and later starts on another port, the Session is updated again.
+
+Existing positive values remain fixed. Keep a setting like this only when your application really needs a predictable local port:
+
+```java
+Mailer mailer = mail.mailerBuilder()
+        .withProxy("proxy.example.com", 1080, "user", "password")
+        .withProxyBridgePort(7777)
+        .buildMailer();
+```
+
+The equivalent property is `simplejavamail.proxy.socks5bridge.port=7777`. Remove it, or set it to `0`, to use automatic allocation.
+
 ## Spring uses context-local configuration
 
 `SimpleJavaMailSpringSupport` now exposes these beans in each application context:

@@ -41,7 +41,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	SendMailsInSimpleBatchClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Iterable<Email> userProvidedEmails,
 			@NotNull Function<Email, Email> emailPreparer, @Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly,
 			@NotNull AtomicInteger smtpConnectionCounter) {
-		super(smtpConnectionCounter, proxyServer);
+		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
 		this.userProvidedEmails = userProvidedEmails;

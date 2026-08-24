@@ -38,7 +38,9 @@ class ProxyConfigImpl implements ProxyConfig {
 		String str = format("%s:%s", remoteProxyHost, remoteProxyPort);
 		if (requiresAuthentication()) {
 			str += format(", username: %s", username);
-			str += format(", proxy bridge @ loopback:%s", proxyBridgePort);
+			str += proxyBridgePort != null && proxyBridgePort == 0
+					? ", proxy bridge @ loopback:automatic"
+					: format(", proxy bridge @ loopback:%s", proxyBridgePort);
 		}
 		return str;
 	}

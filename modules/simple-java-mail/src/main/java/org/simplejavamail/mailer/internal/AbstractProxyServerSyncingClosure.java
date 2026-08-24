@@ -1,9 +1,11 @@
 package org.simplejavamail.mailer.internal;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.slf4j.Logger;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,11 +23,14 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 	protected static final Logger LOGGER = getLogger(AbstractProxyServerSyncingClosure.class);
 
 	@NotNull private final AtomicInteger smtpConnectionCounter;
+	@NotNull private final Session session;
 	@Nullable private final AnonymousSocks5Server proxyServer;
 
-	AbstractProxyServerSyncingClosure(@NotNull final AtomicInteger smtpConnectionCounter, @Nullable final AnonymousSocks5Server proxyServer) {
+	AbstractProxyServerSyncingClosure(@NotNull final AtomicInteger smtpConnectionCounter, @Nullable final AnonymousSocks5Server proxyServer,
+			@NotNull final Session session) {
 		this.smtpConnectionCounter = smtpConnectionCounter;
 		this.proxyServer = proxyServer;
+		this.session = session;
 
 		increaseSmtpConnectionCounter();
 	}
@@ -56,6 +61,14 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 					LOGGER.trace("starting proxy bridge...");
 					proxyServer.start();
 				}
+				final int localPort = proxyServer.getLocalPort();
+				if (localPort < 1) {
+					throw new IllegalStateException("Authenticated SOCKS proxy bridge did not bind to a usable loopback port");
+				}
+				final TransportStrategy sessionTransportStrategy = TransportStrategy.findStrategyForSession(session);
+				final TransportStrategy proxyPropertyStrategy = sessionTransportStrategy != null ? sessionTransportStrategy : TransportStrategy.SMTP;
+				session.getProperties().setProperty(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(localPort));
+				LOGGER.debug("Authenticated SOCKS proxy bridge is available at loopback:{}", localPort);
 			}
 		}
 	}

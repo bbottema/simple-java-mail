@@ -26,6 +26,9 @@ public interface ProxyConfig {
 	String toString();
 
 	/**
+	 * Returns the configured bridge port. A value of {@code 0} means the operating system selects the actual loopback port when the bridge starts.
+	 * The effective Jakarta Mail Session contains the selected port while an authenticated-proxy operation is running.
+	 *
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyBridgePort(Integer)
 	 */
 	@Nullable

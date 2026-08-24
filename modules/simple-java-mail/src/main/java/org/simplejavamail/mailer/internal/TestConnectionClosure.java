@@ -21,7 +21,7 @@ class TestConnectionClosure extends AbstractProxyServerSyncingClosure {
 	private final boolean async;
 
 	TestConnectionClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @Nullable final AnonymousSocks5Server proxyServer, final boolean async, @NotNull AtomicInteger smtpConnectionCounter) {
-		super(smtpConnectionCounter, proxyServer);
+		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
 		this.async = async;

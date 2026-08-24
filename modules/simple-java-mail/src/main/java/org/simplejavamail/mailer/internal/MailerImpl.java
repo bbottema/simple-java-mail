@@ -312,7 +312,8 @@ public class MailerImpl implements Mailer {
 	 * <p>
 	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>. For a caller-supplied Session without Simple Java
 	 * Mail's transport-strategy marker, the proxy-capable SMTP strategies all use <em>"mail.smtp.socks.host"</em> and
-	 * <em>"mail.smtp.socks.port"</em>. Authenticated proxying sets them to the JVM loopback address and {@link ProxyConfig#getProxyBridgePort()}.
+	 * <em>"mail.smtp.socks.port"</em>. Authenticated proxying sets the host to the JVM loopback address. The configured bridge port is used as the
+	 * initial port value; after the bridge starts, the actual bound port is written immediately before the transport connects.
 	 *
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
 	 * @param session           The session with properties to add the new configuration to.

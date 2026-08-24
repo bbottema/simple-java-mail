@@ -12,6 +12,18 @@ import static org.assertj.core.api.Assertions.fail;
 public class MailerBuilderProxyConfigTest {
 
 	@Test
+	public void authenticatedProxyUsesAutomaticBridgePortByDefault() throws Exception {
+		try (org.simplejavamail.api.mailer.Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
+				.withSMTPServer("smtp.example.com", 25)
+				.withProxy("proxy.example.com", 1080, "username", "password")
+				.buildMailer()) {
+			assertThat(mailer.getProxyConfig().getProxyBridgePort()).isZero();
+			assertThat(mailer.getProxyConfig().toString()).contains("proxy bridge @ loopback:automatic");
+			assertThat(mailer.getSession().getProperty("mail.smtp.socks.port")).isEqualTo("0");
+		}
+	}
+
+	@Test
 	public void NoArgconstructor_WithoutConfigFile_WithoutHost() {
 		ProxyConfig emptyProxyConfig = new ProxyConfigImpl(null, null, null, null, null);
 		verifyProxyConfig(emptyProxyConfig, null, null, null, null, null);
