@@ -47,6 +47,11 @@ public abstract class SpecializedMimeMessageProducer {
 	
 	final MimeMessage populateMimeMessage(@NotNull final Email email, @NotNull Session session)
 			throws MessagingException, UnsupportedEncodingException {
+		return applySecurity(email, session, populateBaseMimeMessage(email, session));
+	}
+
+	final MimeMessage populateBaseMimeMessage(@NotNull final Email email, @NotNull Session session)
+			throws MessagingException, UnsupportedEncodingException {
 		checkArgumentNotEmpty(email, "email is missing");
 		checkArgumentNotEmpty(session, "session is needed, it cannot be attached later");
 
@@ -63,6 +68,11 @@ public abstract class SpecializedMimeMessageProducer {
 		MimeMessageHelper.setHeaders(email, message);
 		message.setSentDate(ofNullable(email.getSentDate()).orElse(new Date()));
 		message.saveChanges();
+		return message;
+	}
+
+	private MimeMessage applySecurity(@NotNull final Email email, @NotNull final Session session, MimeMessage message)
+			throws MessagingException {
 
 		/*
 			The following order is important:

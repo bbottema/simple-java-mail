@@ -72,7 +72,7 @@ class CliCommandLineConsumerResultHandler {
 				environment.simpleJavaMail().emailBuilder());
 		final MailerGenericBuilder<?> mailerBuilder = applyBuilderOptions(receivedOptions, CliBuilderApiType.MAILER,
 				environment.simpleJavaMail().mailerBuilder());
-		final Email email = emailBuilder.buildEmailCompletedWithDefaultsAndOverrides();
+		final Email email = emailBuilder.buildEmail();
 		final CliMailerProfile profile = CliMailerProfile.create(environment.config(), receivedOptions, profileKey,
 				environment.configurationWorkingDirectory());
 		try (MailerProvider.Lease lease = environment.mailerProvider().acquire(profile, mailerBuilder::buildMailer)) {

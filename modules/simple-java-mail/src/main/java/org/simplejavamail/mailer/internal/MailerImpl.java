@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
 import com.sanctionco.jmail.EmailValidator;
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +34,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_OAUTH2;
@@ -42,6 +44,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
+import static org.simplejavamail.mailer.internal.MailerException.VALIDATION_ERROR;
 
 /**
  * @see Mailer
@@ -492,11 +495,22 @@ public class MailerImpl implements Mailer {
 
 	@NotNull
 	private Email prepareEmailForSending(final Email userProvidedEmail) {
-		val email = emailGovernance.produceEmailApplyingDefaultsAndOverrides(userProvidedEmail);
-		if (validate(email)) {
+		val email = produceGovernedEmail(userProvidedEmail);
+		if (validateClientSide(email)) {
 			return email;
 		}
 		throw new IllegalStateException("Email not valid, but no MailException was thrown for it");
+	}
+
+	@NotNull
+	private Email produceGovernedEmail(final Email userProvidedEmail) {
+		return emailGovernance.produceEmailApplyingDefaultsAndOverrides(verifyNonnull(userProvidedEmail));
+	}
+
+	private boolean validateClientSide(final Email email) {
+		return operationalConfig.isDisableAllClientValidation() ?
+				MailerHelper.validateLenient(email, emailGovernance.getEmailValidator()) :
+				MailerHelper.validate(email, emailGovernance.getEmailValidator());
 	}
 
 	/**
@@ -505,9 +519,25 @@ public class MailerImpl implements Mailer {
 	@Override
 	public boolean validate(@NotNull final Email email)
 			throws MailException {
-		return operationalConfig.isDisableAllClientValidation() ?
-				MailerHelper.validateLenient(email, emailGovernance.getEmailValidator()) :
-				MailerHelper.validate(email, emailGovernance.getEmailValidator());
+		return validate(email, true);
+	}
+
+	/**
+	 * @see Mailer#validate(Email, boolean)
+	 */
+	@Override
+	public boolean validate(@NotNull final Email email, final boolean processSecurityAndValidateSize)
+			throws MailException {
+		val governedEmail = produceGovernedEmail(email);
+		if (!validateClientSide(governedEmail)) {
+			throw new IllegalStateException("Email not valid, but no MailException was thrown for it");
+		}
+		try {
+			SessionBasedEmailToMimeMessageConverter.rehearseMimeMessage(session, governedEmail, processSecurityAndValidateSize);
+			return true;
+		} catch (MessagingException e) {
+			throw new MailerException(format(VALIDATION_ERROR, governedEmail.getId()), e);
+		}
 	}
 
 	/**

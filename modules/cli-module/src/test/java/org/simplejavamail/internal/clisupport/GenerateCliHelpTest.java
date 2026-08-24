@@ -54,6 +54,10 @@ public class GenerateCliHelpTest {
 	@Test
 	public void testListHelpForValidateWithoutError() {
 		CliSupport.runCLI(new String[]{"validate", "--help"});
+
+		assertThat(new String(outContent.toByteArray(), UTF_8))
+				.contains("--email:options --mailer:options")
+				.contains("without connecting to SMTP");
 	}
 
 	@Test

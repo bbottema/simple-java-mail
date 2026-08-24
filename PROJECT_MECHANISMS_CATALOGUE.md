@@ -195,13 +195,18 @@ After the selected producer creates the body structure, `SpecializedMimeMessageP
 
 1. S/MIME signing.
 2. S/MIME encryption, including the per-recipient certificate path when any recipient has a `smimeCertificate`.
-3. DKIM signing.
-4. Bounce-to wrapping with `ImmutableDelegatingSMTPMessage`.
+3. OpenPGP signing.
+4. OpenPGP encryption.
+5. DKIM signing.
+
+`Mailer.validate(email)` is a no-network rehearsal of the same preparation rules. `MailerImpl` first creates a separate governed email by applying Mailer defaults and overrides, then runs strict or lenient client checks. The default overload builds the complete protected MIME message through `SessionBasedEmailToMimeMessageConverter.rehearseMimeMessage(...)` and reuses the send path's encoded-size check. `validate(email, false)` stops after `populateBaseMimeMessage(...)`, so it does not load the S/MIME, OpenPGP, or DKIM modules and does not enforce the final-size limit.
+
+The actual send path deliberately uses the shared governed-email and client-validation step rather than calling public validation. This keeps sending to one MIME conversion. Validation also skips Session and Email logging, message-ID backfill, proxy startup, transport acquisition, pooling, and custom-mailer callbacks.
 
 Gotchas:
 
 - New body-part concepts usually require revisiting the selector dimensions and every affected producer.
-- DKIM and S/MIME are optional modules, but if the email requests them the corresponding module must be on the runtime classpath.
+- DKIM, S/MIME, and OpenPGP are optional modules, but if the email requests them during full validation or sending, the corresponding module must be on the runtime classpath.
 - The producer starts from `MessageIdFixingMimeMessage` so custom message IDs survive later wrapping.
 
 ## Runtime Non-Null Instrumentation

@@ -56,7 +56,7 @@ Mailer mailer = mail.mailerBuilder().withSMTPServer(
 mailer.sendMail(email);
 ```
 
-The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Before sending, `mailer.testConnection()` checks the SMTP path and `mailer.validate(email)` checks the message. The [complete getting-started guide](https://www.simplejavamail.org/download.html) explains each step.
+The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Before sending, `mailer.testConnection()` checks the SMTP path. `mailer.validate(email)` applies that Mailer's defaults and overrides and rehearses the complete MIME message without connecting to SMTP. The [complete getting-started guide](https://www.simplejavamail.org/download.html) explains each step.
 
 ## What the API handles
 

@@ -37,12 +37,24 @@ public final class MimeMessageProducerHelper {
 	
 	@SuppressWarnings("deprecation")
 	public static MimeMessage produceMimeMessage(Email email, Session session) throws UnsupportedEncodingException, MessagingException {
+		return produceMimeMessage(email, session, true);
+	}
+
+	@SuppressWarnings("deprecation")
+	public static MimeMessage produceBaseMimeMessage(Email email, Session session) throws UnsupportedEncodingException, MessagingException {
+		return produceMimeMessage(email, session, false);
+	}
+
+	@SuppressWarnings("deprecation")
+	private static MimeMessage produceMimeMessage(Email email, Session session, boolean processSecurity) throws UnsupportedEncodingException, MessagingException {
 		JakartaMailImplementation.requireAvailable();
 		assert email instanceof InternalEmail;
 		((InternalEmail) email).verifyDefaultsAndOverridesApplied();
 		for (SpecializedMimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
 			if (mimeMessageProducer.compatibleWithEmail(email)) {
-				return mimeMessageProducer.populateMimeMessage(email, session);
+				return processSecurity
+						? mimeMessageProducer.populateMimeMessage(email, session)
+						: mimeMessageProducer.populateBaseMimeMessage(email, session);
 			}
 		}
 		throw new IllegalStateException("no compatible SpecializedMimeMessageProducer found for email");

@@ -77,6 +77,25 @@ Every old `EmailBuilder` starter has the same name on `mail.emailBuilder()`, inc
 
 Keep the `SimpleJavaMail` instance in application scope. It owns no network resources and returns a fresh builder for each construction flow. Keep and close each built `Mailer` according to your application lifecycle.
 
+## Mailer validation now rehearses the effective message
+
+In 9.x, `mailer.validate(email)` only ran the ordinary checks against the supplied `Email`. It did not apply that Mailer's defaults or overrides, build MIME, run signing or encryption, or enforce the encoded-size limit.
+
+In 10.0, validation follows the Mailer's preparation rules. It applies defaults and overrides, checks the resulting email, builds the MIME message, runs configured S/MIME, OpenPGP, and DKIM processing, and checks the final encoded size. It does not open an SMTP connection and it does not change the supplied `Email`.
+
+```java
+mailer.validate(email);       // complete rehearsal
+mailer.validate(email, true); // same behavior, explicitly
+```
+
+Use the quicker overload when you want to check governance, ordinary validation, and base MIME construction without running message security or measuring the final encoded message:
+
+```java
+mailer.validate(email, false);
+```
+
+The boolean parameter is named `processSecurityAndValidateSize`. Raw `Email` checks remain available through `MailerHelper.validate(email)`. Both Mailer validation modes build MIME, so both need Angus Mail or another compatible Jakarta Mail implementation at runtime. The `sjm validate` command uses the complete rehearsal and still makes no SMTP connection.
+
 ## Configuration is now an immutable snapshot
 
 `ConfigLoader` no longer owns mutable static state. An instance loader resolves ordered sources into a detached `SimpleJavaMailConfig`, which you then give to a `SimpleJavaMail` factory.

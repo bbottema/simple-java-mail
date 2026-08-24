@@ -18,6 +18,7 @@ class MailerException extends MailException {
 	static final String MAILER_ERROR = "Failed to send email [%s]";
 	static final String GENERIC_ERROR = "Failed to send email [%s], reason: Third party error";
 	static final String INVALID_ENCODING = "Failed to send email [%s], reason: Encoding not accepted";
+	static final String VALIDATION_ERROR = "Failed to validate email [%s]";
 	static final String UNKNOWN_ERROR = "Failed to send email [%s], reason: Unknown error";
 
 	MailerException(@SuppressWarnings("SameParameterValue") final String message) {

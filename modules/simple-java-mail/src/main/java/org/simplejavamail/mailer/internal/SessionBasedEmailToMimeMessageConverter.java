@@ -63,15 +63,17 @@ public class SessionBasedEmailToMimeMessageConverter {
     public static MimeMessage convertAndLogMimeMessage(Session session, final Email email) throws MessagingException {
         val mimeMessageConverter = (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
         val mimeMessage = mimeMessageConverter.convertAndLogMimeMessage(email);
-        val governance = mimeMessageConverter.emailGovernance;
-
-        if (governance.getMaximumEmailSize() != null) {
-            val emailSize = calculateEmailSize(mimeMessage);
-            if (emailSize > governance.getMaximumEmailSize()) {
-                throw new EmailTooBigException(emailSize, governance.getMaximumEmailSize());
-            }
-        }
+        mimeMessageConverter.validateMaximumEmailSize(mimeMessage);
         return mimeMessage;
+    }
+
+    public static void rehearseMimeMessage(Session session, final Email email, final boolean processSecurityAndValidateSize)
+            throws MessagingException {
+        val mimeMessageConverter = (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
+        val mimeMessage = convertMimeMessage(email, session, processSecurityAndValidateSize);
+        if (processSecurityAndValidateSize) {
+            mimeMessageConverter.validateMaximumEmailSize(mimeMessage);
+        }
     }
 
     @NotNull
@@ -114,6 +116,15 @@ public class SessionBasedEmailToMimeMessageConverter {
         }
     }
 
+    private void validateMaximumEmailSize(final MimeMessage mimeMessage) throws MessagingException {
+        if (emailGovernance.getMaximumEmailSize() != null) {
+            val emailSize = calculateEmailSize(mimeMessage);
+            if (emailSize > emailGovernance.getMaximumEmailSize()) {
+                throw new EmailTooBigException(emailSize, emailGovernance.getMaximumEmailSize());
+            }
+        }
+    }
+
     private static final class CountingOutputStream extends OutputStream {
         private long count;
 
@@ -146,8 +157,14 @@ public class SessionBasedEmailToMimeMessageConverter {
     }
 
     static private MimeMessage convertMimeMessage(final Email email, final Session session) throws MessagingException {
+        return convertMimeMessage(email, session, true);
+    }
+
+    static private MimeMessage convertMimeMessage(final Email email, final Session session, final boolean processSecurity) throws MessagingException {
         try {
-            return MimeMessageProducerHelper.produceMimeMessage(email, session);
+            return processSecurity
+                    ? MimeMessageProducerHelper.produceMimeMessage(email, session)
+                    : MimeMessageProducerHelper.produceBaseMimeMessage(email, session);
         } catch (UnsupportedEncodingException e) {
             LOGGER.trace("Failed to send email {}\n{}", email.getId(), email);
             throw new MailerException(format(INVALID_ENCODING, email.getId()), e);

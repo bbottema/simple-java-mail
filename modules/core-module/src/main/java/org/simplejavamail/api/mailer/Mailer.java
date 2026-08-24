@@ -199,30 +199,50 @@ public interface Mailer extends AutoCloseable {
 	@NotNull CompletableFuture<Void> sendMailsInSimpleBatch(Iterable<Email> emails, boolean async);
 	
 	/**
-	 * Runs this mailer's client-side validation against the supplied {@link Email} instance as it stands.
+	 * Rehearses preparing the supplied {@link Email} for sending through this mailer, without opening an SMTP connection.
 	 * <p>
-	 * In normal validation mode this method:
+	 * The mailer's defaults and overrides are applied first. In normal validation mode this method then:
 	 * <ul>
 	 *     <li>requires a From recipient and at least one To, Cc or Bcc recipient;</li>
 	 *     <li>rejects encoded-word content in address fields and applies the mailer's configured {@link com.sanctionco.jmail.EmailValidator}, if any;</li>
 	 *     <li>scans the subject, headers, address fields, attachment metadata and embedded-image metadata for CRLF injection.</li>
+	 *     <li>builds the complete MIME message, including configured S/MIME, OpenPGP and DKIM processing;</li>
+	 *     <li>checks the final encoded message size against the configured maximum, if any.</li>
 	 * </ul>
 	 * Completeness here means a sender and recipient; an empty subject or body is permitted.
 	 * <p>
-	 * This method validates the supplied instance directly. It does not apply the mailer's email defaults or overrides first. The send methods produce
-	 * the effective email by applying defaults and overrides and then run the same client-side validation. MIME conversion and the configured maximum
-	 * encoded message-size check also happen later in the send pipeline.
-	 * <p>
-	 * When all client validation is disabled, this method uses lenient validation: findings are logged instead of being thrown to the caller.
+	 * The supplied Email is not changed. Validation creates a separate governed Email and MIME message, and sending creates them again, so the final
+	 * send-time size check remains authoritative. When all client validation is disabled, ordinary validation findings are logged instead of being
+	 * thrown, but MIME construction, security processing and encoded-size failures still fail this rehearsal.
 	 *
-	 * @param email The email instance to validate as-is.
+	 * @param email The email to rehearse with this mailer's configuration.
 	 *
-	 * @return Always <code>true</code> (throws a {@link MailException} exception if validation fails).
-	 * @throws MailException If validation fails in normal validation mode.
+	 * @return Always <code>true</code> (throws an exception if validation fails).
+	 * @throws MailException If validation, MIME construction or security processing fails.
+	 * @throws EmailTooBigException If the final encoded message exceeds the configured maximum size.
 	 * @see com.sanctionco.jmail.EmailValidator
 	 */
 	@SuppressWarnings({"SameReturnValue" })
 	boolean validate(Email email) throws MailException;
+
+	/**
+	 * Rehearses preparing the supplied {@link Email} for sending through this mailer, with control over the expensive final-message processing.
+	 * <p>
+	 * Defaults, overrides, ordinary validation and base MIME construction always run. When {@code processSecurityAndValidateSize} is {@code true},
+	 * configured S/MIME, OpenPGP and DKIM processing also runs and the final encoded message size is checked. When it is {@code false}, validation stops
+	 * after constructing the unsecured base MIME message and does not enforce the configured maximum size.
+	 * <p>
+	 * Neither mode opens an SMTP connection or changes the supplied Email.
+	 *
+	 * @param email The email to rehearse with this mailer's configuration.
+	 * @param processSecurityAndValidateSize Whether to run configured message security and validate the resulting encoded size.
+	 * @return Always <code>true</code> (throws an exception if validation fails).
+	 * @throws MailException If validation, MIME construction or requested security processing fails.
+	 * @throws EmailTooBigException If final-size validation is requested and the encoded message exceeds the configured maximum size.
+	 * @see #validate(Email)
+	 */
+	@SuppressWarnings({"SameReturnValue" })
+	boolean validate(Email email, boolean processSecurityAndValidateSize) throws MailException;
 
 	/**
 	 * Releases the resources owned by this {@link Mailer}. This initiates an orderly shutdown of an internally created executor service and, when the
