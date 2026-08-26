@@ -30,16 +30,16 @@ Provide a reliable no-console per-user daemon and an easy Chocolatey installatio
 
 ## Chocolatey package
 
-Publish a Chocolatey package that installs the tested Windows CLI ZIP, declares the Java 17 runtime dependency, and exposes `sjm` on `PATH`. Install and upgrade do not start the daemon or add autostart. Uninstall first asks a running default daemon to stop, then removes only package-owned files while retaining user configuration and logs.
+Publish a Chocolatey package that installs the tested Windows CLI ZIP, declares the Java 17 runtime dependency, and exposes `sjm` on `PATH`. Installation does not start the daemon or add autostart. Chocolatey's `chocolateyBeforeModify.ps1` hook stops the default daemon before upgrade or removal. Uninstall then removes the command shim and package-owned files while retaining user configuration and logs.
 
-Draft package sources and their publication lifecycle are parked under [issue #708](https://github.com/bbottema/simple-java-mail/issues/708). They must be rendered from versioned HTTPS archive inputs and SHA-256 checksums and pass Chocolatey validation, verification, moderation, and maintenance rules before availability is claimed.
+Package sources and publication are tracked under [issue #708](https://github.com/bbottema/simple-java-mail/issues/708). They are rendered from the public versioned ZIP, pinned by SHA-256, parsed, packed, and published through the explicitly triggered CircleCI release workflow. The one-time Windows smoke test covers a clean install, a running-daemon upgrade, and uninstall.
 
 ## Acceptance criteria
 
 - [x] Per-user background start works without a visible console or administrator rights.
 - [x] Unix-domain socket and forced TCP paths both pass on Windows.
 - [x] Windows x64 support is proven; every additional architecture claim has a real artifact test.
-- [x] Draft Chocolatey templates render without unresolved values and build a package locally; they are parked under issue #708 rather than included in the portable release branch.
+- [x] Chocolatey templates render without unresolved values and build a package locally; they remain outside the portable archive.
 - [ ] The Chocolatey package passes clean install, explicit daemon use, upgrade, and uninstall without enabling background startup.
 - [ ] Two Windows users cannot control or inspect each other's per-user daemon.
 - [x] No Scheduled Task, Windows Service, or legacy JSW binary is introduced.
@@ -48,7 +48,7 @@ Draft package sources and their publication lifecycle are parked under [issue #7
 
 - Windows x64 process and packaged-ZIP tests prove console-free per-user start, authenticated status/use/stop, Unix-domain sockets, and forced loopback fallback.
 - Owner-only state ACL handling and process-identity checks are covered locally.
-- The parked package renderer rejects malformed release inputs and unresolved tokens, and a local `choco pack` succeeds.
+- The package renderer rejects malformed release inputs and unresolved tokens, and a local `choco pack` succeeds. Release preparation also checks the public release, exact ZIP asset, digest, tag, and checkout commit.
 - Clean Chocolatey install/upgrade/uninstall and two-user isolation remain release gates. No autostart or privileged service is claimed.
 
 ## Stop condition

@@ -59,7 +59,7 @@ Provide separate, tested sections for:
 
 - portable foreground use;
 - systemd user unit installation, `enable --now`, status/logs, stop, removal, and optional lingering;
-- the fact that Homebrew distribution and `brew services` integration are deferred to issue #708.
+- the fact that Homebrew distribution is deferred to issue #708 and has no service integration.
 
 ### macOS
 
@@ -79,7 +79,7 @@ Provide separate, tested sections for:
 1. Update the Java build matrix and remove the stale JDK 8-only CLI metadata rule.
 2. Document metadata regeneration on JDK 17/current JDK.
 3. Document protocol-version changes, state compatibility, and the rule against Java/Kryo serialization over IPC.
-4. Document OS package prerequisites, signing/notarization, service test VMs, checksums, and artifact collection.
+4. Document package prerequisites, checksum and release validation, the one-time installation smoke workflow, and publication credentials.
 5. Add daemon lifecycle and Mailer registry ownership to `PROJECT_MECHANISMS_CATALOGUE.md`.
 6. Cross-link and reconcile the CLI gates in `01_INSTANCE_CONFIGURATION_IMPROVEMENT_PLAN` before implementation of this plan begins.
 7. Record how to run every forked process, transport, security, performance, and platform gate.
@@ -88,7 +88,7 @@ Provide separate, tested sections for:
 
 - Speak directly to the CLI user or operator.
 - Use plain language and copyable commands.
-- Distinguish portable on-demand acquisition from explicitly enabled systemd supervision and future Homebrew integration.
+- Distinguish portable on-demand acquisition from explicitly enabled systemd supervision and the service-free Homebrew package.
 - State scope and effect before commands that enable a service or install files outside the CLI directory.
 - Do not imply delivery was unsuccessful merely because the client lost the response.
 - Do not call the process a queue or claim exactly-once delivery.

@@ -93,7 +93,7 @@ The daemon is part of the CLI, not a separate application to install. After inst
 
 The standalone archive includes one optional, tested Linux convenience at `daemon/systemd/sjm-daemon.service`. It is not enabled during installation. Windows users do not need a Scheduled Task or Windows Service: on-demand acquisition launches a hidden per-user process.
 
-Homebrew and Chocolatey distribution is tracked separately in [issue #708](https://github.com/bbottema/simple-java-mail/issues/708). It is not required for the daemon: until those packages are published, use the portable ZIP or tar and rely on `-d` or the normal daemon-management commands.
+Homebrew and Chocolatey distribution is tracked separately in [issue #708](https://github.com/bbottema/simple-java-mail/issues/708). They install the same portable CLI and do not add service integration. Until those packages are published, use the portable ZIP or tar. In every installation, daemon use remains `-d` or the normal `sjm daemon ...` commands.
 
 ### Containers
 

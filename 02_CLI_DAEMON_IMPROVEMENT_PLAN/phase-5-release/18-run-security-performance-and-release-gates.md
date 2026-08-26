@@ -32,7 +32,6 @@ Run each applicable route with absent, start, ready, busy, quiescing, stopped, c
 - portable foreground process;
 - portable per-user background process;
 - systemd user route;
-- Homebrew-managed service route when published;
 - one tested non-systemd/container foreground route.
 
 ## Command and Mailer matrix
@@ -86,7 +85,7 @@ Do not hide daemon startup in the warm benchmark. Report cold start separately.
 
 1. Inspect portable tar/zip contents, scripts, permissions, line endings, Java requirement, daemon resources, dependency trees, and license files.
 2. Render and validate the Homebrew and Chocolatey sources from real release URLs and checksums.
-3. Install, upgrade over an old running daemon, exercise explicit daemon lifecycle, and uninstall the Homebrew formula on macOS/Linux and Chocolatey package on Windows.
+3. Run the one-time Homebrew install/help/uninstall smoke on macOS and the Chocolatey install/running-daemon upgrade/uninstall smoke on Windows.
 4. Verify uninstall retention/removal of config, logs, service state, daemon state, and sockets matches documentation.
 5. Verify artifact names, OS/architecture classifiers, checksums, signatures/notarization, and collected release assets.
 6. Build the website from the actual updated checkout and run its production/link gates.
@@ -125,8 +124,8 @@ Record:
 - [x] Per-user isolation, authentication, replay defense, limits, and secret scans pass.
 - [x] Compatible requests reuse Mailers and configured SMTP connections; incompatible requests never do.
 - [x] No automatic retry/fallback can duplicate an ambiguous send.
-- [ ] Every claimed supervisor/service/package passes real lifecycle tests.
-- [ ] Homebrew and Chocolatey package-manager routes pass install, upgrade, uninstall, and explicit opt-in daemon tests.
+- [ ] Every claimed supervisor passes its lifecycle tests, and each package passes its scoped one-time smoke check.
+- [ ] Homebrew passes install/no-daemon/help/uninstall on macOS; Chocolatey passes install/no-daemon/running-daemon upgrade/uninstall on Windows.
 - [x] Warm repeated-command performance is materially and repeatably better than one-shot execution.
 - [ ] Idle and sustained daemon resources remain bounded.
 - [ ] Portable artifacts, migration docs, durable docs, and website agree; package-manager artifacts are governed separately by issue #708.

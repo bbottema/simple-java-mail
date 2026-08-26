@@ -447,9 +447,15 @@ After the deploy job finishes:
 4. Verify `cli-module` includes `standalone-cli.tar` and `standalone-cli.zip`.
 5. Create or update the GitHub release using the required single-item sentence or multi-item bullet format above.
 6. Attach the release assets: the versioned CLI standalone `.tar` and `.zip` archives and the sample `log4j2_example.xml` logging configuration.
-7. Recheck that every release-note issue/PR and summarized Dependabot item is in the exact-version milestone.
-8. Confirm every milestone item is closed, set the milestone due date to the actual published release date, then close it.
-9. Fast-forward `develop` to `master` and push `develop`.
+7. For 10.0.0, explicitly trigger the CircleCI configuration on `master` with `package_action=smoke` and `package_version=10.0.0`. Publish only after both one-time smoke jobs pass. Repeat this workflow for later releases only when package installation behavior or templates materially change.
+8. Trigger the CircleCI configuration on `master` with `package_action=publish` and `package_version=x.y.z`. This checks out the matching tag, verifies the public release and archive hashes, validates both package sources, and publishes Chocolatey and the Homebrew tap. A rerun is safe after a partial success.
+9. Verify the exact Chocolatey version and the tap formula are public.
+10. After both packages are publicly available, add `brew install simple-java-mail/tap/sjm` and `choco install sjm` to the website while retaining the standalone ZIP and tar download route. Build and publish the website through its normal release path.
+11. Recheck that every release-note issue/PR and summarized Dependabot item is in the exact-version milestone.
+12. Confirm every milestone item is closed, set the milestone due date to the actual published release date, then close it.
+13. Fast-forward `develop` to `master` and push `develop`.
+
+Package pipelines require `package_version`, must be triggered against `master`, and do not create the GitHub release. The `SJM_PACKAGE_PUBLISHING` CircleCI context supplies the Homebrew tap token and Chocolatey API key. Package installation never starts a daemon; daemon use remains explicit through `sjm send -d` or `sjm daemon ...`.
 
 If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane and ship a patch release. Fold the patch changes into the parent repository notes using the release-note decision tree above, while giving the patch tag its own GitHub release in the required concise format.
 

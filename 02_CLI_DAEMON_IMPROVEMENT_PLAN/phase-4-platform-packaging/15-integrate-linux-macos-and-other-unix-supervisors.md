@@ -1,4 +1,4 @@
-# Step 15: Integrate systemd, Homebrew, and other Unix supervisors
+# Step 15: Integrate systemd, Homebrew packaging, and other Unix supervisors
 
 - Status: Portable and systemd routes done; Homebrew deferred to issue #708
 - Depends on: Steps 7, 8, and 13
@@ -7,7 +7,7 @@
 
 ## Goal
 
-Run the same foreground daemon correctly under a tested Linux systemd user unit and Homebrew's cross-platform service support, while retaining a simple foreground contract for every other Unix-like system.
+Run the same foreground daemon correctly under a tested Linux systemd user unit, package the CLI through Homebrew without service integration, and retain a simple foreground contract for every other Unix-like system.
 
 ## Tests first
 
@@ -18,13 +18,13 @@ Run the same foreground daemon correctly under a tested Linux systemd user unit 
 5. Validate documented recipes only for specifically claimed additional supervisors.
 6. Exercise short and long runtime paths, permissions, symlinks, read-only home directories, temporary-directory cleanup, and multiple Unix users.
 7. Render and parse the project-owned Homebrew formula in CI.
-8. Install, test, upgrade, and uninstall the formula on macOS and Homebrew on Linux. Exercise `brew services start`, list, restart, and stop against its `service do` definition.
+8. Once for 10.0.0, install the formula from a local tap on macOS, prove installation did not start a daemon, run `sjm daemon --help`, and uninstall it.
 
-## Homebrew package and service
+## Homebrew package
 
-Publish one project-owned formula for macOS and Homebrew on Linux. It installs the tested portable CLI, supplies the tested Java 21 LTS runtime for the Java 17-compatible CLI, includes a functional formula test, and exposes `sjm` on `PATH`.
+Publish one project-owned formula for macOS. It installs the tested portable CLI, supplies the tested Java 21 LTS runtime for the Java 17-compatible CLI, includes a functional formula test, and exposes `sjm` on `PATH`.
 
-The formula's `service do` block runs `sjm daemon run` in the foreground. `brew install` does not start the daemon. Users either rely on `sjm send -d` for on-demand acquisition or explicitly opt into login-time supervision with `brew services start sjm`. Homebrew owns the generated launchd or systemd integration, so the project does not also ship a hand-maintained LaunchAgent.
+The formula has no `service do` block. `brew install` does not start or register the daemon. Users rely on `sjm send -d` or the normal `sjm daemon ...` commands. The project does not ship a LaunchAgent.
 
 Start with a project tap so releases remain under project control. Submission to Homebrew/core is a separate later decision.
 
@@ -38,7 +38,7 @@ Start with a project tap so releases remain under project control. Submission to
 
 ## macOS implementation
 
-The supported 10.0.0 route is the portable CLI with on-demand `-d` acquisition. Homebrew distribution and `brew services` integration are tracked under issue #708. A standalone LaunchAgent plist is not shipped or claimed separately.
+The portable CLI and Homebrew package both use on-demand `-d` acquisition or explicit daemon commands. Homebrew distribution is tracked under issue #708. No Homebrew service or standalone LaunchAgent is shipped.
 
 ## Other Unix-like systems and containers
 
@@ -51,10 +51,10 @@ Containers run `sjm daemon run` as the foreground process under the orchestrator
 - [x] A systemd user unit passes install through removal under an ordinary user.
 - [x] At least one non-systemd foreground route passes.
 - [x] Generic Unix documentation distinguishes tested supervisors from the portable contract.
-- [x] The draft Homebrew formula renders without unresolved values; it is parked under issue #708 rather than included in the portable release branch.
+- [x] The Homebrew formula renders without unresolved values and remains outside the portable archive.
 - [ ] The hosted macOS Ruby syntax check passes.
-- [ ] The Homebrew formula passes install, functional test, explicit `brew services` lifecycle, upgrade, and uninstall on macOS and Linux.
-- [ ] Homebrew and systemd stop reach the shared graceful shutdown path.
+- [ ] The one-time Homebrew formula smoke test passes install, no automatic daemon start, daemon help, and uninstall on macOS.
+- [x] The tested systemd stop reaches the shared graceful shutdown path.
 - [x] No supervisor expects the Java process to fork or maintain its own PID file.
 - [x] No separate untested LaunchAgent is shipped.
 
@@ -62,8 +62,8 @@ Containers run `sjm daemon run` as the foreground process under the orchestrator
 
 - On Ubuntu 24.04 under an ordinary WSL user, the rendered systemd unit passes `systemd-analyze`, link/install, enable/start, authenticated status, supervisor SIGTERM cleanup, success classification, disable, and removal, including a long custom state root.
 - The portable route passes in clean Linux containers on Temurin 17 and 21 over both local transports. A locked-down Java 17 run also succeeds, and a foreground PID 1 drains under orchestrator SIGTERM with the expected signal exit status 143.
-- The distribution ships the tested systemd user unit. Draft Homebrew source with an opt-in `service do` block is parked under issue #708; the portable installation itself does not start a daemon.
-- Actual Homebrew publication and lifecycle runs on macOS and Linux remain open acceptance gates.
+- The distribution ships the tested systemd user unit. The Homebrew source is a thin archive wrapper with no service integration; neither portable nor Homebrew installation starts a daemon.
+- The one-time Homebrew installation smoke and public tap publication remain issue #708 gates.
 
 ## Stop condition
 

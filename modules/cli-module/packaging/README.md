@@ -1,28 +1,47 @@
 # Homebrew and Chocolatey release sources
 
-These files are inputs for publishing the SJM CLI through popular package managers. They are not included in the portable CLI archive and they do not install a second daemon product. Homebrew and Chocolatey install the same `sjm` command; `sjm send -d` starts or reuses its per-user daemon on demand.
+These are thin wrappers around the public standalone CLI archives. Homebrew downloads the tar, Chocolatey downloads the ZIP, and both expose the same `sjm` command. Neither package starts a daemon or installs a service. Use `sjm send -d` or the normal `sjm daemon ...` commands when a daemon is useful.
 
-Publication and lifecycle validation are tracked by [issue #708](https://github.com/bbottema/simple-java-mail/issues/708). The portable 10.0.0 ZIP and tar remain independently releasable.
+The portable ZIP and tar remain supported on their own. Package-manager publication is tracked by [issue #708](https://github.com/bbottema/simple-java-mail/issues/708).
 
-Package installation never starts or enables the daemon. Homebrew users may explicitly keep it running with `brew services start sjm`. Chocolatey users can rely on on-demand acquisition or explicitly run the normal `sjm daemon` commands.
+## Prepare a public release
 
-## Render a release
-
-Build and publish the versioned standalone tar and ZIP first, then render the package sources with their public URLs and SHA-256 checksums:
+Create the GitHub release and upload its versioned standalone tar and ZIP first. From a checkout of the matching release tag, run:
 
 ```powershell
-./Render-PackageTemplates.ps1 `
+./Prepare-PackageRelease.ps1 `
     -Version 10.0.0 `
-    -ReleaseArchiveUrl https://github.com/bbottema/simple-java-mail/releases/download/10.0.0/cli-module-10.0.0-standalone-cli.tar `
-    -ReleaseArchiveSha256 <64-hex-character-sha256> `
-    -WindowsArchiveUrl https://github.com/bbottema/simple-java-mail/releases/download/10.0.0/cli-module-10.0.0-standalone-cli.zip `
-    -WindowsArchiveSha256 <64-hex-character-sha256> `
-    -PackageSourceRevision <40-hex-character-commit-sha> `
     -OutputDirectory ./target/package-sources
 ```
 
-`PackageSourceRevision` is the immutable commit containing these package sources. This remains valid if the packages are published after the 10.0.0 Git tag was created.
+The preparation command requires a public, non-draft, non-prerelease GitHub release. It finds the exact versioned assets, downloads them, calculates their SHA-256 hashes, checks GitHub's asset digests when present, resolves the tag to a commit, and requires the current checkout to be that commit. It then renders both package sources and writes `package-release.json` with the verified coordinates.
 
-The renderer rejects non-HTTPS URLs, malformed checksums, and unresolved template tokens. CI additionally parses the Homebrew formula with Ruby and builds the Chocolatey package with `choco pack`.
+`Render-PackageTemplates.ps1` remains available for focused template development. It rejects malformed versions and hashes, non-HTTPS URLs, invalid source revisions, and unresolved tokens.
 
-Rendering and packing are only source validation. Publishing to a project tap/feed, Homebrew/core, or the Chocolatey Community Repository remains an explicit release action and requires the real package-manager lifecycle tests described in the improvement plan.
+## Validate package sources
+
+On a machine with Ruby and Chocolatey:
+
+```powershell
+./Test-PackageSources.ps1 `
+    -SourceDirectory ./target/package-sources `
+    -PackageOutputDirectory ./target/packages
+```
+
+This parses every Chocolatey PowerShell file, runs `ruby -c` on the formula, and runs `choco pack`. The resulting Chocolatey package contains only its NuSpec and install hooks; the CLI ZIP is still downloaded from the checksum-pinned GitHub release URL during installation.
+
+## CircleCI release actions
+
+Ordinary pipelines leave `package_action` at `none`. After the public GitHub release exists, explicitly trigger a pipeline on `master` with a `package_version` and either:
+
+- `package_action: smoke` for the one-time macOS Homebrew and Windows Chocolatey installation checks;
+- `package_action: publish` for release validation and idempotent publication.
+
+The smoke workflow is only needed again when package installation behavior or the templates materially change. Normal later releases can go straight to `publish`.
+
+The publish job uses the project-restricted `SJM_PACKAGE_PUBLISHING` context with:
+
+- `HOMEBREW_TAP_TOKEN`: a fine-grained GitHub token with contents write access only to `simple-java-mail/homebrew-tap`;
+- `CHOCO_API_KEY`: the Chocolatey Community API key.
+
+It skips an exact Chocolatey version that already exists and only commits the Homebrew formula when its content changed, so rerunning after a partial success is safe. Package jobs do not persist artifacts or workspaces.

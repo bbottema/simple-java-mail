@@ -19,7 +19,7 @@ Publish portable Java 17 archives that match the support claims. Issue #708 sepa
 6. Produce checksums, software/license inventory, provenance, and signing evidence required by the release policy.
 7. Render Homebrew and Chocolatey sources from versioned HTTPS archive URLs and SHA-256 checksums; fail on invalid inputs or unresolved template values.
 8. Parse the rendered Homebrew formula on macOS and pack the rendered NuSpec with Chocolatey on Windows.
-9. Install, upgrade, exercise, and uninstall both packages against published release archives. Prove package installation never enables daemon autostart implicitly.
+9. Run the one-time package smoke checks against published 10.0.0 archives: Homebrew install/help/uninstall on macOS, and Chocolatey install/running-daemon upgrade/uninstall on Windows. Prove installation never starts a daemon.
 
 ## Portable artifacts
 
@@ -31,26 +31,23 @@ Publish portable Java 17 archives that match the support claims. Issue #708 sepa
 
 ## Package-manager packages
 
-1. Maintain one project-owned Homebrew formula for macOS and Homebrew on Linux. It consumes a versioned tar, supplies the tested Java 21 LTS runtime for the Java 17-compatible CLI, includes a functional test, and defines `sjm daemon run` through `service do` for explicit `brew services` use.
-2. Maintain one Chocolatey package for Windows. It consumes the versioned ZIP, exposes `sjm`, and handles uninstall with a running default daemon.
-3. Maintain the draft sources on the issue #708 branch until their real lifecycle is proven. Pin downloads by checksum and reject unresolved values.
+1. Maintain one project-owned Homebrew formula for macOS. It consumes a versioned tar, supplies the tested Java 21 LTS runtime for the Java 17-compatible CLI, includes a functional test, and has no service integration.
+2. Maintain one Chocolatey package for Windows. It consumes the versioned ZIP, exposes `sjm`, and stops the default daemon through Chocolatey's before-modify hook on upgrade or uninstall.
+3. Keep package sources outside the portable archive. Pin downloads by checksum and reject unresolved values.
 4. Do not start, enable, schedule, or register the daemon merely because either package is installed.
-5. Treat publication to a project tap/feed, Homebrew/core, or the Chocolatey Community Repository as an explicit release action with its own lifecycle evidence.
+5. Treat publication to the project tap and Chocolatey Community Repository as an explicit post-release CircleCI action.
 
 ## CI matrix
 
 | Job | Required evidence |
 | --- | --- |
-| Java 8 library compatibility | Non-CLI modules and bytecode/API gate |
-| JDK 17 full CLI | Compile, unit, forked process, UDS, TCP fallback, portable archive |
-| Current JDK full reactor | Modern runtime, metadata generation, full tests |
-| Windows | UDS/TCP, hidden background start, ZIP lifecycle |
-| Linux | UDS/TCP, tar lifecycle, systemd user lifecycle where available |
-| macOS | UDS/TCP, tar lifecycle |
-| Homebrew release gate | Formula install/test/upgrade/uninstall and `brew services` on macOS and Linux |
-| Chocolatey release gate | Package install/upgrade/uninstall and explicit daemon lifecycle on Windows |
+| JDK 11 library compatibility | Non-CLI library reactor on an actual JDK 11 |
+| JDK 21 full reactor | Modern runtime, metadata generation, tests, and portable archives |
+| Homebrew one-time smoke | Formula install, no daemon start, daemon help, and uninstall on macOS |
+| Chocolatey one-time smoke | Package install, no daemon start, running-daemon upgrade, version check, and uninstall on Windows |
+| Package publish | Public release, exact assets, digests, tag/commit agreement, source validation, and idempotent publication |
 
-Package install tests may run in maintained release VMs when hosted CI is insufficient, but their commands and evidence remain repeatable and release-blocking before package publication.
+The package smoke workflow runs once for 10.0.0 and is repeated only when templates or installation behavior materially change. Normal releases use the publish workflow directly. The package jobs persist no artifacts or workspaces.
 
 ## Acceptance criteria
 
@@ -67,9 +64,9 @@ Package install tests may run in maintained release VMs when hosted CI is insuff
 ## Implementation evidence
 
 - Maven builds portable tar and ZIP distributions containing the Java 17 CLI, Java 8 library dependencies, daemon documentation, and the tested systemd unit. Windows ZIP and Ubuntu tar lifecycles pass; the tar explicitly preserves executable launcher permissions.
-- `.github/workflows/cli-daemon.yml` defines Windows, Ubuntu, and macOS jobs on JDK 17/current JDK, archive extraction/lifecycle checks, deterministic metadata checks, and a Java 8 library-only gate.
-- The draft release renderer on the issue #708 branch validates version, URLs, checksums, and unresolved values, then creates correctly named Homebrew and Chocolatey source trees.
-- Homebrew and Chocolatey publication and clean lifecycle evidence, signing/provenance, and package upgrade evidence remain release work.
+- CircleCI runs the normal full reactor on JDK 21 and one non-CLI library lane on JDK 11. Package smoke and publish workflows run only when explicitly selected with pipeline parameters.
+- Release preparation validates the public release, exact asset names and URLs, calculated and reported hashes, tag/commit agreement, and unresolved template values before creating the Homebrew and Chocolatey source trees.
+- One-time Homebrew and Chocolatey smoke evidence, public publication, signing/provenance, and package moderation remain release work.
 
 ## Stop condition
 

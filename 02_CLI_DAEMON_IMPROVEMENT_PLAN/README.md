@@ -18,7 +18,7 @@ This plan turns the one-command-per-JVM CLI into an optional per-user client and
 
 When this plan was implemented, the Java compatibility decision was deliberately different from the rest of Simple Java Mail: `cli-module` moved to Java 17 while every library artifact remained Java 8-compatible. Java 17 was selected instead of exactly Java 16 because it is the next LTS release, contains the Unix-domain socket API introduced in Java 16, and contains the Windows Server 2019 fix that was missing from the first JDK 16 implementation.
 
-The production implementation now follows the approved portable direction below. The daemon core, Java baseline split, documentation, and cross-platform portable-archive CI jobs are present. Homebrew and Chocolatey publication tooling and lifecycle validation are parked under issue #708 and do not block the portable 10.0.0 release.
+The production implementation now follows the approved portable direction below. The daemon core, Java baseline split, documentation, and portable archives are present. Homebrew and Chocolatey publication is handled separately by issue #708 and does not block the portable 10.0.0 release.
 
 ## Implementation result
 
@@ -31,8 +31,8 @@ The production implementation now follows the approved portable direction below.
 - Ubuntu 24.04/JDK 21 passes the daemon process suite and a rendered systemd user unit's install, enable, start, SIGTERM stop, disable, and removal lifecycle.
 - Clean Linux containers on Temurin 17 and 21 pass the exact portable tar over native Unix-domain sockets and forced loopback TCP. A second Java 17 run passes as UID/GID 65532 with a read-only root filesystem, all capabilities dropped, `no-new-privileges`, and a private `0700` state directory. The foreground command also runs as PID 1 and drains under orchestrator SIGTERM, producing the expected signal exit status 143.
 - The local benchmark measured a 387 ms warm-daemon median versus 1,804 ms one-shot median on Windows/JDK 21, a 4.66x improvement. Raw samples are produced by the opt-in benchmark test.
-- The website, durable daemon guide, migration guide, maintainer guide, tested systemd unit, and hosted OS/JDK matrix are implemented. Homebrew and Chocolatey sources are isolated on the issue #708 branch until their real lifecycle can be validated.
-- Machine-wide services, Scheduled Tasks, standalone LaunchAgents, and self-contained MSI/pkg/deb/rpm installers are outside this improvement. On-demand `-d`, the optional systemd unit, and foreground `daemon run` cover the portable 10.0.0 background-daemon use cases; Homebrew service integration belongs to issue #708.
+- The website, durable daemon guide, migration guide, maintainer guide, and tested systemd unit are implemented. Issue #708 owns the thin Homebrew and Chocolatey wrappers and their release-time validation.
+- Machine-wide services, Scheduled Tasks, standalone LaunchAgents, Homebrew service integration, and self-contained MSI/pkg/deb/rpm installers are outside this improvement. On-demand `-d`, the optional systemd unit, and foreground `daemon run` cover the portable 10.0.0 background-daemon use cases.
 
 ## What issue #488 means now
 
@@ -100,7 +100,7 @@ sjm process, Java 17+
 
 ### 1. The daemon is an ordinary foreground process
 
-`sjm daemon run` owns the server loop and blocks until an authenticated stop request, operating-system shutdown, or fatal startup failure. It does not fork itself or pretend to be a Unix service. Systemd, Homebrew services, containers, and user-selected supervisors all manage the same foreground command.
+`sjm daemon run` owns the server loop and blocks until an authenticated stop request, operating-system shutdown, or fatal startup failure. It does not fork itself or pretend to be a Unix service. Systemd, containers, and user-selected supervisors all manage the same foreground command.
 
 ### 2. The normal CLI is a thin client
 
@@ -275,7 +275,7 @@ The daemon combines its immutable startup defaults with each request's existing 
 The release starts with one delivery route, while a second is tracked separately:
 
 1. **Portable archives:** the existing zip/tar style with `sjm` and `sjm.bat`; users provide Java 17 or newer. This is the supported 10.0.0 release route.
-2. **Package-manager packages:** issue #708 tracks a Homebrew formula for macOS/Linux and a Chocolatey package for Windows. These may be published for the same 10.0.0 artifacts after their lifecycle tests pass.
+2. **Package-manager packages:** issue #708 tracks a Homebrew formula for macOS and a Chocolatey package for Windows. Both are thin wrappers around the same checksum-pinned 10.0.0 archives and are published only after their one-time smoke checks and release validation pass.
 
 Package-manager source files are not bundled into the portable archive. The first release does not add a separate daemon package or an OS-specific installer.
 
@@ -289,7 +289,7 @@ Package-manager source files are not bundled into the portable archive. The firs
 | BSD and other Unix-like systems | Portable archive | On-demand `-d` or foreground process under a tested local supervisor | Unix-domain socket when the JDK supports it, otherwise loopback TCP |
 | Containers | Portable archive or derived container image | Foreground `sjm daemon run` under the orchestrator | Unix-domain socket or loopback inside the container |
 
-[Issue #708](https://github.com/bbottema/simple-java-mail/issues/708) retains the approved package-manager direction: Homebrew can use formula-defined launchd and systemd services through `service do` and `brew services`, while Chocolatey can wrap the tested portable ZIP. Neither route is claimed as available until its lifecycle gates pass.
+[Issue #708](https://github.com/bbottema/simple-java-mail/issues/708) retains the approved package-manager direction: Homebrew wraps the tested portable tar and Chocolatey wraps the tested portable ZIP. Neither adds service integration or starts a daemon during installation. Neither route is claimed as available until its one-time smoke check and release-time validation pass.
 
 ## Security and operational decisions
 
@@ -348,7 +348,7 @@ Status vocabulary: `Proposed`, `Planned`, `In progress`, `Blocked`, `Done`.
 ### Phase 4: Integrate operating systems and packaging
 
 - [ ] [14. Integrate Windows background and Chocolatey lifecycle](phase-4-platform-packaging/14-integrate-windows-background-and-service-lifecycle.md)
-- [ ] [15. Integrate systemd, Homebrew, and other Unix supervisors](phase-4-platform-packaging/15-integrate-linux-macos-and-other-unix-supervisors.md)
+- [ ] [15. Integrate systemd, Homebrew packaging, and other Unix supervisors](phase-4-platform-packaging/15-integrate-linux-macos-and-other-unix-supervisors.md)
 - [ ] [16. Build portable archives and cross-platform CI](phase-4-platform-packaging/16-build-cross-platform-artifacts-and-ci.md)
 
 ### Phase 5: Documentation and release proof
@@ -361,8 +361,8 @@ Status vocabulary: `Proposed`, `Planned`, `In progress`, `Blocked`, `Done`.
 - Phase 1 must finish before protocol or daemon runtime implementation begins.
 - Phase 2 is complete only when the same protocol passes over Unix-domain sockets and forced loopback fallback, with isolated per-user state and no SMTP behavior.
 - Phase 3 is complete only when one-shot and daemon execution share one executor, repeated sends reuse exactly one eligible Mailer, and ambiguous results cannot trigger automatic duplicate delivery.
-- Phase 4 is complete only when the portable routes pass on Windows, Linux, and macOS, the systemd example is proven, and published package-manager routes pass their real lifecycle tests.
-- Phase 5 is complete only when library bytecode remains Java 8, CLI bytecode is Java 17, portable and package-manager artifacts are inspected, and security and performance evidence is recorded.
+- Phase 4 is complete only when the portable routes pass, the systemd example is proven, and the one-time Homebrew and Chocolatey smoke checks pass.
+- Phase 5 is complete only when library and CLI bytecode baselines hold, portable and package-manager sources are inspected, and security and performance evidence is recorded.
 
 ## Out of scope
 
