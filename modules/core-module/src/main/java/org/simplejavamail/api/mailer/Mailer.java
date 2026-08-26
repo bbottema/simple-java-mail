@@ -60,7 +60,71 @@ public interface Mailer extends AutoCloseable {
 	@NotNull CompletableFuture<Void> testConnection(boolean async);
 	
 	/**
+	 * Sends one email on the calling thread and returns only after the configured send path completes.
+	 * <p>
+	 * This method ignores the mailer's configured async default. Preparation, validation, connection and submission failures are thrown directly.
+	 * Use {@link #sendMailAsync(Email)} when the caller needs a future instead.
+	 *
+	 * @param email The information for the email to be sent.
+	 * @throws IllegalArgumentException If {@code email} is {@code null}.
+	 * @throws MailException If the email is invalid or another problem occurs during preparation, connection or sending.
+	 * @throws MailSubmissionException If transport submission fails or only partially succeeds.
+	 */
+	default void sendMailSync(Email email) {
+		sendMail(email, false).join();
+	}
+
+	/**
+	 * Schedules one email for asynchronous sending, independently of the mailer's configured async default.
+	 * <p>
+	 * The returned future covers preparation, validation, scheduling, connection and submission. Operational failures complete it exceptionally;
+	 * a {@code null} email remains an immediate contract violation.
+	 *
+	 * @param email The information for the email to be sent.
+	 * @return A future representing the complete send attempt.
+	 * @throws IllegalArgumentException If {@code email} is {@code null}.
+	 */
+	@NotNull
+	default CompletableFuture<Void> sendMailAsync(Email email) {
+		return sendMail(email, true);
+	}
+
+	/**
+	 * Sends one email on the calling thread and returns its provider-neutral submission receipt.
+	 * <p>
+	 * This method ignores the mailer's configured async default. It reports failed and partial submissions by throwing
+	 * {@link MailSubmissionException}, whose receipt contains the facts captured during the same attempt.
+	 *
+	 * @param email The information for the email to be sent.
+	 * @return The receipt for the completed submission.
+	 * @throws IllegalArgumentException If {@code email} is {@code null}.
+	 * @throws MailException If the email is invalid or another problem occurs during preparation, connection or sending.
+	 * @throws MailSubmissionException If transport submission fails or only partially succeeds.
+	 */
+	@NotNull
+	default MailSubmissionReceipt sendMailAndGetReceiptSync(Email email) {
+		return sendMailAndGetReceipt(email, false).join();
+	}
+
+	/**
+	 * Schedules one email for asynchronous sending and completes with its provider-neutral submission receipt.
+	 * <p>
+	 * This method ignores the mailer's configured async default. Failed and partial submissions complete the future exceptionally with
+	 * {@link MailSubmissionException}; a {@code null} email remains an immediate contract violation.
+	 *
+	 * @param email The information for the email to be sent.
+	 * @return A future representing the complete send attempt and its receipt.
+	 * @throws IllegalArgumentException If {@code email} is {@code null}.
+	 */
+	@NotNull
+	default CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceiptAsync(Email email) {
+		return sendMailAndGetReceipt(email, true);
+	}
+
+	/**
 	 * Delegates to {@link #sendMail(Email, boolean)} using the mailer's configured async default.
+	 * <p>
+	 * Prefer {@link #sendMailSync(Email)} or {@link #sendMailAsync(Email)} when the execution mode should be visible at the call site.
 	 *
 	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 * @see MailerGenericBuilder#async()
@@ -70,7 +134,8 @@ public interface Mailer extends AutoCloseable {
 	/**
 	 * Delegates to {@link #sendMailAndGetReceipt(Email, boolean)} using the mailer's configured async default.
 	 * <p>
-	 * The returned receipt describes the provider-neutral SMTP submission outcome, not final delivery to the recipient mailbox.
+	 * Prefer {@link #sendMailAndGetReceiptSync(Email)} or {@link #sendMailAndGetReceiptAsync(Email)} when the execution mode should be visible at the
+	 * call site. The returned receipt describes the provider-neutral SMTP submission outcome, not final delivery to the recipient mailbox.
 	 *
 	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 * @see MailerGenericBuilder#async()
@@ -110,6 +175,8 @@ public interface Mailer extends AutoCloseable {
 	 * and any known accepted, valid-unsent and invalid recipient addresses. With {@code async=true}, it completes the future exceptionally instead.
 	 * @see java.util.concurrent.Executors#newFixedThreadPool(int)
 	 * @see #validate(Email)
+	 * @see #sendMailSync(Email)
+	 * @see #sendMailAsync(Email)
 	 */
 	@NotNull CompletableFuture<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
 
@@ -143,6 +210,8 @@ public interface Mailer extends AutoCloseable {
 	 * @see MailSubmissionStatus
 	 * @see MailSubmissionException
 	 * @see #sendMail(Email, boolean)
+	 * @see #sendMailAndGetReceiptSync(Email)
+	 * @see #sendMailAndGetReceiptAsync(Email)
 	 */
 	@NotNull
 	default CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(Email email, boolean async) {
@@ -165,7 +234,7 @@ public interface Mailer extends AutoCloseable {
 	 * }</pre>
 	 * Simple Java Mail owns the SMTP connection and closes it when the callback returns or fails. The delegate does <strong>not</strong> use the
 	 * batch-module connection pool, does not queue emails, and does not run asynchronously. Each {@link MailSender#sendMail(Email)} call
-	 * applies the same defaults, validation, MIME conversion, and transport mode behavior as {@link #sendMail(Email, boolean)} with {@code async=false}.
+	 * applies the same defaults, validation, MIME conversion, and transport mode behavior as {@link #sendMailSync(Email)}.
 	 * Use {@link MailSender#sendMailAndGetReceipt(Email)} inside the callback when caller code needs the SMTP submission receipt before checkpointing.
 	 * A custom mailer cannot be used with this API because Simple Java Mail does not own the underlying connection in that configuration.
 	 *

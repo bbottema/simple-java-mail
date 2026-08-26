@@ -653,7 +653,7 @@ public class MailerTest {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false).buildEmail();
 		final CustomMailer customMailerMock = mock(CustomMailer.class);
 
-		getMailerWithCustomMailer(customMailerMock).sendMail(email);
+		getMailerWithCustomMailer(customMailerMock).sendMailSync(email);
 
 		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
@@ -668,7 +668,7 @@ public class MailerTest {
 
 		MailSubmissionReceipt receipt;
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
-			receipt = mailer.sendMailAndGetReceipt(createBatchEmail("Receipt email", "receipt@example.com"), false).get();
+			receipt = mailer.sendMailAndGetReceiptSync(createBatchEmail("Receipt email", "receipt@example.com"));
 		}
 
 		assertThat(transportState.connectCount.get()).isEqualTo(1);
@@ -698,7 +698,7 @@ public class MailerTest {
 
 		MailSubmissionReceipt receipt;
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
-			receipt = mailer.sendMailAndGetReceipt(createBatchEmail("Async receipt email", "receipt@example.com"), true).get();
+			receipt = mailer.sendMailAndGetReceiptAsync(createBatchEmail("Async receipt email", "receipt@example.com")).get();
 		}
 
 		assertThat(transportState.connectCount.get()).isEqualTo(1);
@@ -715,7 +715,7 @@ public class MailerTest {
 
 		MailSubmissionReceipt receipt;
 		try (Mailer mailer = getMailerWithCustomMailer(customMailerMock)) {
-			receipt = mailer.sendMailAndGetReceipt(email, false).get();
+			receipt = mailer.sendMailAndGetReceiptSync(email);
 		}
 
 		assertThat(receipt.getEmailId()).isEqualTo(email.getId());
@@ -736,7 +736,7 @@ public class MailerTest {
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withTransportModeLoggingOnly(true)
 				.buildMailer()) {
-			receipt = mailer.sendMailAndGetReceipt(email, false).get();
+			receipt = mailer.sendMailAndGetReceiptSync(email);
 		}
 
 		assertThat(receipt.getEmailId()).isEqualTo(email.getId());
@@ -763,8 +763,8 @@ public class MailerTest {
 		final MailSubmissionException failure;
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			try {
-				mailer.sendMailAndGetReceipt(createBatchEmail("Partial receipt email",
-						"accepted@example.com", "unsent@example.com", "invalid@example.com"), false);
+				mailer.sendMailAndGetReceiptSync(createBatchEmail("Partial receipt email",
+						"accepted@example.com", "unsent@example.com", "invalid@example.com"));
 				throw new AssertionError("Expected partial submission to fail");
 			} catch (final MailSubmissionException expected) {
 				failure = expected;
@@ -799,8 +799,8 @@ public class MailerTest {
 			moduleLoader.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
 
 			try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
-				assertThatThrownBy(() -> mailer.sendMailAndGetReceipt(
-						createBatchEmail("Direct unknown receipt email", "unknown@example.com"), false))
+				assertThatThrownBy(() -> mailer.sendMailAndGetReceiptSync(
+						createBatchEmail("Direct unknown receipt email", "unknown@example.com")))
 						.isInstanceOfSatisfying(MailSubmissionException.class, failure -> {
 							assertThat(failure.getCause()).isSameAs(providerFailure);
 							assertThat(failure.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
@@ -823,7 +823,7 @@ public class MailerTest {
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			try {
-				mailer.sendMailAndGetReceipt(createBatchEmail("Unknown receipt email", "unknown@example.com"), true).get();
+				mailer.sendMailAndGetReceiptAsync(createBatchEmail("Unknown receipt email", "unknown@example.com")).get();
 				throw new AssertionError("Expected asynchronous submission to fail");
 			} catch (final ExecutionException expected) {
 				assertThat(expected.getCause()).isInstanceOf(MailSubmissionException.class);

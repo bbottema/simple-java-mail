@@ -14,7 +14,7 @@ public interface MailSender {
 	/**
 	 * Sends one email over the surrounding open SMTP connection.
 	 * <p>
-	 * The email is processed like {@link Mailer#sendMail(Email, boolean)} with {@code async=false}: defaults and overrides are applied, validation runs,
+	 * The email is processed like {@link Mailer#sendMailSync(Email)}: defaults and overrides are applied, validation runs,
 	 * the email is converted to a Jakarta Mail message, and the message is submitted to the SMTP server before this method returns.
 	 *
 	 * @param email The email to send.
@@ -26,7 +26,7 @@ public interface MailSender {
 	/**
 	 * Sends one email over the surrounding open SMTP connection and returns a submission receipt.
 	 * <p>
-	 * The email is processed like {@link Mailer#sendMailAndGetReceipt(Email, boolean)} with {@code async=false}. The returned receipt describes SMTP
+	 * The email is processed like {@link Mailer#sendMailAndGetReceiptSync(Email)}. The returned receipt describes SMTP
 	 * submission acceptance using provider-neutral status and recipient groups. It does not prove final recipient mailbox delivery. A failed or partial
 	 * submission throws {@link MailSubmissionException}, whose receipt contains the same structured facts and whose cause is the original Jakarta Mail
 	 * failure.

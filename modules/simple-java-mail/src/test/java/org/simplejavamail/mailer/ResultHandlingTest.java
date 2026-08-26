@@ -237,12 +237,116 @@ public class ResultHandlingTest {
 	}
 
 	@Test
+	public void explicitSynchronousMethodsShouldIgnoreAsyncMailerDefault() throws Exception {
+		final Email incompleteEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail();
+
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
+				.withSMTPServer("localhost", 0)
+				.withCustomMailer(new MySimulatingMailer(true))
+				.async()
+				.buildMailer()) {
+			assertThatThrownBy(() -> mailer.sendMailSync(incompleteEmail))
+					.isInstanceOf(MailCompletenessException.class);
+			assertThatThrownBy(() -> mailer.sendMailAndGetReceiptSync(incompleteEmail))
+					.isInstanceOf(MailCompletenessException.class);
+		}
+	}
+
+	@Test
+	public void explicitAsynchronousMethodsShouldIgnoreSynchronousMailerDefault() throws Exception {
+		final Email incompleteEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail();
+
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
+				.withSMTPServer("localhost", 0)
+				.withCustomMailer(new MySimulatingMailer(true))
+				.buildMailer()) {
+			assertValidationFailure(mailer.sendMailAsync(incompleteEmail));
+			assertValidationFailure(mailer.sendMailAndGetReceiptAsync(incompleteEmail));
+		}
+	}
+
+	@Test
+	public void explicitSynchronousMethodsShouldBlockDespiteAsyncMailerDefault() throws Exception {
+		assertExplicitSynchronousMethodBlocks((mailer, email) -> mailer.sendMailSync(email));
+		assertExplicitSynchronousMethodBlocks((mailer, email) -> mailer.sendMailAndGetReceiptSync(email));
+	}
+
+	private void assertExplicitSynchronousMethodBlocks(final SynchronousSend synchronousSend) throws Exception {
+		final BlockingSendMailer blockingMailer = new BlockingSendMailer();
+		final ExecutorService caller = Executors.newSingleThreadExecutor();
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
+				.withSMTPServer("localhost", 0)
+				.withCustomMailer(blockingMailer)
+				.async()
+				.buildMailer()) {
+			try {
+				final Future<?> invocation = caller.submit(() -> synchronousSend.send(mailer, createCompleteEmail()));
+				assertThat(blockingMailer.awaitSendStarted()).isTrue();
+				assertThat(invocation.isDone()).isFalse();
+				blockingMailer.releaseSend();
+				assertThat(invocation.get(2, TimeUnit.SECONDS)).isNull();
+			} finally {
+				blockingMailer.releaseSend();
+			}
+		} finally {
+			caller.shutdownNow();
+		}
+	}
+
+	@Test
+	public void explicitAsynchronousMethodsShouldReturnBeforeCompletionDespiteSynchronousMailerDefault() throws Exception {
+		assertExplicitAsynchronousMethodReturnsBeforeCompletion((mailer, email) -> mailer.sendMailAsync(email));
+		assertExplicitAsynchronousMethodReturnsBeforeCompletion((mailer, email) -> mailer.sendMailAndGetReceiptAsync(email));
+	}
+
+	private void assertExplicitAsynchronousMethodReturnsBeforeCompletion(final AsynchronousSend asynchronousSend) throws Exception {
+		final BlockingSendMailer blockingMailer = new BlockingSendMailer();
+		final ExecutorService caller = Executors.newSingleThreadExecutor();
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
+				.withSMTPServer("localhost", 0)
+				.withCustomMailer(blockingMailer)
+				.buildMailer()) {
+			try {
+				final Future<CompletableFuture<?>> invocation = caller.submit(() -> asynchronousSend.send(mailer, createCompleteEmail()));
+				assertThat(blockingMailer.awaitSendStarted()).isTrue();
+				final CompletableFuture<?> sendResult = invocation.get(250, TimeUnit.MILLISECONDS);
+				assertThat(sendResult.isDone()).isFalse();
+				blockingMailer.releaseSend();
+				sendResult.get(2, TimeUnit.SECONDS);
+			} finally {
+				blockingMailer.releaseSend();
+			}
+		} finally {
+			caller.shutdownNow();
+		}
+	}
+
+	private void assertValidationFailure(final CompletableFuture<?> asyncResult) {
+		assertThat(asyncResult).isCompletedExceptionally();
+		assertThatThrownBy(asyncResult::get)
+				.isInstanceOf(ExecutionException.class)
+				.hasCauseInstanceOf(MailCompletenessException.class);
+	}
+
+	@Test
 	public void nullEmailShouldRemainAnImmediateContractViolation() throws Exception {
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(true))
 				.buildMailer()) {
 			assertThatThrownBy(() -> mailer.sendMail(null, true))
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessageContaining("nonNull");
+			assertThatThrownBy(() -> mailer.sendMailSync(null))
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessageContaining("nonNull");
+			assertThatThrownBy(() -> mailer.sendMailAsync(null))
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessageContaining("nonNull");
+			assertThatThrownBy(() -> mailer.sendMailAndGetReceiptSync(null))
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessageContaining("nonNull");
+			assertThatThrownBy(() -> mailer.sendMailAndGetReceiptAsync(null))
 					.isInstanceOf(IllegalArgumentException.class)
 					.hasMessageContaining("nonNull");
 		}
@@ -265,6 +369,8 @@ public class ResultHandlingTest {
 
 			assertSchedulingFailure(mailer.sendMail(email, true));
 			assertSchedulingFailure(mailer.sendMailAndGetReceipt(email, true));
+			assertSchedulingFailure(mailer.sendMailAsync(email));
+			assertSchedulingFailure(mailer.sendMailAndGetReceiptAsync(email));
 			assertSchedulingFailure(mailer.sendMailsInSimpleBatch(Collections.singletonList(email), true));
 			assertSchedulingFailure(mailer.testConnection(true));
 		} finally {
@@ -352,15 +458,10 @@ public class ResultHandlingTest {
 
 	@NotNull
 	private CompletableFuture<Void> sendAsyncMailUsingMailerAPI(boolean sendSuccesfully) {
-		final boolean async = true;
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
-				.buildMailer().sendMail(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
-						.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
-						.from("Simple Java Mail demo", "simplejavamail@demo.app")
-						.withPlainText("")
-						.buildEmail(), async);
+				.buildMailer().sendMailAsync(createCompleteEmail());
 	}
 
 	@NotNull
@@ -369,11 +470,26 @@ public class ResultHandlingTest {
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
 				.async()
-				.buildMailer().sendMail(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
-						.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
-						.from("Simple Java Mail demo", "simplejavamail@demo.app")
-						.withPlainText("")
-						.buildEmail());
+				.buildMailer().sendMail(createCompleteEmail());
+	}
+
+	@NotNull
+	private Email createCompleteEmail() {
+		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "a@b.com"))
+				.from("Simple Java Mail demo", "simplejavamail@demo.app")
+				.withPlainText("")
+				.buildEmail();
+	}
+
+	@FunctionalInterface
+	private interface SynchronousSend {
+		void send(Mailer mailer, Email email);
+	}
+
+	@FunctionalInterface
+	private interface AsynchronousSend {
+		CompletableFuture<?> send(Mailer mailer, Email email);
 	}
 
 	private static class MySimulatingMailer implements CustomMailer {
@@ -434,6 +550,37 @@ public class ResultHandlingTest {
 
 		@Override
 		public void sendMessage(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @NotNull MimeMessage message) {
+		}
+	}
+
+	private static class BlockingSendMailer implements CustomMailer {
+		private final CountDownLatch sendStarted = new CountDownLatch(1);
+		private final CountDownLatch releaseSend = new CountDownLatch(1);
+
+		boolean awaitSendStarted() throws InterruptedException {
+			return sendStarted.await(2, TimeUnit.SECONDS);
+		}
+
+		void releaseSend() {
+			releaseSend.countDown();
+		}
+
+		@Override
+		public void testConnection(@NotNull final OperationalConfig operationalConfig, @NotNull final Session session) {
+		}
+
+		@Override
+		public void sendMessage(@NotNull final OperationalConfig operationalConfig, @NotNull final Session session,
+				@NotNull final Email email, @NotNull final MimeMessage message) {
+			sendStarted.countDown();
+			try {
+				if (!releaseSend.await(5, TimeUnit.SECONDS)) {
+					throw new AssertionError("Timed out waiting to release blocked send");
+				}
+			} catch (final InterruptedException interrupted) {
+				Thread.currentThread().interrupt();
+				throw new RuntimeException(interrupted);
+			}
 		}
 	}
 

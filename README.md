@@ -53,10 +53,12 @@ Mailer mailer = mail.mailerBuilder().withSMTPServer(
     .withTransportStrategy(TransportStrategy.SMTP_TLS)
     .buildMailer();
 
-mailer.sendMail(email);
+mailer.sendMailSync(email);
 ```
 
-The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Before sending, `mailer.testConnection()` checks the SMTP path. Choose message preflight by what your code needs back:
+The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Use `sendMailSync(...)` when failures should be thrown on the calling thread, or `sendMailAsync(...)` when the complete operation should be represented by a `CompletableFuture`. The receipt-returning equivalents are `sendMailAndGetReceiptSync(...)` and `sendMailAndGetReceiptAsync(...)`. Existing `sendMail(email)` and boolean overloads remain supported for code that deliberately uses the Mailer's configured async default or selects the mode dynamically.
+
+Before sending, `mailer.testConnection()` checks the SMTP path. Choose message preflight by what your code needs back:
 
 | Need | Call |
 | --- | --- |
@@ -69,9 +71,7 @@ When the application needs a durable checkpoint after SMTP submission, request a
 
 ```java
 try {
-    MailSubmissionReceipt receipt = mailer
-        .sendMailAndGetReceipt(email, false)
-        .get();
+    MailSubmissionReceipt receipt = mailer.sendMailAndGetReceiptSync(email);
 
     database.markSubmitted(
         receipt.getEmailId(),

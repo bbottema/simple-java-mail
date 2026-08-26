@@ -359,6 +359,23 @@ The adapter's `sendMessage(...)` method now returns a non-null `MailTransportRes
 
 If no Jakarta Mail implementation is available, MIME conversion and sending fail with an error naming the dependency that must be added. If an implementation can create MIME but cannot submit mail, sending reports the missing provider or adapter separately.
 
+## Sending can name its execution mode explicitly
+
+New code can make its blocking and failure behavior visible at the call site:
+
+```java
+mailer.sendMailSync(email);                         // returns void; failures are thrown here
+CompletableFuture<Void> send = mailer.sendMailAsync(email);
+
+MailSubmissionReceipt receipt = mailer.sendMailAndGetReceiptSync(email);
+CompletableFuture<MailSubmissionReceipt> receiptFuture =
+        mailer.sendMailAndGetReceiptAsync(email);
+```
+
+The explicit methods ignore the Mailer's configured `async()` default. `Sync` methods finish on the calling thread and throw preparation or submission failures directly. `Async` methods return a future that covers preparation, scheduling and submission; operational failures complete that future exceptionally. A null Email remains an immediate `IllegalArgumentException` in either mode.
+
+This is additive. Existing `sendMail(email)`, `sendMailAndGetReceipt(email)`, and their boolean overloads remain supported. The one-argument methods still follow the Mailer's configured async default, and the boolean overloads still support runtime mode selection. They now delegate to the same explicit implementation paths rather than maintaining separate send behavior.
+
 ## Submission receipts now describe partial and uncertain outcomes
 
 `sendMailAndGetReceipt(...)` is no longer an Angus-only view of the final SMTP response. Its `MailSubmissionReceipt` now always has a provider-neutral `MailSubmissionStatus`, the effective Message-ID and timestamp, immutable accepted, valid-unsent and invalid recipient lists, and an optional `SmtpServerResponse` when the provider exposes one.
@@ -374,9 +391,7 @@ Handle the synchronous path like this:
 
 ```java
 try {
-    MailSubmissionReceipt receipt = mailer
-            .sendMailAndGetReceipt(email, false)
-            .get();
+    MailSubmissionReceipt receipt = mailer.sendMailAndGetReceiptSync(email);
     checkpoint(receipt.getEmailId(),
             receipt.getStatus(), receipt.getSubmittedAt());
 } catch (MailSubmissionException failure) {

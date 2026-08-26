@@ -124,7 +124,7 @@ The in-memory request ledger attaches duplicate UUIDs to the original result and
 
 ## Async Send And Batch Connection Pooling
 
-`MailerImpl.sendMail(...)` and `MailerImpl.testConnection(...)` can run synchronously or return a `CompletableFuture`. The actual async wrapper is `AsyncOperationHelper` in `core-module`; when the batch module is available, `BatchSupport` delegates to the same helper but provides a default executor tuned for mail sending.
+`MailerImpl` exposes explicit synchronous and asynchronous methods for ordinary sends and receipt-returning sends. The `Sync` methods return only after submission and throw failures directly; the `Async` methods represent operational failures through `CompletableFuture`. Existing configurable and boolean methods delegate to those same paths. `MailerImpl.testConnection(...)` retains its configurable/boolean API. The actual async wrapper is `AsyncOperationHelper` in `core-module`; when the batch module is available, `BatchSupport` delegates to the same helper but provides a default executor tuned for mail sending.
 
 Key pieces:
 

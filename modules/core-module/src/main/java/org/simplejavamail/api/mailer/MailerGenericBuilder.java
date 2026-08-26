@@ -115,8 +115,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	boolean DEFAULT_DISABLE_ALL_CLIENTVALIDATION = false;
 
 	/**
-	 * Changes the default for sending emails and testing server connections to asynchronous mode, using batch support when available and the built-in
-	 * async handler otherwise.
+	 * Changes the default for execution-mode-selecting methods such as {@link Mailer#sendMail(Email)},
+	 * {@link Mailer#sendMailAndGetReceipt(Email)} and {@link Mailer#testConnection()} to asynchronous mode, using batch
+	 * support when available and the built-in async handler otherwise.
+	 * <p>
+	 * Explicit methods such as {@link Mailer#sendMailSync(Email)} and {@link Mailer#sendMailAsync(Email)} ignore this default.
 	 * <p>
 	 * In case of asynchronous mode, make sure you configure logging to file or inspect the returned {@link java.util.concurrent.CompletableFuture}.
 	 * <p>

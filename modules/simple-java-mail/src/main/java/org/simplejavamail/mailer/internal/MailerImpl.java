@@ -389,6 +389,49 @@ public class MailerImpl implements Mailer {
 	}
 
 	/**
+	 * @see Mailer#sendMailSync(Email)
+	 */
+	@Override
+	public final void sendMailSync(final Email email) {
+		sendMailAndGetReceiptSync(email);
+	}
+
+	/**
+	 * @see Mailer#sendMailAsync(Email)
+	 */
+	@Override
+	@NotNull
+	public final CompletableFuture<Void> sendMailAsync(final Email email) {
+		return sendMailAndGetReceiptAsync(email).thenApply(receipt -> (Void) null);
+	}
+
+	/**
+	 * @see Mailer#sendMailAndGetReceiptSync(Email)
+	 */
+	@Override
+	@NotNull
+	public final MailSubmissionReceipt sendMailAndGetReceiptSync(final Email userProvidedEmail) {
+		final SendMailClosure submission = prepareSubmission(verifyNonnull(userProvidedEmail));
+		submission.run();
+		return submission.getReceipt();
+	}
+
+	/**
+	 * @see Mailer#sendMailAndGetReceiptAsync(Email)
+	 */
+	@Override
+	@NotNull
+	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceiptAsync(final Email userProvidedEmail) {
+		final Email checkedEmail = verifyNonnull(userProvidedEmail);
+		try {
+			final SendMailClosure submission = prepareSubmission(checkedEmail);
+			return executeSubmissionAsync(submission).thenApply(unused -> submission.getReceipt());
+		} catch (final RuntimeException failure) {
+			return AsyncOperationHelper.failedFuture(failure);
+		}
+	}
+
+	/**
 	 * @see Mailer#sendMail(Email)
 	 */
 	@Override
@@ -402,8 +445,12 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<Void> sendMail(final Email userProvidedEmail, @SuppressWarnings("SameParameterValue") final boolean async) {
-		return sendMailAndGetReceipt(userProvidedEmail, async).thenApply(receipt -> (Void) null);
+	public final CompletableFuture<Void> sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
+		if (async) {
+			return sendMailAsync(email);
+		}
+		sendMailSync(email);
+		return CompletableFuture.completedFuture(null);
 	}
 
 	/**
@@ -420,31 +467,26 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(final Email userProvidedEmail, final boolean async) {
-		val checkedEmail = verifyNonnull(userProvidedEmail);
+	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(final Email email, final boolean async) {
+		return async
+				? sendMailAndGetReceiptAsync(email)
+				: CompletableFuture.completedFuture(sendMailAndGetReceiptSync(email));
+	}
 
-		if (!async) {
-			val email = prepareEmailForSending(checkedEmail);
-			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer,
-					operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
-			sendMailClosure.run();
-			return CompletableFuture.completedFuture(sendMailClosure.getReceipt());
-		}
+	@NotNull
+	private SendMailClosure prepareSubmission(@NotNull final Email userProvidedEmail) {
+		final Email email = prepareEmailForSending(userProvidedEmail);
+		return new SendMailClosure(operationalConfig, session, email, proxyServer,
+				operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
+	}
 
-		try {
-			val email = prepareEmailForSending(checkedEmail);
-			SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, email, proxyServer,
-					operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
-			return ModuleLoader.batchModuleAvailable()
-					? ModuleLoader.loadBatchModule()
-						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
-						.thenApply(unused -> sendMailClosure.getReceipt())
-					: AsyncOperationHelper
-						.executeAsync(operationalConfig.getExecutorService(), "sendMail process", sendMailClosure)
-						.thenApply(unused -> sendMailClosure.getReceipt());
-		} catch (RuntimeException e) {
-			return AsyncOperationHelper.failedFuture(e);
-		}
+	@NotNull
+	private CompletableFuture<Void> executeSubmissionAsync(@NotNull final SendMailClosure submission) {
+		return ModuleLoader.batchModuleAvailable()
+				? ModuleLoader.loadBatchModule()
+					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", submission)
+				: AsyncOperationHelper
+					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", submission);
 	}
 
 	/**

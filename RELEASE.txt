@@ -14,6 +14,7 @@ Major Features:
 
 Enhancements:
 
+- #711: added explicit Mailer.sendMailSync(...), sendMailAsync(...), sendMailAndGetReceiptSync(...), and sendMailAndGetReceiptAsync(...) entry points so return types and failure behavior reveal the selected execution mode; existing configurable and boolean methods remain supported.
 - #709: added Mailer.rehearse(...) to return the governed Email, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.
 
 v9.3.0 - v9.3.2
