@@ -56,7 +56,14 @@ Mailer mailer = mail.mailerBuilder().withSMTPServer(
 mailer.sendMail(email);
 ```
 
-The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Before sending, `mailer.testConnection()` checks the SMTP path. `mailer.validate(email)` applies that Mailer's defaults and overrides and rehearses the complete MIME message without connecting to SMTP. The [complete getting-started guide](https://www.simplejavamail.org/download.html) explains each step.
+The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Before sending, `mailer.testConnection()` checks the SMTP path. Choose message preflight by what your code needs back:
+
+| Need | Call |
+| --- | --- |
+| Only stop if this Mailer cannot prepare the Email; no prepared details are needed | `mailer.validate(email)` |
+| Inspect or retain the effective Email, EML bytes, size, Message-ID, or envelope addresses | `MailRehearsal rehearsal = mailer.rehearse(email)` |
+
+Both full calls perform the same no-SMTP preparation. `validate` is a success-or-exception convenience that discards the rehearsal result; it never reports invalid input by returning `false`. A successful `rehearse` call has therefore already validated the Email—do not call `validate` first. The [complete getting-started guide](https://www.simplejavamail.org/download.html) explains each step.
 
 ## What the API handles
 

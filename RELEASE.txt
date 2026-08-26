@@ -6,6 +6,12 @@ https://www.simplejavamail.org
     <version>9.3.2</version>
 </dependency>
 
+v10.0.0 (unreleased)
+
+Enhancements:
+
+- #709: added Mailer.rehearse(...) to return the governed Email, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.
+
 v9.3.0 - v9.3.2
 
 - **v9.3.2:** #702: clarified the single-address contract of RecipientBuilder by renaming its misleading implementation parameter and validation label; use RecipientsBuilder for comma- or semicolon-delimited address lists.

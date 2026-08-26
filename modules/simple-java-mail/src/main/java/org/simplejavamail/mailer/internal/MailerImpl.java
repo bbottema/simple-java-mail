@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.api.mailer.MailRehearsal;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
@@ -18,6 +19,7 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer;
+import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
 import org.simplejavamail.mailer.MailerHelper;
@@ -514,12 +516,48 @@ public class MailerImpl implements Mailer {
 	}
 
 	/**
+	 * @see Mailer#rehearse(Email)
+	 */
+	@Override
+	@NotNull
+	public MailRehearsal rehearse(@NotNull final Email email) throws MailException {
+		return rehearse(email, true);
+	}
+
+	/**
+	 * @see Mailer#rehearse(Email, boolean)
+	 */
+	@Override
+	@NotNull
+	public MailRehearsal rehearse(@NotNull final Email email, final boolean processSecurityAndValidateSize) throws MailException {
+		val governedEmail = produceGovernedEmail(email);
+		// A rehearsal owns its effective snapshot and must never propagate a generated Message-ID to the caller's draft.
+		//noinspection deprecation
+		((InternalEmail) governedEmail).setUserProvidedEmail(null);
+		if (!validateClientSide(governedEmail)) {
+			throw new IllegalStateException("Email not valid, but no MailException was thrown for it");
+		}
+		try {
+			val rehearsal = SessionBasedEmailToMimeMessageConverter.rehearseMimeMessage(session, governedEmail, processSecurityAndValidateSize);
+			if (rehearsal.getEmailId() != null) {
+				// Keep the effective Email consistent with the EML while its detached source draft remains unchanged.
+				//noinspection deprecation
+				((InternalEmail) governedEmail).updateId(rehearsal.getEmailId());
+			}
+			return rehearsal;
+		} catch (MessagingException e) {
+			throw new MailerException(format(VALIDATION_ERROR, governedEmail.getId()), e);
+		}
+	}
+
+	/**
 	 * @see Mailer#validate(Email)
 	 */
 	@Override
 	public boolean validate(@NotNull final Email email)
 			throws MailException {
-		return validate(email, true);
+		rehearse(email);
+		return true;
 	}
 
 	/**
@@ -528,16 +566,8 @@ public class MailerImpl implements Mailer {
 	@Override
 	public boolean validate(@NotNull final Email email, final boolean processSecurityAndValidateSize)
 			throws MailException {
-		val governedEmail = produceGovernedEmail(email);
-		if (!validateClientSide(governedEmail)) {
-			throw new IllegalStateException("Email not valid, but no MailException was thrown for it");
-		}
-		try {
-			SessionBasedEmailToMimeMessageConverter.rehearseMimeMessage(session, governedEmail, processSecurityAndValidateSize);
-			return true;
-		} catch (MessagingException e) {
-			throw new MailerException(format(VALIDATION_ERROR, governedEmail.getId()), e);
-		}
+		rehearse(email, processSecurityAndValidateSize);
+		return true;
 	}
 
 	/**

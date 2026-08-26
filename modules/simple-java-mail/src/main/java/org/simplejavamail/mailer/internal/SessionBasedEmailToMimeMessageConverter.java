@@ -1,8 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Address;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
-import jakarta.mail.Address;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
@@ -11,19 +12,24 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.EmailTooBigException;
+import org.simplejavamail.api.mailer.MailRehearsal;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.email.internal.InternalEmail;
+import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
@@ -67,25 +73,24 @@ public class SessionBasedEmailToMimeMessageConverter {
         return mimeMessage;
     }
 
-    public static void rehearseMimeMessage(Session session, final Email email, final boolean processSecurityAndValidateSize)
+    @NotNull
+    public static MailRehearsal rehearseMimeMessage(Session session, final Email email, final boolean processSecurityAndValidateSize)
             throws MessagingException {
         val mimeMessageConverter = (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
         val mimeMessage = convertMimeMessage(email, session, processSecurityAndValidateSize);
+        final byte[] emlBytes = serializeMimeMessage(mimeMessage);
         if (processSecurityAndValidateSize) {
-            mimeMessageConverter.validateMaximumEmailSize(mimeMessage);
+            mimeMessageConverter.validateMaximumEmailSize(emlBytes.length);
         }
+        final Address[] recipients = resolveEnvelopeRecipients(email, mimeMessage);
+        return new MailRehearsal(email, emlBytes, mimeMessage.getMessageID(), resolveEnvelopeSender(email),
+                resolveEnvelopeRecipientAddresses(recipients), processSecurityAndValidateSize);
     }
 
     @NotNull
     public static PreparedMail convertAndLogPreparedMail(Session session, final Email email) throws MessagingException {
         final MimeMessage mimeMessage = convertAndLogMimeMessage(session, email);
-        final Address[] recipients = email.getOverrideReceivers().isEmpty()
-                ? recipientsOrEmpty(mimeMessage)
-                : asInternetAddresses(email.getOverrideReceivers(), java.nio.charset.StandardCharsets.UTF_8)
-                        .toArray(new Address[0]);
-        final String envelopeFrom = email.getBounceToRecipient() == null
-                ? null
-                : email.getBounceToRecipient().getAddress();
+        final Address[] recipients = resolveEnvelopeRecipients(email, mimeMessage);
         final boolean stableContentRequired = email.getDkimConfig() != null
                 || email.getSmimeSigningConfig() != null
                 || email.getSmimeEncryptionConfig() != null
@@ -93,8 +98,38 @@ public class SessionBasedEmailToMimeMessageConverter {
 				|| email.getOpenPgpEncryptionConfig() != null
                 || email.getRecipients().stream().anyMatch(recipient -> recipient.getSmimeCertificate() != null);
         return new PreparedMail(mimeMessage, recipients,
-                new DeliveryEnvelope(envelopeFrom, email.getDeliveryStatusNotification()),
+                new DeliveryEnvelope(resolveEnvelopeSender(email), email.getDeliveryStatusNotification()),
                 stableContentRequired);
+    }
+
+    @NotNull
+    private static Address[] resolveEnvelopeRecipients(@NotNull final Email email, @NotNull final MimeMessage mimeMessage)
+            throws MessagingException {
+        return email.getOverrideReceivers().isEmpty()
+                ? recipientsOrEmpty(mimeMessage)
+                : asInternetAddresses(email.getOverrideReceivers(), java.nio.charset.StandardCharsets.UTF_8)
+                        .toArray(new Address[0]);
+    }
+
+    @NotNull
+    private static List<String> resolveEnvelopeRecipientAddresses(@NotNull final Address[] recipients) throws MessagingException {
+        final List<String> addresses = new ArrayList<>(recipients.length);
+        for (Address recipient : recipients) {
+            final String address = recipient instanceof InternetAddress
+                    ? ((InternetAddress) recipient).getAddress()
+                    : recipient.toString();
+            if (address == null) {
+                throw new MessagingException("Unable to resolve an envelope recipient address");
+            }
+            addresses.add(address);
+        }
+        return addresses;
+    }
+
+    private static String resolveEnvelopeSender(@NotNull final Email email) {
+        return email.getBounceToRecipient() == null
+                ? null
+                : email.getBounceToRecipient().getAddress();
     }
 
     @NotNull
@@ -104,8 +139,8 @@ public class SessionBasedEmailToMimeMessageConverter {
     }
 
     private static long calculateEmailSize(MimeMessage mimeMessage) throws MessagingException {
-        if (mimeMessage instanceof org.simplejavamail.internal.util.FinalizedMimeMessage) {
-            return ((org.simplejavamail.internal.util.FinalizedMimeMessage) mimeMessage).getSerializedSize();
+        if (mimeMessage instanceof FinalizedMimeMessage) {
+            return ((FinalizedMimeMessage) mimeMessage).getSerializedSize();
         }
         final CountingOutputStream counter = new CountingOutputStream();
         try {
@@ -118,10 +153,26 @@ public class SessionBasedEmailToMimeMessageConverter {
 
     private void validateMaximumEmailSize(final MimeMessage mimeMessage) throws MessagingException {
         if (emailGovernance.getMaximumEmailSize() != null) {
-            val emailSize = calculateEmailSize(mimeMessage);
-            if (emailSize > emailGovernance.getMaximumEmailSize()) {
-                throw new EmailTooBigException(emailSize, emailGovernance.getMaximumEmailSize());
-            }
+            validateMaximumEmailSize(calculateEmailSize(mimeMessage));
+        }
+    }
+
+    private void validateMaximumEmailSize(final long emailSize) {
+        if (emailGovernance.getMaximumEmailSize() != null && emailSize > emailGovernance.getMaximumEmailSize()) {
+            throw new EmailTooBigException(emailSize, emailGovernance.getMaximumEmailSize());
+        }
+    }
+
+    private static byte @NotNull [] serializeMimeMessage(@NotNull final MimeMessage mimeMessage) throws MessagingException {
+        if (mimeMessage instanceof FinalizedMimeMessage) {
+            return ((FinalizedMimeMessage) mimeMessage).getSerializedBytes();
+        }
+        try {
+            final ByteArrayOutputStream output = new ByteArrayOutputStream();
+            mimeMessage.writeTo(output);
+            return output.toByteArray();
+        } catch (IOException e) {
+            throw new MessagingException("Unable to render the rehearsed email as EML", e);
         }
     }
 

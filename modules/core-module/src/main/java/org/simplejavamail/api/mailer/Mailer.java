@@ -197,9 +197,61 @@ public interface Mailer extends AutoCloseable {
 	 * @see #sendMail(Email, boolean)
 	 */
 	@NotNull CompletableFuture<Void> sendMailsInSimpleBatch(Iterable<Email> emails, boolean async);
+
+	/**
+	 * Prepares the supplied {@link Email} through this mailer's normal send-time pipeline without opening an SMTP connection.
+	 * <p>
+	 * Defaults and overrides are applied to a separate effective Email, ordinary client-side validation runs, the complete MIME message is rendered,
+	 * configured S/MIME, OpenPGP and DKIM processing runs, and the final encoded size is checked against the configured maximum. The returned snapshot
+	 * exposes the effective Email, defensive EML bytes, encoded size, Message-ID and transport envelope addresses.
+	 * <p>
+	 * <strong>When to use:</strong> choose rehearsal when the caller will inspect or retain any of those prepared facts, for example for a preview, EML
+	 * export, size diagnostics or transport-envelope inspection. A successful rehearsal already performs the same preparation and checks as
+	 * {@link #validate(Email)}; do not call {@code validate(email)} before this method, because that prepares the message twice. Use
+	 * {@code validate(email)} instead when the caller needs only a success-or-exception gate and will discard the prepared result.
+	 * <p>
+	 * The supplied Email is not changed. A later send prepares the message again, so generated dates, MIME boundaries, Message-IDs and cryptographic
+	 * output can differ unless the caller fixes those inputs.
+	 *
+	 * @param email The email to rehearse with this mailer's configuration.
+	 * @return The immutable result of this preparation.
+	 * @throws MailException If validation, MIME construction or security processing fails.
+	 * @throws EmailTooBigException If the final encoded message exceeds the configured maximum size.
+	 * @see #rehearse(Email, boolean)
+	 * @see #validate(Email)
+	 */
+	@NotNull
+	MailRehearsal rehearse(Email email) throws MailException;
+
+	/**
+	 * Prepares the supplied {@link Email} without opening an SMTP connection, with control over expensive final-message processing.
+	 * <p>
+	 * Defaults, overrides, ordinary validation and base MIME construction always run. When {@code processSecurityAndValidateSize} is {@code true},
+	 * configured S/MIME, OpenPGP and DKIM processing also runs and the final encoded size is checked. When it is {@code false}, the returned bytes and
+	 * encoded size describe the unsecured base MIME message and the configured maximum size is not enforced. All other snapshot fields remain available.
+	 * Neither mode invokes transport-mode logging or a custom mailer.
+	 * <p>
+	 * Choose this result-returning overload instead of {@link #validate(Email, boolean)} when the caller needs the base or final EML, size, effective
+	 * Email, Message-ID or envelope facts. A successful call has already validated to the requested depth.
+	 *
+	 * @param email The email to rehearse with this mailer's configuration.
+	 * @param processSecurityAndValidateSize Whether to run configured message security and validate the resulting encoded size.
+	 * @return The immutable result of this preparation.
+	 * @throws MailException If validation, MIME construction or requested security processing fails.
+	 * @throws EmailTooBigException If final-size validation is requested and the encoded message exceeds the configured maximum size.
+	 * @see #rehearse(Email)
+	 * @see #validate(Email, boolean)
+	 */
+	@NotNull
+	MailRehearsal rehearse(Email email, boolean processSecurityAndValidateSize) throws MailException;
 	
 	/**
-	 * Rehearses preparing the supplied {@link Email} for sending through this mailer, without opening an SMTP connection.
+	 * Checks whether the supplied {@link Email} can be prepared for sending through this mailer, without opening an SMTP connection.
+	 * <p>
+	 * <strong>When to use:</strong> choose this method when the caller needs only a success-or-exception gate, such as rejecting an invalid request or
+	 * asserting in a test that this Mailer can prepare the message. It delegates to {@link #rehearse(Email)} and discards that method's snapshot; it is
+	 * not a cheaper or less thorough preparation path. If the caller needs the effective Email, EML bytes, size, Message-ID or envelope addresses, call
+	 * {@code rehearse(email)} directly instead of validating first.
 	 * <p>
 	 * The mailer's defaults and overrides are applied first. In normal validation mode this method then:
 	 * <ul>
@@ -215,31 +267,37 @@ public interface Mailer extends AutoCloseable {
 	 * send-time size check remains authoritative. When all client validation is disabled, ordinary validation findings are logged instead of being
 	 * thrown, but MIME construction, security processing and encoded-size failures still fail this rehearsal.
 	 *
-	 * @param email The email to rehearse with this mailer's configuration.
+	 * @param email The email to validate with this mailer's configuration.
 	 *
-	 * @return Always <code>true</code> (throws an exception if validation fails).
+	 * @return Always <code>true</code> after {@link #rehearse(Email)} succeeds. Invalid preparation is reported by exception, never by returning
+	 * {@code false}.
 	 * @throws MailException If validation, MIME construction or security processing fails.
 	 * @throws EmailTooBigException If the final encoded message exceeds the configured maximum size.
 	 * @see com.sanctionco.jmail.EmailValidator
+	 * @see #rehearse(Email)
 	 */
 	@SuppressWarnings({"SameReturnValue" })
 	boolean validate(Email email) throws MailException;
 
 	/**
-	 * Rehearses preparing the supplied {@link Email} for sending through this mailer, with control over the expensive final-message processing.
+	 * Checks whether the supplied {@link Email} can be prepared for sending through this mailer, with control over expensive final-message processing.
 	 * <p>
 	 * Defaults, overrides, ordinary validation and base MIME construction always run. When {@code processSecurityAndValidateSize} is {@code true},
 	 * configured S/MIME, OpenPGP and DKIM processing also runs and the final encoded message size is checked. When it is {@code false}, validation stops
 	 * after constructing the unsecured base MIME message and does not enforce the configured maximum size.
 	 * <p>
 	 * Neither mode opens an SMTP connection or changes the supplied Email.
+	 * Use this success-or-exception overload when the caller does not need the prepared result. If it needs any result fields, call
+	 * {@link #rehearse(Email, boolean)} directly; validating first would prepare the message twice.
 	 *
-	 * @param email The email to rehearse with this mailer's configuration.
+	 * @param email The email to validate with this mailer's configuration.
 	 * @param processSecurityAndValidateSize Whether to run configured message security and validate the resulting encoded size.
-	 * @return Always <code>true</code> (throws an exception if validation fails).
+	 * @return Always <code>true</code> after {@link #rehearse(Email, boolean)} succeeds. Invalid preparation is reported by exception, never by returning
+	 * {@code false}.
 	 * @throws MailException If validation, MIME construction or requested security processing fails.
 	 * @throws EmailTooBigException If final-size validation is requested and the encoded message exceeds the configured maximum size.
 	 * @see #validate(Email)
+	 * @see #rehearse(Email, boolean)
 	 */
 	@SuppressWarnings({"SameReturnValue" })
 	boolean validate(Email email, boolean processSecurityAndValidateSize) throws MailException;

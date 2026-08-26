@@ -83,18 +83,46 @@ In 9.x, `mailer.validate(email)` only ran the ordinary checks against the suppli
 
 In 10.0, validation follows the Mailer's preparation rules. It applies defaults and overrides, checks the resulting email, builds the MIME message, runs configured S/MIME, OpenPGP, and DKIM processing, and checks the final encoded size. It does not open an SMTP connection and it does not change the supplied `Email`.
 
+Choose between validation and rehearsal by what the caller needs back, not by validation depth or cost:
+
+| Caller need | Use |
+| --- | --- |
+| Only allow execution to continue when preparation succeeds, or fail with an exception | `mailer.validate(email)` |
+| Preview/export EML, inspect the effective Email or envelope, diagnose size, or retain the generated Message-ID | `MailRehearsal rehearsal = mailer.rehearse(email)` |
+
+The two default methods perform the same preparation. `validate` delegates to `rehearse` and discards its result; its boolean return is always `true` after success and is never `false` for invalid input. A successful rehearsal has already validated the Email, so calling `validate` and then `rehearse` only runs the preparation pipeline twice.
+
 ```java
-mailer.validate(email);       // complete rehearsal
+mailer.validate(email);       // only success or an exception matters
 mailer.validate(email, true); // same behavior, explicitly
 ```
+
+When you need the prepared result, use `rehearse(...)` directly:
+
+```java
+MailRehearsal rehearsal = mailer.rehearse(email);
+
+Email effectiveEmail = rehearsal.getEffectiveEmail();
+byte[] eml = rehearsal.getEmlBytes();
+long encodedSize = rehearsal.getEncodedSize();
+String messageId = rehearsal.getEmailId();
+List<String> envelopeRecipients = rehearsal.getEnvelopeRecipients();
+```
+
+The EML byte array is returned defensively. A rehearsal is a snapshot, not a promise that a later send of the original `Email` will produce identical
+bytes: generated dates, boundaries, Message-IDs, and cryptographic output can change when the message is prepared again.
 
 Use the quicker overload when you want to check governance, ordinary validation, and base MIME construction without running message security or measuring the final encoded message:
 
 ```java
 mailer.validate(email, false);
+MailRehearsal baseMime = mailer.rehearse(email, false);
 ```
 
-The boolean parameter is named `processSecurityAndValidateSize`. Raw `Email` checks remain available through `MailerHelper.validate(email)`. Both Mailer validation modes build MIME, so both need Angus Mail or another compatible Jakarta Mail implementation at runtime. The `sjm validate` command uses the complete rehearsal and still makes no SMTP connection.
+The boolean parameter is named `processSecurityAndValidateSize`. In the `false` mode, every result field remains available, but the EML and encoded size
+describe the unsecured base MIME message and the configured size limit is not enforced. Raw `Email` checks remain available through
+`MailerHelper.validate(email)`. Both Mailer rehearsal modes build MIME, so both need Angus Mail or another compatible Jakarta Mail implementation at
+runtime. The `sjm validate` command uses the complete rehearsal and still makes no SMTP connection.
 
 ## Configuration is now an immutable snapshot
 
