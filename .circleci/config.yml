@@ -1,7 +1,17 @@
 version: 2.1
 
+parameters:
+  package_action:
+    type: enum
+    enum: [none, smoke, publish]
+    default: none
+  package_version:
+    type: string
+    default: ""
+
 orbs:
   github-maven-deploy: github-maven-deploy/github-maven-deploy@1.3.2
+  win: circleci/windows@5.1.1
 
 executors:
   java21-executor:
@@ -22,12 +32,106 @@ mvn-deploy-command: &mvn-deploy-command
     mvn com.mycila:license-maven-plugin:3.0:remove
   context: RELEASE_PROFILE_BBOTTEMA
 
+jobs:
+  libraries-java11:
+    docker:
+      - image: cimg/openjdk:11.0
+    steps:
+      - checkout
+      - run:
+          name: Test the Java 11 library reactor without cli-module
+          command: >-
+            mvn -pl '!modules/cli-module' verify
+            -DexcludeLiveServerTests=true
+            -Dmaven.javadoc.skip=true
+            -Djacoco.skip=true
+            -Dlicense.skip=true
+
+  package-smoke-homebrew:
+    macos:
+      xcode: 26.6.0
+    resource_class: m4pro.medium
+    steps:
+      - checkout
+      - run:
+          name: Check out the release tag
+          command: |
+            set -eu
+            version='<< pipeline.parameters.package_version >>'
+            test -n "$version" || { echo 'package_version is required'; exit 1; }
+            test "$CIRCLE_BRANCH" = master || { echo 'Package workflows must be triggered on master'; exit 1; }
+            git fetch --force origin "refs/tags/$version:refs/tags/$version"
+            git checkout --detach "$version^{commit}"
+      - run:
+          name: Install PowerShell when the image does not provide it
+          command: |
+            if ! command -v pwsh >/dev/null 2>&1; then
+              brew install --cask powershell
+            fi
+      - run:
+          name: Smoke-test the Homebrew formula
+          command: >-
+            pwsh -NoLogo -NoProfile
+            -File modules/cli-module/packaging/Smoke-Test-HomebrewPackage.ps1
+            -Version '<< pipeline.parameters.package_version >>'
+            -WorkingDirectory "$TMPDIR/sjm-homebrew-smoke"
+
+  package-smoke-chocolatey:
+    executor: win/server-2022
+    steps:
+      - checkout
+      - run:
+          name: Check out the release tag
+          command: |
+            $version = '<< pipeline.parameters.package_version >>'
+            if ([string]::IsNullOrWhiteSpace($version)) { throw 'package_version is required' }
+            if ($env:CIRCLE_BRANCH -ne 'master') { throw 'Package workflows must be triggered on master' }
+            & git fetch --force origin "refs/tags/${version}:refs/tags/${version}"
+            if ($LASTEXITCODE -ne 0) { throw "Could not fetch tag '$version'" }
+            & git checkout --detach "${version}^{commit}"
+            if ($LASTEXITCODE -ne 0) { throw "Could not check out tag '$version'" }
+      - run:
+          name: Smoke-test the Chocolatey package
+          command: |
+            & modules/cli-module/packaging/Smoke-Test-ChocolateyPackage.ps1 `
+              -Version '<< pipeline.parameters.package_version >>' `
+              -WorkingDirectory (Join-Path $env:TEMP 'sjm-chocolatey-smoke')
+
+  publish-package-managers:
+    executor: win/server-2022
+    steps:
+      - checkout
+      - run:
+          name: Check out the release tag
+          command: |
+            $version = '<< pipeline.parameters.package_version >>'
+            if ([string]::IsNullOrWhiteSpace($version)) { throw 'package_version is required' }
+            if ($env:CIRCLE_BRANCH -ne 'master') { throw 'Package workflows must be triggered on master' }
+            & git fetch --force origin "refs/tags/${version}:refs/tags/${version}"
+            if ($LASTEXITCODE -ne 0) { throw "Could not fetch tag '$version'" }
+            & git checkout --detach "${version}^{commit}"
+            if ($LASTEXITCODE -ne 0) { throw "Could not check out tag '$version'" }
+      - run:
+          name: Validate and publish the package-manager sources
+          command: |
+            & modules/cli-module/packaging/Publish-PackageRelease.ps1 `
+              -Version '<< pipeline.parameters.package_version >>' `
+              -WorkingDirectory (Join-Path $env:TEMP 'sjm-package-publish')
+
 workflows:
   workflow:
+    when:
+      equal: [none, << pipeline.parameters.package_action >>]
     jobs:
       - github-maven-deploy/build-and-test:
+          executor: java21-executor
           <<: *mvn-build-test-command
           <<: *mvn-collect-artifacts-command
+          filters:
+            branches:
+              only: master
+
+      - libraries-java11:
           filters:
             branches:
               only: master
@@ -36,18 +140,22 @@ workflows:
           type: approval
           requires:
             - github-maven-deploy/build-and-test
+            - libraries-java11
       - github-maven-deploy/approve-deploy-minor-version:
           type: approval
           requires:
             - github-maven-deploy/build-and-test
+            - libraries-java11
       - github-maven-deploy/approve-deploy-major-version:
           type: approval
           requires:
             - github-maven-deploy/build-and-test
+            - libraries-java11
       - github-maven-deploy/approve-deploy-as-is-version:
           type: approval
           requires:
             - github-maven-deploy/build-and-test
+            - libraries-java11
 
       - github-maven-deploy/deploy-patch-version:
           executor: java21-executor
@@ -69,3 +177,17 @@ workflows:
           requires:
             - github-maven-deploy/approve-deploy-as-is-version
           <<: *mvn-deploy-command
+
+  package-smoke:
+    when:
+      equal: [smoke, << pipeline.parameters.package_action >>]
+    jobs:
+      - package-smoke-homebrew
+      - package-smoke-chocolatey
+
+  package-publish:
+    when:
+      equal: [publish, << pipeline.parameters.package_action >>]
+    jobs:
+      - publish-package-managers:
+          context: SJM_PACKAGE_PUBLISHING
