@@ -14,14 +14,6 @@ class Sjm < Formula
     (bin/"sjm").write_env_script libexec/"bin/sjm", java_env
   end
 
-  service do
-    run [opt_bin/"sjm", "daemon", "run"]
-    keep_alive crashed: true
-    process_type :background
-    log_path var/"log/sjm-daemon.log"
-    error_log_path var/"log/sjm-daemon.error.log"
-  end
-
   test do
     assert_match "Simple Java Mail daemon commands", shell_output("#{bin}/sjm daemon --help")
   end

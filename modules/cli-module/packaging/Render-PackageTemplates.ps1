@@ -108,6 +108,10 @@ $templates = @(
         Destination = Join-Path $resolvedOutputDirectory 'chocolatey/tools/chocolateyinstall.ps1'
     },
     @{
+        Source = Join-Path $PSScriptRoot 'chocolatey/tools/chocolateyBeforeModify.ps1.template'
+        Destination = Join-Path $resolvedOutputDirectory 'chocolatey/tools/chocolateyBeforeModify.ps1'
+    },
+    @{
         Source = Join-Path $PSScriptRoot 'chocolatey/tools/chocolateyuninstall.ps1.template'
         Destination = Join-Path $resolvedOutputDirectory 'chocolatey/tools/chocolateyuninstall.ps1'
     }
