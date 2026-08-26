@@ -1,13 +1,19 @@
 package org.simplejavamail.internal.mailprovider.angus;
 
 import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.URLName;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.eclipse.angus.mail.smtp.SMTPMessage;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
+import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 
 import java.io.ByteArrayOutputStream;
@@ -55,6 +61,20 @@ class AngusMailTransportAdapterTest {
         assertThat(bytes(facade)).containsExactly(before);
     }
 
+    @Test
+    void failedSendDoesNotReuseThePreviousSubmissionResponse() throws Exception {
+        final MessagingException failure = new MessagingException("connection dropped after DATA");
+        final StaleResponseTransport transport = new StaleResponseTransport(failure);
+        final PreparedMail preparedMail = new PreparedMail(message("body"), recipients(),
+                new DeliveryEnvelope(null, null), false);
+
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail);
+
+        assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+        assertThat(result.getSmtpResponse()).isEmpty();
+        assertThat(result.getFailure()).containsSame(failure);
+    }
+
     private static MimeMessage message(final String body) throws Exception {
         final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
         message.setFrom(new InternetAddress("sender@example.com"));
@@ -73,5 +93,29 @@ class AngusMailTransportAdapterTest {
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         message.writeTo(output);
         return output.toByteArray();
+    }
+
+    private static final class StaleResponseTransport extends SMTPTransport {
+        private final MessagingException failure;
+
+        private StaleResponseTransport(final MessagingException failure) {
+            super(Session.getInstance(new Properties()), new URLName("smtp", null, -1, null, null, null));
+            this.failure = failure;
+        }
+
+        @Override
+        public synchronized int getLastReturnCode() {
+            return 250;
+        }
+
+        @Override
+        public synchronized String getLastServerResponse() {
+            return "250 previous message accepted";
+        }
+
+        @Override
+        public synchronized void sendMessage(final Message message, final Address[] addresses) throws MessagingException {
+            throw failure;
+        }
     }
 }

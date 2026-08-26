@@ -7,8 +7,8 @@ import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -59,8 +59,8 @@ public final class ProviderNeutralClasspathConsumer {
 		}
 
 		@Override
-		public SmtpServerResponse sendMessage(final Transport transport, final PreparedMail preparedMail) {
-			return null;
+		public MailTransportResult sendMessage(final Transport transport, final PreparedMail preparedMail) {
+			return MailTransportResult.unknown(null);
 		}
 	}
 

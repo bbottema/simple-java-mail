@@ -12,6 +12,7 @@ This catalogue records project mechanisms that are easy to miss because they spa
 | CLI generation from builder Javadocs | Turn builder API methods and Javadocs into picocli options and committed binary metadata. | [Cli.java](modules/core-module/src/main/java/org/simplejavamail/api/internal/clisupport/model/Cli.java), [BuilderApiToPicocliCommandsMapper.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/BuilderApiToPicocliCommandsMapper.java), [CliSupport.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java), `modules/cli-module/src/main/resources/cli.data`, `modules/cli-module/src/main/resources/therapi.data` |
 | Optional local CLI daemon | Keep CLI parsing and bounded Mailer instances alive behind authenticated per-user local IPC while preserving one-shot execution. | [DaemonBootstrap.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/daemon/DaemonBootstrap.java), [DaemonProtocol.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/daemon/DaemonProtocol.java), [DaemonServer.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/daemon/DaemonServer.java), [DaemonMailerRegistry.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/daemon/DaemonMailerRegistry.java) |
 | Async send and batch connection pooling | Reuse SMTP transports when the batch module is present; otherwise fall back to direct session transports. | [MailerImpl.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [TransportRunner.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java), [BatchSupport.java](modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java) |
+| Transport-neutral submission outcomes | Preserve accepted, unsent, invalid, rejected, and ambiguous results across providers and send modes without treating SMTP acceptance as final delivery. | [MailTransportResult.java](modules/core-module/src/main/java/org/simplejavamail/api/mailer/spi/MailTransportResult.java), [MailSubmissionReceipt.java](modules/core-module/src/main/java/org/simplejavamail/api/mailer/MailSubmissionReceipt.java), [TransportRunner.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java) |
 | Authenticated SOCKS proxy bridge | Work around JavaMail's anonymous-only SOCKS support by running a local anonymous bridge to an authenticated remote proxy. | [MailerImpl.java](modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [AnonymousSocks5Server.java](modules/core-module/src/main/java/org/simplejavamail/api/internal/authenticatedsockssupport/socks5server/AnonymousSocks5Server.java), [AuthenticatedSocksHelper.java](modules/authenticated-socks-module/src/main/java/org/simplejavamail/internal/authenticatedsockssupport/AuthenticatedSocksHelper.java) |
 | Smart MIME structure selection | Choose the least complex RFC-compatible MIME structure for the actual email contents. | [MimeMessageProducerHelper.java](modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/MimeMessageProducerHelper.java), [SpecializedMimeMessageProducer.java](modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/SpecializedMimeMessageProducer.java), [MIME_RESOURCE_NAMING_REPORT.md](MIME_RESOURCE_NAMING_REPORT.md) |
 | Runtime non-null instrumentation | Preserve and enforce JetBrains nullability contracts through build-time bytecode instrumentation. | [pom.xml](pom.xml), `org.jetbrains.annotations.NotNull`, `org.jetbrains.annotations.Nullable` |
@@ -138,6 +139,28 @@ Key pieces:
 - `MailerImpl.shutdownConnectionPool()` shuts down the default executor if it is library-owned and delegates pool shutdown to the batch module when present.
 
 There is no direct `Phaser` usage in this repository's source tree. Batch coordination here is expressed through `CompletableFuture`, executor services, `AtomicInteger` proxy request tracking, and the external SMTP/object-pool libraries used by `batch-module`.
+
+## Transport-Neutral Submission Outcomes
+
+`MailTransportAdapter` owns the provider-specific `Transport.sendMessage(...)` call and returns a non-null `MailTransportResult`. The built-in Angus adapter captures its current SMTP response; the generic Jakarta Mail fallback has no provider response but still knows that all recipients were accepted when `sendMessage(...)` returns normally. An opaque successful path uses `UNKNOWN` only when it genuinely cannot report acceptance.
+
+Adapters catch checked `MessagingException` failures and return `MailTransportResult.failed(...)`. That factory extracts the valid-sent, valid-unsent, and invalid arrays from a `SendFailedException` when present, clones every array on input and output, and retains the original exception. `TransportRunner` immediately translates the addresses to immutable strings and builds either a `MailSubmissionReceipt` or a `MailSubmissionException` whose direct cause is that original Jakarta Mail failure.
+
+The public statuses are deliberately about knowledge of SMTP submission:
+
+- `ACCEPTED`: all submitted recipients are known accepted;
+- `PARTIALLY_ACCEPTED`: at least one accepted, but the attempt did not complete as a clean success for every recipient;
+- `REJECTED`: no accepted recipients and explicit rejection facts are present;
+- `UNKNOWN`: no reliable acceptance fact is available.
+
+Normal, pooled, asynchronous, and `withOpenConnection` sends all pass through the same translation. Custom mailers and logging-only mode complete successfully with `UNKNOWN`, because Simple Java Mail did not observe their server interaction. A pooled Angus transport may retain the preceding SMTP reply, so the adapter compares reply state before and after a failed attempt and never attaches an unchanged old response to the new failure.
+
+Gotchas:
+
+- A `250` reply confirms SMTP submission, not mailbox delivery.
+- `UNKNOWN` can mean that the connection failed after acceptance. Do not turn it into an automatic retry without duplicate protection.
+- `PARTIALLY_ACCEPTED` means retrying the whole original envelope can duplicate mail for recipients already accepted.
+- Submission failures invalidate the current pooled transport; successful results release it normally.
 
 ## Authenticated SOCKS Proxy Bridge
 

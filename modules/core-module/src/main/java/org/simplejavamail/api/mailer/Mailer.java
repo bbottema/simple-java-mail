@@ -70,7 +70,7 @@ public interface Mailer extends AutoCloseable {
 	/**
 	 * Delegates to {@link #sendMailAndGetReceipt(Email, boolean)} using the mailer's configured async default.
 	 * <p>
-	 * The returned receipt describes SMTP submission acceptance, not final delivery to the recipient mailbox.
+	 * The returned receipt describes the provider-neutral SMTP submission outcome, not final delivery to the recipient mailbox.
 	 *
 	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
 	 * @see MailerGenericBuilder#async()
@@ -106,6 +106,8 @@ public interface Mailer extends AutoCloseable {
 	 * validation, scheduling and sending; failures complete it exceptionally.
 	 * @throws IllegalArgumentException If {@code email} is {@code null}.
 	 * @throws MailException If {@code async=false} and the email isn't valid, or another problem occurs during preparation, connection or sending.
+	 * @throws MailSubmissionException If {@code async=false} and transport submission fails. The exception retains the original Jakarta Mail failure
+	 * and any known accepted, valid-unsent and invalid recipient addresses. With {@code async=true}, it completes the future exceptionally instead.
 	 * @see java.util.concurrent.Executors#newFixedThreadPool(int)
 	 * @see #validate(Email)
 	 */
@@ -115,9 +117,15 @@ public interface Mailer extends AutoCloseable {
 	 * Processes and sends one {@link Email}, returning a receipt for the completed submission.
 	 * <p>
 	 * The send behavior is identical to {@link #sendMail(Email, boolean)}: defaults and overrides are applied, validation runs, MIME conversion happens,
-	 * and the message is submitted using the configured transport. If the underlying transport is Angus SMTP, the receipt contains the final SMTP
-	 * response available from the transport, such as {@code 250 ... queued as ...}. If no SMTP transport is involved, for example when transport mode
-	 * logging-only or a custom mailer is used, the receipt is still returned after successful processing but has no SMTP response.
+	 * and the message is submitted using the configured transport. The receipt reports provider-neutral acceptance status and immutable accepted,
+	 * valid-unsent and invalid recipient addresses. If the provider exposes a server response, such as {@code 250 ... queued as ...}, that response is
+	 * available separately. If no observable transport is involved, for example when transport mode logging-only or a custom mailer is used, the
+	 * receipt has status {@link MailSubmissionStatus#UNKNOWN}.
+	 * <p>
+	 * A failed or partial submission throws {@link MailSubmissionException} for synchronous sends, or completes the asynchronous future with that
+	 * exception. Its receipt exposes the same status and recipient groups while its cause remains the original Jakarta Mail exception. An
+	 * {@link MailSubmissionStatus#UNKNOWN} failure may already have reached the server; do not automatically retry it unless duplicate submission is
+	 * acceptable or otherwise prevented.
 	 * <p>
 	 * This is a submission receipt only. It does not prove final recipient mailbox delivery; use DSN, bounces, read receipts, or provider-specific
 	 * mechanisms for that.
@@ -129,7 +137,11 @@ public interface Mailer extends AutoCloseable {
 	 * representing preparation, validation, scheduling and sending; failures complete it exceptionally.
 	 * @throws IllegalArgumentException If {@code email} is {@code null}.
 	 * @throws MailException If {@code async=false} and the email isn't valid, or another problem occurs during preparation, connection or sending.
+	 * @throws MailSubmissionException If {@code async=false} and transport submission fails. With {@code async=true}, it completes the future
+	 * exceptionally instead.
 	 * @see SmtpServerResponse
+	 * @see MailSubmissionStatus
+	 * @see MailSubmissionException
 	 * @see #sendMail(Email, boolean)
 	 */
 	@NotNull

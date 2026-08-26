@@ -4,6 +4,10 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 
 ## v10.0.0 (unreleased)
 
+### Major Features
+
+- [#710](https://github.com/bbottema/simple-java-mail/issues/710): made submission outcomes transport-neutral with explicit accepted, partially accepted, rejected, and unknown states; immutable recipient groups; optional provider responses; and structured failures that retain the original Jakarta Mail exception across normal, pooled, and open-connection sends.
+
 ### Enhancements
 
 - [#709](https://github.com/bbottema/simple-java-mail/issues/709): added `Mailer.rehearse(...)` to return the governed `Email`, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.

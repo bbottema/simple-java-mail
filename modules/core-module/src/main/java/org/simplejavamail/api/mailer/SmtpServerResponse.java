@@ -5,10 +5,10 @@ import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 
 /**
- * SMTP server response captured after a successful message submission.
+ * SMTP server response captured during a message submission attempt.
  * <p>
- * This is the SMTP submission response, such as {@code 250 ... queued as ...}. It confirms that the SMTP server accepted the message for processing,
- * not that the message was finally delivered to the recipient mailbox.
+ * A positive response such as {@code 250 ... queued as ...} confirms that the SMTP server accepted the message for processing, not that the message
+ * was finally delivered to the recipient mailbox. A failed or partial attempt may instead expose the provider's last negative submission response.
  *
  * @see MailSubmissionReceipt
  */

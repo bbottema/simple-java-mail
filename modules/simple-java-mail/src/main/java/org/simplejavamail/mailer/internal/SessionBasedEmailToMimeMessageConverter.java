@@ -3,7 +3,6 @@ package org.simplejavamail.mailer.internal;
 import jakarta.mail.Address;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
-import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
@@ -28,13 +27,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.List;
-
 import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
 import static org.simplejavamail.internal.util.MiscUtil.asInternetAddresses;
 import static org.simplejavamail.mailer.internal.MailerException.INVALID_ENCODING;
+import static org.simplejavamail.mailer.internal.util.MailboxAddressMapper.requireMailboxAddresses;
 
 /**
  * So this is getting a bit complicated now, but the idea is that the email to mime message conversion is encapsulated in a closure,
@@ -84,7 +81,7 @@ public class SessionBasedEmailToMimeMessageConverter {
         }
         final Address[] recipients = resolveEnvelopeRecipients(email, mimeMessage);
         return new MailRehearsal(email, emlBytes, mimeMessage.getMessageID(), resolveEnvelopeSender(email),
-                resolveEnvelopeRecipientAddresses(recipients), processSecurityAndValidateSize);
+                requireMailboxAddresses(recipients), processSecurityAndValidateSize);
     }
 
     @NotNull
@@ -109,21 +106,6 @@ public class SessionBasedEmailToMimeMessageConverter {
                 ? recipientsOrEmpty(mimeMessage)
                 : asInternetAddresses(email.getOverrideReceivers(), java.nio.charset.StandardCharsets.UTF_8)
                         .toArray(new Address[0]);
-    }
-
-    @NotNull
-    private static List<String> resolveEnvelopeRecipientAddresses(@NotNull final Address[] recipients) throws MessagingException {
-        final List<String> addresses = new ArrayList<>(recipients.length);
-        for (Address recipient : recipients) {
-            final String address = recipient instanceof InternetAddress
-                    ? ((InternetAddress) recipient).getAddress()
-                    : recipient.toString();
-            if (address == null) {
-                throw new MessagingException("Unable to resolve an envelope recipient address");
-            }
-            addresses.add(address);
-        }
-        return addresses;
     }
 
     private static String resolveEnvelopeSender(@NotNull final Email email) {

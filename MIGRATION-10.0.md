@@ -355,7 +355,47 @@ Exclude `angus-mail-provider-module` as shown above and put the replacement impl
 
 Third-party adapters implement `org.simplejavamail.api.mailer.spi.MailTransportAdapter` and are discovered with `ServiceLoader`. Register the implementation in `META-INF/services/org.simplejavamail.api.mailer.spi.MailTransportAdapter`, or use a JPMS `provides` directive. Adapter signatures expose Jakarta Mail and provider-neutral Simple Java Mail types only.
 
+The adapter's `sendMessage(...)` method now returns a non-null `MailTransportResult`, not a nullable `SmtpServerResponse`. Return `MailTransportResult.accepted(...)` after a successful submission, `MailTransportResult.unknown(...)` only when a successful opaque send cannot report server acceptance, and `MailTransportResult.failed(...)` after catching a Jakarta Mail submission failure. The failure factory copies recipient arrays from `SendFailedException` and retains the original exception for the public send failure.
+
 If no Jakarta Mail implementation is available, MIME conversion and sending fail with an error naming the dependency that must be added. If an implementation can create MIME but cannot submit mail, sending reports the missing provider or adapter separately.
+
+## Submission receipts now describe partial and uncertain outcomes
+
+`sendMailAndGetReceipt(...)` is no longer an Angus-only view of the final SMTP response. Its `MailSubmissionReceipt` now always has a provider-neutral `MailSubmissionStatus`, the effective Message-ID and timestamp, immutable accepted, valid-unsent and invalid recipient lists, and an optional `SmtpServerResponse` when the provider exposes one.
+
+| Status | Meaning |
+| --- | --- |
+| `ACCEPTED` | Every submitted envelope recipient is known to have been accepted for SMTP submission. |
+| `PARTIALLY_ACCEPTED` | At least one recipient was accepted, but the attempt did not complete as a clean success for every recipient. Any provider-supplied unsent or invalid groups identify the remainder. The call fails with `MailSubmissionException`. |
+| `REJECTED` | The transport reports that no recipient was accepted. The call fails with `MailSubmissionException`. |
+| `UNKNOWN` | The send path cannot determine acceptance. A custom mailer or logging-only send can return this successfully; an ambiguous transport failure throws `MailSubmissionException` with this status. |
+
+Handle the synchronous path like this:
+
+```java
+try {
+    MailSubmissionReceipt receipt = mailer
+            .sendMailAndGetReceipt(email, false)
+            .get();
+    checkpoint(receipt.getEmailId(),
+            receipt.getStatus(), receipt.getSubmittedAt());
+} catch (MailSubmissionException failure) {
+    MailSubmissionReceipt outcome = failure.getSubmissionReceipt();
+
+    audit(outcome.getAcceptedRecipients(),
+            outcome.getValidUnsentRecipients(),
+            outcome.getInvalidRecipients(),
+            failure.getCause()); // original MessagingException
+
+    if (outcome.getStatus() == MailSubmissionStatus.UNKNOWN) {
+        markForReconciliation();
+    }
+}
+```
+
+With asynchronous sending, the future completes exceptionally with `MailSubmissionException`. Inspect it as the future's cause. With `withOpenConnection`, `MailSender.sendMailAndGetReceipt(...)` throws the same exception directly. Pooled and non-pooled transports use the same model.
+
+`UNKNOWN` does not mean rejected: the connection may have failed after the server accepted some or all recipients. Do not automatically retry an unknown outcome unless your design prevents or tolerates duplicates. Likewise, retrying an entire `PARTIALLY_ACCEPTED` message can duplicate delivery to the accepted recipients. None of these states proves final mailbox delivery; use DSNs, bounces, or provider webhooks for that.
 
 ## MIME finalization and signing order
 

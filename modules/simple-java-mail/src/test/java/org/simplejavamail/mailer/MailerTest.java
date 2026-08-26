@@ -4,20 +4,26 @@ import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Provider;
+import jakarta.mail.SendFailedException;
 import jakarta.mail.Session;
 import jakarta.mail.URLName;
 import jakarta.mail.internet.MimeMessage;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
+import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
@@ -28,6 +34,7 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import org.simplejavamail.util.TestDataHelper;
@@ -51,6 +58,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -668,7 +676,12 @@ public class MailerTest {
 		assertThat(transportState.sentMessages).hasSize(1);
 		assertThat(receipt.getEmailId()).isEqualTo(transportState.sentMessages.get(0).getMessageID());
 		assertThat(receipt.getSubmittedAt()).isNotNull();
+		assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+		assertThat(receipt.hasServerAcceptanceInformation()).isTrue();
 		assertThat(receipt.isAcceptedByServer()).isTrue();
+		assertThat(receipt.getAcceptedRecipients()).containsExactly("receipt@example.com");
+		assertThat(receipt.getValidUnsentRecipients()).isEmpty();
+		assertThat(receipt.getInvalidRecipients()).isEmpty();
 		assertThat(receipt.getSmtpResponse()).isPresent();
 		SmtpServerResponse smtpResponse = receipt.getSmtpResponse().get();
 		assertThat(smtpResponse.getReturnCode()).isEqualTo(250);
@@ -706,10 +719,121 @@ public class MailerTest {
 		}
 
 		assertThat(receipt.getEmailId()).isEqualTo(email.getId());
+		assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+		assertThat(receipt.hasServerAcceptanceInformation()).isFalse();
 		assertThat(receipt.isAcceptedByServer()).isFalse();
+		assertThat(receipt.getAcceptedRecipients()).isEmpty();
 		assertThat(receipt.getSmtpResponse()).isNotPresent();
 		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
+	}
+
+	@Test
+	public void testSendMailAndGetReceipt_loggingOnlyHasExplicitlyUnknownAcceptance() throws Exception {
+		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false).buildEmail();
+
+		final MailSubmissionReceipt receipt;
+		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
+				.withTransportModeLoggingOnly(true)
+				.buildMailer()) {
+			receipt = mailer.sendMailAndGetReceipt(email, false).get();
+		}
+
+		assertThat(receipt.getEmailId()).isEqualTo(email.getId());
+		assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+		assertThat(receipt.hasServerAcceptanceInformation()).isFalse();
+		assertThat(receipt.getAcceptedRecipients()).isEmpty();
+		assertThat(receipt.getValidUnsentRecipients()).isEmpty();
+		assertThat(receipt.getInvalidRecipients()).isEmpty();
+		assertThat(receipt.getSmtpResponse()).isEmpty();
+	}
+
+	@Test
+	public void testSendMailAndGetReceipt_partialFailureExposesTransportNeutralRecipientOutcome() throws Exception {
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
+		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
+		final Address accepted = new jakarta.mail.internet.InternetAddress("accepted@example.com");
+		final Address unsent = new jakarta.mail.internet.InternetAddress("unsent@example.com");
+		final Address invalid = new jakarta.mail.internet.InternetAddress("invalid@example.com");
+		final SendFailedException providerFailure = new SendFailedException("partial failure", null,
+				new Address[]{accepted}, new Address[]{unsent}, new Address[]{invalid});
+		transportState.failNextSend(providerFailure, 550, "550 one or more recipients rejected");
+
+		final MailSubmissionException failure;
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
+			try {
+				mailer.sendMailAndGetReceipt(createBatchEmail("Partial receipt email",
+						"accepted@example.com", "unsent@example.com", "invalid@example.com"), false);
+				throw new AssertionError("Expected partial submission to fail");
+			} catch (final MailSubmissionException expected) {
+				failure = expected;
+			}
+		}
+
+		assertThat(failure.getCause()).isSameAs(providerFailure);
+		assertThat(failure.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
+		final MailSubmissionReceipt receipt = failure.getSubmissionReceipt();
+		assertThat(receipt.getEmailId()).isNotNull();
+		assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
+		assertThat(receipt.hasServerAcceptanceInformation()).isTrue();
+		assertThat(receipt.isAcceptedByServer()).isTrue();
+		assertThat(receipt.getAcceptedRecipients()).containsExactly("accepted@example.com");
+		assertThat(receipt.getValidUnsentRecipients()).containsExactly("unsent@example.com");
+		assertThat(receipt.getInvalidRecipients()).containsExactly("invalid@example.com");
+		assertThat(receipt.getSmtpResponse()).isPresent();
+		assertThat(receipt.getSmtpResponse().get().getReturnCode()).isEqualTo(550);
+		assertThatThrownBy(() -> receipt.getAcceptedRecipients().add("other@example.com"))
+				.isInstanceOf(UnsupportedOperationException.class);
+	}
+
+	@Test
+	public void testSendMailAndGetReceipt_nonPooledFailureUsesTheSameTransportNeutralOutcome() throws Exception {
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
+		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
+		final MessagingException providerFailure = new MessagingException("connection dropped after DATA");
+		transportState.failNextSend(providerFailure, -1, null);
+
+		try (MockedStatic<ModuleLoader> moduleLoader = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+			moduleLoader.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
+
+			try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
+				assertThatThrownBy(() -> mailer.sendMailAndGetReceipt(
+						createBatchEmail("Direct unknown receipt email", "unknown@example.com"), false))
+						.isInstanceOfSatisfying(MailSubmissionException.class, failure -> {
+							assertThat(failure.getCause()).isSameAs(providerFailure);
+							assertThat(failure.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+							assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isFalse();
+						});
+			}
+		}
+
+		assertThat(transportState.connectCount).hasValue(1);
+		assertThat(transportState.closeCount).hasValue(1);
+	}
+
+	@Test
+	public void testSendMailAndGetReceipt_asyncUnclassifiedFailureIsExplicitlyUnknown() throws Exception {
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
+		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
+		final MessagingException providerFailure = new MessagingException("connection dropped after DATA");
+		transportState.failNextSend(providerFailure, -1, null);
+
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
+			try {
+				mailer.sendMailAndGetReceipt(createBatchEmail("Unknown receipt email", "unknown@example.com"), true).get();
+				throw new AssertionError("Expected asynchronous submission to fail");
+			} catch (final ExecutionException expected) {
+				assertThat(expected.getCause()).isInstanceOf(MailSubmissionException.class);
+				final MailSubmissionException failure = (MailSubmissionException) expected.getCause();
+				assertThat(failure.getCause()).isSameAs(providerFailure);
+				assertThat(failure.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+				assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isFalse();
+				assertThat(failure.getSubmissionReceipt().getAcceptedRecipients()).isEmpty();
+			}
+		}
 	}
 
 	@Test
@@ -829,8 +953,34 @@ public class MailerTest {
 		assertThat(transportState.sentMessages).hasSize(2);
 		assertThat(receipts).hasSize(2);
 		assertThat(receipts).extracting(MailSubmissionReceipt::isAcceptedByServer).containsExactly(true, true);
+		assertThat(receipts.get(0).getAcceptedRecipients()).containsExactly("first@example.com");
+		assertThat(receipts.get(1).getAcceptedRecipients()).containsExactly("second@example.com");
 		assertThat(receipts.get(0).getSmtpResponse().get().getResponse()).isEqualTo("250 queued as simple-java-mail-test-1");
 		assertThat(receipts.get(1).getSmtpResponse().get().getResponse()).isEqualTo("250 queued as simple-java-mail-test-2");
+	}
+
+	@Test
+	public void testOpenConnection_partialFailureExposesTheSameSubmissionException() throws Exception {
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
+		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
+		final SendFailedException providerFailure = new SendFailedException("partial failure", null,
+				new Address[]{new jakarta.mail.internet.InternetAddress("accepted@example.com")},
+				new Address[]{new jakarta.mail.internet.InternetAddress("unsent@example.com")}, null);
+		transportState.failNextSend(providerFailure, 450, "450 recipient temporarily unavailable");
+
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
+			try {
+				mailer.withOpenConnection(sender -> sender.sendMailAndGetReceipt(
+						createBatchEmail("Open partial email", "accepted@example.com", "unsent@example.com")));
+				throw new AssertionError("Expected open-connection submission to fail");
+			} catch (final MailSubmissionException failure) {
+				assertThat(failure.getCause()).isSameAs(providerFailure);
+				assertThat(failure.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
+				assertThat(failure.getSubmissionReceipt().getAcceptedRecipients()).containsExactly("accepted@example.com");
+				assertThat(failure.getSubmissionReceipt().getValidUnsentRecipients()).containsExactly("unsent@example.com");
+			}
+		}
 	}
 
 	@Test
@@ -930,10 +1080,10 @@ public class MailerTest {
 		return (CountingTransportState) session.getProperties().get(COUNTING_TRANSPORT_STATE_KEY);
 	}
 
-	private static Email createBatchEmail(final String subject, final String recipient) {
+	private static Email createBatchEmail(final String subject, final String... recipients) {
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@example.com")
-				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, recipient))
+				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, recipients))
 				.withSubject(subject)
 				.withPlainText("Simple batch body")
 				.buildEmail();
@@ -959,6 +1109,13 @@ public class MailerTest {
 		@Override
 		public void sendMessage(final Message message, final Address[] addresses)
 				throws MessagingException {
+			if (state.nextFailure != null) {
+				lastReturnCode = state.nextFailureReturnCode;
+				lastServerResponse = state.nextFailureResponse;
+				final MessagingException failure = state.nextFailure;
+				state.nextFailure = null;
+				throw failure;
+			}
 			state.sentMessages.add((MimeMessage) message);
 			state.sentRecipients.add(addresses);
 			lastReturnCode = 250;
@@ -988,6 +1145,15 @@ public class MailerTest {
 		private final List<String> connectedPasswords = new CopyOnWriteArrayList<>();
 		private final List<MimeMessage> sentMessages = new CopyOnWriteArrayList<>();
 		private final List<Address[]> sentRecipients = new CopyOnWriteArrayList<>();
+		@Nullable private volatile MessagingException nextFailure;
+		private volatile int nextFailureReturnCode = -1;
+		@Nullable private volatile String nextFailureResponse;
+
+		private void failNextSend(@NotNull final MessagingException failure, final int returnCode, @Nullable final String response) {
+			nextFailure = failure;
+			nextFailureReturnCode = returnCode;
+			nextFailureResponse = response;
+		}
 	}
 
 	public static MailerRegularBuilder<?> createFullyConfiguredMailerBuilder(final boolean authenticateProxy, final String prefix, @Nullable final TransportStrategy transportStrategy) {

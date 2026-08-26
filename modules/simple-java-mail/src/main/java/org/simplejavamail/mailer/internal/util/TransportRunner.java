@@ -9,8 +9,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
+import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.BatchModule;
@@ -21,6 +23,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.slf4j.LoggerFactory.getLogger;
+import static org.simplejavamail.mailer.internal.util.MailboxAddressMapper.toMailboxAddresses;
 
 /**
  * If available, runs activities on Transport connections using SMTP connection pool from the batch-module.
@@ -39,20 +42,37 @@ public class TransportRunner {
 	 *
 	 * @param clusterKey The cluster key to use for the connection pool, which was randomly generated in the Mailer builder if not provided.
 	 */
-	public static MailSubmissionReceipt sendMessage(@NotNull final UUID clusterKey, final Session session, @NotNull Email email)
+	public static MailSubmissionReceipt sendMessage(@NotNull final UUID clusterKey, @NotNull final Session session, @NotNull final Email email)
 			throws MessagingException {
-		return runOnSessionTransport(clusterKey, session, false, (transport, actualSessionUsed) -> sendMessageOnTransport(transport, actualSessionUsed, email));
+		try {
+			return runOnSessionTransport(clusterKey, session, false,
+					(transport, actualSessionUsed) -> sendMessageOnTransport(transport, actualSessionUsed, email));
+		} catch (final MailSubmissionException failure) {
+			throw failure;
+		} catch (final MessagingException failure) {
+			throw buildSubmissionException(email, MailTransportResult.failed(failure, null));
+		}
 	}
 
-	public static MailSubmissionReceipt sendMessageOnTransport(@NotNull final Transport transport, @NotNull final Session actualSessionUsed, @NotNull Email email)
+	public static MailSubmissionReceipt sendMessageOnTransport(@NotNull final Transport transport, @NotNull final Session actualSessionUsed,
+			@NotNull final Email email)
 			throws MessagingException {
-		final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
-		final SmtpServerResponse smtpServerResponse = MailTransportAdapterResolver.sendMessage(transport, preparedMail);
-		LOGGER.trace("...email sent");
-		return buildReceipt(email, smtpServerResponse);
+		try {
+			final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
+			final MailTransportResult transportResult = MailTransportAdapterResolver.sendMessage(transport, preparedMail);
+			if (!transportResult.isSuccessful()) {
+				throw buildSubmissionException(email, transportResult);
+			}
+			LOGGER.trace("...email sent");
+			return buildReceipt(email, transportResult);
+		} catch (final MailSubmissionException failure) {
+			throw failure;
+		} catch (final MessagingException failure) {
+			throw buildSubmissionException(email, MailTransportResult.failed(failure, null));
+		}
 	}
 
-	public static void connect(@NotNull UUID clusterKey, final Session session)
+	public static void connect(@NotNull final UUID clusterKey, @NotNull final Session session)
 			throws MessagingException {
 		runOnSessionTransport(clusterKey, session, true, (transport, actualSessionUsed) -> {
 			// the fact that we reached here means a connection was made successfully
@@ -66,17 +86,36 @@ public class TransportRunner {
 		return new MailSubmissionReceipt(email.getId(), smtpServerResponse, Instant.now());
 	}
 
-	private static <T> T runOnSessionTransport(@NotNull UUID clusterKey, Session session, final boolean stickySession, TransportOperation<T> operation)
+	@NotNull
+	private static MailSubmissionReceipt buildReceipt(@NotNull final Email email, @NotNull final MailTransportResult transportResult) {
+		return new MailSubmissionReceipt(email.getId(), transportResult.getSmtpResponse().orElse(null), Instant.now(),
+				transportResult.getStatus(), toMailboxAddresses(transportResult.getAcceptedRecipients()),
+				toMailboxAddresses(transportResult.getValidUnsentRecipients()), toMailboxAddresses(transportResult.getInvalidRecipients()));
+	}
+
+	@NotNull
+	private static MailSubmissionException buildSubmissionException(@NotNull final Email email, @NotNull final MailTransportResult transportResult) {
+		final MessagingException failure = transportResult.getFailure()
+				.orElseThrow(() -> new IllegalArgumentException("A failed transport result must retain its MessagingException"));
+		final MailSubmissionReceipt receipt = buildReceipt(email, transportResult);
+		final String emailIdentifier = email.getId() != null
+				? "ID: '" + email.getId() + "'"
+				: "Subject: '" + email.getSubject() + "'";
+		return new MailSubmissionException("Failed to submit email [" + emailIdentifier + "], submission status: " + receipt.getStatus(),
+				failure, receipt);
+	}
+
+	private static <T> T runOnSessionTransport(@NotNull final UUID clusterKey, @NotNull final Session session,
+			final boolean stickySession, @NotNull final TransportOperation<T> operation)
 			throws MessagingException {
 		if (ModuleLoader.batchModuleAvailable()) {
 			return sendUsingConnectionPool(ModuleLoader.loadBatchModule(), clusterKey, session, stickySession, operation);
-		} else {
-			try (Transport transport = transportFor(session)) {
-				TransportConnectionHelper.connectTransport(transport, session);
-				return operation.run(transport, session);
-			} finally {
-				LOGGER.trace("closing transport");
-			}
+		}
+		try (Transport transport = transportFor(session)) {
+			TransportConnectionHelper.connectTransport(transport, session);
+			return operation.run(transport, session);
+		} finally {
+			LOGGER.trace("closing transport");
 		}
 	}
 
@@ -84,26 +123,27 @@ public class TransportRunner {
 	static Transport transportFor(@NotNull final Session session) throws MessagingException {
 		try {
 			return session.getTransport();
-		} catch (NoSuchProviderException e) {
+		} catch (NoSuchProviderException failure) {
 			final String protocol = session.getProperty("mail.transport.protocol");
 			throw new MessagingException("No Jakarta Mail transport provider is available"
 					+ (protocol == null ? "" : " for protocol '" + protocol + "'")
 					+ ". Sending requires a Jakarta Mail implementation and a matching MailTransportAdapter. "
-					+ "For the supported Angus stack, add org.simplejavamail:angus-mail-provider-module.", e);
+					+ "For the supported Angus stack, add org.simplejavamail:angus-mail-provider-module.", failure);
 		}
 	}
 
-	private static <T> T sendUsingConnectionPool(@NotNull BatchModule batchModule, @NotNull UUID clusterKey, Session session, boolean stickySession, TransportOperation<T> operation)
+	private static <T> T sendUsingConnectionPool(@NotNull final BatchModule batchModule, @NotNull final UUID clusterKey,
+			@NotNull final Session session, final boolean stickySession, @NotNull final TransportOperation<T> operation)
 			throws MessagingException {
-		LifecycleDelegatingTransport delegatingTransport = batchModule.acquireTransport(clusterKey, session, stickySession);
+		final LifecycleDelegatingTransport delegatingTransport = batchModule.acquireTransport(clusterKey, session, stickySession);
 		try {
-			T result = operation.run(delegatingTransport.getTransport(), delegatingTransport.getSessionUsedToObtainTransport());
+			final T result = operation.run(delegatingTransport.getTransport(), delegatingTransport.getSessionUsedToObtainTransport());
 			delegatingTransport.signalTransportUsed();
 			return result;
-		} catch (final Throwable t) {
+		} catch (final Throwable failure) {
 			// always make sure claimed resources are released
 			delegatingTransport.signalTransportFailed();
-			throw t;
+			throw failure;
 		}
 	}
 

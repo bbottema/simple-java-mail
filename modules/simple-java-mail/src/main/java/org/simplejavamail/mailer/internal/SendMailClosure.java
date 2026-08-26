@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.EmailTooBigException;
+import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
@@ -59,6 +60,8 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 			}
 		} catch (final MessagingException e) {
 			handleException(e, GENERIC_ERROR);
+		} catch (final MailSubmissionException e) {
+			throw e;
 		} catch (final MailerException | EmailTooBigException e) {
 			handleException(e, MAILER_ERROR);
 		} catch (final Exception e) {

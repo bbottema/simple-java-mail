@@ -4,7 +4,6 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import testutil.ConfigLoaderTestHelper;
 import testutil.ImplLoader;
 
 public class DemoAppBase {
@@ -25,9 +24,6 @@ public class DemoAppBase {
 	private static final boolean LOGGING_MODE = false;
 
 	static {
-		// make Simple Java Mail ignore the properties file completely: that's there for the junit tests, not this demo.
-		ConfigLoaderTestHelper.clearConfigProperties();
-
 		//noinspection ConstantConditions
 		if (YOUR_GMAIL_ADDRESS.equals("your_gmail_user@gmail.com")) {
 			throw new AssertionError("For these demo's to work, please provide your Gmail credentials in DemoAppBase.java first (or change the SMTP config)");

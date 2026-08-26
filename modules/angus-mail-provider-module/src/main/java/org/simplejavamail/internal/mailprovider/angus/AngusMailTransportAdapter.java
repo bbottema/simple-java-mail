@@ -1,9 +1,9 @@
 package org.simplejavamail.internal.mailprovider.angus;
 
+import jakarta.mail.Header;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
-import jakarta.mail.Header;
 import jakarta.mail.internet.MimeMessage;
 import org.eclipse.angus.mail.smtp.SMTPMessage;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
@@ -13,11 +13,13 @@ import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Enumeration;
+import java.util.Objects;
 import java.util.Properties;
 
 /** Angus Mail implementation of Simple Java Mail's provider adapter SPI. */
@@ -28,19 +30,69 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         return transport instanceof SMTPTransport;
     }
 
-    @Nullable
     @Override
-    public SmtpServerResponse sendMessage(@NotNull final Transport transport,
-                                          @NotNull final PreparedMail preparedMail)
-            throws MessagingException {
+    @NotNull
+    public MailTransportResult sendMessage(@NotNull final Transport transport,
+                                           @NotNull final PreparedMail preparedMail) {
         final SMTPTransport smtpTransport = (SMTPTransport) transport;
+        final MimeMessage message;
+        try {
+            message = resolveMessageForTransport(preparedMail);
+        } catch (final MessagingException preparationFailure) {
+            return MailTransportResult.failed(preparationFailure, null);
+        }
+        final SmtpResponseSnapshot responseBeforeSend = captureResponseSnapshot(smtpTransport);
+        try {
+            smtpTransport.sendMessage(message, preparedMail.getRecipients());
+            return MailTransportResult.accepted(preparedMail.getRecipients(),
+                    captureResponseSnapshot(smtpTransport).toSmtpServerResponse());
+        } catch (final MessagingException failure) {
+            return MailTransportResult.failed(failure, captureNewResponse(smtpTransport, responseBeforeSend));
+        }
+    }
+
+    @NotNull
+    private static MimeMessage resolveMessageForTransport(@NotNull final PreparedMail preparedMail) throws MessagingException {
         final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
-        final MimeMessage message = envelope.hasProviderSpecificOptions() || preparedMail.requiresStableContent()
+        return envelope.hasProviderSpecificOptions() || preparedMail.requiresStableContent()
                 ? new AngusSmtpMessage(preparedMail)
                 : preparedMail.getMimeMessage();
+    }
 
-        smtpTransport.sendMessage(message, preparedMail.getRecipients());
-        return new SmtpServerResponse(smtpTransport.getLastReturnCode(), smtpTransport.getLastServerResponse());
+    @NotNull
+    private static SmtpResponseSnapshot captureResponseSnapshot(@NotNull final SMTPTransport smtpTransport) {
+        return new SmtpResponseSnapshot(smtpTransport.getLastReturnCode(), smtpTransport.getLastServerResponse());
+    }
+
+    @Nullable
+    private static SmtpServerResponse captureNewResponse(@NotNull final SMTPTransport smtpTransport,
+                                                          @NotNull final SmtpResponseSnapshot responseBeforeSend) {
+        final SmtpResponseSnapshot responseAfterFailure = captureResponseSnapshot(smtpTransport);
+        return responseAfterFailure.differsFrom(responseBeforeSend)
+                ? responseAfterFailure.toSmtpServerResponse()
+                : null;
+    }
+
+    private static final class SmtpResponseSnapshot {
+
+        private final int returnCode;
+        @Nullable private final String serverResponse;
+
+        private SmtpResponseSnapshot(final int returnCode, @Nullable final String serverResponse) {
+            this.returnCode = returnCode;
+            this.serverResponse = serverResponse;
+        }
+
+        private boolean differsFrom(@NotNull final SmtpResponseSnapshot previousResponse) {
+            return returnCode != previousResponse.returnCode || !Objects.equals(serverResponse, previousResponse.serverResponse);
+        }
+
+        @Nullable
+        private SmtpServerResponse toSmtpServerResponse() {
+            return returnCode > 0 || serverResponse != null
+                    ? new SmtpServerResponse(returnCode, serverResponse)
+                    : null;
+        }
     }
 
     /**
@@ -63,7 +115,7 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                 super.setEnvelopeFrom(envelope.getEnvelopeFrom());
             }
             if (envelope.getDeliveryStatusNotification() != null) {
-                configureDsn(envelope.getDeliveryStatusNotification());
+                configureDeliveryStatusNotification(envelope.getDeliveryStatusNotification());
             }
             if (stableContentRequired) {
                 super.setAllow8bitMIME(false);
@@ -75,18 +127,18 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             return message.getSession() != null ? message.getSession() : Session.getInstance(new Properties());
         }
 
-        private static void copyHeaders(@NotNull final MimeMessage from, @NotNull final MimeMessage to)
+        private static void copyHeaders(@NotNull final MimeMessage sourceMessage, @NotNull final MimeMessage targetMessage)
                 throws MessagingException {
-            final Enumeration<Header> headers = from.getAllHeaders();
+            final Enumeration<Header> headers = sourceMessage.getAllHeaders();
             while (headers.hasMoreElements()) {
                 final Header header = headers.nextElement();
-                to.addHeader(header.getName(), header.getValue());
+                targetMessage.addHeader(header.getName(), header.getValue());
             }
         }
 
-        private void configureDsn(@NotNull final DeliveryStatusNotification dsn) {
+        private void configureDeliveryStatusNotification(@NotNull final DeliveryStatusNotification deliveryStatusNotification) {
             int notifyOptions = 0;
-            for (DeliveryStatusNotification.NotifyOption notifyOption : dsn.getNotifyOptions()) {
+            for (DeliveryStatusNotification.NotifyOption notifyOption : deliveryStatusNotification.getNotifyOptions()) {
                 switch (notifyOption) {
                     case SUCCESS:
                         notifyOptions |= SMTPMessage.NOTIFY_SUCCESS;
@@ -104,11 +156,11 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                         throw new AssertionError("Unsupported DSN notify option: " + notifyOption);
                 }
             }
-            if (!dsn.getNotifyOptions().isEmpty()) {
+            if (!deliveryStatusNotification.getNotifyOptions().isEmpty()) {
                 super.setNotifyOptions(notifyOptions);
             }
-            if (dsn.getReturnOption() != null) {
-                super.setReturnOption(dsn.getReturnOption() == DeliveryStatusNotification.ReturnOption.FULL_MESSAGE
+            if (deliveryStatusNotification.getReturnOption() != null) {
+                super.setReturnOption(deliveryStatusNotification.getReturnOption() == DeliveryStatusNotification.ReturnOption.FULL_MESSAGE
                         ? SMTPMessage.RETURN_FULL
                         : SMTPMessage.RETURN_HDRS);
             }

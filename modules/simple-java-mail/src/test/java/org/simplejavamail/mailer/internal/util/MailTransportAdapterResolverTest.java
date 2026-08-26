@@ -3,6 +3,7 @@ package org.simplejavamail.mailer.internal.util;
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import jakarta.mail.SendFailedException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
@@ -10,9 +11,11 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 
 import java.util.Arrays;
@@ -29,12 +32,34 @@ class MailTransportAdapterResolverTest {
         final RecordingTransport transport = new RecordingTransport();
         final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
 
-        final SmtpServerResponse response = MailTransportAdapterResolver.sendMessage(
+        final MailTransportResult result = MailTransportAdapterResolver.sendMessage(
                 transport, preparedMail, Collections.<MailTransportAdapter>emptyList());
 
-        assertThat(response).isNull();
+        assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+        assertThat(result.getSmtpResponse()).isEmpty();
+        assertThat(result.getAcceptedRecipients()).containsExactly(preparedMail.getRecipients());
         assertThat(transport.sentMessage).isSameAs(preparedMail.getMimeMessage());
         assertThat(transport.sentRecipients).containsExactly(preparedMail.getRecipients());
+    }
+
+    @Test
+    void genericFallbackReturnsPartialRecipientFactsAndOriginalFailure() throws Exception {
+        final Address accepted = new InternetAddress("accepted@example.com");
+        final Address unsent = new InternetAddress("unsent@example.com");
+        final Address invalid = new InternetAddress("invalid@example.com");
+        final SendFailedException failure = new SendFailedException("partial", null,
+                new Address[]{accepted}, new Address[]{unsent}, new Address[]{invalid});
+        final FailingTransport transport = new FailingTransport(failure);
+        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
+
+        final MailTransportResult result = MailTransportAdapterResolver.sendMessage(
+                transport, preparedMail, Collections.<MailTransportAdapter>emptyList());
+
+        assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
+        assertThat(result.getFailure()).containsSame(failure);
+        assertThat(result.getAcceptedRecipients()).containsExactly(accepted);
+        assertThat(result.getValidUnsentRecipients()).containsExactly(unsent);
+        assertThat(result.getInvalidRecipients()).containsExactly(invalid);
     }
 
     @Test
@@ -59,10 +84,12 @@ class MailTransportAdapterResolverTest {
         final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
         final RecordingAdapter adapter = new RecordingAdapter(true);
 
-        final SmtpServerResponse response = MailTransportAdapterResolver.sendMessage(
+        final MailTransportResult result = MailTransportAdapterResolver.sendMessage(
                 transport, preparedMail, Arrays.<MailTransportAdapter>asList(new RecordingAdapter(false), adapter));
 
         assertThat(adapter.preparedMail).isSameAs(preparedMail);
+        assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+        final SmtpServerResponse response = result.getSmtpResponse().get();
         assertThat(response.getReturnCode()).isEqualTo(250);
         assertThat(response.getResponse()).isEqualTo("queued");
         assertThat(transport.sentMessage).isNull();
@@ -102,6 +129,20 @@ class MailTransportAdapterResolverTest {
         }
     }
 
+    private static final class FailingTransport extends Transport {
+        private final MessagingException failure;
+
+        private FailingTransport(final MessagingException failure) {
+            super(Session.getInstance(new Properties()), new URLName("test", null, -1, null, null, null));
+            this.failure = failure;
+        }
+
+        @Override
+        public void sendMessage(final Message message, final Address[] addresses) throws MessagingException {
+            throw failure;
+        }
+    }
+
     private static class RecordingAdapter implements MailTransportAdapter {
         private final boolean supports;
         private PreparedMail preparedMail;
@@ -116,9 +157,9 @@ class MailTransportAdapterResolverTest {
         }
 
         @Override
-        public SmtpServerResponse sendMessage(final Transport transport, final PreparedMail preparedMail) {
+        public MailTransportResult sendMessage(final Transport transport, final PreparedMail preparedMail) {
             this.preparedMail = preparedMail;
-            return new SmtpServerResponse(250, "queued");
+            return MailTransportResult.accepted(preparedMail.getRecipients(), new SmtpServerResponse(250, "queued"));
         }
     }
 
