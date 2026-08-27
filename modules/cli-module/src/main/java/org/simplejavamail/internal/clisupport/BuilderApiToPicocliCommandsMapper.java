@@ -204,9 +204,15 @@ public final class BuilderApiToPicocliCommandsMapper {
 		return TYPE_LABELS.containsKey(parameterType) || parameterType.isEnum();
 	}
 
-	private static boolean hasUnsupportedCollectionParameter(Method m) {
-		for (Class<?> parameterType : m.getParameterTypes()) {
-			if ((parameterType.isArray() && parameterType != String[].class)
+	private static boolean hasUnsupportedCollectionParameter(final Method method) {
+		final Class<?>[] parameterTypes = method.getParameterTypes();
+		final Annotation[][] parameterAnnotations = method.getParameterAnnotations();
+		for (int parameterIndex = 0; parameterIndex < parameterTypes.length; parameterIndex++) {
+			final Class<?> parameterType = parameterTypes[parameterIndex];
+			final boolean supportedScalarArray = parameterType == String[].class
+					|| (parameterType == byte[].class
+							&& containsAnnotation(asList(parameterAnnotations[parameterIndex]), Cli.BinaryFile.class));
+			if ((parameterType.isArray() && !supportedScalarArray)
 					|| Iterable.class.isAssignableFrom(parameterType)
 					|| Map.class.isAssignableFrom(parameterType)) {
 				return true;

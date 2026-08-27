@@ -20,6 +20,7 @@ import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static jakarta.mail.Message.RecipientType.TO;
@@ -149,6 +150,37 @@ class MailerRehearsalTest {
 			assertThat(rehearsal.getEmlBytes()).containsExactly(authoritativeBytes.get());
 			assertThat(EmailConverter.emlToMimeMessage(new ByteArrayInputStream(rehearsal.getEmlBytes()))
 					.getHeader("X-Rehearsal-Security", null)).isEqualTo("processed");
+		}
+	}
+
+	@Test
+	void exactEmlRehearsalReturnsTheSuppliedBytesAndMeasuresTheirRawLength() throws Exception {
+		final byte[] exactEml = ("Subject: Exact rehearsal\r\n"
+				+ "X-Folded: first\r\n"
+				+ " second\r\n"
+				+ "\r\n"
+				+ "body\r\n").getBytes(StandardCharsets.US_ASCII);
+		final Email email = simpleJavaMail.emailBuilder().startingFromExactEml(exactEml)
+				.withEnvelopeRecipients("recipient@example.org")
+				.buildEmail();
+
+		try (Mailer exactLimit = mailerBuilder()
+				.withMaximumEmailSize(exactEml.length)
+				.buildMailer();
+			 Mailer tooSmall = mailerBuilder()
+					.withMaximumEmailSize(exactEml.length - 1)
+					.buildMailer()) {
+			final MailRehearsal rehearsal = exactLimit.rehearse(email);
+
+			assertThat(rehearsal.getEffectiveEmail()).isSameAs(email);
+			assertThat(rehearsal.getEmlBytes()).containsExactly(exactEml);
+			assertThat(rehearsal.getEncodedSize()).isEqualTo(exactEml.length);
+			assertThat(rehearsal.getEmailId()).isNull();
+			assertThat(rehearsal.getEnvelopeRecipients()).containsExactly("recipient@example.org");
+			assertThat(tooSmall.rehearse(email, false).getEmlBytes()).containsExactly(exactEml);
+			assertThatThrownBy(() -> tooSmall.rehearse(email))
+					.isInstanceOf(EmailTooBigException.class)
+					.hasMessageContaining(exactEml.length + " bytes exceeds maximum allowed size of " + (exactEml.length - 1) + " bytes");
 		}
 	}
 

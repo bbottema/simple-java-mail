@@ -3,6 +3,7 @@ package org.simplejavamail.internal.clisupport;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedOptionData;
@@ -42,11 +43,11 @@ class CliCommandLineConsumerResultHandler {
 
 	private static void sendEmail(final List<CliReceivedOptionData> receivedOptions,
 			final CliExecutionEnvironment environment, final byte[] profileKey) {
-		final EmailPopulatingBuilder emailBuilder = applyBuilderOptions(receivedOptions, CliBuilderApiType.EMAIL,
+		final Object selectedEmailBuilder = applyBuilderOptions(receivedOptions, CliBuilderApiType.EMAIL,
 				environment.simpleJavaMail().emailBuilder());
 		final MailerGenericBuilder<?> mailerBuilder = applyBuilderOptions(receivedOptions, CliBuilderApiType.MAILER,
 				environment.simpleJavaMail().mailerBuilder());
-		final Email email = emailBuilder.buildEmail();
+		final Email email = buildSelectedEmail(selectedEmailBuilder);
 		final CliMailerProfile profile = CliMailerProfile.create(environment.config(), receivedOptions, profileKey,
 				environment.configurationWorkingDirectory());
 		try (MailerProvider.Lease lease = environment.mailerProvider().acquire(profile, mailerBuilder::buildMailer)) {
@@ -68,16 +69,29 @@ class CliCommandLineConsumerResultHandler {
 
 	private static void validateEmail(final List<CliReceivedOptionData> receivedOptions,
 			final CliExecutionEnvironment environment, final byte[] profileKey) {
-		final EmailPopulatingBuilder emailBuilder = applyBuilderOptions(receivedOptions, CliBuilderApiType.EMAIL,
+		final Object selectedEmailBuilder = applyBuilderOptions(receivedOptions, CliBuilderApiType.EMAIL,
 				environment.simpleJavaMail().emailBuilder());
 		final MailerGenericBuilder<?> mailerBuilder = applyBuilderOptions(receivedOptions, CliBuilderApiType.MAILER,
 				environment.simpleJavaMail().mailerBuilder());
-		final Email email = emailBuilder.buildEmail();
+		final Email email = buildSelectedEmail(selectedEmailBuilder);
 		final CliMailerProfile profile = CliMailerProfile.create(environment.config(), receivedOptions, profileKey,
 				environment.configurationWorkingDirectory());
 		try (MailerProvider.Lease lease = environment.mailerProvider().acquire(profile, mailerBuilder::buildMailer)) {
 			lease.mailer().validate(email);
 		}
+	}
+
+	@NotNull
+	private static Email buildSelectedEmail(@NotNull final Object selectedEmailBuilder) {
+		if (selectedEmailBuilder instanceof EmailPopulatingBuilder) {
+			return ((EmailPopulatingBuilder) selectedEmailBuilder).buildEmail();
+		}
+		if (selectedEmailBuilder instanceof ExactEmailBuilder) {
+			return ((ExactEmailBuilder) selectedEmailBuilder).buildEmail();
+		}
+		throw new CliExecutionException(
+				"The selected email options did not produce a completable email builder",
+				new IllegalStateException("Unsupported email builder: " + selectedEmailBuilder.getClass().getName()));
 	}
 
 	private static void awaitCompletion(@NotNull final Future<Void> future, final String activity) {

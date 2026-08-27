@@ -16,6 +16,10 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
  * <p>
  * <strong>Note:</strong> in this mode, proxy support is turned off assuming it is handled by the custom mailer as well.<br>
  * <strong>Note:</strong> in this mode, the batch-module (SMTP cluster(s) / smtp connection pooling) won't be used either.
+ * <p>
+ * When the {@link Email} was created from exact EML, defaults, validation and cryptographic processing have deliberately not changed it. The supplied
+ * {@link MimeMessage} is backed by the authoritative input bytes; a custom implementation that serializes or forwards it must preserve that
+ * representation rather than rebuilding it from the parsed Email getters.
  *
  * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
  * @see <a href="https://simplejavamail.org/features.html#section-custom-mailer">Plug your own sending logic with a Custom Mailer</a>

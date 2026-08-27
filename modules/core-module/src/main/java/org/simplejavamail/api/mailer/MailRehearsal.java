@@ -16,7 +16,7 @@ import static java.util.Objects.requireNonNull;
  * <p>
  * The EML representation is the authoritative output of this rehearsal. It is returned defensively and no mutable Jakarta Mail message is exposed.
  * A later send prepares the message again, so generated dates, MIME boundaries, Message-IDs and cryptographic output can differ unless the caller fixes
- * those inputs.
+ * those inputs. For an exact email, the supplied bytes are already authoritative and therefore remain identical across rehearsal and sending.
  * Callers that need only a success-or-exception preparation check can use {@link Mailer#validate(Email)} instead. A successful rehearsal has already
  * performed that validation, so calling {@code validate} before {@code rehearse} is redundant.
  *
@@ -37,7 +37,7 @@ public final class MailRehearsal implements Serializable {
 	/**
 	 * Creates a rehearsal snapshot. Applications normally obtain instances from {@link Mailer#rehearse(Email)}.
 	 *
-	 * @param effectiveEmail     The governed email after this mailer's defaults and overrides have been applied.
+	 * @param effectiveEmail     The governed composed email, or the unchanged exact email for which governance is deliberately bypassed.
 	 * @param emlBytes           The rendered EML representation.
 	 * @param emailId            The Message-ID in the rendered EML, if one was produced.
 	 * @param envelopeSender     The explicit SMTP envelope sender, or {@code null} when the provider will derive its default.
@@ -68,7 +68,7 @@ public final class MailRehearsal implements Serializable {
 	}
 
 	/**
-	 * @return The effective email after this mailer's defaults and overrides have been applied. Its generated Message-ID matches {@link #getEmailId()}.
+	 * @return The effective composed email after governance, or the unchanged exact email. Its Message-ID matches {@link #getEmailId()} when present.
 	 */
 	@NotNull
 	public Email getEffectiveEmail() {

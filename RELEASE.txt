@@ -12,6 +12,7 @@ Major Features:
 
 - #710: made submission outcomes transport-neutral with explicit accepted, partially accepted, rejected, and unknown states; immutable recipient groups; optional provider responses; and structured failures that retain the original Jakarta Mail exception across normal, pooled, and open-connection sends.
 - #712: added one configurable MailSendObserver per Mailer, with immutable terminal outcomes covering Message-ID evolution, preparation, queue and execution timestamps, logging-only mode, exact submission receipts, and exact caller-facing failures across normal, pooled, batch, and open-connection sends.
+- #713: added exact EML submission through the ordinary Email and Mailer APIs, preserving the complete caller-supplied wire representation while using explicit SMTP-envelope recipients, optional envelope sender and DSN options, receipts, observers, asynchronous execution, open connections, and pooled transports.
 
 Enhancements:
 

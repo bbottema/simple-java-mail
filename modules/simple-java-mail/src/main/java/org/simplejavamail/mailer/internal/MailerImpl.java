@@ -23,7 +23,6 @@ import org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageP
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
-import org.simplejavamail.mailer.MailerHelper;
 import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -591,22 +590,8 @@ public class MailerImpl implements Mailer {
 
 	@NotNull
 	private Email prepareEmailForSending(final Email userProvidedEmail) {
-		val email = produceGovernedEmail(userProvidedEmail);
-		if (validateClientSide(email)) {
-			return email;
-		}
-		throw new IllegalStateException("Email not valid, but no MailException was thrown for it");
-	}
-
-	@NotNull
-	private Email produceGovernedEmail(final Email userProvidedEmail) {
-		return emailGovernance.produceEmailApplyingDefaultsAndOverrides(verifyNonnull(userProvidedEmail));
-	}
-
-	private boolean validateClientSide(final Email email) {
-		return operationalConfig.isDisableAllClientValidation() ?
-				MailerHelper.validateLenient(email, emailGovernance.getEmailValidator()) :
-				MailerHelper.validate(email, emailGovernance.getEmailValidator());
+		return InternalEmail.requireInternalEmail(verifyNonnull(userProvidedEmail)).prepareForSending(
+				emailGovernance, operationalConfig.isDisableAllClientValidation());
 	}
 
 	/**
@@ -624,13 +609,10 @@ public class MailerImpl implements Mailer {
 	@Override
 	@NotNull
 	public MailRehearsal rehearse(@NotNull final Email email, final boolean processSecurityAndValidateSize) throws MailException {
-		val governedEmail = produceGovernedEmail(email);
+		val governedEmail = prepareEmailForSending(email);
 		// A rehearsal owns its effective snapshot and must never propagate a generated Message-ID to the caller's draft.
 		//noinspection deprecation
 		((InternalEmail) governedEmail).setUserProvidedEmail(null);
-		if (!validateClientSide(governedEmail)) {
-			throw new IllegalStateException("Email not valid, but no MailException was thrown for it");
-		}
 		try {
 			val rehearsal = SessionBasedEmailToMimeMessageConverter.rehearseMimeMessage(session, governedEmail, processSecurityAndValidateSize);
 			if (rehearsal.getEmailId() != null) {

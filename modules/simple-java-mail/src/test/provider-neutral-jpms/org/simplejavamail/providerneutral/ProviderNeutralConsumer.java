@@ -5,31 +5,58 @@ import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
-import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.converter.EmailConverter;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+import java.util.function.Function;
 
+/**
+ * This little program catches accidental Angus dependencies by exercising Simple Java Mail without Angus and checking that real MIME conversion fails
+ * with a helpful missing-provider message instead of a linkage error.
+ * <p>
+ * Forked JPMS compatibility probe for the packaged {@code org.simplejavamail} module when no Jakarta Mail implementation or registered
+ * {@link MailTransportAdapter} is present.
+ * <p>
+ * During Maven {@code verify}, the {@code verify-provider-neutral-consumers} profile compiles this source separately as
+ * {@code org.simplejavamail.providerneutral.consumer} and launches it in a fresh JVM on the module path. That path contains the packaged Simple Java Mail
+ * JAR and its provider-neutral dependencies, but deliberately excludes {@code org.simplejavamail.mailprovider.angus} and Angus Mail. The probe verifies
+ * that:
+ * <ul>
+ *     <li>the exported email-building, mail-send-observer, exact-EML, and transport-SPI types remain readable without Angus;</li>
+ *     <li>a third-party {@link Transport} and {@link MailTransportAdapter} can be implemented from a named module without Angus; and</li>
+ *     <li>an operation that really needs a Jakarta Mail implementation fails with an actionable diagnostic.</li>
+ * </ul>
+ * No message is submitted. {@link FakeTransport} and {@link FakeMailTransportAdapter} are unregistered compile-time probes, not a functioning provider.
+ * <p>
+ * Keep the assertions aligned with {@code ProviderNeutralClasspathConsumer}, which runs the equivalent probe on the ordinary classpath.
+ */
 public final class ProviderNeutralConsumer {
+
+    /** Runs all module-path linkage and failure-diagnostic assertions; success is intentionally silent. */
     public static void main(final String[] args) throws Exception {
 		final Properties configProperties = new Properties();
 		configProperties.setProperty(ConfigLoader.Property.DEFAULT_SUBJECT.key(), "provider neutral");
 		final SimpleJavaMail simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties(configProperties).load());
         final Email source = simpleJavaMail.emailBuilder().startingBlank()
                 .from("sender@example.com")
-                .withRecipients(new Recipient(null, "receiver@example.com", jakarta.mail.Message.RecipientType.TO, null))
+				.withRecipients(new Recipient(null, "receiver@example.com", Message.RecipientType.TO, null))
                 .withPlainText("conversion without a mail provider")
 				.withHTMLText("<p>provider-neutral HTML</p>")
-				.withAttachment("proof.txt", "provider-neutral attachment".getBytes(java.nio.charset.StandardCharsets.UTF_8), "text/plain")
+				.withAttachment("proof.txt", "provider-neutral attachment".getBytes(StandardCharsets.UTF_8), "text/plain")
 				.buildEmailCompletedWithDefaultsAndOverrides();
 		assertMailSendObserverApiIsAvailable(simpleJavaMail);
+		assertExactEmailApiIsAvailable(simpleJavaMail);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
     }
@@ -39,10 +66,22 @@ public final class ProviderNeutralConsumer {
 			Class.forName("org.eclipse.angus.mail.smtp.SMTPTransport");
 			throw new AssertionError("Angus unexpectedly appeared on the provider-neutral module path");
 		} catch (ClassNotFoundException expected) {
-			// expected: this consumer supplies its own Jakarta Mail transport
+			// expected: this runtime path intentionally contains no Jakarta Mail implementation
 		}
 	}
 
+	/**
+	 * Verifies the exact-EML entry point and preservation enum are present without invoking parsing, which intentionally needs a mail implementation.
+	 */
+	private static void assertExactEmailApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
+		final Function<byte[], ExactEmailBuilder> exactStarter =
+				simpleJavaMail.emailBuilder()::startingFromExactEml;
+		if (exactStarter == null || ContentRequirement.valueOf("PRESERVE_ALL_BYTES") != ContentRequirement.PRESERVE_ALL_BYTES) {
+			throw new AssertionError("Exact EML API is unavailable");
+		}
+	}
+
+	/** Verifies the complete observer API can be linked and configured without constructing a transport or sending an email. */
 	private static void assertMailSendObserverApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
 		final MailSendObserver observer = outcome -> {
 			outcome.getInitialMessageId();
@@ -72,6 +111,9 @@ public final class ProviderNeutralConsumer {
 		}
 	}
 
+	/**
+	 * Minimal third-party adapter implementation used only to prove the SPI has no Angus linkage. It is deliberately absent from service registration.
+	 */
 	public static final class FakeMailTransportAdapter implements MailTransportAdapter {
 		@Override
 		public boolean supports(final Transport transport) {
@@ -84,6 +126,7 @@ public final class ProviderNeutralConsumer {
 		}
 	}
 
+	/** Minimal provider-owned transport type recognized by {@link FakeMailTransportAdapter}; it is never registered, connected, or used by this probe. */
 	public static final class FakeTransport extends Transport {
 		private static Message sentMessage;
 

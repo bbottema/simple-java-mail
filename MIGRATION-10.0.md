@@ -124,6 +124,57 @@ describe the unsecured base MIME message and the configured size limit is not en
 `MailerHelper.validate(email)`. Both Mailer rehearsal modes build MIME, so both need Angus Mail or another compatible Jakarta Mail implementation at
 runtime. The `sjm validate` command uses the complete rehearsal and still makes no SMTP connection.
 
+## Finalized EML can now remain byte-exact
+
+This is additive; existing EML conversion keeps its normal behavior. Conversion parses a message into editable `Email` fields and later builds a fresh
+MIME representation. That is still the right path when you want to change content, apply defaults or overrides, resolve embedded resources, or let Simple
+Java Mail add DKIM, S/MIME, or OpenPGP/MIME protection.
+
+Use the new exact starter when the supplied RFC 822 bytes are already the final outbound representation and even a semantically equivalent rebuild would
+be wrong:
+
+```java
+byte[] eml = Files.readAllBytes(Path.of("ready-to-send.eml"));
+
+Email email = mail.emailBuilder()
+        .startingFromExactEml(eml)
+        .withEnvelopeRecipients("actual-recipient@example.org")
+        .withEnvelopeSender("bounces@example.org") // optional
+        .buildEmail();
+
+MailSubmissionReceipt receipt = mailer.sendMailAndGetReceiptSync(email);
+```
+
+`Email` remains the canonical type: all existing getters expose the parsed fields and every existing send API accepts the result. The copied EML bytes,
+not those parsed values, remain authoritative for conversion, rehearsal, custom mailers, logging-only mode, synchronous and asynchronous sends, simple
+batches, open connections, and pooled submission. Copying an exact email through `mail.emailBuilder().copying(email)` intentionally creates a composed
+email and gives up that guarantee.
+
+Exact submission deliberately bypasses Mailer defaults and overrides, the configured composed-email validator, dynamic embedded-resource resolution,
+MIME rebuilding, and Simple Java Mail's signing and encryption steps. At least one explicit SMTP-envelope recipient is required because visible headers
+cannot represent Bcc or relay routing reliably. Recipients append in call order without deduplication; the optional envelope sender replaces its previous
+value. DSN notify and return options remain available on the exact builder because they belong to the SMTP envelope.
+
+The input must be non-empty, parseable by Jakarta Mail, use canonical CRLF line endings, and end in CRLF. Every byte is retained, including header order,
+folding, MIME boundaries, transfer encodings, `Bcc`, `Resent-Bcc`, and `Content-Length`, so the caller is responsible for supplying an already safe outbound
+message. A missing Message-ID stays missing in the `Email`, rehearsal, receipt, and observer outcome. Full rehearsal and sending apply the configured
+maximum message size to the supplied byte length; the `false` rehearsal/validation mode skips that size check without changing the bytes.
+
+The bundled Angus adapter supports full-byte preservation. A replacement `MailTransportAdapter` must explicitly opt into
+`ContentRequirement.PRESERVE_ALL_BYTES`; otherwise the attempt fails before submission. A `CustomMailer` continues to receive the usual `Email` and
+`MimeMessage`, with that message backed by the exact bytes. The `InputStream` starter consumes its stream immediately but leaves closing it to the caller.
+The legacy boolean `PreparedMail` constructor and `requiresStableContent()` remain available as deprecated compatibility shims; new adapters should use
+the three-valued `ContentRequirement` contract so protected content and fully exact content are not conflated.
+
+The CLI byte-array overload treats its argument as a file, including through the local daemon:
+
+```text
+sjm send --email:startingFromExactEml ready-to-send.eml --email:withEnvelopeRecipients actual-recipient@example.org --mailer:withSMTPServer smtp.example.org 587 user password
+```
+
+Relative paths resolve against the invoking client's working directory. See the exact EML feature guide and
+`modules/simple-java-mail/src/test/java/demo/ExactEmlSendDemoApp.java` for a manually runnable Java example.
+
 ## Configuration is now an immutable snapshot
 
 `ConfigLoader` no longer owns mutable static state. An instance loader resolves ordered sources into a detached `SimpleJavaMailConfig`, which you then give to a `SimpleJavaMail` factory.

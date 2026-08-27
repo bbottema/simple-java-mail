@@ -141,10 +141,18 @@ public class TransportRunner {
 			delegatingTransport.signalTransportUsed();
 			return result;
 		} catch (final Throwable failure) {
-			// always make sure claimed resources are released
-			delegatingTransport.signalTransportFailed();
+			if (isTransportCompatibilityFailure(failure)) {
+				delegatingTransport.signalTransportUsed();
+			} else {
+				delegatingTransport.signalTransportFailed();
+			}
 			throw failure;
 		}
+	}
+
+	private static boolean isTransportCompatibilityFailure(@NotNull final Throwable failure) {
+		return failure instanceof MailSubmissionException
+				&& failure.getCause() instanceof MailTransportCompatibilityException;
 	}
 
 	private interface TransportOperation<T> {

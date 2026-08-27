@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
+import java.io.InputStream;
 import java.util.regex.Pattern;
 
 import static java.util.regex.Pattern.compile;
@@ -45,6 +46,33 @@ public interface EmailStartingBuilder {
 	 * @return A new {@link EmailPopulatingBuilder} to populate and configure.
 	 */
 	EmailPopulatingBuilder startingBlank();
+
+	/**
+	 * Starts an advanced, exact email from an already finalized EML representation. Use this when even a semantically equivalent MIME rebuild would be
+	 * incorrect, such as when relaying archived mail or submitting output that is already protected by DKIM, S/MIME, or OpenPGP/MIME.
+	 * <p>
+	 * The byte array is copied immediately and remains authoritative when the returned {@link Email} is converted, rehearsed, or sent. Exact EML must be
+	 * non-empty, parseable by Jakarta Mail, use canonical CRLF line endings, and end in CRLF. SMTP-envelope recipients must be supplied separately on the
+	 * returned builder.
+	 * <p>
+	 * Use the ordinary EML conversion APIs instead when the message needs to be edited, completed with defaults, or cryptographically processed by Simple
+	 * Java Mail.
+	 *
+	 * @param emlBytes Complete EML bytes to preserve exactly. In the CLI, this argument is the path of the EML file to read.
+	 * @return A constrained builder for the explicit SMTP envelope of the exact message.
+	 */
+	ExactEmailBuilder startingFromExactEml(@Cli.BinaryFile byte @NotNull [] emlBytes);
+
+	/**
+	 * Starts an exact email with the same semantics as {@link #startingFromExactEml(byte[])}, consuming the stream immediately without closing it.
+	 * <p>
+	 * The CLI exposes the byte-array overload and reads its argument from a file, avoiding ambiguous stream ownership.
+	 *
+	 * @param emlInputStream Stream containing the complete EML representation. The stream is consumed immediately but is not closed.
+	 * @return A constrained builder for the explicit SMTP envelope of the exact message.
+	 */
+	@Cli.ExcludeApi(reason = "The byte array overload provides CLI file conversion without transferring stream ownership")
+	ExactEmailBuilder startingFromExactEml(@NotNull InputStream emlInputStream);
 	
 	/**
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting

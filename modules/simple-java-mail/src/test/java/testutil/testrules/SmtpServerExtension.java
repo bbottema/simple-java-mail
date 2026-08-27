@@ -29,6 +29,7 @@ public class SmtpServerExtension implements BeforeEachCallback, AfterEachCallbac
 	@NotNull final Integer port;
 	@Nullable final String username;
 	@Nullable final String password;
+	private final boolean insertReceivedHeaders;
 	private Wiser wiser;
 
 	@RequiredArgsConstructor
@@ -45,16 +46,23 @@ public class SmtpServerExtension implements BeforeEachCallback, AfterEachCallbac
 	}
 
 	public SmtpServerExtension(@NotNull Integer port, @Nullable String username, @Nullable String password) {
+		this(port, username, password, true);
+	}
+
+	public SmtpServerExtension(@NotNull final Integer port, @Nullable final String username, @Nullable final String password,
+			final boolean insertReceivedHeaders) {
 		this.port = port;
 		this.username = username;
 		this.password = password;
+		this.insertReceivedHeaders = insertReceivedHeaders;
 	}
 
 	@Override
 	public void beforeEach(ExtensionContext context) {
 		this.wiser = Wiser.create(SMTPServer.port(port)
 				.authenticationHandlerFactory(new EasyAuthenticationHandlerFactory(new RequiredUsernamePasswordValidator(username, password)))
-				.requireAuth(password != null));
+				.requireAuth(password != null)
+				.insertReceivedHeaders(insertReceivedHeaders));
 
 		this.wiser.start();
 	}

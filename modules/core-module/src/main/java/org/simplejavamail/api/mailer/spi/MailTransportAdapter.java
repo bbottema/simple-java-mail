@@ -16,6 +16,18 @@ public interface MailTransportAdapter {
 
     boolean supports(@NotNull Transport transport);
 
+    /**
+     * Indicates whether this adapter can submit a message while honoring the requested content-preservation contract.
+     * The default keeps existing adapters source-compatible and limits them to ordinary composed mail. Simple Java Mail fails before calling
+     * {@link #sendMessage(Transport, PreparedMail)} when this method returns {@code false}.
+     *
+     * @param contentRequirement The prepared message's preservation requirement.
+     * @return Whether this adapter can honor that requirement throughout submission.
+     */
+    default boolean supportsContentRequirement(@NotNull final ContentRequirement contentRequirement) {
+        return contentRequirement == ContentRequirement.NORMAL;
+    }
+
     @NotNull
     MailTransportResult sendMessage(@NotNull Transport transport, @NotNull PreparedMail preparedMail);
 }

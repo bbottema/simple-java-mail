@@ -15,6 +15,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -78,6 +79,19 @@ class FinalizedMimeMessageStorageTest {
         assertThat(serialized.contains("hidden@example.com")).isFalse();
         assertThat(serialized.contains("X-Large:")).isTrue();
         assertThat(serialized.contains("body")).isTrue();
+    }
+
+    @Test
+	void exactMessageIgnoresProviderHeaderExclusions() throws Exception {
+		final byte[] exactEml = ("Bcc: hidden@example.com\r\nContent-Length: 4\r\n\r\nbody\r\n")
+				.getBytes(StandardCharsets.US_ASCII);
+        final FinalizedMimeMessage exactMessage = FinalizedMimeMessage.fromExactMessageBytes(
+                Session.getInstance(new Properties()), exactEml);
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        exactMessage.writeTo(output, new String[] {"Bcc", "Content-Length"});
+
+        assertThat(output.toByteArray()).containsExactly(exactEml);
     }
 
     @Test

@@ -69,6 +69,29 @@ class CliDaemonProcessTest {
 	}
 
 	@Test
+	void daemonValidationLoadsExactEmlFromAFile() throws Exception {
+		final Path exactEml = stateRoot.resolve("daemon-exact.eml");
+		Files.writeString(exactEml, "Message-ID: <daemon-exact@simplejavamail.org>\r\n"
+				+ "Subject: Daemon exact EML\r\n"
+				+ "\r\n"
+				+ "body\r\n", StandardCharsets.US_ASCII);
+		final Invocation start = invoke(true, "daemon", "start", "--daemon-instance=exact-eml");
+		assertThat(start.exitCode).as(start.output).isZero();
+		try {
+			final Invocation validation = invoke(true,
+					"validate", "--daemon=require", "--daemon-instance=exact-eml",
+					"--email:startingFromExactEml", exactEml.toString(),
+					"--email:withEnvelopeRecipients", "recipient@example.org",
+					"--mailer:withSMTPServer", "unreachable.example.invalid", "25");
+
+			assertThat(validation.exitCode).as(validation.output).isZero();
+		} finally {
+			final Invocation stop = invoke(true, "daemon", "stop", "--daemon-instance=exact-eml");
+			assertThat(stop.exitCode).as(stop.output).isZero();
+		}
+	}
+
+	@Test
 	void acquireShorthandStartsTheSelectedDaemonBeforeExecuting() throws Exception {
 		final String[] command = validationArguments("localhost");
 		command[1] = "-d";

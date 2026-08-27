@@ -35,4 +35,12 @@ public class Cli {
 	@Target(ElementType.PARAMETER)
 	public @interface Optional {
 	}
+
+	/**
+	 * Marks a {@code byte[]} parameter as one scalar CLI file argument. The CLI reads the file and passes its contents to the builder method.
+	 */
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.PARAMETER)
+	public @interface BinaryFile {
+	}
 }

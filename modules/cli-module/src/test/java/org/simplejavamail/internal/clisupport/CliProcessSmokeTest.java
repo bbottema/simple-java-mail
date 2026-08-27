@@ -107,6 +107,41 @@ public class CliProcessSmokeTest {
 		}
 	}
 
+	@Test
+	public void validateCommandLoadsExactEmlBytesFromAFile()
+			throws Exception {
+		final File exactEml = File.createTempFile("simple-java-mail-cli-exact-", ".eml");
+		final File cliOutput = File.createTempFile("simple-java-mail-cli-smoke-", ".log");
+		try {
+			Files.write(exactEml.toPath(), ("Message-ID: <cli-exact@simplejavamail.org>\r\n"
+					+ "Subject: Exact CLI input\r\n"
+					+ "\r\n"
+					+ "body\r\n").getBytes(StandardCharsets.US_ASCII));
+
+			final Process process = new ProcessBuilder(cliCommand(
+					"validate",
+					"--email:startingFromExactEml", exactEml.getAbsolutePath(),
+					"--email:withEnvelopeRecipients", "recipient@example.com",
+					"--mailer:withSMTPServer", "unreachable.example.invalid", "25"))
+					.redirectErrorStream(true)
+					.redirectOutput(cliOutput)
+					.start();
+
+			final boolean exited = process.waitFor(15, TimeUnit.SECONDS);
+			if (!exited) {
+				process.destroyForcibly();
+			}
+			final String output = readFile(cliOutput);
+			assertThat(exited).as(output).isTrue();
+			assertThat(process.exitValue()).as(output).isEqualTo(0);
+		} finally {
+			//noinspection ResultOfMethodCallIgnored
+			exactEml.delete();
+			//noinspection ResultOfMethodCallIgnored
+			cliOutput.delete();
+		}
+	}
+
 	private static List<String> cliCommand(String... args) {
 		final List<String> command = new ArrayList<>();
 		command.add(resolveJavaExecutable());

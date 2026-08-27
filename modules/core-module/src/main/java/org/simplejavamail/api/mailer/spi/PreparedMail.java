@@ -10,8 +10,7 @@ import static java.util.Objects.requireNonNull;
  * A finalized MIME message together with the transport-only data needed to submit it.
  *
  * <p>The contained message remains a Jakarta Mail type so provider adapters can hand it to a normal
- * {@code Transport}. Provider adapters must not change bytes covered by a cryptographic signature when
- * {@link #requiresStableContent()} returns {@code true}.</p>
+ * {@code Transport}. {@link #getContentRequirement()} describes which message bytes a provider adapter must preserve.</p>
  */
 public final class PreparedMail {
 
@@ -21,16 +20,29 @@ public final class PreparedMail {
     private final Address[] recipients;
     @NotNull
     private final DeliveryEnvelope deliveryEnvelope;
-    private final boolean stableContentRequired;
+    private final ContentRequirement contentRequirement;
 
     public PreparedMail(@NotNull final MimeMessage mimeMessage,
                         @NotNull final Address[] recipients,
                         @NotNull final DeliveryEnvelope deliveryEnvelope,
-                        final boolean stableContentRequired) {
+                        @NotNull final ContentRequirement contentRequirement) {
         this.mimeMessage = requireNonNull(mimeMessage, "mimeMessage");
         this.recipients = requireNonNull(recipients, "recipients").clone();
         this.deliveryEnvelope = requireNonNull(deliveryEnvelope, "deliveryEnvelope");
-        this.stableContentRequired = stableContentRequired;
+        this.contentRequirement = requireNonNull(contentRequirement, "contentRequirement");
+    }
+
+    /**
+     * @deprecated Use {@link #PreparedMail(MimeMessage, Address[], DeliveryEnvelope, ContentRequirement)} to state the preservation contract explicitly.
+     */
+    @Deprecated
+    public PreparedMail(@NotNull final MimeMessage mimeMessage,
+                        @NotNull final Address[] recipients,
+                        @NotNull final DeliveryEnvelope deliveryEnvelope,
+                        final boolean stableContentRequired) {
+        this(mimeMessage, recipients, deliveryEnvelope, stableContentRequired
+                ? ContentRequirement.PRESERVE_PROTECTED_CONTENT
+                : ContentRequirement.NORMAL);
     }
 
     @NotNull
@@ -48,8 +60,20 @@ public final class PreparedMail {
         return deliveryEnvelope;
     }
 
+    /**
+     * @return The preservation contract the selected transport adapter must honor.
+     */
+    @NotNull
+    public ContentRequirement getContentRequirement() {
+        return contentRequirement;
+    }
+
+    /**
+     * @deprecated Use {@link #getContentRequirement()} to distinguish protected-content stability from preservation of every supplied byte.
+     */
+    @Deprecated
     public boolean requiresStableContent() {
-        return stableContentRequired;
+        return contentRequirement != ContentRequirement.NORMAL;
     }
 
 }

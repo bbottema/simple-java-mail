@@ -6,8 +6,10 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Provider;
 import jakarta.mail.SendFailedException;
 import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +27,9 @@ import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +52,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MailSubmissionPoolingTest {
 
 	private static final String TRANSPORT_STATE_KEY = MailSubmissionPoolingTest.class.getName() + ".transportState";
+	private static final String GENERIC_TRANSPORT_STATE_KEY = MailSubmissionPoolingTest.class.getName() + ".genericTransportState";
 
 	@BeforeEach
 	void requireRealBatchModule() {
@@ -228,6 +234,46 @@ class MailSubmissionPoolingTest {
 	}
 
 	@Test
+	void concurrentExactSubmissionsKeepWireBytesAndEnvelopeRecipientsCorrelated() throws Exception {
+		final PooledTransportState state = new PooledTransportState();
+		final Session session = session(state);
+		final CountDownLatch bothSending = new CountDownLatch(2);
+		final CountDownLatch releaseSends = new CountDownLatch(1);
+		final byte[] firstEml = exactEml("pool-exact-one", "Exact pool one", "first exact body");
+		final byte[] secondEml = exactEml("pool-exact-two", "Exact pool two", "second exact body");
+		state.plan("Exact pool one", Attempt.blockingSuccess(250, "250 exact one", bothSending, releaseSends));
+		state.plan("Exact pool two", Attempt.blockingSuccess(250, "250 exact two", bothSending, releaseSends));
+
+		final MailSubmissionReceipt firstReceipt;
+		final MailSubmissionReceipt secondReceipt;
+		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 2, 2)) {
+			final CompletableFuture<MailSubmissionReceipt> first = mailer.sendMailAndGetReceipt(
+					exactEmail(firstEml, "envelope-one@example.org"), true);
+			final CompletableFuture<MailSubmissionReceipt> second = mailer.sendMailAndGetReceipt(
+					exactEmail(secondEml, "envelope-two@example.org"), true);
+			try {
+				assertThat(bothSending.await(5, TimeUnit.SECONDS))
+						.as("Both exact sends should hold separate pooled leases concurrently")
+						.isTrue();
+			} finally {
+				releaseSends.countDown();
+			}
+			firstReceipt = first.get(5, TimeUnit.SECONDS);
+			secondReceipt = second.get(5, TimeUnit.SECONDS);
+		}
+
+		assertThat(state.transportId("Exact pool one")).isNotEqualTo(state.transportId("Exact pool two"));
+		assertThat(state.submittedBytesBySubject.get("Exact pool one")).containsExactly(firstEml);
+		assertThat(state.submittedBytesBySubject.get("Exact pool two")).containsExactly(secondEml);
+		assertThat(state.submittedRecipientsBySubject.get("Exact pool one"))
+				.containsExactly("envelope-one@example.org");
+		assertThat(state.submittedRecipientsBySubject.get("Exact pool two"))
+				.containsExactly("envelope-two@example.org");
+		assertThat(firstReceipt.getAcceptedRecipients()).containsExactly("envelope-one@example.org");
+		assertThat(secondReceipt.getAcceptedRecipients()).containsExactly("envelope-two@example.org");
+	}
+
+	@Test
 	void observerRunsAfterPooledLeaseReleaseAndCanSendReentrantlyWithPoolSizeOne() throws Exception {
 		final PooledTransportState state = new PooledTransportState();
 		final Session session = session(state);
@@ -264,6 +310,29 @@ class MailSubmissionPoolingTest {
 		assertThat(nestedReceipt.get().getAcceptedRecipients()).containsExactly("nested@example.com");
 		assertThat(outcomes).extracting(MailSendOutcome::getInitialMessageId)
 				.containsExactly("outer-send@example.org", "nested-send@example.org");
+	}
+
+	@Test
+	void exactCompatibilityFailureReturnsTheHealthyPooledTransportForOrdinaryMail() throws Exception {
+		final GenericTransportState state = new GenericTransportState();
+		final Session session = genericSession(state);
+		final Email exactEmail = exactEmail(
+				exactEml("unsupported-exact", "Unsupported exact", "exact body"),
+				"exact@example.org");
+		final Email ordinaryEmail = email("ordinary after exact", "ordinary@example.org");
+
+		final MailSubmissionException exactFailure;
+		final MailSubmissionReceipt ordinaryReceipt;
+		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 1, 1)) {
+			exactFailure = submissionFailure(mailer.sendMailAndGetReceipt(exactEmail, true));
+			ordinaryReceipt = mailer.sendMailAndGetReceipt(ordinaryEmail, true).get(5, TimeUnit.SECONDS);
+		}
+
+		assertThat(exactFailure.getCause())
+				.hasMessageContaining("can honor content requirement PRESERVE_ALL_BYTES");
+		assertThat(ordinaryReceipt.getAcceptedRecipients()).containsExactly("ordinary@example.org");
+		assertThat(state.createdTransportCount).hasValue(1);
+		assertThat(state.sendCount).hasValue(1);
 	}
 
 	@Test
@@ -337,6 +406,18 @@ class MailSubmissionPoolingTest {
 		return session;
 	}
 
+	private static Session genericSession(final GenericTransportState state) throws MessagingException {
+		final Properties properties = new Properties();
+		properties.setProperty("mail.transport.protocol", "generic-test");
+		properties.put(GENERIC_TRANSPORT_STATE_KEY, state);
+		final Session session = Session.getInstance(properties);
+		final Provider provider = new Provider(Provider.Type.TRANSPORT, "generic-test", GenericPooledTransport.class.getName(),
+				"Simple Java Mail", "test");
+		session.addProvider(provider);
+		session.setProvider(provider);
+		return session;
+	}
+
 	private static Email email(final String subject, final String... recipients) {
 		return emailWithMessageId(null, subject, recipients);
 	}
@@ -357,6 +438,25 @@ class MailSubmissionPoolingTest {
 			internetAddresses[index] = new InternetAddress(mailboxAddresses[index]);
 		}
 		return internetAddresses;
+	}
+
+	private static Email exactEmail(final byte[] emlBytes, final String envelopeRecipient) {
+		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
+				.startingFromExactEml(emlBytes)
+				.withEnvelopeRecipients(envelopeRecipient)
+				.buildEmail();
+	}
+
+	private static byte[] exactEml(final String localMessageId, final String subject, final String body) {
+		return ("Message-ID: <" + localMessageId + "@simplejavamail.org>\r\n"
+				+ "From: visible-sender@example.org\r\n"
+				+ "To: visible-recipient@example.org\r\n"
+				+ "Bcc: hidden-recipient@example.org\r\n"
+				+ "Content-Length: " + body.length() + "\r\n"
+				+ "Subject: " + subject + "\r\n"
+				+ "Content-Type: text/plain; charset=us-ascii\r\n"
+				+ "\r\n"
+				+ body + "\r\n").getBytes(StandardCharsets.US_ASCII);
 	}
 
 	private static MailSubmissionException submissionFailure(
@@ -396,6 +496,7 @@ class MailSubmissionPoolingTest {
 			final Attempt attempt = state.take(subject);
 			state.transportIdsBySubject.put(subject, transportId);
 			state.submittedSubjects.add(subject);
+			state.captureSubmission(subject, (MimeMessage) message, addresses);
 			attempt.awaitRelease(subject);
 			if (attempt.updateResponse) {
 				lastReturnCode = attempt.returnCode;
@@ -422,6 +523,37 @@ class MailSubmissionPoolingTest {
 		}
 	}
 
+	public static final class GenericPooledTransport extends Transport {
+
+		private final GenericTransportState state;
+
+		public GenericPooledTransport(final Session session, final URLName urlName) {
+			super(session, urlName);
+			state = (GenericTransportState) session.getProperties().get(GENERIC_TRANSPORT_STATE_KEY);
+			state.createdTransportCount.incrementAndGet();
+		}
+
+		@Override
+		protected boolean protocolConnect(final String host, final int port, final String user, final String password) {
+			return true;
+		}
+
+		@Override
+		public void sendMessage(final Message message, final Address[] addresses) {
+			state.sendCount.incrementAndGet();
+		}
+
+		@Override
+		public synchronized void close() {
+			setConnected(false);
+		}
+	}
+
+	private static final class GenericTransportState {
+		private final AtomicInteger createdTransportCount = new AtomicInteger();
+		private final AtomicInteger sendCount = new AtomicInteger();
+	}
+
 	private static final class PooledTransportState {
 
 		private final AtomicInteger createdTransportCount = new AtomicInteger();
@@ -430,6 +562,8 @@ class MailSubmissionPoolingTest {
 		private final Map<String, Attempt> attemptsBySubject = new ConcurrentHashMap<>();
 		private final Map<String, Integer> transportIdsBySubject = new ConcurrentHashMap<>();
 		private final List<String> submittedSubjects = new CopyOnWriteArrayList<>();
+		private final Map<String, byte[]> submittedBytesBySubject = new ConcurrentHashMap<>();
+		private final Map<String, List<String>> submittedRecipientsBySubject = new ConcurrentHashMap<>();
 
 		private void plan(final String subject, final Attempt attempt) {
 			assertThat(attemptsBySubject.put(subject, attempt))
@@ -451,6 +585,22 @@ class MailSubmissionPoolingTest {
 				throw new AssertionError("No transport recorded for subject " + subject);
 			}
 			return transportId;
+		}
+
+		private void captureSubmission(final String subject, final MimeMessage message, final Address[] recipients)
+				throws MessagingException {
+			try {
+				final ByteArrayOutputStream output = new ByteArrayOutputStream();
+				message.writeTo(output, new String[] {"Bcc", "Content-Length"});
+				submittedBytesBySubject.put(subject, output.toByteArray());
+			} catch (final IOException writeFailure) {
+				throw new MessagingException("Unable to capture submitted message", writeFailure);
+			}
+			final List<String> mailboxAddresses = new ArrayList<>();
+			for (final Address recipient : recipients) {
+				mailboxAddresses.add(((InternetAddress) recipient).getAddress());
+			}
+			submittedRecipientsBySubject.put(subject, mailboxAddresses);
 		}
 	}
 

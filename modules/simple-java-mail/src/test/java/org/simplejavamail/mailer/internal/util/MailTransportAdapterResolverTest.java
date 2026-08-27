@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
@@ -79,6 +80,31 @@ class MailTransportAdapterResolverTest {
     }
 
     @Test
+    void unknownProviderRejectsExactContentBeforeSending() throws Exception {
+        final RecordingTransport transport = new RecordingTransport();
+        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_ALL_BYTES);
+
+        assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(
+                transport, preparedMail, Collections.<MailTransportAdapter>emptyList()))
+                .isInstanceOf(MailTransportCompatibilityException.class)
+                .hasMessageContaining("PRESERVE_ALL_BYTES");
+        assertThat(transport.sentMessage).isNull();
+    }
+
+    @Test
+    void adapterMustExplicitlySupportExactContent() throws Exception {
+        final RecordingTransport transport = new RecordingTransport();
+        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_ALL_BYTES);
+
+        assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(
+                transport, preparedMail, Collections.<MailTransportAdapter>singletonList(new RecordingAdapter(true))))
+                .isInstanceOf(MailTransportCompatibilityException.class)
+                .hasMessageContaining(RecordingAdapter.class.getName())
+                .hasMessageContaining("PRESERVE_ALL_BYTES");
+        assertThat(transport.sentMessage).isNull();
+    }
+
+    @Test
     void exactlyOneSupportingAdapterOwnsSubmission() throws Exception {
         final RecordingTransport transport = new RecordingTransport();
         final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
@@ -107,11 +133,15 @@ class MailTransportAdapterResolverTest {
     }
 
     private static PreparedMail preparedMail(final DeliveryEnvelope envelope) throws MessagingException {
+        return preparedMail(envelope, ContentRequirement.NORMAL);
+    }
+
+    private static PreparedMail preparedMail(final DeliveryEnvelope envelope, final ContentRequirement contentRequirement) throws MessagingException {
         final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
         message.setText("body");
         message.saveChanges();
         return new PreparedMail(message,
-                new Address[]{new InternetAddress("receiver@example.com")}, envelope, false);
+                new Address[]{new InternetAddress("receiver@example.com")}, envelope, contentRequirement);
     }
 
     private static final class RecordingTransport extends Transport {

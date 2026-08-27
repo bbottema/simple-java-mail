@@ -2,10 +2,12 @@ package org.simplejavamail.internal.clisupport;
 
 import jakarta.mail.Message;
 import org.junit.jupiter.api.Test;
-import org.simplejavamail.api.email.EmailStartingBuilder;
-import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.email.ExactEmailBuilder;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.mailer.Mailer;
@@ -13,16 +15,17 @@ import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
-import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -37,6 +40,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 
 	private static final List<String> BUILDER_API_SOURCE_FILES = Arrays.asList(
 			"org/simplejavamail/api/email/EmailStartingBuilder.java",
+			"org/simplejavamail/api/email/ExactEmailBuilder.java",
 			"org/simplejavamail/api/email/EmailPopulatingBuilder.java",
 			"org/simplejavamail/api/mailer/MailerGenericBuilder.java",
 			"org/simplejavamail/api/mailer/MailerRegularBuilder.java",
@@ -106,6 +110,22 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotification", DeliveryStatusNotification.class)).isCompatible()).isFalse();
 		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", DeliveryStatusNotification.NotifyOption[].class)).isCompatible()).isFalse();
 		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", DeliveryStatusNotification.ReturnOption.class)).isCompatible()).isFalse();
+	}
+
+	@Test
+	public void exactEmlBuilderExposesFileAndStringEnvelopeOptionsToCli() throws Exception {
+		assertThat(methodIsCliCompatible(EmailStartingBuilder.class.getMethod("startingFromExactEml", byte[].class)).isCompatible()).isTrue();
+		assertThat(methodIsCliCompatible(EmailStartingBuilder.class.getMethod("startingFromExactEml", InputStream.class)).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withAttachment",
+				String.class, byte[].class, String.class)).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(ExactEmailBuilder.class.getMethod("withEnvelopeRecipients", String[].class)).isCompatible()).isTrue();
+		assertThat(methodIsCliCompatible(ExactEmailBuilder.class.getMethod("withEnvelopeRecipients", Collection.class)).isCompatible()).isFalse();
+
+		final List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
+				new Class<?>[] {EmailStartingBuilder.class});
+		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
+				.contains("--email:startingFromExactEml", "--email:withEnvelopeRecipients", "--email:withEnvelopeSender",
+						"--email:withEnvelopeDsnNotifyOptions", "--email:withEnvelopeDsnReturnOption");
 	}
 
 	@Test

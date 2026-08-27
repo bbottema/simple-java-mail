@@ -147,22 +147,24 @@ public interface Mailer extends AutoCloseable {
 	}
 	
 	/**
-	 * Processes an {@link Email} instance into a completely configured {@link Message}. First, it will apply all defaults and overrides to the email
-	 * instance using {@link EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)} . Then it will validate the email. Finally, it will process
-	 * the email into a JavaMail {@link Message} object.
+	 * Processes a composed {@link Email} into a completely configured {@link Message}: defaults and overrides are applied through
+	 * {@link EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)}, validation runs, and the governed content is rendered. An exact email
+	 * instead validates its explicit envelope and reuses its authoritative EML representation without content governance or rebuilding.
 	 * <p>
-	 * Sends the JavaMail {@link Message} object using {@link Session#getTransport()}. It will call {@link Transport#connect()} assuming all
-	 * connection details have been configured in the provided {@link Session} instance and finally {@link Transport#sendMessage(Message,
-	 * jakarta.mail.Address[])}.
+	 * Connects the transport obtained from {@link Session#getTransport()} using the Session configuration. A matching transport adapter owns
+	 * provider-specific submission; ordinary provider-neutral messages can fall back to {@link Transport#sendMessage(Message, jakarta.mail.Address[])}.
 	 * <p>
-	 * Performs a call to {@link Message#saveChanges()} as the Sun JavaMail API indicates it is needed to configure the message headers and providing
-	 * a message id.
+	 * Jakarta Mail can finalize ordinary composed messages through {@link Message#saveChanges()}. Exact EML and protected content use an explicit
+	 * preservation contract so provider finalization cannot invalidate authoritative bytes.
 	 * <p>
 	 * If the email should be sent asynchronously - perhaps as part of a batch, then a new thread is started using the <em>executor</em> for
 	 * thread pooling.
 	 * <p>
 	 * If the email should go through an authenticated proxy server, then the SOCKS proxy bridge is started if not already running. When the last
 	 * email in a batch has finished, the proxy bridging server is shut down.
+	 * <p>
+	 * Exact email follows the same asynchronous execution, pooling, proxy, receipt, and observer path. Its explicit SMTP envelope is used and a compatible
+	 * transport adapter submits the supplied EML bytes unchanged.
 	 *
 	 * @param email The information for the email to be sent.
 	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
@@ -260,9 +262,9 @@ public interface Mailer extends AutoCloseable {
 	 * connections, concurrency, asynchronous queueing, cluster coordination, or higher throughput workloads, use the
 	 * <a href="https://www.simplejavamail.org/modules.html#batch-module">batch-module</a> instead.
 	 * <p>
-	 * Each {@link Email} is processed exactly like {@link #sendMail(Email, boolean)}: defaults and overrides are applied, validation runs, the email is
-	 * converted to a {@link Message}, and then the message is submitted to the SMTP server. The method stops at the first failure and closes the SMTP
-	 * connection and proxy bridge before propagating the exception, or completing the returned future exceptionally when {@code async} is {@code true}.
+	 * Each {@link Email} is processed exactly like {@link #sendMail(Email, boolean)}, including that method's exact-email behavior. The method stops at
+	 * the first failure and closes the SMTP connection and proxy bridge before propagating the exception, or completing the returned future exceptionally
+	 * when {@code async} is {@code true}.
 	 * <p>
 	 * The {@code async} flag applies only to this immediate {@link Mailer} API call: {@code false} blocks the caller while the simple batch runs,
 	 * {@code true} schedules the whole simple batch as one asynchronous task and returns immediately. It does <strong>not</strong> make the simple
@@ -282,8 +284,10 @@ public interface Mailer extends AutoCloseable {
 	/**
 	 * Prepares the supplied {@link Email} through this mailer's normal send-time pipeline without opening an SMTP connection.
 	 * <p>
-	 * Defaults and overrides are applied to a separate effective Email, ordinary client-side validation runs, the complete MIME message is rendered,
-	 * configured S/MIME, OpenPGP and DKIM processing runs, and the final encoded size is checked against the configured maximum. The returned snapshot
+	 * For a composed email, defaults and overrides are applied to a separate effective Email, ordinary client-side validation runs, the complete MIME
+	 * message is rendered, configured S/MIME, OpenPGP and DKIM processing runs, and the final encoded size is checked against the configured maximum. For
+	 * an exact email, those transforming steps are deliberately bypassed: its explicit envelope is validated, its authoritative EML is parsed without
+	 * alteration, and its supplied byte length is checked against the configured maximum. The returned snapshot
 	 * exposes the effective Email, defensive EML bytes, encoded size, Message-ID and transport envelope addresses.
 	 * <p>
 	 * <strong>When to use:</strong> choose rehearsal when the caller will inspect or retain any of those prepared facts, for example for a preview, EML
@@ -291,8 +295,8 @@ public interface Mailer extends AutoCloseable {
 	 * {@link #validate(Email)}; do not call {@code validate(email)} before this method, because that prepares the message twice. Use
 	 * {@code validate(email)} instead when the caller needs only a success-or-exception gate and will discard the prepared result.
 	 * <p>
-	 * The supplied Email is not changed. A later send prepares the message again, so generated dates, MIME boundaries, Message-IDs and cryptographic
-	 * output can differ unless the caller fixes those inputs.
+	 * The supplied Email is not changed. A later send prepares a composed message again, so generated dates, MIME boundaries, Message-IDs and
+	 * cryptographic output can differ unless the caller fixes those inputs. Exact email is the exception: its authoritative bytes remain identical.
 	 *
 	 * @param email The email to rehearse with this mailer's configuration.
 	 * @return The immutable result of this preparation.
@@ -307,9 +311,11 @@ public interface Mailer extends AutoCloseable {
 	/**
 	 * Prepares the supplied {@link Email} without opening an SMTP connection, with control over expensive final-message processing.
 	 * <p>
-	 * Defaults, overrides, ordinary validation and base MIME construction always run. When {@code processSecurityAndValidateSize} is {@code true},
+	 * For a composed email, defaults, overrides, ordinary validation and base MIME construction always run. When
+	 * {@code processSecurityAndValidateSize} is {@code true},
 	 * configured S/MIME, OpenPGP and DKIM processing also runs and the final encoded size is checked. When it is {@code false}, the returned bytes and
 	 * encoded size describe the unsecured base MIME message and the configured maximum size is not enforced. All other snapshot fields remain available.
+	 * Exact email is never transformed in either mode; the flag controls only validation of its supplied byte length against the configured maximum.
 	 * Neither mode invokes transport-mode logging or a custom mailer.
 	 * <p>
 	 * Choose this result-returning overload instead of {@link #validate(Email, boolean)} when the caller needs the base or final EML, size, effective
@@ -334,7 +340,7 @@ public interface Mailer extends AutoCloseable {
 	 * not a cheaper or less thorough preparation path. If the caller needs the effective Email, EML bytes, size, Message-ID or envelope addresses, call
 	 * {@code rehearse(email)} directly instead of validating first.
 	 * <p>
-	 * The mailer's defaults and overrides are applied first. In normal validation mode this method then:
+	 * For composed email, the mailer's defaults and overrides are applied first. In normal validation mode this method then:
 	 * <ul>
 	 *     <li>requires a From recipient and at least one To, Cc or Bcc recipient;</li>
 	 *     <li>rejects encoded-word content in address fields and applies the mailer's configured {@link com.sanctionco.jmail.EmailValidator}, if any;</li>
@@ -343,10 +349,13 @@ public interface Mailer extends AutoCloseable {
 	 *     <li>checks the final encoded message size against the configured maximum, if any.</li>
 	 * </ul>
 	 * Completeness here means a sender and recipient; an empty subject or body is permitted.
+	 * Exact email instead requires canonical, parseable EML and at least one explicit SMTP-envelope recipient. It deliberately bypasses mailer defaults,
+	 * overrides, composed-content validation, and configured security processing; full validation checks the supplied byte length against the configured
+	 * maximum without changing the message.
 	 * <p>
-	 * The supplied Email is not changed. Validation creates a separate governed Email and MIME message, and sending creates them again, so the final
-	 * send-time size check remains authoritative. When all client validation is disabled, ordinary validation findings are logged instead of being
-	 * thrown, but MIME construction, security processing and encoded-size failures still fail this rehearsal.
+	 * The supplied Email is not changed. Validation creates a separate governed Email and MIME message for composed mail; exact mail retains its original
+	 * Email and bytes. Sending still performs its own size check. When all client validation is disabled, ordinary validation findings are logged instead
+	 * of being thrown, but MIME construction, security processing, encoded-size failures, and exact-mail invariants still fail this rehearsal.
 	 *
 	 * @param email The email to validate with this mailer's configuration.
 	 *
@@ -363,9 +372,11 @@ public interface Mailer extends AutoCloseable {
 	/**
 	 * Checks whether the supplied {@link Email} can be prepared for sending through this mailer, with control over expensive final-message processing.
 	 * <p>
-	 * Defaults, overrides, ordinary validation and base MIME construction always run. When {@code processSecurityAndValidateSize} is {@code true},
+	 * For a composed email, defaults, overrides, ordinary validation and base MIME construction always run. When
+	 * {@code processSecurityAndValidateSize} is {@code true},
 	 * configured S/MIME, OpenPGP and DKIM processing also runs and the final encoded message size is checked. When it is {@code false}, validation stops
 	 * after constructing the unsecured base MIME message and does not enforce the configured maximum size.
+	 * Exact email is never transformed in either mode; the flag controls only its supplied-byte size check.
 	 * <p>
 	 * Neither mode opens an SMTP connection or changes the supplied Email.
 	 * Use this success-or-exception overload when the caller does not need the prepared result. If it needs any result fields, call

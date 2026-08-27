@@ -16,7 +16,6 @@ import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
-import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
@@ -27,6 +26,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+
 import static java.lang.String.format;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
 import static org.simplejavamail.internal.util.MiscUtil.asInternetAddresses;
@@ -88,15 +89,9 @@ public class SessionBasedEmailToMimeMessageConverter {
     public static PreparedMail convertAndLogPreparedMail(Session session, final Email email) throws MessagingException {
         final MimeMessage mimeMessage = convertAndLogMimeMessage(session, email);
         final Address[] recipients = resolveEnvelopeRecipients(email, mimeMessage);
-        final boolean stableContentRequired = email.getDkimConfig() != null
-                || email.getSmimeSigningConfig() != null
-                || email.getSmimeEncryptionConfig() != null
-				|| email.getOpenPgpSigningConfig() != null
-				|| email.getOpenPgpEncryptionConfig() != null
-                || email.getRecipients().stream().anyMatch(recipient -> recipient.getSmimeCertificate() != null);
         return new PreparedMail(mimeMessage, recipients,
                 new DeliveryEnvelope(resolveEnvelopeSender(email), email.getDeliveryStatusNotification()),
-                stableContentRequired);
+                InternalEmail.requireInternalEmail(email).determineContentRequirement());
     }
 
     @NotNull
@@ -104,7 +99,7 @@ public class SessionBasedEmailToMimeMessageConverter {
             throws MessagingException {
         return email.getOverrideReceivers().isEmpty()
                 ? recipientsOrEmpty(mimeMessage)
-                : asInternetAddresses(email.getOverrideReceivers(), java.nio.charset.StandardCharsets.UTF_8)
+                : asInternetAddresses(email.getOverrideReceivers(), StandardCharsets.UTF_8)
                         .toArray(new Address[0]);
     }
 
@@ -182,29 +177,29 @@ public class SessionBasedEmailToMimeMessageConverter {
 
         SessionLogger.logSession(session, operationalConfig.isAsync(), "mail");
 
-		//noinspection deprecation
-		((InternalEmail) email).updateId(message.getMessageID());
+        if (message.getMessageID() != null) {
+            //noinspection deprecation
+            InternalEmail.requireInternalEmail(email).updateId(message.getMessageID());
+        }
 
         logEmail(message, operationalConfig.isTransportModeLoggingOnly(), email);
         return message;
     }
 
-    static private MimeMessage convertMimeMessage(final Email email, final Session session) throws MessagingException {
+    private static MimeMessage convertMimeMessage(final Email email, final Session session) throws MessagingException {
         return convertMimeMessage(email, session, true);
     }
 
-    static private MimeMessage convertMimeMessage(final Email email, final Session session, final boolean processSecurity) throws MessagingException {
+    private static MimeMessage convertMimeMessage(final Email email, final Session session, final boolean processSecurity) throws MessagingException {
         try {
-            return processSecurity
-                    ? MimeMessageProducerHelper.produceMimeMessage(email, session)
-                    : MimeMessageProducerHelper.produceBaseMimeMessage(email, session);
+            return InternalEmail.requireInternalEmail(email).renderMimeMessage(session, processSecurity);
         } catch (UnsupportedEncodingException e) {
             LOGGER.trace("Failed to send email {}\n{}", email.getId(), email);
             throw new MailerException(format(INVALID_ENCODING, email.getId()), e);
         }
     }
 
-    static private void logEmail(final MimeMessage message, boolean transportModeLoggingOnly, final Email email) {
+    private static void logEmail(final MimeMessage message, final boolean transportModeLoggingOnly, final Email email) {
         if (transportModeLoggingOnly) {
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info("\n\nEmail: {}\n", email);

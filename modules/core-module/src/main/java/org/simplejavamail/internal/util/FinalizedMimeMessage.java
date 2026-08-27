@@ -17,9 +17,9 @@ import java.util.Set;
 /**
  * A parsed {@link MimeMessage} backed by one finalized in-memory RFC 822 representation.
  *
- * <p>This type is reserved for the cryptographic pipeline. The raw representation is authoritative: repeated writes
- * are byte-identical, and {@link #saveChanges()} deliberately does nothing. Pipeline stages create a new instance
- * when they transform or sign content.</p>
+ * <p>The raw representation is authoritative: repeated writes are byte-identical, and {@link #saveChanges()} deliberately does nothing.
+ * Cryptographic pipeline stages create a new instance when they transform or sign content. Exact EML additionally retains headers that a mail
+ * provider would normally omit while submitting.</p>
  */
 public final class FinalizedMimeMessage extends MimeMessage {
 
@@ -33,14 +33,17 @@ public final class FinalizedMimeMessage extends MimeMessage {
     private final byte @NotNull [] serialized;
     @NotNull
     private final ProtectionState protectionState;
+    private final boolean preserveAllBytes;
 
     private FinalizedMimeMessage(@NotNull final Session session,
                                  final byte @NotNull [] serialized,
-                                 @NotNull final ProtectionState protectionState)
+                                 @NotNull final ProtectionState protectionState,
+                                 final boolean preserveAllBytes)
             throws MessagingException {
         super(session, new SharedByteArrayInputStream(serialized));
         this.serialized = serialized;
         this.protectionState = protectionState;
+        this.preserveAllBytes = preserveAllBytes;
     }
 
     /** Finalizes a message for cryptographic processing, including headers, encodings, boundaries, Date, and Message-ID. */
@@ -52,7 +55,7 @@ public final class FinalizedMimeMessage extends MimeMessage {
         try {
             final ByteArrayOutputStream output = new ByteArrayOutputStream();
             message.writeTo(output);
-            return fromOwnedBytes(message.getSession(), output.toByteArray(), protectionState);
+            return fromOwnedBytes(message.getSession(), output.toByteArray(), protectionState, false);
         } catch (IOException e) {
             throw new MessagingException("Unable to finalize MIME message", e);
         }
@@ -64,15 +67,24 @@ public final class FinalizedMimeMessage extends MimeMessage {
                                                         final byte @NotNull [] serialized,
                                                         @NotNull final ProtectionState protectionState)
             throws MessagingException {
-        return fromOwnedBytes(session, serialized.clone(), protectionState);
+        return fromOwnedBytes(session, serialized.clone(), protectionState, false);
+    }
+
+    /** Wraps canonical EML bytes whose complete representation, including normally ignored headers, is authoritative. */
+    @NotNull
+    public static FinalizedMimeMessage fromExactMessageBytes(@NotNull final Session session,
+                                                             final byte @NotNull [] serialized)
+            throws MessagingException {
+        return fromOwnedBytes(session, serialized.clone(), ProtectionState.NONE, true);
     }
 
     @NotNull
     private static FinalizedMimeMessage fromOwnedBytes(@NotNull final Session session,
                                                        final byte @NotNull [] serialized,
-                                                       @NotNull final ProtectionState protectionState)
+                                                       @NotNull final ProtectionState protectionState,
+                                                       final boolean preserveAllBytes)
             throws MessagingException {
-        return new FinalizedMimeMessage(session, serialized, protectionState);
+        return new FinalizedMimeMessage(session, serialized, protectionState, preserveAllBytes);
     }
 
     public byte @NotNull [] getSerializedBytes() {
@@ -101,7 +113,7 @@ public final class FinalizedMimeMessage extends MimeMessage {
     @Override
     public void writeTo(@NotNull final OutputStream outputStream, final String[] ignoreList)
             throws IOException {
-        if (ignoreList == null || ignoreList.length == 0) {
+        if (preserveAllBytes || ignoreList == null || ignoreList.length == 0) {
             writeTo(outputStream);
             return;
         }

@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
@@ -28,6 +29,18 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
     @Override
     public boolean supports(@NotNull final Transport transport) {
         return transport instanceof SMTPTransport;
+    }
+
+    @Override
+    public boolean supportsContentRequirement(@NotNull final ContentRequirement contentRequirement) {
+        switch (contentRequirement) {
+            case NORMAL:
+            case PRESERVE_PROTECTED_CONTENT:
+            case PRESERVE_ALL_BYTES:
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override
@@ -54,7 +67,8 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
     @NotNull
     private static MimeMessage resolveMessageForTransport(@NotNull final PreparedMail preparedMail) throws MessagingException {
         final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
-        return envelope.hasProviderSpecificOptions() || preparedMail.requiresStableContent()
+        return envelope.hasProviderSpecificOptions()
+                || preparedMail.getContentRequirement() != ContentRequirement.NORMAL
                 ? new AngusSmtpMessage(preparedMail)
                 : preparedMail.getMimeMessage();
     }
@@ -102,12 +116,12 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
     static final class AngusSmtpMessage extends SMTPMessage {
 
         private final MimeMessage delegate;
-        private final boolean stableContentRequired;
+        private final ContentRequirement contentRequirement;
 
         AngusSmtpMessage(@NotNull final PreparedMail preparedMail) throws MessagingException {
             super(sessionOf(preparedMail.getMimeMessage()));
             this.delegate = preparedMail.getMimeMessage();
-            this.stableContentRequired = preparedMail.requiresStableContent();
+            this.contentRequirement = preparedMail.getContentRequirement();
             copyHeaders(delegate, this);
 
             final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
@@ -117,7 +131,7 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             if (envelope.getDeliveryStatusNotification() != null) {
                 configureDeliveryStatusNotification(envelope.getDeliveryStatusNotification());
             }
-            if (stableContentRequired) {
+            if (contentRequirement != ContentRequirement.NORMAL) {
                 super.setAllow8bitMIME(false);
             }
         }
@@ -138,7 +152,7 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
 
         private void configureDeliveryStatusNotification(@NotNull final DeliveryStatusNotification deliveryStatusNotification) {
             int notifyOptions = 0;
-            for (DeliveryStatusNotification.NotifyOption notifyOption : deliveryStatusNotification.getNotifyOptions()) {
+            for (final DeliveryStatusNotification.NotifyOption notifyOption : deliveryStatusNotification.getNotifyOptions()) {
                 switch (notifyOption) {
                     case SUCCESS:
                         notifyOptions |= SMTPMessage.NOTIFY_SUCCESS;
@@ -168,7 +182,7 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
 
         @Override
         public boolean isMimeType(final String mimeType) throws MessagingException {
-            if (stableContentRequired && ("text/*".equalsIgnoreCase(mimeType)
+            if (contentRequirement != ContentRequirement.NORMAL && ("text/*".equalsIgnoreCase(mimeType)
                     || "multipart/*".equalsIgnoreCase(mimeType))) {
                 return false;
             }
@@ -177,7 +191,7 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
 
         @Override
         public void saveChanges() throws MessagingException {
-            if (!stableContentRequired) {
+            if (contentRequirement == ContentRequirement.NORMAL) {
                 delegate.saveChanges();
             }
         }
@@ -190,7 +204,11 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         @Override
         public void writeTo(final OutputStream outputStream, final String[] ignoreList)
                 throws IOException, MessagingException {
-            delegate.writeTo(outputStream, ignoreList);
+            if (contentRequirement == ContentRequirement.PRESERVE_ALL_BYTES) {
+                delegate.writeTo(outputStream);
+            } else {
+                delegate.writeTo(outputStream, ignoreList);
+            }
         }
     }
 }

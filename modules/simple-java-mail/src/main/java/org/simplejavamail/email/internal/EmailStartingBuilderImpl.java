@@ -6,14 +6,20 @@ import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.converter.ConfiguredEmailConverter;
 import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.converter.ExactEmailBuilderImpl;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.config.SimpleJavaMailConfig;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
+import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 
 /**
  * @see EmailStartingBuilder
@@ -32,6 +38,26 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	@Override
 	public EmailPopulatingBuilder startingBlank() {
 		return newPopulatingBuilder();
+	}
+
+	/**
+	 * @see EmailStartingBuilder#startingFromExactEml(byte[])
+	 */
+	@Override
+	public ExactEmailBuilder startingFromExactEml(final byte @NotNull [] emlBytes) {
+		return new ExactEmailBuilderImpl(config, emlBytes);
+	}
+
+	/**
+	 * @see EmailStartingBuilder#startingFromExactEml(InputStream)
+	 */
+	@Override
+	public ExactEmailBuilder startingFromExactEml(@NotNull final InputStream emlInputStream) {
+		try {
+			return startingFromExactEml(readInputStreamToBytes(requireNonNull(emlInputStream, "emlInputStream")));
+		} catch (final IOException readFailure) {
+			throw new EmailException("Unable to read exact EML from InputStream", readFailure);
+		}
 	}
 	
 	/**

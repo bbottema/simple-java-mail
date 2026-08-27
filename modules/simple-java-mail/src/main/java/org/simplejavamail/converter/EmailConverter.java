@@ -33,7 +33,7 @@ import org.simplejavamail.converter.internal.InternalEmailConverterImpl;
 import org.simplejavamail.converter.internal.mimemessage.MimeDataSource;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
-import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
+import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
@@ -862,13 +862,13 @@ public final class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link MimeMessageProducerHelper#produceMimeMessage(Email, Session)}.
+	 * Converts composed email through the MIME producer and returns exact EML through its byte-preserving source.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final EmailGovernance emailGovernance) {
 		try {
-			return MimeMessageProducerHelper.produceMimeMessage(
-					emailGovernance.produceEmailApplyingDefaultsAndOverrides(email),
-					checkNonEmptyArgument(session, "session"));
+			final InternalEmail internalEmail = InternalEmail.requireInternalEmail(email);
+			final Email effectiveEmail = internalEmail.prepareForConversion(emailGovernance);
+			return InternalEmail.requireInternalEmail(effectiveEmail).renderMimeMessage(checkNonEmptyArgument(session, "session"), true);
 		} catch (UnsupportedEncodingException | MessagingException e) {
 			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
 			throw new IllegalStateException(e.getMessage(), e);
@@ -980,6 +980,16 @@ public final class EmailConverter {
 	}
 
 	/**
+	 * Converts an email to EML bytes. For exact EML these are the authoritative input bytes.
+	 *
+	 * @return A defensive byte array containing the message's EML representation.
+	 */
+	@NotNull
+	public static byte[] emailToEMLByteArray(@NotNull final Email email) {
+		return mimeMessageToEMLByteArray(emailToMimeMessage(checkNonEmptyArgument(email, "email")));
+	}
+
+	/**
 	 * Delegates to {@link #outlookMsgToEML(String, Pkcs12Config)}.
 	 *
 	 * @param msgFileName The file name of an Outlook (.msg) message to convert.
@@ -1039,7 +1049,7 @@ public final class EmailConverter {
 		Helpers
 	 */
 
-	private static EmailPopulatingBuilder buildEmailFromMimeMessage(@NotNull final EmailPopulatingBuilder builder, @NotNull final ParsedMimeMessageComponents parsed) {
+	static EmailPopulatingBuilder buildEmailFromMimeMessage(@NotNull final EmailPopulatingBuilder builder, @NotNull final ParsedMimeMessageComponents parsed) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(parsed, "parsedMimeMessageComponents");
 		if (parsed.getSentDate() != null) {

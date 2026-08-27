@@ -109,6 +109,26 @@ Mailer mailer = mail.mailerBuilder()
 
 `MailSendOutcome` describes the whole Simple Java Mail attempt, including preparation and asynchronous queue time; its optional `MailSubmissionReceipt` describes SMTP submission facts only. The callback is terminal—not a connection-lifecycle event stream—and asynchronous sends can invoke it concurrently on worker threads. See [observing completed mail sends](https://www.simplejavamail.org/features.html#section-mail-send-observer) and the manually runnable [streaming progress demo](modules/simple-java-mail/src/test/java/demo/MailSendObserverDemoApp.java).
 
+## Submit already-finalized EML exactly
+
+Ordinary EML conversion is the right choice when you want an editable `Email`: Simple Java Mail parses its meaning and later builds a fresh MIME message. Use exact EML when the existing wire representation itself is authoritative—for example, an archived message or output already protected by DKIM, S/MIME, or OpenPGP/MIME.
+
+```java
+byte[] eml = Files.readAllBytes(Path.of("ready-to-send.eml"));
+
+Email email = mail.emailBuilder()
+    .startingFromExactEml(eml)
+    .withEnvelopeRecipients("actual-recipient@example.org")
+    .withEnvelopeSender("bounces@example.org") // optional
+    .buildEmail();
+
+MailSubmissionReceipt receipt = mailer.sendMailAndGetReceiptSync(email);
+```
+
+The result remains an ordinary `Email`, so all getters and all existing send methods still apply. Its getters are a parsed view; sending, conversion, and rehearsal use the copied input bytes unchanged. Exact mode therefore bypasses defaults, overrides, composed-content validation, embedded-image resolution, MIME rebuilding, and cryptographic processing. It also retains headers normally removed during submission—including `Bcc`, `Resent-Bcc`, and `Content-Length`—so supply an already safe outbound message and always provide the real SMTP-envelope recipients separately. Copying this `Email` through the normal builder intentionally returns to composed-email behavior.
+
+Exact EML must be non-empty, parseable, use canonical CRLF line endings, and end in CRLF. A missing Message-ID remains missing. The bundled Angus adapter supports full-byte preservation; another transport adapter must opt in explicitly. See the [exact EML guide](https://www.simplejavamail.org/features.html#section-exact-eml) and the manually runnable [file submission demo](modules/simple-java-mail/src/test/java/demo/ExactEmlSendDemoApp.java).
+
 ## What the API handles
 
 | Job | Support |
@@ -118,7 +138,7 @@ Mailer mailer = mail.mailerBuilder()
 | [Security](https://www.simplejavamail.org/security.html) | TLS and SMTPS, server identity and certificate checks, fixed or refresh-aware OAuth2 tokens, header-injection protection, DKIM, and S/MIME. |
 | [Delivery](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering) | Synchronous and asynchronous sends, terminal mail-send observation, provider-neutral submission outcomes and partial failures, a scoped open connection, simple batches, connection pools, and independently configured SMTP clusters. |
 | [Diagnostics](https://www.simplejavamail.org/debugging.html) | Connection tests, message validation and rehearsal, configuration inspection, Jakarta Mail debug routing, logging integrations, and SMTP submission receipts. |
-| [Conversion and interoperability](https://www.simplejavamail.org/features.html#section-converting) | Conversion between `Email`, `MimeMessage`, and EML, send-ready serialization, Outlook `.msg` conversion, and custom sending logic. |
+| [Conversion and interoperability](https://www.simplejavamail.org/features.html#section-converting) | Conversion between `Email`, `MimeMessage`, and EML; exact finalized-EML submission; send-ready serialization; Outlook `.msg` conversion; and custom sending logic. |
 
 ## Configure once, reuse everywhere
 
