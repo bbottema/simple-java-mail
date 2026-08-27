@@ -653,6 +653,18 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withOAuth2AccessTokenProvider(@NotNull OAuth2AccessTokenProvider accessTokenProvider);
 
 	/**
+	 * Configures the callback that receives one terminal outcome for every individual email send attempt handled by the built {@link Mailer}.
+	 * <p>
+	 * The observer runs inline on the thread completing each send and may be called concurrently. Calling this method again replaces the previously
+	 * configured observer.
+	 *
+	 * @param mailSendObserver Thread-safe, quick and non-blocking terminal send observer.
+	 * @see MailSendObserver
+	 */
+	@Cli.ExcludeApi(reason = "Mail send observers are runtime Java callbacks and cannot be represented as CLI values")
+	T withMailSendObserver(@NotNull MailSendObserver mailSendObserver);
+
+	/**
 	 * @see CustomMailer
 	 */
 	T withCustomMailer(@NotNull CustomMailer customMailer);

@@ -14,15 +14,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -35,6 +39,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,6 +59,7 @@ class MailSubmissionPoolingTest {
 	void asyncPoolDoesNotLeakResponsesOrRecipientFactsAcrossReusedAndReplacementTransports() throws Exception {
 		final PooledTransportState state = new PooledTransportState();
 		final Session session = session(state);
+		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		final SendFailedException partialProviderFailure = new SendFailedException("partial failure", null,
 				internetAddresses("accepted-current@example.com"), internetAddresses("unsent-current@example.com"),
 				internetAddresses("invalid-current@example.com"));
@@ -68,7 +74,7 @@ class MailSubmissionPoolingTest {
 		final MailSubmissionException partialFailure;
 		final MailSubmissionReceipt replacementReceipt;
 		final MailSubmissionException unknownFailure;
-		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 1, 2)) {
+		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 1, 2, outcomes::add)) {
 			firstReceipt = mailer.sendMailAndGetReceipt(email("first success", "first@example.com"), true)
 					.get(5, TimeUnit.SECONDS);
 			partialFailure = submissionFailure(mailer.sendMailAndGetReceipt(email("partial after success",
@@ -119,6 +125,22 @@ class MailSubmissionPoolingTest {
 		assertThat(unknownReceipt.getAcceptedRecipients()).isEmpty();
 		assertThat(unknownReceipt.getValidUnsentRecipients()).isEmpty();
 		assertThat(unknownReceipt.getInvalidRecipients()).isEmpty();
+
+		assertThat(outcomes).hasSize(4);
+		assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(firstReceipt);
+		assertThat(outcomes.get(0).getFailure()).isEmpty();
+		assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(partialReceipt);
+		assertThat(outcomes.get(1).getFailure()).containsSame(partialFailure);
+		assertThat(outcomes.get(2).getSubmissionReceipt()).containsSame(replacementReceipt);
+		assertThat(outcomes.get(2).getFailure()).isEmpty();
+		assertThat(outcomes.get(3).getSubmissionReceipt()).containsSame(unknownReceipt);
+		assertThat(outcomes.get(3).getFailure()).containsSame(unknownFailure);
+		assertThat(outcomes).extracting(outcome -> outcome.getSubmissionReceipt().orElseThrow().getAcceptedRecipients())
+				.containsExactly(
+						Collections.singletonList("first@example.com"),
+						Collections.singletonList("accepted-current@example.com"),
+						Collections.singletonList("replacement@example.com"),
+						Collections.emptyList());
 	}
 
 	@Test
@@ -164,6 +186,7 @@ class MailSubmissionPoolingTest {
 	void concurrentAsyncSubmissionsUseSeparateLeasesAndKeepTheirReceiptsCorrelated() throws Exception {
 		final PooledTransportState state = new PooledTransportState();
 		final Session session = session(state);
+		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		final CountDownLatch bothSending = new CountDownLatch(2);
 		final CountDownLatch releaseSends = new CountDownLatch(1);
 		state.plan("concurrent one", Attempt.blockingSuccess(250, "250 queued concurrent one", bothSending, releaseSends));
@@ -171,7 +194,7 @@ class MailSubmissionPoolingTest {
 
 		final MailSubmissionReceipt firstReceipt;
 		final MailSubmissionReceipt secondReceipt;
-		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 2, 2)) {
+		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 2, 2, outcomes::add)) {
 			final CompletableFuture<MailSubmissionReceipt> first = mailer.sendMailAndGetReceipt(
 					email("concurrent one", "one@example.com"), true);
 			final CompletableFuture<MailSubmissionReceipt> second = mailer.sendMailAndGetReceipt(
@@ -197,6 +220,50 @@ class MailSubmissionPoolingTest {
 		assertThat(secondReceipt.getAcceptedRecipients()).containsExactly("two@example.com");
 		assertThat(secondReceipt.getSmtpResponse()).get().extracting(response -> response.getResponse())
 				.isEqualTo("250 queued concurrent two");
+		assertThat(outcomes).hasSize(2);
+		assertThat(outcomes).extracting(outcome -> outcome.getSubmissionReceipt().orElseThrow())
+				.containsExactlyInAnyOrder(firstReceipt, secondReceipt);
+		assertThat(outcomes).extracting(outcome -> outcome.getSubmissionReceipt().orElseThrow().getAcceptedRecipients())
+				.containsExactlyInAnyOrder(Collections.singletonList("one@example.com"), Collections.singletonList("two@example.com"));
+	}
+
+	@Test
+	void observerRunsAfterPooledLeaseReleaseAndCanSendReentrantlyWithPoolSizeOne() throws Exception {
+		final PooledTransportState state = new PooledTransportState();
+		final Session session = session(state);
+		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
+		final AtomicReference<Mailer> mailerReference = new AtomicReference<>();
+		final AtomicReference<MailSubmissionReceipt> nestedReceipt = new AtomicReference<>();
+		final AtomicReference<Throwable> nestedFailure = new AtomicReference<>();
+		state.plan("outer send", Attempt.success(250, "250 queued outer"));
+		state.plan("nested send", Attempt.success(250, "250 queued nested"));
+
+		final MailSendObserver observer = outcome -> {
+			outcomes.add(outcome);
+			if ("outer-send@example.org".equals(outcome.getInitialMessageId())) {
+				try {
+					nestedReceipt.set(mailerReference.get().sendMailAndGetReceiptSync(
+							emailWithMessageId("nested-send@example.org", "nested send", "nested@example.com")));
+				} catch (final Throwable failure) {
+					nestedFailure.set(failure);
+				}
+			}
+		};
+
+		final MailSubmissionReceipt outerReceipt;
+		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 1, 1, observer)) {
+			mailerReference.set(mailer);
+			outerReceipt = mailer.sendMailAndGetReceiptSync(
+					emailWithMessageId("outer-send@example.org", "outer send", "outer@example.com"));
+		}
+
+		assertThat(nestedFailure.get()).isNull();
+		assertThat(nestedReceipt.get()).isNotNull();
+		assertThat(state.transportId("nested send")).isEqualTo(state.transportId("outer send"));
+		assertThat(outerReceipt.getAcceptedRecipients()).containsExactly("outer@example.com");
+		assertThat(nestedReceipt.get().getAcceptedRecipients()).containsExactly("nested@example.com");
+		assertThat(outcomes).extracting(MailSendOutcome::getInitialMessageId)
+				.containsExactly("outer-send@example.org", "nested-send@example.org");
 	}
 
 	@Test
@@ -239,14 +306,22 @@ class MailSubmissionPoolingTest {
 	}
 
 	private static Mailer pooledMailer(final Session session, final UUID clusterKey, final int maxPoolSize, final int threadPoolSize) {
-		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
+		return pooledMailer(session, clusterKey, maxPoolSize, threadPoolSize, null);
+	}
+
+	private static Mailer pooledMailer(final Session session, final UUID clusterKey, final int maxPoolSize, final int threadPoolSize,
+			@Nullable final MailSendObserver mailSendObserver) {
+		final MailerFromSessionBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
 				.withClusterKey(clusterKey)
 				.withConnectionPoolCoreSize(0)
 				.withConnectionPoolMaxSize(maxPoolSize)
 				.withConnectionPoolClaimTimeoutMillis(5000)
 				.withConnectionPoolExpireAfterMillis(0)
-				.withThreadPoolSize(threadPoolSize)
-				.buildMailer();
+				.withThreadPoolSize(threadPoolSize);
+		if (mailSendObserver != null) {
+			builder.withMailSendObserver(mailSendObserver);
+		}
+		return builder.buildMailer();
 	}
 
 	private static Session session(final PooledTransportState state) throws MessagingException {
@@ -263,7 +338,12 @@ class MailSubmissionPoolingTest {
 	}
 
 	private static Email email(final String subject, final String... recipients) {
+		return emailWithMessageId(null, subject, recipients);
+	}
+
+	private static Email emailWithMessageId(@Nullable final String messageId, final String subject, final String... recipients) {
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
+				.fixingMessageId(messageId)
 				.from("sender@example.com")
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, recipients))
 				.withSubject(subject)

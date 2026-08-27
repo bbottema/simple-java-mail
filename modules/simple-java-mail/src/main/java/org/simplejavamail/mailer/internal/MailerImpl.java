@@ -10,6 +10,7 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.MailRehearsal;
+import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
@@ -106,6 +107,9 @@ public class MailerImpl implements Mailer {
 	@NotNull
 	private final ProxyConfig proxyConfig;
 
+	@NotNull
+	private final MailSendObserverNotifier mailSendObserverNotifier;
+
 	MailerImpl(@NotNull final MailerFromSessionBuilderImpl fromSessionBuilder) {
 		this(null,
 				null,
@@ -113,6 +117,7 @@ public class MailerImpl implements Mailer {
 				fromSessionBuilder.buildProxyConfig(),
 				fromSessionBuilder.getSession(),
 				fromSessionBuilder.buildOperationalConfig(),
+				fromSessionBuilder.getMailSendObserver(),
 				true);
 	}
 	
@@ -123,16 +128,23 @@ public class MailerImpl implements Mailer {
 				regularBuilder.buildProxyConfig(),
 				null,
 				regularBuilder.buildOperationalConfig(),
+				regularBuilder.getMailSendObserver(),
 				regularBuilder.isOpportunisticTLS());
 	}
 
 	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance, @NotNull ProxyConfig proxyConfig,
 			@Nullable Session session, @NotNull OperationalConfig operationalConfig) {
-		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig, true);
+		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig, null, true);
 	}
 
 	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance, @NotNull ProxyConfig proxyConfig,
 			@Nullable Session session, @NotNull OperationalConfig operationalConfig, final boolean opportunisticTLS) {
+		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig, null, opportunisticTLS);
+	}
+
+	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance, @NotNull ProxyConfig proxyConfig,
+			@Nullable Session session, @NotNull OperationalConfig operationalConfig, @Nullable final MailSendObserver mailSendObserver,
+			final boolean opportunisticTLS) {
 		this.serverConfig = serverConfig;
 		this.transportStrategy = transportStrategy;
 		this.emailGovernance = emailGovernance;
@@ -142,6 +154,7 @@ public class MailerImpl implements Mailer {
 		}
 		this.session = session;
 		this.operationalConfig = operationalConfig;
+		this.mailSendObserverNotifier = new MailSendObserverNotifier(mailSendObserver, operationalConfig.isTransportModeLoggingOnly());
 		final TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orElse(findStrategyForSession(session));
 		final Supplier<String> oauth2AccessTokenProvider = OAuth2AccessTokenResolver.validateConfiguration(
 				session, operationalConfig.getProperties(), effectiveTransportStrategy, operationalConfig.getOAuth2AccessTokenProvider()
@@ -411,9 +424,8 @@ public class MailerImpl implements Mailer {
 	@Override
 	@NotNull
 	public final MailSubmissionReceipt sendMailAndGetReceiptSync(final Email userProvidedEmail) {
-		final SendMailClosure submission = prepareSubmission(verifyNonnull(userProvidedEmail));
-		submission.run();
-		return submission.getReceipt();
+		final PreparedMailSend preparedMailSend = prepareMailSend(userProvidedEmail);
+		return sendPreparedEmail(preparedMailSend);
 	}
 
 	/**
@@ -424,8 +436,8 @@ public class MailerImpl implements Mailer {
 	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceiptAsync(final Email userProvidedEmail) {
 		final Email checkedEmail = verifyNonnull(userProvidedEmail);
 		try {
-			final SendMailClosure submission = prepareSubmission(checkedEmail);
-			return executeSubmissionAsync(submission).thenApply(unused -> submission.getReceipt());
+			final PreparedMailSend preparedMailSend = prepareMailSend(checkedEmail);
+			return schedulePreparedEmail(preparedMailSend);
 		} catch (final RuntimeException failure) {
 			return AsyncOperationHelper.failedFuture(failure);
 		}
@@ -474,19 +486,56 @@ public class MailerImpl implements Mailer {
 	}
 
 	@NotNull
-	private SendMailClosure prepareSubmission(@NotNull final Email userProvidedEmail) {
-		final Email email = prepareEmailForSending(userProvidedEmail);
-		return new SendMailClosure(operationalConfig, session, email, proxyServer,
-				operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
+	private PreparedMailSend prepareMailSend(final Email userProvidedEmail) {
+		final Email checkedEmail = verifyNonnull(userProvidedEmail);
+		final MailSendAttempt mailSendAttempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
+		try {
+			final Email preparedEmail = prepareEmailForSending(checkedEmail);
+			mailSendAttempt.prepared(preparedEmail);
+			return new PreparedMailSend(preparedEmail, mailSendAttempt);
+		} catch (final RuntimeException | Error failure) {
+			mailSendAttempt.completeWithFailure(failure);
+			throw failure;
+		}
 	}
 
 	@NotNull
-	private CompletableFuture<Void> executeSubmissionAsync(@NotNull final SendMailClosure submission) {
+	private CompletableFuture<MailSubmissionReceipt> schedulePreparedEmail(@NotNull final PreparedMailSend preparedMailSend) {
+		try {
+			return executeMailSendAsync(() -> sendPreparedEmail(preparedMailSend))
+					.thenApply(unused -> preparedMailSend.getSubmissionReceipt());
+		} catch (final RuntimeException failure) {
+			preparedMailSend.completeWithFailure(failure);
+			return AsyncOperationHelper.failedFuture(failure);
+		} catch (final Error failure) {
+			preparedMailSend.completeWithFailure(failure);
+			throw failure;
+		}
+	}
+
+	@NotNull
+	private MailSubmissionReceipt sendPreparedEmail(@NotNull final PreparedMailSend preparedMailSend) {
+		preparedMailSend.markStarted();
+		try {
+			final SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, preparedMailSend.getEmail(), proxyServer,
+					operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
+			sendMailClosure.run();
+			final MailSubmissionReceipt submissionReceipt = sendMailClosure.getReceipt();
+			preparedMailSend.completeSuccessfully(submissionReceipt);
+			return submissionReceipt;
+		} catch (final RuntimeException | Error failure) {
+			preparedMailSend.completeWithFailure(failure);
+			throw failure;
+		}
+	}
+
+	@NotNull
+	private CompletableFuture<Void> executeMailSendAsync(@NotNull final Runnable mailSend) {
 		return ModuleLoader.batchModuleAvailable()
 				? ModuleLoader.loadBatchModule()
-					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", submission)
+					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", mailSend)
 				: AsyncOperationHelper
-					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", submission);
+					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", mailSend);
 	}
 
 	/**
@@ -496,7 +545,7 @@ public class MailerImpl implements Mailer {
 	public final <E extends Exception> void withOpenConnection(@NotNull final OpenConnectionCallback<E> openConnectionCallback) throws E {
 		val checkedOpenConnectionCallback = verifyNonnull(openConnectionCallback);
 		new SendMailsWithOpenConnectionClosure<>(operationalConfig, session, checkedOpenConnectionCallback, this::prepareEmailForSending,
-				proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter)
+				mailSendObserverNotifier, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter)
 				.runOpenConnectionCallback();
 	}
 
@@ -518,23 +567,26 @@ public class MailerImpl implements Mailer {
 		val checkedEmails = verifyNonnull(emails);
 
 		if (!async) {
-			SendMailsInSimpleBatchClosure sendMailsInSimpleBatchClosure = new SendMailsInSimpleBatchClosure(operationalConfig, session, checkedEmails,
-					this::prepareEmailForSending, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
-			sendMailsInSimpleBatchClosure.run();
+			sendSimpleBatch(checkedEmails);
 			return CompletableFuture.completedFuture(null);
 		}
 
 		try {
-			SendMailsInSimpleBatchClosure sendMailsInSimpleBatchClosure = new SendMailsInSimpleBatchClosure(operationalConfig, session, checkedEmails,
-					this::prepareEmailForSending, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
+			final Runnable simpleBatchSend = () -> sendSimpleBatch(checkedEmails);
 			return ModuleLoader.batchModuleAvailable()
 					? ModuleLoader.loadBatchModule()
-						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", sendMailsInSimpleBatchClosure)
+						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", simpleBatchSend)
 					: AsyncOperationHelper
-						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", sendMailsInSimpleBatchClosure);
-		} catch (RuntimeException e) {
-			return AsyncOperationHelper.failedFuture(e);
+						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", simpleBatchSend);
+		} catch (final RuntimeException failure) {
+			return AsyncOperationHelper.failedFuture(failure);
 		}
+	}
+
+	private void sendSimpleBatch(@NotNull final Iterable<Email> emails) {
+		new SendMailsInSimpleBatchClosure(operationalConfig, session, emails, this::prepareEmailForSending, mailSendObserverNotifier,
+				proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter)
+				.run();
 	}
 
 	@NotNull

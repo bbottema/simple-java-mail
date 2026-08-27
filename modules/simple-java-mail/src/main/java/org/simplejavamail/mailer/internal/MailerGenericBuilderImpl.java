@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
+import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
@@ -257,6 +258,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Nullable
 	private OAuth2AccessTokenProvider oauth2AccessTokenProvider;
+
+	/**
+	 * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver)
+	 */
+	@Nullable
+	private MailSendObserver mailSendObserver;
 
 	MailerGenericBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
 		this.config = requireNonNull(config, "config");
@@ -748,6 +755,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withOAuth2AccessTokenProvider(@NotNull OAuth2AccessTokenProvider accessTokenProvider) {
 		this.oauth2AccessTokenProvider = accessTokenProvider;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver)
+	 */
+	@Override
+	public T withMailSendObserver(@NotNull final MailSendObserver mailSendObserver) {
+		this.mailSendObserver = requireNonNull(mailSendObserver, "mailSendObserver");
 		return (T) this;
 	}
 
@@ -1286,5 +1302,10 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	public OAuth2AccessTokenProvider getOAuth2AccessTokenProvider() {
 		return oauth2AccessTokenProvider;
+	}
+
+	@Nullable
+	MailSendObserver getMailSendObserver() {
+		return mailSendObserver;
 	}
 }

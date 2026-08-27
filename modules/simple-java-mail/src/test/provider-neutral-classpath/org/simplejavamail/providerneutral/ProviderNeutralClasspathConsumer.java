@@ -7,6 +7,7 @@ import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
@@ -28,6 +29,7 @@ public final class ProviderNeutralClasspathConsumer {
 				.withHTMLText("<p>provider-neutral HTML</p>")
 				.withAttachment("proof.txt", "provider-neutral attachment".getBytes(java.nio.charset.StandardCharsets.UTF_8), "text/plain")
 				.buildEmailCompletedWithDefaultsAndOverrides();
+		assertMailSendObserverApiIsAvailable(simpleJavaMail);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
     }
@@ -39,6 +41,24 @@ public final class ProviderNeutralClasspathConsumer {
 		} catch (ClassNotFoundException expected) {
 			// expected: this consumer supplies its own Jakarta Mail transport
 		}
+	}
+
+	private static void assertMailSendObserverApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
+		final MailSendObserver observer = outcome -> {
+			outcome.getInitialMessageId();
+			outcome.getEffectiveMessageId();
+			outcome.getRequestedAt();
+			outcome.getReadyAt();
+			outcome.getStartedAt();
+			outcome.getCompletedAt();
+			outcome.isSuccessful();
+			outcome.isLoggingOnly();
+			outcome.getSubmissionReceipt();
+			outcome.getFailure();
+		};
+		simpleJavaMail.mailerBuilder()
+				.withSMTPServer("localhost", 25)
+				.withMailSendObserver(observer);
 	}
 
 	private static void assertMissingImplementationFailsClearly(final Email email) {

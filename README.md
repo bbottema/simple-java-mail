@@ -90,6 +90,25 @@ try {
 
 `ACCEPTED` confirms SMTP submission for all envelope recipients, not final mailbox delivery. Failed and partial attempts throw `MailSubmissionException` while preserving the original Jakarta Mail exception and the same recipient facts. `UNKNOWN` means the transport cannot tell whether the server accepted anything; do not automatically retry that outcome unless duplicate submission is acceptable or prevented. The [submission receipt guide](https://www.simplejavamail.org/features.html#section-submission-receipts) covers asynchronous and open-connection use.
 
+For cross-cutting audit and metrics code, configure one terminal observer on the reusable `Mailer`:
+
+```java
+Mailer mailer = mail.mailerBuilder()
+    .withSMTPServer("smtp.example.org", 587, "user", "password")
+    .withMailSendObserver(outcome -> {
+        Duration totalTime = Duration.between(
+            outcome.getRequestedAt(), outcome.getCompletedAt());
+
+        audit.record(
+            outcome.getEffectiveMessageId(),
+            outcome.isSuccessful(),
+            totalTime);
+    })
+    .buildMailer();
+```
+
+`MailSendOutcome` describes the whole Simple Java Mail attempt, including preparation and asynchronous queue time; its optional `MailSubmissionReceipt` describes SMTP submission facts only. The callback is terminal—not a connection-lifecycle event stream—and asynchronous sends can invoke it concurrently on worker threads. See [observing completed mail sends](https://www.simplejavamail.org/features.html#section-mail-send-observer) and the manually runnable [streaming progress demo](modules/simple-java-mail/src/test/java/demo/MailSendObserverDemoApp.java).
+
 ## What the API handles
 
 | Job | Support |
@@ -97,7 +116,7 @@ try {
 | [Messages and MIME](https://www.simplejavamail.org/features.html#section-basic-usage) | Plain text and HTML alternatives, embedded images, attachments, calendar content, headers, encodings, and the corresponding multipart structure. |
 | [Shared message rules](https://www.simplejavamail.org/configuration.html#section-config-mailer) | Recipient builders, address validation, defaults, enforced overrides, bounce addresses, receipts, and maximum message size. |
 | [Security](https://www.simplejavamail.org/security.html) | TLS and SMTPS, server identity and certificate checks, fixed or refresh-aware OAuth2 tokens, header-injection protection, DKIM, and S/MIME. |
-| [Delivery](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering) | Synchronous and asynchronous sends, provider-neutral submission outcomes and partial failures, a scoped open connection, simple batches, connection pools, and independently configured SMTP clusters. |
+| [Delivery](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering) | Synchronous and asynchronous sends, terminal mail-send observation, provider-neutral submission outcomes and partial failures, a scoped open connection, simple batches, connection pools, and independently configured SMTP clusters. |
 | [Diagnostics](https://www.simplejavamail.org/debugging.html) | Connection tests, message validation and rehearsal, configuration inspection, Jakarta Mail debug routing, logging integrations, and SMTP submission receipts. |
 | [Conversion and interoperability](https://www.simplejavamail.org/features.html#section-converting) | Conversion between `Email`, `MimeMessage`, and EML, send-ready serialization, Outlook `.msg` conversion, and custom sending logic. |
 

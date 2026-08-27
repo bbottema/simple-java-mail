@@ -21,6 +21,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
+import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
@@ -842,8 +843,15 @@ public class MailerTest {
 
 		final Session session = createCountingTransportSession();
 		final CountingTransportState transportState = getCountingTransportState(session);
+		final List<MailSendOutcome> outcomes = new ArrayList<>();
+		final List<Integer> activeConnectionsDuringCallbacks = new ArrayList<>();
 
-		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
+				.withMailSendObserver(outcome -> {
+					activeConnectionsDuringCallbacks.add(transportState.activeConnections.get());
+					outcomes.add(outcome);
+				})
+				.buildMailer()) {
 			mailer.sendMailsInSimpleBatch(Arrays.asList(
 					createBatchEmail("First batch email", "first@example.com"),
 					createBatchEmail("Second batch email", "second@example.com")), false);
@@ -856,6 +864,9 @@ public class MailerTest {
 		assertThat(transportState.sentMessages.get(1).getSubject()).isEqualTo("Second batch email");
 		assertThat(transportState.sentRecipients.get(0)).extracting(Address::toString).containsExactly("first@example.com");
 		assertThat(transportState.sentRecipients.get(1)).extracting(Address::toString).containsExactly("second@example.com");
+		assertThat(activeConnectionsDuringCallbacks).containsExactly(1, 1);
+		assertThat(outcomes).extracting(outcome -> outcome.getSubmissionReceipt().orElseThrow().getAcceptedRecipients())
+				.containsExactly(Arrays.asList("first@example.com"), Arrays.asList("second@example.com"));
 	}
 
 	@Test
@@ -960,6 +971,40 @@ public class MailerTest {
 	}
 
 	@Test
+	public void testOpenConnection_observesEachSendBeforeReturningWhileSharedTransportRemainsOpen() throws Exception {
+		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
+		final List<MailSubmissionReceipt> receipts = new ArrayList<>();
+		final List<MailSendOutcome> outcomes = new ArrayList<>();
+		final List<Integer> activeConnectionsDuringCallbacks = new ArrayList<>();
+
+		final Session session = createCountingTransportSession();
+		final CountingTransportState transportState = getCountingTransportState(session);
+
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
+				.withMailSendObserver(outcome -> {
+					activeConnectionsDuringCallbacks.add(transportState.activeConnections.get());
+					outcomes.add(outcome);
+				})
+				.buildMailer()) {
+			mailer.withOpenConnection(sender -> {
+				receipts.add(sender.sendMailAndGetReceipt(createBatchEmail("First observed email", "first@example.com")));
+				assertThat(outcomes).hasSize(1);
+				assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(receipts.get(0));
+
+				receipts.add(sender.sendMailAndGetReceipt(createBatchEmail("Second observed email", "second@example.com")));
+				assertThat(outcomes).hasSize(2);
+				assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(receipts.get(1));
+			});
+		}
+
+		assertThat(activeConnectionsDuringCallbacks).containsExactly(1, 1);
+		assertThat(transportState.activeConnections).hasValue(0);
+		assertThat(transportState.connectCount).hasValue(1);
+		assertThat(transportState.closeCount).hasValue(1);
+		assertThat(outcomes).extracting(MailSendOutcome::isSuccessful).containsExactly(true, true);
+	}
+
+	@Test
 	public void testOpenConnection_partialFailureExposesTheSameSubmissionException() throws Exception {
 		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final Session session = createCountingTransportSession();
@@ -969,7 +1014,10 @@ public class MailerTest {
 				new Address[]{new jakarta.mail.internet.InternetAddress("unsent@example.com")}, null);
 		transportState.failNextSend(providerFailure, 450, "450 recipient temporarily unavailable");
 
-		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
+		final List<MailSendOutcome> outcomes = new ArrayList<>();
+		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
+				.withMailSendObserver(outcomes::add)
+				.buildMailer()) {
 			try {
 				mailer.withOpenConnection(sender -> sender.sendMailAndGetReceipt(
 						createBatchEmail("Open partial email", "accepted@example.com", "unsent@example.com")));
@@ -979,6 +1027,10 @@ public class MailerTest {
 				assertThat(failure.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
 				assertThat(failure.getSubmissionReceipt().getAcceptedRecipients()).containsExactly("accepted@example.com");
 				assertThat(failure.getSubmissionReceipt().getValidUnsentRecipients()).containsExactly("unsent@example.com");
+				assertThat(outcomes).singleElement().satisfies(outcome -> {
+					assertThat(outcome.getFailure()).containsSame(failure);
+					assertThat(outcome.getSubmissionReceipt()).containsSame(failure.getSubmissionReceipt());
+				});
 			}
 		}
 	}
@@ -1102,6 +1154,7 @@ public class MailerTest {
 		@Override
 		protected boolean protocolConnect(final String host, final int port, final String user, final String password) {
 			state.connectCount.incrementAndGet();
+			state.activeConnections.incrementAndGet();
 			state.connectedPasswords.add(password);
 			return true;
 		}
@@ -1125,6 +1178,7 @@ public class MailerTest {
 		@Override
 		public synchronized void close() {
 			state.closeCount.incrementAndGet();
+			state.activeConnections.decrementAndGet();
 			setConnected(false);
 		}
 
@@ -1142,6 +1196,7 @@ public class MailerTest {
 	private static final class CountingTransportState {
 		private final AtomicInteger connectCount = new AtomicInteger();
 		private final AtomicInteger closeCount = new AtomicInteger();
+		private final AtomicInteger activeConnections = new AtomicInteger();
 		private final List<String> connectedPasswords = new CopyOnWriteArrayList<>();
 		private final List<MimeMessage> sentMessages = new CopyOnWriteArrayList<>();
 		private final List<Address[]> sentRecipients = new CopyOnWriteArrayList<>();

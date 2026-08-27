@@ -37,18 +37,21 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	@NotNull private final Session session;
 	@NotNull private final OpenConnectionCallback<E> openConnectionCallback;
 	@NotNull private final Function<Email, Email> emailPreparer;
+	@NotNull private final MailSendObserverNotifier mailSendObserverNotifier;
 	private final boolean transportModeLoggingOnly;
 	@Nullable private Transport transport;
 	@Nullable private Email currentEmail;
 
 	SendMailsWithOpenConnectionClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session,
 			@NotNull OpenConnectionCallback<E> openConnectionCallback, @NotNull Function<Email, Email> emailPreparer,
-			@Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
+			@NotNull MailSendObserverNotifier mailSendObserverNotifier, @Nullable AnonymousSocks5Server proxyServer,
+			boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
 		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
 		this.openConnectionCallback = openConnectionCallback;
 		this.emailPreparer = emailPreparer;
+		this.mailSendObserverNotifier = mailSendObserverNotifier;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 	}
 
@@ -56,17 +59,17 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	void runOpenConnectionCallback() throws E {
 		try {
 			run();
-		} catch (final CheckedCallbackException e) {
-			throw (E) e.getCause();
-		} catch (final RuntimeCallbackException e) {
-			throw e.getCause();
+		} catch (final CheckedCallbackException callbackFailure) {
+			throw (E) callbackFailure.getCause();
+		} catch (final RuntimeCallbackException callbackFailure) {
+			throw callbackFailure.getCause();
 		}
 	}
 
 	@Override
 	void executeClosure() {
 		LOGGER.trace("sending emails with open connection...");
-		boolean failed = false;
+		boolean operationFailed = false;
 		try {
 			if (operationalConfig.getCustomMailer() != null) {
 				throw new MailerException("Cannot use withOpenConnection when a custom mailer is configured");
@@ -77,29 +80,32 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 				openSmtpTransport();
 				runCallback(this);
 			}
-		} catch (final CheckedCallbackException e) {
-			failed = true;
-			throw e;
-		} catch (final RuntimeCallbackException e) {
-			failed = true;
-			throw e;
-		} catch (final MessagingException e) {
-			failed = true;
-			handleException(e, GENERIC_ERROR);
-		} catch (final MailerException e) {
-			failed = true;
-			throw e;
-		} catch (final EmailTooBigException e) {
-			failed = true;
-			handleException(e, MAILER_ERROR);
-		} catch (final MailException e) {
-			failed = true;
-			throw e;
-		} catch (final Exception e) {
-			failed = true;
-			handleException(e, UNKNOWN_ERROR);
+		} catch (final CheckedCallbackException callbackFailure) {
+			operationFailed = true;
+			throw callbackFailure;
+		} catch (final RuntimeCallbackException callbackFailure) {
+			operationFailed = true;
+			throw callbackFailure;
+		} catch (final MessagingException failure) {
+			operationFailed = true;
+			throwMappedFailure(failure, GENERIC_ERROR);
+		} catch (final MailerException failure) {
+			operationFailed = true;
+			throw failure;
+		} catch (final EmailTooBigException failure) {
+			operationFailed = true;
+			throwMappedFailure(failure, MAILER_ERROR);
+		} catch (final MailException failure) {
+			operationFailed = true;
+			throw failure;
+		} catch (final Exception failure) {
+			operationFailed = true;
+			throwMappedFailure(failure, UNKNOWN_ERROR);
+		} catch (final Error failure) {
+			operationFailed = true;
+			throw failure;
 		} finally {
-			closeTransportIfOpened(failed);
+			closeTransportIfOpened(operationFailed);
 		}
 	}
 
@@ -111,46 +117,61 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	@Override
 	@NotNull
 	public MailSubmissionReceipt sendMailAndGetReceipt(@NotNull final Email userProvidedEmail) {
-		if (transportModeLoggingOnly) {
-			return convertAndLogEmailOnly(userProvidedEmail);
+		final Email checkedEmail = verifyNonnull(userProvidedEmail);
+		final MailSendAttempt mailSendAttempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
+		try {
+			final Email preparedEmail = prepareEmail(checkedEmail);
+			mailSendAttempt.prepared(preparedEmail);
+			mailSendAttempt.started();
+			final MailSubmissionReceipt submissionReceipt = transportModeLoggingOnly
+					? convertAndLogPreparedEmail(preparedEmail)
+					: sendPreparedEmailUsingSingleTransport(preparedEmail);
+			mailSendAttempt.completeSuccessfully(submissionReceipt);
+			return submissionReceipt;
+		} catch (final MessagingException failure) {
+			throw completeWithMappedFailure(mailSendAttempt, failure, GENERIC_ERROR);
+		} catch (final EmailTooBigException failure) {
+			throw completeWithMappedFailure(mailSendAttempt, failure, MAILER_ERROR);
+		} catch (final RuntimeException | Error failure) {
+			mailSendAttempt.completeWithFailure(failure);
+			throw failure;
 		}
-		return sendEmailUsingSingleTransport(userProvidedEmail);
 	}
 
 	private void runCallback(@NotNull final MailSender sender) {
 		try {
 			openConnectionCallback.accept(sender);
-		} catch (final MailException | EmailTooBigException e) {
-			throw e;
-		} catch (final RuntimeException e) {
-			throw new RuntimeCallbackException(e);
-		} catch (final Error e) {
-			throw e;
-		} catch (final Exception e) {
-			throw new CheckedCallbackException(e);
+		} catch (final MailException | EmailTooBigException failure) {
+			throw failure;
+		} catch (final RuntimeException callbackFailure) {
+			throw new RuntimeCallbackException(callbackFailure);
+		} catch (final Error failure) {
+			throw failure;
+		} catch (final Exception callbackFailure) {
+			throw new CheckedCallbackException(callbackFailure);
 		}
 	}
 
 	@NotNull
-	private MailSubmissionReceipt convertAndLogEmailOnly(@NotNull final Email userProvidedEmail) {
-		try {
-			val email = prepareEmail(userProvidedEmail);
-			SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
-			return TransportRunner.buildReceipt(email, null);
-		} catch (final MessagingException e) {
-			handleException(e, GENERIC_ERROR);
-		}
-		throw new IllegalStateException("unreachable");
+	private MailSubmissionReceipt convertAndLogPreparedEmail(@NotNull final Email preparedEmail)
+			throws MessagingException {
+		SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, preparedEmail);
+		return TransportRunner.buildReceipt(preparedEmail, null);
 	}
 
 	@NotNull
-	private MailSubmissionReceipt sendEmailUsingSingleTransport(@NotNull final Email userProvidedEmail) {
-		try {
-			return TransportRunner.sendMessageOnTransport(checkNonEmptyArgument(transport, "transport"), session, prepareEmail(userProvidedEmail));
-		} catch (final MessagingException e) {
-			handleException(e, GENERIC_ERROR);
-		}
-		throw new IllegalStateException("unreachable");
+	private MailSubmissionReceipt sendPreparedEmailUsingSingleTransport(@NotNull final Email preparedEmail)
+			throws MessagingException {
+		return TransportRunner.sendMessageOnTransport(checkNonEmptyArgument(transport, "transport"), session, preparedEmail);
+	}
+
+	@NotNull
+	private MailerException completeWithMappedFailure(@NotNull final MailSendAttempt mailSendAttempt,
+			@NotNull final Exception cause,
+			@NotNull final String errorMessage) {
+		final MailerException failure = createMailerException(cause, errorMessage);
+		mailSendAttempt.completeWithFailure(failure);
+		return failure;
 	}
 
 	private void openSmtpTransport()
@@ -167,32 +188,37 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		try {
 			LOGGER.trace("closing transport");
 			transport.close();
-		} catch (final MessagingException e) {
+		} catch (final MessagingException closeFailure) {
 			if (suppressCloseFailure) {
-				LOGGER.trace("Failed to close open connection after earlier failure", e);
+				LOGGER.trace("Failed to close open connection after earlier failure", closeFailure);
 				return;
 			}
-			throw new MailerException("Was unable to close SMTP transport", e);
+			throw new MailerException("Was unable to close SMTP transport", closeFailure);
 		}
 	}
 
 	private Email prepareEmail(@NotNull final Email userProvidedEmail) {
 		currentEmail = null;
-		currentEmail = emailPreparer.apply(verifyNonnull(userProvidedEmail));
+		currentEmail = emailPreparer.apply(userProvidedEmail);
 		return currentEmail;
 	}
 
-	private void handleException(final Exception e, String errorMsg) {
+	private void throwMappedFailure(@NotNull final Exception cause, @NotNull final String errorMessage) {
+		throw createMailerException(cause, errorMessage);
+	}
+
+	@NotNull
+	private MailerException createMailerException(@NotNull final Exception cause, @NotNull final String errorMessage) {
 		if (currentEmail == null) {
-			LOGGER.trace("Failed to send emails with open connection\n\t{}", errorMsg);
-			throw new MailerException(format(errorMsg, "open connection"), e);
+			LOGGER.trace("Failed to send emails with open connection\n\t{}", errorMessage);
+			return new MailerException(format(errorMessage, "open connection"), cause);
 		}
 
-		LOGGER.trace("Failed to send email {}\n{}\n\t{}", currentEmail.getId(), currentEmail, errorMsg);
+		LOGGER.trace("Failed to send email {}\n{}\n\t{}", currentEmail.getId(), currentEmail, errorMessage);
 		val emailId = ofNullable(currentEmail.getId())
 				.map(id -> format("ID: '%s'", id))
 				.orElse(format("Subject: '%s'", currentEmail.getSubject()));
-		throw new MailerException(format(errorMsg, emailId), e);
+		return new MailerException(format(errorMessage, emailId), cause);
 	}
 
 	private static class CheckedCallbackException extends RuntimeException {
