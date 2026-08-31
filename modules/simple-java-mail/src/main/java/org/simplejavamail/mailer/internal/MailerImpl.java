@@ -677,8 +677,6 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	public Session getSession() {
-		LOGGER.warn("Providing access to Session instance for emergency fall-back scenario. Please let us know why you need it.");
-		LOGGER.warn("\t\t> https://github.com/bbottema/simple-java-mail/issues");
 		return session;
 	}
 

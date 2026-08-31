@@ -35,8 +35,10 @@ import java.util.concurrent.Future;
  */
 public interface Mailer extends AutoCloseable {
 	/**
-	 * In case Simple Java Mail falls short somehow, you can get a hold of the internal {@link Session} instance to debug or tweak. Please let us know
-	 * why you are needing this on <a href="https://github.com/bbottema/simple-java-mail/issues">simple-java-mail/issues</a>.
+	 * Returns the Jakarta Mail {@link Session} used by this mailer.
+	 * <p>
+	 * This provides direct access for integrations that need provider APIs or Session features not surfaced by the builder. The Session is shared by the
+	 * mailer, so apply changes before starting concurrent mail operations.
 	 */
 	Session getSession();
 	
