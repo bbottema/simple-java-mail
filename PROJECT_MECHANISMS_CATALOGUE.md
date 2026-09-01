@@ -8,6 +8,7 @@ This catalogue records project mechanisms that are easy to miss because they spa
 | --- | --- | --- |
 | API expansion workflow | Keep model, builders, CLI, config, conversion, and modules in sync when the public API grows. | [API_EXPANSION_WORKFLOW.md](API_EXPANSION_WORKFLOW.md) |
 | Immutable configuration snapshots | Resolve ordered sources once and propagate one detached configuration through a factory, its builders, conversion, governance, Sessions, Spring, and CLI. | [ConfigLoader.java](modules/core-module/src/main/java/org/simplejavamail/config/ConfigLoader.java), [SimpleJavaMailConfig.java](modules/core-module/src/main/java/org/simplejavamail/config/SimpleJavaMailConfig.java), [SimpleJavaMail.java](modules/simple-java-mail/src/main/java/org/simplejavamail/api/SimpleJavaMail.java) |
+| Spring Boot auto-configuration | Reuse the manual Spring bean path while allowing Boot applications to discover it, replace each layer independently, and retain application ownership of replacement Mailers. | [SimpleJavaMailAutoConfiguration.java](modules/spring-module/src/main/java/org/simplejavamail/springsupport/SimpleJavaMailAutoConfiguration.java), [SimpleJavaMailSpringBeanFactory.java](modules/spring-module/src/main/java/org/simplejavamail/springsupport/SimpleJavaMailSpringBeanFactory.java), [SpringEnvironmentConfigSource.java](modules/spring-module/src/main/java/org/simplejavamail/springsupport/SpringEnvironmentConfigSource.java), [spring-boot-compatibility.yml](.github/workflows/spring-boot-compatibility.yml) |
 | Dynamic module loading | Keep optional features out of the core runtime until their module jars are present and used. | [ModuleLoader.java](modules/simple-java-mail/src/main/java/org/simplejavamail/internal/moduleloader/ModuleLoader.java), [modules package](modules/core-module/src/main/java/org/simplejavamail/internal/modules) |
 | CLI generation from builder Javadocs | Turn builder API methods and Javadocs into picocli options and committed binary metadata. | [Cli.java](modules/core-module/src/main/java/org/simplejavamail/api/internal/clisupport/model/Cli.java), [BuilderApiToPicocliCommandsMapper.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/BuilderApiToPicocliCommandsMapper.java), [CliSupport.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java), `modules/cli-module/src/main/resources/cli.data`, `modules/cli-module/src/main/resources/therapi.data` |
 | Optional local CLI daemon | Keep CLI parsing and bounded Mailer instances alive behind authenticated per-user local IPC while preserving one-shot execution. | [DaemonBootstrap.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/daemon/DaemonBootstrap.java), [DaemonProtocol.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/daemon/DaemonProtocol.java), [DaemonServer.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/daemon/DaemonServer.java), [DaemonMailerRegistry.java](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/daemon/DaemonMailerRegistry.java) |
@@ -29,6 +30,28 @@ Important connections to the other mechanisms in this catalogue:
 - New mail features usually need a MIME conversion decision in `MimeMessageHelper` or `SpecializedMimeMessageProducer`.
 - Module-specific features may require updates to a core module interface, a module implementation, and the runtime loader.
 - New fields that represent user-facing configuration may also need config defaults, overrides, Spring mapping, and CLI data regeneration.
+
+## Spring Boot Auto-Configuration
+
+The auto-configuration implementation lives in `spring-module`, not in the starter. Boot discovers it through
+`META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`; no `spring.factories` fallback is packaged. This means an existing Boot
+application that already uses `spring-module` receives the integration without changing artifacts, while
+`simple-java-mail-spring-boot-starter` remains a dependency-only convenience artifact.
+
+Both manual Spring configuration and Boot auto-configuration delegate bean construction to `SimpleJavaMailSpringBeanFactory`. The factory loads the
+configuration through `SpringEnvironmentConfigSource`, which owns Spring Environment mapping, legacy aliases and wildcard property discovery. Source
+precedence and the development-only `localhost` fallback remain visible in the factory's configuration-loading flow. This separation keeps the property
+adapter and bean construction cohesive while preventing the two integration routes from drifting.
+
+Boot applies `@ConditionalOnMissingBean` separately to `SimpleJavaMailConfig`, `SimpleJavaMail`, and `Mailer`. Replacing an earlier layer therefore feeds
+the remaining defaults, while replacing only the Mailer preserves the injectable config and factory. The default Mailer declares `close` as its destroy
+method. A user bean does not inherit that declaration, though Spring can still infer `close` from the user's own `@Bean` definition.
+
+The production auto-configuration is compiled once for Java 11 against the Boot 2.7 API. The compatibility workflow runs the same sources and behavior
+tests against Boot 2.7/Spring 5 on Java 11, early Boot 3/Spring 6 on Java 17, and current Boot 3/Spring 6 on Java 21. Boot, Spring Framework, and SLF4J are
+provided dependencies: the consuming Boot application selects the matching generation through its own dependency management. The fixed Boot 2.7 property
+is a reproducible Java 11 build baseline, not a runtime version exported by the starter; compatibility belongs in the workflow and documentation rather
+than a Maven version range.
 
 ## Dynamic Module Loading
 

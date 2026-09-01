@@ -142,11 +142,57 @@ Exact EML must be non-empty, parseable, use canonical CRLF line endings, and end
 
 ## Configure once, reuse everywhere
 
-A `Mailer` keeps SMTP settings, transport policy, defaults, overrides, validation, signing, proxy configuration, and delivery behavior out of individual call sites. Configure it with the [Java builder API](https://www.simplejavamail.org/configuration.html#section-programmatic-api-common), [property files, system properties, or environment variables](https://www.simplejavamail.org/configuration.html#section-config-properties), or let the [Spring module](https://www.simplejavamail.org/configuration.html#section-spring-support) create and inject it.
+A `Mailer` keeps SMTP settings, transport policy, defaults, overrides, validation, signing, proxy configuration, and delivery behavior out of individual call sites. Configure it with the [Java builder API](https://www.simplejavamail.org/configuration.html#section-programmatic-api-common), [property files, system properties, or environment variables](https://www.simplejavamail.org/configuration.html#section-config-properties), or let the [Spring module](https://www.simplejavamail.org/spring.html) create and inject it.
 
 `SimpleJavaMail.fromDefaults()` resolves the conventional classpath file, environment variables, and system properties into one lazy immutable snapshot. For explicit source ordering or more than one mail setup in the same JVM, build a `SimpleJavaMailConfig` with `ConfigLoader.builder()` and pass it to `SimpleJavaMail.withConfig(config)`.
 
 This leaves application code to describe each email while shared rules stay in one reusable place.
+
+### Spring Boot
+
+Spring Boot 2.7 and 3.x applications can add the dedicated starter. It brings in `spring-module`, discovers the integration automatically, and creates
+one `SimpleJavaMailConfig`, `SimpleJavaMail`, and `Mailer` bean without an `@Import`. The application supplies its own Boot line and therefore keeps its
+Boot-managed Spring Framework and SLF4J versions:
+
+```xml
+<dependency>
+    <groupId>org.simplejavamail</groupId>
+    <artifactId>simple-java-mail-spring-boot-starter</artifactId>
+    <version>10.0.0</version>
+</dependency>
+```
+
+```groovy
+implementation 'org.simplejavamail:simple-java-mail-spring-boot-starter:10.0.0'
+```
+
+Configure the Mailer through the usual keys and inject it directly:
+
+```properties
+simplejavamail.smtp.host=smtp.example.org
+simplejavamail.smtp.port=587
+simplejavamail.transportstrategy=SMTP_TLS
+simplejavamail.smtp.username=${SMTP_USER}
+simplejavamail.smtp.password=${SMTP_PASSWORD}
+```
+
+```java
+@Service
+class NotificationService {
+    private final Mailer mailer;
+    private final SimpleJavaMail mail;
+
+    NotificationService(Mailer mailer, SimpleJavaMail mail) {
+        this.mailer = mailer;
+        this.mail = mail;
+    }
+}
+```
+
+Each bean backs off independently when the application supplies the same type. The auto-configured Mailer is closed with the application context; a
+replacement follows the lifecycle declared or inferred by its own Spring bean definition. With no SMTP host at all, the context still starts with
+`localhost` as a development fallback, but sending requires an SMTP server there. Plain Spring applications can continue to use `spring-module` with
+`@Import(SimpleJavaMailSpringSupport.class)`.
 
 ## Add only what you need
 
@@ -161,6 +207,7 @@ Optional modules extend the same API and add their dependencies only when select
 | [Pooled and clustered delivery](https://www.simplejavamail.org/modules.html#batch-module) | `batch-module` |
 | [Authenticated SOCKS proxies](https://www.simplejavamail.org/modules.html#authenticated-socks-module) | `authenticated-socks-module` |
 | [Outlook `.msg` parsing and conversion](https://www.simplejavamail.org/modules.html#outlook-module) | `outlook-module` |
+| [Spring Boot auto-configuration](https://www.simplejavamail.org/spring.html) | `simple-java-mail-spring-boot-starter` |
 | [Spring-managed configuration](https://www.simplejavamail.org/modules.html#spring-module) | `spring-module` |
 | [Command-line sending and validation](https://www.simplejavamail.org/modules.html#cli-module) | `cli-module` (Java 17+; the other modules require Java 11+) |
 | [OSGi and Apache Karaf](https://www.simplejavamail.org/modules.html#karaf-module) | `karaf-module` |

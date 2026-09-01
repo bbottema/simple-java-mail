@@ -1,0 +1,53 @@
+name: Spring Boot compatibility
+
+on:
+  push:
+    paths:
+      - "modules/spring-module/**"
+      - "modules/spring-boot-starter/**"
+      - "pom.xml"
+      - ".github/workflows/spring-boot-compatibility.yml"
+  pull_request:
+    paths:
+      - "modules/spring-module/**"
+      - "modules/spring-boot-starter/**"
+      - "pom.xml"
+      - ".github/workflows/spring-boot-compatibility.yml"
+
+jobs:
+  compatibility:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - java: 11
+            boot: 2.7.18
+            spring: 5.3.39
+            slf4j: 1.7.36
+          - java: 17
+            boot: 3.0.13
+            spring: 6.0.14
+            slf4j: 2.0.9
+          - java: 21
+            boot: 3.5.16
+            spring: 6.2.19
+            slf4j: 2.0.18
+    runs-on: ubuntu-latest
+    name: Boot ${{ matrix.boot }} on Java ${{ matrix.java }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+      - name: Test Spring discovery, backoff, application-provided dependencies and plain-Spring isolation
+        run: >-
+          mvn -pl modules/spring-boot-starter -am test
+          -Dtest=SimpleJavaMail*Test,SpringModulePackagingTest
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dspring.boot.version=${{ matrix.boot }}
+          -Dspring.version=${{ matrix.spring }}
+          -Dspring.boot.slf4j.version=${{ matrix.slf4j }}
+          -Dlicense.skip=true
+          -Djacoco.skip=true

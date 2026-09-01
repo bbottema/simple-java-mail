@@ -18,6 +18,8 @@
         <java.version>11</java.version>
         <library.java.release>11</library.java.release>
         <cli.java.release>17</cli.java.release>
+        <!-- Reproducible Java 11 build baseline; applications supply their own compatible Boot line at runtime. -->
+        <spring.boot.version>2.7.18</spring.boot.version>
         <compiler.encoding>UTF-8</compiler.encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -89,6 +91,7 @@
 		<module>modules/openpgp-module</module>
         <module>modules/simple-java-mail</module>
         <module>modules/spring-module</module>
+        <module>modules/spring-boot-starter</module>
         <module>modules/cli-module</module>
         <module>modules/jacoco-aggregator-module</module>
         <module>modules/karaf-module</module>

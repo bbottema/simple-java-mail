@@ -319,6 +319,20 @@ The equivalent property is `simplejavamail.proxy.socks5bridge.port=7777`. Remove
 
 ## Spring uses context-local configuration
 
+Spring Boot applications now discover Simple Java Mail automatically whenever `spring-module` is on the classpath. The recommended dependency is the new
+starter, which brings in `spring-module` while leaving Boot, Spring Framework, and SLF4J to the application's existing Boot dependency management:
+
+```xml
+<dependency>
+    <groupId>org.simplejavamail</groupId>
+    <artifactId>simple-java-mail-spring-boot-starter</artifactId>
+    <version>10.0.0</version>
+</dependency>
+```
+
+No `@Import` is needed in a Boot application. An existing explicit `@Import(SimpleJavaMailSpringSupport.class)` remains safe and still produces one bean
+of each type. Plain Spring applications continue to use that explicit import.
+
 `SimpleJavaMailSpringSupport` now exposes these beans in each application context:
 
 - `simpleJavaMailConfig`, an immutable `SimpleJavaMailConfig`;
@@ -340,6 +354,19 @@ Mailer customMailer() {
 ```
 
 Spring's `Environment` is authoritative for profiles, placeholders, system properties, and environment variables. The conventional `simplejavamail.properties` resource remains a low-priority source, but Simple Java Mail no longer overlays raw JVM and process values a second time after Spring resolves them. Separate application contexts therefore keep separate snapshots and factories.
+
+The three auto-configured beans back off independently by type. A custom `SimpleJavaMailConfig` feeds the default factory and Mailer, a custom
+`SimpleJavaMail` feeds the default Mailer, and a custom `Mailer` replaces only that Mailer. Spring closes its own default Mailer with the context; it does
+not add a lifecycle rule to a replacement. The replacement follows the destroy method declared or inferred by its own Spring bean definition; use
+`@Bean(destroyMethod = "")` only when the application deliberately owns shutdown elsewhere.
+
+Boot now creates the default beans even when no SMTP properties have been supplied. In that case the fallback host is `localhost`, which is convenient
+for a local development SMTP server but does not make sending succeed by itself. Configure `simplejavamail.smtp.host` before sending in any environment
+without a local SMTP service. Use Spring Boot's standard exclusion when the application should not create any of these defaults:
+
+```properties
+spring.autoconfigure.exclude=org.simplejavamail.springsupport.SimpleJavaMailAutoConfiguration
+```
 
 ## Embedded-image route flags are no longer crossed in Spring
 

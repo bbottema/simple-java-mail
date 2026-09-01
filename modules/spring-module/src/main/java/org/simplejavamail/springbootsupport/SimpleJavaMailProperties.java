@@ -19,6 +19,7 @@ public class SimpleJavaMailProperties {
 
     private Javaxmail javaxmail;
     private String transportstrategy;
+    private Map<String, String> extraproperties;
 
     private Smtp smtp;
     private Proxy proxy;
@@ -91,6 +92,7 @@ public class SimpleJavaMailProperties {
         private Recipient from;
         private Recipient replyto;
         private Recipient bounceto;
+        private Delivery delivery;
         private Recipient to;
         private Recipient cc;
         private Recipient bcc;
@@ -153,6 +155,58 @@ public class SimpleJavaMailProperties {
                     @Setter
                     public static class Transfer {
                         private String encoding;
+                    }
+                }
+            }
+        }
+
+        /**
+         * @deprecated See {@link SimpleJavaMailProperties}
+         */
+        @Getter
+        @Setter
+        public static class Delivery {
+            private Status status;
+
+            /**
+             * @deprecated See {@link SimpleJavaMailProperties}
+             */
+            @Getter
+            @Setter
+            public static class Status {
+                private Notification notification;
+
+                /**
+                 * @deprecated See {@link SimpleJavaMailProperties}
+                 */
+                public static class Notification {
+                    private String notify;
+                    private Return returnValue;
+
+                    public String getNotify() {
+                        return notify;
+                    }
+
+                    public void setNotify(final String notify) {
+                        this.notify = notify;
+                    }
+
+                    /* Explicit accessors retain "return" as the property segment even though it is a Java keyword. */
+                    public Return getReturn() {
+                        return returnValue;
+                    }
+
+                    public void setReturn(final Return returnValue) {
+                        this.returnValue = returnValue;
+                    }
+
+                    /**
+                     * @deprecated See {@link SimpleJavaMailProperties}
+                     */
+                    @Getter
+                    @Setter
+                    public static class Return {
+                        private String option;
                     }
                 }
             }
