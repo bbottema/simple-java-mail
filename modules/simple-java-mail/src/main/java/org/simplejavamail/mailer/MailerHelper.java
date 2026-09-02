@@ -36,7 +36,6 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class MailerHelper {
 
 	private static final Logger LOGGER = getLogger(MailerHelper.class);
-	private static final Pattern ENCODED_WORD_PATTERN = Pattern.compile("=\\?[^?\\s]+\\?[bBqQ]\\?[^?\\s]+\\?=");
 
 	/**
 	 * Delegates to #validate(Email, EmailValidator) with a null validator.
@@ -137,25 +136,6 @@ public class MailerHelper {
 	 * </ol>
 	 */
 	public static void validateAddresses(final @NotNull Email email, final @Nullable EmailValidator emailValidator) {
-		rejectEncodedWordAddress(email.getFromRecipient(), MailInvalidAddressException.INVALID_SENDER);
-		for (final Recipient recipient : email.getRecipients()) {
-			switch (ofNullable(recipient.getType()).orElse(TO).toString()) {
-				case "Cc": rejectEncodedWordAddress(recipient, MailInvalidAddressException.INVALID_CC_RECIPIENT); break;
-				case "Bcc": rejectEncodedWordAddress(recipient, MailInvalidAddressException.INVALID_BCC_RECIPIENT); break;
-				case "To":
-				default: rejectEncodedWordAddress(recipient, MailInvalidAddressException.INVALID_TO_RECIPIENT); break;
-			}
-		}
-		for (final Recipient recipient : email.getReplyToRecipients()) {
-			rejectEncodedWordAddress(recipient, MailInvalidAddressException.INVALID_REPLYTO);
-		}
-		rejectEncodedWordAddress(email.getBounceToRecipient(), MailInvalidAddressException.INVALID_BOUNCETO);
-		if (TRUE.equals(email.getUseDispositionNotificationTo()) && email.getDispositionNotificationTo() != null) {
-			rejectEncodedWordAddress(email.getDispositionNotificationTo(), MailInvalidAddressException.INVALID_DISPOSITIONNOTIFICATIONTO);
-		}
-		if (TRUE.equals(email.getUseReturnReceiptTo()) && email.getReturnReceiptTo() != null) {
-			rejectEncodedWordAddress(email.getReturnReceiptTo(), MailInvalidAddressException.INVALID_RETURNRECEIPTTO);
-		}
 		if (emailValidator != null) {
 			validateAddress(emailValidator, email.getFromRecipient(), MailInvalidAddressException.INVALID_SENDER);
 			for (final Recipient recipient : email.getRecipients()) {
@@ -176,12 +156,6 @@ public class MailerHelper {
 			if (TRUE.equals(email.getUseReturnReceiptTo()) && email.getReturnReceiptTo() != null) {
 				validateAddress(emailValidator, email.getReturnReceiptTo(), MailInvalidAddressException.INVALID_RETURNRECEIPTTO);
 			}
-		}
-	}
-
-	private static void rejectEncodedWordAddress(@Nullable Recipient recipient, @NotNull String errorTemplate) {
-		if (recipient != null && ENCODED_WORD_PATTERN.matcher(recipient.getAddress()).find()) {
-			throw new MailInvalidAddressException(format(errorTemplate, recipient.getAddress()));
 		}
 	}
 
