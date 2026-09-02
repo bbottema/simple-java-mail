@@ -22,6 +22,17 @@ public interface ConfigSource {
 	Map<String, ?> getProperties();
 
 	/**
+	 * Returns the diagnostic source name for one property. Most sources represent one origin and can use the default {@link #getName()} result. Composite
+	 * sources, such as a Spring Environment adapter, can override this method to identify the underlying source that supplied the property.
+	 *
+	 * @param propertyName The canonical concrete property name returned by {@link #getProperties()}.
+	 * @return A stable, non-blank name used to report where this property came from.
+	 */
+	default String getPropertySourceName(final String propertyName) {
+		return getName();
+	}
+
+	/**
 	 * Strict sources reject unknown keys. Process-wide environment and system-property sources are non-strict because most of their entries belong to other
 	 * software.
 	 *

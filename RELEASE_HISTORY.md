@@ -14,6 +14,7 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 
 - [#711](https://github.com/bbottema/simple-java-mail/issues/711): added explicit `Mailer.sendMailSync(...)`, `sendMailAsync(...)`, `sendMailAndGetReceiptSync(...)`, and `sendMailAndGetReceiptAsync(...)` entry points so return types and failure behavior reveal the selected execution mode; existing configurable and boolean methods remain supported.
 - [#709](https://github.com/bbottema/simple-java-mail/issues/709): added `Mailer.rehearse(...)` to return the governed `Email`, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.
+- [#715](https://github.com/bbottema/simple-java-mail/issues/715): added grouped, safe-to-log configuration diagnostics that show each resolved value and its winning source, including per-property Spring and wildcard provenance, through the immutable `SimpleJavaMail` factory snapshot.
 
 ## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [v9.3.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.1) - [v9.3.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.2) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.2/)
 

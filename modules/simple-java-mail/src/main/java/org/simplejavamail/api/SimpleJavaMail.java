@@ -4,6 +4,7 @@ import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
+import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.config.ConfigLoader;
@@ -49,6 +50,19 @@ public final class SimpleJavaMail {
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public static SimpleJavaMail withConfig(@NotNull final SimpleJavaMailConfig config) {
 		return new SimpleJavaMail(config);
+	}
+
+	/**
+	 * Returns the exact immutable snapshot used to create every builder from this factory. It does not include later builder overrides or generated runtime
+	 * defaults. Use {@link SimpleJavaMailConfig#getDiagnostics()} for safe property-source diagnostics and {@link Mailer#getOperationalConfig()} to inspect a
+	 * built Mailer's effective operational settings.
+	 *
+	 * @return This factory's configuration snapshot.
+	 */
+	@NotNull
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public SimpleJavaMailConfig getConfig() {
+		return config;
 	}
 
 	/**

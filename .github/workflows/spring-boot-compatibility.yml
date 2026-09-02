@@ -44,7 +44,7 @@ jobs:
       - name: Test Spring discovery, backoff, application-provided dependencies and plain-Spring isolation
         run: >-
           mvn -pl modules/spring-boot-starter -am test
-          -Dtest=SimpleJavaMail*Test,SpringModulePackagingTest
+          -Dtest=SimpleJavaMail*Test,SpringEnvironmentConfigSourceTest,SpringModulePackagingTest
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dspring.boot.version=${{ matrix.boot }}
           -Dspring.version=${{ matrix.spring }}

@@ -15,10 +15,13 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 /**
- * Contains all the configuration that affect how a {@link Mailer} operates. This includes connection settings such as
- * timeouts, debug mode and which hosts to trust.
+ * Contains the effective configuration that affects how one built {@link Mailer} operates. This includes connection settings such as timeouts, debug mode
+ * and which hosts to trust. Unlike factory configuration diagnostics, these values include Mailer builder overrides and generated defaults, but do not
+ * describe where a property-backed value originally came from.
  * <p>
  * All of these settings are configured on the {@link MailerGenericBuilder}.
+ *
+ * @see org.simplejavamail.config.SimpleJavaMailConfig#getDiagnostics()
  */
 public interface OperationalConfig {
 	/**

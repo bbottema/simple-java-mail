@@ -5,6 +5,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
@@ -85,6 +86,7 @@ class SimpleJavaMailFactoryTest {
 			final Object reloadedConfig = configLoaderType.getMethod("load").invoke(loader);
 			final Class<?> configType = Class.forName("org.simplejavamail.config.SimpleJavaMailConfig", true, runtime);
 			final Object reloadedFactory = simpleJavaMailType.getMethod("withConfig", configType).invoke(null, reloadedConfig);
+			assertThat(simpleJavaMailType.getMethod("getConfig").invoke(reloadedFactory)).isSameAs(reloadedConfig);
 			assertThat(readRegularBuilderValue(simpleJavaMailType, reloadedFactory, "getHost"))
 					.isEqualTo("system-after.example.test");
 
@@ -96,6 +98,16 @@ class SimpleJavaMailFactoryTest {
 			restoreSystemProperty(hostProperty, previousHost);
 			restoreSystemProperty(proxyProperty, previousProxy);
 		}
+	}
+
+	@Test
+	void factoryExposesTheExactImmutableConfigurationSnapshot() throws Exception {
+		final SimpleJavaMailConfig config = config("smtp.example.test", 2525);
+		final SimpleJavaMail factory = SimpleJavaMail.withConfig(config);
+
+		assertThat(factory.getConfig()).isSameAs(config);
+		assertThat(factory.getConfig().getDiagnostics()).isSameAs(config.getDiagnostics());
+		assertThat(SimpleJavaMail.class.getMethod("getConfig").getAnnotation(Cli.ExcludeApi.class)).isNotNull();
 	}
 
 	@Test

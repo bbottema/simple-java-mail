@@ -452,7 +452,8 @@ public interface Mailer extends AutoCloseable {
 	ProxyConfig getProxyConfig();
 
 	/**
-	 * @return The operational parameters defined using a mailer builder. Includes general things like session timeouts, debug mode, SSL config etc.
+	 * @return The effective operational parameters of this built Mailer, including builder overrides and generated defaults.
+	 * @see org.simplejavamail.config.SimpleJavaMailConfig#getDiagnostics()
 	 */
 	@NotNull
 	OperationalConfig getOperationalConfig();

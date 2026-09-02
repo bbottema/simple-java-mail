@@ -17,14 +17,22 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <p>
  * A snapshot contains only explicitly configured values. Runtime defaults such as generated cluster identifiers remain builder concerns. All input and
  * wildcard maps are detached during construction and all returned maps are unmodifiable.
+ * <p>
+ * The typed property getters and {@link #asMap()} return actual configured values and may therefore expose credentials. Use {@link #getDiagnostics()} for
+ * structured output intended for diagnostic logs.
  */
 public final class SimpleJavaMailConfig {
 
 	private final Map<ConfigLoader.Property, Object> values;
 	private final Map<ConfigLoader.Property, String> propertySources;
+	// Retains concrete wildcard aliases because their aggregate values are keyed by the resolved cluster UUID instead.
+	private final Map<String, Object> resolvedSourceProperties;
+	private final ConfigDiagnostics diagnostics;
 
 	SimpleJavaMailConfig(@NotNull final Map<ConfigLoader.Property, Object> values,
-			@NotNull final Map<ConfigLoader.Property, String> propertySources) {
+			@NotNull final Map<ConfigLoader.Property, String> propertySources,
+			@NotNull final Map<String, Object> resolvedSourceProperties,
+			@NotNull final ConfigDiagnostics diagnostics) {
 		final Map<ConfigLoader.Property, Object> detachedValues = new EnumMap<>(ConfigLoader.Property.class);
 		for (Map.Entry<ConfigLoader.Property, Object> entry : values.entrySet()) {
 			detachedValues.put(entry.getKey(), detach(entry.getKey(), entry.getValue()));
@@ -33,6 +41,8 @@ public final class SimpleJavaMailConfig {
 		final Map<ConfigLoader.Property, String> detachedSources = new EnumMap<>(ConfigLoader.Property.class);
 		detachedSources.putAll(propertySources);
 		this.propertySources = Collections.unmodifiableMap(detachedSources);
+		this.resolvedSourceProperties = Collections.unmodifiableMap(new LinkedHashMap<>(resolvedSourceProperties));
+		this.diagnostics = diagnostics;
 	}
 
 	/**
@@ -84,6 +94,15 @@ public final class SimpleJavaMailConfig {
 	}
 
 	/**
+	 * @return An immutable, grouped and safe-to-log description of every configured value and its winning source.
+	 * @see org.simplejavamail.api.mailer.Mailer#getOperationalConfig()
+	 */
+	@NotNull
+	public ConfigDiagnostics getDiagnostics() {
+		return diagnostics;
+	}
+
+	/**
 	 * Returns the explicit value when non-blank, otherwise the configured value, otherwise the supplied fallback.
 	 */
 	@Nullable
@@ -105,7 +124,7 @@ public final class SimpleJavaMailConfig {
 	}
 
 	/**
-	 * @return An unmodifiable view of all resolved property values.
+	 * @return An unmodifiable view of all resolved property values. This map contains actual values and is not safe to include in diagnostic logs.
 	 */
 	@NotNull
 	public Map<ConfigLoader.Property, Object> asMap() {
@@ -113,37 +132,7 @@ public final class SimpleJavaMailConfig {
 	}
 
 	Map<String, Object> asSourceMap() {
-		final Map<String, Object> raw = new LinkedHashMap<>();
-		for (Map.Entry<ConfigLoader.Property, Object> entry : values.entrySet()) {
-			if (entry.getKey() == ConfigLoader.Property.EXTRA_PROPERTIES) {
-				@SuppressWarnings("unchecked")
-				final Map<String, String> extras = (Map<String, String>) entry.getValue();
-				for (Map.Entry<String, String> extra : extras.entrySet()) {
-					raw.put("simplejavamail.extraproperties." + extra.getKey(), extra.getValue());
-				}
-			} else if (entry.getKey() == ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS) {
-				@SuppressWarnings("unchecked")
-				final Map<UUID, ConnectionPoolClusterConfig> clusters = (Map<UUID, ConnectionPoolClusterConfig>) entry.getValue();
-				for (Map.Entry<UUID, ConnectionPoolClusterConfig> cluster : clusters.entrySet()) {
-					final String prefix = "simplejavamail.defaults.connectionpool.clusters." + cluster.getKey() + ".";
-					raw.put(prefix + "clusterkey.uuid", cluster.getKey().toString());
-					putIfNotNull(raw, prefix + "coresize", cluster.getValue().getCoreSize());
-					putIfNotNull(raw, prefix + "maxsize", cluster.getValue().getMaxSize());
-					putIfNotNull(raw, prefix + "claimtimeout.millis", cluster.getValue().getClaimTimeoutMillis());
-					putIfNotNull(raw, prefix + "expireafter.millis", cluster.getValue().getExpireAfterMillis());
-					putIfNotNull(raw, prefix + "loadbalancing.strategy", cluster.getValue().getLoadBalancingStrategy());
-				}
-			} else {
-				raw.put(entry.getKey().key(), entry.getValue());
-			}
-		}
-		return raw;
-	}
-
-	private static void putIfNotNull(final Map<String, Object> target, final String key, @Nullable final Object value) {
-		if (value != null) {
-			target.put(key, value);
-		}
+		return new LinkedHashMap<>(resolvedSourceProperties);
 	}
 
 	private static Object detach(final ConfigLoader.Property property, final Object value) {

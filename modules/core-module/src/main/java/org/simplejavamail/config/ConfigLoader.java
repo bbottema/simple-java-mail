@@ -158,7 +158,7 @@ public final class ConfigLoader {
 	 * Adds a custom source at the current priority. Sources are read once per {@link #load()} call and later non-blank values win.
 	 */
 	public ConfigLoader withSource(final @NotNull ConfigSource source) {
-        sources.add(source);
+		sources.add(source);
 		return this;
 	}
 
@@ -310,7 +310,8 @@ public final class ConfigLoader {
 					continue;
 				}
 				if (!isBlankValue(entry.getValue())) {
-					winners.put(key, new RawValue(entry.getValue(), sourceName, sourceOrder));
+					final String propertySourceName = requireSourceName(source.getPropertySourceName(key));
+					winners.put(key, new RawValue(entry.getValue(), sourceName, propertySourceName, sourceOrder));
 				}
 			}
 			sourceOrder++;
@@ -321,47 +322,79 @@ public final class ConfigLoader {
 	private static SimpleJavaMailConfig resolve(final Map<String, RawValue> winners) {
 		final Map<Property, Object> resolved = new EnumMap<>(Property.class);
 		final Map<Property, String> origins = new EnumMap<>(Property.class);
+		final Map<String, Object> resolvedSourceProperties = new LinkedHashMap<>();
+		final List<ConfigPropertyDiagnostic> diagnostics = new ArrayList<>();
 
+		resolveScalarProperties(winners, resolved, origins, resolvedSourceProperties, diagnostics);
+		resolveWildcardProperties(winners, resolved, origins, resolvedSourceProperties, diagnostics);
+
+		return new SimpleJavaMailConfig(resolved, origins, resolvedSourceProperties, new ConfigDiagnostics(diagnostics));
+	}
+
+	private static void resolveScalarProperties(final Map<String, RawValue> winners,
+			final Map<Property, Object> resolved,
+			final Map<Property, String> origins,
+			final Map<String, Object> resolvedSourceProperties,
+			final List<ConfigPropertyDiagnostic> diagnostics) {
 		for (Property property : Property.values()) {
 			if (property == Property.EXTRA_PROPERTIES || property == Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS) {
 				continue;
 			}
 			final RawValue winner = winners.get(property.key());
 			if (winner != null) {
-				resolved.put(property, PropertySchema.parse(property, winner.value, winner.sourceName));
-				origins.put(property, winner.sourceName);
+				final Object parsedValue = PropertySchema.parse(property, winner.value, winner.propertySourceName);
+				resolved.put(property, parsedValue);
+				origins.put(property, winner.propertySourceName);
+				resolvedSourceProperties.put(property.key(), parsedValue);
+				diagnostics.add(PropertySchema.diagnostic(property, property.key(), parsedValue, winner.propertySourceName));
 			}
 		}
+	}
 
+	private static void resolveWildcardProperties(final Map<String, RawValue> winners,
+			final Map<Property, Object> resolved,
+			final Map<Property, String> origins,
+			final Map<String, Object> resolvedSourceProperties,
+			final List<ConfigPropertyDiagnostic> diagnostics) {
 		final Map<String, String> extraProperties = new LinkedHashMap<>();
 		RawValue latestExtra = null;
 		final Map<String, Object> clusterProperties = new LinkedHashMap<>();
 		RawValue latestCluster = null;
 		for (Map.Entry<String, RawValue> entry : winners.entrySet()) {
-			if (EXTRA_PROPERTY_PATTERN.matcher(entry.getKey()).matches()) {
-				final Matcher matcher = EXTRA_PROPERTY_PATTERN.matcher(entry.getKey());
-				matcher.matches();
+			final Matcher extraPropertyMatcher = EXTRA_PROPERTY_PATTERN.matcher(entry.getKey());
+			if (extraPropertyMatcher.matches()) {
 				if (!(entry.getValue().value instanceof String)) {
 					throw invalidWildcardValue(entry.getKey(), entry.getValue(), "text");
 				}
-				extraProperties.put(matcher.group("actualProperty"), (String) entry.getValue().value);
+				extraProperties.put(extraPropertyMatcher.group("actualProperty"), (String) entry.getValue().value);
+				diagnostics.add(PropertySchema.diagnostic(
+						Property.EXTRA_PROPERTIES,
+						entry.getKey(),
+						entry.getValue().value,
+						entry.getValue().propertySourceName));
+				resolvedSourceProperties.put(entry.getKey(), entry.getValue().value);
 				latestExtra = later(latestExtra, entry.getValue());
 			} else if (CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(entry.getKey()).matches()) {
-				clusterProperties.put(entry.getKey(), entry.getValue().value);
+				final Object parsedValue = parseConnectionPoolClusterProperty(entry.getKey(), entry.getValue().value);
+				clusterProperties.put(entry.getKey(), parsedValue);
+				resolvedSourceProperties.put(entry.getKey(), parsedValue);
+				diagnostics.add(PropertySchema.diagnostic(
+						Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS,
+						entry.getKey(),
+						parsedValue,
+						entry.getValue().propertySourceName));
 				latestCluster = later(latestCluster, entry.getValue());
 			}
 		}
 
 		if (!extraProperties.isEmpty()) {
 			resolved.put(Property.EXTRA_PROPERTIES, extraProperties);
-			origins.put(Property.EXTRA_PROPERTIES, latestExtra.sourceName);
+			origins.put(Property.EXTRA_PROPERTIES, latestExtra.configSourceName);
 		}
 		if (!clusterProperties.isEmpty()) {
 			resolved.put(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, parseConnectionPoolClusterProperties(clusterProperties));
-			origins.put(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, latestCluster.sourceName);
+			origins.put(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, latestCluster.configSourceName);
 		}
-
-		return new SimpleJavaMailConfig(resolved, origins);
 	}
 
 	private static RawValue later(@Nullable final RawValue first, final RawValue second) {
@@ -369,7 +402,7 @@ public final class ConfigLoader {
 	}
 
 	private static IllegalArgumentException invalidWildcardValue(final String key, final RawValue rawValue, final String expectedType) {
-		return new IllegalArgumentException("Invalid value for " + key + " from source " + rawValue.sourceName + "; expected " + expectedType);
+		return new IllegalArgumentException("Invalid value for " + key + " from source " + rawValue.propertySourceName + "; expected " + expectedType);
 	}
 
 	private static ConfigSource mapSource(final String sourceName, final Map<?, ?> properties, final boolean strict) {
@@ -451,12 +484,14 @@ public final class ConfigLoader {
 
 	private static final class RawValue {
 		private final Object value;
-		private final String sourceName;
+		private final String configSourceName;
+		private final String propertySourceName;
 		private final long sourceOrder;
 
-		private RawValue(final Object value, final String sourceName, final long sourceOrder) {
+		private RawValue(final Object value, final String configSourceName, final String propertySourceName, final long sourceOrder) {
 			this.value = value;
-			this.sourceName = sourceName;
+			this.configSourceName = configSourceName;
+			this.propertySourceName = propertySourceName;
 			this.sourceOrder = sourceOrder;
 		}
 	}
@@ -478,22 +513,22 @@ public final class ConfigLoader {
 
 			switch (clusterProperty) {
 				case "clusterkey.uuid":
-					clusterKeysByAlias.put(clusterAlias, parseUuid(propertyName, propertyValue));
+					clusterKeysByAlias.put(clusterAlias, (UUID) propertyValue);
 					break;
 				case "coresize":
-					builder.coreSize(parseInteger(propertyName, propertyValue));
+					builder.coreSize((Integer) propertyValue);
 					break;
 				case "maxsize":
-					builder.maxSize(parseInteger(propertyName, propertyValue));
+					builder.maxSize((Integer) propertyValue);
 					break;
 				case "claimtimeout.millis":
-					builder.claimTimeoutMillis(parseInteger(propertyName, propertyValue));
+					builder.claimTimeoutMillis((Integer) propertyValue);
 					break;
 				case "expireafter.millis":
-					builder.expireAfterMillis(parseInteger(propertyName, propertyValue));
+					builder.expireAfterMillis((Integer) propertyValue);
 					break;
 				case "loadbalancing.strategy":
-					builder.loadBalancingStrategy(parseLoadBalancingStrategy(propertyName, propertyValue));
+					builder.loadBalancingStrategy((LoadBalancingStrategy) propertyValue);
 					break;
 				default:
 					throw new IllegalStateException("Unhandled connection pool cluster property " + clusterProperty);
@@ -509,6 +544,26 @@ public final class ConfigLoader {
 			connectionPoolClusterConfigs.put(clusterKey, configBuilder.getValue().build());
 		}
 		return connectionPoolClusterConfigs;
+	}
+
+	private static Object parseConnectionPoolClusterProperty(@NotNull final String propertyName, @Nullable final Object propertyValue) {
+		final Matcher matcher = CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(propertyName);
+		if (!matcher.matches()) {
+			throw new IllegalArgumentException("Unknown connection pool cluster property " + propertyName);
+		}
+		switch (matcher.group("clusterProperty")) {
+			case "clusterkey.uuid":
+				return parseUuid(propertyName, propertyValue);
+			case "coresize":
+			case "maxsize":
+			case "claimtimeout.millis":
+			case "expireafter.millis":
+				return parseInteger(propertyName, propertyValue);
+			case "loadbalancing.strategy":
+				return parseLoadBalancingStrategy(propertyName, propertyValue);
+			default:
+				throw new IllegalStateException("Unhandled connection pool cluster property " + propertyName);
+		}
 	}
 
 	private static UUID parseUuid(@NotNull final String propertyName, @Nullable final Object propertyValue) {

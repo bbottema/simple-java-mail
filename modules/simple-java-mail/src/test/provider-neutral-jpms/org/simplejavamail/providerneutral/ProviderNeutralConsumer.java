@@ -14,6 +14,8 @@ import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
+import org.simplejavamail.config.ConfigDiagnosticGroup;
+import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
 
@@ -33,7 +35,7 @@ import java.util.function.Function;
  * JAR and its provider-neutral dependencies, but deliberately excludes {@code org.simplejavamail.mailprovider.angus} and Angus Mail. The probe verifies
  * that:
  * <ul>
- *     <li>the exported email-building, mail-send-observer, exact-EML, and transport-SPI types remain readable without Angus;</li>
+ *     <li>the exported email-building, mail-send-observer, configuration-diagnostic, exact-EML, and transport-SPI types remain readable without Angus;</li>
  *     <li>a third-party {@link Transport} and {@link MailTransportAdapter} can be implemented from a named module without Angus; and</li>
  *     <li>an operation that really needs a Jakarta Mail implementation fails with an actionable diagnostic.</li>
  * </ul>
@@ -43,23 +45,36 @@ import java.util.function.Function;
  */
 public final class ProviderNeutralConsumer {
 
-    /** Runs all module-path linkage and failure-diagnostic assertions; success is intentionally silent. */
-    public static void main(final String[] args) throws Exception {
+	/** Runs all module-path linkage and failure-diagnostic assertions; success is intentionally silent. */
+	public static void main(final String[] args) throws Exception {
 		final Properties configProperties = new Properties();
 		configProperties.setProperty(ConfigLoader.Property.DEFAULT_SUBJECT.key(), "provider neutral");
 		final SimpleJavaMail simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties(configProperties).load());
-        final Email source = simpleJavaMail.emailBuilder().startingBlank()
-                .from("sender@example.com")
+		final Email source = simpleJavaMail.emailBuilder().startingBlank()
+				.from("sender@example.com")
 				.withRecipients(new Recipient(null, "receiver@example.com", Message.RecipientType.TO, null))
-                .withPlainText("conversion without a mail provider")
+				.withPlainText("conversion without a mail provider")
 				.withHTMLText("<p>provider-neutral HTML</p>")
 				.withAttachment("proof.txt", "provider-neutral attachment".getBytes(StandardCharsets.UTF_8), "text/plain")
 				.buildEmailCompletedWithDefaultsAndOverrides();
 		assertMailSendObserverApiIsAvailable(simpleJavaMail);
+		assertConfigDiagnosticsApiIsAvailable(simpleJavaMail);
 		assertExactEmailApiIsAvailable(simpleJavaMail);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
-    }
+	}
+
+	/** Verifies the factory snapshot and grouped diagnostic API can be linked through the exported config package. */
+	private static void assertConfigDiagnosticsApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
+		final ConfigPropertyDiagnostic subjectDiagnostic = simpleJavaMail.getConfig()
+				.getDiagnostics()
+				.getProperties(ConfigDiagnosticGroup.EMAIL_DEFAULTS)
+				.get(0);
+		if (!ConfigLoader.Property.DEFAULT_SUBJECT.key().equals(subjectDiagnostic.getPropertyName())
+				|| subjectDiagnostic.isRedacted()) {
+			throw new AssertionError("Configuration diagnostics API is unavailable");
+		}
+	}
 
 	private static void assertAngusIsAbsent() {
 		try {

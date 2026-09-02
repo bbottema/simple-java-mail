@@ -5,6 +5,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.springsupport.SimpleJavaMailAutoConfiguration;
 import org.simplejavamail.springsupport.SimpleJavaMailSpringSupport;
@@ -36,10 +37,14 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 	@Test
 	void discoversAndCreatesAllDefaultsWithoutSmtpConfiguration() {
 		try (ConfigurableApplicationContext context = startApplication()) {
+			final SimpleJavaMailConfig config = context.getBean(SimpleJavaMailConfig.class);
+			final SimpleJavaMail simpleJavaMail = context.getBean(SimpleJavaMail.class);
+
 			assertThat(context.getBeansOfType(SimpleJavaMailConfig.class)).containsOnlyKeys("simpleJavaMailConfig");
 			assertThat(context.getBeansOfType(SimpleJavaMail.class)).containsOnlyKeys("simpleJavaMail");
 			assertThat(context.getBeansOfType(Mailer.class)).containsOnlyKeys("defaultMailer");
-			assertThat(context.getBean(SimpleJavaMailConfig.class).getStringProperty(ConfigLoader.Property.SMTP_HOST)).isEqualTo("localhost");
+			assertThat(config.getStringProperty(ConfigLoader.Property.SMTP_HOST)).isEqualTo("localhost");
+			assertThat(simpleJavaMail.getConfig()).isSameAs(config);
 			assertThat(context.getBean(Mailer.class).getServerConfig().getHost()).isEqualTo("localhost");
 			assertThat(context.getBean(Mailer.class).getOperationalConfig().getOAuth2AccessTokenProvider()).isNull();
 		}
@@ -65,6 +70,7 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			final SimpleJavaMailConfig customConfig = context.getBean("customConfig", SimpleJavaMailConfig.class);
 
 			assertThat(context.getBean(SimpleJavaMailConfig.class)).isSameAs(customConfig);
+			assertThat(context.getBean(SimpleJavaMail.class).getConfig()).isSameAs(customConfig);
 			assertThat(context.getBean(SimpleJavaMail.class).mailerBuilder().getHost()).isEqualTo("custom-config.example.test");
 			assertThat(context.getBean(Mailer.class).getServerConfig().getHost()).isEqualTo("custom-config.example.test");
 		}
@@ -181,6 +187,10 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(config.getIntegerProperty(ConfigLoader.Property.SMTP_PORT)).isEqualTo(2526);
 			assertThat(config.<Map<String, String>>getProperty(ConfigLoader.Property.EXTRA_PROPERTIES))
 					.containsEntry("source", "command-line");
+			assertThat(diagnostic(config, ConfigLoader.Property.SMTP_HOST.key()).getSourceName())
+					.contains("profile-simplejavamail.properties");
+			assertThat(diagnostic(config, ConfigLoader.Property.SMTP_PORT.key()).getSourceName()).isEqualTo("commandLineArgs");
+			assertThat(diagnostic(config, "simplejavamail.extraproperties.source").getSourceName()).isEqualTo("commandLineArgs");
 		}
 	}
 
@@ -196,6 +206,14 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 
 	private static ConfigurableApplicationContext startApplication(final Class<?>... userConfigurations) {
 		return applicationBuilder(userConfigurations).run();
+	}
+
+	private static ConfigPropertyDiagnostic diagnostic(final SimpleJavaMailConfig config, final String propertyName) {
+		return config.getDiagnostics().getGroups().stream()
+				.flatMap(group -> config.getDiagnostics().getProperties(group).stream())
+				.filter(property -> property.getPropertyName().equals(propertyName))
+				.findFirst()
+				.orElseThrow(() -> new AssertionError("No diagnostic found for " + propertyName));
 	}
 
 	private static SpringApplicationBuilder oauthApplicationBuilder(final Class<?>... userConfigurations) {

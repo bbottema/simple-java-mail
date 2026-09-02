@@ -43,6 +43,14 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 		return resolvedProperties;
 	}
 
+	@Override
+	public String getPropertySourceName(final String propertyName) {
+		final String underlyingSourceName = isWildcardPropertyName(propertyName)
+				? findUnderlyingPropertySourceName(propertyName)
+				: findScalarPropertySourceName(propertyName);
+		return underlyingSourceName != null ? underlyingSourceName : getName();
+	}
+
 	private void addScalarPropertiesTo(final Map<String, Object> resolvedProperties) {
 		for (Property property : Property.values()) {
 			if (isWildcardProperty(property)) {
@@ -61,14 +69,10 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 
 	@Nullable
 	private String resolveScalarProperty(final String canonicalKey) {
-		final String canonicalValue = environment.getProperty(canonicalKey);
-		if (canonicalValue != null) {
-			return canonicalValue;
-		}
-		for (String alias : aliasesFor(canonicalKey)) {
-			final String aliasValue = environment.getProperty(alias);
-			if (aliasValue != null) {
-				return aliasValue;
+		for (String lookupName : lookupNamesFor(canonicalKey)) {
+			final String value = environment.getProperty(lookupName);
+			if (value != null) {
+				return value;
 			}
 		}
 		return null;
@@ -76,7 +80,7 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 
 	private void addWildcardPropertiesTo(final Map<String, Object> resolvedProperties) {
 		for (PropertySource<?> propertySource : environment.getPropertySources()) {
-			if (propertySource instanceof EnumerablePropertySource) {
+			if (!isBootConfigurationPropertiesAggregator(propertySource) && propertySource instanceof EnumerablePropertySource) {
 				addEnumerableWildcardPropertiesTo((EnumerablePropertySource<?>) propertySource, resolvedProperties);
 			}
 		}
@@ -107,6 +111,86 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 			return new String[] { canonicalKey.replace('_', '-') };
 		}
 		return new String[0];
+	}
+
+	private static String[] lookupNamesFor(final String canonicalKey) {
+		final String[] aliases = aliasesFor(canonicalKey);
+		final String[] lookupNames = new String[aliases.length + 1];
+		lookupNames[0] = canonicalKey;
+		System.arraycopy(aliases, 0, lookupNames, 1, aliases.length);
+		return lookupNames;
+	}
+
+	@Nullable
+	private String findScalarPropertySourceName(final String canonicalKey) {
+		for (String lookupName : lookupNamesFor(canonicalKey)) {
+			final String sourceName = findUnderlyingPropertySourceName(lookupName);
+			if (sourceName != null) {
+				return sourceName;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Spring Boot places a synthetic aggregate first in the Environment. It resolves relaxed names but hides the real source, so provenance is located in
+	 * the underlying Spring sources and only applies relaxed-name matching when that aggregate is present.
+	 */
+	@Nullable
+	private String findUnderlyingPropertySourceName(final String propertyName) {
+		final boolean bootRelaxedNamesAreAvailable = hasBootConfigurationPropertiesAggregator();
+		for (PropertySource<?> propertySource : environment.getPropertySources()) {
+			if (isBootConfigurationPropertiesAggregator(propertySource)) {
+				continue;
+			}
+			if (propertySource.getProperty(propertyName) != null) {
+				return propertySource.getName();
+			}
+			if (bootRelaxedNamesAreAvailable
+					&& propertySource instanceof EnumerablePropertySource
+					&& containsRelaxedPropertyName((EnumerablePropertySource<?>) propertySource, propertyName)) {
+				return propertySource.getName();
+			}
+		}
+		return null;
+	}
+
+	private boolean hasBootConfigurationPropertiesAggregator() {
+		for (PropertySource<?> propertySource : environment.getPropertySources()) {
+			if (isBootConfigurationPropertiesAggregator(propertySource)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean containsRelaxedPropertyName(final EnumerablePropertySource<?> propertySource,
+			final String requestedPropertyName) {
+		final String normalizedRequestedName = normalizePropertyName(requestedPropertyName);
+		for (String candidatePropertyName : propertySource.getPropertyNames()) {
+			if (normalizedRequestedName.equals(normalizePropertyName(candidatePropertyName))
+					&& propertySource.getProperty(candidatePropertyName) != null) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static String normalizePropertyName(final String propertyName) {
+		final StringBuilder normalizedName = new StringBuilder(propertyName.length());
+		for (int characterIndex = 0; characterIndex < propertyName.length(); characterIndex++) {
+			final char character = propertyName.charAt(characterIndex);
+			if (Character.isLetterOrDigit(character)) {
+				normalizedName.append(Character.toLowerCase(character));
+			}
+		}
+		return normalizedName.toString();
+	}
+
+	private static boolean isBootConfigurationPropertiesAggregator(final PropertySource<?> propertySource) {
+		return "configurationProperties".equals(propertySource.getName())
+				&& "org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource"
+				.equals(propertySource.getClass().getName());
 	}
 
 	private static Map<String, String[]> compatibilityAliases() {
