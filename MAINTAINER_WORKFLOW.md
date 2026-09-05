@@ -334,8 +334,11 @@ Use semantic commit subjects: `action(subject): summary, multiline allowed`
 
 Keep unrelated changes out of the commit. Split docs, release notes, build fixes, and implementation work when they are independently meaningful.
 
-For non-code-only changes such as release-note cleanup, issue-bookkeeping docs, or website TODO notes, add `[skip ci]` to the commit subject unless the user explicitly wants CI to run.
-Do not use `[skip ci]` for implementation, build, dependency, generated CLI metadata, or release-lane fixes that need CI validation.
+Use `[skip ci]` only when every changed file is excluded from the produced artifacts and the commit does not need to trigger required CI. Do not infer this from file extensions: inspect Maven resources, assembly descriptors, and other packaging configuration first. For example, `RELEASE.txt` is copied into the standalone CLI archives, so a commit that changes it must not use `[skip ci]`.
+
+Never put `[skip ci]` on the final commit that will be promoted to `master` as the release-candidate tip. That push must trigger the required CircleCI build even when the individual changes were already verified elsewhere.
+
+Valid `[skip ci]` candidates include maintainer-only workflow or issue-bookkeeping documents and website TODO notes that are neither packaged nor intended to trigger a deployment. Do not use `[skip ci]` for implementation, build, dependency, generated CLI metadata, artifact-facing release notes, or release-lane fixes that need CI validation.
 
 Push implementation work to `develop` unless preparing a release:
 
