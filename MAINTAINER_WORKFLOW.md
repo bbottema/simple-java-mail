@@ -246,7 +246,7 @@ $env:MAVEN_OPTS = "-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT"
 After any build that ran `license:format`, remove generated headers before committing unless the release artifact itself is being checked:
 
 ```powershell
-mvn com.mycila:license-maven-plugin:3.0:remove
+mvn license:remove
 ```
 
 For release packaging checks, confirm the standalone CLI artifacts are built:
