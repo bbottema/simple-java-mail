@@ -127,8 +127,8 @@ public class MailerHelperTest {
         val encodedWordAddress = "=?utf-8?q?=40evil.com=00?=@microsoft.com";
 
         assertThat(JMail.strictValidator().isValid(encodedWordAddress))
-                .as("Sanity check for the Jakarta/JMail validation gap guarded by Simple Java Mail")
-                .isTrue();
+                .as("Sanity check that JMail rejects encoded words in address specs")
+                .isFalse();
 
         assertThatThrownBy(() -> MailerHelper.validateAddresses(newBuilder()
                 .from(encodedWordAddress)

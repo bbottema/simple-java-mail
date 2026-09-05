@@ -57,7 +57,7 @@
         <dependency><!-- email validation framework -->
             <groupId>com.sanctionco.jmail</groupId>
             <artifactId>jmail</artifactId>
-            <version>2.2.0</version>
+            <version>2.2.1</version>
         </dependency>
 
         <dependency><!-- Annotation processor -->
