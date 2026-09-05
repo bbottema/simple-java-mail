@@ -3,7 +3,7 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.3.2</version>
+    <version>9.3.3</version>
 </dependency>
 
 v10.0.0 (unreleased)
@@ -20,8 +20,10 @@ Enhancements:
 - #709: added Mailer.rehearse(...) to return the governed Email, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.
 - #715: added grouped, safe-to-log configuration diagnostics that show each resolved value and its winning source, including per-property Spring and wildcard provenance, through the immutable SimpleJavaMail factory snapshot.
 
-v9.3.0 - v9.3.2
+v9.3.0 - v9.3.3
 
+- **v9.3.3:** #720: made optional-module initialization thread-safe so concurrent first use reuses one module instance.
+- **v9.3.3:** Updated JMail to 2.2.1 (#719) and SpotBugs annotations to 4.10.4 (#717), retaining Java 8 compatibility and Simple Java Mail's validation when no general address validator is supplied.
 - **v9.3.2:** #702: clarified the single-address contract of RecipientBuilder by renaming its misleading implementation parameter and validation label; use RecipientsBuilder for comma- or semicolon-delimited address lists.
 - **v9.3.1:** Updated Maven Antrun Plugin from 3.1.0 to 3.2.0 (#700) and Maven Dependency Plugin from 3.8.1 to 3.11.0 (#701), retaining Java 8 compatibility.
 - **v9.3.0:** #698: exposed batch-module as a supported standalone Jakarta Mail orchestration API with clustered and exact-Session callbacks, asynchronous submission, automatic lease release/invalidation, and deterministic graceful or forced shutdown.

@@ -6,7 +6,7 @@
     <groupId>org.simplejavamail</groupId>
     <artifactId>maven-master-project</artifactId>
     <packaging>pom</packaging>
-    <version>9.3.2</version>
+    <version>9.3.3</version>
     <inceptionYear>2009</inceptionYear>
 
     <name>Simple Java Mail - Maven master project</name>
@@ -298,7 +298,7 @@
             <dependency><!-- Gives us SpotBugs suppression annotations. -->
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-annotations</artifactId>
-                <version>4.10.3</version>
+                <version>4.10.4</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
