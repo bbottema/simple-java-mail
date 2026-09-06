@@ -5,15 +5,21 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
+import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
 import org.bouncycastle.bcpg.PublicKeyAlgorithmTags;
 import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
+import org.bouncycastle.bcpg.sig.KeyFlags;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPSignature;
+import org.bouncycastle.openpgp.PGPSignatureSubpacketGenerator;
+import org.bouncycastle.openpgp.PGPSignatureSubpacketVector;
+import org.bouncycastle.openpgp.PGPUtil;
+import org.bouncycastle.openpgp.api.OpenPGPKey;
 import org.bouncycastle.openpgp.operator.PGPDigestCalculator;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
@@ -22,6 +28,13 @@ import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.pgpainless.PGPainless;
+import org.pgpainless.algorithm.KeyFlag;
+import org.pgpainless.key.generation.KeySpecBuilder;
+import org.pgpainless.key.generation.type.rsa.RSA;
+import org.pgpainless.key.generation.type.rsa.RsaLength;
+import org.pgpainless.util.Passphrase;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
@@ -38,14 +51,14 @@ import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.openpgpsupport.OpenPgpSupport;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
-import org.simplejavamail.internal.moduleloader.ModuleLoader;
-import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -56,9 +69,17 @@ import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.Provider;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -70,14 +91,24 @@ class OpenPgpMimeTest {
 
     private static final Provider BC = new BouncyCastleProvider();
     private static final char[] PASSPHRASE = "test-passphrase".toCharArray();
+    private static final char[] OPENPGP_JS_PASSPHRASE = "openpgpjs-fixture-passphrase".toCharArray();
+    private static final int SIGNING_AND_ENCRYPTION_KEY_FLAGS = KeyFlags.CERTIFY_OTHER | KeyFlags.SIGN_DATA
+            | KeyFlags.ENCRYPT_COMMS | KeyFlags.ENCRYPT_STORAGE;
     private static TestKey firstKey;
     private static TestKey secondKey;
-	private static final char[] OPENPGP_JS_PASSPHRASE = "openpgpjs-fixture-passphrase".toCharArray();
+    private static TestKey keyWithSigningSubkey;
+    private static TestKey expiredKey;
+    private static TestKey encryptionOnlyKey;
 
     @BeforeAll
     static void generateKeys() throws Exception {
         firstKey = generateKey("First Recipient <first@example.com>");
         secondKey = generateKey("Second Recipient <second@example.com>");
+        keyWithSigningSubkey = generateKeyWithSigningSubkey("Signing Subkey <subkey@example.com>");
+        expiredKey = generateKey("Expired Recipient <expired@example.com>", SIGNING_AND_ENCRYPTION_KEY_FLAGS,
+                new Date(System.currentTimeMillis() - 60_000L), 1);
+        encryptionOnlyKey = generateKey("Encryption Recipient <encryption@example.com>",
+                KeyFlags.CERTIFY_OTHER | KeyFlags.ENCRYPT_COMMS | KeyFlags.ENCRYPT_STORAGE, new Date(), 0);
     }
 
     @Test
@@ -210,6 +241,28 @@ class OpenPgpMimeTest {
         assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
     }
 
+	@Test
+	void configuredAlgorithmsAreApplied() throws Exception {
+		final OpenPgpSigningConfig signingConfig = OpenPgpSigningConfig.builder()
+				.secretKeyRing(firstKey.secretRing)
+				.passphrase(PASSPHRASE)
+				.hashAlgorithm(OpenPgpSigningConfig.HashAlgorithm.SHA512)
+				.build();
+		final OpenPgpEncryptionConfig encryptionConfig = OpenPgpEncryptionConfig.builder()
+				.addRecipientPublicKeyRing(firstKey.publicRing)
+				.symmetricAlgorithm(OpenPgpEncryptionConfig.SymmetricAlgorithm.AES_128)
+				.build();
+
+		final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(basicEmail("configured algorithms")
+				.signWithOpenPgp(signingConfig)
+				.encryptWithOpenPgp(encryptionConfig)
+				.buildEmail());
+		final Email parsed = EmailConverter.mimeMessageToEmail(protectedMessage, null, receiving(firstKey));
+
+		assertThat(parsed.getOriginalOpenPgpDetails().getHashAlgorithm()).isEqualTo("SHA512");
+		assertThat(parsed.getOriginalOpenPgpDetails().getEncryptionAlgorithm()).isEqualTo("AES128");
+	}
+
     @Test
     void stopsBeforeProcessingAThirdOpenPgpProtectionLayer() throws Exception {
         final Email source = basicEmail("bounded nesting")
@@ -248,6 +301,21 @@ class OpenPgpMimeTest {
     }
 
 	@Test
+	void tamperedCiphertextIsRejectedAndProtectedBytesRemainAvailable() throws Exception {
+		final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(
+				basicEmail("untampered secret").encryptWithOpenPgp(encryption(firstKey)).buildEmail());
+		final byte[] tamperedBytes = tamperArmoredPayload(
+				EmailConverter.mimeMessageToEMLByteArray(protectedMessage));
+
+		final Email parsed = EmailConverter.emlToEmailWithOpenPgp(
+				new ByteArrayInputStream(tamperedBytes), receiving(firstKey));
+
+		assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
+		assertThat(parsed.getPlainText()).isNotEqualTo("untampered secret");
+		assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(tamperedBytes);
+    }
+
+	@Test
 	void matchingSecretKeyWithWrongPassphraseIsADecryptionFailure() throws Exception {
 		final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(
 				basicEmail("secret").encryptWithOpenPgp(encryption(firstKey)).buildEmail());
@@ -260,6 +328,120 @@ class OpenPgpMimeTest {
 
 		assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
 		assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(protectedBytes);
+	}
+
+	@Test
+	void passphraseProviderOverridesTheKeyRingFallbackWithoutConsumingItsArray() throws Exception {
+		final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(
+				basicEmail("provider secret").encryptWithOpenPgp(encryption(firstKey)).buildEmail());
+		final AtomicLong requestedKeyId = new AtomicLong();
+		final char[] providedPassphrase = PASSPHRASE.clone();
+		final OpenPgpReceiveConfig receiveConfig = OpenPgpReceiveConfig.builder()
+				.addDecryptionKeyRing(firstKey.secretRing, "wrong-passphrase")
+				.passphraseProvider(keyId -> {
+					requestedKeyId.set(keyId);
+					return providedPassphrase;
+				})
+				.build();
+
+		final Email parsed = EmailConverter.mimeMessageToEmail(protectedMessage, null, receiveConfig);
+
+		assertThat(parsed.getPlainText()).isEqualTo("provider secret");
+		assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+		assertThat(requestedKeyId).hasValue(firstKey.keyId);
+		assertThat(providedPassphrase).containsExactly(PASSPHRASE);
+	}
+
+	@Test
+	void configuredSigningSubkeyCanBeSelectedFromOneSecretKeyRing() throws Exception {
+		final OpenPgpSigningConfig signingConfig = OpenPgpSigningConfig.builder()
+				.secretKeyRing(keyWithSigningSubkey.secretRing)
+				.passphrase(PASSPHRASE)
+				.signingKeyId(keyWithSigningSubkey.keyId)
+				.build();
+
+		final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(
+				basicEmail("selected signer").signWithOpenPgp(signingConfig).buildEmail());
+		final Email parsed = EmailConverter.mimeMessageToEmail(
+				protectedMessage, null, receiving(keyWithSigningSubkey));
+
+		assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+		assertThat(parsed.getOriginalOpenPgpDetails().getSignerKeyId())
+				.isEqualTo(String.format(Locale.ROOT, "%016X", keyWithSigningSubkey.keyId));
+	}
+
+	@Test
+	void expiredKeysAreRejectedWhenApplyingNewProtection() {
+		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(
+				basicEmail("expired signer").signWithOpenPgp(signing(expiredKey)).buildEmail()))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessage("Unable to sign OpenPGP/MIME message");
+
+		final OpenPgpSigningConfig explicitlySelectedExpiredKey = OpenPgpSigningConfig.builder()
+				.secretKeyRing(expiredKey.secretRing)
+				.passphrase(PASSPHRASE)
+				.signingKeyId(expiredKey.keyId)
+				.build();
+		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(
+				basicEmail("explicit expired signer")
+						.signWithOpenPgp(explicitlySelectedExpiredKey)
+						.buildEmail()))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessage("Unable to sign OpenPGP/MIME message");
+
+		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(
+				basicEmail("expired recipient").encryptWithOpenPgp(encryption(expiredKey)).buildEmail()))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessage("Unable to encrypt OpenPGP/MIME message");
+	}
+
+	@Test
+	void configuredEncryptionOnlyKeyCannotCreateSignatures() {
+		final OpenPgpSigningConfig signingConfig = OpenPgpSigningConfig.builder()
+				.secretKeyRing(encryptionOnlyKey.secretRing)
+				.passphrase(PASSPHRASE)
+				.signingKeyId(encryptionOnlyKey.keyId)
+				.build();
+
+		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(
+				basicEmail("not signable").signWithOpenPgp(signingConfig).buildEmail()))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessage("Unable to sign OpenPGP/MIME message");
+	}
+
+	@Test
+	void signsEncryptsAndReadsMessagesConcurrently() throws Exception {
+		final OpenPgpSigningConfig signingConfig = signing(firstKey);
+		final OpenPgpEncryptionConfig encryptionConfig = encryption(secondKey);
+		final OpenPgpReceiveConfig receiveConfig = OpenPgpReceiveConfig.builder()
+				.addVerificationKeyRing(firstKey.publicRing)
+				.addDecryptionKeyRing(secondKey.secretRing, PASSPHRASE)
+				.build();
+		final ExecutorService executor = Executors.newFixedThreadPool(4);
+		final List<Future<Email>> receivedMessages = new ArrayList<>();
+		try {
+			for (int messageIndex = 0; messageIndex < 8; messageIndex++) {
+				final String body = "concurrent message " + messageIndex;
+				receivedMessages.add(executor.submit(() -> {
+					final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(basicEmail(body)
+							.signWithOpenPgp(signingConfig)
+							.encryptWithOpenPgp(encryptionConfig)
+							.buildEmail());
+					return EmailConverter.mimeMessageToEmail(protectedMessage, null, receiveConfig);
+				}));
+			}
+
+			for (int messageIndex = 0; messageIndex < receivedMessages.size(); messageIndex++) {
+				final Email received = receivedMessages.get(messageIndex).get(30, TimeUnit.SECONDS);
+				assertThat(received.getPlainText()).isEqualTo("concurrent message " + messageIndex);
+				assertThat(received.getOriginalOpenPgpDetails().getSignatureStatus())
+						.isEqualTo(SignatureStatus.VALID);
+				assertThat(received.getOriginalOpenPgpDetails().getDecryptionStatus())
+						.isEqualTo(DecryptionStatus.DECRYPTED);
+			}
+		} finally {
+			executor.shutdownNow();
+		}
 	}
 
 	@Test
@@ -440,27 +622,71 @@ class OpenPgpMimeTest {
     }
 
     private static TestKey generateKey(final String userId) throws Exception {
+		return generateKey(userId, SIGNING_AND_ENCRYPTION_KEY_FLAGS, new Date(), 0);
+	}
+
+	private static TestKey generateKeyWithSigningSubkey(final String userId) throws Exception {
+		final PGPainless pgpainless = new PGPainless();
+		final Passphrase passphrase = new Passphrase(PASSPHRASE.clone());
+		try {
+			final OpenPGPKey keyRing = pgpainless.buildKey()
+					.setPrimaryKey(new KeySpecBuilder(RSA.withLength(RsaLength._2048),
+							KeyFlag.CERTIFY_OTHER, KeyFlag.SIGN_DATA).build())
+					.addSubkey(new KeySpecBuilder(RSA.withLength(RsaLength._2048), KeyFlag.SIGN_DATA).build())
+					.addUserId(userId)
+					.setPassphrase(passphrase)
+					.build();
+			final long signingSubkeyId = pgpainless.inspect(keyRing).getSigningSubkeys().stream()
+					.filter(signingKey -> !signingKey.isPrimaryKey())
+					.findFirst()
+					.orElseThrow(() -> new AssertionError("Expected a signing subkey"))
+					.getKeyIdentifier().getKeyId();
+			return new TestKey(keyRing.getEncoded(), keyRing.toCertificate().getEncoded(), signingSubkeyId);
+		} finally {
+			passphrase.clear();
+		}
+	}
+
+	private static TestKey generateKey(final String userId, final int keyFlags,
+			final Date creationDate, final long validitySeconds) throws Exception {
         final KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
         final KeyPair keyPair = generator.generateKeyPair();
-        final JcaPGPKeyPair pgpKeyPair = new JcaPGPKeyPair(PublicKeyAlgorithmTags.RSA_GENERAL, keyPair, new Date());
+		final JcaPGPKeyPair pgpKeyPair = new JcaPGPKeyPair(
+				PublicKeyAlgorithmTags.RSA_GENERAL, keyPair, creationDate);
         final PGPDigestCalculator sha1 = new JcaPGPDigestCalculatorProviderBuilder().setProvider(BC)
                 .build().get(HashAlgorithmTags.SHA1);
+		final PGPSignatureSubpacketVector keyCapabilities = keyCapabilities(keyFlags, validitySeconds);
         final PGPKeyRingGenerator keyRingGenerator = new PGPKeyRingGenerator(
                 PGPSignature.POSITIVE_CERTIFICATION,
                 pgpKeyPair,
                 userId,
                 sha1,
-                null,
+				keyCapabilities,
                 null,
                 new JcaPGPContentSignerBuilder(PublicKeyAlgorithmTags.RSA_GENERAL, HashAlgorithmTags.SHA256)
-                        .setProvider(BC),
+						.setProvider(BC),
                 new JcePBESecretKeyEncryptorBuilder(SymmetricKeyAlgorithmTags.AES_256, sha1)
                         .setProvider(BC).build(PASSPHRASE));
         final PGPSecretKeyRing secretRing = keyRingGenerator.generateSecretKeyRing();
         final PGPPublicKeyRing publicRing = keyRingGenerator.generatePublicKeyRing();
-        return new TestKey(encode(secretRing), encode(publicRing));
+		return new TestKey(encode(secretRing), encode(publicRing), publicRing.getPublicKey().getKeyID());
     }
+
+	private static PGPSignatureSubpacketVector keyCapabilities(final int keyFlags,
+			final long validitySeconds) {
+		if (keyFlags == 0 && validitySeconds == 0) {
+			return null;
+		}
+		final PGPSignatureSubpacketGenerator keyCapabilities = new PGPSignatureSubpacketGenerator();
+		if (keyFlags != 0) {
+			keyCapabilities.setKeyFlags(false, keyFlags);
+		}
+		if (validitySeconds > 0) {
+			keyCapabilities.setKeyExpirationTime(false, validitySeconds);
+		}
+		return keyCapabilities.generate();
+	}
 
     private static byte[] encode(final PGPSecretKeyRing keyRing) throws Exception {
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -488,13 +714,48 @@ class OpenPgpMimeTest {
         throw new AssertionError("Expected MIME text was not found");
     }
 
+    private static byte[] tamperArmoredPayload(final byte[] messageBytes) throws IOException {
+        final String serializedMessage = new String(messageBytes, StandardCharsets.US_ASCII);
+        final String armorBeginMarker = "-----BEGIN PGP MESSAGE-----";
+        final String armorEndMarker = "-----END PGP MESSAGE-----";
+        final int armorStart = serializedMessage.indexOf(armorBeginMarker);
+        final int armorEndMarkerStart = serializedMessage.indexOf(armorEndMarker, armorStart);
+        if (armorStart < 0 || armorEndMarkerStart < 0) {
+            throw new AssertionError("Expected armored OpenPGP payload was not found");
+        }
+        final int armorEnd = armorEndMarkerStart + armorEndMarker.length();
+        final byte[] armoredPayload = serializedMessage.substring(armorStart, armorEnd)
+                .getBytes(StandardCharsets.US_ASCII);
+        final byte[] binaryPayload;
+        try (InputStream decodedPayload = PGPUtil.getDecoderStream(new ByteArrayInputStream(armoredPayload))) {
+            binaryPayload = readInputStreamToBytes(decodedPayload);
+        }
+        if (binaryPayload.length < 32) {
+            throw new AssertionError("Expected a complete integrity-protected OpenPGP payload");
+        }
+        binaryPayload[binaryPayload.length - 10] ^= 0x01;
+
+        final ByteArrayOutputStream rearmoredPayload = new ByteArrayOutputStream();
+        try (ArmoredOutputStream armor = ArmoredOutputStream.builder()
+                .setVersion("Simple Java Mail")
+                .build(rearmoredPayload)) {
+            armor.write(binaryPayload);
+        }
+        final String tamperedPayload = new String(rearmoredPayload.toByteArray(), StandardCharsets.US_ASCII);
+        return (serializedMessage.substring(0, armorStart)
+                + tamperedPayload
+                + serializedMessage.substring(armorEnd)).getBytes(StandardCharsets.US_ASCII);
+    }
+
     private static final class TestKey {
         final byte[] secretRing;
         final byte[] publicRing;
+		final long keyId;
 
-        private TestKey(final byte[] secretRing, final byte[] publicRing) {
+		private TestKey(final byte[] secretRing, final byte[] publicRing, final long keyId) {
             this.secretRing = secretRing;
             this.publicRing = publicRing;
+			this.keyId = keyId;
         }
     }
 }

@@ -1,6 +1,6 @@
 # OpenPGP.js interoperability fixture
 
-The checked-in keys and MIME messages under `src/test/resources/openpgpjs` were generated with OpenPGP.js 6.3.1, independently of the Bouncy Castle implementation used by `openpgp-module`.
+The checked-in keys and MIME messages under `src/test/resources/openpgpjs` were generated with OpenPGP.js 6.3.1, independently of the PGPainless/Bouncy Castle implementation used by `openpgp-module`.
 
 From this directory:
 
