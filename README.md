@@ -114,10 +114,8 @@ Mailer mailer = mail.mailerBuilder()
 Ordinary EML conversion is the right choice when you want an editable `Email`: Simple Java Mail parses its meaning and later builds a fresh MIME message. Use exact EML when the existing wire representation itself is authoritative—for example, an archived message or output already protected by DKIM, S/MIME, or OpenPGP/MIME.
 
 ```java
-byte[] eml = Files.readAllBytes(Path.of("ready-to-send.eml"));
-
 Email email = mail.emailBuilder()
-    .startingFromExactEml(eml)
+    .startingFromExactEml(Path.of("ready-to-send.eml"))
     .withEnvelopeRecipients("actual-recipient@example.org")
     .withEnvelopeSender("bounces@example.org") // optional
     .buildEmail();
@@ -144,7 +142,7 @@ Exact EML must be non-empty, parseable, use canonical CRLF line endings, and end
 
 A `Mailer` keeps SMTP settings, transport policy, defaults, overrides, validation, signing, proxy configuration, and delivery behavior out of individual call sites. Configure it with the [Java builder API](https://www.simplejavamail.org/configuration.html#section-programmatic-api-common), [property files, system properties, or environment variables](https://www.simplejavamail.org/configuration.html#section-config-properties), or let the [Spring module](https://www.simplejavamail.org/spring.html) create and inject it.
 
-`SimpleJavaMail.fromDefaults()` resolves the conventional classpath file, environment variables, and system properties into one lazy immutable snapshot. For explicit source ordering or more than one mail setup in the same JVM, build a `SimpleJavaMailConfig` with `ConfigLoader.builder()` and pass it to `SimpleJavaMail.withConfig(config)`.
+`SimpleJavaMail.fromDefaults()` resolves the conventional classpath file, environment variables, and system properties into one lazy immutable snapshot. For explicit source ordering or more than one mail setup in the same JVM, build a `SimpleJavaMailConfig` with `ConfigLoader.builder()`—including `withPropertiesFile(Path)` for filesystem configuration—and pass it to `SimpleJavaMail.withConfig(config)`.
 
 This leaves application code to describe each email while shared rules stay in one reusable place.
 

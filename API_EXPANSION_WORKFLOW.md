@@ -27,6 +27,12 @@ New fields must be accessible through the fluent Builder API.
   - **Avoid Collections**: Picocli mapping works best with individual values or arrays. Avoid `Collection` or `Map` in signatures intended for CLI use. Provide overloads if necessary.
   - **Javadoc**: Provide complete Javadoc for all new methods and parameters. The CLI module uses this to generate help text.
   - **Annotations**: Use `@Cli.ExcludeApi` for methods that should not be exposed to the CLI (e.g., those taking complex Java-only objects). Use `@Cli.OptionNameOverride` if the method name isn't ideal for a CLI flag. Use `@Cli.Optional` on parameters that may be omitted from the CLI; keep JetBrains `@Nullable` for Java/API nullability only.
+- **Java 11 Convenience Overloads**:
+  - Add `Path`, `Instant`, or another modern type only at the entry points where it removes recurring caller-side conversion. Do not mirror every existing overload combination mechanically.
+  - Delegate to one existing parser, builder, or value-storage path so the modern overload cannot develop separate behavior.
+  - A `Path` overload closes every stream it opens. An `InputStream` overload keeps its documented ownership contract unchanged.
+  - Keep `File`, `Date`, and `InputStream` APIs when they remain useful. Exclude a `Path` or `Instant` builder overload from CLI generation when an existing file or date option already represents the same command-line value.
+  - Exercise at least one non-default filesystem when the implementation promises genuine `Path` support; converting immediately through `Path#toFile()` is not sufficient.
 
 ## 3. Core Implementation (`simple-java-mail`)
 

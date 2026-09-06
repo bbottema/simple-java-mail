@@ -19,6 +19,7 @@ Enhancements:
 - #711: added explicit Mailer.sendMailSync(...), sendMailAsync(...), sendMailAndGetReceiptSync(...), and sendMailAndGetReceiptAsync(...) entry points so return types and failure behavior reveal the selected execution mode; existing configurable and boolean methods remain supported.
 - #709: added Mailer.rehearse(...) to return the governed Email, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.
 - #715: added grouped, safe-to-log configuration diagnostics that show each resolved value and its winning source, including per-property Spring and wildcard provenance, through the immutable SimpleJavaMail factory snapshot.
+- #716: added focused Java 11 Path and Instant conveniences for configuration files, message bodies, EML and Outlook imports, exact EML, cryptographic material, and sent dates, while retaining the existing File, InputStream, and Date APIs.
 
 v9.3.0 - v9.3.3
 
