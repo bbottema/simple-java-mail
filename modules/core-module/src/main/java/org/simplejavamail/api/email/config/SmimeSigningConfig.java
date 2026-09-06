@@ -1,6 +1,5 @@
 package org.simplejavamail.api.email.config;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -11,10 +10,11 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
@@ -107,12 +107,25 @@ public class SmimeSigningConfig implements Serializable {
         /**
          * Delegates to {@link #pkcs12Config(InputStream, String, String, String)}.
          */
-        @SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
         public SmimeSigningConfigBuilder pkcs12Config(@NotNull File pkcs12StoreFile, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword) {
-            try {
-                return pkcs12Config(new FileInputStream(pkcs12StoreFile), storePassword, keyAlias, keyPassword);
+            return pkcs12Config(pkcs12StoreFile.toPath(), storePassword, keyAlias, keyPassword);
+        }
+
+        /**
+         * Reads the PKCS12 store immediately through {@link #pkcs12Config(InputStream, String, String, String)} and closes the stream opened for the path.
+         *
+         * @param pkcs12StorePath Path to the PKCS12 store.
+         * @param storePassword Password for the store.
+         * @param keyAlias Alias of the signing key.
+         * @param keyPassword Password for the signing key.
+         * @return This builder.
+         */
+        public SmimeSigningConfigBuilder pkcs12Config(@NotNull final Path pkcs12StorePath, @NotNull final String storePassword,
+                @NotNull final String keyAlias, @NotNull final String keyPassword) {
+            try (InputStream pkcs12StoreStream = Files.newInputStream(pkcs12StorePath)) {
+                return pkcs12Config(pkcs12StoreStream, storePassword, keyAlias, keyPassword);
             } catch (IOException e) {
-                throw new IllegalStateException(format("Error reading from file: %s", pkcs12StoreFile), e);
+                throw new IllegalStateException(format("Error reading from path: %s", pkcs12StorePath), e);
             }
         }
 

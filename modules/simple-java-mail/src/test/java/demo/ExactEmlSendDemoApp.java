@@ -6,7 +6,6 @@ import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -27,7 +26,7 @@ public final class ExactEmlSendDemoApp extends DemoAppBase {
 		requireEmlFileAndEnvelopeRecipient(arguments);
 
 		final ExactEmailBuilder exactEmailBuilder = SimpleJavaMail.fromDefaults().emailBuilder()
-				.startingFromExactEml(Files.readAllBytes(Path.of(arguments[0])))
+				.startingFromExactEml(Path.of(arguments[0]))
 				.withEnvelopeRecipients(arguments[1]);
 		if (arguments.length > REQUIRED_ARGUMENT_COUNT) {
 			exactEmailBuilder.withEnvelopeSender(arguments[2]);

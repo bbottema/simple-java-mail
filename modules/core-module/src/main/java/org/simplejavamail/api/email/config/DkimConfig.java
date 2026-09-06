@@ -3,14 +3,16 @@ package org.simplejavamail.api.email.config;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -179,12 +181,23 @@ public class DkimConfig implements Serializable {
          * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
          */
         public DkimConfigBuilder dkimPrivateKeyPath(File dkimPrivateKeyFile) {
-            try (FileInputStream dkimPrivateKeyInputStream = new FileInputStream(dkimPrivateKeyFile)) {
-                dkimPrivateKeyData(dkimPrivateKeyInputStream);
+            return dkimPrivateKeyPath(dkimPrivateKeyFile.toPath());
+        }
+
+        /**
+         * Reads the private-key bytes immediately and closes the stream opened for the path.
+         *
+         * @param dkimPrivateKeyPath Path to the private-key data.
+         * @return This builder.
+         * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
+         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+         */
+        public DkimConfigBuilder dkimPrivateKeyPath(@NotNull final Path dkimPrivateKeyPath) {
+            try (InputStream dkimPrivateKeyInputStream = Files.newInputStream(dkimPrivateKeyPath)) {
+                return dkimPrivateKeyData(dkimPrivateKeyInputStream);
             } catch (IOException e) {
-                throw new IllegalStateException(format("error reading DKIM private key file[%s]", dkimPrivateKeyFile), e);
+                throw new IllegalStateException(format("error reading DKIM private key file [%s]", dkimPrivateKeyPath), e);
             }
-            return this;
         }
 
         /**

@@ -7,19 +7,27 @@ import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
+import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.config.ConfigDiagnosticGroup;
 import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Properties;
 import java.util.function.Function;
 
@@ -34,7 +42,8 @@ import java.util.function.Function;
  * ordinary classpath. That classpath contains the packaged Simple Java Mail JAR and its provider-neutral dependencies, but deliberately excludes
  * {@code angus-mail-provider-module} and Angus Mail. The probe verifies that:
  * <ul>
- *     <li>ordinary email building, mail-send observation, configuration diagnostics, and exact-EML API signatures remain usable without Angus;</li>
+ *     <li>ordinary email building, Java 11 conveniences, mail-send observation, configuration diagnostics, and exact-EML API signatures remain usable
+ *     without Angus;</li>
  *     <li>a third-party {@link Transport} and {@link MailTransportAdapter} can be compiled against the public SPI without Angus; and</li>
  *     <li>an operation that really needs a Jakarta Mail implementation fails with an actionable diagnostic.</li>
  * </ul>
@@ -59,6 +68,7 @@ public final class ProviderNeutralClasspathConsumer {
 		assertMailSendObserverApiIsAvailable(simpleJavaMail);
 		assertConfigDiagnosticsApiIsAvailable(simpleJavaMail);
 		assertExactEmailApiIsAvailable(simpleJavaMail);
+		assertJava11ConvenienceApiIsAvailable(simpleJavaMail, source);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
 	}
@@ -92,6 +102,29 @@ public final class ProviderNeutralClasspathConsumer {
 				simpleJavaMail.emailBuilder()::startingFromExactEml;
 		if (exactStarter == null || ContentRequirement.valueOf("PRESERVE_ALL_BYTES") != ContentRequirement.PRESERVE_ALL_BYTES) {
 			throw new AssertionError("Exact EML API is unavailable");
+		}
+	}
+
+	/** Verifies that the Java 11 Path and Instant conveniences link without opening files or invoking a mail provider. */
+	private static void assertJava11ConvenienceApiIsAvailable(final SimpleJavaMail simpleJavaMail, final Email source) {
+		final Function<Path, ConfigLoader> pathConfigSource = ConfigLoader.builder()::withPropertiesFile;
+		final Function<Path, ExactEmailBuilder> exactPathStarter = simpleJavaMail.emailBuilder()::startingFromExactEml;
+		final EmailPopulatingBuilder builder = simpleJavaMail.emailBuilder().startingBlank();
+		final Function<Path, EmailPopulatingBuilder> bodyPathReader = builder::withPlainText;
+		final Function<Instant, EmailPopulatingBuilder> sentDateFixer = builder::fixingSentDate;
+		final Function<Path, DkimConfig.DkimConfigBuilder> dkimPathReader = DkimConfig.builder()::dkimPrivateKeyPath;
+		final Function<Path, Pkcs12Config.Pkcs12ConfigBuilder> pkcs12PathReader = Pkcs12Config.builder()::pkcs12Store;
+		final Function<Path, SmimeEncryptionConfig.SmimeEncryptionConfigBuilder> certificatePathReader =
+				SmimeEncryptionConfig.builder()::x509Certificate;
+		final Function<Path, SmimeSigningConfig.SmimeSigningConfigBuilder> signingStorePathReader = path ->
+				SmimeSigningConfig.builder().pkcs12Config(path, "password", "alias", "password");
+		final Function<Path, Email> emlPathReader = EmailConverter::emlToEmail;
+		final Function<Path, OutlookEmailConversionResult> outlookPathReader = EmailConverter::outlookMsgToEmailBuilderWithOutlookData;
+
+		if (pathConfigSource == null || exactPathStarter == null || bodyPathReader == null || sentDateFixer == null
+				|| dkimPathReader == null || pkcs12PathReader == null || certificatePathReader == null || emlPathReader == null
+				|| signingStorePathReader == null || outlookPathReader == null || source.getSentDateAsInstant() != null) {
+			throw new AssertionError("Java 11 convenience API is unavailable");
 		}
 	}
 

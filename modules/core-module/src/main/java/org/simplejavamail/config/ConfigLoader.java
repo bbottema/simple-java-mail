@@ -8,6 +8,8 @@ import org.simplejavamail.internal.util.SimpleConversions;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -203,6 +205,38 @@ public final class ConfigLoader {
 	public ConfigLoader withInputStream(final @NotNull String sourceName, final @NotNull InputStream inputStream) {
 		final Properties properties = readAndClose(inputStream, sourceName);
 		return withProperties(sourceName, properties);
+	}
+
+	/**
+	 * Adds a required properties file at the current priority. The file is sampled on every {@link #load()} and is identified by its path in diagnostics.
+	 *
+	 * @param propertiesFile Path to the properties file.
+	 * @return This loader.
+	 */
+	public ConfigLoader withPropertiesFile(final @NotNull Path propertiesFile) {
+		return withPropertiesFile("file:" + propertiesFile, propertiesFile);
+	}
+
+	/**
+	 * Adds a required properties file at the current priority under the supplied diagnostic name. The file is opened, read and closed on every
+	 * {@link #load()}.
+	 *
+	 * @param sourceName Name shown for values from this source in configuration diagnostics.
+	 * @param propertiesFile Path to the properties file.
+	 * @return This loader.
+	 */
+	public ConfigLoader withPropertiesFile(final @NotNull String sourceName, final @NotNull Path propertiesFile) {
+		return withSource(new ConfigSource() {
+			@Override
+			public String getName() {
+				return sourceName;
+			}
+
+			@Override
+			public Map<String, ?> getProperties() {
+				return toMap(readPropertiesFile(propertiesFile, getName()));
+			}
+		});
 	}
 
 	/**
@@ -544,6 +578,17 @@ public final class ConfigLoader {
 			connectionPoolClusterConfigs.put(clusterKey, configBuilder.getValue().build());
 		}
 		return connectionPoolClusterConfigs;
+	}
+
+	private static Properties readPropertiesFile(final Path propertiesFile, final String sourceName) {
+		if (propertiesFile == null) {
+			throw new IllegalArgumentException("Path was null for source " + sourceName);
+		}
+		try {
+			return readAndClose(Files.newInputStream(propertiesFile), sourceName);
+		} catch (IOException e) {
+			throw new IllegalStateException("Error opening configuration source " + sourceName, e);
+		}
 	}
 
 	private static Object parseConnectionPoolClusterProperty(@NotNull final String propertyName, @Nullable final Object propertyValue) {

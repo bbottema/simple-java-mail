@@ -3,6 +3,7 @@ package org.simplejavamail.internal.util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
@@ -13,7 +14,13 @@ public class CertificationUtil {
 
 	public static X509Certificate readFromPem(File pemFile)
 			throws CertificateException, NoSuchProviderException, FileNotFoundException {
-		return readFromPem(new FileInputStream(pemFile));
+		try (InputStream pemData = new FileInputStream(pemFile)) {
+			return readFromPem(pemData);
+		} catch (FileNotFoundException e) {
+			throw e;
+		} catch (IOException e) {
+			throw new CertificateException("Unable to close PEM certificate file " + pemFile, e);
+		}
 	}
 
 	public static X509Certificate readFromPem(InputStream pemData)

@@ -1,6 +1,5 @@
 package org.simplejavamail.api.email.config;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -11,10 +10,11 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.internal.util.CertificationUtil;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -118,24 +118,28 @@ public class SmimeEncryptionConfig implements Serializable {
         /**
          * Delegates to {@link #x509Certificate(InputStream)}.
          */
-        @SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final String pemFile) {
-            try {
-                return x509Certificate(new FileInputStream(pemFile));
-            } catch (FileNotFoundException e) {
-                throw new IllegalStateException(format("Error reading from file: %s", pemFile), e);
-            }
+            return x509Certificate(new File(pemFile));
         }
 
         /**
-         * Delegates to {@link #x509Certificate(InputStream)},
+         * Delegates to {@link #x509Certificate(InputStream)}.
          */
-        @SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final File pemFile) {
-            try {
-                return x509Certificate(new FileInputStream(pemFile));
-            } catch (FileNotFoundException e) {
-                throw new IllegalStateException(format("Error reading from file: %s", pemFile), e);
+            return x509Certificate(pemFile.toPath());
+        }
+
+        /**
+         * Reads the certificate immediately through {@link #x509Certificate(InputStream)} and closes the stream opened for the path.
+         *
+         * @param pemPath Path to a PEM-encoded X.509 certificate.
+         * @return This builder.
+         */
+        public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final Path pemPath) {
+            try (InputStream pemStream = Files.newInputStream(pemPath)) {
+                return x509Certificate(pemStream);
+            } catch (IOException e) {
+                throw new IllegalStateException(format("Error reading from path: %s", pemPath), e);
             }
         }
 

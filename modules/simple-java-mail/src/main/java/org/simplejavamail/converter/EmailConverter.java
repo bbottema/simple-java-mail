@@ -48,6 +48,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Properties;
 
@@ -402,6 +404,54 @@ public final class EmailConverter {
 		return SimpleJavaMail.fromDefaults().converter().outlookMsgToEmailBuilderWithOutlookData(msgFile, pkcs12Config);
 	}
 
+	/**
+	 * Converts the Outlook MSG file at the supplied path and builds the resulting email. For access to Outlook-specific source data or S/MIME
+	 * decryption, use {@link #outlookMsgToEmailBuilderWithOutlookData(Path, Pkcs12Config)}.
+	 *
+	 * @param msgPath Path to the Outlook MSG file.
+	 * @return The converted email.
+	 */
+	@NotNull
+	public static Email outlookMsgToEmail(@NotNull final Path msgPath) {
+		return outlookMsgToEmailBuilderWithOutlookData(msgPath).buildEmail();
+	}
+
+	/**
+	 * Converts the Outlook MSG file at the supplied path to an editable email builder.
+	 *
+	 * @param msgPath Path to the Outlook MSG file.
+	 * @return An editable builder populated from the message.
+	 */
+	@NotNull
+	public static EmailPopulatingBuilder outlookMsgToEmailBuilder(@NotNull final Path msgPath) {
+		return outlookMsgToEmailBuilderWithOutlookData(msgPath).getEmailBuilder();
+	}
+
+	/**
+	 * Delegates to {@link #outlookMsgToEmailBuilderWithOutlookData(Path, Pkcs12Config)} without receive-side S/MIME configuration.
+	 *
+	 * @param msgPath Path to the Outlook MSG file.
+	 * @return The editable email builder together with Outlook-specific source data.
+	 */
+	@NotNull
+	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final Path msgPath) {
+		return outlookMsgToEmailBuilderWithOutlookData(msgPath, null);
+	}
+
+	/**
+	 * Converts the Outlook MSG file at the supplied path while retaining its Outlook-specific source data. The stream opened for the path is closed before
+	 * this method returns.
+	 *
+	 * @param msgPath Path to the Outlook MSG file.
+	 * @param pkcs12Config Private key configuration for S/MIME decryption, or {@code null} when not needed.
+	 * @return The editable email builder together with Outlook-specific source data.
+	 */
+	@NotNull
+	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final Path msgPath,
+			@Nullable final Pkcs12Config pkcs12Config) {
+		return SimpleJavaMail.fromDefaults().converter().outlookMsgToEmailBuilderWithOutlookData(msgPath, pkcs12Config);
+	}
+
 	@NotNull
 	static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final File msgFile,
 			@Nullable final Pkcs12Config pkcs12Config,
@@ -688,6 +738,30 @@ public final class EmailConverter {
 	}
 
 	/**
+	 * Parses the EML file at the supplied path and builds the resulting email. Use
+	 * {@link ConfiguredEmailConverter#emlToEmailBuilder(Path, Pkcs12Config, OpenPgpReceiveConfig, Session)} when receive-side security configuration or a
+	 * specific Session is required.
+	 *
+	 * @param emlPath Path to the EML file.
+	 * @return The converted email.
+	 */
+	@NotNull
+	public static Email emlToEmail(@NotNull final Path emlPath) {
+		return emlToEmailBuilder(emlPath).buildEmail();
+	}
+
+	/**
+	 * Parses the EML file at the supplied path into an editable email builder. The stream opened for the path is closed before this method returns.
+	 *
+	 * @param emlPath Path to the EML file.
+	 * @return An editable builder populated from the message.
+	 */
+	@NotNull
+	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final Path emlPath) {
+		return SimpleJavaMail.fromDefaults().converter().emlToEmailBuilder(emlPath);
+	}
+
+	/**
 	 * Delegates to {@link #emlToEmailBuilder(InputStream, Session)} using a dummy {@link Session} instance.
 	 */
 	@NotNull
@@ -891,6 +965,21 @@ public final class EmailConverter {
 			return emlToMimeMessage(emlInputStream, session);
 		} catch (final IOException e) {
 			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_FILE, e.getMessage()), e);
+		}
+	}
+
+	/**
+	 * Parses the EML file at the supplied path with a new empty Session. The stream opened for the path is closed before this method returns.
+	 *
+	 * @param emlPath Path to the EML file.
+	 * @return The parsed Jakarta Mail message.
+	 */
+	@NotNull
+	public static MimeMessage emlToMimeMessage(@NotNull final Path emlPath) {
+		try (InputStream emlInputStream = Files.newInputStream(checkNonEmptyArgument(emlPath, "emlPath"))) {
+			return emlToMimeMessage(emlInputStream);
+		} catch (IOException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_PATH, emlPath, e.getMessage()), e);
 		}
 	}
 

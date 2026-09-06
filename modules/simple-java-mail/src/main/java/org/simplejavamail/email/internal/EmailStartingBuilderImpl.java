@@ -15,6 +15,8 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -57,6 +59,18 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			return startingFromExactEml(readInputStreamToBytes(requireNonNull(emlInputStream, "emlInputStream")));
 		} catch (final IOException readFailure) {
 			throw new EmailException("Unable to read exact EML from InputStream", readFailure);
+		}
+	}
+
+	/**
+	 * @see EmailStartingBuilder#startingFromExactEml(Path)
+	 */
+	@Override
+	public ExactEmailBuilder startingFromExactEml(@NotNull final Path emlPath) {
+		try {
+			return startingFromExactEml(Files.readAllBytes(requireNonNull(emlPath, "emlPath")));
+		} catch (final IOException readFailure) {
+			throw new EmailException(format("Unable to read exact EML from path [%s]", emlPath), readFailure);
 		}
 	}
 	

@@ -1,15 +1,15 @@
 package org.simplejavamail.api.mailer.config;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.EqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static java.lang.String.format;
 
@@ -82,15 +82,21 @@ public final class Pkcs12Config implements Serializable {
 			return pkcs12Store(new File(pkcs12StorePath));
 		}
 
-		/**
-		 * Note that this method creates a new {@code FileInputStream} without closing it.
-		 */
-		@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream is meant to travel outside method")
 		public Pkcs12ConfigBuilder pkcs12Store(File pkcs12StorePath) {
-			try {
-				return pkcs12Store(new FileInputStream(pkcs12StorePath));
+			return pkcs12Store(pkcs12StorePath.toPath());
+		}
+
+		/**
+		 * Reads the PKCS12 store bytes immediately and closes the stream opened for the path.
+		 *
+		 * @param pkcs12StorePath Path to the PKCS12 store.
+		 * @return This builder.
+		 */
+		public Pkcs12ConfigBuilder pkcs12Store(@NotNull final Path pkcs12StorePath) {
+			try (InputStream pkcs12StoreStream = Files.newInputStream(pkcs12StorePath)) {
+				return pkcs12Store(pkcs12StoreStream);
 			} catch (IOException e) {
-				throw new IllegalStateException(format("error reading PKCS12 store from File [%s]", pkcs12StorePath), e);
+				throw new IllegalStateException(format("error reading PKCS12 store from path [%s]", pkcs12StorePath), e);
 			}
 		}
 

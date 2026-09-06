@@ -22,6 +22,8 @@ import org.simplejavamail.internal.config.EmailProperty;
 
 import java.io.File;
 import java.net.URL;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -385,6 +387,15 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withPlainText(@NotNull File textFile);
 
 	/**
+	 * Reads the complete UTF-8 file and delegates to {@link #withPlainText(String)}. Any stream opened for the path is closed before this method returns.
+	 *
+	 * @param textPath Plain text to set as email body (overwrites any previous plain text body).
+	 * @return This builder.
+	 */
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	EmailPopulatingBuilder withPlainText(@NotNull Path textPath);
+
+	/**
 	 * Sets the optional email message body in plain text.
 	 * <p>
 	 * Both text and HTML can be provided, which will  be offered to the email client as alternative content. Email clients that support it, will
@@ -409,6 +420,15 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder prependText(@NotNull File textFile);
 
 	/**
+	 * Reads the complete UTF-8 file and delegates to {@link #prependText(String)}. Any stream opened for the path is closed before this method returns.
+	 *
+	 * @param textPath The plain text to prepend to whatever plain text is already there.
+	 * @return This builder.
+	 */
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	EmailPopulatingBuilder prependText(@NotNull Path textPath);
+
+	/**
 	 * Prepends text to the current plain text body (or starts it if plain text body is missing).
 	 *
 	 * @param text The plain text to prepend to whatever plain text is already there.
@@ -429,6 +449,15 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder appendText(@NotNull File textFile);
 
 	/**
+	 * Reads the complete UTF-8 file and delegates to {@link #appendText(String)}. Any stream opened for the path is closed before this method returns.
+	 *
+	 * @param textPath The plain text to append to whatever plain text is already there.
+	 * @return This builder.
+	 */
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	EmailPopulatingBuilder appendText(@NotNull Path textPath);
+
+	/**
 	 * Appends text to the current plain text body (or starts it if plain text body is missing).
 	 *
 	 * @param text The plain text to append to whatever plain text is already there.
@@ -447,6 +476,15 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.OptionNameOverride("withHTMLTextFromFile")
 	EmailPopulatingBuilder withHTMLText(@NotNull File textHTMLFile);
+
+	/**
+	 * Reads the complete UTF-8 file and delegates to {@link #withHTMLText(String)}. Any stream opened for the path is closed before this method returns.
+	 *
+	 * @param textHTMLPath HTML text to set as email body (overwrites any previous HTML text body).
+	 * @return This builder.
+	 */
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	EmailPopulatingBuilder withHTMLText(@NotNull Path textHTMLPath);
 
 	/**
 	 * Sets the optional email message body in HTML text.
@@ -473,6 +511,15 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder prependTextHTML(@NotNull File textHTMLFile);
 
 	/**
+	 * Reads the complete UTF-8 file and delegates to {@link #prependTextHTML(String)}. Any stream opened for the path is closed before this method returns.
+	 *
+	 * @param textHTMLPath The HTML text to prepend to whatever is already there in the body.
+	 * @return This builder.
+	 */
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	EmailPopulatingBuilder prependTextHTML(@NotNull Path textHTMLPath);
+
+	/**
 	 * Prepends HTML text to the current HTML text body (or starts it if HTML text body is missing).
 	 *
 	 * @param textHTML The HTML text to prepend to whatever is already there in the body.
@@ -491,6 +538,15 @@ public interface EmailPopulatingBuilder {
 	@Cli.OptionNameOverride("appendTextHTMLFromFile")
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder appendTextHTML(@NotNull File textHTMLFile);
+
+	/**
+	 * Reads the complete UTF-8 file and delegates to {@link #appendTextHTML(String)}. Any stream opened for the path is closed before this method returns.
+	 *
+	 * @param textHTMLPath The HTML text to append to whatever is already there in the body.
+	 * @return This builder.
+	 */
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	EmailPopulatingBuilder appendTextHTML(@NotNull Path textHTMLPath);
 
 	/**
 	 * Appends HTML text to the current HTML text body (or starts it if HTML text body is missing).
@@ -1027,6 +1083,20 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder signWithSmime(@NotNull File pkcs12StoreFile, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword, @Nullable @Cli.Optional String signatureAlgorithm);
 
 	/**
+	 * Delegates to {@link #signWithSmime(SmimeSigningConfig)} after reading and closing the PKCS12 store at the supplied path.
+	 *
+	 * @param pkcs12StorePath The key store path to use to find the indicated key.
+	 * @param storePassword The store's password.
+	 * @param keyAlias The name of the certificate in the key store to use.
+	 * @param keyPassword The password of the certificate.
+	 * @param signatureAlgorithm The signature algorithm to use for signing, or {@code null} for the default.
+	 * @return This builder.
+	 */
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	EmailPopulatingBuilder signWithSmime(@NotNull Path pkcs12StorePath, @NotNull String storePassword, @NotNull String keyAlias,
+			@NotNull String keyPassword, @Nullable @Cli.Optional String signatureAlgorithm);
+
+	/**
 	 * Signs this email with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
 	 * can verify whether the email content was tampered with.
 	 * <p>
@@ -1052,6 +1122,18 @@ public interface EmailPopulatingBuilder {
 	 * @see SmimeEncryptionConfig
 	 */
 	EmailPopulatingBuilder encryptWithSmime(@NotNull File pemFile, @Nullable @Cli.Optional String keyEncapsulationAlgorithm, @Nullable @Cli.Optional String cipherAlgorithm);
+
+	/**
+	 * Delegates to {@link #encryptWithSmime(SmimeEncryptionConfig)} after reading and closing the PEM certificate at the supplied path.
+	 *
+	 * @param pemPath The recipient's public certificate path to use for encryption.
+	 * @param keyEncapsulationAlgorithm The key encapsulation algorithm to use for encryption.
+	 * @param cipherAlgorithm The cipher algorithm to use for encryption.
+	 * @return This builder.
+	 */
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	EmailPopulatingBuilder encryptWithSmime(@NotNull Path pemPath, @Nullable @Cli.Optional String keyEncapsulationAlgorithm,
+			@Nullable @Cli.Optional String cipherAlgorithm);
 
 	/**
 	 * Encrypts this email with a X509 certificate according to the <a href="https://tools.ietf.org/html/rfc5751">S/MIME spec</a>
@@ -1214,6 +1296,16 @@ public interface EmailPopulatingBuilder {
 	 * @param sentDate The date to use as sent date.
 	 */
 	EmailPopulatingBuilder fixingSentDate(@NotNull Date sentDate);
+
+	/**
+	 * Fixes the caller-controlled sent date from an {@link Instant}. Email storage remains millisecond-based, so sub-millisecond precision is discarded.
+	 *
+	 * @param sentDate The instant to use as sent date.
+	 * @return This builder.
+	 * @see #fixingSentDate(Date)
+	 */
+	@Cli.ExcludeApi(reason = "The Date overload already provides the same CLI value")
+	EmailPopulatingBuilder fixingSentDate(@NotNull Instant sentDate);
 
 	/**
 	 * Resets <em>id</em> to empty.
@@ -1637,4 +1729,13 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Nullable
 	Date getSentDate();
+
+	/**
+	 * Returns the fixed sent date as an {@link Instant}, or {@code null} when no date was configured.
+	 *
+	 * @see #getSentDate()
+	 * @see #fixingSentDate(Instant)
+	 */
+	@Nullable
+	Instant getSentDateAsInstant();
 }

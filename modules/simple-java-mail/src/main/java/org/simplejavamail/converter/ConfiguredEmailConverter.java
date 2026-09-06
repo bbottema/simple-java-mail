@@ -15,8 +15,12 @@ import org.simplejavamail.email.internal.EmailPopulatingBuilderFactoryImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -72,6 +76,39 @@ public final class ConfiguredEmailConverter {
 	}
 
 	/**
+	 * Parses the EML file into a builder and closes the stream opened for the supplied path before returning.
+	 *
+	 * @param emlPath Path to the EML file.
+	 * @return An editable builder populated from the message.
+	 */
+	@NotNull
+	public EmailPopulatingBuilder emlToEmailBuilder(@NotNull final Path emlPath) {
+		return emlToEmailBuilder(emlPath, null, null, EmailConverter.createDummySession());
+	}
+
+	/**
+	 * Full Path-based EML entry point for callers that also need receive-side security configuration or a specific Jakarta Mail Session. The stream opened
+	 * for the path is closed before this method returns.
+	 *
+	 * @param emlPath Path to the EML file.
+	 * @param pkcs12Config Private key configuration for S/MIME decryption, or {@code null} when not needed.
+	 * @param openPgpReceiveConfig OpenPGP verification and decryption configuration, or {@code null} when not needed.
+	 * @param session Jakarta Mail Session used while parsing the message.
+	 * @return An editable builder populated from the message.
+	 */
+	@NotNull
+	public EmailPopulatingBuilder emlToEmailBuilder(@NotNull final Path emlPath,
+			@Nullable final Pkcs12Config pkcs12Config,
+			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
+			@NotNull final Session session) {
+		try (InputStream emlInputStream = Files.newInputStream(requireNonNull(emlPath, "emlPath"))) {
+			return emlToEmailBuilder(emlInputStream, pkcs12Config, openPgpReceiveConfig, session);
+		} catch (IOException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_PATH, emlPath, e.getMessage()), e);
+		}
+	}
+
+	/**
 	 * Parses EML data into a builder that follows {@link EmailPopulatingBuilder}'s configuration and resolution rules.
 	 */
 	@NotNull
@@ -98,6 +135,23 @@ public final class ConfiguredEmailConverter {
 	public OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final File msgFile,
 			@Nullable final Pkcs12Config pkcs12Config) {
 		return EmailConverter.outlookMsgToEmailBuilderWithOutlookData(msgFile, pkcs12Config, this);
+	}
+
+	/**
+	 * Converts an Outlook message and retains the Outlook-specific source data. The stream opened for the path is closed before this method returns.
+	 *
+	 * @param msgPath Path to the Outlook MSG file.
+	 * @param pkcs12Config Private key configuration for S/MIME decryption, or {@code null} when not needed.
+	 * @return The editable email builder together with Outlook-specific source data.
+	 */
+	@NotNull
+	public OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final Path msgPath,
+			@Nullable final Pkcs12Config pkcs12Config) {
+		try (InputStream msgInputStream = Files.newInputStream(requireNonNull(msgPath, "msgPath"))) {
+			return outlookMsgToEmailBuilderWithOutlookData(msgInputStream, pkcs12Config);
+		} catch (IOException e) {
+			throw new EmailConverterException(format(EmailConverterException.ERROR_READING_OUTLOOK_PATH, msgPath, e.getMessage()), e);
+		}
 	}
 
 	/**

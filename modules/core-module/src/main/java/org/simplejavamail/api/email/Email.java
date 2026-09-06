@@ -27,6 +27,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -814,6 +815,16 @@ public class Email implements Serializable {
 	@Nullable
 	public Date getSentDate() {
 		return sentDate != null ? new Date(sentDate.getTime()) : null;
+	}
+
+	/**
+	 * Returns the caller-controlled sent date as an {@link Instant}, or {@code null} when no date was fixed.
+	 *
+	 * @see EmailPopulatingBuilder#fixingSentDate(Instant)
+	 */
+	@Nullable
+	public Instant getSentDateAsInstant() {
+		return sentDate != null ? sentDate.toInstant() : null;
 	}
 
 	/**

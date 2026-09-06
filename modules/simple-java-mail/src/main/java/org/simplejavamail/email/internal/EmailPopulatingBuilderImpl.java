@@ -1,6 +1,5 @@
 package org.simplejavamail.email.internal;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.activation.DataSource;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.internet.InternetAddress;
@@ -40,6 +39,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -806,10 +807,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.OptionNameOverride("withPlainTextFromFile")
 	public EmailPopulatingBuilder withPlainText(@NotNull final File textFile) {
+		return withPlainText(textFile.toPath());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withPlainText(Path)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	public EmailPopulatingBuilder withPlainText(@NotNull final Path textPath) {
 		try {
-			return withPlainText(FileUtil.readFileContent(textFile));
+			return withPlainText(FileUtil.readFileContent(textPath));
 		} catch (IOException e) {
-			throw new EmailException(format(ERROR_READING_FROM_FILE, textFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textPath), e);
 		}
 	}
 	
@@ -828,10 +838,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.OptionNameOverride("prependTextFromFile")
 	public EmailPopulatingBuilder prependText(@NotNull final File textFile) {
+		return prependText(textFile.toPath());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#prependText(Path)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	public EmailPopulatingBuilder prependText(@NotNull final Path textPath) {
 		try {
-			return prependText(FileUtil.readFileContent(textFile));
+			return prependText(FileUtil.readFileContent(textPath));
 		} catch (IOException e) {
-			throw new EmailException(format(ERROR_READING_FROM_FILE, textFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textPath), e);
 		}
 	}
 	
@@ -850,10 +869,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.OptionNameOverride("appendTextFromFile")
 	public EmailPopulatingBuilder appendText(@NotNull final File textFile) {
+		return appendText(textFile.toPath());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#appendText(Path)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	public EmailPopulatingBuilder appendText(@NotNull final Path textPath) {
 		try {
-			return appendText(FileUtil.readFileContent(textFile));
+			return appendText(FileUtil.readFileContent(textPath));
 		} catch (IOException e) {
-			throw new EmailException(format(ERROR_READING_FROM_FILE, textFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textPath), e);
 		}
 	}
 	
@@ -872,10 +900,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.OptionNameOverride("withHTMLTextFromFile")
 	public EmailPopulatingBuilder withHTMLText(@NotNull final File textHTMLFile) {
+		return withHTMLText(textHTMLFile.toPath());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#withHTMLText(Path)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	public EmailPopulatingBuilder withHTMLText(@NotNull final Path textHTMLPath) {
 		try {
-			return withHTMLText(FileUtil.readFileContent(textHTMLFile));
+			return withHTMLText(FileUtil.readFileContent(textHTMLPath));
 		} catch (IOException e) {
-			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLPath), e);
 		}
 	}
 	
@@ -894,10 +931,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.OptionNameOverride("prependTextHTMLFromFile")
 	public EmailPopulatingBuilder prependTextHTML(@NotNull final File textHTMLFile) {
+		return prependTextHTML(textHTMLFile.toPath());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#prependTextHTML(Path)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	public EmailPopulatingBuilder prependTextHTML(@NotNull final Path textHTMLPath) {
 		try {
-			return prependTextHTML(FileUtil.readFileContent(textHTMLFile));
+			return prependTextHTML(FileUtil.readFileContent(textHTMLPath));
 		} catch (IOException e) {
-			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLPath), e);
 		}
 	}
 	
@@ -916,10 +962,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.OptionNameOverride("appendTextHTMLFromFile")
 	public EmailPopulatingBuilder appendTextHTML(@NotNull final File textHTMLFile) {
+		return appendTextHTML(textHTMLFile.toPath());
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#appendTextHTML(Path)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	public EmailPopulatingBuilder appendTextHTML(@NotNull final Path textHTMLPath) {
 		try {
-			return appendTextHTML(FileUtil.readFileContent(textHTMLFile));
+			return appendTextHTML(FileUtil.readFileContent(textHTMLPath));
 		} catch (IOException e) {
-			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLFile), e);
+			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLPath), e);
 		}
 	}
 	
@@ -1446,10 +1501,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
 	 */
 	@Override
-	@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
 	public EmailPopulatingBuilder signWithSmime(@NotNull final File pkcs12StoreFile, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword, @Nullable final String signatureAlgorithm) {
+		return signWithSmime(pkcs12StoreFile.toPath(), storePassword, keyAlias, keyPassword, signatureAlgorithm);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#signWithSmime(Path, String, String, String, String)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	public EmailPopulatingBuilder signWithSmime(@NotNull final Path pkcs12StorePath, @NotNull final String storePassword,
+			@NotNull final String keyAlias, @NotNull final String keyPassword, @Nullable final String signatureAlgorithm) {
 		return signWithSmime(SmimeSigningConfig.builder()
-				.pkcs12Config(pkcs12StoreFile, storePassword, keyAlias, keyPassword)
+				.pkcs12Config(pkcs12StorePath, storePassword, keyAlias, keyPassword)
 				.signatureAlgorithm(signatureAlgorithm)
 				.build());
 	}
@@ -1467,10 +1531,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#encryptWithSmime(File, String, String)
 	 */
 	@Override
-	@SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "Input stream being created should not be closed here")
 	public EmailPopulatingBuilder encryptWithSmime(@NotNull final File pemFile, @Nullable final String keyEncapsulationAlgorithm, @Nullable final String cipherAlgorithm) {
+		return encryptWithSmime(pemFile.toPath(), keyEncapsulationAlgorithm, cipherAlgorithm);
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#encryptWithSmime(Path, String, String)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
+	public EmailPopulatingBuilder encryptWithSmime(@NotNull final Path pemPath, @Nullable final String keyEncapsulationAlgorithm,
+			@Nullable final String cipherAlgorithm) {
 		return encryptWithSmime(SmimeEncryptionConfig.builder()
-				.x509Certificate(pemFile)
+				.x509Certificate(pemPath)
 				.keyEncapsulationAlgorithm(keyEncapsulationAlgorithm)
 				.cipherAlgorithm(cipherAlgorithm)
 				.build());
@@ -1667,6 +1740,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder fixingSentDate(@NotNull final Date sentDate) {
 		this.sentDate = new Date(sentDate.getTime());
 		return this;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#fixingSentDate(Instant)
+	 */
+	@Override
+	@Cli.ExcludeApi(reason = "The Date overload already provides the same CLI value")
+	public EmailPopulatingBuilder fixingSentDate(@NotNull final Instant sentDate) {
+		return fixingSentDate(Date.from(sentDate));
 	}
 
 	/**
@@ -2270,5 +2352,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public Date getSentDate() {
 		return sentDate != null ? new Date(sentDate.getTime()) : null;
+	}
+
+	/**
+	 * @see EmailPopulatingBuilder#getSentDateAsInstant()
+	 */
+	@Override
+	@Nullable
+	public Instant getSentDateAsInstant() {
+		return sentDate != null ? sentDate.toInstant() : null;
 	}
 }

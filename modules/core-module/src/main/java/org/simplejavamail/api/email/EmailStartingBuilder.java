@@ -6,6 +6,7 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.regex.Pattern;
 
 import static java.util.regex.Pattern.compile;
@@ -73,6 +74,18 @@ public interface EmailStartingBuilder {
 	 */
 	@Cli.ExcludeApi(reason = "The byte array overload provides CLI file conversion without transferring stream ownership")
 	ExactEmailBuilder startingFromExactEml(@NotNull InputStream emlInputStream);
+
+	/**
+	 * Starts an exact email with the same semantics as {@link #startingFromExactEml(byte[])}, reading the complete EML from the supplied path.
+	 * Any stream opened for the path is closed before this method returns.
+	 * <p>
+	 * The CLI exposes the byte-array overload and already interprets its argument as a file path.
+	 *
+	 * @param emlPath Path to the complete EML representation.
+	 * @return A constrained builder for the explicit SMTP envelope of the exact message.
+	 */
+	@Cli.ExcludeApi(reason = "The byte array overload already provides the same CLI file conversion")
+	ExactEmailBuilder startingFromExactEml(@NotNull Path emlPath);
 	
 	/**
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
