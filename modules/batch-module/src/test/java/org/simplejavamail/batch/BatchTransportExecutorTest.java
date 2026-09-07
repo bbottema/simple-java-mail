@@ -1,9 +1,13 @@
 package org.simplejavamail.batch;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.SendFailedException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,6 +26,7 @@ import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -140,6 +145,55 @@ class BatchTransportExecutorTest {
 		} finally {
 			executor.close();
 		}
+	}
+
+	@ParameterizedTest(name = "core={0}, sticky={1}, recipientRejected={2}")
+	@CsvSource({"0,false,false", "0,false,true", "0,true,false", "0,true,true",
+			"1,false,false", "1,false,true", "1,true,false", "1,true,true"})
+	void failedAsyncOperationsWakeAlreadyWaitingAttempts(final int coreSize, final boolean stickySession,
+			final boolean recipientRejected) throws Exception {
+		final TestSession testSession = testSession();
+		final AtomicReference<Thread> waitingThread = new AtomicReference<>();
+		final ExecutorService workers = Executors.newFixedThreadPool(2, task -> {
+			final Thread worker = new Thread(task, "batch-claim-recovery-test");
+			waitingThread.set(worker);
+			return worker;
+		});
+		final BatchTransportExecutor<String> executor = executorBuilder()
+				.withCorePoolSize(coreSize).withMaxPoolSize(1).withExecutorService(workers).build();
+		final CountDownLatch firstActive = new CountDownLatch(1);
+		final CountDownLatch allowFailure = new CountDownLatch(1);
+		final AtomicReference<Transport> firstTransport = new AtomicReference<>();
+		final MessagingException callbackFailure = recipientRejected
+				? new SendFailedException("recipient rejected") : new MessagingException("connection failed");
+		try {
+			executor.registerSession("cluster", testSession.session);
+			final CompletableFuture<Object> failed = executor.submit("cluster", (session, transport) -> {
+				firstTransport.set(transport);
+				firstActive.countDown();
+				assertThat(allowFailure.await(5, TimeUnit.SECONDS)).isTrue();
+				throw callbackFailure;
+			});
+			assertThat(firstActive.await(3, TimeUnit.SECONDS)).isTrue();
+			final CompletableFuture<Transport> waiting = stickySession
+					? executor.submit("cluster", testSession.session, (session, transport) -> transport)
+					: executor.submit("cluster", (session, transport) -> transport);
+			awaitBlockedPoolClaim(waitingThread);
+			allowFailure.countDown();
+
+			assertThatThrownBy(() -> failed.get(3, TimeUnit.SECONDS))
+					.isInstanceOf(ExecutionException.class).hasCause(callbackFailure);
+			final Transport recovered = waiting.get(3, TimeUnit.SECONDS);
+			assertThat(testSession.allocatedTransports).hasSize(2);
+			assertThat(recovered).isNotSameAs(firstTransport.get())
+					.isSameAs(testSession.allocatedTransports.get(1));
+		} finally {
+			allowFailure.countDown();
+			workers.shutdownNow();
+			assertThat(workers.awaitTermination(3, TimeUnit.SECONDS)).isTrue();
+			executor.shutdownNow().get(3, TimeUnit.SECONDS);
+		}
+		verify(firstTransport.get(), atLeastOnce()).close();
 	}
 
 	@Test
@@ -326,6 +380,23 @@ class BatchTransportExecutorTest {
 				.withMaxPoolSize(2)
 				.withClaimTimeoutMillis(1000)
 				.withExpireAfterMillis(60000);
+	}
+
+	private static void awaitBlockedPoolClaim(final AtomicReference<Thread> thread) throws InterruptedException {
+		final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+		while (System.nanoTime() < deadline) {
+			final Thread worker = thread.get();
+			if (worker != null && worker.getState() == Thread.State.TIMED_WAITING) {
+				for (StackTraceElement frame : worker.getStackTrace()) {
+					if (frame.getClassName().equals("org.bbottema.genericobjectpool.GenericObjectPool")
+							&& frame.getMethodName().equals("waitForAvailableObjectOrTimeout")) {
+						return;
+					}
+				}
+			}
+			Thread.sleep(1);
+		}
+		fail("The asynchronous attempt did not reach the underlying pool's condition wait");
 	}
 
 	private static TestSession testSession() throws Exception {
