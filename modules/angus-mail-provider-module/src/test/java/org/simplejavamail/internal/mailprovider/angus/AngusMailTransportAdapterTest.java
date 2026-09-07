@@ -7,8 +7,9 @@ import jakarta.mail.Session;
 import jakarta.mail.URLName;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.eclipse.angus.mail.smtp.SMTPMessage;
+import org.eclipse.angus.mail.smtp.SMTPSendFailedException;
+import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
@@ -97,6 +98,71 @@ class AngusMailTransportAdapterTest {
         assertThat(result.getFailure()).containsSame(failure);
     }
 
+    @Test
+    void emptyProviderResponseIsNotReportedAsAnSmtpRejection() throws Exception {
+        final MessagingException failure = new MessagingException("Exception reading response");
+        final ChangedResponseTransport transport = new ChangedResponseTransport(failure, 0, "");
+
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail());
+
+        assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+        assertThat(result.getSmtpResponse()).isEmpty();
+        assertThat(result.getFailure()).containsSame(failure);
+    }
+
+    @Test
+    void missingFinalDataReplyClearsAmbiguousRecipientsButRetainsKnownInvalidRecipients() throws Exception {
+        final Address ambiguousRecipient = new InternetAddress("ambiguous@example.com");
+        final Address invalidRecipient = new InternetAddress("invalid@example.com");
+        final SMTPSendFailedException failure = new SMTPSendFailedException(
+                ".", -1, "[EOF]", null, null, new Address[]{ambiguousRecipient}, new Address[]{invalidRecipient});
+        final ChangedResponseTransport transport = new ChangedResponseTransport(failure, -1, "[EOF]");
+
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail());
+
+        assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+        assertThat(result.getSmtpResponse()).isEmpty();
+        assertThat(result.getAcceptedRecipients()).isEmpty();
+        assertThat(result.getValidUnsentRecipients()).isEmpty();
+        assertThat(result.getInvalidRecipients()).containsExactly(invalidRecipient);
+        assertThat(result.getFailure()).containsSame(failure);
+    }
+
+    @Test
+    void explicitFinalDataRejectionRemainsRejected() throws Exception {
+        final Address unsentRecipient = new InternetAddress("unsent@example.com");
+        final SMTPSendFailedException failure = new SMTPSendFailedException(
+                ".", 550, "550 message rejected", null, null, new Address[]{unsentRecipient}, null);
+        final ChangedResponseTransport transport = new ChangedResponseTransport(failure, 550, "550 message rejected");
+
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail());
+
+        assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
+        assertThat(result.getSmtpResponse()).hasValueSatisfying(response -> {
+            assertThat(response.getReturnCode()).isEqualTo(550);
+            assertThat(response.getResponse()).isEqualTo("550 message rejected");
+        });
+        assertThat(result.getValidUnsentRecipients()).containsExactly(unsentRecipient);
+        assertThat(result.getFailure()).containsSame(failure);
+    }
+
+    @Test
+    void commandSpecificEofBeforeDataRemainsRejected() throws Exception {
+        final Address unsentRecipient = new InternetAddress("unsent@example.com");
+        final SMTPSendFailedException failure = new SMTPSendFailedException(
+                "MAIL FROM:<sender@example.com>", -1, "[EOF]", null, null, new Address[]{unsentRecipient}, null);
+        final ChangedResponseTransport transport = new ChangedResponseTransport(failure, -1, "[EOF]");
+
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail());
+
+        assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
+        assertThat(result.getSmtpResponse()).hasValueSatisfying(response -> {
+            assertThat(response.getReturnCode()).isEqualTo(-1);
+            assertThat(response.getResponse()).isEqualTo("[EOF]");
+        });
+        assertThat(result.getValidUnsentRecipients()).containsExactly(unsentRecipient);
+    }
+
     private static MimeMessage message(final String body) throws Exception {
         final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
         message.setFrom(new InternetAddress("sender@example.com"));
@@ -109,6 +175,11 @@ class AngusMailTransportAdapterTest {
 
     private static Address[] recipients() throws Exception {
         return new Address[]{new InternetAddress("receiver@example.com")};
+    }
+
+    private static PreparedMail preparedMail() throws Exception {
+        return new PreparedMail(message("body"), recipients(),
+                new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
     }
 
     private static byte[] bytes(final MimeMessage message) throws Exception {
@@ -137,6 +208,40 @@ class AngusMailTransportAdapterTest {
 
         @Override
         public synchronized void sendMessage(final Message message, final Address[] addresses) throws MessagingException {
+            throw failure;
+        }
+    }
+
+    private static final class ChangedResponseTransport extends SMTPTransport {
+        private final MessagingException failure;
+        private final int failureReturnCode;
+        private final String failureResponse;
+        private int returnCode = 250;
+        private String serverResponse = "250 previous message accepted";
+
+        private ChangedResponseTransport(final MessagingException failure,
+                                         final int failureReturnCode,
+                                         final String failureResponse) {
+            super(Session.getInstance(new Properties()), new URLName("smtp", null, -1, null, null, null));
+            this.failure = failure;
+            this.failureReturnCode = failureReturnCode;
+            this.failureResponse = failureResponse;
+        }
+
+        @Override
+        public synchronized int getLastReturnCode() {
+            return returnCode;
+        }
+
+        @Override
+        public synchronized String getLastServerResponse() {
+            return serverResponse;
+        }
+
+        @Override
+        public synchronized void sendMessage(final Message message, final Address[] addresses) throws MessagingException {
+            returnCode = failureReturnCode;
+            serverResponse = failureResponse;
             throw failure;
         }
     }

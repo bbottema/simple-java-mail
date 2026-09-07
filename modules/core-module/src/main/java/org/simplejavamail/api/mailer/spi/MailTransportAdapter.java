@@ -10,7 +10,10 @@ import org.jetbrains.annotations.NotNull;
  * {@link Transport#sendMessage(jakarta.mail.Message, jakarta.mail.Address[])} call so it can apply envelope
  * options without leaking provider-specific message types into MIME construction.</p>
  * <p>Implementations capture checked Jakarta Mail submission failures in the returned {@link MailTransportResult}. This lets Simple Java Mail preserve
- * the original exception while translating provider recipient arrays into an immutable high-level result.</p>
+ * the original exception while translating provider recipient arrays into an immutable high-level result. When message data was transferred but the
+ * final acceptance response was not observed, adapters should use
+ * {@link MailTransportResult#failedWithUnknownAcceptance(jakarta.mail.MessagingException, jakarta.mail.Address[], jakarta.mail.Address[])} and retain
+ * only recipient facts that remain certain.</p>
  */
 public interface MailTransportAdapter {
 

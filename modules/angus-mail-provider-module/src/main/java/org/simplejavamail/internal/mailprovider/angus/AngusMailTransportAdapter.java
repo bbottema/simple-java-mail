@@ -6,6 +6,7 @@ import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.MimeMessage;
 import org.eclipse.angus.mail.smtp.SMTPMessage;
+import org.eclipse.angus.mail.smtp.SMTPSendFailedException;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -60,8 +61,36 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             return MailTransportResult.accepted(preparedMail.getRecipients(),
                     captureResponseSnapshot(smtpTransport).toSmtpServerResponse());
         } catch (final MessagingException failure) {
-            return MailTransportResult.failed(failure, captureNewResponse(smtpTransport, responseBeforeSend));
+            return translateFailure(failure, smtpTransport, responseBeforeSend);
         }
+    }
+
+    @NotNull
+    private static MailTransportResult translateFailure(@NotNull final MessagingException failure,
+                                                        @NotNull final SMTPTransport smtpTransport,
+                                                        @NotNull final SmtpResponseSnapshot responseBeforeSend) {
+        final SMTPSendFailedException missingFinalReply = findMissingFinalDataReply(failure);
+        return missingFinalReply != null
+                ? MailTransportResult.failedWithUnknownAcceptance(failure, null, missingFinalReply.getInvalidAddresses())
+                : MailTransportResult.failed(failure, captureNewResponse(smtpTransport, responseBeforeSend));
+    }
+
+    @Nullable
+    private static SMTPSendFailedException findMissingFinalDataReply(@NotNull final MessagingException failure) {
+        MessagingException currentFailure = failure;
+        while (currentFailure != null) {
+            if (currentFailure instanceof SMTPSendFailedException) {
+                final SMTPSendFailedException sendFailure = (SMTPSendFailedException) currentFailure;
+                if (".".equals(sendFailure.getCommand()) && sendFailure.getReturnCode() <= 0) {
+                    return sendFailure;
+                }
+            }
+            final Exception nextFailure = currentFailure.getNextException();
+            currentFailure = nextFailure instanceof MessagingException
+                    ? (MessagingException) nextFailure
+                    : null;
+        }
+        return null;
     }
 
     @NotNull
@@ -103,6 +132,9 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
 
         @Nullable
         private SmtpServerResponse toSmtpServerResponse() {
+            if (returnCode == 0 && (serverResponse == null || serverResponse.isEmpty())) {
+                return null;
+            }
             return returnCode > 0 || serverResponse != null
                     ? new SmtpServerResponse(returnCode, serverResponse)
                     : null;

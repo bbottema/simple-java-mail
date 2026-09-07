@@ -2,6 +2,7 @@ package org.simplejavamail.providerneutral;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
@@ -14,6 +15,7 @@ import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
@@ -66,6 +68,7 @@ public final class ProviderNeutralClasspathConsumer {
 				.withAttachment("proof.txt", "provider-neutral attachment".getBytes(StandardCharsets.UTF_8), "text/plain")
 				.buildEmailCompletedWithDefaultsAndOverrides();
 		assertMailSendObserverApiIsAvailable(simpleJavaMail);
+		assertUnknownTransportFailureApiIsAvailable();
 		assertConfigDiagnosticsApiIsAvailable(simpleJavaMail);
 		assertExactEmailApiIsAvailable(simpleJavaMail);
 		assertJava11ConvenienceApiIsAvailable(simpleJavaMail, source);
@@ -145,6 +148,15 @@ public final class ProviderNeutralClasspathConsumer {
 		simpleJavaMail.mailerBuilder()
 				.withSMTPServer("localhost", 25)
 				.withMailSendObserver(observer);
+	}
+
+	/** Verifies that third-party adapters can report a failed submission whose final acceptance remains unknown. */
+	private static void assertUnknownTransportFailureApiIsAvailable() {
+		final MessagingException failure = new MessagingException("final response unavailable");
+		final MailTransportResult result = MailTransportResult.failedWithUnknownAcceptance(failure, null, null);
+		if (result.getStatus() != MailSubmissionStatus.UNKNOWN || result.getFailure().orElse(null) != failure) {
+			throw new AssertionError("Unknown transport-failure API is unavailable");
+		}
 	}
 
 	private static void assertMissingImplementationFailsClearly(final Email email) {

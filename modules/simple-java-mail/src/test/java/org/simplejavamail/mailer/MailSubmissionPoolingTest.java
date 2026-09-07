@@ -10,6 +10,7 @@ import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.eclipse.angus.mail.smtp.SMTPSendFailedException;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -186,6 +187,41 @@ class MailSubmissionPoolingTest {
 		assertThat(state.connectCount.get()).isGreaterThanOrEqualTo(2);
 		assertThat(state.connectedTransportIds).contains(
 				state.transportId("rejected"), state.transportId("after rejection"));
+	}
+
+	@Test
+	void asyncPoolInvalidatesUnknownFinalReplyWithoutLeakingRecipientFacts() throws Exception {
+		final PooledTransportState state = new PooledTransportState();
+		final Session session = session(state);
+		final SMTPSendFailedException finalReplyFailure = new SMTPSendFailedException(
+				".", -1, "[EOF]", null, null,
+				internetAddresses("ambiguous@example.com"), internetAddresses("invalid@example.com"));
+		state.plan("unknown final reply", Attempt.failure(finalReplyFailure, -1, "[EOF]"));
+		state.plan("after unknown final reply", Attempt.success(250, "250 queued after unknown"));
+
+		final MailSubmissionException unknownFailure;
+		final MailSubmissionReceipt recoveryReceipt;
+		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 1, 2)) {
+			unknownFailure = submissionFailure(mailer.sendMailAndGetReceipt(
+					email("unknown final reply", "ambiguous@example.com", "invalid@example.com"), true));
+			recoveryReceipt = mailer.sendMailAndGetReceipt(
+					email("after unknown final reply", "recovery@example.com"), true).get(5, TimeUnit.SECONDS);
+		}
+
+		assertThat(unknownFailure.getCause()).isSameAs(finalReplyFailure);
+		assertThat(unknownFailure.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+		assertThat(unknownFailure.getSubmissionReceipt().getSmtpResponse()).isEmpty();
+		assertThat(unknownFailure.getSubmissionReceipt().getAcceptedRecipients()).isEmpty();
+		assertThat(unknownFailure.getSubmissionReceipt().getValidUnsentRecipients()).isEmpty();
+		assertThat(unknownFailure.getSubmissionReceipt().getInvalidRecipients()).containsExactly("invalid@example.com");
+
+		assertThat(state.transportId("after unknown final reply")).isNotEqualTo(state.transportId("unknown final reply"));
+		assertThat(recoveryReceipt.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+		assertThat(recoveryReceipt.getAcceptedRecipients()).containsExactly("recovery@example.com");
+		assertThat(recoveryReceipt.getValidUnsentRecipients()).isEmpty();
+		assertThat(recoveryReceipt.getInvalidRecipients()).isEmpty();
+		assertThat(recoveryReceipt.getSmtpResponse()).get()
+				.extracting(response -> response.getResponse()).isEqualTo("250 queued after unknown");
 	}
 
 	@Test

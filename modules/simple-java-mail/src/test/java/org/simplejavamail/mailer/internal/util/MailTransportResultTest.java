@@ -76,6 +76,45 @@ class MailTransportResultTest {
 	}
 
 	@Test
+	void explicitlyUnknownFailureRetainsOnlyCertainRecipientFacts() throws Exception {
+		final MessagingException failure = new MessagingException("final DATA response was not received");
+		final Address validUnsent = new InternetAddress("unsent@example.com");
+		final Address invalid = new InternetAddress("invalid@example.com");
+		final Address replacement = new InternetAddress("replacement@example.com");
+		final Address[] validUnsentInput = {validUnsent};
+		final Address[] invalidInput = {invalid};
+
+		final MailTransportResult result = MailTransportResult.failedWithUnknownAcceptance(
+				failure, validUnsentInput, invalidInput);
+		validUnsentInput[0] = replacement;
+		invalidInput[0] = replacement;
+
+		assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+		assertThat(result.getSmtpResponse()).isEmpty();
+		assertThat(result.getAcceptedRecipients()).isEmpty();
+		assertThat(result.getValidUnsentRecipients()).containsExactly(validUnsent);
+		assertThat(result.getInvalidRecipients()).containsExactly(invalid);
+		assertThat(result.getFailure()).containsSame(failure);
+		assertThat(result.isSuccessful()).isFalse();
+
+		result.getValidUnsentRecipients()[0] = replacement;
+		result.getInvalidRecipients()[0] = replacement;
+		assertThat(result.getValidUnsentRecipients()).containsExactly(validUnsent);
+		assertThat(result.getInvalidRecipients()).containsExactly(invalid);
+	}
+
+	@Test
+	void explicitlyUnknownFailureNormalizesMissingRecipientFacts() {
+		final MailTransportResult result = MailTransportResult.failedWithUnknownAcceptance(
+				new MessagingException("final DATA response was not received"), null, null);
+
+		assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+		assertThat(result.getAcceptedRecipients()).isEmpty();
+		assertThat(result.getValidUnsentRecipients()).isEmpty();
+		assertThat(result.getInvalidRecipients()).isEmpty();
+	}
+
+	@Test
 	void successfulResultReportsAllTransportRecipientsAsAccepted() throws Exception {
 		final Address[] recipients = {new InternetAddress("accepted@example.com")};
 

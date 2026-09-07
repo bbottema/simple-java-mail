@@ -26,6 +26,8 @@ public enum MailSubmissionStatus {
 	/**
 	 * The send path cannot state whether any recipient was accepted.
 	 * <p>
+	 * This includes losing the SMTP connection after transmitting the message data but before receiving the server's final acceptance response.
+	 * <p>
 	 * Some or all recipients may already have been accepted. Applications should not automatically retry an unknown outcome unless their delivery
 	 * design accounts for duplicate submission.
 	 */

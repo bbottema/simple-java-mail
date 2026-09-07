@@ -90,6 +90,20 @@ public final class MailTransportResult {
 				requireNonNull(failure, "failure"));
 	}
 
+	/**
+	 * Records a failed transport call for which final server acceptance is unknown, while retaining recipient facts that remain certain.
+	 * <p>
+	 * This is appropriate when the transport loses the final submission response after transferring message data. Recipients whose acceptance is
+	 * ambiguous must not be included in either recipient array.
+	 */
+	@NotNull
+	public static MailTransportResult failedWithUnknownAcceptance(@NotNull final MessagingException failure,
+			@Nullable final Address[] knownValidUnsentRecipients,
+			@Nullable final Address[] knownInvalidRecipients) {
+		return new MailTransportResult(MailSubmissionStatus.UNKNOWN, null, null,
+				knownValidUnsentRecipients, knownInvalidRecipients, requireNonNull(failure, "failure"));
+	}
+
 	@NotNull
 	private static MailSubmissionStatus determineFailureStatus(@Nullable final SmtpServerResponse smtpResponse,
 			@Nullable final Address[] acceptedRecipients,

@@ -172,7 +172,7 @@ There is no direct `Phaser` usage in this repository's source tree. Batch coordi
 
 `MailTransportAdapter` owns the provider-specific `Transport.sendMessage(...)` call and returns a non-null `MailTransportResult`. The built-in Angus adapter captures its current SMTP response; the generic Jakarta Mail fallback has no provider response but still knows that all recipients were accepted when `sendMessage(...)` returns normally. An opaque successful path uses `UNKNOWN` only when it genuinely cannot report acceptance.
 
-Adapters catch checked `MessagingException` failures and return `MailTransportResult.failed(...)`. That factory extracts the valid-sent, valid-unsent, and invalid arrays from a `SendFailedException` when present, clones every array on input and output, and retains the original exception. `TransportRunner` immediately translates the addresses to immutable strings and builds either a `MailSubmissionReceipt` or a `MailSubmissionException` whose direct cause is that original Jakarta Mail failure.
+Adapters catch checked `MessagingException` failures and return `MailTransportResult.failed(...)`. That factory extracts the valid-sent, valid-unsent, and invalid arrays from a `SendFailedException` when present, clones every array on input and output, and retains the original exception. When a failed transport call cannot determine final server acceptance but still has recipient facts that remain certain, `failedWithUnknownAcceptance(...)` forces `UNKNOWN` without discarding those facts. `TransportRunner` immediately translates the addresses to immutable strings and builds either a `MailSubmissionReceipt` or a `MailSubmissionException` whose direct cause is that original Jakarta Mail failure.
 
 The public statuses are deliberately about knowledge of SMTP submission:
 
@@ -181,12 +181,12 @@ The public statuses are deliberately about knowledge of SMTP submission:
 - `REJECTED`: no accepted recipients and explicit rejection facts are present;
 - `UNKNOWN`: no reliable acceptance fact is available.
 
-Normal, pooled, asynchronous, and `withOpenConnection` sends all pass through the same translation. Custom mailers and logging-only mode complete successfully with `UNKNOWN`, because Simple Java Mail did not observe their server interaction. A pooled Angus transport may retain the preceding SMTP reply, so the adapter compares reply state before and after a failed attempt and never attaches an unchanged old response to the new failure.
+Normal, pooled, asynchronous, and `withOpenConnection` sends all pass through the same translation. Custom mailers and logging-only mode complete successfully with `UNKNOWN`, because Simple Java Mail did not observe their server interaction. Angus uses code `0` with an empty response when a response read fails, and can report EOF for command `.` when the final reply after `DATA` is lost. Neither is treated as an SMTP rejection: the result is `UNKNOWN`, the provider's speculative valid-unsent group is cleared, and only recipient rejections known from earlier RCPT replies are retained. A pooled Angus transport may also retain the preceding SMTP reply, so the adapter compares reply state before and after a failed attempt and never attaches an unchanged old response to the new failure.
 
 Gotchas:
 
 - A `250` reply confirms SMTP submission, not mailbox delivery.
-- `UNKNOWN` can mean that the connection failed after acceptance. Do not turn it into an automatic retry without duplicate protection.
+- A timeout, reset, or EOF while awaiting the final reply after `DATA` is `UNKNOWN`: the server may have accepted the message without the client receiving that fact. Do not turn it into an automatic retry without duplicate protection.
 - `PARTIALLY_ACCEPTED` means retrying the whole original envelope can duplicate mail for recipients already accepted.
 - Submission failures invalidate the current pooled transport; successful results release it normally.
 
