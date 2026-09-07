@@ -2,8 +2,9 @@
 
 Full Simple Java Mail release history. The [README](README.md#current-release) links to the current release without duplicating these notes.
 
-## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [v9.3.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.1) - [v9.3.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.2) - [v9.3.3](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.3) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.3/)
+## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [v9.3.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.1) - [v9.3.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.2) - [v9.3.3](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.3) - [v9.3.4](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.4) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.4/)
 
+- **v9.3.4:** [#724](https://github.com/bbottema/simple-java-mail/issues/724): **Pooled send recovery:** attempts already waiting for a connection now resume after another attempt fails and invalidates its connection.
 - **v9.3.3:** [#720](https://github.com/bbottema/simple-java-mail/issues/720): **Thread-safe optional-module loading:** concurrent first use now initializes and reuses one module instance.
 - **v9.3.3:** **Java 8-compatible dependency maintenance:** updated JMail to 2.2.1 ([#719](https://github.com/bbottema/simple-java-mail/pull/719)) and SpotBugs annotations to 4.10.4 ([#717](https://github.com/bbottema/simple-java-mail/pull/717)), while retaining Simple Java Mail's validation when no general address validator is supplied.
 - **v9.3.2:** [#702](https://github.com/bbottema/simple-java-mail/issues/702): **Recipient address clarity:** renamed the misleading `oneOrMoreAddresses` implementation parameter and validation label to `address`; `RecipientBuilder` builds one recipient, while `RecipientsBuilder` accepts comma- or semicolon-delimited address lists.
@@ -12,6 +13,7 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 
 ### Supporting Libraries
 
+- **v9.3.4 — smtp-connection-pool 4.0.2:** consumes the waiting-claim recovery fix through clustered-object-pool 4.0.4 and generic-object-pool 2.4.3. No API or configuration changes are needed.
 - **v9.3.0 — smtp-connection-pool 4.0.1:** adopted the explicit `SmtpTransportLease` contract used by both the standalone facade and the existing Simple Java Mail `Mailer` integration. The complete generic, clustered, SMTP, and batch dependency chain now publishes stable JPMS automatic module names. The Jakarta `smtppool` provider remains a parallel choice and must not be nested beneath the batch-owned pool.
 
 ## [v9.2.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.2.0) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.2.0/)
