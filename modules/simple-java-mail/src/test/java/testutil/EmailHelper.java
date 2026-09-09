@@ -12,6 +12,8 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
+import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
@@ -229,7 +231,8 @@ public class EmailHelper {
 					/*22*/executorService,
 					/*23*/isExecutorServiceUserProvided,
 					/*24*/customMailer,
-					/*25*/oauth2AccessTokenProvider);
+					/*25*/oauth2AccessTokenProvider,
+					/*26*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000));
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

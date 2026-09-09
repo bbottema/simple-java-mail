@@ -6,6 +6,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
+import jakarta.mail.internet.InternetAddress;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -15,7 +16,18 @@ import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.AsyncQueueRejectionReason;
+import org.simplejavamail.api.mailer.AsyncQueueSnapshot;
+import org.simplejavamail.api.mailer.MailSendRejectedException;
+import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
+import org.simplejavamail.api.mailer.MailRecipientDisposition;
+import org.simplejavamail.api.mailer.MailRecipientResult;
+import org.simplejavamail.api.mailer.MailRetryDisposition;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
+import org.simplejavamail.api.mailer.SmtpRecipientStatus;
+import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
@@ -31,6 +43,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Properties;
+import java.util.Optional;
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -69,7 +83,9 @@ public final class ProviderNeutralConsumer {
 				.withAttachment("proof.txt", "provider-neutral attachment".getBytes(StandardCharsets.UTF_8), "text/plain")
 				.buildEmailCompletedWithDefaultsAndOverrides();
 		assertMailSendObserverApiIsAvailable(simpleJavaMail);
+		assertAsyncQueueApiIsAvailable(simpleJavaMail);
 		assertUnknownTransportFailureApiIsAvailable();
+		assertRecipientReplyApiIsAvailable();
 		assertConfigDiagnosticsApiIsAvailable(simpleJavaMail);
 		assertExactEmailApiIsAvailable(simpleJavaMail);
 		assertJava11ConvenienceApiIsAvailable(simpleJavaMail, source);
@@ -86,6 +102,20 @@ public final class ProviderNeutralConsumer {
 		if (!ConfigLoader.Property.DEFAULT_SUBJECT.key().equals(subjectDiagnostic.getPropertyName())
 				|| subjectDiagnostic.isRedacted()) {
 			throw new AssertionError("Configuration diagnostics API is unavailable");
+		}
+	}
+
+	/** Queue configuration and diagnostics must not depend on an SMTP implementation. */
+	private static void assertAsyncQueueApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
+		if (simpleJavaMail.mailerBuilder().withAsyncQueueCapacity(4)
+				.withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY)
+				.withAsyncQueueWaitTimeoutMillis(250).getAsyncQueueConfig().getCapacity() != 4) {
+			throw new AssertionError("Async queue configuration API is unavailable");
+		}
+		// Compile the optional return type without constructing a Mailer, which would need a Jakarta Mail implementation here.
+		@SuppressWarnings("unused") final Function<Mailer, Optional<AsyncQueueSnapshot>> inspection = Mailer::getAsyncQueueSnapshot;
+		if (new MailSendRejectedException(AsyncQueueRejectionReason.QUEUE_FULL).getReason() != AsyncQueueRejectionReason.QUEUE_FULL) {
+			throw new AssertionError("Async queue diagnostics API is unavailable");
 		}
 	}
 
@@ -157,6 +187,23 @@ public final class ProviderNeutralConsumer {
 		final MailTransportResult result = MailTransportResult.failedWithUnknownAcceptance(failure, null, null);
 		if (result.getStatus() != MailSubmissionStatus.UNKNOWN || result.getFailure().orElse(null) != failure) {
 			throw new AssertionError("Unknown transport-failure API is unavailable");
+		}
+	}
+
+	/** Exercises structured recipient results and retry guidance without linking an SMTP implementation. */
+	private static void assertRecipientReplyApiIsAvailable() throws Exception {
+		final MailRecipientResult recipient = new MailRecipientResult("recipient@example.org", "recipient@example.org",
+				MailRecipientDisposition.VALID_UNSENT, true, new SmtpServerResponse(450, "450 4.2.0 busy"));
+		final MailTransportResult result = MailTransportResult.failed(new MessagingException("rejected"), null,
+				null, new Address[]{new InternetAddress("recipient@example.org")}, null)
+				.withRecipientResults(List.of(recipient), MailRetryDisposition.SAFE_TO_RETRY_ALL);
+		final MailSubmissionReceipt receipt = new MailSubmissionReceipt(null, null, Instant.now(), MailSubmissionStatus.REJECTED,
+				result.getRecipientResults(), result.getRetryDisposition());
+		if (receipt.getRecipientResults().get(0).getRcptStatus() != SmtpRecipientStatus.TEMPORARILY_REJECTED
+				|| !recipient.getRcptAttempted().orElse(false)
+				|| !"4.2.0".equals(recipient.getRcptResponse().orElseThrow().getEnhancedStatusCode().orElse(null))
+				|| receipt.getRetryableRecipients().size() != 1 || receipt.getValidUnsentRecipients().size() != 1) {
+			throw new AssertionError("Recipient reply API is unavailable");
 		}
 	}
 

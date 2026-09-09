@@ -15,6 +15,7 @@ import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
+import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -110,6 +111,26 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotification", DeliveryStatusNotification.class)).isCompatible()).isFalse();
 		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", DeliveryStatusNotification.NotifyOption[].class)).isCompatible()).isFalse();
 		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", DeliveryStatusNotification.ReturnOption.class)).isCompatible()).isFalse();
+	}
+
+	@Test
+	public void asyncQueueSettingsHaveCliOptionsAndTypedArguments() throws Exception {
+		final Method capacity = MailerGenericBuilder.class.getMethod("withAsyncQueueCapacity", int.class);
+		final Method policy = MailerGenericBuilder.class.getMethod("withAsyncQueueOverflowPolicy", AsyncQueueOverflowPolicy.class);
+		final Method timeout = MailerGenericBuilder.class.getMethod("withAsyncQueueWaitTimeoutMillis", int.class);
+		for (Method setting : Arrays.asList(capacity, policy, timeout)) {
+			assertThat(methodIsCliCompatible(setting).isCompatible()).isTrue();
+			assertThat(getArgumentsForCliOption(setting)).extracting("required").containsExactly(true);
+		}
+		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("WAIT_FOR_CAPACITY")), policy))
+				.containsExactly(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY);
+		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("0")), capacity)).containsExactly(0);
+		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("250")), timeout)).containsExactly(250);
+		final List<CliDeclaredOptionSpec> options = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
+				new Class<?>[] {MailerRegularBuilder.class, MailerFromSessionBuilder.class});
+		assertThat(options).extracting(CliDeclaredOptionSpec::getName)
+				.contains("--mailer:withAsyncQueueCapacity", "--mailer:withAsyncQueueOverflowPolicy", "--mailer:withAsyncQueueWaitTimeoutMillis")
+				.doesNotContain("--mailer:getAsyncQueueSnapshot", "--mailer:getAsyncQueueConfig");
 	}
 
 	@Test

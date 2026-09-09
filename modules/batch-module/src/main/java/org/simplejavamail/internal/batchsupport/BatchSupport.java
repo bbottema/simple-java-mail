@@ -5,16 +5,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
 import org.simplejavamail.internal.modules.BatchModule;
-import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import static java.util.Objects.requireNonNull;
@@ -32,32 +28,6 @@ public class BatchSupport implements BatchModule {
 	@Nullable private BatchTransportEngine<UUID> batchTransportEngine;
 	// Retained as a direct field for diagnostics and compatibility with existing internal tests.
 	@Nullable private SmtpConnectionPoolClustered<UUID> smtpConnectionPool;
-
-	/**
-	 * @see BatchModule#executeAsync(String, Runnable)
-	 */
-	@Override
-	public CompletableFuture<Void> executeAsync(@NotNull final String processName, @NotNull final Runnable operation) {
-		return AsyncOperationHelper.executeAsync(processName, operation);
-	}
-
-	/**
-	 * @see BatchModule#executeAsync(ExecutorService, String, Runnable)
-	 */
-	@NotNull
-	@Override
-	public CompletableFuture<Void> executeAsync(@NotNull final ExecutorService executorService, @NotNull final String processName, @NotNull final Runnable operation) {
-		return AsyncOperationHelper.executeAsync(executorService, processName, operation);
-	}
-
-	/**
-	 * @see BatchModule#createDefaultExecutorService(int, int)
-	 */
-	@NotNull
-	@Override
-	public ExecutorService createDefaultExecutorService(final int threadPoolSize, final int keepAliveTime) {
-		return new NonJvmBlockingThreadPoolExecutor(threadPoolSize, keepAliveTime);
-	}
 
 	/**
 	 * @see BatchModule#registerToCluster(OperationalConfig, UUID, Session)

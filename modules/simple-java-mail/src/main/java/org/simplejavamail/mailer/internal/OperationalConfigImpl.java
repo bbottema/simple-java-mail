@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
@@ -172,6 +173,9 @@ class OperationalConfigImpl implements OperationalConfig {
 	@ToString.Exclude
 	@Getter(AccessLevel.NONE)
 	private final OAuth2AccessTokenProvider oauth2AccessTokenProvider;
+
+	/** @see OperationalConfig#getAsyncQueueConfig() */
+	@NotNull private final AsyncQueueConfig asyncQueueConfig;
 
 	@Override
 	@Nullable

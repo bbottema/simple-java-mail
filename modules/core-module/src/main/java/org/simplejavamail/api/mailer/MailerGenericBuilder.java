@@ -9,6 +9,8 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
+import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
+import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
@@ -21,8 +23,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Builder superclass which contains API to take care of all generic Mailer properties unrelated to the SMTP server
@@ -62,6 +62,24 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withThreadPoolKeepAliveTime(Integer)
 	 */
 	int DEFAULT_POOL_KEEP_ALIVE_TIME = 1;
+	/**
+	 * {@value} (unbounded).
+	 *
+	 * @see #withAsyncQueueCapacity(int)
+	 */
+	int DEFAULT_ASYNC_QUEUE_CAPACITY = -1;
+	/**
+	 * {@link AsyncQueueOverflowPolicy#REJECT}.
+	 *
+	 * @see #withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy)
+	 */
+	AsyncQueueOverflowPolicy DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY = AsyncQueueOverflowPolicy.REJECT;
+	/**
+	 * {@value} milliseconds.
+	 *
+	 * @see #withAsyncQueueWaitTimeoutMillis(int)
+	 */
+	int DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS = 1000;
 	/**
 	 * {@value}
 	 *
@@ -416,26 +434,73 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Sets the executor service used for asynchronous operations, including individual sends and simple batches. This lets the caller manage the thread
 	 * pool, threads and concurrency characteristics directly.
 	 * <p>
-	 * Without a caller-provided executor, {@link Executors#newSingleThreadExecutor()} is used when the
-	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME} is absent. With the batch module present, the default is a
-	 * {@code NonJvmBlockingThreadPoolExecutor}:
+	 * Without a caller-provided executor, the built-in executor uses one worker when the
+	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME} is absent. With the batch module present, it uses:
 	 * <ul>
 	 *     <li>with max threads fixed to the given pool size (default is {@value #DEFAULT_POOL_SIZE})</li>
 	 *     <li>with keepAliveTime as specified (if greater than zero, core threads will also time out and die off), default is {@value #DEFAULT_POOL_KEEP_ALIVE_TIME}</li>
-	 *     <li>A {@link LinkedBlockingQueue}</li>
-	 *     <li>The {@code NamedThreadFactory}, which creates named non-daemon threads</li>
+	 *     <li>An unbounded queue by default, or the capacity and policy configured through {@link #withAsyncQueueCapacity(int)}</li>
+	 *     <li>Named non-daemon worker threads</li>
 	 * </ul>
 	 * <p>
-	 * <strong>Note:</strong> What makes it NonJvm is that the default keepAliveTime is set to the lowest non-zero value (so 1), so that
+	 * <strong>Note:</strong> With the batch module present, the default keepAliveTime is set to the lowest non-zero value (so 1), so that
 	 * any threads will die off as soon as possible, as not to block the JVM from shutting down.
 	 * <p>
 	 * Simple Java Mail will <strong>not</strong> shut down the provided executor service when the Mailer or its connection pool is closed. The caller remains
-	 * responsible for the executor's lifecycle.
+	 * responsible for the executor's lifecycle. Non-default built-in queue settings cannot be combined with a caller-owned executor and are rejected
+	 * when building the Mailer. Call {@link #resetAsyncQueue()} to discard property-backed queue settings when taking over executor configuration.
 	 *
 	 * @param executorService A caller-owned executor service replacing Simple Java Mail's default executor.
 	 * @see <a href="https://www.simplejavamail.org/configuration.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
 	 */
 	T withExecutorService(@NotNull ExecutorService executorService);
+
+	/**
+	 * Bounds pending operations in this Mailer's built-in executor, separately from running workers and SMTP connections.
+	 * The default, {@code -1}, keeps the queue unbounded; {@code 0} allows work only when a worker can accept it immediately.
+	 * A positive value allows that many waiting operations. Queued operations are FIFO, but concurrent completion order is not guaranteed.
+	 * <p>
+	 * One ordinary send, receipt-returning send, simple batch, or asynchronous connection test occupies one place. A simple batch remains one lazy,
+	 * sequential operation, regardless of its email count. Blocking sends and the standalone BatchTransportExecutor do not use this queue.
+	 * Preparation stays on the calling thread, before admission; this is not a bound on application threads preparing emails.
+	 * <p>
+	 * Saturation uses {@link #withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy)}. Rejected operations acquire no SMTP or proxy resources.
+	 * Queue settings cannot be combined with {@link #withExecutorService(ExecutorService)}: configure that caller-owned executor itself instead.
+	 *
+	 * @param capacity Maximum queued operations, or -1 to retain unbounded queuing.
+	 * @see #resetAsyncQueue()
+	 * @see Mailer#getAsyncQueueSnapshot()
+	 */
+	T withAsyncQueueCapacity(int capacity);
+
+	/**
+	 * Chooses immediate rejection (the default) or bounded caller-side waiting when the built-in async queue is full.
+	 * Neither policy runs SMTP work on the submitting thread. Rejection completes an async send exceptionally with {@link MailSendRejectedException};
+	 * its observer runs on the submitting thread, before the method returns. A rejected simple batch does not open its iterable or notify per email.
+	 * <p>
+	 * WAIT_FOR_CAPACITY can block the submitting thread for {@link #withAsyncQueueWaitTimeoutMillis(int)}. Avoid it on event-loop threads.
+	 * Waiting from a Mailer worker (for example inside an observer) also occupies that worker until admission succeeds or times out.
+	 *
+	 * @param overflowPolicy REJECT or WAIT_FOR_CAPACITY; only meaningful with a finite queue capacity.
+	 * @see #withAsyncQueueCapacity(int)
+	 */
+	T withAsyncQueueOverflowPolicy(@NotNull AsyncQueueOverflowPolicy overflowPolicy);
+
+	/**
+	 * Sets the maximum caller-side wait for queue capacity under WAIT_FOR_CAPACITY. Defaults to 1000 milliseconds.
+	 * This is an admission timeout, not an SMTP/session timeout or a total-send deadline. Interruption rejects admission and preserves the interrupt flag.
+	 *
+	 * @param waitTimeoutMillis Positive maximum admission wait in milliseconds; ignored by REJECT.
+	 * @see #withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy)
+	 */
+	T withAsyncQueueWaitTimeoutMillis(int waitTimeoutMillis);
+
+	/** Restores unbounded queuing, immediate rejection policy, and the default 1000 millisecond admission wait. */
+	T resetAsyncQueue();
+
+	/** @return The current immutable built-in queue configuration, including builder overrides. */
+	@NotNull
+	AsyncQueueConfig getAsyncQueueConfig();
 
 	/**
 	 * Sets max thread pool size to the given size (default is {@value #DEFAULT_POOL_SIZE}).
@@ -692,14 +757,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetEmailValidator();
 
 	/**
-	 * Resets the executor services to be used back to the default, created by the Batch module if loaded, or else
-	 * {@link Executors#newSingleThreadExecutor()}.
-	 * <p>
-	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 * Restores a Mailer-owned executor using the current built-in queue settings. With the Batch module present it uses the configured
+	 * worker count and keep-alive time; without it, it uses one worker. This does not reset queue settings.
 	 *
 	 * @see #withExecutorService(ExecutorService)
-	 * @see
-	 * <a href="https://javadoc.io/page/org.simplejavamail/simple-java-mail/latest/org/simplejavamail/internal/batchsupport/concurrent/NonJvmBlockingThreadPoolExecutor.html">Batch module's NonJvmBlockingThreadPoolExecutor</a>
+	 * @see #resetAsyncQueue()
 	 */
 	T resetExecutorService();
 

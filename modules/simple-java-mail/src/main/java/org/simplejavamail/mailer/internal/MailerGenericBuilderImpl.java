@@ -10,6 +10,8 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
+import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -31,7 +33,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
@@ -49,6 +50,9 @@ import static java.util.Objects.requireNonNull;
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
 abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements InternalMailerBuilder<T> {
+
+	private static final AsyncQueueConfig DEFAULT_ASYNC_QUEUE_CONFIG = new AsyncQueueConfig(
+			DEFAULT_ASYNC_QUEUE_CAPACITY, DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS);
 
 	@NotNull
 	private final SimpleJavaMailConfig config;
@@ -178,6 +182,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@NotNull
 	private Integer threadPoolKeepAliveTime;
 
+	/** @see MailerGenericBuilder#withAsyncQueueCapacity(int) */
+	@NotNull private AsyncQueueConfig asyncQueueConfig;
+
 	/**
 	 * @see MailerGenericBuilder#withClusterKey(UUID)
 	 */
@@ -267,6 +274,10 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 	MailerGenericBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
 		this.config = requireNonNull(config, "config");
+		this.asyncQueueConfig = new AsyncQueueConfig(
+				config.valueOrProperty(null, Property.DEFAULT_ASYNC_QUEUE_CAPACITY, DEFAULT_ASYNC_QUEUE_CONFIG.getCapacity()),
+				config.valueOrProperty(null, Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, DEFAULT_ASYNC_QUEUE_CONFIG.getOverflowPolicy()),
+				config.valueOrProperty(null, Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS, DEFAULT_ASYNC_QUEUE_CONFIG.getWaitTimeoutMillis()));
 		final Map<String, String> extraProperties = config.getProperty(EXTRA_PROPERTIES);
 		if (extraProperties != null) {
 			this.properties.putAll(extraProperties);
@@ -353,6 +364,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 * For internal use.
 	 */
 	OperationalConfig buildOperationalConfig() {
+		if (executorService != null && !asyncQueueConfig.equals(DEFAULT_ASYNC_QUEUE_CONFIG)) {
+			throw new IllegalArgumentException("Configure queue capacity and overflow on the caller-owned executor; built-in async queue settings cannot be combined with withExecutorService");
+		}
 		return new OperationalConfigImpl(
 				isAsync(),
 				getProperties(),
@@ -379,7 +393,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getExecutorService() != null ? getExecutorService() : determineDefaultExecutorService(),
 				isExecutorServiceUserProvided(),
 				getCustomMailer(),
-				getOAuth2AccessTokenProvider());
+				getOAuth2AccessTokenProvider(),
+				getAsyncQueueConfig());
 	}
 
 	/**
@@ -818,9 +833,44 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 	@NotNull
 	private ExecutorService determineDefaultExecutorService() {
-		return (ModuleLoader.batchModuleAvailable())
-				? ModuleLoader.loadBatchModule().createDefaultExecutorService(getThreadPoolSize(), getThreadPoolKeepAliveTime())
-				: Executors.newSingleThreadExecutor();
+		final boolean batchAvailable = ModuleLoader.batchModuleAvailable();
+		return new MailSendExecutor(batchAvailable ? getThreadPoolSize() : 1,
+				batchAvailable ? getThreadPoolKeepAliveTime() : 0, asyncQueueConfig);
+	}
+
+	/** @see MailerGenericBuilder#withAsyncQueueCapacity(int) */
+	@Override
+	public T withAsyncQueueCapacity(final int capacity) {
+		asyncQueueConfig = new AsyncQueueConfig(capacity, asyncQueueConfig.getOverflowPolicy(), asyncQueueConfig.getWaitTimeoutMillis());
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy) */
+	@Override
+	public T withAsyncQueueOverflowPolicy(@NotNull final AsyncQueueOverflowPolicy overflowPolicy) {
+		asyncQueueConfig = new AsyncQueueConfig(asyncQueueConfig.getCapacity(), overflowPolicy, asyncQueueConfig.getWaitTimeoutMillis());
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withAsyncQueueWaitTimeoutMillis(int) */
+	@Override
+	public T withAsyncQueueWaitTimeoutMillis(final int waitTimeoutMillis) {
+		asyncQueueConfig = new AsyncQueueConfig(asyncQueueConfig.getCapacity(), asyncQueueConfig.getOverflowPolicy(), waitTimeoutMillis);
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#resetAsyncQueue() */
+	@Override
+	public T resetAsyncQueue() {
+		asyncQueueConfig = DEFAULT_ASYNC_QUEUE_CONFIG;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#getAsyncQueueConfig() */
+	@Override
+	@NotNull
+	public AsyncQueueConfig getAsyncQueueConfig() {
+		return asyncQueueConfig;
 	}
 
 	@Nullable

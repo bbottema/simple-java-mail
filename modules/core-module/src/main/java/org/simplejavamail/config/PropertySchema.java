@@ -4,6 +4,7 @@ import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
@@ -36,6 +37,7 @@ final class PropertySchema {
 		CONTENT_TRANSFER_ENCODING,
 		DSN_RETURN_OPTION,
 		LOAD_BALANCING_STRATEGY,
+		ASYNC_QUEUE_OVERFLOW_POLICY,
 		DKIM_CANONICALIZATION,
 		WILDCARD
 	}
@@ -97,6 +99,8 @@ final class PropertySchema {
 				Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL);
 
 		set(ValueType.INTEGER,
+				Property.DEFAULT_ASYNC_QUEUE_CAPACITY,
+				Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS,
 				Property.SMTP_PORT,
 				Property.SMTP_LOCAL_PORT,
 				Property.PROXY_PORT,
@@ -118,6 +122,7 @@ final class PropertySchema {
 				Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING);
 		set(ValueType.DSN_RETURN_OPTION, Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION);
 		set(ValueType.LOAD_BALANCING_STRATEGY, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY);
+		set(ValueType.ASYNC_QUEUE_OVERFLOW_POLICY, Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY);
 		set(ValueType.DKIM_CANONICALIZATION,
 				Property.DKIM_SIGNING_HEADER_CANONICALIZATION,
 				Property.DKIM_SIGNING_BODY_CANONICALIZATION);
@@ -174,6 +179,9 @@ final class PropertySchema {
 				Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY,
 				Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION);
 		setDiagnostics(EXECUTION_AND_POOLING, SensitivityPolicy.VISIBLE,
+				Property.DEFAULT_ASYNC_QUEUE_CAPACITY,
+				Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY,
+				Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS,
 				Property.DEFAULT_POOL_SIZE,
 				Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY,
 				Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE,
@@ -250,6 +258,8 @@ final class PropertySchema {
 					return parseEnum(rawValue, LoadBalancingStrategy.class);
 				case DKIM_CANONICALIZATION:
 					return parseEnum(rawValue, DkimConfig.Canonicalization.class);
+				case ASYNC_QUEUE_OVERFLOW_POLICY:
+					return parseEnum(rawValue, AsyncQueueOverflowPolicy.class);
 				default:
 					throw new IllegalStateException("Unhandled property type " + type);
 			}

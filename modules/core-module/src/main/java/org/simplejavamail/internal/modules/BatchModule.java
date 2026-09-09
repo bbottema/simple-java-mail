@@ -7,36 +7,15 @@ import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 /**
- * This interface only serves to hide the Batch implementation behind an easy-to-load-with-reflection class.
+ * Gives the Mailer access to the optional batch module's connection pools without depending on its implementation classes.
+ * The implementation is loaded through reflection; asynchronous scheduling stays with the Mailer.
  */
 public interface BatchModule {
 
 	String NAME = "Advanced batch processing module";
-
-	/**
-	 * Executes using a single-execution ExecutorService, which shutdown immediately after the thread finishes.
-	 *
-	 * @see java.util.concurrent.Executors#newSingleThreadExecutor()
-	 */
-	CompletableFuture<Void> executeAsync(@NotNull String processName, @NotNull Runnable operation);
-
-	/**
-	 * Executes using the given ExecutorService, which is left running after the thread finishes running.
-	 */
-	@NotNull
-	CompletableFuture<Void> executeAsync(@NotNull ExecutorService executorService, @NotNull String processName, @NotNull Runnable operation);
-
-	/**
-	 * @return A NonJvmBlockingThreadPoolExecutor instance that by default doesn't block the JVM from exiting
-	 * and produces properly named thread.
-	 */
-	@NotNull
-	ExecutorService createDefaultExecutorService(final int threadPoolSize, final int keepAliveTime);
 
 	/**
 	 * Initializes the connection pool cluster if not initialized yet.

@@ -24,6 +24,10 @@ import java.util.concurrent.ExecutorService;
  * @see org.simplejavamail.config.SimpleJavaMailConfig#getDiagnostics()
  */
 public interface OperationalConfig {
+	/** @see MailerGenericBuilder#withAsyncQueueCapacity(int) */
+	@NotNull
+	AsyncQueueConfig getAsyncQueueConfig();
+
 	/**
 	 * @see MailerGenericBuilder#async()
 	 */

@@ -15,10 +15,13 @@ import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailSendOutcome;
+import org.simplejavamail.api.mailer.MailSendRejectedException;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
@@ -43,12 +46,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MailSubmissionPoolingTest {
 
@@ -60,6 +65,49 @@ class MailSubmissionPoolingTest {
 		assertThat(ModuleLoader.batchModuleAvailable())
 				.as("These tests must exercise the real batch-module connection pool")
 				.isTrue();
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = {1, 2, 4})
+	void queueBoundAndGracefulDrainAreIndependentOfConnectionPoolSize(final int connectionPoolSize) throws Exception {
+		final PooledTransportState state = new PooledTransportState();
+		final CountDownLatch started = new CountDownLatch(Math.min(connectionPoolSize, 2));
+		final CountDownLatch release = new CountDownLatch(1);
+		final List<CompletableFuture<MailSubmissionReceipt>> sends = new ArrayList<>();
+		for (int index = 0; index < 5; index++) {
+			state.plan("bounded-" + index, Attempt.blockingSuccess(250, "250 bounded " + index, started, release));
+		}
+		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state))
+				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(connectionPoolSize)
+				.withConnectionPoolClaimTimeoutMillis(5000).withConnectionPoolExpireAfterMillis(0)
+				.withThreadPoolSize(2).withAsyncQueueCapacity(3).buildMailer();
+		try {
+			for (int index = 0; index < 2; index++) {
+				sends.add(mailer.sendMailAndGetReceiptAsync(email("bounded-" + index, "recipient-" + index + "@example.org")));
+			}
+			assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
+			for (int index = 2; index < 5; index++) {
+				sends.add(mailer.sendMailAndGetReceiptAsync(email("bounded-" + index, "recipient-" + index + "@example.org")));
+			}
+			assertThat(mailer.getAsyncQueueSnapshot().orElseThrow().getQueuedCount()).isEqualTo(3);
+			final CompletableFuture<MailSubmissionReceipt> rejected = mailer.sendMailAndGetReceiptAsync(email("rejected", "unused@example.org"));
+			assertThatThrownBy(() -> rejected.get(5, TimeUnit.SECONDS)).isInstanceOf(ExecutionException.class)
+					.hasCauseInstanceOf(MailSendRejectedException.class);
+			assertThat(state.createdTransportCount).hasValue(Math.min(connectionPoolSize, 2));
+			assertThat(state.submittedSubjects).doesNotContain("rejected");
+			final Future<Void> closing = mailer.shutdownConnectionPool();
+			assertThat(closing.isDone()).isFalse();
+			release.countDown();
+			closing.get(5, TimeUnit.SECONDS);
+			for (int index = 0; index < sends.size(); index++) {
+				final MailSubmissionReceipt receipt = sends.get(index).get(5, TimeUnit.SECONDS);
+				assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+				assertThat(receipt.getAcceptedRecipients()).containsExactly("recipient-" + index + "@example.org");
+			}
+		} finally {
+			release.countDown();
+			mailer.close();
+		}
 	}
 
 	@Test

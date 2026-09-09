@@ -6,10 +6,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static java.util.concurrent.CompletableFuture.runAsync;
-import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 /**
@@ -29,17 +27,6 @@ public class AsyncOperationHelper {
 		return future;
 	}
 
-	/**
-	 * Executes using a single-execution ExecutorService, which is shutdown immediately after the operation finishes.
-	 *
-	 * @see Executors#newSingleThreadExecutor()
-	 */
-	public static CompletableFuture<Void> executeAsync(final @NotNull String processName, final @NotNull Runnable operation) {
-		final ExecutorService executorService = newSingleThreadExecutor();
-		return runAsync(new NamedRunnable(processName, operation), executorService)
-				.thenRun(executorService::shutdown);
-	}
-	
 	/**
 	 * Executes using the given ExecutorService, which is left running after the thread finishes running.
 	 */

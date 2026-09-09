@@ -10,6 +10,7 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.MailRehearsal;
+import org.simplejavamail.api.mailer.AsyncQueueSnapshot;
 import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
@@ -23,6 +24,7 @@ import org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageP
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
+import org.simplejavamail.internal.util.concurrent.NamedRunnable;
 import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,10 +32,13 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Properties;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.String.format;
@@ -108,6 +113,8 @@ public class MailerImpl implements Mailer {
 
 	@NotNull
 	private final MailSendObserverNotifier mailSendObserverNotifier;
+
+	@Nullable private Future<Void> shutdownFuture;
 
 	MailerImpl(@NotNull final MailerFromSessionBuilderImpl fromSessionBuilder) {
 		this(null,
@@ -389,12 +396,8 @@ public class MailerImpl implements Mailer {
 		}
 
 		try {
-			TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, true, smtpConnectionCounter);
-			return ModuleLoader.batchModuleAvailable()
-					? ModuleLoader.loadBatchModule()
-						.executeAsync(operationalConfig.getExecutorService(), "testSMTPConnection process", testConnectionClosure)
-					: AsyncOperationHelper
-						.executeAsync(operationalConfig.getExecutorService(), "testSMTPConnection process", testConnectionClosure);
+			return executeMailOperationAsync("testSMTPConnection process", () ->
+					new TestConnectionClosure(operationalConfig, session, proxyServer, true, smtpConnectionCounter).run());
 		} catch (RuntimeException e) {
 			return AsyncOperationHelper.failedFuture(e);
 		}
@@ -530,11 +533,14 @@ public class MailerImpl implements Mailer {
 
 	@NotNull
 	private CompletableFuture<Void> executeMailSendAsync(@NotNull final Runnable mailSend) {
-		return ModuleLoader.batchModuleAvailable()
-				? ModuleLoader.loadBatchModule()
-					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", mailSend)
-				: AsyncOperationHelper
-					.executeAsync(operationalConfig.getExecutorService(), "sendMail process", mailSend);
+		return executeMailOperationAsync("sendMail process", mailSend);
+	}
+
+	private CompletableFuture<Void> executeMailOperationAsync(final String processName, final Runnable operation) {
+		if (ownsMailSendExecutor()) {
+			return CompletableFuture.runAsync(new NamedRunnable(processName, operation), operationalConfig.getExecutorService());
+		}
+		return AsyncOperationHelper.executeAsync(operationalConfig.getExecutorService(), processName, operation);
 	}
 
 	/**
@@ -572,11 +578,7 @@ public class MailerImpl implements Mailer {
 
 		try {
 			final Runnable simpleBatchSend = () -> sendSimpleBatch(checkedEmails);
-			return ModuleLoader.batchModuleAvailable()
-					? ModuleLoader.loadBatchModule()
-						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", simpleBatchSend)
-					: AsyncOperationHelper
-						.executeAsync(operationalConfig.getExecutorService(), "sendMailsInSimpleBatch process", simpleBatchSend);
+			return executeMailOperationAsync("sendMailsInSimpleBatch process", simpleBatchSend);
 		} catch (final RuntimeException failure) {
 			return AsyncOperationHelper.failedFuture(failure);
 		}
@@ -650,10 +652,41 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#shutdownConnectionPool()
 	 */
 	@Override
-	public Future<Void> shutdownConnectionPool() {
+	public synchronized Future<Void> shutdownConnectionPool() {
+		if (shutdownFuture != null) {
+			return shutdownFuture;
+		}
 		if (!operationalConfig.isExecutorServiceIsUserProvided()) {
 			operationalConfig.getExecutorService().shutdown();
+			shutdownFuture = CompletableFuture.runAsync(this::drainExecutorAndCloseConnectionPools, MailerImpl::startShutdownThread);
+		} else {
+			shutdownFuture = closeConnectionPools();
 		}
+		return shutdownFuture;
+	}
+
+	private void drainExecutorAndCloseConnectionPools() {
+		try {
+			while (!operationalConfig.getExecutorService().awaitTermination(1, TimeUnit.DAYS)) {
+				// Graceful shutdown retains accepted work; a capacity timeout is not a send timeout.
+			}
+			closeConnectionPools().get();
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			throw new CompletionException(interrupted);
+		} catch (ExecutionException failure) {
+			throw new CompletionException(failure.getCause());
+		}
+	}
+
+	private static void startShutdownThread(final Runnable cleanup) {
+		// Waiting for sends must not occupy the common pool: application callbacks may need that pool to finish those sends.
+		final Thread thread = new Thread(cleanup, "Simple Java Mail graceful shutdown");
+		thread.setDaemon(true);
+		thread.start();
+	}
+
+	private Future<Void> closeConnectionPools() {
 		if (ModuleLoader.batchModuleAvailable()) {
 			return ModuleLoader.loadBatchModule().shutdownConnectionPools(session);
 		}
@@ -716,6 +749,18 @@ public class MailerImpl implements Mailer {
 		return operationalConfig;
 	}
 
+	/** @see Mailer#getAsyncQueueSnapshot() */
+	@Override
+	@NotNull
+	public Optional<AsyncQueueSnapshot> getAsyncQueueSnapshot() {
+		return ownsMailSendExecutor()
+				? Optional.of(((MailSendExecutor) operationalConfig.getExecutorService()).snapshot()) : Optional.empty();
+	}
+
+	private boolean ownsMailSendExecutor() {
+		return !operationalConfig.isExecutorServiceIsUserProvided() && operationalConfig.getExecutorService() instanceof MailSendExecutor;
+	}
+
 	/**
 	 * @see Mailer#getEmailGovernance()
 	 */
@@ -730,6 +775,9 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	public void close() throws ExecutionException, InterruptedException {
+		if (ownsMailSendExecutor() && MailSendExecutor.isCurrentWorker(operationalConfig.getExecutorService())) {
+			throw new IllegalStateException("A Mailer worker cannot wait for its own shutdown; close the Mailer from its owning application thread");
+		}
 		shutdownConnectionPool().get();
 	}
 }

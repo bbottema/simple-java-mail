@@ -5,6 +5,7 @@ import org.simplejavamail.config.ConfigDiagnostics;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.config.SimpleJavaMailConfig;
+import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.StandardEnvironment;
@@ -17,6 +18,21 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 
 class SpringEnvironmentConfigSourceTest {
+	@Test
+	void resolvesQueueSettingsWithSpringPrecedenceAndTypedDiagnostics() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(new MapPropertySource("queue defaults", Map.of(
+				"simplejavamail.defaults.async.queue.capacity", "8",
+				"simplejavamail.defaults.async.queue.overflowpolicy", "WAIT_FOR_CAPACITY",
+				"simplejavamail.defaults.async.queue.waittimeoutmillis", "250")));
+		environment.getPropertySources().addFirst(source("production queue", "simplejavamail.defaults.async.queue.capacity", "03"));
+		final SimpleJavaMailConfig config = loadConfig(environment);
+		final AsyncQueueOverflowPolicy policy = config.getProperty(ConfigLoader.Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY);
+		assertThat(policy).isEqualTo(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY);
+		assertThat(diagnostic(config.getDiagnostics(), ConfigLoader.Property.DEFAULT_ASYNC_QUEUE_CAPACITY.key()).getDisplayValue()).isEqualTo("3");
+		assertThat(diagnostic(config.getDiagnostics(), ConfigLoader.Property.DEFAULT_ASYNC_QUEUE_CAPACITY.key()).getSourceName()).isEqualTo("production queue");
+	}
+
 
 	@Test
 	void reportsTheHighestPriorityUnderlyingSpringPropertySource() {

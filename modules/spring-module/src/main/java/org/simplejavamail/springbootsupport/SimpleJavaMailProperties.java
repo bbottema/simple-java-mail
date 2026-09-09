@@ -97,12 +97,29 @@ public class SimpleJavaMailProperties {
         private Recipient cc;
         private Recipient bcc;
         private String poolsize;
+        private Async async;
         private PoolsizeMore poolsizeMore;
         private Connectionpool connectionpool;
         private String sessiontimeoutmillis;
         private String trustallhosts;
         private String trustedhosts;
         private String verifyserveridentity;
+
+        /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+        @Getter
+        @Setter
+        public static class Async {
+            private Queue queue;
+
+            /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+            @Getter
+            @Setter
+            public static class Queue {
+                private String capacity;
+                private String overflowpolicy;
+                private String waittimeoutmillis;
+            }
+        }
 
         /**
          * @deprecated See {@link SimpleJavaMailProperties}
