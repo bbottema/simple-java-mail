@@ -58,6 +58,8 @@ mailer.sendMailSync(email);
 
 The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Use `sendMailSync(...)` when failures should be thrown on the calling thread, or `sendMailAsync(...)` when the complete operation should be represented by a `CompletableFuture`. The receipt-returning equivalents are `sendMailAndGetReceiptSync(...)` and `sendMailAndGetReceiptAsync(...)`. Existing `sendMail(email)` and boolean overloads remain supported for code that deliberately uses the Mailer's configured async default or selects the mode dynamically.
 
+For bursty background work, `mailerBuilder.withAsyncQueueCapacity(100)` bounds waiting async tasks and reports saturation through their futures and the mail-send observer. The [queue and backpressure guide](https://www.simplejavamail.org/configuration.html#section-async-queue) covers bounded admission waits, diagnostics, and graceful shutdown. The default remains unbounded; this is not a durable mail queue or SMTP cancellation.
+
 Before sending, `mailer.testConnection()` checks the SMTP path. Choose message preflight by what your code needs back:
 
 | Need | Call |
@@ -89,6 +91,8 @@ try {
 ```
 
 `ACCEPTED` confirms SMTP submission for all envelope recipients, not final mailbox delivery. Failed and partial attempts throw `MailSubmissionException` while preserving the original Jakarta Mail exception and the same recipient facts. `UNKNOWN` means the transport cannot tell whether the server accepted anything; do not automatically retry that outcome unless duplicate submission is acceptable or prevented. The [submission receipt guide](https://www.simplejavamail.org/features.html#section-submission-receipts) covers asynchronous and open-connection use.
+
+For individual replies, inspect `receipt.getRecipientResults()`: each result retains the envelope address, its RCPT reply (including an optional enhanced status such as `4.2.0`), and its final submission disposition. A positive RCPT reply is not final message acceptance. `receipt.getRetryDisposition()` distinguishes known-safe retry candidates from permanent rejection, missing provider facts, and duplicate risk; `getRetryableRecipients()` returns candidates only for the safe-to-retry dispositions. These are inputs to your retry policy, not an automatic resend facility. The existing accepted/unsent/invalid lists remain available.
 
 For cross-cutting audit and metrics code, configure one terminal observer on the reusable `Mailer`:
 

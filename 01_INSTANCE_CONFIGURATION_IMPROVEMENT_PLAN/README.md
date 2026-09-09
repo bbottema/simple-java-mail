@@ -1,7 +1,7 @@
 # Instance-based configuration improvement plan
 
 - Status: Done
-- Plan order: 01 of 02
+- Plan order: 01 of 03
 - Followed by: [02 - CLI daemon improvement plan](../02_CLI_DAEMON_IMPROVEMENT_PLAN/README.md), implemented after this plan
 - GitHub issue: [#693 Replace static ConfigLoader with instance-based, injectable configuration](https://github.com/bbottema/simple-java-mail/issues/693)
 - Target release: 10.0.0

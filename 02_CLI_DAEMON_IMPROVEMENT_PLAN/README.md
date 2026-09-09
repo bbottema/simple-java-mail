@@ -5,7 +5,8 @@
 > **Baseline update:** Issue [#707](https://github.com/bbottema/simple-java-mail/issues/707) later raises the 10.0.0 library baseline to Java 11. Java 8 statements below record the compatibility gates used while this completed daemon plan was implemented; the CLI baseline remains Java 17.
 
 - Status: Portable daemon implementation complete; package-manager publication deferred to issue #708
-- Plan order: 02 of 02
+- Plan order: 02 of 03
+- Followed by: [03 - SMTP robustness improvement plan](../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/README.md) in planning order; it does not depend on the deferred package-manager work in this plan
 - Hard dependency: [01 - Instance-based configuration improvement plan](../01_INSTANCE_CONFIGURATION_IMPROVEMENT_PLAN/README.md) must be completed first
 - GitHub issue: [#488 Implement SJM as daemon process so CLI is faster and can use the batch module](https://github.com/bbottema/simple-java-mail/issues/488)
 - Package-manager follow-up: [#708 Publish the SJM CLI through Homebrew and Chocolatey](https://github.com/bbottema/simple-java-mail/issues/708)

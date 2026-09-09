@@ -6,7 +6,9 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 
 ### Major Features
 
+- [#725](https://github.com/bbottema/simple-java-mail/issues/725): added opt-in bounded async queues, immediate rejection or bounded caller-side admission waits, content-free queue diagnostics, and graceful draining of accepted work before owned connection pools close. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#710](https://github.com/bbottema/simple-java-mail/issues/710): made submission outcomes transport-neutral with explicit accepted, partially accepted, rejected, and unknown states; immutable recipient groups; optional provider responses; and structured failures that retain the original Jakarta Mail exception across normal, pooled, and open-connection sends, including conservative unknown results when the final SMTP acceptance reply is lost.
+- [#723](https://github.com/bbottema/simple-java-mail/issues/723): added ordered per-recipient SMTP replies, enhanced status codes, and conservative retry guidance to submission receipts; normalized fully accepted Angus report-success exceptions into normal success. First phase of the SMTP robustness improvements tracked in [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#712](https://github.com/bbottema/simple-java-mail/issues/712): added one configurable `MailSendObserver` per `Mailer`, with immutable terminal outcomes covering Message-ID evolution, preparation, queue and execution timestamps, logging-only mode, exact submission receipts, and exact caller-facing failures across normal, pooled, batch, and open-connection sends.
 - [#714](https://github.com/bbottema/simple-java-mail/issues/714): added automatic, independently backing-off `SimpleJavaMailConfig`, `SimpleJavaMail`, and `Mailer` beans for Spring Boot 2.7 and 3.x, plus a dependency-only `simple-java-mail-spring-boot-starter` and a permanent compatibility matrix.
 
@@ -16,6 +18,14 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 - [#709](https://github.com/bbottema/simple-java-mail/issues/709): added `Mailer.rehearse(...)` to return the governed `Email`, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.
 - [#715](https://github.com/bbottema/simple-java-mail/issues/715): added grouped, safe-to-log configuration diagnostics that show each resolved value and its winning source, including per-property Spring and wildcard provenance, through the immutable `SimpleJavaMail` factory snapshot.
 - [#716](https://github.com/bbottema/simple-java-mail/issues/716): added focused Java 11 `Path` and `Instant` conveniences for configuration files, message bodies, EML and Outlook imports, exact EML, cryptographic material, and sent dates, while retaining the existing `File`, `InputStream`, and `Date` APIs.
+
+### Supporting Libraries
+
+- Updated [SMTP Connection Pool to 4.1.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.1.0), [Clustered Object Pool to 4.1.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.1.0) and [Generic Object Pool to 2.5.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.5.0), retaining failed-lease waiter recovery. Existing Mailer and BatchTransportExecutor send APIs are unchanged; mail-send cancellation remains separate under [#726](https://github.com/bbottema/simple-java-mail/issues/726).
+
+### Maintenance
+
+- Fixed generated API Javadoc packaging for the multi-release source layout; Javadoc errors now fail the build.
 
 ## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [v9.3.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.1) - [v9.3.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.2) - [v9.3.3](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.3) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.3/)
 

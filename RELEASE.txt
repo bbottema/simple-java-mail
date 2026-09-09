@@ -10,7 +10,9 @@ v10.0.0 (unreleased)
 
 Major Features:
 
+- #725: added opt-in bounded async queues, immediate rejection or bounded caller-side admission waits, content-free queue diagnostics, and graceful draining of accepted work before owned connection pools close. Part of #722.
 - #710: made submission outcomes transport-neutral with explicit accepted, partially accepted, rejected, and unknown states; immutable recipient groups; optional provider responses; and structured failures that retain the original Jakarta Mail exception across normal, pooled, and open-connection sends, including conservative unknown results when the final SMTP acceptance reply is lost.
+- #723: added ordered per-recipient SMTP replies, enhanced status codes, and conservative retry guidance to submission receipts; normalized fully accepted Angus report-success exceptions into normal success. First phase of the SMTP robustness improvements tracked in #722.
 - #712: added one configurable MailSendObserver per Mailer, with immutable terminal outcomes covering Message-ID evolution, preparation, queue and execution timestamps, logging-only mode, exact submission receipts, and exact caller-facing failures across normal, pooled, batch, and open-connection sends.
 - #713: added exact EML submission through the ordinary Email and Mailer APIs, preserving the complete caller-supplied wire representation while using explicit SMTP-envelope recipients, optional envelope sender and DSN options, receipts, observers, asynchronous execution, open connections, and pooled transports.
 
@@ -20,6 +22,14 @@ Enhancements:
 - #709: added Mailer.rehearse(...) to return the governed Email, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.
 - #715: added grouped, safe-to-log configuration diagnostics that show each resolved value and its winning source, including per-property Spring and wildcard provenance, through the immutable SimpleJavaMail factory snapshot.
 - #716: added focused Java 11 Path and Instant conveniences for configuration files, message bodies, EML and Outlook imports, exact EML, cryptographic material, and sent dates, while retaining the existing File, InputStream, and Date APIs.
+
+Supporting Libraries:
+
+- Updated SMTP Connection Pool to 4.1.0, Clustered Object Pool to 4.1.0 and Generic Object Pool to 2.5.0, retaining failed-lease waiter recovery. Existing Mailer and BatchTransportExecutor send APIs are unchanged; mail-send cancellation remains separate under #726.
+
+Maintenance:
+
+- Fixed generated API Javadoc packaging for the multi-release source layout; Javadoc errors now fail the build.
 
 v9.3.0 - v9.3.3
 
