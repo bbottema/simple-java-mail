@@ -732,13 +732,15 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <configuration>
+                            <!-- Sources live in src/main/java; only module descriptors use the multi-release layout. -->
+                            <legacyMode>true</legacyMode>
                             <doclint>all,-missing</doclint>
                             <show>public</show>
                             <nohelp>true</nohelp>
                             <detectOfflineLinks>false</detectOfflineLinks>
                             <excludePackageNames>*.internal:*.internal.*:testutil:demo</excludePackageNames>
                             <quiet>true</quiet>
-                            <failOnError>false</failOnError>
+                            <failOnError>true</failOnError>
                         </configuration>
                         <executions>
                             <execution>

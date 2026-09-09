@@ -41,10 +41,16 @@ Standard full build (skipping tests and slow checks):
 mvn verify -DskipTests -Dmaven.javadoc.skip=true
 ```
 
-Library-only compatibility validation on JDK 11:
+For full non-live verification, including generated Javadoc JARs, run on JDK 17+:
 
 ```powershell
-mvn -pl '!modules/cli-module' verify -Dmaven.javadoc.skip=true
+mvn clean verify -Ppublish-cli -DexcludeLiveServerTests=true
+```
+
+Full non-live library compatibility validation, including Javadocs, on JDK 11:
+
+```powershell
+mvn -pl '!modules/cli-module' clean verify -DexcludeLiveServerTests=true
 ```
 
 Regenerate and exercise the committed CLI metadata on JDK 17+:
@@ -71,6 +77,11 @@ mvn com.mycila:license-maven-plugin:3.0:remove
 
 ## Known Build Constraints
 
+- **Javadoc generation** uses classpath mode (`legacyMode`) because the Java sources live in
+  `src/main/java`, while JPMS descriptors are compiled separately from `src/main/java9` into
+  multi-release JARs. Modular Javadoc source discovery cannot find the API packages in that
+  layout. This setting only affects documentation; the published JPMS descriptors stay in place.
+  Javadoc errors fail the build. Use `-Dmaven.javadoc.skip=true` only for a deliberately partial check.
 - **ossindex** (Sonatype vulnerability scan) has been removed from the build lifecycle.
   It is configured with `<phase/>` (empty phase) in the root `pom.xml` to unbind it.
 - **cli-module** uses `log4j-slf4j2-impl` (not `log4j-slf4j-impl`) because `slf4j-api`
