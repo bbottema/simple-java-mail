@@ -9,6 +9,8 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailSendOutcome;
+import org.simplejavamail.api.mailer.MailRecipientDisposition;
+import org.simplejavamail.api.mailer.MailRetryDisposition;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
@@ -97,6 +99,7 @@ class MailSendObserverTest {
 		assertThat(outcome.getInitialMessageId()).isNull();
 		assertThat(outcome.getEffectiveMessageId()).isEqualTo(submissionReceipt.getEmailId()).isNotBlank();
 		assertThat(outcome.getSubmissionReceipt()).containsSame(submissionReceipt);
+		assertOpaqueRecipientFacts(submissionReceipt);
 		assertThat(outcome.getFailure()).isEmpty();
 		assertCompleteTiming(outcome);
 	}
@@ -200,6 +203,18 @@ class MailSendObserverTest {
 			assertThat(outcome.getSubmissionReceipt()).get()
 					.extracting(MailSubmissionReceipt::getStatus)
 					.isEqualTo(MailSubmissionStatus.UNKNOWN);
+			assertOpaqueRecipientFacts(outcome.getSubmissionReceipt().orElseThrow());
+		});
+	}
+
+	private static void assertOpaqueRecipientFacts(final MailSubmissionReceipt receipt) {
+		assertThat(receipt.getRetryDisposition()).isEqualTo(MailRetryDisposition.CALLER_POLICY_REQUIRED);
+		assertThat(receipt.getRetryableRecipients()).isEmpty();
+		assertThat(receipt.getRecipientResults()).singleElement().satisfies(recipient -> {
+			assertThat(recipient.getEnvelopeAddress()).contains("recipient@example.org");
+			assertThat(recipient.getDisposition()).isEqualTo(MailRecipientDisposition.UNKNOWN);
+			assertThat(recipient.getRcptAttempted()).isEmpty();
+			assertThat(recipient.getRcptResponse()).isEmpty();
 		});
 	}
 

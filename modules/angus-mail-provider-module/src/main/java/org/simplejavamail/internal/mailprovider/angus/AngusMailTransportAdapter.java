@@ -1,12 +1,14 @@
 package org.simplejavamail.internal.mailprovider.angus;
 
+import jakarta.mail.Address;
 import jakarta.mail.Header;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.ParseException;
 import org.eclipse.angus.mail.smtp.SMTPMessage;
-import org.eclipse.angus.mail.smtp.SMTPSendFailedException;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,7 +22,10 @@ import org.simplejavamail.api.mailer.spi.PreparedMail;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -55,42 +60,52 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         } catch (final MessagingException preparationFailure) {
             return MailTransportResult.failed(preparationFailure, null);
         }
-        final SmtpResponseSnapshot responseBeforeSend = captureResponseSnapshot(smtpTransport);
-        try {
-            smtpTransport.sendMessage(message, preparedMail.getRecipients());
-            return MailTransportResult.accepted(preparedMail.getRecipients(),
-                    captureResponseSnapshot(smtpTransport).toSmtpServerResponse());
-        } catch (final MessagingException failure) {
-            return translateFailure(failure, smtpTransport, responseBeforeSend);
+        // Use Angus's own monitor to keep reporting changes, sending and response capture atomic.
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
+        synchronized (smtpTransport) {
+            return sendWithRecipientReporting(smtpTransport, message, preparedMail);
         }
     }
 
     @NotNull
-    private static MailTransportResult translateFailure(@NotNull final MessagingException failure,
-                                                        @NotNull final SMTPTransport smtpTransport,
-                                                        @NotNull final SmtpResponseSnapshot responseBeforeSend) {
-        final SMTPSendFailedException missingFinalReply = findMissingFinalDataReply(failure);
-        return missingFinalReply != null
-                ? MailTransportResult.failedWithUnknownAcceptance(failure, null, missingFinalReply.getInvalidAddresses())
-                : MailTransportResult.failed(failure, captureNewResponse(smtpTransport, responseBeforeSend));
+    private static MailTransportResult sendWithRecipientReporting(@NotNull final SMTPTransport smtpTransport,
+            @NotNull final MimeMessage message, @NotNull final PreparedMail preparedMail) {
+        final Address[] envelope = resolveEnvelopeForReceipt(preparedMail.getRecipients());
+        final boolean originalReportSuccess = smtpTransport.getReportSuccess();
+        final SmtpResponseSnapshot responseBeforeSend = captureResponseSnapshot(smtpTransport);
+        smtpTransport.setReportSuccess(true);
+        try {
+            smtpTransport.sendMessage(message, preparedMail.getRecipients());
+            return MailTransportResult.accepted(envelope,
+                    captureNewResponse(smtpTransport, responseBeforeSend)).withEnvelopeRecipients(envelope);
+        } catch (final MessagingException failure) {
+            return AngusSubmissionResult.fromFailure(failure, envelope,
+                    captureNewResponse(smtpTransport, responseBeforeSend));
+        } finally {
+            // Restore transport-local state before its lease can be released, including on unchecked failures.
+            smtpTransport.setReportSuccess(originalReportSuccess);
+        }
     }
 
-    @Nullable
-    private static SMTPSendFailedException findMissingFinalDataReply(@NotNull final MessagingException failure) {
-        MessagingException currentFailure = failure;
-        while (currentFailure != null) {
-            if (currentFailure instanceof SMTPSendFailedException) {
-                final SMTPSendFailedException sendFailure = (SMTPSendFailedException) currentFailure;
-                if (".".equals(sendFailure.getCommand()) && sendFailure.getReturnCode() <= 0) {
-                    return sendFailure;
+    /** Mirrors Angus group expansion for reporting only; the original addresses and MIME headers still go to the transport. */
+    @NotNull
+    private static Address[] resolveEnvelopeForReceipt(final Address[] addresses) {
+        final List<Address> envelope = new ArrayList<>();
+        for (final Address address : addresses) {
+            if (address instanceof InternetAddress && ((InternetAddress) address).isGroup()) {
+                try {
+                    final InternetAddress[] members = ((InternetAddress) address).getGroup(true);
+                    if (members != null) {
+                        Collections.addAll(envelope, members);
+                        continue;
+                    }
+                } catch (final ParseException ignored) {
+                    // Angus also retains an unparseable group and lets the original send report any failure.
                 }
             }
-            final Exception nextFailure = currentFailure.getNextException();
-            currentFailure = nextFailure instanceof MessagingException
-                    ? (MessagingException) nextFailure
-                    : null;
+            envelope.add(address);
         }
-        return null;
+        return envelope.toArray(new Address[0]);
     }
 
     @NotNull
@@ -132,12 +147,7 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
 
         @Nullable
         private SmtpServerResponse toSmtpServerResponse() {
-            if (returnCode == 0 && (serverResponse == null || serverResponse.isEmpty())) {
-                return null;
-            }
-            return returnCode > 0 || serverResponse != null
-                    ? new SmtpServerResponse(returnCode, serverResponse)
-                    : null;
+            return AngusSubmissionResult.smtpResponse(returnCode, serverResponse);
         }
     }
 

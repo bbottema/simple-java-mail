@@ -5,13 +5,89 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.SendFailedException;
 import jakarta.mail.internet.InternetAddress;
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.mailer.MailRecipientDisposition;
+import org.simplejavamail.api.mailer.MailRecipientResult;
+import org.simplejavamail.api.mailer.MailRetryDisposition;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MailTransportResultTest {
+
+	@Test
+	void basicResultsCaptureRecipientFactsBeforeTheFirstGetterCall() throws Exception {
+		final InternetAddress address = new InternetAddress("Before <before@example.org>");
+		final MailTransportResult result = MailTransportResult.accepted(new Address[]{address}, null);
+		address.setAddress("after@example.org");
+		address.setPersonal("After");
+
+		final List<MailRecipientResult> recipients = result.getRecipientResults();
+		assertThat(recipients).singleElement().satisfies(recipient -> {
+			assertThat(recipient.getOriginalAddress()).isEqualTo("Before <before@example.org>");
+			assertThat(recipient.getEnvelopeAddress()).contains("before@example.org");
+			assertThat(recipient.getDisposition()).isEqualTo(MailRecipientDisposition.ACCEPTED);
+		});
+		assertThat(result.getRecipientResults()).isSameAs(recipients);
+		assertThatThrownBy(recipients::clear).isInstanceOf(UnsupportedOperationException.class);
+	}
+
+	@Test
+	void envelopeCompletionUsesFrozenGroupsAndRetainsDuplicateOccurrences() throws Exception {
+		final InternetAddress accepted = new InternetAddress("same@example.org");
+		final InternetAddress unsent = new InternetAddress("same@example.org");
+		final InternetAddress invalid = new InternetAddress("invalid@example.org");
+		final MessagingException failure = new MessagingException("partial");
+		final MailTransportResult basic = MailTransportResult.failed(failure, null,
+				new Address[]{accepted}, new Address[]{unsent}, new Address[]{invalid});
+		accepted.setAddress("mutated-accepted@example.org");
+		unsent.setAddress("mutated-unsent@example.org");
+		invalid.setAddress("mutated-invalid@example.org");
+
+		final MailTransportResult complete = basic.withEnvelopeRecipients(new Address[]{
+				new InternetAddress("same@example.org"), new InternetAddress("unknown@example.org"),
+				new InternetAddress("same@example.org"), new InternetAddress("invalid@example.org")});
+		assertThat(complete.getRecipientResults()).extracting(MailRecipientResult::getDisposition).containsExactly(
+				MailRecipientDisposition.ACCEPTED, MailRecipientDisposition.UNKNOWN,
+				MailRecipientDisposition.VALID_UNSENT, MailRecipientDisposition.INVALID);
+		assertThat(complete.getFailure()).containsSame(failure);
+		assertThat(complete.getRetryDisposition()).isEqualTo(basic.getRetryDisposition());
+		assertThat(complete.withEnvelopeRecipients(new Address[0])).isSameAs(complete);
+		assertThat(basic.getRecipientResults()).hasSize(3);
+	}
+
+	@Test
+	void customAddressFactsAreAlsoCapturedBeforeEnvelopeCompletion() {
+		final MutableAddress address = new MutableAddress("original custom recipient");
+		final MailTransportResult basic = MailTransportResult.accepted(new Address[]{address}, null);
+		address.value = "changed custom recipient";
+		assertThat(basic.getRecipientResults()).singleElement().satisfies(recipient -> {
+			assertThat(recipient.getOriginalAddress()).isEqualTo("original custom recipient");
+			assertThat(recipient.getEnvelopeAddress()).isEmpty();
+		});
+		assertThat(basic.withEnvelopeRecipients(new Address[]{new MutableAddress("original custom recipient")}).getRecipientResults())
+				.extracting(MailRecipientResult::getDisposition).containsExactly(MailRecipientDisposition.ACCEPTED);
+	}
+
+	@Test
+	void suppliedDetailedSnapshotsIncludingEmptyOnesAreNotReinterpreted() throws Exception {
+		final MailTransportResult basic = MailTransportResult.unknown(null);
+		final MailRecipientResult recipient = new MailRecipientResult("recipient", null, MailRecipientDisposition.UNKNOWN, null, null);
+		final List<MailRecipientResult> supplied = new ArrayList<>(List.of(recipient));
+		final MailTransportResult detailed = basic.withRecipientResults(supplied, MailRetryDisposition.DUPLICATE_RISK);
+		supplied.clear();
+		assertThat(detailed.getRecipientResults()).containsExactly(recipient);
+		assertThat(detailed.getRecipientResults()).isSameAs(detailed.getRecipientResults());
+		assertThat(detailed.withEnvelopeRecipients(new Address[0])).isSameAs(detailed);
+		assertThat(detailed.getRetryDisposition()).isEqualTo(MailRetryDisposition.DUPLICATE_RISK);
+		final MailTransportResult empty = basic.withRecipientResults(List.of(), MailRetryDisposition.CALLER_POLICY_REQUIRED);
+		assertThat(empty.withEnvelopeRecipients(new Address[]{new InternetAddress("ignored@example.org")})).isSameAs(empty);
+	}
 
 	@Test
 	void partialFailureRetainsOriginalExceptionAndDefensivelyCopiesEveryRecipientGroup() throws Exception {
@@ -126,5 +202,34 @@ class MailTransportResultTest {
 		assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
 		assertThat(result.getAcceptedRecipients()).extracting(Address::toString)
 				.containsExactly("accepted@example.com");
+	}
+
+	private static final class MutableAddress extends Address {
+		private static final long serialVersionUID = 1L;
+		private String value;
+
+		private MutableAddress(final String value) {
+			this.value = value;
+		}
+
+		@Override
+		public String getType() {
+			return "custom";
+		}
+
+		@Override
+		public String toString() {
+			return value;
+		}
+
+		@Override
+		public boolean equals(final Object other) {
+			return this == other;
+		}
+
+		@Override
+		public int hashCode() {
+			return System.identityHashCode(this);
+		}
 	}
 }

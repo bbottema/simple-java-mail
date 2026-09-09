@@ -47,6 +47,14 @@ class SmtpSubmissionFaultBoundaryTest {
 	private static final int IO_TIMEOUT_MILLIS = 3000;
 
 	@Test
+	void reportSuccessReturnsAnAcceptedReceiptInsteadOfAReportingException() throws Exception {
+		final SubmissionAttempt attempt = submit(SmtpScenario.ACCEPT_THEN_DISCONNECT, false, true,
+				"recipient@example.org");
+
+		assertThat(attempt.requireReceipt().getStatus()).isEqualTo(ACCEPTED);
+	}
+
+	@Test
 	void disconnectWhileWaitingForMailFromReplyIsKnownToPrecedeMessageSubmission() throws Exception {
 		final SubmissionAttempt attempt = submit(SmtpScenario.DISCONNECT_AFTER_MAIL_FROM, false,
 				"recipient@example.org");
@@ -55,10 +63,7 @@ class SmtpSubmissionFaultBoundaryTest {
 		assertThat(failure.getStatus()).isEqualTo(REJECTED);
 		assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isTrue();
 		assertThat(failure.getSubmissionReceipt().getValidUnsentRecipients()).containsExactly("recipient@example.org");
-		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).hasValueSatisfying(response -> {
-			assertThat(response.getReturnCode()).isEqualTo(-1);
-			assertThat(response.getResponse()).isEqualTo("[EOF]");
-		});
+		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).isEmpty();
 		assertThat(failure.getCause()).isInstanceOfSatisfying(SMTPSendFailedException.class,
 				providerFailure -> assertThat(providerFailure.getCommand()).startsWith("MAIL FROM:"));
 	}
@@ -71,10 +76,7 @@ class SmtpSubmissionFaultBoundaryTest {
 		final MailSubmissionException failure = attempt.requireFailure();
 		assertThat(failure.getStatus()).isEqualTo(REJECTED);
 		assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isTrue();
-		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).hasValueSatisfying(response -> {
-			assertThat(response.getReturnCode()).isEqualTo(-1);
-			assertThat(response.getResponse()).isEqualTo("[EOF]");
-		});
+		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).isEmpty();
 		assertThat(failure.getCause()).isInstanceOfSatisfying(SMTPAddressFailedException.class,
 				providerFailure -> assertThat(providerFailure.getCommand()).startsWith("RCPT TO:"));
 	}
@@ -160,7 +162,7 @@ class SmtpSubmissionFaultBoundaryTest {
 	}
 
 	@Test
-	void mixedRecipientRepliesRemainAvailableOnlyInTheAngusExceptionChain() throws Exception {
+	void mixedRecipientRepliesRemainAvailableInTheReceiptAndOriginalAngusExceptionChain() throws Exception {
 		final SubmissionAttempt attempt = submit(SmtpScenario.REJECT_SECOND_RECIPIENT, true,
 				"accepted@example.org", "rejected@example.org");
 
@@ -168,6 +170,8 @@ class SmtpSubmissionFaultBoundaryTest {
 		assertThat(failure.getStatus()).isEqualTo(PARTIALLY_ACCEPTED);
 		assertThat(failure.getSubmissionReceipt().getAcceptedRecipients()).containsExactly("accepted@example.org");
 		assertThat(failure.getSubmissionReceipt().getInvalidRecipients()).containsExactly("rejected@example.org");
+		assertThat(failure.getSubmissionReceipt().getRecipientResults()).extracting(recipient ->
+				recipient.getRcptResponse().orElseThrow().getReturnCode()).containsExactly(250, 550);
 		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).hasValueSatisfying(response ->
 				assertThat(response.getResponse()).isEqualTo("250 2.0.0 queued as fault-boundary-test\n"));
 
@@ -184,13 +188,21 @@ class SmtpSubmissionFaultBoundaryTest {
 	private static SubmissionAttempt submit(final SmtpScenario scenario,
 			final boolean sendPartially,
 			final String... recipients) throws Exception {
+		return submit(scenario, sendPartially, false, recipients);
+	}
+
+	private static SubmissionAttempt submit(final SmtpScenario scenario,
+			final boolean sendPartially,
+			final boolean reportSuccess,
+			final String... recipients) throws Exception {
 		try (ScriptedSmtpServer smtpServer = new ScriptedSmtpServer(scenario, recipients.length)) {
 			final MailerRegularBuilder<?> mailerBuilder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServer(InetAddress.getLoopbackAddress().getHostAddress(), smtpServer.getPort())
 					.withProperty("mail.smtp.connectiontimeout", IO_TIMEOUT_MILLIS)
 					.withProperty("mail.smtp.timeout", IO_TIMEOUT_MILLIS)
 					.withProperty("mail.smtp.writetimeout", IO_TIMEOUT_MILLIS)
-					.withProperty("mail.smtp.sendpartial", sendPartially);
+					.withProperty("mail.smtp.sendpartial", sendPartially)
+					.withProperty("mail.smtp.reportsuccess", reportSuccess);
 			try (Mailer mailer = mailerBuilder.buildMailer()) {
 				try {
 					return SubmissionAttempt.succeeded(mailer.sendMailAndGetReceiptSync(emailFor(scenario, recipients)));

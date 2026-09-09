@@ -3,6 +3,7 @@ package org.simplejavamail.api.mailer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.InvalidObjectException;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -11,7 +12,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
-import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * Immutable provider-neutral facts for one message submission attempt.
@@ -32,11 +32,13 @@ public final class MailSubmissionReceipt implements Serializable {
 	@Nullable private final String emailId;
 	@Nullable private final SmtpServerResponse smtpResponse;
 	@NotNull private final Instant submittedAt;
-	// These 10.0 fields deserialize as null from older receipts because the serialVersionUID intentionally remains stable.
-	@Nullable private final MailSubmissionStatus status;
-	@Nullable private final List<String> acceptedRecipients;
-	@Nullable private final List<String> validUnsentRecipients;
-	@Nullable private final List<String> invalidRecipients;
+	@NotNull private final MailSubmissionStatus status;
+	@NotNull private final List<String> acceptedRecipients;
+	@NotNull private final List<String> validUnsentRecipients;
+	@NotNull private final List<String> invalidRecipients;
+	@NotNull private final List<MailRecipientResult> recipientResults;
+	@NotNull private final MailRetryDisposition retryDisposition;
+	@NotNull private final transient List<MailRecipientResult> retryableRecipients;
 
 	/**
 	 * Creates a receipt without recipient-level transport facts. This constructor remains useful for send paths that expose only an SMTP response.
@@ -64,13 +66,76 @@ public final class MailSubmissionReceipt implements Serializable {
 			@NotNull final List<String> acceptedRecipients,
 			@NotNull final List<String> validUnsentRecipients,
 			@NotNull final List<String> invalidRecipients) {
+		this(emailId, smtpResponse, submittedAt, status,
+				legacyRecipientResults(acceptedRecipients, validUnsentRecipients, invalidRecipients), legacyRetryDisposition(status));
+	}
+
+	/**
+	 * Creates a receipt with one immutable result per envelope recipient, in original envelope order.
+	 * Compatibility recipient lists are derived from these same results. The supplied retry disposition must be based
+	 * on the provider's transaction facts, including whether final acceptance could be determined.
+	 */
+	public MailSubmissionReceipt(@Nullable final String emailId, @Nullable final SmtpServerResponse smtpResponse,
+			@NotNull final Instant submittedAt, @NotNull final MailSubmissionStatus status,
+			@NotNull final List<MailRecipientResult> recipientResults, @NotNull final MailRetryDisposition retryDisposition) {
 		this.emailId = emailId;
 		this.smtpResponse = smtpResponse;
-		this.submittedAt = checkNonEmptyArgument(submittedAt, "submittedAt");
+		this.submittedAt = requireNonNull(submittedAt, "submittedAt");
 		this.status = requireNonNull(status, "status");
-		this.acceptedRecipients = immutableRecipientCopy(acceptedRecipients, "acceptedRecipients");
-		this.validUnsentRecipients = immutableRecipientCopy(validUnsentRecipients, "validUnsentRecipients");
-		this.invalidRecipients = immutableRecipientCopy(invalidRecipients, "invalidRecipients");
+		this.recipientResults = List.copyOf(recipientResults);
+		this.retryDisposition = requireNonNull(retryDisposition, "retryDisposition");
+		this.acceptedRecipients = recipientsWithDisposition(this.recipientResults, MailRecipientDisposition.ACCEPTED);
+		this.validUnsentRecipients = recipientsWithDisposition(this.recipientResults, MailRecipientDisposition.VALID_UNSENT);
+		this.invalidRecipients = recipientsWithDisposition(this.recipientResults, MailRecipientDisposition.INVALID);
+		this.retryableRecipients = retryableRecipients(this.recipientResults, this.retryDisposition);
+	}
+
+	@NotNull
+	private static List<MailRecipientResult> legacyRecipientResults(final List<String> accepted, final List<String> unsent,
+			final List<String> invalid) {
+		final List<MailRecipientResult> results = new ArrayList<>();
+		appendLegacyRecipients(results, requireNonNull(accepted, "acceptedRecipients"), MailRecipientDisposition.ACCEPTED);
+		appendLegacyRecipients(results, requireNonNull(unsent, "validUnsentRecipients"), MailRecipientDisposition.VALID_UNSENT);
+		appendLegacyRecipients(results, requireNonNull(invalid, "invalidRecipients"), MailRecipientDisposition.INVALID);
+		return results;
+	}
+
+	private static void appendLegacyRecipients(final List<MailRecipientResult> results, final List<String> addresses,
+			final MailRecipientDisposition disposition) {
+		for (final String address : addresses) {
+			results.add(new MailRecipientResult(address, address, disposition, null, null));
+		}
+	}
+
+	@NotNull
+	private static MailRetryDisposition legacyRetryDisposition(final MailSubmissionStatus status) {
+		return status == MailSubmissionStatus.ACCEPTED ? MailRetryDisposition.DO_NOT_RETRY : MailRetryDisposition.CALLER_POLICY_REQUIRED;
+	}
+
+	@NotNull
+	private static List<MailRecipientResult> retryableRecipients(final List<MailRecipientResult> recipients, final MailRetryDisposition disposition) {
+		if (disposition != MailRetryDisposition.SAFE_TO_RETRY_ALL && disposition != MailRetryDisposition.SAFE_TO_RETRY_UNACCEPTED) {
+			return Collections.emptyList();
+		}
+		final List<MailRecipientResult> retryable = new ArrayList<>();
+		for (final MailRecipientResult recipient : recipients) {
+			if (recipient.getDisposition() == MailRecipientDisposition.VALID_UNSENT
+					&& recipient.getRcptStatus() != SmtpRecipientStatus.PERMANENTLY_REJECTED) {
+				retryable.add(recipient);
+			}
+		}
+		return Collections.unmodifiableList(retryable);
+	}
+
+	@NotNull
+	private static List<String> recipientsWithDisposition(final List<MailRecipientResult> recipients, final MailRecipientDisposition disposition) {
+		final List<String> addresses = new ArrayList<>();
+		for (final MailRecipientResult recipient : recipients) {
+			if (recipient.getDisposition() == disposition) {
+				addresses.add(recipient.getEnvelopeAddress().orElse(recipient.getOriginalAddress()));
+			}
+		}
+		return Collections.unmodifiableList(addresses);
 	}
 
 	@NotNull
@@ -81,13 +146,49 @@ public final class MailSubmissionReceipt implements Serializable {
 		return smtpResponse.isPositiveCompletionReply() ? MailSubmissionStatus.ACCEPTED : MailSubmissionStatus.REJECTED;
 	}
 
+	/** Older streams leave newer fields null; restore one complete snapshot before callers can observe it. */
 	@NotNull
-	private static List<String> immutableRecipientCopy(@NotNull final List<String> recipients, @NotNull final String name) {
-		final List<String> copy = new ArrayList<>(requireNonNull(recipients, name));
-		for (String recipient : copy) {
-			requireNonNull(recipient, name + " element");
+	private Object readResolve() throws InvalidObjectException {
+		try {
+			final MailSubmissionStatus restoredStatus = status == null ? statusFromResponse(smtpResponse) : status;
+			final List<MailRecipientResult> restoredRecipients = recipientResults != null ? recipientResults : legacyRecipientResults(
+					acceptedRecipients == null ? Collections.emptyList() : acceptedRecipients,
+					validUnsentRecipients == null ? Collections.emptyList() : validUnsentRecipients,
+					invalidRecipients == null ? Collections.emptyList() : invalidRecipients);
+			return new MailSubmissionReceipt(emailId, smtpResponse, submittedAt, restoredStatus, restoredRecipients,
+					retryDisposition == null ? legacyRetryDisposition(restoredStatus) : retryDisposition);
+		} catch (final RuntimeException failure) {
+			final InvalidObjectException invalidReceipt = new InvalidObjectException("Invalid serialized mail submission receipt");
+			invalidReceipt.initCause(failure);
+			throw invalidReceipt;
 		}
-		return Collections.unmodifiableList(copy);
+	}
+
+	/**
+	 * @return Immutable results in envelope order. Legacy constructors/serialized receipts retain their known groups in
+	 * accepted, unsent, invalid order because the original envelope and RCPT details were not recorded.
+	 */
+	@NotNull
+	public List<MailRecipientResult> getRecipientResults() {
+		return recipientResults;
+	}
+
+	/**
+	 * @return Conservative guidance for the original envelope. UNKNOWN failed attempts can carry duplicate risk even
+	 * after positive RCPT replies. This does not perform retries, select backoff or guarantee exactly-once submission.
+	 */
+	@NotNull
+	public MailRetryDisposition getRetryDisposition() {
+		return retryDisposition;
+	}
+
+	/**
+	 * @return The known unsubmitted recipients for a SAFE_TO_RETRY disposition, excluding permanent RCPT rejections.
+	 * Empty for all other dispositions, including permanent message rejection and ambiguous acceptance.
+	 */
+	@NotNull
+	public List<MailRecipientResult> getRetryableRecipients() {
+		return retryableRecipients;
 	}
 
 	/**
@@ -125,7 +226,7 @@ public final class MailSubmissionReceipt implements Serializable {
 	 */
 	@NotNull
 	public MailSubmissionStatus getStatus() {
-		return status == null ? statusFromResponse(smtpResponse) : status;
+		return status;
 	}
 
 	/**
@@ -133,7 +234,7 @@ public final class MailSubmissionReceipt implements Serializable {
 	 */
 	@NotNull
 	public List<String> getAcceptedRecipients() {
-		return acceptedRecipients == null ? Collections.<String>emptyList() : acceptedRecipients;
+		return acceptedRecipients;
 	}
 
 	/**
@@ -141,7 +242,7 @@ public final class MailSubmissionReceipt implements Serializable {
 	 */
 	@NotNull
 	public List<String> getValidUnsentRecipients() {
-		return validUnsentRecipients == null ? Collections.<String>emptyList() : validUnsentRecipients;
+		return validUnsentRecipients;
 	}
 
 	/**
@@ -149,7 +250,7 @@ public final class MailSubmissionReceipt implements Serializable {
 	 */
 	@NotNull
 	public List<String> getInvalidRecipients() {
-		return invalidRecipients == null ? Collections.<String>emptyList() : invalidRecipients;
+		return invalidRecipients;
 	}
 
 	/**

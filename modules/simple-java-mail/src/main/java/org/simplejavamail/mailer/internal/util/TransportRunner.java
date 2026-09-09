@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal.util;
 
+import jakarta.mail.Address;
 import jakarta.mail.MessagingException;
 import jakarta.mail.NoSuchProviderException;
 import jakarta.mail.Session;
@@ -22,8 +23,9 @@ import org.slf4j.Logger;
 import java.time.Instant;
 import java.util.UUID;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.simplejavamail.internal.util.MiscUtil.asInternetAddresses;
 import static org.slf4j.LoggerFactory.getLogger;
-import static org.simplejavamail.mailer.internal.util.MailboxAddressMapper.toMailboxAddresses;
 
 /**
  * If available, runs activities on Transport connections using SMTP connection pool from the batch-module.
@@ -59,7 +61,8 @@ public class TransportRunner {
 			throws MessagingException {
 		try {
 			final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
-			final MailTransportResult transportResult = MailTransportAdapterResolver.sendMessage(transport, preparedMail);
+			final MailTransportResult transportResult = MailTransportAdapterResolver.sendMessage(transport, preparedMail)
+					.withEnvelopeRecipients(preparedMail.getRecipients());
 			if (!transportResult.isSuccessful()) {
 				throw buildSubmissionException(email, transportResult);
 			}
@@ -83,14 +86,19 @@ public class TransportRunner {
 
 	@NotNull
 	public static MailSubmissionReceipt buildReceipt(@NotNull final Email email, @Nullable final SmtpServerResponse smtpServerResponse) {
-		return new MailSubmissionReceipt(email.getId(), smtpServerResponse, Instant.now());
+		if (smtpServerResponse != null) {
+			return new MailSubmissionReceipt(email.getId(), smtpServerResponse, Instant.now());
+		}
+		return buildReceipt(email, MailTransportResult.unknown(null));
 	}
 
 	@NotNull
 	private static MailSubmissionReceipt buildReceipt(@NotNull final Email email, @NotNull final MailTransportResult transportResult) {
+		final Address[] envelope = asInternetAddresses(email.getOverrideReceivers().isEmpty()
+				? email.getRecipients() : email.getOverrideReceivers(), UTF_8).toArray(new Address[0]);
+		final MailTransportResult completeResult = transportResult.withEnvelopeRecipients(envelope);
 		return new MailSubmissionReceipt(email.getId(), transportResult.getSmtpResponse().orElse(null), Instant.now(),
-				transportResult.getStatus(), toMailboxAddresses(transportResult.getAcceptedRecipients()),
-				toMailboxAddresses(transportResult.getValidUnsentRecipients()), toMailboxAddresses(transportResult.getInvalidRecipients()));
+				completeResult.getStatus(), completeResult.getRecipientResults(), completeResult.getRetryDisposition());
 	}
 
 	@NotNull

@@ -144,9 +144,7 @@ public interface Mailer extends AutoCloseable {
 	 * @see MailSubmissionReceipt
 	 */
 	@NotNull
-	default CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(Email email) {
-		return sendMail(email).thenApply(unused -> new MailSubmissionReceipt(email.getId(), null, java.time.Instant.now()));
-	}
+	CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(Email email);
 	
 	/**
 	 * Processes a composed {@link Email} into a completely configured {@link Message}: defaults and overrides are applied through
@@ -218,9 +216,7 @@ public interface Mailer extends AutoCloseable {
 	 * @see #sendMailAndGetReceiptAsync(Email)
 	 */
 	@NotNull
-	default CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(Email email, boolean async) {
-		return sendMail(email, async).thenApply(unused -> new MailSubmissionReceipt(email.getId(), null, java.time.Instant.now()));
-	}
+	CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(Email email, boolean async);
 
 	/**
 	 * Runs caller-managed send logic while one SMTP connection is open.

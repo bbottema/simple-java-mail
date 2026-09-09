@@ -99,6 +99,14 @@ class AngusMailTransportAdapterTest {
     }
 
     @Test
+    void normalReturnWithoutFreshProviderFactsDoesNotReuseThePreviousResponse() throws Exception {
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(new StaleResponseTransport(null), preparedMail());
+        assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+        assertThat(result.getSmtpResponse()).isEmpty();
+        assertThat(result.getRecipientResults()).allSatisfy(recipient -> assertThat(recipient.getRcptResponse()).isEmpty());
+    }
+
+    @Test
     void emptyProviderResponseIsNotReportedAsAnSmtpRejection() throws Exception {
         final MessagingException failure = new MessagingException("Exception reading response");
         final ChangedResponseTransport transport = new ChangedResponseTransport(failure, 0, "");
@@ -118,7 +126,7 @@ class AngusMailTransportAdapterTest {
                 ".", -1, "[EOF]", null, null, new Address[]{ambiguousRecipient}, new Address[]{invalidRecipient});
         final ChangedResponseTransport transport = new ChangedResponseTransport(failure, -1, "[EOF]");
 
-        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail());
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail(ambiguousRecipient, invalidRecipient));
 
         assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
         assertThat(result.getSmtpResponse()).isEmpty();
@@ -135,7 +143,7 @@ class AngusMailTransportAdapterTest {
                 ".", 550, "550 message rejected", null, null, new Address[]{unsentRecipient}, null);
         final ChangedResponseTransport transport = new ChangedResponseTransport(failure, 550, "550 message rejected");
 
-        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail());
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail(unsentRecipient));
 
         assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
         assertThat(result.getSmtpResponse()).hasValueSatisfying(response -> {
@@ -148,7 +156,7 @@ class AngusMailTransportAdapterTest {
 
     @Test
     void commandSpecificEofBeforeDataRemainsRejected() throws Exception {
-        final Address unsentRecipient = new InternetAddress("unsent@example.com");
+        final Address unsentRecipient = recipients()[0];
         final SMTPSendFailedException failure = new SMTPSendFailedException(
                 "MAIL FROM:<sender@example.com>", -1, "[EOF]", null, null, new Address[]{unsentRecipient}, null);
         final ChangedResponseTransport transport = new ChangedResponseTransport(failure, -1, "[EOF]");
@@ -156,10 +164,7 @@ class AngusMailTransportAdapterTest {
         final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail());
 
         assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
-        assertThat(result.getSmtpResponse()).hasValueSatisfying(response -> {
-            assertThat(response.getReturnCode()).isEqualTo(-1);
-            assertThat(response.getResponse()).isEqualTo("[EOF]");
-        });
+        assertThat(result.getSmtpResponse()).isEmpty();
         assertThat(result.getValidUnsentRecipients()).containsExactly(unsentRecipient);
     }
 
@@ -177,8 +182,8 @@ class AngusMailTransportAdapterTest {
         return new Address[]{new InternetAddress("receiver@example.com")};
     }
 
-    private static PreparedMail preparedMail() throws Exception {
-        return new PreparedMail(message("body"), recipients(),
+    private static PreparedMail preparedMail(final Address... envelope) throws Exception {
+        return new PreparedMail(message("body"), envelope.length == 0 ? recipients() : envelope,
                 new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
     }
 
@@ -208,7 +213,9 @@ class AngusMailTransportAdapterTest {
 
         @Override
         public synchronized void sendMessage(final Message message, final Address[] addresses) throws MessagingException {
-            throw failure;
+            if (failure != null) {
+                throw failure;
+            }
         }
     }
 
