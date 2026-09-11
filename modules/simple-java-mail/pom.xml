@@ -164,6 +164,16 @@
 									<outputFile>${project.build.directory}/provider-neutral-runtime-path.txt</outputFile>
 								</configuration>
 							</execution>
+							<execution>
+								<id>managed-angus-runtime-path</id>
+								<phase>prepare-package</phase>
+								<goals><goal>build-classpath</goal></goals>
+								<configuration>
+									<includeArtifactIds>core-module,angus-mail-provider-module,angus-mail,jakarta.mail-api,jakarta.activation-api,jmail,throwing-function,slf4j-api</includeArtifactIds>
+									<includeScope>runtime</includeScope>
+									<outputFile>${project.build.directory}/managed-angus-runtime-path.txt</outputFile>
+								</configuration>
+							</execution>
 						</executions>
 					</plugin>
 					<plugin>
@@ -203,6 +213,23 @@
 										<java classname="org.simplejavamail.providerneutral.ProviderNeutralClasspathConsumer"
 											  fork="true" failonerror="true"
 											  classpath="${project.build.directory}/provider-neutral-classpath-classes${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${providerNeutralPath}" />
+										<loadfile property="managedAngusPath" srcFile="${project.build.directory}/managed-angus-runtime-path.txt" />
+										<mkdir dir="${project.build.directory}/managed-angus-jpms-classes" />
+										<javac srcdir="${project.basedir}/src/test/managed-angus-jpms"
+											   destdir="${project.build.directory}/managed-angus-jpms-classes"
+											   modulepath="${project.build.directory}/classes/META-INF/versions/9${path.separator}${managedAngusPath}"
+											   release="${library.java.release}" includeantruntime="false">
+											<compilerarg value="--patch-module" />
+											<compilerarg value="org.simplejavamail=${project.build.directory}/${project.build.finalName}.jar" />
+										</javac>
+										<exec executable="${java.home}/bin/java" failonerror="true">
+											<arg value="--module-path" />
+											<arg path="${project.build.directory}/managed-angus-jpms-classes${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${managedAngusPath}" />
+											<arg value="--add-modules" />
+											<arg value="org.simplejavamail.mailprovider.angus" />
+											<arg value="--module" />
+											<arg value="org.simplejavamail.managedangus.consumer/org.simplejavamail.managedangus.ManagedAngusConsumer" />
+										</exec>
 									</target>
 								</configuration>
 							</execution>

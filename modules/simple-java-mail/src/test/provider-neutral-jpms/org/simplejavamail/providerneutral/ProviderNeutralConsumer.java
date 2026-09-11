@@ -15,36 +15,44 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
-import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.AsyncQueueRejectionReason;
 import org.simplejavamail.api.mailer.AsyncQueueSnapshot;
-import org.simplejavamail.api.mailer.MailSendRejectedException;
-import org.simplejavamail.api.mailer.Mailer;
-import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.MailRecipientDisposition;
 import org.simplejavamail.api.mailer.MailRecipientResult;
 import org.simplejavamail.api.mailer.MailRetryDisposition;
+import org.simplejavamail.api.mailer.MailSend;
+import org.simplejavamail.api.mailer.MailSendCancelledException;
+import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.MailSendRejectedException;
+import org.simplejavamail.api.mailer.MailSendTimeoutException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
+import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.SmtpRecipientStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.config.ConfigDiagnosticGroup;
-import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.converter.EmailConverter;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.Properties;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -84,6 +92,7 @@ public final class ProviderNeutralConsumer {
 				.buildEmailCompletedWithDefaultsAndOverrides();
 		assertMailSendObserverApiIsAvailable(simpleJavaMail);
 		assertAsyncQueueApiIsAvailable(simpleJavaMail);
+		assertExecutionControlApiIsAvailable(simpleJavaMail, source);
 		assertUnknownTransportFailureApiIsAvailable();
 		assertRecipientReplyApiIsAvailable();
 		assertConfigDiagnosticsApiIsAvailable(simpleJavaMail);
@@ -117,6 +126,28 @@ public final class ProviderNeutralConsumer {
 		if (new MailSendRejectedException(AsyncQueueRejectionReason.QUEUE_FULL).getReason() != AsyncQueueRejectionReason.QUEUE_FULL) {
 			throw new AssertionError("Async queue diagnostics API is unavailable");
 		}
+	}
+
+	/** Completion views and optional control must link without a provider implementation. */
+	private static void assertExecutionControlApiIsAvailable(final SimpleJavaMail mail, final Email email) {
+		final CompletableFuture<Void> producer = new CompletableFuture<>();
+		final AtomicInteger requests = new AtomicInteger();
+		final MailSend<Void> send = new MailSend<>(producer, requests::incrementAndGet);
+		send.getCompletion().cancel(true);
+		send.requestCancellation();
+		send.requestCancellation();
+		producer.complete(null);
+		if (requests.get() != 1 || !send.getCompletion().isDone() || send.getCompletion().isCancelled()) {
+			throw new AssertionError("Completion views affected the operation");
+		}
+		if (mail.mailerBuilder().withMailSendTimeout(Duration.ofSeconds(1))
+				.withMailSendObserver(outcome -> { }, Runnable::run).getMailSendTimeout() == null
+				|| new MailSendCancelledException(null, null).getSubmissionReceipt().isPresent()
+				|| new MailSendTimeoutException(null, null).getSubmissionReceipt().isPresent()) {
+			throw new AssertionError("Execution control API is unavailable");
+		}
+		@SuppressWarnings("unused") final Function<Mailer, MailSend<Void>> start = mailer -> mailer.sendMailAsync(email);
+		@SuppressWarnings("unused") final BiFunction<MailTransportLifecycleAdapter, Transport, Optional<Runnable>> abort = MailTransportLifecycleAdapter::createAbortAction;
 	}
 
 	private static void assertAngusIsAbsent() {
