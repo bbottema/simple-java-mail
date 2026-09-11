@@ -57,6 +57,7 @@ Exact EML submission must remain possible because the DSN values are SMTP envelo
 
 ## Acceptance criteria
 
+- [ ] The [shared architecture overview](../../docs/concurrency/inside-a-mail-send.md#phase-completion-check) has a recorded updated-or-unchanged review, including envelope preparation and outcome reporting.
 - [ ] ENVID, RET, NOTIFY, and ORCPT can be expressed together without positional ambiguity.
 - [ ] Values are validated before SMTP resources are acquired.
 - [ ] Unsupported DSN behavior follows an explicit policy.

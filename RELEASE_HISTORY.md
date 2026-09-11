@@ -6,6 +6,7 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 
 ### Major Features
 
+- [#726](https://github.com/bbottema/simple-java-mail/issues/726): added `MailSend` completion handles with optional `requestCancellation()`, opt-in total send deadlines, protocol-aware Angus socket abort and fenced pooled-lease cleanup, plus application-executor observer dispatch. Inspect receipts after cancellation or timeout: a lost final reply can still mean duplicate risk. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#725](https://github.com/bbottema/simple-java-mail/issues/725): added opt-in bounded async queues, immediate rejection or bounded caller-side admission waits, content-free queue diagnostics, and graceful draining of accepted work before owned connection pools close. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#710](https://github.com/bbottema/simple-java-mail/issues/710): made submission outcomes transport-neutral with explicit accepted, partially accepted, rejected, and unknown states; immutable recipient groups; optional provider responses; and structured failures that retain the original Jakarta Mail exception across normal, pooled, and open-connection sends, including conservative unknown results when the final SMTP acceptance reply is lost.
 - [#723](https://github.com/bbottema/simple-java-mail/issues/723): added ordered per-recipient SMTP replies, enhanced status codes, and conservative retry guidance to submission receipts; normalized fully accepted Angus report-success exceptions into normal success. First phase of the SMTP robustness improvements tracked in [#722](https://github.com/bbottema/simple-java-mail/issues/722).
@@ -21,7 +22,7 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 
 ### Supporting Libraries
 
-- Updated [SMTP Connection Pool to 4.1.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.1.0), [Clustered Object Pool to 4.1.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.1.0) and [Generic Object Pool to 2.5.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.5.0), retaining failed-lease waiter recovery. Existing Mailer and BatchTransportExecutor send APIs are unchanged; mail-send cancellation remains separate under [#726](https://github.com/bbottema/simple-java-mail/issues/726).
+- Updated [SMTP Connection Pool to 4.1.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.1.0), [Clustered Object Pool to 4.1.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.1.0) and [Generic Object Pool to 2.5.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.5.0), retaining failed-lease waiter recovery. Mailer now integrates their cancellable claim and lease-abort contracts under [#726](https://github.com/bbottema/simple-java-mail/issues/726). Standalone BatchTransportExecutor APIs remain unchanged.
 
 ### Maintenance
 

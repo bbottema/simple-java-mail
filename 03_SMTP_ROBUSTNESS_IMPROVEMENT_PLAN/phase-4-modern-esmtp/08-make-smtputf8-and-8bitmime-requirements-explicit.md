@@ -53,6 +53,7 @@ The API must explain:
 
 ## Acceptance criteria
 
+- [ ] The [shared architecture overview](../../docs/concurrency/inside-a-mail-send.md#phase-completion-check) has a recorded updated-or-unchanged review, including requirement derivation and SMTP enforcement.
 - [ ] Requirements are derived from the actual envelope and finalized content.
 - [ ] Required extensions are negotiated before MAIL FROM.
 - [ ] Missing support produces a precise compatibility failure.

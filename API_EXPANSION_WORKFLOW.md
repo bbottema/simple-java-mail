@@ -121,6 +121,7 @@ Always verify the following areas:
 - **Email Copying**: Use `simpleJavaMail.emailBuilder().copying(email).buildEmail()` and verify the field is still there.
 - **CLI Help**: Run the CLI with `--help` for the relevant command to ensure the new option is documented and has the correct parameter labels.
 - **End-to-End**: Verify the field actually affects the final `MimeMessage` (e.g., by inspecting the produced EML or using a dummy SMTP server).
+- **Architecture Documentation**: If the addition changes send execution, transport/provider responsibilities, cancellation, or observation, review the [concurrency catalogue and shared infographic](docs/concurrency/inside-a-mail-send.md#phase-completion-check). Update the affected diagrams and distribution copies, or record why the overview remains unchanged.
 
 There are junit tests available to verify the above or provide a blueprint for new tests.
 

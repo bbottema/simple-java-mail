@@ -48,6 +48,7 @@ REQUIRETLS is an SMTP envelope requirement for subsequent relay behavior. It is 
 
 ## Acceptance criteria
 
+- [ ] The [shared architecture overview](../../docs/concurrency/inside-a-mail-send.md#phase-completion-check) has a recorded updated-or-unchanged review, including capability enforcement and per-message transport state.
 - [ ] A message can request REQUIRETLS without changing its MIME bytes.
 - [ ] Required-but-unavailable behavior is explicit and occurs before DATA.
 - [ ] Capability diagnostics and submission outcomes report only observed facts.

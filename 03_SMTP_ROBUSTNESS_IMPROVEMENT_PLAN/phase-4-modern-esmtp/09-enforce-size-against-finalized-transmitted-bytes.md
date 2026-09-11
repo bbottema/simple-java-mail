@@ -45,6 +45,7 @@ Avoid serializing a large message twice in memory merely to count it. Prefer a c
 
 ## Acceptance criteria
 
+- [ ] The [shared architecture overview](../../docs/concurrency/inside-a-mail-send.md#phase-completion-check) has a recorded updated-or-unchanged review, including finalized-content measurement and preflight.
 - [ ] One finalized representation supplies the measured content.
 - [ ] The count follows verified RFC and provider semantics.
 - [ ] Exact and cryptographically protected content is not rebuilt for measurement.

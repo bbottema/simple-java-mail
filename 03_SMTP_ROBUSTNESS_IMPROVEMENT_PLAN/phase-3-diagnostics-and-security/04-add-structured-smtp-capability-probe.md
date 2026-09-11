@@ -62,6 +62,7 @@ Do not expose credentials, authentication exchanges, certificate private materia
 
 ## Acceptance criteria
 
+- [ ] The [shared architecture overview](../../docs/concurrency/inside-a-mail-send.md#phase-completion-check) has a recorded updated-or-unchanged review, including capability discovery and provider boundaries.
 - [ ] One immutable report exposes all facts the provider can determine without raw provider types.
 - [ ] Pre-TLS and post-TLS capabilities cannot be confused.
 - [ ] Probe output is safe for ordinary logs and contains no authentication or message secrets.

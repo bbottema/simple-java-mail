@@ -1,8 +1,8 @@
 # SMTP robustness improvement plan
 
-> **Accepted implementation:** Phase 1 and phase 2 queue controls are complete and approved. Phase 2 as a whole is not complete: mail-send cancellation and total deadlines remain deferred at the provider safety gate documented in step 3. Later phases remain proposals. Benchmarking is not part of this work.
+> **Implementation status:** Phases 1 and 2 are complete and accepted. The Angus safety gate was resolved through supported socket/provider hooks; the original negative characterization remains in the tests. These are unreleased 10.0 changes. Later phases remain proposals. Benchmarking is not part of this work.
 
-- Status: Phase 1 complete; phase 2 partially complete (queue controls accepted, cancellation deferred); unreleased
+- Status: Phases 1 and 2 complete and accepted; unreleased
 - Resumption after the pool fix: The supporting-library patches and Simple Java Mail 9.3.4 are released. This 10.0 checkout now adopts SMTP Connection Pool 4.1.0 and retains all eight mixed-failure waiter-recovery regression cases from the patch. Integration verification is recorded in [step 2](phase-2-execution-control/02-bound-asynchronous-submission-and-expose-backpressure.md). See the [dependency finding](phase-1-transaction-truth/01-preserve-recipient-replies-and-derive-retry-guidance.md#separate-dependency-finding).
 - Plan order: 03 of 03
 - Preceded by: [02 - CLI daemon improvement plan](../02_CLI_DAEMON_IMPROVEMENT_PLAN/README.md) in planning order only
@@ -54,7 +54,7 @@ The parent issue should maintain this release-oriented table:
 | --- | --- | --- | --- | --- | --- |
 | 1 | [#723](https://github.com/bbottema/simple-java-mail/issues/723) | Major feature | 10.0.0 | - | Recipient replies and retry guidance |
 | 2 | [#725](https://github.com/bbottema/simple-java-mail/issues/725) | Major feature | 10.0.0 | - | Bounded async demand and visible overflow |
-| 3 | [#726](https://github.com/bbottema/simple-java-mail/issues/726) | Major feature | 10.0.0, provider gate unresolved | - | Deadlines and protocol-aware cancellation |
+| 3 | [#726](https://github.com/bbottema/simple-java-mail/issues/726) | Major feature | 10.0.0 | - | Deadlines and protocol-aware cancellation |
 | 4 | Not created | Enhancement | Unscheduled | - | Safe SMTP capability diagnostics |
 | 5 | Not created | Security + enhancement | Unscheduled | - | Explicit authentication-over-TLS policy |
 | 6 | Not created | Enhancement | Unscheduled | - | Complete DSN identifiers and recipient metadata |
@@ -99,6 +99,7 @@ At release time, the exact-version milestone and the parent ledger determine whi
 8. Custom mailers and third-party transport adapters remain supported even when they cannot provide SMTP-specific details.
 9. Every public addition follows `API_EXPANSION_WORKFLOW.md`; every substantial class follows `CODING_STYLE_GUIDE.md`.
 10. Each implementation starts with characterization or fault-injection tests and leaves the branch reviewable before commit.
+11. Before completing each step, review the [shared send-architecture infographic and its phase checklist](../docs/concurrency/inside-a-mail-send.md#phase-completion-check) alongside the concurrency catalogue. Update the master, website copy, and #722 embed together when their meaning changes; otherwise record an explicit unchanged review in the infographic ledger. Repeat this at every phase boundary and before release.
 
 ## Phases and steps
 
@@ -109,9 +110,9 @@ At release time, the exact-version milestone and the parent ledger determine whi
 ### Phase 2: Bound and control execution
 
 - [x] [2. Bound asynchronous submission and expose backpressure](phase-2-execution-control/02-bound-asynchronous-submission-and-expose-backpressure.md) - implemented, verified and accepted on 9 September 2026, including direct-handoff worker-expiry recovery
-- [ ] [3. Give deadlines and cancellation protocol meaning](phase-2-execution-control/03-give-deadlines-and-cancellation-protocol-meaning.md) - provider gate reached; required hooks documented
+- [x] [3. Give deadlines and cancellation protocol meaning](phase-2-execution-control/03-give-deadlines-and-cancellation-protocol-meaning.md) - implemented, verified and accepted; holistic-review corrections completed on 11 September 2026
 
-Step 3's [supporting-library cancellation plan](phase-2-execution-control/support-library-cancellation/README.md) is implemented and released: Generic Object Pool 2.5.0, Clustered Object Pool 4.1.0 and SMTP Connection Pool 4.1.0. Adopting those dependencies does not expose mail-send cancellation; physical SMTP abort remains a separate capability gate.
+Step 3's [supporting-library cancellation plan](phase-2-execution-control/support-library-cancellation/README.md) is implemented and released: Generic Object Pool 2.5.0, Clustered Object Pool 4.1.0 and SMTP Connection Pool 4.1.0. The downstream implementation connects their cancellable claims and fenced lease abort to `MailSend.requestCancellation()` and total deadlines. Physical SMTP abort is supported for compatible SJM-owned Angus Sessions; unsupported integrations remain cooperative and reject a configured total deadline before connecting.
 
 ### Phase 3: Make connection behavior diagnosable and safe
 

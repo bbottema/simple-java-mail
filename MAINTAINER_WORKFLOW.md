@@ -273,6 +273,7 @@ For user-facing changes:
 - Keep `RELEASE.txt` and `RELEASE_HISTORY.md` aligned and complete.
 - Update website source under `simplejavamail.org` for API/config documentation changes, but do not push the website unless explicitly approved.
 - Add migration notes for behavior changes, removed API, changed defaults, or compatibility-impacting fixes.
+- When send orchestration, cancellation, pooling, provider behavior, or observer dispatch changes, review the [concurrency catalogue and shared infographic](docs/concurrency/inside-a-mail-send.md#phase-completion-check). Record an updated-or-unchanged review before closing the work, and reconcile the master image, website copy, and umbrella-issue embed before release. A matching image checksum does not replace a semantic review.
 
 Release-note retention:
 

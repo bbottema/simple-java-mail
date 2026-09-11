@@ -56,9 +56,11 @@ Mailer mailer = mail.mailerBuilder().withSMTPServer(
 mailer.sendMailSync(email);
 ```
 
-The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Use `sendMailSync(...)` when failures should be thrown on the calling thread, or `sendMailAsync(...)` when the complete operation should be represented by a `CompletableFuture`. The receipt-returning equivalents are `sendMailAndGetReceiptSync(...)` and `sendMailAndGetReceiptAsync(...)`. Existing `sendMail(email)` and boolean overloads remain supported for code that deliberately uses the Mailer's configured async default or selects the mode dynamically.
+The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Use `sendMailSync(...)` when failures should be thrown on the calling thread, or `sendMailAsync(...)` when SMTP work should run asynchronously; `MailSend.getCompletion()` supplies its `CompletableFuture`. The receipt-returning equivalents are `sendMailAndGetReceiptSync(...)` and `sendMailAndGetReceiptAsync(...)`. Existing `sendMail(email)` and boolean overloads remain supported for code that deliberately uses the Mailer's configured async default or selects the mode dynamically.
 
-For bursty background work, `mailerBuilder.withAsyncQueueCapacity(100)` bounds waiting async tasks and reports saturation through their futures and the mail-send observer. The [queue and backpressure guide](https://www.simplejavamail.org/configuration.html#section-async-queue) covers bounded admission waits, diagnostics, and graceful shutdown. The default remains unbounded; this is not a durable mail queue or SMTP cancellation.
+For bursty background work, `mailerBuilder.withAsyncQueueCapacity(100)` bounds waiting async tasks and reports saturation through their futures and the mail-send observer. The [queue and backpressure guide](https://www.simplejavamail.org/sending-and-execution.html#section-async-queue) covers bounded admission waits, diagnostics, and graceful shutdown. The default remains unbounded; this is not a durable mail queue.
+
+For an obsolete notification, retain its `MailSend` and call `requestCancellation()`. A total budget is opt-in with `withMailSendTimeout(Duration.ofSeconds(30))`. Neither a request nor a timeout proves non-acceptance: inspect the eventual completion and any receipt. See [deadlines and cancellation](https://www.simplejavamail.org/sending-and-execution.html#section-send-deadlines).
 
 Before sending, `mailer.testConnection()` checks the SMTP path. Choose message preflight by what your code needs back:
 
@@ -111,7 +113,7 @@ Mailer mailer = mail.mailerBuilder()
     .buildMailer();
 ```
 
-`MailSendOutcome` describes the whole Simple Java Mail attempt, including preparation and asynchronous queue time; its optional `MailSubmissionReceipt` describes SMTP submission facts only. The callback is terminal—not a connection-lifecycle event stream—and asynchronous sends can invoke it concurrently on worker threads. See [observing completed mail sends](https://www.simplejavamail.org/features.html#section-mail-send-observer) and the manually runnable [streaming progress demo](modules/simple-java-mail/src/test/java/demo/MailSendObserverDemoApp.java).
+`MailSendOutcome` describes the whole Simple Java Mail attempt, including preparation and asynchronous queue time; its optional `MailSubmissionReceipt` describes SMTP submission facts only. The callback is terminal—not a connection-lifecycle event stream—and concurrent sends can invoke it on different threads. The default observer returns before send completion. `withMailSendObserver(observer, applicationExecutor)` instead attempts handoff before completion, without waiting for callback or downstream work; the application owns the executor and its rejection policy. See [observing completed mail sends](https://www.simplejavamail.org/sending-and-execution.html#section-mail-send-observer) and the manually runnable [streaming progress demo](modules/simple-java-mail/src/test/java/demo/MailSendObserverDemoApp.java).
 
 ## Submit already-finalized EML exactly
 

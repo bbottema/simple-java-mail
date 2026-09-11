@@ -2,6 +2,8 @@
 
 This catalogue records project mechanisms that are easy to miss because they span modules, build steps, generated files, or runtime classpath behavior. It is meant to be read alongside [DEVELOPMENT.md](DEVELOPMENT.md) and [API_EXPANSION_WORKFLOW.md](API_EXPANSION_WORKFLOW.md).
 
+For state diagrams, lock ownership, race sequences, and regression evidence behind mail sending, see the [concurrency and state-machine catalogue](docs/concurrency/README.md).
+
 ## Quick Index
 
 | Mechanism | Main reason it exists | Primary anchors |
@@ -152,7 +154,7 @@ The in-memory request ledger attaches duplicate UUIDs to the original result and
 
 ## Async Send And Batch Connection Pooling
 
-`MailerImpl` exposes explicit synchronous and asynchronous methods for ordinary sends and receipt-returning sends. The `Sync` methods return only after submission and throw failures directly; the `Async` methods represent operational failures through `CompletableFuture`. Existing configurable and boolean methods delegate to those same paths. `MailerImpl.testConnection(...)` retains its configurable/boolean API. Built-in execution uses `MailSendExecutor` and `CompletableFuture.runAsync`; caller-owned execution retains `AsyncOperationHelper` and the supplied executor's behavior. Send and connection-test closures acquire resources only after worker execution begins.
+`MailerImpl` exposes explicit synchronous and asynchronous methods for ordinary sends and receipt-returning sends. The `Sync` methods return only after submission and throw failures directly; the `Async`, configurable, boolean, and simple-batch methods return `MailSend<T>`. `getCompletion()` creates detached CompletableFuture views of the actual operation; mutations of a view cannot affect sending. `requestCancellation()` is an optional idempotent void request, not an acknowledgement. `MailSendOperation` arbitrates execution versus queued retirement on either the built-in or supplied executor. Connection tests retain their existing future/helper path. Async send closures acquire resources only after worker execution begins.
 
 Key pieces:
 
@@ -167,10 +169,22 @@ Key pieces:
 - Cluster-specific property defaults are parsed from `simplejavamail.defaults.connectionpool.clusters.*` into the immutable configuration snapshot and overlaid on the global connection-pool defaults when `BatchSupport` registers a matching cluster key.
 - `TransportRunner` sends through `BatchModule.acquireTransport(...)` when batch is available; otherwise it opens a normal `Session.getTransport()` connection for the operation.
 - `LifecycleDelegatingTransportImpl` wraps the pooled transport so the caller can signal success with `release()` or failure with `invalidate()`.
-- `MailerImpl.shutdownConnectionPool()` stops admission to an owned executor, drains accepted work, then shuts down its pool registration. One daemon cleanup thread waits without occupying the application's common pool; repeated calls return the same future. Blocking `close()` waits for this cleanup and rejects invocation from its own worker to avoid self-deadlock. Caller-owned and synchronous work must finish before closing. Graceful drain is not SMTP cancellation.
-- `batch-module` uses SMTP Connection Pool 4.1.0, backed by Clustered Object Pool 4.1.0 and Generic Object Pool 2.5.0. The eight mixed-failure waiter-recovery regression cases from the 9.3.4 patch are retained in `BatchTransportExecutorTest` on the 10.0 line. This dependency upgrade does not connect the optional upstream cancellation controls to Mailer or BatchTransportExecutor sends; full mail-send cancellation remains gated separately.
+- `MailerImpl.shutdownConnectionPool()` rejects new sends, drains its accepted sends and observer handoffs, then shuts down its pool registration. This includes synchronous sends and sends on caller-owned executors, but never shuts down application executors or waits for offloaded observer callbacks. One daemon cleanup thread waits without occupying the common pool. Repeated calls return the same future. A lexically restored operation context rejects blocking `close()` from within its own send/inline observer to avoid self-deadlock. Graceful drain is not SMTP cancellation.
+- `batch-module` uses SMTP Connection Pool 4.1.0, backed by Clustered Object Pool 4.1.0 and Generic Object Pool 2.5.0. Mailer claims now use the remaining total budget and `ClaimControl`; transport abort belongs to the exclusive lease generation. A retired/invalidated lease is disposed before the ordinary send notifies or completes. The eight mixed-failure waiter-recovery cases remain in `BatchTransportExecutorTest`. Standalone BatchTransportExecutor operations are not instrumented with mail-send controls.
 
 There is no direct `Phaser` usage in this repository's source tree. Batch coordination here is expressed through `CompletableFuture`, executor services, `AtomicInteger` proxy request tracking, and the external SMTP/object-pool libraries used by `batch-module`.
+
+### Total Deadlines And Physical Abort
+
+`MailerGenericBuilder` owns the disabled-by-default `Duration` timeout. Its implementation resolves `simplejavamail.defaults.mailsend.timeout` and builder overrides, validates a positive nanosecond-representable value, and passes it into the dumb `OperationalConfigImpl`. The property declares its Duration type, EXECUTION_AND_POOLING diagnostic group, visible sensitivity, Spring metadata, and ISO-8601 CLI conversion.
+
+`MailSendControl` uses monotonic elapsed time, first-stop arbitration, and fenced resource registrations. Ordinary sends have one budget from preparation through cleanup; simple batches share one budget and pause it for per-email observer work. Open-connection establishment and each scoped send get separate budgets, excluding arbitrary application gaps and final scope cleanup. First-failure classification is frozen before cleanup, so a later cancellation cannot replace a real send failure.
+
+`MailSendOperations` separates a lazy daemon deadline watcher from a lazy private completion worker. Signals only wake claimants, retire queued wrappers, or close captured sockets; they never invoke application observers or complete futures. Cancelled/expired unstarted work is removed from the owned queue and completed on the private worker. Running work completes on its execution thread. Slow inline callbacks or future continuations may delay private-worker completions, not unrelated deadline signals. Retired wrappers release their captured Email work even when a caller executor retains the inert Runnable.
+
+`MailTransportLifecycleAdapter` is an optional ServiceLoader SPI separate from payload submission. Its Angus implementation configures only compatible SJM-owned Sessions with a managed SMTP/SMTPS provider and an unconnected socket factory. A per-factory, lexically restored ThreadLocal associates the factory call with its transport. The raw socket is recorded before connect; abort closes it outside the Angus monitor and remains latched if requested before creation. Angus still owns connect timeouts, local bind, HTTP CONNECT, TLS upgrades, authentication, and protocol behavior; the factory preserves its SOCKS/socket-channel choice. No private-field reflection, global socket factory, or per-send mutation of shared Session properties is involved.
+
+The managed transport records RCPT occurrences and the DATA/BDAT LAST boundary using protected provider hooks. Lost final acceptance stays UNKNOWN with DUPLICATE_RISK; an already observed acceptance wins late control requests. The cancellation/timeout exceptions retain optional exact receipts without new SMTP status enums. Unsupported provider/socket/Session integrations fail before connecting when a total deadline is requested; ordinary untimed sending remains supported with cooperative cancellation only. DNS and caller-owned non-cooperative data sources cannot be forcibly interrupted, so completion is never fabricated while work still runs.
 
 ## Transport-Neutral Submission Outcomes
 
@@ -202,9 +216,9 @@ Gotchas:
 
 ## Per-Mailer Terminal Send Observation
 
-`MailerGenericBuilder.withMailSendObserver(...)` stores one Java callback directly on the builder and the built `Mailer`; it deliberately does not enter `OperationalConfig`, property loading, CLI generation, or configuration diagnostics. Repeating the builder call replaces the earlier observer. `MailSendObserverNotifier` is the only application-callback boundary, and `MailSendAttempt` centralizes timestamp capture and immutable `MailSendOutcome` construction.
+`MailerGenericBuilder.withMailSendObserver(...)` stores one Java callback and optional application Executor directly on the builder and built Mailer; neither enters OperationalConfig, property loading, CLI generation, or configuration diagnostics. Either overload replaces the entire registration; the one-argument overload restores inline dispatch. `MailSendObserverNotifier` is the only application-callback boundary, and `MailSendAttempt` centralizes timestamp capture and immutable outcome construction. Inline callbacks return before send completion. Executor-backed dispatch attempts handoff before completion, without awaiting the callback; rejection is logged as undelivered, with no retry or inline fallback. Direct/caller-runs/blocking/silent-discard executor policies retain their actual behavior. The application owns the executor and downstream persistence/processing.
 
-The outcome and receipt answer different questions. `MailSendOutcome` covers the whole Simple Java Mail attempt: the Message-ID before and after preparation, request, ready, execution-start and completion times, configured logging-only mode, and the exact caller-facing success or failure. Its optional `MailSubmissionReceipt` covers transport-neutral SMTP submission facts. Preparation and scheduling failures therefore have no receipt, while `MailSubmissionException` contributes its exact receipt.
+The outcome and receipt answer different questions. `MailSendOutcome` covers the whole Simple Java Mail attempt: the Message-ID before and after preparation, request, ready, execution-start and completion times, configured logging-only mode, and the exact caller-facing success or failure. Its optional `MailSubmissionReceipt` covers transport-neutral SMTP submission facts. Preparation and scheduling failures therefore have no receipt. MailSubmissionException contributes its exact receipt; MailSendCancelledException and MailSendTimeoutException contribute their optional exact receipts.
 
 Ordering is part of the mechanism:
 

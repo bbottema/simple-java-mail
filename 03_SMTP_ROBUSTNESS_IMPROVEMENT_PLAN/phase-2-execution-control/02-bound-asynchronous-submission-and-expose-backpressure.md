@@ -1,6 +1,6 @@
 # Step 2: Bound asynchronous submission and expose backpressure
 
-- Status: Complete: implemented, verified and accepted on 9 September 2026; unreleased. Step 3 remains deferred.
+- Status: Complete: implemented, verified and accepted on 9 September 2026; unreleased. Cancellation and total deadlines are tracked separately in step 3.
 - Depends on: Existing observer and scheduling-failure semantics; coordinate with Step 1
 - Child issue: [#725](https://github.com/bbottema/simple-java-mail/issues/725), under [#722](https://github.com/bbottema/simple-java-mail/issues/722), milestone 10.0.0
 - Classification: `major feature`, never also `enhancement`

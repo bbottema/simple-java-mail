@@ -99,6 +99,7 @@ This step does not by itself create a certification or guarantee. It supplies ev
 
 ## Acceptance criteria
 
+- [ ] The [shared architecture overview](../../docs/concurrency/inside-a-mail-send.md#phase-completion-check) has a recorded updated-or-unchanged review against the conformance scenarios, without adding unqualified safety claims.
 - [ ] Every SMTP phase can be delayed, failed, rejected, or disconnected deterministically.
 - [ ] Mixed-recipient and final-commit boundaries have stable expected outcomes.
 - [ ] Pool and executor cleanup is proven after every failure category.

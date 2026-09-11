@@ -70,6 +70,7 @@ Do not equate an encrypted socket with a verified peer. The secure policy needs 
 
 ## Acceptance criteria
 
+- [ ] The [shared architecture overview](../../docs/concurrency/inside-a-mail-send.md#phase-completion-check) has a recorded updated-or-unchanged review, including TLS/authentication ownership.
 - [ ] Current authentication fallback behavior is proven for every built-in transport strategy.
 - [ ] Authentication material is never sent without the selected policy being satisfied.
 - [ ] Any plaintext compatibility path requires an explicit user choice and is visible in diagnostics.
