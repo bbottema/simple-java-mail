@@ -8,6 +8,7 @@ import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
 import java.io.PrintStream;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -37,6 +38,12 @@ public interface OperationalConfig {
 	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
 	int getSessionTimeout();
+
+	/**
+	 * @return Total send budget, or {@code null} when disabled.
+	 * @see MailerGenericBuilder#withMailSendTimeout(Duration)
+	 */
+	@Nullable Duration getMailSendTimeout();
 
 	/**
 	 * @see MailerGenericBuilder#withLocalBindAddress(String)

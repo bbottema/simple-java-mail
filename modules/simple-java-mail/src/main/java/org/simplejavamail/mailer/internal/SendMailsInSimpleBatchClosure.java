@@ -13,6 +13,8 @@ import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.An
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
+import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.util.TransportConnectionHelper;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 
@@ -41,10 +43,12 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	private final boolean transportModeLoggingOnly;
 	@Nullable private Email currentEmail;
 	@Nullable private MailSendAttempt currentMailSendAttempt;
+	@NotNull private final MailSendControl control;
 
 	SendMailsInSimpleBatchClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Iterable<Email> userProvidedEmails,
 			@NotNull Function<Email, Email> emailPreparer, @NotNull MailSendObserverNotifier mailSendObserverNotifier,
-			@Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
+			@Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter,
+			@NotNull MailSendControl control) {
 		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
@@ -52,12 +56,14 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		this.emailPreparer = emailPreparer;
 		this.mailSendObserverNotifier = mailSendObserverNotifier;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
+		this.control = control;
 	}
 
 	@Override
 	public void executeClosure() {
 		LOGGER.trace("sending emails in simple batch...");
 		try {
+			control.checkStopped();
 			val emailIterator = userProvidedEmails.iterator();
 			if (!emailIterator.hasNext()) {
 				LOGGER.trace("simple batch contained no emails");
@@ -72,15 +78,8 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 			} else {
 				sendEmailsUsingSingleTransport(emailIterator);
 			}
-		} catch (final MessagingException failure) {
-			throwMappedFailure(failure, GENERIC_ERROR);
-		} catch (final MailerException | EmailTooBigException failure) {
-			throwMappedFailure(failure, MAILER_ERROR);
-		} catch (final MailException failure) {
-			completeCurrentSendWithFailure(failure);
-			throw failure;
 		} catch (final Exception failure) {
-			throwMappedFailure(failure, UNKNOWN_ERROR);
+			throw reportFailure(failure);
 		} catch (final Error failure) {
 			completeCurrentSendWithFailure(failure);
 			throw failure;
@@ -93,6 +92,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 			final Email email = prepareNextEmail(emailIterator);
 			markCurrentSendStarted();
 			SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
+			control.checkStopped();
 			completeCurrentSendSuccessfully(TransportRunner.buildReceipt(email, null));
 		}
 	}
@@ -104,6 +104,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 			val email = prepareNextEmail(emailIterator);
 			markCurrentSendStarted();
 			final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
+			control.checkStopped();
 			customMailer.sendMessage(operationalConfig, session, email, message);
 			completeCurrentSendSuccessfully(TransportRunner.buildReceipt(email, null));
 		}
@@ -111,12 +112,23 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 
 	private void sendEmailsUsingSingleTransport(@NotNull final Iterator<Email> emailIterator)
 			throws MessagingException {
-		try (Transport transport = session.getTransport()) {
-			TransportConnectionHelper.connectTransport(transport, session);
-			while (emailIterator.hasNext()) {
-				final Email email = prepareNextEmail(emailIterator);
-				markCurrentSendStarted();
-				completeCurrentSendSuccessfully(TransportRunner.sendMessageOnTransport(transport, session, email));
+		final Transport transport = session.getTransport();
+		try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(transport, control)) {
+			try (Transport ownedTransport = transport) {
+				try {
+					control.checkStopped();
+					TransportConnectionHelper.connectTransport(ownedTransport, session);
+					while (emailIterator.hasNext()) {
+						final Email email = prepareNextEmail(emailIterator);
+						markCurrentSendStarted();
+						completeCurrentSendSuccessfully(TransportRunner.sendMessageOnTransport(ownedTransport, session, email, control));
+					}
+				} catch (Exception failure) {
+					throw reportFailure(failure);
+				} catch (Error failure) {
+					completeCurrentSendWithFailure(failure);
+					throw failure;
+				}
 			}
 		} finally {
 			LOGGER.trace("closing transport");
@@ -126,9 +138,11 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	private Email prepareNextEmail(@NotNull final Iterator<Email> emailIterator) {
 		currentEmail = null;
 		currentMailSendAttempt = null;
+		control.checkStopped();
 		final Email userProvidedEmail = verifyNonnull(emailIterator.next());
-		currentMailSendAttempt = mailSendObserverNotifier.beginAttempt(userProvidedEmail);
+		currentMailSendAttempt = mailSendObserverNotifier.beginAttempt(userProvidedEmail, control);
 		currentEmail = emailPreparer.apply(userProvidedEmail);
+		control.checkStopped();
 		currentMailSendAttempt.prepared(currentEmail);
 		return currentEmail;
 	}
@@ -147,20 +161,21 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		}
 	}
 
-	private void throwMappedFailure(@NotNull final Exception cause, @NotNull final String errorMessage) {
-		if (currentEmail == null) {
-			LOGGER.trace("Failed to send simple email batch\n\t{}", errorMessage);
-			final MailerException failure = new MailerException(format(errorMessage, "simple batch"), cause);
-			completeCurrentSendWithFailure(failure);
-			throw failure;
-		}
+	/** Freeze the failure before connection cleanup, then notify while the shared transport is still in scope. */
+	private RuntimeException reportFailure(@NotNull final Exception cause) {
+		final RuntimeException failure = control.translateFailure(cause instanceof MailException
+				? (MailException) cause : createMailerException(cause));
+		completeCurrentSendWithFailure(failure);
+		return failure;
+	}
 
-		LOGGER.trace("Failed to send email {}\n{}\n\t{}", currentEmail.getId(), currentEmail, errorMessage);
-		val emailId = ofNullable(currentEmail.getId())
+	private MailerException createMailerException(@NotNull final Exception cause) {
+		final String errorMessage = cause instanceof MessagingException ? GENERIC_ERROR
+				: cause instanceof EmailTooBigException ? MAILER_ERROR : UNKNOWN_ERROR;
+		final String emailId = currentEmail == null ? "simple batch" : ofNullable(currentEmail.getId())
 				.map(id -> format("ID: '%s'", id))
 				.orElse(format("Subject: '%s'", currentEmail.getSubject()));
-		final MailerException failure = new MailerException(format(errorMessage, emailId), cause);
-		completeCurrentSendWithFailure(failure);
-		throw failure;
+		LOGGER.trace("Failed to send email {}\n\t{}", emailId, errorMessage);
+		return new MailerException(format(errorMessage, emailId), cause);
 	}
 }

@@ -12,11 +12,14 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.BatchModule;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
+import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import org.slf4j.Logger;
 
@@ -44,23 +47,67 @@ public class TransportRunner {
 	 *
 	 * @param clusterKey The cluster key to use for the connection pool, which was randomly generated in the Mailer builder if not provided.
 	 */
-	public static MailSubmissionReceipt sendMessage(@NotNull final UUID clusterKey, @NotNull final Session session, @NotNull final Email email)
+	public static MailSubmissionReceipt sendMessage(@NotNull final UUID clusterKey, @NotNull final Session session, @NotNull final Email email,
+			@NotNull final MailSendControl control)
 			throws MessagingException {
+		control.checkStopped();
+		if (ModuleLoader.batchModuleAvailable()) {
+			return sendUsingConnectionPool(ModuleLoader.loadBatchModule(), clusterKey, session, false, control,
+					(transport, actualSessionUsed) -> sendMessageOnTransport(transport, actualSessionUsed, email, control));
+		}
+		return sendOnNewTransport(session, email, control);
+	}
+
+	private static MailSubmissionReceipt sendOnNewTransport(final Session session, final Email email, final MailSendControl control)
+			throws MessagingException {
+		final Transport transport = transportFor(session);
+		try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(transport, control)) {
+			MailSubmissionReceipt receipt = null;
+			Throwable primaryFailure = null;
+			try {
+				control.checkStopped();
+				TransportConnectionHelper.connectTransport(transport, session);
+				receipt = sendMessageOnTransport(transport, session, email, control);
+				return receipt;
+			} catch (MessagingException failure) {
+				final RuntimeException mapped = control.translateFailure(buildSubmissionException(email, MailTransportResult.failed(failure, null)));
+				primaryFailure = mapped;
+				throw mapped;
+			} catch (RuntimeException failure) {
+				final RuntimeException mapped = control.translateFailure(failure);
+				primaryFailure = mapped;
+				throw mapped;
+			} catch (Error failure) {
+				primaryFailure = failure;
+				throw failure;
+			} finally {
+				closeAfterSend(transport, control, receipt, primaryFailure);
+			}
+		}
+	}
+
+	private static void closeAfterSend(final Transport transport, final MailSendControl control,
+			@Nullable final MailSubmissionReceipt receipt, @Nullable final Throwable primaryFailure) throws MessagingException {
 		try {
-			return runOnSessionTransport(clusterKey, session, false,
-					(transport, actualSessionUsed) -> sendMessageOnTransport(transport, actualSessionUsed, email));
-		} catch (final MailSubmissionException failure) {
-			throw failure;
-		} catch (final MessagingException failure) {
-			throw buildSubmissionException(email, MailTransportResult.failed(failure, null));
+			transport.close();
+		} catch (MessagingException | RuntimeException cleanupFailure) {
+			if (primaryFailure != null) {
+				primaryFailure.addSuppressed(cleanupFailure);
+			} else if (receipt != null && receipt.getStatus() == MailSubmissionStatus.ACCEPTED && control.isStopRequested()) {
+				LOGGER.debug("SMTP acceptance was observed before the connection was aborted during cleanup", cleanupFailure);
+			} else {
+				throw new MessagingException("Unable to close the SMTP transport after sending", cleanupFailure);
+			}
 		}
 	}
 
 	public static MailSubmissionReceipt sendMessageOnTransport(@NotNull final Transport transport, @NotNull final Session actualSessionUsed,
-			@NotNull final Email email)
+			@NotNull final Email email, @NotNull final MailSendControl control)
 			throws MessagingException {
 		try {
+			control.checkStopped();
 			final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
+			control.checkStopped();
 			final MailTransportResult transportResult = MailTransportAdapterResolver.sendMessage(transport, preparedMail)
 					.withEnvelopeRecipients(preparedMail.getRecipients());
 			if (!transportResult.isSuccessful()) {
@@ -69,9 +116,11 @@ public class TransportRunner {
 			LOGGER.trace("...email sent");
 			return buildReceipt(email, transportResult);
 		} catch (final MailSubmissionException failure) {
-			throw failure;
+			throw control.translateFailure(failure);
 		} catch (final MessagingException failure) {
-			throw buildSubmissionException(email, MailTransportResult.failed(failure, null));
+			throw control.translateFailure(buildSubmissionException(email, MailTransportResult.failed(failure, null)));
+		} catch (final RuntimeException failure) {
+			throw control.translateFailure(failure);
 		}
 	}
 
@@ -117,7 +166,7 @@ public class TransportRunner {
 			final boolean stickySession, @NotNull final TransportOperation<T> operation)
 			throws MessagingException {
 		if (ModuleLoader.batchModuleAvailable()) {
-			return sendUsingConnectionPool(ModuleLoader.loadBatchModule(), clusterKey, session, stickySession, operation);
+			return sendUsingConnectionPool(ModuleLoader.loadBatchModule(), clusterKey, session, stickySession, null, operation);
 		}
 		try (Transport transport = transportFor(session)) {
 			TransportConnectionHelper.connectTransport(transport, session);
@@ -141,21 +190,26 @@ public class TransportRunner {
 	}
 
 	private static <T> T sendUsingConnectionPool(@NotNull final BatchModule batchModule, @NotNull final UUID clusterKey,
-			@NotNull final Session session, final boolean stickySession, @NotNull final TransportOperation<T> operation)
+			@NotNull final Session session, final boolean stickySession, @Nullable final MailSendControl control, @NotNull final TransportOperation<T> operation)
 			throws MessagingException {
-		final LifecycleDelegatingTransport delegatingTransport = batchModule.acquireTransport(clusterKey, session, stickySession);
+		final LifecycleDelegatingTransport delegatingTransport = batchModule.acquireTransport(clusterKey, session, stickySession, control);
+		final T result;
 		try {
-			final T result = operation.run(delegatingTransport.getTransport(), delegatingTransport.getSessionUsedToObtainTransport());
-			delegatingTransport.signalTransportUsed();
-			return result;
+			result = operation.run(delegatingTransport.getTransport(), delegatingTransport.getSessionUsedToObtainTransport());
 		} catch (final Throwable failure) {
-			if (isTransportCompatibilityFailure(failure)) {
-				delegatingTransport.signalTransportUsed();
-			} else {
-				delegatingTransport.signalTransportFailed();
+			try {
+				if (isTransportCompatibilityFailure(failure)) {
+					delegatingTransport.signalTransportUsed();
+				} else {
+					delegatingTransport.signalTransportFailed();
+				}
+			} catch (RuntimeException | Error cleanupFailure) {
+				failure.addSuppressed(cleanupFailure);
 			}
 			throw failure;
 		}
+		delegatingTransport.signalTransportUsed();
+		return result;
 	}
 
 	private static boolean isTransportCompatibilityFailure(@NotNull final Throwable failure) {

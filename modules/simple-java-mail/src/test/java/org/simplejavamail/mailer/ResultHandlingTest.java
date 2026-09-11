@@ -16,15 +16,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.api.SimpleJavaMail;
-import org.simplejavamail.internal.util.concurrent.NamedRunnable;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.util.concurrent.NamedRunnable;
 import org.simplejavamail.mailer.internal.AbstractProxyServerSyncingClosure;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -37,13 +37,14 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -97,7 +98,7 @@ public class ResultHandlingTest {
 					.withPlainText("")
 					.buildEmail();
 
-			final CompletableFuture<Void> f = mailer.sendMail(dkimMail);
+			final CompletableFuture<Void> f = mailer.sendMail(dkimMail).getCompletion();
 
 			f.get();
 
@@ -228,7 +229,7 @@ public class ResultHandlingTest {
 			assertThatThrownBy(() -> mailer.sendMail(incompleteEmail, false))
 					.isInstanceOf(MailCompletenessException.class);
 
-			final CompletableFuture<Void> asyncResult = mailer.sendMail(incompleteEmail, true);
+			final CompletableFuture<Void> asyncResult = mailer.sendMail(incompleteEmail, true).getCompletion();
 			assertThat(asyncResult).isCompletedExceptionally();
 			assertThatThrownBy(asyncResult::get)
 					.isInstanceOf(ExecutionException.class)
@@ -260,8 +261,8 @@ public class ResultHandlingTest {
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(true))
 				.buildMailer()) {
-			assertValidationFailure(mailer.sendMailAsync(incompleteEmail));
-			assertValidationFailure(mailer.sendMailAndGetReceiptAsync(incompleteEmail));
+			assertValidationFailure(mailer.sendMailAsync(incompleteEmail).getCompletion());
+			assertValidationFailure(mailer.sendMailAndGetReceiptAsync(incompleteEmail).getCompletion());
 		}
 	}
 
@@ -295,8 +296,8 @@ public class ResultHandlingTest {
 
 	@Test
 	public void explicitAsynchronousMethodsShouldReturnBeforeCompletionDespiteSynchronousMailerDefault() throws Exception {
-		assertExplicitAsynchronousMethodReturnsBeforeCompletion((mailer, email) -> mailer.sendMailAsync(email));
-		assertExplicitAsynchronousMethodReturnsBeforeCompletion((mailer, email) -> mailer.sendMailAndGetReceiptAsync(email));
+		assertExplicitAsynchronousMethodReturnsBeforeCompletion((mailer, email) -> mailer.sendMailAsync(email).getCompletion());
+		assertExplicitAsynchronousMethodReturnsBeforeCompletion((mailer, email) -> mailer.sendMailAndGetReceiptAsync(email).getCompletion());
 	}
 
 	private void assertExplicitAsynchronousMethodReturnsBeforeCompletion(final AsynchronousSend asynchronousSend) throws Exception {
@@ -367,12 +368,15 @@ public class ResultHandlingTest {
 					.withPlainText("")
 					.buildEmail();
 
-			assertSchedulingFailure(mailer.sendMail(email, true));
-			assertSchedulingFailure(mailer.sendMailAndGetReceipt(email, true));
-			assertSchedulingFailure(mailer.sendMailAsync(email));
-			assertSchedulingFailure(mailer.sendMailAndGetReceiptAsync(email));
-			assertSchedulingFailure(mailer.sendMailsInSimpleBatch(Collections.singletonList(email), true));
-			assertSchedulingFailure(mailer.testConnection(true));
+			assertSchedulingFailure(mailer.sendMail(email, true).getCompletion());
+			assertSchedulingFailure(mailer.sendMailAndGetReceipt(email, true).getCompletion());
+			assertSchedulingFailure(mailer.sendMailAsync(email).getCompletion());
+			assertSchedulingFailure(mailer.sendMailAndGetReceiptAsync(email).getCompletion());
+			assertSchedulingFailure(mailer.sendMailsInSimpleBatch(Collections.singletonList(email), true).getCompletion());
+			assertThatThrownBy(() -> mailer.testConnection(true).get())
+					.isInstanceOf(ExecutionException.class)
+					.hasCauseInstanceOf(IllegalArgumentException.class)
+					.hasRootCauseMessage("cannot send async email, executor service is already shut down!");
 		} finally {
 			executorService.shutdownNow();
 		}
@@ -382,8 +386,7 @@ public class ResultHandlingTest {
 		assertThat(asyncResult).isCompletedExceptionally();
 		assertThatThrownBy(asyncResult::get)
 				.isInstanceOf(ExecutionException.class)
-				.hasCauseInstanceOf(IllegalArgumentException.class)
-				.hasRootCauseMessage("cannot send async email, executor service is already shut down!");
+				.hasCauseInstanceOf(RejectedExecutionException.class);
 	}
 
 	@Test
@@ -461,7 +464,7 @@ public class ResultHandlingTest {
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
-				.buildMailer().sendMailAsync(createCompleteEmail());
+				.buildMailer().sendMailAsync(createCompleteEmail()).getCompletion();
 	}
 
 	@NotNull
@@ -470,7 +473,7 @@ public class ResultHandlingTest {
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
 				.async()
-				.buildMailer().sendMail(createCompleteEmail());
+				.buildMailer().sendMail(createCompleteEmail()).getCompletion();
 	}
 
 	@NotNull

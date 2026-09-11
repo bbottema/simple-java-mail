@@ -9,8 +9,9 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
-import org.simplejavamail.api.mailer.MailRehearsal;
 import org.simplejavamail.api.mailer.AsyncQueueSnapshot;
+import org.simplejavamail.api.mailer.MailRehearsal;
+import org.simplejavamail.api.mailer.MailSend;
 import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
@@ -23,7 +24,9 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
+import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.internal.util.concurrent.NamedRunnable;
 import org.simplejavamail.mailer.internal.util.SmtpAuthenticator;
 import org.slf4j.Logger;
@@ -31,15 +34,16 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.util.List;
-import java.util.Properties;
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
@@ -113,6 +117,7 @@ public class MailerImpl implements Mailer {
 
 	@NotNull
 	private final MailSendObserverNotifier mailSendObserverNotifier;
+	private final MailSendOperations mailSendOperations;
 
 	@Nullable private Future<Void> shutdownFuture;
 
@@ -124,6 +129,7 @@ public class MailerImpl implements Mailer {
 				fromSessionBuilder.getSession(),
 				fromSessionBuilder.buildOperationalConfig(),
 				fromSessionBuilder.getMailSendObserver(),
+				fromSessionBuilder.getMailSendObserverExecutor(),
 				true);
 	}
 	
@@ -135,6 +141,7 @@ public class MailerImpl implements Mailer {
 				null,
 				regularBuilder.buildOperationalConfig(),
 				regularBuilder.getMailSendObserver(),
+				regularBuilder.getMailSendObserverExecutor(),
 				regularBuilder.isOpportunisticTLS());
 	}
 
@@ -151,22 +158,38 @@ public class MailerImpl implements Mailer {
 	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance, @NotNull ProxyConfig proxyConfig,
 			@Nullable Session session, @NotNull OperationalConfig operationalConfig, @Nullable final MailSendObserver mailSendObserver,
 			final boolean opportunisticTLS) {
+		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig, mailSendObserver, null, opportunisticTLS);
+	}
+
+	private MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
+			@NotNull ProxyConfig proxyConfig, @Nullable Session session, @NotNull OperationalConfig operationalConfig,
+			@Nullable MailSendObserver mailSendObserver, @Nullable Executor observerExecutor, final boolean opportunisticTLS) {
 		this.serverConfig = serverConfig;
 		this.transportStrategy = transportStrategy;
 		this.emailGovernance = emailGovernance;
 		this.proxyConfig = proxyConfig;
+		final boolean ownsSession = session == null;
 		if (session == null) {
 			session = createMailSessionWithoutOAuth2Validation(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"), opportunisticTLS);
 		}
 		this.session = session;
 		this.operationalConfig = operationalConfig;
-		this.mailSendObserverNotifier = new MailSendObserverNotifier(mailSendObserver, operationalConfig.isTransportModeLoggingOnly());
+		this.mailSendObserverNotifier = new MailSendObserverNotifier(mailSendObserver, observerExecutor, operationalConfig.isTransportModeLoggingOnly());
+		this.mailSendOperations = new MailSendOperations(operationalConfig);
 		final TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orElse(findStrategyForSession(session));
 		final Supplier<String> oauth2AccessTokenProvider = OAuth2AccessTokenResolver.validateConfiguration(
 				session, operationalConfig.getProperties(), effectiveTransportStrategy, operationalConfig.getOAuth2AccessTokenProvider()
 		);
 		this.proxyServer = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
 		initSession(session, operationalConfig, emailGovernance, effectiveTransportStrategy);
+		if (ownsSession && operationalConfig.getCustomMailer() == null && !operationalConfig.isTransportModeLoggingOnly()) {
+			try {
+				MailTransportLifecycleResolver.configureOwnedSession(session);
+			} catch (MessagingException failure) {
+				throw new MailerException("Couldn't set up the SMTP transport while building the Mailer. "
+						+ "Check the cause and your Jakarta Mail provider dependencies.", failure);
+			}
+		}
 		if (oauth2AccessTokenProvider != null) {
 			session.getProperties().put(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY, oauth2AccessTokenProvider);
 		}
@@ -416,8 +439,8 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<Void> sendMailAsync(final Email email) {
-		return sendMailAndGetReceiptAsync(email).thenApply(receipt -> (Void) null);
+	public final MailSend<Void> sendMailAsync(final Email email) {
+		return withoutReceipt(sendMailAndGetReceiptAsync(email));
 	}
 
 	/**
@@ -426,8 +449,11 @@ public class MailerImpl implements Mailer {
 	@Override
 	@NotNull
 	public final MailSubmissionReceipt sendMailAndGetReceiptSync(final Email userProvidedEmail) {
-		final PreparedMailSend preparedMailSend = prepareMailSend(userProvidedEmail);
-		return sendPreparedEmail(preparedMailSend);
+		final Email checkedEmail = verifyNonnull(userProvidedEmail);
+		final MailSendAttempt attempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
+		final MailSendOperation<MailSubmissionReceipt> operation = beginEmailOperation(attempt);
+		final PreparedMailSend prepared = prepareMailSend(checkedEmail, attempt, operation);
+		return operation.executeSync(() -> sendPreparedEmail(prepared, operation.control()));
 	}
 
 	/**
@@ -435,14 +461,22 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceiptAsync(final Email userProvidedEmail) {
+	public final MailSend<MailSubmissionReceipt> sendMailAndGetReceiptAsync(final Email userProvidedEmail) {
 		final Email checkedEmail = verifyNonnull(userProvidedEmail);
+		final MailSendAttempt attempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
+		final MailSendOperation<MailSubmissionReceipt> operation;
 		try {
-			final PreparedMailSend preparedMailSend = prepareMailSend(checkedEmail);
-			return schedulePreparedEmail(preparedMailSend);
+			operation = beginEmailOperation(attempt);
 		} catch (final RuntimeException failure) {
-			return AsyncOperationHelper.failedFuture(failure);
+			return new MailSend<>(AsyncOperationHelper.failedFuture(failure), () -> { });
 		}
+		try {
+			final PreparedMailSend prepared = prepareMailSend(checkedEmail, attempt, operation);
+			operation.schedule(() -> sendPreparedEmail(prepared, operation.control()));
+		} catch (RuntimeException ignored) {
+			// Preparation already notified on the caller thread with this exact failure.
+		}
+		return operation.handle();
 	}
 
 	/**
@@ -450,7 +484,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<Void> sendMail(final Email email) {
+	public final MailSend<Void> sendMail(final Email email) {
 		return sendMail(email, getOperationalConfig().isAsync());
 	}
 
@@ -459,12 +493,12 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<Void> sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
+	public final MailSend<Void> sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
 		if (async) {
 			return sendMailAsync(email);
 		}
 		sendMailSync(email);
-		return CompletableFuture.completedFuture(null);
+		return new MailSend<>(CompletableFuture.completedFuture(null), () -> { });
 	}
 
 	/**
@@ -472,7 +506,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(final Email email) {
+	public final MailSend<MailSubmissionReceipt> sendMailAndGetReceipt(final Email email) {
 		return sendMailAndGetReceipt(email, getOperationalConfig().isAsync());
 	}
 
@@ -481,59 +515,73 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(final Email email, final boolean async) {
+	public final MailSend<MailSubmissionReceipt> sendMailAndGetReceipt(final Email email, final boolean async) {
 		return async
 				? sendMailAndGetReceiptAsync(email)
-				: CompletableFuture.completedFuture(sendMailAndGetReceiptSync(email));
+				: new MailSend<>(CompletableFuture.completedFuture(sendMailAndGetReceiptSync(email)), () -> { });
+	}
+
+	private MailSend<Void> withoutReceipt(final MailSend<MailSubmissionReceipt> receiptSend) {
+		final CompletableFuture<Void> completion = new CompletableFuture<>();
+		receiptSend.getCompletion().whenComplete((receipt, failure) -> {
+			if (failure == null) {
+				completion.complete(null);
+			} else {
+				completion.completeExceptionally(failure);
+			}
+		});
+		return new MailSend<>(completion, receiptSend::requestCancellation);
+	}
+
+	private MailSendOperation<MailSubmissionReceipt> beginEmailOperation(final MailSendAttempt attempt) {
+		try {
+			final MailSendOperation<MailSubmissionReceipt> operation = mailSendOperations.begin(attempt::completeSuccessfully, attempt::completeWithFailure);
+			attempt.attachControl(operation.control());
+			return operation;
+		} catch (RuntimeException failure) {
+			attempt.completeWithFailure(failure);
+			throw failure;
+		}
 	}
 
 	@NotNull
-	private PreparedMailSend prepareMailSend(final Email userProvidedEmail) {
-		final Email checkedEmail = verifyNonnull(userProvidedEmail);
-		final MailSendAttempt mailSendAttempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
+	private PreparedMailSend prepareMailSend(final Email checkedEmail, final MailSendAttempt mailSendAttempt,
+			final MailSendOperation<MailSubmissionReceipt> operation) {
 		try {
+			operation.control().checkStopped();
+			validateDeadlineSupport();
 			final Email preparedEmail = prepareEmailForSending(checkedEmail);
+			operation.control().checkStopped();
 			mailSendAttempt.prepared(preparedEmail);
 			return new PreparedMailSend(preparedEmail, mailSendAttempt);
-		} catch (final RuntimeException | Error failure) {
-			mailSendAttempt.completeWithFailure(failure);
-			throw failure;
-		}
-	}
-
-	@NotNull
-	private CompletableFuture<MailSubmissionReceipt> schedulePreparedEmail(@NotNull final PreparedMailSend preparedMailSend) {
-		try {
-			return executeMailSendAsync(() -> sendPreparedEmail(preparedMailSend))
-					.thenApply(unused -> preparedMailSend.getSubmissionReceipt());
 		} catch (final RuntimeException failure) {
-			preparedMailSend.completeWithFailure(failure);
-			return AsyncOperationHelper.failedFuture(failure);
+			final RuntimeException reported = operation.control().translateFailure(failure);
+			operation.preparationFailed(reported);
+			throw reported;
 		} catch (final Error failure) {
-			preparedMailSend.completeWithFailure(failure);
+			operation.preparationFailed(failure);
 			throw failure;
 		}
 	}
 
+	private void validateDeadlineSupport() {
+		if (operationalConfig.getMailSendTimeout() != null && !operationalConfig.isTransportModeLoggingOnly()) {
+			if (operationalConfig.getCustomMailer() != null) {
+				throw new MailerException("Don't configure a total send timeout when using CustomMailer: Simple Java Mail can't stop its sending code. "
+						+ "Handle timeouts in your CustomMailer instead. If the timeout comes from configuration you can't change, "
+						+ "call resetMailSendTimeout() on the builder to disable it.");
+			}
+			MailTransportLifecycleResolver.requireAbortSupport(session);
+		}
+	}
+
 	@NotNull
-	private MailSubmissionReceipt sendPreparedEmail(@NotNull final PreparedMailSend preparedMailSend) {
+	private MailSubmissionReceipt sendPreparedEmail(@NotNull final PreparedMailSend preparedMailSend, final MailSendControl control) {
 		preparedMailSend.markStarted();
-		try {
-			final SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, preparedMailSend.getEmail(), proxyServer,
-					operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter);
-			sendMailClosure.run();
-			final MailSubmissionReceipt submissionReceipt = sendMailClosure.getReceipt();
-			preparedMailSend.completeSuccessfully(submissionReceipt);
-			return submissionReceipt;
-		} catch (final RuntimeException | Error failure) {
-			preparedMailSend.completeWithFailure(failure);
-			throw failure;
-		}
-	}
-
-	@NotNull
-	private CompletableFuture<Void> executeMailSendAsync(@NotNull final Runnable mailSend) {
-		return executeMailOperationAsync("sendMail process", mailSend);
+		final SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, preparedMailSend.getEmail(), proxyServer,
+				operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, control);
+		sendMailClosure.run();
+		return sendMailClosure.getReceipt();
 	}
 
 	private CompletableFuture<Void> executeMailOperationAsync(final String processName, final Runnable operation) {
@@ -549,9 +597,12 @@ public class MailerImpl implements Mailer {
 	@Override
 	public final <E extends Exception> void withOpenConnection(@NotNull final OpenConnectionCallback<E> openConnectionCallback) throws E {
 		val checkedOpenConnectionCallback = verifyNonnull(openConnectionCallback);
-		new SendMailsWithOpenConnectionClosure<>(operationalConfig, session, checkedOpenConnectionCallback, this::prepareEmailForSending,
-				mailSendObserverNotifier, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter)
-				.runOpenConnectionCallback();
+		validateDeadlineSupport();
+		try (MailSendOperations.Scope ignored = mailSendOperations.openScope()) {
+			new SendMailsWithOpenConnectionClosure<>(operationalConfig, session, checkedOpenConnectionCallback, this::prepareEmailForSending,
+					mailSendObserverNotifier, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, mailSendOperations)
+					.runOpenConnectionCallback();
+		}
 	}
 
 	/**
@@ -559,7 +610,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<Void> sendMailsInSimpleBatch(final Iterable<Email> emails) {
+	public final MailSend<Void> sendMailsInSimpleBatch(final Iterable<Email> emails) {
 		return sendMailsInSimpleBatch(emails, getOperationalConfig().isAsync());
 	}
 
@@ -568,25 +619,33 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	@NotNull
-	public final CompletableFuture<Void> sendMailsInSimpleBatch(final Iterable<Email> emails, final boolean async) {
+	public final MailSend<Void> sendMailsInSimpleBatch(final Iterable<Email> emails, final boolean async) {
 		val checkedEmails = verifyNonnull(emails);
-
-		if (!async) {
-			sendSimpleBatch(checkedEmails);
-			return CompletableFuture.completedFuture(null);
-		}
-
+		final MailSendOperation<Void> operation;
 		try {
-			final Runnable simpleBatchSend = () -> sendSimpleBatch(checkedEmails);
-			return executeMailOperationAsync("sendMailsInSimpleBatch process", simpleBatchSend);
+			operation = mailSendOperations.begin(unused -> { }, failure -> { });
 		} catch (final RuntimeException failure) {
-			return AsyncOperationHelper.failedFuture(failure);
+			if (!async) {
+				throw failure;
+			}
+			return new MailSend<>(AsyncOperationHelper.failedFuture(failure), () -> { });
 		}
+		final Supplier<Void> batch = () -> {
+			validateDeadlineSupport();
+			sendSimpleBatch(checkedEmails, operation.control());
+			return null;
+		};
+		if (async) {
+			operation.schedule(batch);
+		} else {
+			operation.executeSync(batch);
+		}
+		return operation.handle();
 	}
 
-	private void sendSimpleBatch(@NotNull final Iterable<Email> emails) {
+	private void sendSimpleBatch(@NotNull final Iterable<Email> emails, final MailSendControl control) {
 		new SendMailsInSimpleBatchClosure(operationalConfig, session, emails, this::prepareEmailForSending, mailSendObserverNotifier,
-				proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter)
+				proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, control)
 				.run();
 	}
 
@@ -658,18 +717,18 @@ public class MailerImpl implements Mailer {
 		}
 		if (!operationalConfig.isExecutorServiceIsUserProvided()) {
 			operationalConfig.getExecutorService().shutdown();
-			shutdownFuture = CompletableFuture.runAsync(this::drainExecutorAndCloseConnectionPools, MailerImpl::startShutdownThread);
-		} else {
-			shutdownFuture = closeConnectionPools();
 		}
+		mailSendOperations.shutdown();
+		shutdownFuture = CompletableFuture.runAsync(this::drainExecutorAndCloseConnectionPools, MailerImpl::startShutdownThread);
 		return shutdownFuture;
 	}
 
 	private void drainExecutorAndCloseConnectionPools() {
 		try {
-			while (!operationalConfig.getExecutorService().awaitTermination(1, TimeUnit.DAYS)) {
+			while (!operationalConfig.isExecutorServiceIsUserProvided() && !operationalConfig.getExecutorService().awaitTermination(1, TimeUnit.DAYS)) {
 				// Graceful shutdown retains accepted work; a capacity timeout is not a send timeout.
 			}
+			mailSendOperations.shutdown().get();
 			closeConnectionPools().get();
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
@@ -775,7 +834,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@Override
 	public void close() throws ExecutionException, InterruptedException {
-		if (ownsMailSendExecutor() && MailSendExecutor.isCurrentWorker(operationalConfig.getExecutorService())) {
+		if (mailSendOperations.isCurrentOperation() || (ownsMailSendExecutor() && MailSendExecutor.isCurrentWorker(operationalConfig.getExecutorService()))) {
 			throw new IllegalStateException("A Mailer worker cannot wait for its own shutdown; close the Mailer from its owning application thread");
 		}
 		shutdownConnectionPool().get();

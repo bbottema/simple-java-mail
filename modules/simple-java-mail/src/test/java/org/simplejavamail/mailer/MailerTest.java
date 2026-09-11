@@ -42,7 +42,6 @@ import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -61,6 +60,7 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.net.ssl.SSLSocketFactory;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.TO;
@@ -151,7 +151,12 @@ public class MailerTest {
 
 		SessionBasedEmailToMimeMessageConverter.unprimeSession(session);
 		SessionBasedEmailToMimeMessageConverter.unprimeSession(otherMailerOtherSession.getSession());
-		assertThat(session.getProperties()).isEqualTo(otherMailerOtherSession.getSession().getProperties());
+		final Properties firstSettings = new Properties();
+		firstSettings.putAll(session.getProperties());
+		final Properties secondSettings = new Properties();
+		secondSettings.putAll(otherMailerOtherSession.getSession().getProperties());
+		assertThat(firstSettings.remove("mail.smtp.socketFactory")).isNotSameAs(secondSettings.remove("mail.smtp.socketFactory"));
+		assertThat(firstSettings).isEqualTo(secondSettings);
 	}
 
 	@Test
@@ -699,7 +704,7 @@ public class MailerTest {
 
 		MailSubmissionReceipt receipt;
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
-			receipt = mailer.sendMailAndGetReceiptAsync(createBatchEmail("Async receipt email", "receipt@example.com")).get();
+			receipt = mailer.sendMailAndGetReceiptAsync(createBatchEmail("Async receipt email", "receipt@example.com")).getCompletion().get();
 		}
 
 		assertThat(transportState.connectCount.get()).isEqualTo(1);
@@ -824,7 +829,7 @@ public class MailerTest {
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			try {
-				mailer.sendMailAndGetReceiptAsync(createBatchEmail("Unknown receipt email", "unknown@example.com")).get();
+				mailer.sendMailAndGetReceiptAsync(createBatchEmail("Unknown receipt email", "unknown@example.com")).getCompletion().get();
 				throw new AssertionError("Expected asynchronous submission to fail");
 			} catch (final ExecutionException expected) {
 				assertThat(expected.getCause()).isInstanceOf(MailSubmissionException.class);

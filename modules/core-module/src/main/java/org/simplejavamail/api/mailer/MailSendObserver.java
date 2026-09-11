@@ -2,15 +2,19 @@ package org.simplejavamail.api.mailer;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.Executor;
+
 /**
  * Receives one terminal outcome for each individual email send attempt handled by a configured {@link Mailer}.
  * <p>
- * The observer runs inline on the thread completing the send. Implementations must therefore be thread-safe, quick and non-blocking. Different
- * asynchronous sends may notify concurrently and no ordering is guaranteed across sends.
+ * By default the observer runs inline before the send completes. The executor-taking builder overload instead hands it to an application-owned
+ * executor before completing the send, without waiting for the callback. Different sends may notify concurrently and no ordering is guaranteed.
+ * Keep implementations thread-safe; inline work delays completion, while executor-backed work follows that executor's dispatch policy.
  * <p>
  * A runtime exception thrown by an observer is logged and ignored. It never changes the send result or transport cleanup behavior.
  *
  * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver)
+ * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver, Executor)
  */
 @FunctionalInterface
 public interface MailSendObserver {

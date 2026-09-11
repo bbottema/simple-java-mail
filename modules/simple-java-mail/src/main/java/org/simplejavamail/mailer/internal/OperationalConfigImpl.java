@@ -7,13 +7,14 @@ import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.CustomMailer;
-import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
-import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 import java.io.PrintStream;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -176,6 +177,9 @@ class OperationalConfigImpl implements OperationalConfig {
 
 	/** @see OperationalConfig#getAsyncQueueConfig() */
 	@NotNull private final AsyncQueueConfig asyncQueueConfig;
+
+	/** @see OperationalConfig#getMailSendTimeout() */
+	@Nullable private final Duration mailSendTimeout;
 
 	@Override
 	@Nullable

@@ -7,10 +7,10 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.mailer.CustomMailer;
-import org.simplejavamail.api.mailer.MailSendObserver;
-import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailRecipientDisposition;
 import org.simplejavamail.api.mailer.MailRetryDisposition;
+import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
@@ -118,7 +118,7 @@ class MailSendObserverTest {
 				})
 				.buildMailer()) {
 			final CompletableFuture<MailSubmissionReceipt> send = mailer.sendMailAndGetReceiptAsync(
-					completeEmail("async-observer@example.org", "async observer"));
+					completeEmail("async-observer@example.org", "async observer")).getCompletion();
 			assertThat(customMailer.awaitSendStarted()).isTrue();
 			send.whenComplete((receipt, failure) -> completionOrder.add("future"));
 			customMailer.releaseSend();
@@ -145,7 +145,7 @@ class MailSendObserverTest {
 			assertPreparationFailure(outcomes.get(0), synchronousFailure);
 
 			outcomes.clear();
-			final CompletableFuture<Void> asynchronousSend = mailer.sendMailAsync(incompleteEmail);
+			final CompletableFuture<Void> asynchronousSend = mailer.sendMailAsync(incompleteEmail).getCompletion();
 			final Throwable asynchronousFailure = futureFailure(asynchronousSend);
 			assertPreparationFailure(outcomes.get(0), asynchronousFailure);
 		}
@@ -166,7 +166,7 @@ class MailSendObserverTest {
 				.buildMailer()) {
 			executorService.shutdown();
 			final Throwable schedulingFailure = futureFailure(mailer.sendMailAsync(
-					completeEmail("scheduling-failure@example.org", "scheduling failure")));
+					completeEmail("scheduling-failure@example.org", "scheduling failure")).getCompletion());
 			assertThat(outcomes).hasSize(1);
 			final MailSendOutcome outcome = outcomes.get(0);
 			assertThat(outcome.getFailure()).containsSame(schedulingFailure);
@@ -178,7 +178,7 @@ class MailSendObserverTest {
 			outcomes.clear();
 			final CountingIterable emails = new CountingIterable(
 					Collections.singletonList(completeEmail("lazy-batch@example.org", "lazy batch")));
-			futureFailure(mailer.sendMailsInSimpleBatch(emails, true));
+			futureFailure(mailer.sendMailsInSimpleBatch(emails, true).getCompletion());
 			assertThat(emails.iteratorCalls).hasValue(0);
 			assertThat(outcomes).isEmpty();
 		} finally {
@@ -228,7 +228,7 @@ class MailSendObserverTest {
 				})
 				.buildMailer()) {
 			mailer.sendMailAndGetReceiptSync(completeEmail("observer-failure-sync@example.org", "sync observer failure"));
-			mailer.sendMailAndGetReceiptAsync(completeEmail("observer-failure-async@example.org", "async observer failure"))
+			mailer.sendMailAndGetReceiptAsync(completeEmail("observer-failure-async@example.org", "async observer failure")).getCompletion()
 					.get(5, TimeUnit.SECONDS);
 		}
 

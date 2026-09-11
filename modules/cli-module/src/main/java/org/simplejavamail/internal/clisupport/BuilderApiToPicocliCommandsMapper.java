@@ -4,8 +4,8 @@ import jakarta.activation.DataSource;
 import jakarta.mail.Message;
 import jakarta.mail.internet.MimeMessage;
 import lombok.val;
-import org.bbottema.javareflection.BeanUtils;
 import org.bbottema.javareflection.BeanUtils.Visibility;
+import org.bbottema.javareflection.BeanUtils;
 import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.model.MethodModifier;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
@@ -18,20 +18,21 @@ import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
-import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
+import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import org.simplejavamail.internal.clisupport.valueinterpreters.EmlFilePathToMimeMessageFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.MsgFilePathToMimeMessageFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.PemFilePathToX509CertificateFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToCalendarMethodFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToContentTransferEncodingFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToDurationFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToFileFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToLoadBalancingStrategyFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToRecipientTypeFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToSessionDebugOutputFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToTransportStrategyFunction;
-import org.simplejavamail.internal.util.StringUtil;
 import org.simplejavamail.internal.util.StringUtil.StringFormatter;
+import org.simplejavamail.internal.util.StringUtil;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -39,6 +40,7 @@ import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -80,6 +82,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(boolean.class, "BOOL");
 		put(Boolean.class, "BOOL");
 		put(String.class, "TEXT");
+		put(Duration.class, "DURATION");
 		put(String[].class, "TEXT");
 		put(Object.class, "TEXT");
 		put(TransportStrategy.class, "NAME");
@@ -102,6 +105,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 	
 	static {
 		ValueConversionHelper.registerValueConverter(new StringToFileFunction());
+		ValueConversionHelper.registerValueConverter(new StringToDurationFunction());
 		ValueConversionHelper.registerValueConverter(new EmlFilePathToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new MsgFilePathToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new PemFilePathToX509CertificateFunction());

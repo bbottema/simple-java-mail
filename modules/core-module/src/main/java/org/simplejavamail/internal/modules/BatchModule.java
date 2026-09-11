@@ -3,8 +3,10 @@ package org.simplejavamail.internal.modules;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.util.UUID;
 import java.util.concurrent.Future;
@@ -30,7 +32,7 @@ public interface BatchModule {
 	 * @return A (new) {@link Transport} for the given session from the SMTP connection pool.
 	 */
 	@NotNull
-	LifecycleDelegatingTransport acquireTransport(@NotNull UUID clusterKey, @NotNull Session session, boolean stickySession);
+	LifecycleDelegatingTransport acquireTransport(@NotNull UUID clusterKey, @NotNull Session session, boolean stickySession, @Nullable MailSendControl control);
 
 	/**
 	 * Shuts down connection pool(s) and closes remaining open connections. Waits until all connections still in use become available again to deallocate them as well.

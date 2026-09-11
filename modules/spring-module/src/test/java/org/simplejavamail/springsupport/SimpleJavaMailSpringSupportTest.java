@@ -10,6 +10,7 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -51,6 +52,8 @@ public abstract class SimpleJavaMailSpringSupportTest {
 		assertThat(getProperty(ConfigLoader.Property.SMTP_CLIENT_HOSTNAME)).isEqualTo("mailer.spring.example.com"); // from Spring application.properties
 		assertThat(getProperty(ConfigLoader.Property.SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.30"); // from Spring application.properties
 		assertThat(config.getIntegerProperty(ConfigLoader.Property.SMTP_LOCAL_PORT)).isEqualTo(25259); // from Spring application.properties
+		assertThat(config.<Duration>getProperty(ConfigLoader.Property.DEFAULT_MAIL_SEND_TIMEOUT)).isEqualTo(Duration.ofSeconds(30));
+		assertThat(defaultMailer.getOperationalConfig().getMailSendTimeout()).isEqualTo(Duration.ofSeconds(30));
 		assertThat(getProperty(ConfigLoader.Property.DKIM_SELECTOR)).isNull(); // not set in any properties
 	}
 

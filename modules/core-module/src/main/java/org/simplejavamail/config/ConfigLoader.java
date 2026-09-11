@@ -94,6 +94,7 @@ public final class ConfigLoader {
 		DEFAULT_BCC_ADDRESS("simplejavamail.defaults.bcc.address"),
 		DEFAULT_POOL_SIZE("simplejavamail.defaults.poolsize"),
 		DEFAULT_ASYNC_QUEUE_CAPACITY("simplejavamail.defaults.async.queue.capacity"),
+		DEFAULT_MAIL_SEND_TIMEOUT("simplejavamail.defaults.mailsend.timeout"),
 		DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY("simplejavamail.defaults.async.queue.overflowpolicy"),
 		DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS("simplejavamail.defaults.async.queue.waittimeoutmillis"),
 		DEFAULT_CONNECTIONPOOL_CLUSTER_KEY("simplejavamail.defaults.connectionpool.clusterkey.uuid"),

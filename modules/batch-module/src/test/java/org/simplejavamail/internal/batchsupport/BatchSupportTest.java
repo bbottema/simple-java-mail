@@ -46,7 +46,7 @@ class BatchSupportTest {
 		} finally {
 			batchSupport.shutdownConnectionPools(session).get();
 		}
-		assertThatThrownBy(() -> batchSupport.acquireTransport(cluster, session, true))
+		assertThatThrownBy(() -> batchSupport.acquireTransport(cluster, session, true, null))
 				.isInstanceOf(BatchTransportException.class)
 				.hasMessageContaining("No Sessions are registered");
 	}
@@ -67,7 +67,7 @@ class BatchSupportTest {
 
 		try {
 			batchSupport.registerToCluster(operationalConfig(0, 1, 1000, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, session);
-			LifecycleDelegatingTransport pooledTransport = batchSupport.acquireTransport(cluster, session, true);
+			LifecycleDelegatingTransport pooledTransport = batchSupport.acquireTransport(cluster, session, true, null);
 
 			assertThat(properties.get(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY)).isSameAs(provider);
 			assertThat(calls).hasValue(1);

@@ -47,7 +47,7 @@ class QueueRejectionResourceTest {
             }, mailer.getOperationalConfig().getExecutorService());
             try {
                 assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
-                assertThatThrownBy(() -> mailer.sendMailAsync(email).get(5, TimeUnit.SECONDS))
+                assertThatThrownBy(() -> mailer.sendMailAsync(email).getCompletion().get(5, TimeUnit.SECONDS))
                         .isInstanceOf(ExecutionException.class).hasCauseInstanceOf(MailSendRejectedException.class);
                 assertThatThrownBy(() -> mailer.testConnection(true).get(5, TimeUnit.SECONDS))
                         .isInstanceOf(ExecutionException.class).hasCauseInstanceOf(MailSendRejectedException.class);

@@ -51,7 +51,7 @@ class CliCommandLineConsumerResultHandler {
 		final CliMailerProfile profile = CliMailerProfile.create(environment.config(), receivedOptions, profileKey,
 				environment.configurationWorkingDirectory());
 		try (MailerProvider.Lease lease = environment.mailerProvider().acquire(profile, mailerBuilder::buildMailer)) {
-			awaitCompletion(lease.mailer().sendMail(email), "sending email");
+			awaitCompletion(lease.mailer().sendMail(email).getCompletion(), "sending email");
 		}
 	}
 

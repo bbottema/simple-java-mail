@@ -5,17 +5,17 @@ import lombok.SneakyThrows;
 import org.assertj.core.util.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.CustomMailer;
-import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
-import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
-import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
-import org.simplejavamail.api.SimpleJavaMail;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.recipient.RecipientsBuilder;
@@ -36,6 +36,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.util.Calendar.SEPTEMBER;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
@@ -44,7 +45,6 @@ import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_R
 import static org.simplejavamail.converter.EmailConverter.emlToEmailBuilder;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilderWithOutlookData;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static jakarta.mail.Message.RecipientType.TO;
 
 public class EmailHelper {
 
@@ -232,7 +232,8 @@ public class EmailHelper {
 					/*23*/isExecutorServiceUserProvided,
 					/*24*/customMailer,
 					/*25*/oauth2AccessTokenProvider,
-					/*26*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000));
+					/*26*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000),
+					/*27*/null);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

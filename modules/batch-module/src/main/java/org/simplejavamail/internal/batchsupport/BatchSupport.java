@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.modules.BatchModule;
+import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,14 +51,15 @@ public class BatchSupport implements BatchModule {
 	}
 
 	/**
-	 * @see BatchModule#acquireTransport(UUID, Session, boolean)
+	 * @see BatchModule#acquireTransport(UUID, Session, boolean, MailSendControl)
 	 */
 	@NotNull
 	@Override
-	public LifecycleDelegatingTransport acquireTransport(@NotNull final UUID clusterKey, @NotNull final Session session, boolean stickySession) {
+	public LifecycleDelegatingTransport acquireTransport(@NotNull final UUID clusterKey, @NotNull final Session session, boolean stickySession,
+			@Nullable final MailSendControl control) {
 		final BatchTransportEngine<UUID> engine = requireNonNull(batchTransportEngine,
 				"Connection pool used before it was initialized. This shouldn't be possible.");
-		return new LifecycleDelegatingTransportImpl(engine, engine.claim(clusterKey, stickySession ? session : null));
+		return new LifecycleDelegatingTransportImpl(engine, engine.claim(clusterKey, stickySession ? session : null, control), control);
 	}
 
 	/**

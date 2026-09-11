@@ -117,7 +117,7 @@ public final class MailSendOutcome implements Serializable {
 	}
 
 	/**
-	 * @return The time at which send execution started, or empty when preparation or scheduling failed.
+	 * @return The time at which send execution started, or empty when preparation/admission failed or queued work was cancelled or expired.
 	 */
 	@NotNull
 	public Optional<Instant> getStartedAt() {
@@ -125,7 +125,7 @@ public final class MailSendOutcome implements Serializable {
 	}
 
 	/**
-	 * @return The time at which the attempt reached its terminal result.
+	 * @return The time at which the attempt reached its terminal result, before observer handoff or execution.
 	 */
 	@NotNull
 	public Instant getCompletedAt() {

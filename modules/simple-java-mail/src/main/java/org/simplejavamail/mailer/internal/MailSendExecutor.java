@@ -77,6 +77,10 @@ final class MailSendExecutor extends ThreadPoolExecutor {
         final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(configuration.getWaitTimeoutMillis());
         long remaining = deadline - System.nanoTime();
         while (remaining > 0 && !isShutdown()) {
+            if (operation instanceof MailSendOperation) {
+                ((MailSendOperation<?>) operation).control().checkStopped();
+                remaining = Math.min(remaining, ((MailSendOperation<?>) operation).control().remainingNanos());
+            }
             // Direct handoff needs a consumer; workers can expire after rejection or between admission polls.
             prestartCoreThread();
             // Periodically observe shutdown as well as capacity: queue producers otherwise outlive an executor that is closing.
@@ -90,12 +94,19 @@ final class MailSendExecutor extends ThreadPoolExecutor {
             }
             remaining = deadline - System.nanoTime();
         }
+        if (operation instanceof MailSendOperation) {
+            ((MailSendOperation<?>) operation).control().checkStopped();
+        }
         throw reject(isShutdown() ? AsyncQueueRejectionReason.EXECUTOR_SHUT_DOWN : AsyncQueueRejectionReason.CAPACITY_WAIT_TIMED_OUT);
     }
 
     private MailSendRejectedException reject(final AsyncQueueRejectionReason reason) {
         rejections.incrementAndGet(reason.ordinal());
         return new MailSendRejectedException(reason);
+    }
+
+    MailSendRejectedException rejectAfterShutdown() {
+        return reject(AsyncQueueRejectionReason.EXECUTOR_SHUT_DOWN);
     }
 
     private static BlockingQueue<Runnable> createQueue(final int capacity) {

@@ -8,14 +8,15 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
 import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
@@ -26,7 +27,6 @@ import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
@@ -533,7 +533,7 @@ public class MailerLiveTest {
 		if (!async) {
 			mailer.sendMail(originalEmail);
 		} else {
-			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, true)).get();
+			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, true).getCompletion()).get();
 		}
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerExtension.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());

@@ -40,10 +40,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mockStatic;
-import static jakarta.mail.Message.RecipientType.TO;
 
 @Timeout(20)
 class MailSendQueueTest {
@@ -75,11 +75,11 @@ class MailSendQueueTest {
             mailer = builder(transport).withThreadPoolSize(4).withAsyncQueueCapacity(1).buildMailer();
         }
         try {
-            final CompletableFuture<Void> first = mailer.sendMailAsync(email("first"));
+            final CompletableFuture<Void> first = mailer.sendMailAsync(email("first")).getCompletion();
             transport.awaitStarted();
-            final CompletableFuture<Void> queued = mailer.sendMailAsync(email("queued"));
+            final CompletableFuture<Void> queued = mailer.sendMailAsync(email("queued")).getCompletion();
             assertThat(snapshot(mailer).getWorkerLimit()).isEqualTo(1);
-            assertReason(failure(mailer.sendMailAsync(email("rejected"))), AsyncQueueRejectionReason.QUEUE_FULL);
+            assertReason(failure(mailer.sendMailAsync(email("rejected")).getCompletion()), AsyncQueueRejectionReason.QUEUE_FULL);
             transport.release.countDown();
             CompletableFuture.allOf(first, queued).get(5, TimeUnit.SECONDS);
         } finally {
@@ -102,7 +102,7 @@ class MailSendQueueTest {
             }
         }).buildMailer()) {
             owner.set(mailer);
-            mailer.sendMailAsync(email("observed")).get(5, TimeUnit.SECONDS);
+            mailer.sendMailAsync(email("observed")).getCompletion().get(5, TimeUnit.SECONDS);
             assertThat(closeFailure.get()).isInstanceOf(IllegalStateException.class).hasMessageContaining("own shutdown");
             assertThat(snapshot(mailer).isShutdown()).isFalse();
         }
@@ -114,10 +114,10 @@ class MailSendQueueTest {
         final Mailer mailer = builder(transport).buildMailer();
         try {
             final List<CompletableFuture<Void>> sends = new ArrayList<>();
-            sends.add(mailer.sendMailAsync(email("first")));
+            sends.add(mailer.sendMailAsync(email("first")).getCompletion());
             transport.awaitStarted();
             for (int index = 0; index < 25; index++) {
-                sends.add(mailer.sendMailAsync(email("queued-" + index)));
+                sends.add(mailer.sendMailAsync(email("queued-" + index)).getCompletion());
             }
             assertThat(snapshot(mailer).getConfiguration().getCapacity()).isEqualTo(-1);
             assertThat(snapshot(mailer).getQueuedCount()).isEqualTo(25);
@@ -141,8 +141,8 @@ class MailSendQueueTest {
         try {
             mailer.sendMailAsync(email("first"));
             transport.awaitStarted();
-            mailer.sendMailAsync(email("second"));
-            final Throwable failure = failure(mailer.sendMailAsync(email("rejected")));
+            mailer.sendMailAsync(email("second")).getCompletion();
+            final Throwable failure = failure(mailer.sendMailAsync(email("rejected")).getCompletion());
             assertReason(failure, AsyncQueueRejectionReason.QUEUE_FULL);
             assertThat(outcomes).hasSize(1);
             assertThat(outcomes.get(0).getFailure()).containsSame(failure);
@@ -154,7 +154,7 @@ class MailSendQueueTest {
             assertReason(failure(mailer.sendMailsInSimpleBatch(() -> {
                 iterated.set(true);
                 throw new AssertionError("Rejected batch must not open its iterator");
-            }, true)), AsyncQueueRejectionReason.QUEUE_FULL);
+            }, true).getCompletion()), AsyncQueueRejectionReason.QUEUE_FULL);
             assertReason(failure(mailer.testConnection(true)), AsyncQueueRejectionReason.QUEUE_FULL);
             assertThat(iterated).isFalse();
             assertThat(transport.tests).isEqualTo(0);
@@ -188,7 +188,7 @@ class MailSendQueueTest {
             final Future<CompletableFuture<Void>> third = caller.submit(() -> {
                 submittingThread.set(Thread.currentThread());
                 entering.countDown();
-                return mailer.sendMailAsync(email("third"));
+                return mailer.sendMailAsync(email("third")).getCompletion();
             });
             assertThat(entering.await(5, TimeUnit.SECONDS)).isTrue();
             assertThat(third.isDone()).isFalse();
@@ -211,10 +211,10 @@ class MailSendQueueTest {
         try {
             mailer.sendMailAsync(email("first"));
             transport.awaitStarted();
-            assertReason(failure(mailer.sendMailAsync(email("timed-out"))), AsyncQueueRejectionReason.CAPACITY_WAIT_TIMED_OUT);
+            assertReason(failure(mailer.sendMailAsync(email("timed-out")).getCompletion()), AsyncQueueRejectionReason.CAPACITY_WAIT_TIMED_OUT);
             assertThat(snapshot(mailer).getQueuedCount()).isZero();
             Thread.currentThread().interrupt();
-            final CompletableFuture<Void> interrupted = mailer.sendMailAsync(email("interrupted"));
+            final CompletableFuture<Void> interrupted = mailer.sendMailAsync(email("interrupted")).getCompletion();
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
             Thread.interrupted();
             assertReason(failure(interrupted), AsyncQueueRejectionReason.CAPACITY_WAIT_INTERRUPTED);
@@ -230,13 +230,13 @@ class MailSendQueueTest {
         final BlockingMailer transport = new BlockingMailer();
         final Mailer mailer = builder(transport).withAsyncQueueCapacity(1).buildMailer();
         try {
-            final CompletableFuture<Void> first = mailer.sendMailAsync(email("first"));
+            final CompletableFuture<Void> first = mailer.sendMailAsync(email("first")).getCompletion();
             transport.awaitStarted();
-            final CompletableFuture<Void> queued = mailer.sendMailAsync(email("second"));
+            final CompletableFuture<Void> queued = mailer.sendMailAsync(email("second")).getCompletion();
             final Future<Void> closing = mailer.shutdownConnectionPool();
             assertThat(closing.isDone()).isFalse();
             assertThat(mailer.shutdownConnectionPool()).isSameAs(closing);
-            assertReason(failure(mailer.sendMailAsync(email("after-close"))), AsyncQueueRejectionReason.EXECUTOR_SHUT_DOWN);
+            assertReason(failure(mailer.sendMailAsync(email("after-close")).getCompletion()), AsyncQueueRejectionReason.EXECUTOR_SHUT_DOWN);
             transport.release.countDown();
             closing.get(5, TimeUnit.SECONDS);
             assertThat(first).isCompleted();

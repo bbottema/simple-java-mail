@@ -83,14 +83,14 @@ class MailSubmissionPoolingTest {
 				.withThreadPoolSize(2).withAsyncQueueCapacity(3).buildMailer();
 		try {
 			for (int index = 0; index < 2; index++) {
-				sends.add(mailer.sendMailAndGetReceiptAsync(email("bounded-" + index, "recipient-" + index + "@example.org")));
+				sends.add(mailer.sendMailAndGetReceiptAsync(email("bounded-" + index, "recipient-" + index + "@example.org")).getCompletion());
 			}
 			assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
 			for (int index = 2; index < 5; index++) {
-				sends.add(mailer.sendMailAndGetReceiptAsync(email("bounded-" + index, "recipient-" + index + "@example.org")));
+				sends.add(mailer.sendMailAndGetReceiptAsync(email("bounded-" + index, "recipient-" + index + "@example.org")).getCompletion());
 			}
 			assertThat(mailer.getAsyncQueueSnapshot().orElseThrow().getQueuedCount()).isEqualTo(3);
-			final CompletableFuture<MailSubmissionReceipt> rejected = mailer.sendMailAndGetReceiptAsync(email("rejected", "unused@example.org"));
+			final CompletableFuture<MailSubmissionReceipt> rejected = mailer.sendMailAndGetReceiptAsync(email("rejected", "unused@example.org")).getCompletion();
 			assertThatThrownBy(() -> rejected.get(5, TimeUnit.SECONDS)).isInstanceOf(ExecutionException.class)
 					.hasCauseInstanceOf(MailSendRejectedException.class);
 			assertThat(state.createdTransportCount).hasValue(Math.min(connectionPoolSize, 2));
@@ -130,14 +130,14 @@ class MailSubmissionPoolingTest {
 		final MailSubmissionReceipt replacementReceipt;
 		final MailSubmissionException unknownFailure;
 		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 1, 2, outcomes::add)) {
-			firstReceipt = mailer.sendMailAndGetReceipt(email("first success", "first@example.com"), true)
+			firstReceipt = mailer.sendMailAndGetReceipt(email("first success", "first@example.com"), true).getCompletion()
 					.get(5, TimeUnit.SECONDS);
 			partialFailure = submissionFailure(mailer.sendMailAndGetReceipt(email("partial after success",
-					"accepted-current@example.com", "unsent-current@example.com", "invalid-current@example.com"), true));
-			replacementReceipt = mailer.sendMailAndGetReceipt(email("replacement success", "replacement@example.com"), true)
+					"accepted-current@example.com", "unsent-current@example.com", "invalid-current@example.com"), true).getCompletion());
+			replacementReceipt = mailer.sendMailAndGetReceipt(email("replacement success", "replacement@example.com"), true).getCompletion()
 					.get(5, TimeUnit.SECONDS);
 			unknownFailure = submissionFailure(mailer.sendMailAndGetReceipt(
-					email("unknown after replacement", "unknown@example.com"), true));
+					email("unknown after replacement", "unknown@example.com"), true).getCompletion());
 		}
 
 		assertThat(state.transportId("first success")).isEqualTo(state.transportId("partial after success"));
@@ -211,8 +211,8 @@ class MailSubmissionPoolingTest {
 		final MailSubmissionReceipt recoveryReceipt;
 		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 1, 2)) {
 			rejectedFailure = submissionFailure(mailer.sendMailAndGetReceipt(
-					email("rejected", "valid-unsent@example.com", "invalid@example.com"), true));
-			recoveryReceipt = mailer.sendMailAndGetReceipt(email("after rejection", "recovery@example.com"), true)
+					email("rejected", "valid-unsent@example.com", "invalid@example.com"), true).getCompletion());
+			recoveryReceipt = mailer.sendMailAndGetReceipt(email("after rejection", "recovery@example.com"), true).getCompletion()
 					.get(5, TimeUnit.SECONDS);
 		}
 
@@ -251,9 +251,9 @@ class MailSubmissionPoolingTest {
 		final MailSubmissionReceipt recoveryReceipt;
 		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 1, 2)) {
 			unknownFailure = submissionFailure(mailer.sendMailAndGetReceipt(
-					email("unknown final reply", "ambiguous@example.com", "invalid@example.com"), true));
+					email("unknown final reply", "ambiguous@example.com", "invalid@example.com"), true).getCompletion());
 			recoveryReceipt = mailer.sendMailAndGetReceipt(
-					email("after unknown final reply", "recovery@example.com"), true).get(5, TimeUnit.SECONDS);
+					email("after unknown final reply", "recovery@example.com"), true).getCompletion().get(5, TimeUnit.SECONDS);
 		}
 
 		assertThat(unknownFailure.getCause()).isSameAs(finalReplyFailure);
@@ -286,9 +286,9 @@ class MailSubmissionPoolingTest {
 		final MailSubmissionReceipt secondReceipt;
 		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 2, 2, outcomes::add)) {
 			final CompletableFuture<MailSubmissionReceipt> first = mailer.sendMailAndGetReceipt(
-					email("concurrent one", "one@example.com"), true);
+					email("concurrent one", "one@example.com"), true).getCompletion();
 			final CompletableFuture<MailSubmissionReceipt> second = mailer.sendMailAndGetReceipt(
-					email("concurrent two", "two@example.com"), true);
+					email("concurrent two", "two@example.com"), true).getCompletion();
 			try {
 				assertThat(bothSending.await(5, TimeUnit.SECONDS))
 						.as("Both async sends should hold distinct pooled transport leases concurrently")
@@ -332,9 +332,9 @@ class MailSubmissionPoolingTest {
 		final MailSubmissionReceipt secondReceipt;
 		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 2, 2)) {
 			final CompletableFuture<MailSubmissionReceipt> first = mailer.sendMailAndGetReceipt(
-					exactEmail(firstEml, "envelope-one@example.org"), true);
+					exactEmail(firstEml, "envelope-one@example.org"), true).getCompletion();
 			final CompletableFuture<MailSubmissionReceipt> second = mailer.sendMailAndGetReceipt(
-					exactEmail(secondEml, "envelope-two@example.org"), true);
+					exactEmail(secondEml, "envelope-two@example.org"), true).getCompletion();
 			try {
 				assertThat(bothSending.await(5, TimeUnit.SECONDS))
 						.as("Both exact sends should hold separate pooled leases concurrently")
@@ -408,8 +408,8 @@ class MailSubmissionPoolingTest {
 		final MailSubmissionException exactFailure;
 		final MailSubmissionReceipt ordinaryReceipt;
 		try (Mailer mailer = pooledMailer(session, UUID.randomUUID(), 1, 1)) {
-			exactFailure = submissionFailure(mailer.sendMailAndGetReceipt(exactEmail, true));
-			ordinaryReceipt = mailer.sendMailAndGetReceipt(ordinaryEmail, true).get(5, TimeUnit.SECONDS);
+			exactFailure = submissionFailure(mailer.sendMailAndGetReceipt(exactEmail, true).getCompletion());
+			ordinaryReceipt = mailer.sendMailAndGetReceipt(ordinaryEmail, true).getCompletion().get(5, TimeUnit.SECONDS);
 		}
 
 		assertThat(exactFailure.getCause())
@@ -436,9 +436,9 @@ class MailSubmissionPoolingTest {
 			 Mailer mailerB = pooledMailer(sessionB, UUID.randomUUID(), 2, 2)) {
 			for (int index = 0; index < 4; index++) {
 				clusterAResults.add(mailerA.sendMailAndGetReceipt(
-						email("cluster-a-" + index, "a" + index + "@example.com"), true));
+						email("cluster-a-" + index, "a" + index + "@example.com"), true).getCompletion());
 				clusterBResults.add(mailerB.sendMailAndGetReceipt(
-						email("cluster-b-" + index, "b" + index + "@example.com"), true));
+						email("cluster-b-" + index, "b" + index + "@example.com"), true).getCompletion());
 			}
 			CompletableFuture.allOf(clusterAResults.toArray(new CompletableFuture<?>[0])).get(5, TimeUnit.SECONDS);
 			CompletableFuture.allOf(clusterBResults.toArray(new CompletableFuture<?>[0])).get(5, TimeUnit.SECONDS);

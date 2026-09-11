@@ -31,6 +31,14 @@ import java.util.concurrent.Future;
  * <p>
  * <a href="https://www.simplejavamail.org">simplejavamail.org</a>
  *
+ * Send operations expose {@link MailSend#getCompletion()} and optional {@link MailSend#requestCancellation()} control. Cancelling a detached
+ * completion view does not cancel sending. A configured {@link MailerGenericBuilder#withMailSendTimeout(java.time.Duration) total timeout}
+ * includes preparation, queue admission, execution and cleanup, but not observer work. Cancellation and timeout describe why work stopped,
+ * not whether SMTP accepted the message: inspect any receipt on {@link MailSendCancelledException} or {@link MailSendTimeoutException}.
+ * <p>
+ * An inline observer runs before completion. With {@link MailerGenericBuilder#withMailSendObserver(MailSendObserver, java.util.concurrent.Executor)},
+ * only the handoff is attempted before completion; the application owns callback execution and its executor.
+ *
  * @see MailerRegularBuilder
  * @see Email
  */
@@ -85,21 +93,22 @@ public interface Mailer extends AutoCloseable {
 	 * @throws MailSubmissionException If transport submission fails or only partially succeeds.
 	 */
 	default void sendMailSync(Email email) {
-		sendMail(email, false).join();
+		sendMail(email, false).getCompletion().join();
 	}
 
 	/**
 	 * Schedules one email for asynchronous sending, independently of the mailer's configured async default.
 	 * <p>
-	 * The returned future covers preparation, validation, scheduling, connection and submission. Operational failures complete it exceptionally;
+	 * The operation's {@link MailSend#getCompletion() completion} covers preparation, validation, scheduling, connection and submission.
+	 * Preparation and validation remain on the caller thread; scheduling may wait for queue capacity. Operational failures complete it exceptionally;
 	 * a {@code null} email remains an immediate contract violation.
 	 *
 	 * @param email The information for the email to be sent.
-	 * @return A future representing the complete send attempt.
+	 * @return The send operation; use {@link MailSend#getCompletion()} to await or compose its completion.
 	 * @throws IllegalArgumentException If {@code email} is {@code null}.
 	 */
 	@NotNull
-	default CompletableFuture<Void> sendMailAsync(Email email) {
+	default MailSend<Void> sendMailAsync(Email email) {
 		return sendMail(email, true);
 	}
 
@@ -117,7 +126,7 @@ public interface Mailer extends AutoCloseable {
 	 */
 	@NotNull
 	default MailSubmissionReceipt sendMailAndGetReceiptSync(Email email) {
-		return sendMailAndGetReceipt(email, false).join();
+		return sendMailAndGetReceipt(email, false).getCompletion().join();
 	}
 
 	/**
@@ -127,11 +136,11 @@ public interface Mailer extends AutoCloseable {
 	 * {@link MailSubmissionException}; a {@code null} email remains an immediate contract violation.
 	 *
 	 * @param email The information for the email to be sent.
-	 * @return A future representing the complete send attempt and its receipt.
+	 * @return The send operation; {@link MailSend#getCompletion()} carries its exact receipt or failure.
 	 * @throws IllegalArgumentException If {@code email} is {@code null}.
 	 */
 	@NotNull
-	default CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceiptAsync(Email email) {
+	default MailSend<MailSubmissionReceipt> sendMailAndGetReceiptAsync(Email email) {
 		return sendMailAndGetReceipt(email, true);
 	}
 
@@ -140,10 +149,10 @@ public interface Mailer extends AutoCloseable {
 	 * <p>
 	 * Prefer {@link #sendMailSync(Email)} or {@link #sendMailAsync(Email)} when the execution mode should be visible at the call site.
 	 *
-	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
+	 * @return The send operation, whose completion is already successful if not <em>async</em>.
 	 * @see MailerGenericBuilder#async()
 	 */
-	@NotNull CompletableFuture<Void> sendMail(Email email);
+	@NotNull MailSend<Void> sendMail(Email email);
 
 	/**
 	 * Delegates to {@link #sendMailAndGetReceipt(Email, boolean)} using the mailer's configured async default.
@@ -151,12 +160,12 @@ public interface Mailer extends AutoCloseable {
 	 * Prefer {@link #sendMailAndGetReceiptSync(Email)} or {@link #sendMailAndGetReceiptAsync(Email)} when the execution mode should be visible at the
 	 * call site. The returned receipt describes the provider-neutral SMTP submission outcome, not final delivery to the recipient mailbox.
 	 *
-	 * @return A {@link CompletableFuture} that is completed immediately if not <em>async</em>.
+	 * @return The send operation, whose completion is already successful if not <em>async</em>.
 	 * @see MailerGenericBuilder#async()
 	 * @see MailSubmissionReceipt
 	 */
 	@NotNull
-	CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(Email email);
+	MailSend<MailSubmissionReceipt> sendMailAndGetReceipt(Email email);
 	
 	/**
 	 * Processes a composed {@link Email} into a completely configured {@link Message}: defaults and overrides are applied through
@@ -179,10 +188,10 @@ public interface Mailer extends AutoCloseable {
 	 * transport adapter submits the supplied EML bytes unchanged.
 	 *
 	 * @param email The information for the email to be sent.
-	 * @param async If false, this method blocks until the mail has been processed completely by the SMTP server. If true, a new thread is started to
-	 *              send the email and this method returns immediately.
-	 * @return With {@code async=false}, a completed future after a successful send. With {@code async=true}, a future representing preparation,
-	 * validation, scheduling and sending; failures complete it exceptionally.
+	 * @param async If false, this method blocks until sending completes. If true, preparation stays on the caller thread and the prepared send
+	 *              is scheduled on the executor; admission may wait according to the queue policy.
+	 * @return A send operation with successful completion when {@code async=false}; with {@code async=true}, its completion represents preparation,
+	 * validation, scheduling and sending, and retains operational failures.
 	 * @throws IllegalArgumentException If {@code email} is {@code null}.
 	 * @throws MailException If {@code async=false} and the email isn't valid, or another problem occurs during preparation, connection or sending.
 	 * @throws MailSubmissionException If {@code async=false} and transport submission fails. The exception retains the original Jakarta Mail failure
@@ -192,7 +201,7 @@ public interface Mailer extends AutoCloseable {
 	 * @see #sendMailSync(Email)
 	 * @see #sendMailAsync(Email)
 	 */
-	@NotNull CompletableFuture<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
+	@NotNull MailSend<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
 
 	/**
 	 * Processes and sends one {@link Email}, returning a receipt for the completed submission.
@@ -212,10 +221,9 @@ public interface Mailer extends AutoCloseable {
 	 * mechanisms for that.
 	 *
 	 * @param email The information for the email to be sent.
-	 * @param async If false, this method blocks until the mail has been processed completely by the configured send path. If true, a new thread is
-	 *              started and this method returns immediately.
-	 * @return With {@code async=false}, a completed future containing the receipt after a successful send. With {@code async=true}, a future
-	 * representing preparation, validation, scheduling and sending; failures complete it exceptionally.
+	 * @param async If false, this method blocks until sending completes. If true, preparation and admission happen on the caller thread,
+	 *              and execution happens on the executor.
+	 * @return A send operation whose completion contains the receipt after success, or the exact failure after an asynchronous failure.
 	 * @throws IllegalArgumentException If {@code email} is {@code null}.
 	 * @throws MailException If {@code async=false} and the email isn't valid, or another problem occurs during preparation, connection or sending.
 	 * @throws MailSubmissionException If {@code async=false} and transport submission fails. With {@code async=true}, it completes the future
@@ -228,7 +236,7 @@ public interface Mailer extends AutoCloseable {
 	 * @see #sendMailAndGetReceiptAsync(Email)
 	 */
 	@NotNull
-	CompletableFuture<MailSubmissionReceipt> sendMailAndGetReceipt(Email email, boolean async);
+	MailSend<MailSubmissionReceipt> sendMailAndGetReceipt(Email email, boolean async);
 
 	/**
 	 * Runs caller-managed send logic while one SMTP connection is open.
@@ -249,6 +257,7 @@ public interface Mailer extends AutoCloseable {
 	 * applies the same defaults, validation, MIME conversion, and transport mode behavior as {@link #sendMailSync(Email)}.
 	 * Use {@link MailSender#sendMailAndGetReceipt(Email)} inside the callback when caller code needs the SMTP submission receipt before checkpointing.
 	 * A custom mailer cannot be used with this API because Simple Java Mail does not own the underlying connection in that configuration.
+	 * A configured total timeout applies separately to opening the connection and to each send, not to application work between sends or final scope cleanup.
 	 *
 	 * @param openConnectionCallback The caller-managed send logic to run while the SMTP connection is open.
 	 * @param <E>                    The checked exception type the callback may throw.
@@ -262,7 +271,7 @@ public interface Mailer extends AutoCloseable {
 	 *
 	 * @see MailerGenericBuilder#async()
 	 */
-	@NotNull CompletableFuture<Void> sendMailsInSimpleBatch(Iterable<Email> emails);
+	@NotNull MailSend<Void> sendMailsInSimpleBatch(Iterable<Email> emails);
 
 	/**
 	 * Sends multiple emails sequentially over one SMTP connection.
@@ -279,17 +288,18 @@ public interface Mailer extends AutoCloseable {
 	 * The {@code async} flag applies only to this immediate {@link Mailer} API call: {@code false} blocks the caller while the simple batch runs,
 	 * {@code true} schedules the whole simple batch as one asynchronous task and returns immediately. It does <strong>not</strong> make the simple
 	 * batch itself concurrent; emails are still sent one at a time over one SMTP connection.
+	 * A total timeout and {@link MailSend#requestCancellation()} apply to the whole batch, including queue admission. Inline observer work between
+	 * emails is excluded from its deadline. Cancellation before execution never opens the iterable; untouched emails have no observer outcomes.
 	 *
 	 * @param emails The emails to send in order.
 	 * @param async  If false, this method blocks until all emails have been processed by the SMTP server. If true, a new task is started for the whole
 	 *               sequential simple batch and this method returns immediately.
-	 * @return With {@code async=false}, a completed future after every email has been sent successfully. With {@code async=true}, a future representing
-	 * scheduling and the complete sequential batch; failures complete it exceptionally.
+	 * @return One send operation for the complete batch. Its completion succeeds after all emails, or retains an asynchronous failure.
 	 * @throws IllegalArgumentException If {@code emails} is {@code null}.
 	 * @throws MailException If {@code async=false} and an email isn't valid, or another problem occurs during preparation, connection or sending.
 	 * @see #sendMail(Email, boolean)
 	 */
-	@NotNull CompletableFuture<Void> sendMailsInSimpleBatch(Iterable<Email> emails, boolean async);
+	@NotNull MailSend<Void> sendMailsInSimpleBatch(Iterable<Email> emails, boolean async);
 
 	/**
 	 * Prepares the supplied {@link Email} through this mailer's normal send-time pipeline without opening an SMTP connection.
@@ -408,16 +418,16 @@ public interface Mailer extends AutoCloseable {
 	 * Releases the resources owned by this {@link Mailer}. This initiates an orderly shutdown of an internally created executor service and, when the
 	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME} is present, closes the connection pool registered for this Mailer's {@link Session}.
 	 * <p>
-	 * With a built-in executor, new asynchronous work is rejected, accepted work is drained, and connection pools close afterwards. Inspect individual
-	 * send completions for their results; a successful close does not mean every email succeeded. Blocking sends and caller-owned executors are not drained:
-	 * finish those operations before closing. Graceful close is not cancellation and can wait for a slow send or application callback.
-	 * Do not call this blocking method from a built-in Mailer worker or observer: it would wait for itself and is rejected.
+	 * New sends are rejected, accepted sends are drained, and connection pools close afterwards. This includes blocking sends and this Mailer's sends on
+	 * a caller-owned executor, but not arbitrary work on that executor. Inspect individual completions for their results; a successful close does not
+	 * mean every email succeeded. Inline observers and observer handoffs are drained; offloaded callbacks are not. Graceful close is not cancellation.
+	 * Do not call this blocking method from a send operation or inline observer: it would wait for itself and is rejected.
 	 * <p>
 	 * An executor service provided through {@link MailerGenericBuilder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned
 	 * and is not shut down.
 	 *
 	 * @throws Exception If resource cleanup is interrupted or fails.
-	 * @see <a href="https://www.simplejavamail.org/configuration.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
+	 * @see <a href="https://www.simplejavamail.org/sending-and-execution.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
 	 */
 	@Override
 	void close() throws Exception;
@@ -426,9 +436,9 @@ public interface Mailer extends AutoCloseable {
 	 * Starts cleanup of the resources associated with this {@link Mailer}. Despite the historical method name, this always initiates an orderly shutdown
 	 * of an internally created executor service, including when the {@value org.simplejavamail.internal.modules.BatchModule#NAME} is absent.
 	 * <p>
-	 * With a built-in executor, the returned future represents draining accepted operations, executor termination and subsequent connection-pool cleanup.
-	 * New asynchronous operations are rejected as soon as shutdown begins. Running work is not cancelled. With a caller-owned executor, finish its mail
-	 * operations first; this method only closes this Mailer's connection-pool registration and never stops the supplied executor.
+	 * The returned future represents draining this Mailer's accepted sends (including those on a caller-owned executor), observer handoffs, and
+	 * connection-pool cleanup. It also waits for termination of the built-in executor. New sends are rejected as soon as shutdown begins; running
+	 * work is not cancelled. A supplied executor is never shut down. Offloaded observer callbacks and their downstream processing are not awaited.
 	 * It is safe to initiate cleanup from a Mailer worker, but do not wait for the returned future there: that would wait for the current task itself.
 	 * <p>
 	 * In a cluster, call this method or {@link #close()} on every Mailer so every pool registration is removed. An executor service provided through
@@ -437,7 +447,7 @@ public interface Mailer extends AutoCloseable {
 	 * Prefer {@link #close()} for normal application lifecycle management.
 	 *
 	 * @return A future representing this Mailer's graceful resource cleanup; repeated calls return the same cleanup operation.
-	 * @see <a href="https://www.simplejavamail.org/configuration.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
+	 * @see <a href="https://www.simplejavamail.org/sending-and-execution.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
 	 */
 	Future<Void> shutdownConnectionPool();
 

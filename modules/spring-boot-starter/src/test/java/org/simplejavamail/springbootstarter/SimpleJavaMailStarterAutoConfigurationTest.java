@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,6 +34,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SimpleJavaMailStarterAutoConfigurationTest {
+
+	@Test
+	void commandLineTimeoutReachesFactoryMailerAndDiagnostics() {
+		try (ConfigurableApplicationContext context = applicationBuilder().run("--simplejavamail.defaults.mailsend.timeout=PT12.5S")) {
+			assertThat(context.getBean(SimpleJavaMail.class).mailerBuilder().getMailSendTimeout()).isEqualTo(Duration.ofMillis(12500));
+			assertThat(context.getBean(Mailer.class).getOperationalConfig().getMailSendTimeout()).isEqualTo(Duration.ofMillis(12500));
+			assertThat(context.getBean(SimpleJavaMailConfig.class).getDiagnostics().toString())
+					.contains("simplejavamail.defaults.mailsend.timeout = PT12.5S (source: commandLineArgs)");
+		}
+	}
 
 	@Test
 	void discoversAndCreatesAllDefaultsWithoutSmtpConfiguration() {

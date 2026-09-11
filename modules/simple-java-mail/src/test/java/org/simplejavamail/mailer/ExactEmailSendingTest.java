@@ -136,7 +136,7 @@ class ExactEmailSendingTest {
 				.withTransportModeLoggingOnly(true)
 				.withMailSendObserver(outcomes::add)
 				.buildMailer()) {
-			receipt = mailer.sendMailAndGetReceiptAsync(email).get(5, TimeUnit.SECONDS);
+			receipt = mailer.sendMailAndGetReceiptAsync(email).getCompletion().get(5, TimeUnit.SECONDS);
 		}
 
 		assertThat(receipt.getEmailId()).isEqualTo("<logging-exact@simplejavamail.org>");

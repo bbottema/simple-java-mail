@@ -9,31 +9,35 @@ import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
-import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
-import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.io.PrintStream;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
+import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
@@ -43,7 +47,6 @@ import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
-import static java.util.Objects.requireNonNull;
 
 /**
  * @see MailerGenericBuilder
@@ -182,7 +185,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@NotNull
 	private Integer threadPoolKeepAliveTime;
 
-	/** @see MailerGenericBuilder#withAsyncQueueCapacity(int) */
+	/**
+	 * @see MailerGenericBuilder#withAsyncQueueCapacity(int)
+	 */
 	@NotNull private AsyncQueueConfig asyncQueueConfig;
 
 	/**
@@ -272,8 +277,22 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	private MailSendObserver mailSendObserver;
 
+	/**
+	 * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver, Executor)
+	 */
+	@Nullable private Executor mailSendObserverExecutor;
+
+	/**
+	 * @see MailerGenericBuilder#withMailSendTimeout(Duration)
+	 */
+	@Nullable private Duration mailSendTimeout;
+
 	MailerGenericBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
 		this.config = requireNonNull(config, "config");
+		this.mailSendTimeout = config.valueOrProperty(null, Property.DEFAULT_MAIL_SEND_TIMEOUT, DEFAULT_MAIL_SEND_TIMEOUT);
+		if (mailSendTimeout != null) {
+			MailSendControl.positiveTimeoutNanos(mailSendTimeout);
+		}
 		this.asyncQueueConfig = new AsyncQueueConfig(
 				config.valueOrProperty(null, Property.DEFAULT_ASYNC_QUEUE_CAPACITY, DEFAULT_ASYNC_QUEUE_CONFIG.getCapacity()),
 				config.valueOrProperty(null, Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, DEFAULT_ASYNC_QUEUE_CONFIG.getOverflowPolicy()),
@@ -394,7 +413,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				isExecutorServiceUserProvided(),
 				getCustomMailer(),
 				getOAuth2AccessTokenProvider(),
-				getAsyncQueueConfig());
+				getAsyncQueueConfig(), getMailSendTimeout());
 	}
 
 	/**
@@ -779,7 +798,48 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withMailSendObserver(@NotNull final MailSendObserver mailSendObserver) {
 		this.mailSendObserver = requireNonNull(mailSendObserver, "mailSendObserver");
+		this.mailSendObserverExecutor = null;
 		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver, Executor)
+	 */
+	@Override
+	public T withMailSendObserver(@NotNull final MailSendObserver mailSendObserver, @NotNull final Executor observerExecutor) {
+		requireNonNull(mailSendObserver, "mailSendObserver");
+		requireNonNull(observerExecutor, "observerExecutor");
+		this.mailSendObserver = mailSendObserver;
+		this.mailSendObserverExecutor = observerExecutor;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withMailSendTimeout(Duration)
+	 */
+	@Override
+	public T withMailSendTimeout(@NotNull final Duration timeout) {
+		MailSendControl.positiveTimeoutNanos(timeout);
+		mailSendTimeout = timeout;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#resetMailSendTimeout()
+	 */
+	@Override
+	public T resetMailSendTimeout() {
+		mailSendTimeout = DEFAULT_MAIL_SEND_TIMEOUT;
+		return (T) this;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getMailSendTimeout()
+	 */
+	@Override
+	@Nullable
+	public Duration getMailSendTimeout() {
+		return mailSendTimeout;
 	}
 
 	/**
@@ -838,35 +898,45 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				batchAvailable ? getThreadPoolKeepAliveTime() : 0, asyncQueueConfig);
 	}
 
-	/** @see MailerGenericBuilder#withAsyncQueueCapacity(int) */
+	/**
+	 * @see MailerGenericBuilder#withAsyncQueueCapacity(int)
+	 */
 	@Override
 	public T withAsyncQueueCapacity(final int capacity) {
 		asyncQueueConfig = new AsyncQueueConfig(capacity, asyncQueueConfig.getOverflowPolicy(), asyncQueueConfig.getWaitTimeoutMillis());
 		return (T) this;
 	}
 
-	/** @see MailerGenericBuilder#withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy) */
+	/**
+	 * @see MailerGenericBuilder#withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy)
+	 */
 	@Override
 	public T withAsyncQueueOverflowPolicy(@NotNull final AsyncQueueOverflowPolicy overflowPolicy) {
 		asyncQueueConfig = new AsyncQueueConfig(asyncQueueConfig.getCapacity(), overflowPolicy, asyncQueueConfig.getWaitTimeoutMillis());
 		return (T) this;
 	}
 
-	/** @see MailerGenericBuilder#withAsyncQueueWaitTimeoutMillis(int) */
+	/**
+	 * @see MailerGenericBuilder#withAsyncQueueWaitTimeoutMillis(int)
+	 */
 	@Override
 	public T withAsyncQueueWaitTimeoutMillis(final int waitTimeoutMillis) {
 		asyncQueueConfig = new AsyncQueueConfig(asyncQueueConfig.getCapacity(), asyncQueueConfig.getOverflowPolicy(), waitTimeoutMillis);
 		return (T) this;
 	}
 
-	/** @see MailerGenericBuilder#resetAsyncQueue() */
+	/**
+	 * @see MailerGenericBuilder#resetAsyncQueue()
+	 */
 	@Override
 	public T resetAsyncQueue() {
 		asyncQueueConfig = DEFAULT_ASYNC_QUEUE_CONFIG;
 		return (T) this;
 	}
 
-	/** @see MailerGenericBuilder#getAsyncQueueConfig() */
+	/**
+	 * @see MailerGenericBuilder#getAsyncQueueConfig()
+	 */
 	@Override
 	@NotNull
 	public AsyncQueueConfig getAsyncQueueConfig() {
@@ -1357,5 +1427,13 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	MailSendObserver getMailSendObserver() {
 		return mailSendObserver;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver, Executor)
+	 */
+	@Nullable
+	Executor getMailSendObserverExecutor() {
+		return mailSendObserverExecutor;
 	}
 }

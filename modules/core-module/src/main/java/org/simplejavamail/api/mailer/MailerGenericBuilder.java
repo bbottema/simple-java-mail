@@ -17,11 +17,13 @@ import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
 import java.io.PrintStream;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -33,6 +35,8 @@ import java.util.concurrent.ExecutorService;
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
+	/** No total send deadline unless explicitly configured. */
+	@Nullable Duration DEFAULT_MAIL_SEND_TIMEOUT = null;
 	/**
 	 * {@value}
 	 *
@@ -294,6 +298,32 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @param sessionTimeout Duration to use for session timeout.
 	 */
 	T withSessionTimeout(@NotNull Integer sessionTimeout);
+
+	/**
+	 * Sets a positive total budget for each send, or for the whole operation when using a simple batch. Disabled by default.
+	 * Includes library preparation, queue admission, pool acquisition, connection, TLS/authentication, SMTP and required cleanup.
+	 * Observer callbacks/handoff are excluded. Open-connection establishment and each sender invocation receive separate budgets;
+	 * arbitrary application work between those invocations is excluded.
+	 * <p>
+	 * The supported managed Angus transport aborts socket I/O. A configured timeout fails before connecting when the selected
+	 * provider/custom socket configuration cannot support physical abort. Arbitrary user callbacks, DNS and custom data sources
+	 * cannot be forcibly terminated; this is not an unconditional wall-clock limit on returning to the caller.
+	 * Existing socket and acquisition timeouts remain applicable. A timeout does not prove SMTP non-acceptance: inspect any receipt.
+	 *
+	 * @param timeout Positive total send budget. Property and CLI values use ISO-8601 duration text, for example {@code PT30S}.
+	 * @see #resetMailSendTimeout()
+	 * @see MailSendTimeoutException
+	 */
+	T withMailSendTimeout(@NotNull Duration timeout);
+
+	/** Restores the default of no total send deadline, including when a configuration property supplied one. */
+	T resetMailSendTimeout();
+
+	/**
+	 * @return Configured total send budget, or {@code null} when disabled.
+	 * @see #withMailSendTimeout(Duration)
+	 */
+	@Nullable Duration getMailSendTimeout();
 
 	/**
 	 * Sets the local/source address without changing the already configured local/source port.
@@ -721,13 +751,30 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Configures the callback that receives one terminal outcome for every individual email send attempt handled by the built {@link Mailer}.
 	 * <p>
 	 * The observer runs inline on the thread completing each send and may be called concurrently. Calling this method again replaces the previously
-	 * configured observer.
+	 * configured observer and restores inline execution, including after configuring an observer executor.
 	 *
 	 * @param mailSendObserver Thread-safe, quick and non-blocking terminal send observer.
 	 * @see MailSendObserver
 	 */
 	@Cli.ExcludeApi(reason = "Mail send observers are runtime Java callbacks and cannot be represented as CLI values")
 	T withMailSendObserver(@NotNull MailSendObserver mailSendObserver);
+
+	/**
+	 * Dispatches terminal outcomes through an application-owned executor, replacing any previous observer registration.
+	 * With asynchronous execution, send completion does not await the callback; the notification is submitted before completion
+	 * and can run before or after it. Callback RuntimeExceptions and rejected submissions are logged without changing the send result.
+	 * Rejected notifications are not retried or run inline. Mailer close does not shut down or drain this executor.
+	 * <p>
+	 * Choose an executor that actually dispatches work and explicitly rejects tasks it cannot accept. Direct execution, caller-runs
+	 * or blocking admission can block the send thread; silent-discard policies can lose notifications without reporting rejection.
+	 * Finishing a callback only means that callback finished, not that a broker or downstream system processed the event.
+	 *
+	 * @param mailSendObserver Thread-safe terminal send observer; callbacks for different sends may run concurrently or out of order.
+	 * @param observerExecutor Application-owned executor; the application owns capacity, draining and shutdown.
+	 * @see #withMailSendObserver(MailSendObserver)
+	 */
+	@Cli.ExcludeApi(reason = "Observers and executors are runtime Java integrations and cannot be represented as CLI values")
+	T withMailSendObserver(@NotNull MailSendObserver mailSendObserver, @NotNull Executor observerExecutor);
 
 	/**
 	 * @see CustomMailer

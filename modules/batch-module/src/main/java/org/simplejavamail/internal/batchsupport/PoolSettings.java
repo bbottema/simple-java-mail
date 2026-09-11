@@ -10,6 +10,7 @@ import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.batch.BatchLoadBalancingStrategy;
 import org.simplejavamail.batch.BatchTransportPoolConfiguration;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.smtpconnectionpool.SessionTransport;
 import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
 
@@ -74,6 +75,7 @@ final class PoolSettings {
 				? poolableObject -> false
 				: new TimeoutSinceLastAllocationExpirationPolicy<>(expireAfterMillis, MILLISECONDS);
 		final SmtpClusterConfig<K> config = new SmtpClusterConfig<>();
+		config.withTransportCancellationSupport(MailTransportLifecycleResolver::findAbortAction);
 		config.getConfigBuilder()
 				.defaultCorePoolSize(corePoolSize)
 				.defaultMaxPoolSize(maxPoolSize)
@@ -81,6 +83,10 @@ final class PoolSettings {
 				.loadBalancingStrategy(balancing)
 				.defaultExpirationPolicy(expirationPolicy);
 		return config;
+	}
+
+	int getClaimTimeoutMillis() {
+		return claimTimeoutMillis;
 	}
 
 	@Override

@@ -2,8 +2,6 @@ package org.simplejavamail.mailer;
 
 
 import jakarta.mail.Session;
-import org.simplejavamail.api.SimpleJavaMail;
-
 import org.bbottema.javasocksproxyserver.RunningSocksServer;
 import org.bbottema.javasocksproxyserver.SyncSocksServer;
 import org.junit.jupiter.api.AfterEach;
@@ -11,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.Mailer;
@@ -21,9 +20,6 @@ import org.subethamail.wiser.Wiser;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
-import javax.net.ServerSocketFactory;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -38,6 +34,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.net.ServerSocketFactory;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -133,7 +132,7 @@ public class MailerSOCKSLiveTest {
 			final Email first = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false).buildEmail();
 			final Email second = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false).buildEmail();
 
-			mailer.sendMailsInSimpleBatch(Arrays.asList(first, second), false).get();
+			mailer.sendMailsInSimpleBatch(Arrays.asList(first, second), false).getCompletion().get();
 
 			assertThat(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port"))).isPositive();
 			assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
@@ -283,7 +282,7 @@ public class MailerSOCKSLiveTest {
 		if (!async) {
 			mailer.sendMail(originalEmail);
 		} else {
-			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, async)).get();
+			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, async).getCompletion()).get();
 		}
 		assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
 		assertThat(smtpServer.getMessages()).hasSize(1);

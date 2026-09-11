@@ -5,15 +5,21 @@ import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import org.bbottema.clusteredobjectpool.core.api.ResourceKey.ResourceClusterAndPoolKey;
+import org.bbottema.genericobjectpool.ClaimControl;
+import org.bbottema.genericobjectpool.ClaimOptions;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.batch.BatchTransportException;
 import org.simplejavamail.batch.BatchTransportOperation;
 import org.simplejavamail.batch.BatchTransportPoolConfiguration;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
+import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.simplejavamail.smtpconnectionpool.SmtpTransportLease;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -21,6 +27,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.batch.BatchTransportExecutor.OAUTH2_TOKEN_PROPERTY;
@@ -34,6 +41,7 @@ public final class BatchTransportEngine<K> {
 	private final SmtpConnectionPoolClustered<K> smtpConnectionPool;
 	private final Map<K, PoolSettings> clusterSettings = new HashMap<>();
 	private final Map<K, Set<Session>> registeredSessions = new HashMap<>();
+	private final Set<K> deadlineClusters = new HashSet<>();
 	private final Set<SmtpTransportLease> activeLeases = Collections.newSetFromMap(new ConcurrentHashMap<SmtpTransportLease, Boolean>());
 	private boolean claimsOpen = true;
 	private boolean shutdownStarted;
@@ -65,6 +73,9 @@ public final class BatchTransportEngine<K> {
 
 		synchronized (lifecycleMonitor) {
 			ensureClaimsOpen("register a Session");
+			if (deadlineClusters.contains(clusterKey)) {
+				requireDeadlineSupport(session);
+			}
 			final PoolSettings existingSettings = clusterSettings.get(clusterKey);
 			if (existingSettings == null) {
 				smtpConnectionPool.registerResourceCluster(clusterKey, settings.<K>toSmtpClusterConfig().getConfigBuilder().build());
@@ -119,7 +130,12 @@ public final class BatchTransportEngine<K> {
 	}
 
 	SmtpTransportLease claim(final K clusterKey, final Session stickySession) {
+		return claim(clusterKey, stickySession, null);
+	}
+
+	SmtpTransportLease claim(final K clusterKey, final Session stickySession, @Nullable final MailSendControl control) {
 		requireNonNull(clusterKey, "clusterKey");
+		final int claimTimeoutMillis;
 		synchronized (lifecycleMonitor) {
 			ensureClaimsOpen("claim a transport");
 			if (!registeredSessions.containsKey(clusterKey)) {
@@ -128,18 +144,32 @@ public final class BatchTransportEngine<K> {
 			if (stickySession != null && !registeredSessions.get(clusterKey).contains(stickySession)) {
 				throw new BatchTransportException("The requested Session is not registered for the requested cluster");
 			}
+			if (control != null && control.isDeadlineEnabled()) {
+				registeredSessions.get(clusterKey).forEach(BatchTransportEngine::requireDeadlineSupport);
+				deadlineClusters.add(clusterKey);
+			}
+			claimTimeoutMillis = clusterSettings.get(clusterKey).getClaimTimeoutMillis();
 		}
 
 		final SmtpTransportLease lease;
-		try {
-			lease = stickySession == null
-					? smtpConnectionPool.claimTransportFromCluster(clusterKey)
-					: smtpConnectionPool.claimTransport(new ResourceClusterAndPoolKey<>(clusterKey, stickySession));
+		final ClaimControl claimControl = new ClaimControl();
+		try (MailSendControl.Registration ignored = control == null ? null : control.onStop(claimControl::requestCancellation)) {
+			if (control == null) {
+				lease = stickySession == null ? smtpConnectionPool.claimTransportFromCluster(clusterKey)
+						: smtpConnectionPool.claimTransport(new ResourceClusterAndPoolKey<>(clusterKey, stickySession));
+			} else {
+				control.checkStopped();
+				final ClaimOptions options = ClaimOptions.withTimeout(Math.min(control.remainingNanos(),
+						TimeUnit.MILLISECONDS.toNanos(claimTimeoutMillis)), TimeUnit.NANOSECONDS).withClaimControl(claimControl);
+				lease = stickySession == null ? smtpConnectionPool.claimTransportFromCluster(clusterKey, options)
+						: smtpConnectionPool.claimTransport(new ResourceClusterAndPoolKey<>(clusterKey, stickySession), options);
+			}
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
 			throw new BatchTransportException("Interrupted while waiting for an SMTP transport", interrupted);
 		} catch (RuntimeException failure) {
-			throw new BatchTransportException("Unable to claim an SMTP transport", failure);
+			final RuntimeException mapped = new BatchTransportException("Unable to claim an SMTP transport", failure);
+			throw control == null ? mapped : control.translateFailure(mapped);
 		}
 
 		synchronized (lifecycleMonitor) {
@@ -150,6 +180,10 @@ public final class BatchTransportEngine<K> {
 			activeLeases.add(lease);
 		}
 		return lease;
+	}
+
+	private static void requireDeadlineSupport(final Session session) {
+		MailTransportLifecycleResolver.requireAbortSupport(session);
 	}
 
 	void release(final SmtpTransportLease lease) {
@@ -203,9 +237,11 @@ public final class BatchTransportEngine<K> {
 			final Future<Void> shutdown = smtpConnectionPool.shutdownPool(session);
 			final Iterator<Map.Entry<K, Set<Session>>> clusters = registeredSessions.entrySet().iterator();
 			while (clusters.hasNext()) {
-				final Set<Session> sessions = clusters.next().getValue();
+				final Map.Entry<K, Set<Session>> cluster = clusters.next();
+				final Set<Session> sessions = cluster.getValue();
 				sessions.remove(session);
 				if (sessions.isEmpty()) {
+					deadlineClusters.remove(cluster.getKey());
 					clusters.remove();
 				}
 			}

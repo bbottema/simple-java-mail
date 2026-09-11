@@ -1,9 +1,9 @@
 package demo;
 
 import jakarta.mail.util.ByteArrayDataSource;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.Mailer;
-import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.ModuleLoaderTestHelper;
 
@@ -51,7 +51,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 						"Formal structure:\n" +
 						"- plain text (root)")
 				.clearHTMLText()
-				.buildEmail());
+				.buildEmail()).getCompletion();
 
 		assertThat(result).isCompleted();
 	}

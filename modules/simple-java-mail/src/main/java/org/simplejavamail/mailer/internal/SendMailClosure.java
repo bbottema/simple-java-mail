@@ -8,9 +8,12 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.EmailTooBigException;
+import org.simplejavamail.api.mailer.MailSendCancelledException;
+import org.simplejavamail.api.mailer.MailSendTimeoutException;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,33 +37,39 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 	@NotNull private final Email email;
 	private final boolean transportModeLoggingOnly;
 	@Nullable private MailSubmissionReceipt receipt;
+	@NotNull private final MailSendControl control;
 
-	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
+	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @Nullable AnonymousSocks5Server proxyServer,
+			boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter, @NotNull MailSendControl control) {
 		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
 		this.email = email;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
+		this.control = control;
 	}
 
 	@Override
 	public void executeClosure() {
 		LOGGER.trace("sending email...");
 		try {
+			control.checkStopped();
 			if (transportModeLoggingOnly) {
 				SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
+				control.checkStopped();
 				LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
 				receipt = TransportRunner.buildReceipt(email, null);
 			} else if (operationalConfig.getCustomMailer() != null) {
 				val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
+				control.checkStopped();
 				operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, email, message);
 				receipt = TransportRunner.buildReceipt(email, null);
 			} else {
-				receipt = TransportRunner.sendMessage(operationalConfig.getClusterKey(), session, email);
+				receipt = TransportRunner.sendMessage(operationalConfig.getClusterKey(), session, email, control);
 			}
 		} catch (final MessagingException e) {
 			handleException(e, GENERIC_ERROR);
-		} catch (final MailSubmissionException e) {
+		} catch (final MailSubmissionException | MailSendCancelledException | MailSendTimeoutException e) {
 			throw e;
 		} catch (final MailerException | EmailTooBigException e) {
 			handleException(e, MAILER_ERROR);
@@ -82,6 +91,6 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 		val emailId = ofNullable(email.getId())
 				.map(id -> format("ID: '%s'", id))
 				.orElse(format("Subject: '%s'", email.getSubject()));
-		throw new MailerException(format(errorMsg, emailId), e);
+		throw control.translateFailure(new MailerException(format(errorMsg, emailId), e));
 	}
 }

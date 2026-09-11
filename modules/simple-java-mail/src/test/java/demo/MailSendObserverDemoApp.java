@@ -44,7 +44,7 @@ public class MailSendObserverDemoApp extends DemoAppBase {
 			final List<CompletableFuture<Void>> completions = new ArrayList<>();
 			for (int emailNumber = 1; emailNumber <= EMAIL_COUNT; emailNumber++) {
 				final Email email = createEmail(emailNumber);
-				completions.add(mailer.sendMailAsync(email)
+				completions.add(mailer.sendMailAsync(email).getCompletion()
 						.handle((unused, failure) -> null));
 			}
 

@@ -98,12 +98,21 @@ public class SimpleJavaMailProperties {
         private Recipient bcc;
         private String poolsize;
         private Async async;
+        private Mailsend mailsend;
         private PoolsizeMore poolsizeMore;
         private Connectionpool connectionpool;
         private String sessiontimeoutmillis;
         private String trustallhosts;
         private String trustedhosts;
         private String verifyserveridentity;
+
+        /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+        @Getter
+        @Setter
+        public static class Mailsend {
+            /** Total send budget as an ISO-8601 duration, such as PT30S; omitted means disabled. */
+            private String timeout;
+        }
 
         /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
         @Getter

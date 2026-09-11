@@ -10,6 +10,7 @@ import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
+import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
@@ -24,10 +25,12 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
@@ -131,6 +134,22 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		assertThat(options).extracting(CliDeclaredOptionSpec::getName)
 				.contains("--mailer:withAsyncQueueCapacity", "--mailer:withAsyncQueueOverflowPolicy", "--mailer:withAsyncQueueWaitTimeoutMillis")
 				.doesNotContain("--mailer:getAsyncQueueSnapshot", "--mailer:getAsyncQueueConfig");
+	}
+
+	@Test
+	void totalTimeoutIsAValueOptionWhileObserverDispatchRemainsJavaOnly() throws Exception {
+		final Method timeout = MailerGenericBuilder.class.getMethod("withMailSendTimeout", Duration.class);
+		assertThat(methodIsCliCompatible(timeout).isCompatible()).isTrue();
+		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("PT12.5S")), timeout))
+				.containsExactly(Duration.ofMillis(12500));
+		assertThatThrownBy(() -> CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("30 seconds")), timeout))
+				.isInstanceOf(RuntimeException.class);
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendObserver", MailSendObserver.class)).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendObserver", MailSendObserver.class, Executor.class)).isCompatible()).isFalse();
+		assertThat(BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(new Class<?>[]{MailerRegularBuilder.class, MailerFromSessionBuilder.class}))
+				.extracting(CliDeclaredOptionSpec::getName)
+				.contains("--mailer:withMailSendTimeout", "--mailer:resetMailSendTimeout")
+				.doesNotContain("--mailer:withMailSendObserver", "--mailer:getCompletion", "--mailer:requestCancellation");
 	}
 
 	@Test

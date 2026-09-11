@@ -3,16 +3,16 @@ package org.simplejavamail.config;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
-import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
+import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.config.ConfigLoader.Property;
 
+import java.time.Duration;
 import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
-
-import org.simplejavamail.config.ConfigLoader.Property;
 
 import static org.simplejavamail.config.ConfigDiagnosticGroup.DELIVERY_STATUS_NOTIFICATIONS;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.DIAGNOSTICS_AND_VALIDATION;
@@ -32,6 +32,7 @@ final class PropertySchema {
 		STRING,
 		BOOLEAN,
 		INTEGER,
+		DURATION,
 		TRANSPORT_STRATEGY,
 		SESSION_DEBUG_OUTPUT,
 		CONTENT_TRANSFER_ENCODING,
@@ -114,6 +115,7 @@ final class PropertySchema {
 				Property.DEFAULT_SESSION_TIMEOUT_MILLIS);
 
 		set(ValueType.TRANSPORT_STRATEGY, Property.TRANSPORT_STRATEGY);
+		set(ValueType.DURATION, Property.DEFAULT_MAIL_SEND_TIMEOUT);
 		set(ValueType.SESSION_DEBUG_OUTPUT, Property.JAVAXMAIL_DEBUG_OUTPUT);
 		set(ValueType.CONTENT_TRANSFER_ENCODING,
 				Property.DEFAULT_CONTENT_TRANSFER_ENCODING,
@@ -179,6 +181,7 @@ final class PropertySchema {
 				Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY,
 				Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION);
 		setDiagnostics(EXECUTION_AND_POOLING, SensitivityPolicy.VISIBLE,
+				Property.DEFAULT_MAIL_SEND_TIMEOUT,
 				Property.DEFAULT_ASYNC_QUEUE_CAPACITY,
 				Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY,
 				Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS,
@@ -242,6 +245,8 @@ final class PropertySchema {
 					return parseBoolean(rawValue);
 				case INTEGER:
 					return parseInteger(rawValue);
+				case DURATION:
+					return rawValue instanceof Duration ? rawValue : Duration.parse(requireType(rawValue, String.class));
 				case TRANSPORT_STRATEGY:
 					return parseEnum(rawValue, TransportStrategy.class);
 				case SESSION_DEBUG_OUTPUT:

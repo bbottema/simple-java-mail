@@ -10,10 +10,12 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.EmailTooBigException;
-import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSender;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
+import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.util.TransportConnectionHelper;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 
@@ -41,11 +43,12 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	private final boolean transportModeLoggingOnly;
 	@Nullable private Transport transport;
 	@Nullable private Email currentEmail;
+	@NotNull private final MailSendOperations operations;
 
 	SendMailsWithOpenConnectionClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session,
 			@NotNull OpenConnectionCallback<E> openConnectionCallback, @NotNull Function<Email, Email> emailPreparer,
 			@NotNull MailSendObserverNotifier mailSendObserverNotifier, @Nullable AnonymousSocks5Server proxyServer,
-			boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter) {
+			boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter, @NotNull MailSendOperations operations) {
 		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
@@ -53,12 +56,13 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		this.emailPreparer = emailPreparer;
 		this.mailSendObserverNotifier = mailSendObserverNotifier;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
+		this.operations = operations;
 	}
 
 	@SuppressWarnings("unchecked")
 	void runOpenConnectionCallback() throws E {
 		try {
-			run();
+			operations.withinOperation(this::run);
 		} catch (final CheckedCallbackException callbackFailure) {
 			throw (E) callbackFailure.getCause();
 		} catch (final RuntimeCallbackException callbackFailure) {
@@ -119,22 +123,38 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	public MailSubmissionReceipt sendMailAndGetReceipt(@NotNull final Email userProvidedEmail) {
 		final Email checkedEmail = verifyNonnull(userProvidedEmail);
 		final MailSendAttempt mailSendAttempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
+		final MailSendOperation<MailSubmissionReceipt> operation;
 		try {
-			final Email preparedEmail = prepareEmail(checkedEmail);
-			mailSendAttempt.prepared(preparedEmail);
-			mailSendAttempt.started();
-			final MailSubmissionReceipt submissionReceipt = transportModeLoggingOnly
-					? convertAndLogPreparedEmail(preparedEmail)
-					: sendPreparedEmailUsingSingleTransport(preparedEmail);
-			mailSendAttempt.completeSuccessfully(submissionReceipt);
-			return submissionReceipt;
-		} catch (final MessagingException failure) {
-			throw completeWithMappedFailure(mailSendAttempt, failure, GENERIC_ERROR);
-		} catch (final EmailTooBigException failure) {
-			throw completeWithMappedFailure(mailSendAttempt, failure, MAILER_ERROR);
-		} catch (final RuntimeException | Error failure) {
+			operation = operations.begin(mailSendAttempt::completeSuccessfully, mailSendAttempt::completeWithFailure);
+		} catch (RuntimeException failure) {
 			mailSendAttempt.completeWithFailure(failure);
 			throw failure;
+		}
+		mailSendAttempt.attachControl(operation.control());
+		return operation.executeSync(() -> sendOnOpenConnection(checkedEmail, mailSendAttempt, operation.control()));
+	}
+
+	private MailSubmissionReceipt sendOnOpenConnection(final Email checkedEmail, final MailSendAttempt mailSendAttempt, final MailSendControl control) {
+		try {
+			final Email preparedEmail = prepareEmail(checkedEmail);
+			control.checkStopped();
+			mailSendAttempt.prepared(preparedEmail);
+			mailSendAttempt.started();
+			if (transportModeLoggingOnly) {
+				final MailSubmissionReceipt receipt = convertAndLogPreparedEmail(preparedEmail);
+				control.checkStopped();
+				return receipt;
+			}
+			final Transport activeTransport = checkNonEmptyArgument(transport, "transport");
+			try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(activeTransport, control)) {
+				return TransportRunner.sendMessageOnTransport(activeTransport, session, preparedEmail, control);
+			}
+		} catch (final MessagingException failure) {
+			throw control.translateFailure(createMailerException(failure, GENERIC_ERROR));
+		} catch (final EmailTooBigException failure) {
+			throw control.translateFailure(createMailerException(failure, MAILER_ERROR));
+		} catch (final RuntimeException failure) {
+			throw control.translateFailure(failure);
 		}
 	}
 
@@ -159,25 +179,22 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		return TransportRunner.buildReceipt(preparedEmail, null);
 	}
 
-	@NotNull
-	private MailSubmissionReceipt sendPreparedEmailUsingSingleTransport(@NotNull final Email preparedEmail)
-			throws MessagingException {
-		return TransportRunner.sendMessageOnTransport(checkNonEmptyArgument(transport, "transport"), session, preparedEmail);
-	}
-
-	@NotNull
-	private MailerException completeWithMappedFailure(@NotNull final MailSendAttempt mailSendAttempt,
-			@NotNull final Exception cause,
-			@NotNull final String errorMessage) {
-		final MailerException failure = createMailerException(cause, errorMessage);
-		mailSendAttempt.completeWithFailure(failure);
-		return failure;
-	}
-
 	private void openSmtpTransport()
 			throws MessagingException {
-		transport = session.getTransport();
-		TransportConnectionHelper.connectTransport(transport, session);
+		final MailSendOperation<Void> opening = operations.begin(unused -> { }, failure -> { });
+		opening.executeSync(() -> {
+			try {
+				transport = session.getTransport();
+				try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(transport, opening.control())) {
+					opening.control().checkStopped();
+					TransportConnectionHelper.connectTransport(transport, session);
+					opening.control().checkStopped();
+				}
+				return null;
+			} catch (MessagingException failure) {
+				throw opening.control().translateFailure(createMailerException(failure, GENERIC_ERROR));
+			}
+		});
 	}
 
 	private void closeTransportIfOpened(boolean suppressCloseFailure) {
