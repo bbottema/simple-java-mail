@@ -1,4 +1,5 @@
 module org.simplejavamail.core {
+	uses org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
 	requires static com.github.spotbugs.annotations;
 	requires static org.jetbrains.annotations;
 

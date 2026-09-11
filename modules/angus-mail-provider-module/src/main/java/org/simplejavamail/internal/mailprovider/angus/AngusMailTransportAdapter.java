@@ -80,7 +80,8 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                     captureNewResponse(smtpTransport, responseBeforeSend)).withEnvelopeRecipients(envelope);
         } catch (final MessagingException failure) {
             return AngusSubmissionResult.fromFailure(failure, envelope,
-                    captureNewResponse(smtpTransport, responseBeforeSend));
+                    captureNewResponse(smtpTransport, responseBeforeSend),
+                    smtpTransport instanceof ManagedAngusTransport ? (ManagedAngusTransport) smtpTransport : null);
         } finally {
             // Restore transport-local state before its lease can be released, including on unchecked failures.
             smtpTransport.setReportSuccess(originalReportSuccess);

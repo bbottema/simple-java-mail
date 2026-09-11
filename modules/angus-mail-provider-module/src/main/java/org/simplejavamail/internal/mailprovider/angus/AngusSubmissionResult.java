@@ -34,13 +34,26 @@ final class AngusSubmissionResult {
 	@NotNull
 	static MailTransportResult fromFailure(final MessagingException failure, final Address[] envelope,
 			@Nullable final SmtpServerResponse currentResponse) {
+		return fromFailure(failure, envelope, currentResponse, null);
+	}
+
+	@NotNull
+	static MailTransportResult fromFailure(final MessagingException failure, final Address[] envelope,
+			@Nullable final SmtpServerResponse currentResponse, @Nullable final ManagedAngusTransport progress) {
 		final List<MessagingException> chain = exceptionChain(failure);
 		final SMTPSendFailedException transaction = findTransactionFailure(chain);
-		final List<RecipientReply> replies = recipientReplies(chain);
-		final MailTransportResult submission = classifySubmission(failure, envelope, currentResponse, transaction, chain, replies);
-		final boolean ambiguousAbort = hasAmbiguousAbortedRecipient(failure, envelope);
+		final List<RecipientReply> replies = progress == null ? recipientReplies(chain) : recipientReplies(progress, envelope);
+		final MailTransportResult submission = classifySubmission(failure, envelope, currentResponse, transaction, chain, replies, progress);
+		final boolean ambiguousAbort = progress == null && hasAmbiguousAbortedRecipient(failure, envelope);
 		final List<MailRecipientResult> recipients = describeRecipients(submission, envelope,
 				ambiguousAbort ? Collections.emptyList() : replies, transaction, failure, ambiguousAbort);
+		if (progress != null) {
+			for (int index = 0; index < recipients.size(); index++) {
+				final MailRecipientResult recipient = recipients.get(index);
+				recipients.set(index, new MailRecipientResult(recipient.getOriginalAddress(), recipient.getEnvelopeAddress().orElse(null),
+						recipient.getDisposition(), index < replies.size(), recipient.getRcptResponse().orElse(null)));
+			}
+		}
 		return submission.withRecipientResults(recipients, ambiguousAbort ? MailRetryDisposition.CALLER_POLICY_REQUIRED
 				: retryDisposition(submission, recipients, transaction, replies));
 	}
@@ -56,7 +69,21 @@ final class AngusSubmissionResult {
 	@NotNull
 	private static MailTransportResult classifySubmission(final MessagingException failure, final Address[] envelope,
 			@Nullable final SmtpServerResponse currentResponse, @Nullable final SMTPSendFailedException transaction,
-			final List<MessagingException> chain, final List<RecipientReply> replies) {
+			final List<MessagingException> chain, final List<RecipientReply> replies, @Nullable final ManagedAngusTransport progress) {
+		if (progress != null) {
+			final Address[] invalid = replies.stream().filter(reply -> reply.response != null
+					&& reply.response.getReturnCode() >= 500 && reply.response.getReturnCode() != 552)
+					.map(reply -> reply.address).toArray(Address[]::new);
+			if (!progress.wasCommitPossible()) {
+				return failedBeforeCommit(failure, envelope, currentResponse, invalid);
+			}
+			if (progress.getFinalResponse() == null) {
+				return MailTransportResult.failedWithUnknownAcceptance(failure, knownUnsentRecipients(replies), invalid);
+			}
+			if (progress.getFinalResponse().getReturnCode() >= 400) {
+				return failedBeforeCommit(failure, envelope, progress.getFinalResponse(), invalid);
+			}
+		}
 		if (transaction != null && ".".equals(transaction.getCommand()) && transaction.getReturnCode() <= 0) {
 			return MailTransportResult.failedWithUnknownAcceptance(failure, knownUnsentRecipients(replies),
 					transaction.getInvalidAddresses());
@@ -80,6 +107,25 @@ final class AngusSubmissionResult {
 		return recipientGroups == null ? MailTransportResult.failed(failure, response)
 				: MailTransportResult.failed(failure, response, recipientGroups.getValidSentAddresses(),
 						recipientGroups.getValidUnsentAddresses(), recipientGroups.getInvalidAddresses());
+	}
+
+	private static MailTransportResult failedBeforeCommit(final MessagingException failure, final Address[] envelope,
+			@Nullable final SmtpServerResponse response, final Address[] invalid) {
+		final List<Address> unsent = new ArrayList<>(Arrays.asList(envelope));
+		for (Address address : invalid) {
+			removeAddress(unsent, address);
+		}
+		return MailTransportResult.failed(failure, response, null, unsent.toArray(new Address[0]), invalid);
+	}
+
+	private static List<RecipientReply> recipientReplies(final ManagedAngusTransport progress, final Address[] envelope) {
+		final List<SmtpServerResponse> responses = progress.getRecipientResponses();
+		final List<RecipientReply> replies = new ArrayList<>();
+		for (int index = 0; index < Math.min(envelope.length, responses.size()); index++) {
+			final SmtpServerResponse response = responses.get(index);
+			replies.add(new RecipientReply(envelope[index], response, response != null && response.getReturnCode() >= 400));
+		}
+		return replies;
 	}
 
 	private static boolean isFullyAcceptedReportingException(@Nullable final SMTPSendFailedException transaction,
