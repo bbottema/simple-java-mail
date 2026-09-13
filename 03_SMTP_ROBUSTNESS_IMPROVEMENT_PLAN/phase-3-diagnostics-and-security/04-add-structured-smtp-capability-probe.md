@@ -9,6 +9,8 @@
 
 ## Goal
 
+The [accepted explicit execution views and review bookmark](04a-explicit-mailer-execution-views.md) establish the entry-point shape for this probe. The migration is delivered independently under #734; probe implementation and review remain under #733.
+
 Give developers a read-only diagnostic that explains what an SMTP connection negotiated instead of reducing connection testing to success or failure.
 
 The existing `testConnection()` API remains useful as a simple health check. The probe should complement it with an immutable, redacted report that can answer why a feature or security policy is available in one environment but not another.

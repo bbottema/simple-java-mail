@@ -53,16 +53,16 @@ Mailer mailer = mail.mailerBuilder().withSMTPServer(
     .withTransportStrategy(TransportStrategy.SMTP_TLS)
     .buildMailer();
 
-mailer.sendMailSync(email);
+mailer.sync().sendMail(email);
 ```
 
-The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Use `sendMailSync(...)` when failures should be thrown on the calling thread, or `sendMailAsync(...)` when SMTP work should run asynchronously; `MailSend.getCompletion()` supplies its `CompletableFuture`. The receipt-returning equivalents are `sendMailAndGetReceiptSync(...)` and `sendMailAndGetReceiptAsync(...)`. Existing `sendMail(email)` and boolean overloads remain supported for code that deliberately uses the Mailer's configured async default or selects the mode dynamically.
+The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Choose `mailer.sync().sendMail(email)` to finish on the caller thread or `mailer.async().sendMail(email)` to schedule SMTP work. Both produce a submission receipt, which you can ignore when only completion matters; asynchronous sends expose it through `MailSend.getCompletion()`. Sync failures throw directly, while async operational failures complete exceptionally. The two cached views share the same Mailer, pool and lifecycle. There is no Mailer-wide async default in 10.0.0; see the [execution-view migration](https://www.simplejavamail.org/migration-notes-10.0.0.html#explicit-send-mode).
 
 For bursty background work, `mailerBuilder.withAsyncQueueCapacity(100)` bounds waiting async tasks and reports saturation through their futures and the mail-send observer. The [queue and backpressure guide](https://www.simplejavamail.org/sending-and-execution.html#section-async-queue) covers bounded admission waits, diagnostics, and graceful shutdown. The default remains unbounded; this is not a durable mail queue.
 
 For an obsolete notification, retain its `MailSend` and call `requestCancellation()`. A total budget is opt-in with `withMailSendTimeout(Duration.ofSeconds(30))`. Neither a request nor a timeout proves non-acceptance: inspect the eventual completion and any receipt. See [deadlines and cancellation](https://www.simplejavamail.org/sending-and-execution.html#section-send-deadlines).
 
-Before sending, `mailer.testConnection()` checks the SMTP path. Choose message preflight by what your code needs back:
+Before sending, `mailer.sync().testConnection()` checks the SMTP path. Choose message preflight by what your code needs back:
 
 | Need | Call |
 | --- | --- |
@@ -71,11 +71,11 @@ Before sending, `mailer.testConnection()` checks the SMTP path. Choose message p
 
 Both full calls perform the same no-SMTP preparation. `validate` is a success-or-exception convenience that discards the rehearsal result; it never reports invalid input by returning `false`. A successful `rehearse` call has therefore already validated the Email—do not call `validate` first. The [complete getting-started guide](https://www.simplejavamail.org/download.html) explains each step.
 
-When the application needs a durable checkpoint after SMTP submission, request a provider-neutral receipt:
+When the application needs a durable checkpoint after SMTP submission, inspect the provider-neutral receipt returned by every single-email send:
 
 ```java
 try {
-    MailSubmissionReceipt receipt = mailer.sendMailAndGetReceiptSync(email);
+    MailSubmissionReceipt receipt = mailer.sync().sendMail(email);
 
     database.markSubmitted(
         receipt.getEmailId(),
@@ -126,7 +126,7 @@ Email email = mail.emailBuilder()
     .withEnvelopeSender("bounces@example.org") // optional
     .buildEmail();
 
-MailSubmissionReceipt receipt = mailer.sendMailAndGetReceiptSync(email);
+MailSubmissionReceipt receipt = mailer.sync().sendMail(email);
 ```
 
 The result remains an ordinary `Email`, so all getters and all existing send methods still apply. Its getters are a parsed view; sending, conversion, and rehearsal use the copied input bytes unchanged. Exact mode therefore bypasses defaults, overrides, composed-content validation, embedded-image resolution, MIME rebuilding, and cryptographic processing. It also retains headers normally removed during submission—including `Bcc`, `Resent-Bcc`, and `Content-Length`—so supply an already safe outbound message and always provide the real SMTP-envelope recipients separately. Copying this `Email` through the normal builder intentionally returns to composed-email behavior.

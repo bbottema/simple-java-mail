@@ -9,12 +9,12 @@ This keeps a send from being both started and cancelled out of its queue, and gi
 | Source | Entry points and responsibility |
 | --- | --- |
 | [MailSendOperation](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperation.java) | `schedule`, `run`, `executeSync`, `preparationFailed`, `retireQueuedOperation`, `finish` own this machine. |
-| [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) | `beginEmailOperation`, `prepareMailSend`, `sendPreparedEmail`, and `sendMailsInSimpleBatch` decide what work belongs to the operation. |
+| [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) | `beginEmailOperation`, `prepareMailSend`, `sendPreparedEmail`, and `sendSimpleBatchSynchronously` / `sendSimpleBatchAsynchronously` decide what work belongs to the operation. |
 | [MailSendAttempt](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendAttempt.java) | `complete` constructs the per-email outcome and gates notification. |
 | [MailSendObserverNotifier](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendObserverNotifier.java) | `notifyCompletion` chooses inline invocation or application-executor handoff. |
 | [MailSend](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer/MailSend.java) | `getCompletion` exposes detached result views; `requestCancellation` signals work rather than cancelling a view. |
 
-An ordinary email is prepared on its caller thread before asynchronous admission. The transport/proxy-owning `SendMailClosure` is constructed only inside `sendPreparedEmail`, after execution starts. A simple batch is one operation: it does not open its iterable during admission and produces separate per-email outcomes during execution. Open-connection opening and individual sends use separate operations inside a longer-lived [scope](02-mailer-lifecycle.md).
+The public `Mailer.sync()` and `Mailer.async()` views delegate to the same owning `MailerImpl`; the views add no resource or synchronization boundary. An ordinary email is prepared on its caller thread before asynchronous admission. The transport/proxy-owning `SendMailClosure` is constructed only inside `sendPreparedEmail`, after execution starts. A simple batch is one operation: it does not open its iterable during admission and produces separate per-email outcomes during execution. Open-connection opening and individual sends use separate operations inside a longer-lived [scope](02-mailer-lifecycle.md).
 
 ## States and transitions
 

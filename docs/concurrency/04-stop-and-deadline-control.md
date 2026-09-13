@@ -18,7 +18,7 @@ The scope depends on the entry point:
 | Simple batch | One control covers the whole batch, including lazy iteration and preparation. Observer notification between emails temporarily pauses its deadline. |
 | `withOpenConnection` | Connection opening has its own control; each email has a fresh control. Application gaps and final scope cleanup have no send deadline. |
 
-Sources: [MailerImpl.prepareMailSend / sendMailsInSimpleBatch](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [SendMailsInSimpleBatchClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsInSimpleBatchClosure.java), [SendMailsWithOpenConnectionClosure.openSmtpTransport / sendMailAndGetReceipt](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsWithOpenConnectionClosure.java).
+Sources: [MailerImpl.prepareMailSend / sendSimpleBatch](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [SendMailsInSimpleBatchClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsInSimpleBatchClosure.java), [SendMailsWithOpenConnectionClosure.openSmtpTransport / sendMailAndGetReceipt](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsWithOpenConnectionClosure.java).
 
 ## State is split deliberately
 

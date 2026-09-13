@@ -1,19 +1,20 @@
 # SMTP robustness improvement plan
 
-> **Implementation status:** Phases 1 and 2 are complete and accepted. The Angus safety gate was resolved through supported socket/provider hooks; the original negative characterization remains in the tests. These are unreleased 10.0 changes. Later phases remain proposals. Benchmarking is not part of this work.
+> **Implementation status:** Phases 1 and 2 are complete and accepted. The Angus safety gate was resolved through supported socket/provider hooks; the original negative characterization remains in the tests. These are unreleased 10.0.0 changes. Later phases remain proposals. Benchmarking is not part of this work.
 
 - Status: Phases 1 and 2 complete and accepted; unreleased
-- Resumption after the pool fix: The supporting-library patches and Simple Java Mail 9.3.4 are released. This 10.0 checkout now adopts SMTP Connection Pool 4.1.0 and retains all eight mixed-failure waiter-recovery regression cases from the patch. Integration verification is recorded in [step 2](phase-2-execution-control/02-bound-asynchronous-submission-and-expose-backpressure.md). See the [dependency finding](phase-1-transaction-truth/01-preserve-recipient-replies-and-derive-retry-guidance.md#separate-dependency-finding).
+- Resumption after the pool fix: The supporting-library patches and Simple Java Mail 9.3.4 are released. This 10.0.0 checkout now adopts SMTP Connection Pool 4.1.0 and retains all eight mixed-failure waiter-recovery regression cases from the patch. Integration verification is recorded in [step 2](phase-2-execution-control/02-bound-asynchronous-submission-and-expose-backpressure.md). See the [dependency finding](phase-1-transaction-truth/01-preserve-recipient-replies-and-derive-retry-guidance.md#separate-dependency-finding).
 - Plan order: 03 of 03
 - Preceded by: [02 - CLI daemon improvement plan](../02_CLI_DAEMON_IMPROVEMENT_PLAN/README.md) in planning order only
 - GitHub parent issue: [#722](https://github.com/bbottema/simple-java-mail/issues/722)
-- GitHub child issues: [#723](https://github.com/bbottema/simple-java-mail/issues/723) (phase 1), [#725](https://github.com/bbottema/simple-java-mail/issues/725) and [#726](https://github.com/bbottema/simple-java-mail/issues/726) (phase 2); later children not created
+- Execution-view migration: [#734](https://github.com/bbottema/simple-java-mail/issues/734), accepted on 13 September 2026; see the [plan and probe-review bookmark](phase-3-diagnostics-and-security/04a-explicit-mailer-execution-views.md). The probe implementation remains separate under #733.
+- GitHub child issues: [#723](https://github.com/bbottema/simple-java-mail/issues/723) (phase 1), [#725](https://github.com/bbottema/simple-java-mail/issues/725) and [#726](https://github.com/bbottema/simple-java-mail/issues/726) (phase 2), [#733](https://github.com/bbottema/simple-java-mail/issues/733) (phase 3 capability probe); later children not created
 - Release train: 10.x; assign an exact release milestone to each child only when scheduled
 - Working branch for planning: `codex/10.0.0`
 - Baseline inspected: 7 September 2026
 - Research source: `simple-java-mail-world-class-smtp-research.pdf`
 
-This mini project turns the useful parts of the SMTP robustness report into independently reviewable improvements. It builds on capabilities already present in the unreleased 10.0 line: provider-neutral submission receipts, honest unknown outcomes, per-mail terminal observers, exact EML submission, rehearsal, configuration provenance, pooling, and explicit lifecycle control.
+This mini project turns the useful parts of the SMTP robustness report into independently reviewable improvements. It builds on capabilities already present in the unreleased 10.0.0 line: provider-neutral submission receipts, honest unknown outcomes, per-mail terminal observers, exact EML submission, rehearsal, configuration provenance, pooling, and explicit lifecycle control.
 
 The objective is not to turn Simple Java Mail into an MTA or to copy every feature from another client. It is to make SMTP submission more precise at three boundaries:
 
@@ -55,7 +56,8 @@ The parent issue should maintain this release-oriented table:
 | 1 | [#723](https://github.com/bbottema/simple-java-mail/issues/723) | Major feature | 10.0.0 | - | Recipient replies and retry guidance |
 | 2 | [#725](https://github.com/bbottema/simple-java-mail/issues/725) | Major feature | 10.0.0 | - | Bounded async demand and visible overflow |
 | 3 | [#726](https://github.com/bbottema/simple-java-mail/issues/726) | Major feature | 10.0.0 | - | Deadlines and protocol-aware cancellation |
-| 4 | Not created | Enhancement | Unscheduled | - | Safe SMTP capability diagnostics |
+| 4 | [#733](https://github.com/bbottema/simple-java-mail/issues/733) | Enhancement | 10.0.0 | - | Safe SMTP capability diagnostics |
+| 4a | [#734](https://github.com/bbottema/simple-java-mail/issues/734) | Enhancement | 10.0.0 | - | Explicit sync/async views and unified receipt-returning sends |
 | 5 | Not created | Security + enhancement | Unscheduled | - | Explicit authentication-over-TLS policy |
 | 6 | Not created | Enhancement | Unscheduled | - | Complete DSN identifiers and recipient metadata |
 | 7 | Not created | Enhancement | Unscheduled | - | Per-message REQUIRETLS |
@@ -92,7 +94,7 @@ At release time, the exact-version milestone and the parent ledger determine whi
 1. Provider-neutral public contracts come before Angus-specific extraction details.
 2. Never describe mailbox delivery; `ACCEPTED` means the SMTP peer returned final success.
 3. Never convert uncertainty into automatic retry. SMTP offers no exactly-once guarantee.
-4. Preserve existing receipt getters and ordinary `CompletableFuture` APIs unless a reviewed step explicitly changes them for 10.0.
+4. Preserve existing receipt getters and ordinary `CompletableFuture` APIs unless a reviewed step explicitly changes them for 10.0.0.
 5. Exact or protected content must not be silently rewritten to satisfy a missing SMTP capability.
 6. No diagnostic may expose credentials, authentication payloads, message bodies, private keys, or protected content.
 7. Pool release or invalidation happens before terminal completion is published, except where an intentionally open shared transport remains caller-owned.
@@ -115,6 +117,8 @@ At release time, the exact-version milestone and the parent ledger determine whi
 Step 3's [supporting-library cancellation plan](phase-2-execution-control/support-library-cancellation/README.md) is implemented and released: Generic Object Pool 2.5.0, Clustered Object Pool 4.1.0 and SMTP Connection Pool 4.1.0. The downstream implementation connects their cancellable claims and fenced lease abort to `MailSend.requestCancellation()` and total deadlines. Physical SMTP abort is supported for compatible SJM-owned Angus Sessions; unsupported integrations remain cooperative and reject a configured total deadline before connecting.
 
 ### Phase 3: Make connection behavior diagnosable and safe
+
+- [x] [4a. Explicit Mailer execution views](phase-3-diagnostics-and-security/04a-explicit-mailer-execution-views.md) - #734; accepted independently of the probe
 
 - [ ] [4. Add a structured SMTP capability probe](phase-3-diagnostics-and-security/04-add-structured-smtp-capability-probe.md)
 - [ ] [5. Make authenticated plaintext fallback explicit](phase-3-diagnostics-and-security/05-make-authenticated-plaintext-fallback-explicit.md)
