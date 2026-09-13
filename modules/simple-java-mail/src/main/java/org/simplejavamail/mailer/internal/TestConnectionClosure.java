@@ -18,20 +18,18 @@ class TestConnectionClosure extends AbstractProxyServerSyncingClosure {
 
 	@NotNull private final OperationalConfig operationalConfig;
 	@NotNull private final Session session;
-	private final boolean async;
 
-	TestConnectionClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @Nullable final AnonymousSocks5Server proxyServer, final boolean async, @NotNull AtomicInteger smtpConnectionCounter) {
+	TestConnectionClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @Nullable final AnonymousSocks5Server proxyServer, @NotNull AtomicInteger smtpConnectionCounter) {
 		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
-		this.async = async;
 	}
 
 	@Override
 	public void executeClosure() {
 		LOGGER.debug("testing connection...");
 		try {
-			SessionLogger.logSession(session, async, "connection test");
+			SessionLogger.logSession(session, "connection test");
 
 			if (operationalConfig.getCustomMailer() != null) {
 				operationalConfig.getCustomMailer().testConnection(operationalConfig, session);

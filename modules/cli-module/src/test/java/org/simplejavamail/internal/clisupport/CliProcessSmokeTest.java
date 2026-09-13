@@ -1,11 +1,13 @@
 package org.simplejavamail.internal.clisupport;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -13,6 +15,28 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class CliProcessSmokeTest {
+
+	@TempDir Path temporaryDirectory;
+
+	@Test
+	void removedAsyncOptionInAnArgumentFileExitsWithTheMigrationMessage() throws Exception {
+		final Path arguments = temporaryDirectory.resolve("removed-option.args");
+		final Path outputFile = temporaryDirectory.resolve("removed-option.log");
+		Files.writeString(arguments, "connect\n--daemon=off\n--mailer:async\n--mailer:withSMTPServer localhost 1\n");
+		final Process process = new ProcessBuilder(cliCommand("@" + arguments))
+				.redirectErrorStream(true).redirectOutput(outputFile.toFile()).start();
+		try {
+			assertThat(process.waitFor(20, TimeUnit.SECONDS)).isTrue();
+			final String output = Files.readString(outputFile);
+			assertThat(process.exitValue()).as(output).isEqualTo(CliExitCode.CLI_ERROR.code());
+			assertThat(output).contains("--mailer:async was removed in 10.0.0.", "send and connect already wait for completion")
+					.doesNotContain("Connection refused");
+		} finally {
+			if (process.isAlive()) {
+				process.destroyForcibly();
+			}
+		}
+	}
 
 	@Test
 	public void argumentFileMayContainTheSubcommand()

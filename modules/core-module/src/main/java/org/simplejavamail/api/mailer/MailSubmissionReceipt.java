@@ -19,10 +19,12 @@ import static java.util.Objects.requireNonNull;
  * This represents SMTP submission acceptance, not final mailbox delivery. Final delivery remains asynchronous and should be tracked through delivery
  * status notifications, read receipts, bounces, or provider-specific webhooks.
  * <p>
- * A successful {@code sendMailAndGetReceipt(...)} call returns this type. When submission fails or only some recipients were accepted,
+ * A successful {@code mailer.sync().sendMail(...)} call returns this type; asynchronous send completion carries the same receipt.
+ * When submission fails or only some recipients were accepted,
  * {@link MailSubmissionException#getSubmissionReceipt()} exposes the same facts together with the original Jakarta Mail failure.
  *
- * @see Mailer#sendMailAndGetReceipt(org.simplejavamail.api.email.Email)
+ * @see Mailer.Sync#sendMail(org.simplejavamail.api.email.Email)
+ * @see Mailer.Async#sendMail(org.simplejavamail.api.email.Email)
  * @see MailSender#sendMailAndGetReceipt(org.simplejavamail.api.email.Email)
  */
 public final class MailSubmissionReceipt implements Serializable {

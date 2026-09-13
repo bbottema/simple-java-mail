@@ -30,11 +30,6 @@ public interface OperationalConfig {
 	AsyncQueueConfig getAsyncQueueConfig();
 
 	/**
-	 * @see MailerGenericBuilder#async()
-	 */
-	boolean isAsync();
-	
-	/**
 	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
 	int getSessionTimeout();

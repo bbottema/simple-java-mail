@@ -23,12 +23,11 @@ public class TestConnectionDemo {
 	}
 	
 	private static void normalConnectionTest(Mailer mailerTLS) {
-		mailerTLS.testConnection();
-		mailerTLS.testConnection(false);
+		mailerTLS.sync().testConnection();
 	}
 	
 	private static void asyncConnectionTestUsingFuture(Mailer mailerTLS) throws InterruptedException {
-		CompletableFuture<Void> f = mailerTLS.testConnection(true);
+		CompletableFuture<Void> f = mailerTLS.async().testConnection();
 
 		// f.get() actually blocks until done, so below is an example custom while-loop for checking result in a non-blocking way
 		while (!f.isDone()) {
@@ -46,7 +45,7 @@ public class TestConnectionDemo {
 	}
 
 	private static CompletableFuture<Void> asyncConnectionTestUsingHandlers(Mailer mailerTLS) {
-		return mailerTLS.testConnection(true).whenComplete((result, ex) -> {
+		return mailerTLS.async().testConnection().whenComplete((result, ex) -> {
 			if (ex != null) {
 				System.err.printf("Execution failed %s", ex);
 			} else {

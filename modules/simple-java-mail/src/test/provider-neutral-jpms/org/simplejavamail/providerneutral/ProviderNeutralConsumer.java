@@ -52,7 +52,9 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -95,11 +97,25 @@ public final class ProviderNeutralConsumer {
 		assertExecutionControlApiIsAvailable(simpleJavaMail, source);
 		assertUnknownTransportFailureApiIsAvailable();
 		assertRecipientReplyApiIsAvailable();
+		assertExecutionViewsApiIsAvailable();
 		assertConfigDiagnosticsApiIsAvailable(simpleJavaMail);
 		assertExactEmailApiIsAvailable(simpleJavaMail);
 		assertJava11ConvenienceApiIsAvailable(simpleJavaMail, source);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
+	}
+
+	/** Both views and receipt-bearing sends must compile without pulling provider types into the public API. */
+	private static void assertExecutionViewsApiIsAvailable() {
+		@SuppressWarnings("unused") final Function<Mailer, Mailer.Sync> sync = Mailer::sync;
+		@SuppressWarnings("unused") final Function<Mailer, Mailer.Async> async = Mailer::async;
+		@SuppressWarnings("unused") final BiConsumer<Mailer.Sync, Email> ignoreReceipt = Mailer.Sync::sendMail;
+		@SuppressWarnings("unused") final BiFunction<Mailer.Sync, Email, MailSubmissionReceipt> receipt = Mailer.Sync::sendMail;
+		@SuppressWarnings("unused") final BiFunction<Mailer.Async, Email, MailSend<MailSubmissionReceipt>> send = Mailer.Async::sendMail;
+		@SuppressWarnings("unused") final BiConsumer<Mailer.Sync, Iterable<Email>> batch = Mailer.Sync::sendMailsInSimpleBatch;
+		@SuppressWarnings("unused") final BiFunction<Mailer.Async, Iterable<Email>, MailSend<Void>> asyncBatch = Mailer.Async::sendMailsInSimpleBatch;
+		@SuppressWarnings("unused") final Consumer<Mailer.Sync> connectionTest = Mailer.Sync::testConnection;
+		@SuppressWarnings("unused") final Function<Mailer.Async, CompletableFuture<Void>> asyncTest = Mailer.Async::testConnection;
 	}
 
 	/** Verifies the factory snapshot and grouped diagnostic API can be linked through the exported config package. */
@@ -146,7 +162,7 @@ public final class ProviderNeutralConsumer {
 				|| new MailSendTimeoutException(null, null).getSubmissionReceipt().isPresent()) {
 			throw new AssertionError("Execution control API is unavailable");
 		}
-		@SuppressWarnings("unused") final Function<Mailer, MailSend<Void>> start = mailer -> mailer.sendMailAsync(email);
+		@SuppressWarnings("unused") final Function<Mailer, MailSend<MailSubmissionReceipt>> start = mailer -> mailer.async().sendMail(email);
 		@SuppressWarnings("unused") final BiFunction<MailTransportLifecycleAdapter, Transport, Optional<Runnable>> abort = MailTransportLifecycleAdapter::createAbortAction;
 	}
 

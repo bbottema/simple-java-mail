@@ -72,7 +72,7 @@ public class GenerateCliHelpTest {
 
 	@Test
 	public void testListHelpForAsyncWithoutError() {
-		CliSupport.runCLI(new String[] {"send", "--mailer:async--help",});
+		CliSupport.runCLI(new String[] {"send", "--mailer:withSMTPServer--help",});
 
 		assertThat(new String(outContent.toByteArray(), UTF_8))
 				.contains("https://www.simplejavamail.org/cli.html")

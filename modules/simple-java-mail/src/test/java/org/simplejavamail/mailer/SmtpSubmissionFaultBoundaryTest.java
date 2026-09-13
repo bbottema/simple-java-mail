@@ -205,7 +205,7 @@ class SmtpSubmissionFaultBoundaryTest {
 					.withProperty("mail.smtp.reportsuccess", reportSuccess);
 			try (Mailer mailer = mailerBuilder.buildMailer()) {
 				try {
-					return SubmissionAttempt.succeeded(mailer.sendMailAndGetReceiptSync(emailFor(scenario, recipients)));
+					return SubmissionAttempt.succeeded(mailer.sync().sendMail(emailFor(scenario, recipients)));
 				} catch (final MailSubmissionException failure) {
 					return SubmissionAttempt.failed(failure);
 				}

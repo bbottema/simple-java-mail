@@ -1,8 +1,6 @@
 package org.simplejavamail.api.mailer;
 
-import jakarta.mail.Message;
 import jakarta.mail.Session;
-import jakarta.mail.Transport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -31,7 +29,7 @@ import java.util.concurrent.Future;
  * <p>
  * <a href="https://www.simplejavamail.org">simplejavamail.org</a>
  *
- * Send operations expose {@link MailSend#getCompletion()} and optional {@link MailSend#requestCancellation()} control. Cancelling a detached
+ * Asynchronous send operations expose {@link MailSend#getCompletion()} and optional {@link MailSend#requestCancellation()} control. Cancelling a detached
  * completion view does not cancel sending. A configured {@link MailerGenericBuilder#withMailSendTimeout(java.time.Duration) total timeout}
  * includes preparation, queue admission, execution and cleanup, but not observer work. Cancellation and timeout describe why work stopped,
  * not whether SMTP accepted the message: inspect any receipt on {@link MailSendCancelledException} or {@link MailSendTimeoutException}.
@@ -63,180 +61,139 @@ public interface Mailer extends AutoCloseable {
 	Session getSession();
 	
 	/**
-	 * Delegates to {@link #testConnection(boolean)} using the mailer's configured async default.
+	 * Returns this Mailer's cached calling-thread execution view. Obtaining the view does not start work or allocate execution resources.
+	 * The view shares this Mailer's configuration, connections and lifecycle; close the Mailer, not the view.
 	 *
-	 * @see MailerGenericBuilder#async()
+	 * @return The same synchronous view on every call, safe to retain and use alongside {@link #async()}.
 	 */
-	void testConnection();
-	
+	@NotNull Sync sync();
+
 	/**
-	 * Tries to connect to the configured SMTP server, including (authenticated) proxy if set up.
-	 * <p>
-	 * Note: synchronizes on the thread for sending mails so that we don't get into race condition conflicts with emails actually being sent.
-	 * <p>
-	 * With {@code async=false}, this method throws operation failures directly and returns a completed future after a successful test. With
-	 * {@code async=true}, failures from scheduling, connecting and authentication complete the returned future exceptionally.
+	 * Returns this Mailer's cached executor-backed execution view. Obtaining the view does not start workers or register another connection pool.
+	 * Preparation and admission can still run on the caller thread, as documented by each operation.
 	 *
-	 * @return A future representing the complete connection test.
+	 * @return The same asynchronous view on every call, sharing this Mailer's resources and lifecycle with {@link #sync()}.
 	 */
-	@NotNull CompletableFuture<Void> testConnection(boolean async);
-	
+	@NotNull Async async();
+
 	/**
-	 * Sends one email on the calling thread and returns only after the configured send path completes.
-	 * <p>
-	 * This method ignores the mailer's configured async default. Preparation, validation, connection and submission failures are thrown directly.
-	 * Use {@link #sendMailAsync(Email)} when the caller needs a future instead.
-	 *
-	 * @param email The information for the email to be sent.
-	 * @throws IllegalArgumentException If {@code email} is {@code null}.
-	 * @throws MailException If the email is invalid or another problem occurs during preparation, connection or sending.
-	 * @throws MailSubmissionException If transport submission fails or only partially succeeds.
+	 * Calling-thread operations on the owning Mailer. Failures are thrown directly, not wrapped in completion exceptions.
+	 * This view does not own separate connections or lifecycle state and can be used concurrently with the asynchronous view.
 	 */
-	default void sendMailSync(Email email) {
-		sendMail(email, false).getCompletion().join();
+	interface Sync {
+		/**
+		 * Prepares and sends one email on the calling thread, returning after sending and cleanup.
+		 * Composed emails receive defaults and overrides, validation, MIME conversion and configured message-security processing.
+		 * Exact emails validate their explicit envelope and reuse their authoritative EML without content governance or rebuilding.
+		 * The configured transport adapter owns provider-specific submission and exact-byte preservation.
+		 * <p>
+		 * The returned receipt describes SMTP submission, not final delivery to the recipient's mailbox. It is fine to ignore it when only completion
+		 * matters; failures still throw. Logging-only and CustomMailer sends have {@link MailSubmissionStatus#UNKNOWN} receipts because no SMTP
+		 * acceptance is observable. A failed or partial submission throws {@link MailSubmissionException} with that attempt's receipt and original cause.
+		 * An unknown result may already have reached the server; do not blindly retry it.
+		 * <p>
+		 * Ordinary pooled sends release or invalidate their lease before reporting the outcome. An inline observer runs before this call returns or
+		 * throws; an application-executor observer is handed off first, but its execution is not awaited. Total send deadlines exclude observer work.
+		 *
+		 * @param email The email to prepare and send.
+		 * @return The exact successful receipt supplied to the configured observer.
+		 * @throws IllegalArgumentException If {@code email} is {@code null}.
+		 * @throws MailException If preparation, connection, sending, cancellation or the total send deadline fails.
+		 * @throws MailSubmissionException If submission fails or only partially succeeds; inspect its receipt for known recipient facts.
+		 * @see Async#sendMail(Email)
+		 */
+		@NotNull MailSubmissionReceipt sendMail(Email email);
+
+		/**
+		 * Sends emails sequentially over one shared SMTP connection, consuming the iterable lazily on the calling thread.
+		 * Each email follows {@link #sendMail(Email)} preparation and transport-mode rules. The first failure stops iteration;
+		 * connection/proxy cleanup finishes before the failure is thrown. An empty iterable opens no connection.
+		 * <p>
+		 * This is a streaming, completion-only operation: receipts are not collected or retained as batch history.
+		 * A configured {@link MailSendObserver} receives each attempted email's outcome while the shared connection is still open.
+		 * Untouched emails have no outcomes. The total timeout covers the whole batch, excluding inline observer work between emails.
+		 * <p>
+		 * For concurrent pooled sending, submit separate emails through {@link Async#sendMail(Email)} with the optional batch-module.
+		 * This simple batch intentionally sends one email at a time and does not borrow a pool lease.
+		 *
+		 * @param emails The lazy source of emails, in send order.
+		 * @throws IllegalArgumentException If {@code emails} is {@code null}.
+		 * @throws MailException If an email cannot be prepared/sent or the total batch deadline expires.
+		 * @see Async#sendMailsInSimpleBatch(Iterable)
+		 */
+		void sendMailsInSimpleBatch(Iterable<Email> emails);
+
+		/**
+		 * Connects to the configured SMTP server, including authentication and configured proxy routing, on the calling thread.
+		 * This health check also connects in logging-only mode. It sends no email and does not notify the mail-send observer.
+		 * Connection/proxy cleanup completes before returning or throwing. Provider connection/read timeouts apply, not total send deadlines.
+		 * Coordination uses the owning Mailer, shared with its asynchronous view and shutdown.
+		 *
+		 * @throws MailException If connecting or authenticating fails.
+		 * @see Async#testConnection()
+		 */
+		void testConnection();
+
 	}
 
 	/**
-	 * Schedules one email for asynchronous sending, independently of the mailer's configured async default.
-	 * <p>
-	 * The operation's {@link MailSend#getCompletion() completion} covers preparation, validation, scheduling, connection and submission.
-	 * Preparation and validation remain on the caller thread; scheduling may wait for queue capacity. Operational failures complete it exceptionally;
-	 * a {@code null} email remains an immediate contract violation.
-	 *
-	 * @param email The information for the email to be sent.
-	 * @return The send operation; use {@link MailSend#getCompletion()} to await or compose its completion.
-	 * @throws IllegalArgumentException If {@code email} is {@code null}.
+	 * Executor-backed operations on the owning Mailer. Accessing this view does not start work.
+	 * It shares configuration, admission policy, resources and lifecycle with the synchronous view.
 	 */
-	@NotNull
-	default MailSend<Void> sendMailAsync(Email email) {
-		return sendMail(email, true);
+	interface Async {
+		/**
+		 * Prepares one email on the caller thread and schedules its transport work on this Mailer's executor.
+		 * Preparation and validation stay on the caller thread; admission may wait according to the queue policy.
+		 * The completion covers preparation, admission, connection, submission and cleanup. Operational failures complete it exceptionally;
+		 * a null email is an immediate argument error. This method does not promise an immediate return.
+		 * <p>
+		 * Uses the same composed/exact-email processing and receipt semantics as {@link Sync#sendMail(Email)}.
+		 * The successful completion contains the exact receipt reported to the observer. Failed/partial submissions retain
+		 * {@link MailSubmissionException} and its receipt. Receipts describe SMTP submission, not mailbox delivery, and are optional to inspect.
+		 * <p>
+		 * An inline observer runs before completion; with an application executor only the observer handoff is attempted first.
+		 * Requesting cancellation through {@link MailSend#requestCancellation()} does not immediately complete the send:
+		 * cleanup and outcome reporting still run. Cancelling a detached completion future does not cancel sending.
+		 * With inline dispatch, preparation/admission failures report on the caller thread and executed tasks on their execution thread.
+		 * Cancelled or expired queued tasks report on this Mailer's completion worker; offloaded callbacks use the configured observer executor.
+		 *
+		 * @param email The email to prepare and send.
+		 * @return The send handle; its completion carries the exact receipt or caller-facing failure.
+		 * @throws IllegalArgumentException If {@code email} is {@code null}.
+		 * @see Sync#sendMail(Email)
+		 */
+		@NotNull MailSend<MailSubmissionReceipt> sendMail(Email email);
+
+		/**
+		 * Schedules a whole sequential simple batch as one task, returning a completion-only send handle.
+		 * Admission may wait according to the queue policy. Preparation and lazy iteration happen on the worker, not the caller.
+		 * Rejection or cancellation before execution does not open the iterable and produces no per-email outcomes.
+		 * <p>
+		 * Uses the shared-connection, first-failure and observer rules of {@link Sync#sendMailsInSimpleBatch(Iterable)}.
+		 * It does not make the batch itself concurrent and does not collect receipt history. Completion succeeds after all sends and cleanup,
+		 * or fails with the first failure after cleanup. Null is an immediate argument error; operational and scheduling failures are on completion.
+		 * <p>
+		 * Cancellation and the total timeout cover the whole batch, including admission; inline observer work is excluded from its deadline.
+		 * Untouched emails have no observer outcomes.
+		 *
+		 * @param emails The lazy source of emails, in send order.
+		 * @return One handle for the whole batch, without a receipt collection.
+		 * @throws IllegalArgumentException If {@code emails} is {@code null}.
+		 * @see Sync#sendMailsInSimpleBatch(Iterable)
+		 */
+		@NotNull MailSend<Void> sendMailsInSimpleBatch(Iterable<Email> emails);
+
+		/**
+		 * Schedules the SMTP health check described by {@link Sync#testConnection()} on this Mailer's executor.
+		 * Scheduling, connection and authentication failures complete the returned future exceptionally.
+		 * Completion follows connection/proxy cleanup; this is not a send operation and does not use observers or total send deadlines.
+		 * Cancelling the future does not abort socket I/O; configure provider connection/read timeouts.
+		 *
+		 * @return Completion of the full connection test, or its failure.
+		 */
+		@NotNull CompletableFuture<Void> testConnection();
+
 	}
-
-	/**
-	 * Sends one email on the calling thread and returns its provider-neutral submission receipt.
-	 * <p>
-	 * This method ignores the mailer's configured async default. It reports failed and partial submissions by throwing
-	 * {@link MailSubmissionException}, whose receipt contains the facts captured during the same attempt.
-	 *
-	 * @param email The information for the email to be sent.
-	 * @return The receipt for the completed submission.
-	 * @throws IllegalArgumentException If {@code email} is {@code null}.
-	 * @throws MailException If the email is invalid or another problem occurs during preparation, connection or sending.
-	 * @throws MailSubmissionException If transport submission fails or only partially succeeds.
-	 */
-	@NotNull
-	default MailSubmissionReceipt sendMailAndGetReceiptSync(Email email) {
-		return sendMailAndGetReceipt(email, false).getCompletion().join();
-	}
-
-	/**
-	 * Schedules one email for asynchronous sending and completes with its provider-neutral submission receipt.
-	 * <p>
-	 * This method ignores the mailer's configured async default. Failed and partial submissions complete the future exceptionally with
-	 * {@link MailSubmissionException}; a {@code null} email remains an immediate contract violation.
-	 *
-	 * @param email The information for the email to be sent.
-	 * @return The send operation; {@link MailSend#getCompletion()} carries its exact receipt or failure.
-	 * @throws IllegalArgumentException If {@code email} is {@code null}.
-	 */
-	@NotNull
-	default MailSend<MailSubmissionReceipt> sendMailAndGetReceiptAsync(Email email) {
-		return sendMailAndGetReceipt(email, true);
-	}
-
-	/**
-	 * Delegates to {@link #sendMail(Email, boolean)} using the mailer's configured async default.
-	 * <p>
-	 * Prefer {@link #sendMailSync(Email)} or {@link #sendMailAsync(Email)} when the execution mode should be visible at the call site.
-	 *
-	 * @return The send operation, whose completion is already successful if not <em>async</em>.
-	 * @see MailerGenericBuilder#async()
-	 */
-	@NotNull MailSend<Void> sendMail(Email email);
-
-	/**
-	 * Delegates to {@link #sendMailAndGetReceipt(Email, boolean)} using the mailer's configured async default.
-	 * <p>
-	 * Prefer {@link #sendMailAndGetReceiptSync(Email)} or {@link #sendMailAndGetReceiptAsync(Email)} when the execution mode should be visible at the
-	 * call site. The returned receipt describes the provider-neutral SMTP submission outcome, not final delivery to the recipient mailbox.
-	 *
-	 * @return The send operation, whose completion is already successful if not <em>async</em>.
-	 * @see MailerGenericBuilder#async()
-	 * @see MailSubmissionReceipt
-	 */
-	@NotNull
-	MailSend<MailSubmissionReceipt> sendMailAndGetReceipt(Email email);
-	
-	/**
-	 * Processes a composed {@link Email} into a completely configured {@link Message}: defaults and overrides are applied through
-	 * {@link EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)}, validation runs, and the governed content is rendered. An exact email
-	 * instead validates its explicit envelope and reuses its authoritative EML representation without content governance or rebuilding.
-	 * <p>
-	 * Connects the transport obtained from {@link Session#getTransport()} using the Session configuration. A matching transport adapter owns
-	 * provider-specific submission; ordinary provider-neutral messages can fall back to {@link Transport#sendMessage(Message, jakarta.mail.Address[])}.
-	 * <p>
-	 * Jakarta Mail can finalize ordinary composed messages through {@link Message#saveChanges()}. Exact EML and protected content use an explicit
-	 * preservation contract so provider finalization cannot invalidate authoritative bytes.
-	 * <p>
-	 * If the email should be sent asynchronously - perhaps as part of a batch, then a new thread is started using the <em>executor</em> for
-	 * thread pooling.
-	 * <p>
-	 * If the email should go through an authenticated proxy server, then the SOCKS proxy bridge is started if not already running. When the last
-	 * email in a batch has finished, the proxy bridging server is shut down.
-	 * <p>
-	 * Exact email follows the same asynchronous execution, pooling, proxy, receipt, and observer path. Its explicit SMTP envelope is used and a compatible
-	 * transport adapter submits the supplied EML bytes unchanged.
-	 *
-	 * @param email The information for the email to be sent.
-	 * @param async If false, this method blocks until sending completes. If true, preparation stays on the caller thread and the prepared send
-	 *              is scheduled on the executor; admission may wait according to the queue policy.
-	 * @return A send operation with successful completion when {@code async=false}; with {@code async=true}, its completion represents preparation,
-	 * validation, scheduling and sending, and retains operational failures.
-	 * @throws IllegalArgumentException If {@code email} is {@code null}.
-	 * @throws MailException If {@code async=false} and the email isn't valid, or another problem occurs during preparation, connection or sending.
-	 * @throws MailSubmissionException If {@code async=false} and transport submission fails. The exception retains the original Jakarta Mail failure
-	 * and any known accepted, valid-unsent and invalid recipient addresses. With {@code async=true}, it completes the future exceptionally instead.
-	 * @see java.util.concurrent.Executors#newFixedThreadPool(int)
-	 * @see #validate(Email)
-	 * @see #sendMailSync(Email)
-	 * @see #sendMailAsync(Email)
-	 */
-	@NotNull MailSend<Void> sendMail(Email email, @SuppressWarnings("SameParameterValue") boolean async);
-
-	/**
-	 * Processes and sends one {@link Email}, returning a receipt for the completed submission.
-	 * <p>
-	 * The send behavior is identical to {@link #sendMail(Email, boolean)}: defaults and overrides are applied, validation runs, MIME conversion happens,
-	 * and the message is submitted using the configured transport. The receipt reports provider-neutral acceptance status and immutable accepted,
-	 * valid-unsent and invalid recipient addresses. If the provider exposes a server response, such as {@code 250 ... queued as ...}, that response is
-	 * available separately. If no observable transport is involved, for example when transport mode logging-only or a custom mailer is used, the
-	 * receipt has status {@link MailSubmissionStatus#UNKNOWN}.
-	 * <p>
-	 * A failed or partial submission throws {@link MailSubmissionException} for synchronous sends, or completes the asynchronous future with that
-	 * exception. Its receipt exposes the same status and recipient groups while its cause remains the original Jakarta Mail exception. An
-	 * {@link MailSubmissionStatus#UNKNOWN} failure may already have reached the server; do not automatically retry it unless duplicate submission is
-	 * acceptable or otherwise prevented.
-	 * <p>
-	 * This is a submission receipt only. It does not prove final recipient mailbox delivery; use DSN, bounces, read receipts, or provider-specific
-	 * mechanisms for that.
-	 *
-	 * @param email The information for the email to be sent.
-	 * @param async If false, this method blocks until sending completes. If true, preparation and admission happen on the caller thread,
-	 *              and execution happens on the executor.
-	 * @return A send operation whose completion contains the receipt after success, or the exact failure after an asynchronous failure.
-	 * @throws IllegalArgumentException If {@code email} is {@code null}.
-	 * @throws MailException If {@code async=false} and the email isn't valid, or another problem occurs during preparation, connection or sending.
-	 * @throws MailSubmissionException If {@code async=false} and transport submission fails. With {@code async=true}, it completes the future
-	 * exceptionally instead.
-	 * @see SmtpServerResponse
-	 * @see MailSubmissionStatus
-	 * @see MailSubmissionException
-	 * @see #sendMail(Email, boolean)
-	 * @see #sendMailAndGetReceiptSync(Email)
-	 * @see #sendMailAndGetReceiptAsync(Email)
-	 */
-	@NotNull
-	MailSend<MailSubmissionReceipt> sendMailAndGetReceipt(Email email, boolean async);
 
 	/**
 	 * Runs caller-managed send logic while one SMTP connection is open.
@@ -254,7 +211,7 @@ public interface Mailer extends AutoCloseable {
 	 * }</pre>
 	 * Simple Java Mail owns the SMTP connection and closes it when the callback returns or fails. The delegate does <strong>not</strong> use the
 	 * batch-module connection pool, does not queue emails, and does not run asynchronously. Each {@link MailSender#sendMail(Email)} call
-	 * applies the same defaults, validation, MIME conversion, and transport mode behavior as {@link #sendMailSync(Email)}.
+	 * applies the same defaults, validation, MIME conversion, and transport mode behavior as {@link Sync#sendMail(Email)}.
 	 * Use {@link MailSender#sendMailAndGetReceipt(Email)} inside the callback when caller code needs the SMTP submission receipt before checkpointing.
 	 * A custom mailer cannot be used with this API because Simple Java Mail does not own the underlying connection in that configuration.
 	 * A configured total timeout applies separately to opening the connection and to each send, not to application work between sends or final scope cleanup.
@@ -265,41 +222,6 @@ public interface Mailer extends AutoCloseable {
 	 * @throws MailException Can be thrown if opening the SMTP connection fails, an email isn't valid, or sending fails.
 	 */
 	<E extends Exception> void withOpenConnection(@NotNull OpenConnectionCallback<E> openConnectionCallback) throws E;
-
-	/**
-	 * Delegates to {@link #sendMailsInSimpleBatch(Iterable, boolean)} using the mailer's configured async default.
-	 *
-	 * @see MailerGenericBuilder#async()
-	 */
-	@NotNull MailSend<Void> sendMailsInSimpleBatch(Iterable<Email> emails);
-
-	/**
-	 * Sends multiple emails sequentially over one SMTP connection.
-	 * <p>
-	 * This is a deliberately small "simple batch" API for caller-managed loops where the caller already owns the source queue or iteration and only
-	 * wants to avoid reconnecting for every message. It is <strong>not</strong> the main batch sending API. For queued sending, pooled SMTP
-	 * connections, concurrency, asynchronous queueing, cluster coordination, or higher throughput workloads, use the
-	 * <a href="https://www.simplejavamail.org/modules.html#batch-module">batch-module</a> instead.
-	 * <p>
-	 * Each {@link Email} is processed exactly like {@link #sendMail(Email, boolean)}, including that method's exact-email behavior. The method stops at
-	 * the first failure and closes the SMTP connection and proxy bridge before propagating the exception, or completing the returned future exceptionally
-	 * when {@code async} is {@code true}.
-	 * <p>
-	 * The {@code async} flag applies only to this immediate {@link Mailer} API call: {@code false} blocks the caller while the simple batch runs,
-	 * {@code true} schedules the whole simple batch as one asynchronous task and returns immediately. It does <strong>not</strong> make the simple
-	 * batch itself concurrent; emails are still sent one at a time over one SMTP connection.
-	 * A total timeout and {@link MailSend#requestCancellation()} apply to the whole batch, including queue admission. Inline observer work between
-	 * emails is excluded from its deadline. Cancellation before execution never opens the iterable; untouched emails have no observer outcomes.
-	 *
-	 * @param emails The emails to send in order.
-	 * @param async  If false, this method blocks until all emails have been processed by the SMTP server. If true, a new task is started for the whole
-	 *               sequential simple batch and this method returns immediately.
-	 * @return One send operation for the complete batch. Its completion succeeds after all emails, or retains an asynchronous failure.
-	 * @throws IllegalArgumentException If {@code emails} is {@code null}.
-	 * @throws MailException If {@code async=false} and an email isn't valid, or another problem occurs during preparation, connection or sending.
-	 * @see #sendMail(Email, boolean)
-	 */
-	@NotNull MailSend<Void> sendMailsInSimpleBatch(Iterable<Email> emails, boolean async);
 
 	/**
 	 * Prepares the supplied {@link Email} through this mailer's normal send-time pipeline without opening an SMTP connection.

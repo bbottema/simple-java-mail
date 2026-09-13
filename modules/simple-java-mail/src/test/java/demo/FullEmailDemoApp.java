@@ -37,9 +37,9 @@ public class FullEmailDemoApp extends DemoAppBase {
 		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailNormal);
 		Email emailFromMimeMessage = EmailConverter.mimeMessageToEmail(mimeMessage);
 
-		mailerTLSBuilder.buildMailer().sendMail(emailNormal);
-		mailerSSLBuilder.buildMailer().sendMail(emailNormal);
-		mailerTLSBuilder.buildMailer().sendMail(emailFromMimeMessage); // should produce the exact same result as emailPopulatingBuilderNormal!
+		mailerTLSBuilder.buildMailer().sync().sendMail(emailNormal);
+		mailerSSLBuilder.buildMailer().sync().sendMail(emailNormal);
+		mailerTLSBuilder.buildMailer().sync().sendMail(emailFromMimeMessage); // should produce the exact same result as emailPopulatingBuilderNormal!
 	}
 
 	static Email produceMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailersEmail() throws IOException {

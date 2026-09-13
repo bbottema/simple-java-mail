@@ -56,7 +56,7 @@ class MailSendObserverTest {
 				.withMailSendObserver(outcome -> replacedObserverCalls.incrementAndGet())
 				.withMailSendObserver(outcomes::add)
 				.buildMailer()) {
-			mailer.sendMailSync(completeEmail("builder-observer@example.org", "builder observer"));
+			mailer.sync().sendMail(completeEmail("builder-observer@example.org", "builder observer"));
 		}
 
 		assertThat(replacedObserverCalls).hasValue(0);
@@ -88,7 +88,7 @@ class MailSendObserverTest {
 					outcomes.add(outcome);
 				})
 				.buildMailer()) {
-			submissionReceipt = mailer.sendMailAndGetReceiptSync(email);
+			submissionReceipt = mailer.sync().sendMail(email);
 			assertThat(outcomes).as("The observer runs before the synchronous call returns").hasSize(1);
 		}
 
@@ -117,7 +117,7 @@ class MailSendObserverTest {
 					completionOrder.add("observer");
 				})
 				.buildMailer()) {
-			final CompletableFuture<MailSubmissionReceipt> send = mailer.sendMailAndGetReceiptAsync(
+			final CompletableFuture<MailSubmissionReceipt> send = mailer.async().sendMail(
 					completeEmail("async-observer@example.org", "async observer")).getCompletion();
 			assertThat(customMailer.awaitSendStarted()).isTrue();
 			send.whenComplete((receipt, failure) -> completionOrder.add("future"));
@@ -141,11 +141,11 @@ class MailSendObserverTest {
 		try (Mailer mailer = mailerBuilder(new SuccessfulCustomMailer())
 				.withMailSendObserver(outcomes::add)
 				.buildMailer()) {
-			final RuntimeException synchronousFailure = synchronousFailure(() -> mailer.sendMailSync(incompleteEmail));
+			final RuntimeException synchronousFailure = synchronousFailure(() -> mailer.sync().sendMail(incompleteEmail));
 			assertPreparationFailure(outcomes.get(0), synchronousFailure);
 
 			outcomes.clear();
-			final CompletableFuture<Void> asynchronousSend = mailer.sendMailAsync(incompleteEmail).getCompletion();
+			final CompletableFuture<MailSubmissionReceipt> asynchronousSend = mailer.async().sendMail(incompleteEmail).getCompletion();
 			final Throwable asynchronousFailure = futureFailure(asynchronousSend);
 			assertPreparationFailure(outcomes.get(0), asynchronousFailure);
 		}
@@ -165,7 +165,7 @@ class MailSendObserverTest {
 				})
 				.buildMailer()) {
 			executorService.shutdown();
-			final Throwable schedulingFailure = futureFailure(mailer.sendMailAsync(
+			final Throwable schedulingFailure = futureFailure(mailer.async().sendMail(
 					completeEmail("scheduling-failure@example.org", "scheduling failure")).getCompletion());
 			assertThat(outcomes).hasSize(1);
 			final MailSendOutcome outcome = outcomes.get(0);
@@ -178,7 +178,7 @@ class MailSendObserverTest {
 			outcomes.clear();
 			final CountingIterable emails = new CountingIterable(
 					Collections.singletonList(completeEmail("lazy-batch@example.org", "lazy batch")));
-			futureFailure(mailer.sendMailsInSimpleBatch(emails, true).getCompletion());
+			futureFailure(mailer.async().sendMailsInSimpleBatch(emails).getCompletion());
 			assertThat(emails.iteratorCalls).hasValue(0);
 			assertThat(outcomes).isEmpty();
 		} finally {
@@ -194,7 +194,7 @@ class MailSendObserverTest {
 				.withTransportModeLoggingOnly(true)
 				.withMailSendObserver(outcomes::add)
 				.buildMailer()) {
-			mailer.sendMailSync(completeEmail("logging-only@example.org", "logging only"));
+			mailer.sync().sendMail(completeEmail("logging-only@example.org", "logging only"));
 		}
 
 		assertThat(outcomes).singleElement().satisfies(outcome -> {
@@ -227,8 +227,8 @@ class MailSendObserverTest {
 					throw new IllegalStateException("observer unavailable");
 				})
 				.buildMailer()) {
-			mailer.sendMailAndGetReceiptSync(completeEmail("observer-failure-sync@example.org", "sync observer failure"));
-			mailer.sendMailAndGetReceiptAsync(completeEmail("observer-failure-async@example.org", "async observer failure")).getCompletion()
+			mailer.sync().sendMail(completeEmail("observer-failure-sync@example.org", "sync observer failure"));
+			mailer.async().sendMail(completeEmail("observer-failure-async@example.org", "async observer failure")).getCompletion()
 					.get(5, TimeUnit.SECONDS);
 		}
 
@@ -249,7 +249,7 @@ class MailSendObserverTest {
 				.withMailSendObserver(outcomes::add)
 				.buildMailer()) {
 			final RuntimeException batchFailure = synchronousFailure(() ->
-					mailer.sendMailsInSimpleBatch(Arrays.asList(first, invalid, untouched), false));
+					mailer.sync().sendMailsInSimpleBatch(Arrays.asList(first, invalid, untouched)));
 
 			assertThat(outcomes).hasSize(2);
 			assertThat(outcomes.get(0).isSuccessful()).isTrue();

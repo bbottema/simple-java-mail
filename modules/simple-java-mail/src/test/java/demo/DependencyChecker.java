@@ -43,7 +43,7 @@ public class DependencyChecker extends DemoAppBase {
                     mailerTLSBuilder
                             .withDebugLogging(false)
                             .buildMailer()
-                            .sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+                            .sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
                                     .from("Dependency Checker", "no-reply@dependency-checker.com")
                                     .withRecipients(new RecipientBuilder()
                                             .withAddress(YOUR_GMAIL_ADDRESS)

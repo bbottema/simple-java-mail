@@ -61,11 +61,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private final SimpleJavaMailConfig config;
 
 	/**
-	 * @see MailerGenericBuilder#async()
-	 */
-	private boolean async;
-
-	/**
 	 * @see MailerGenericBuilder#withProxyHost(String)
 	 */
 	private String proxyHost;
@@ -387,7 +382,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 			throw new IllegalArgumentException("Configure queue capacity and overflow on the caller-owned executor; built-in async queue settings cannot be combined with withExecutorService");
 		}
 		return new OperationalConfigImpl(
-				isAsync(),
 				getProperties(),
 				getSessionTimeout(),
 				getLocalBindAddress(),
@@ -414,15 +408,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getCustomMailer(),
 				getOAuth2AccessTokenProvider(),
 				getAsyncQueueConfig(), getMailSendTimeout());
-	}
-
-	/**
-	 * @see MailerGenericBuilder#async()
-	 */
-	@Override
-	public T async() {
-		this.async = true;
-		return (T) this;
 	}
 
 	/**
@@ -1106,14 +1091,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public T clearProperties() {
 		properties.clear();
 		return (T) this;
-	}
-
-	/**
-	 * @see MailerGenericBuilder#isAsync()
-	 */
-	@Override
-	public boolean isAsync() {
-		return async;
 	}
 
 	/**

@@ -30,13 +30,6 @@ import java.util.concurrent.ExecutorService;
 class OperationalConfigImpl implements OperationalConfig {
 
 	/**
-	 * Can be overridden when calling {@code mailer.send(async = true)}.
-	 *
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#async()
-	 */
-	private final boolean async;
-
-	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Properties)
 	 */
 	private final Properties properties;

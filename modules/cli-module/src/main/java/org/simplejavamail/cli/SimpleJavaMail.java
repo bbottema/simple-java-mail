@@ -6,7 +6,7 @@ import org.simplejavamail.internal.clisupport.daemon.DaemonBootstrap;
  * Entry class when using the command line interface. Wires all the args into the CLI support.
  * <p>
  * For CLI usage help, simply add the {@code --help} flag or add it to any available option, like so: <br>
- * <strong>{@code sjm send --mailer:async--help}</strong>.
+ * <strong>{@code sjm send --mailer:withSMTPServer--help}</strong>.
  *
  * @see <a href="https://www.simplejavamail.org/modules.html#cli-module">More about the CLI module</a>
  * @see <a href="https://www.simplejavamail.org/cli.html#navigation">How to use simple Java Mail CLI</a>

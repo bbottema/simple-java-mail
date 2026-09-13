@@ -4,13 +4,11 @@ import jakarta.mail.Header;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import lombok.SneakyThrows;
-import lombok.val;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
-import org.apache.poi.ss.formula.functions.T;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +18,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
@@ -30,11 +29,8 @@ import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
 import java.io.ByteArrayInputStream;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -63,7 +59,6 @@ public class ResultHandlingTest {
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnSuccessHandler() throws Exception {
 		emailSentSuccesfullyShouldInvokeOnSuccessHandler(sendAsyncMailUsingMailerAPI(true));
-		emailSentSuccesfullyShouldInvokeOnSuccessHandler(sendAsyncMailUsingMailerBuilderAPI(true));
 	}
 
 	@Test
@@ -98,9 +93,7 @@ public class ResultHandlingTest {
 					.withPlainText("")
 					.buildEmail();
 
-			final CompletableFuture<Void> f = mailer.sendMail(dkimMail).getCompletion();
-
-			f.get();
+			mailer.sync().sendMail(dkimMail);
 
 			System.out.println("-----------------------");
 			System.out.println("Headers:");
@@ -115,12 +108,12 @@ public class ResultHandlingTest {
         }
 	}
 
-	private void emailSentSuccesfullyShouldInvokeOnSuccessHandler(CompletableFuture<Void> f) throws InterruptedException, ExecutionException {
+	private void emailSentSuccesfullyShouldInvokeOnSuccessHandler(CompletableFuture<?> f) throws InterruptedException, ExecutionException {
 		// set handlers, then wait for result
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
 
-		CompletableFuture<Void> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		CompletableFuture<?> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
 		handledFuture.get();
 
 		assertThat(successHandlerInvoked).hasValue(true);
@@ -130,16 +123,15 @@ public class ResultHandlingTest {
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay() throws Exception {
 		emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(sendAsyncMailUsingMailerAPI(true));
-		emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(sendAsyncMailUsingMailerBuilderAPI(true));
 	}
 
-	private void emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(CompletableFuture<Void> f) throws InterruptedException, ExecutionException {
+	private void emailSentSuccesfullyShouldInvokeOnSuccessHandlerAfterDelay(CompletableFuture<?> f) throws InterruptedException, ExecutionException {
 		// wait for result, then set handlers
 		f.get();
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
 
-		CompletableFuture<Void> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		CompletableFuture<?> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
 		handledFuture.get();
 
 		assertThat(successHandlerInvoked).hasValue(true);
@@ -149,15 +141,14 @@ public class ResultHandlingTest {
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnExceptionHandler() {
 		emailSentSuccesfullyShouldInvokeOnExceptionHandler(sendAsyncMailUsingMailerAPI(false));
-		emailSentSuccesfullyShouldInvokeOnExceptionHandler(sendAsyncMailUsingMailerBuilderAPI(false));
 	}
 
-	private void emailSentSuccesfullyShouldInvokeOnExceptionHandler(CompletableFuture<Void> f) {
+	private void emailSentSuccesfullyShouldInvokeOnExceptionHandler(CompletableFuture<?> f) {
 		// set handlers, then wait for result
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
 
-		CompletableFuture<Void> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		CompletableFuture<?> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
 
 		try {
 			handledFuture.get();
@@ -171,7 +162,7 @@ public class ResultHandlingTest {
 
 	@Test
 	public void emailSentSuccesfullyShouldInvokeOnExceptionHandlerAfterDelay() {
-		CompletableFuture<Void> f = sendAsyncMailUsingMailerAPI(false);
+		CompletableFuture<?> f = sendAsyncMailUsingMailerAPI(false);
 
 		// wait for result, then set handlers
 		try {
@@ -182,7 +173,7 @@ public class ResultHandlingTest {
 		final AtomicReference<Boolean> successHandlerInvoked = new AtomicReference<>(false);
 		final AtomicReference<Boolean> exceptionHandlerInvoked = new AtomicReference<>(false);
 
-		CompletableFuture<Void> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
+		CompletableFuture<?> handledFuture = f.whenComplete((unused, e) -> (e != null ? exceptionHandlerInvoked : successHandlerInvoked).set(true));
 		try {
 			handledFuture.get();
 		} catch (Exception e) {
@@ -196,7 +187,7 @@ public class ResultHandlingTest {
 	@Test
 	public void asyncSendFailureShouldCompleteFutureWithoutFrameworkErrorLog() {
 		try (ErrorLogCaptor errorLogCaptor = ErrorLogCaptor.forLogger(NamedRunnable.class.getName())) {
-			final CompletableFuture<Void> f = sendAsyncMailUsingMailerAPI(false);
+			final CompletableFuture<?> f = sendAsyncMailUsingMailerAPI(false);
 
 			assertThatThrownBy(f::get).isInstanceOf(ExecutionException.class);
 
@@ -210,7 +201,7 @@ public class ResultHandlingTest {
 			 ErrorLogCaptor errorLogCaptor = ErrorLogCaptor.forLogger(NamedRunnable.class.getName())) {
 			moduleLoaderMockedStatic.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
 
-			final CompletableFuture<Void> f = sendAsyncMailUsingMailerAPI(false);
+			final CompletableFuture<?> f = sendAsyncMailUsingMailerAPI(false);
 
 			assertThatThrownBy(f::get).isInstanceOf(ExecutionException.class);
 			assertThat(errorLogCaptor.errorEvents()).isEmpty();
@@ -226,10 +217,10 @@ public class ResultHandlingTest {
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(true))
 				.buildMailer()) {
-			assertThatThrownBy(() -> mailer.sendMail(incompleteEmail, false))
+			assertThatThrownBy(() -> mailer.sync().sendMail(incompleteEmail))
 					.isInstanceOf(MailCompletenessException.class);
 
-			final CompletableFuture<Void> asyncResult = mailer.sendMail(incompleteEmail, true).getCompletion();
+			final CompletableFuture<?> asyncResult = mailer.async().sendMail(incompleteEmail).getCompletion();
 			assertThat(asyncResult).isCompletedExceptionally();
 			assertThatThrownBy(asyncResult::get)
 					.isInstanceOf(ExecutionException.class)
@@ -238,50 +229,17 @@ public class ResultHandlingTest {
 	}
 
 	@Test
-	public void explicitSynchronousMethodsShouldIgnoreAsyncMailerDefault() throws Exception {
-		final Email incompleteEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail();
-
-		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-				.withSMTPServer("localhost", 0)
-				.withCustomMailer(new MySimulatingMailer(true))
-				.async()
-				.buildMailer()) {
-			assertThatThrownBy(() -> mailer.sendMailSync(incompleteEmail))
-					.isInstanceOf(MailCompletenessException.class);
-			assertThatThrownBy(() -> mailer.sendMailAndGetReceiptSync(incompleteEmail))
-					.isInstanceOf(MailCompletenessException.class);
-		}
-	}
-
-	@Test
-	public void explicitAsynchronousMethodsShouldIgnoreSynchronousMailerDefault() throws Exception {
-		final Email incompleteEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail();
-
-		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-				.withSMTPServer("localhost", 0)
-				.withCustomMailer(new MySimulatingMailer(true))
-				.buildMailer()) {
-			assertValidationFailure(mailer.sendMailAsync(incompleteEmail).getCompletion());
-			assertValidationFailure(mailer.sendMailAndGetReceiptAsync(incompleteEmail).getCompletion());
-		}
-	}
-
-	@Test
-	public void explicitSynchronousMethodsShouldBlockDespiteAsyncMailerDefault() throws Exception {
-		assertExplicitSynchronousMethodBlocks((mailer, email) -> mailer.sendMailSync(email));
-		assertExplicitSynchronousMethodBlocks((mailer, email) -> mailer.sendMailAndGetReceiptSync(email));
-	}
-
-	private void assertExplicitSynchronousMethodBlocks(final SynchronousSend synchronousSend) throws Exception {
+	public void synchronousViewShouldBlockUntilSendingFinishes() throws Exception {
 		final BlockingSendMailer blockingMailer = new BlockingSendMailer();
 		final ExecutorService caller = Executors.newSingleThreadExecutor();
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(blockingMailer)
-				.async()
 				.buildMailer()) {
 			try {
-				final Future<?> invocation = caller.submit(() -> synchronousSend.send(mailer, createCompleteEmail()));
+				final Future<?> invocation = caller.submit(() -> {
+					mailer.sync().sendMail(createCompleteEmail()); // deliberately ignore the receipt
+				});
 				assertThat(blockingMailer.awaitSendStarted()).isTrue();
 				assertThat(invocation.isDone()).isFalse();
 				blockingMailer.releaseSend();
@@ -295,12 +253,7 @@ public class ResultHandlingTest {
 	}
 
 	@Test
-	public void explicitAsynchronousMethodsShouldReturnBeforeCompletionDespiteSynchronousMailerDefault() throws Exception {
-		assertExplicitAsynchronousMethodReturnsBeforeCompletion((mailer, email) -> mailer.sendMailAsync(email).getCompletion());
-		assertExplicitAsynchronousMethodReturnsBeforeCompletion((mailer, email) -> mailer.sendMailAndGetReceiptAsync(email).getCompletion());
-	}
-
-	private void assertExplicitAsynchronousMethodReturnsBeforeCompletion(final AsynchronousSend asynchronousSend) throws Exception {
+	public void asynchronousViewShouldReturnBeforeSendingFinishes() throws Exception {
 		final BlockingSendMailer blockingMailer = new BlockingSendMailer();
 		final ExecutorService caller = Executors.newSingleThreadExecutor();
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
@@ -308,7 +261,7 @@ public class ResultHandlingTest {
 				.withCustomMailer(blockingMailer)
 				.buildMailer()) {
 			try {
-				final Future<CompletableFuture<?>> invocation = caller.submit(() -> asynchronousSend.send(mailer, createCompleteEmail()));
+				final Future<CompletableFuture<?>> invocation = caller.submit(() -> mailer.async().sendMail(createCompleteEmail()).getCompletion());
 				assertThat(blockingMailer.awaitSendStarted()).isTrue();
 				final CompletableFuture<?> sendResult = invocation.get(250, TimeUnit.MILLISECONDS);
 				assertThat(sendResult.isDone()).isFalse();
@@ -322,32 +275,16 @@ public class ResultHandlingTest {
 		}
 	}
 
-	private void assertValidationFailure(final CompletableFuture<?> asyncResult) {
-		assertThat(asyncResult).isCompletedExceptionally();
-		assertThatThrownBy(asyncResult::get)
-				.isInstanceOf(ExecutionException.class)
-				.hasCauseInstanceOf(MailCompletenessException.class);
-	}
-
 	@Test
 	public void nullEmailShouldRemainAnImmediateContractViolation() throws Exception {
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(true))
 				.buildMailer()) {
-			assertThatThrownBy(() -> mailer.sendMail(null, true))
+			assertThatThrownBy(() -> mailer.async().sendMail(null))
 					.isInstanceOf(IllegalArgumentException.class)
 					.hasMessageContaining("nonNull");
-			assertThatThrownBy(() -> mailer.sendMailSync(null))
-					.isInstanceOf(IllegalArgumentException.class)
-					.hasMessageContaining("nonNull");
-			assertThatThrownBy(() -> mailer.sendMailAsync(null))
-					.isInstanceOf(IllegalArgumentException.class)
-					.hasMessageContaining("nonNull");
-			assertThatThrownBy(() -> mailer.sendMailAndGetReceiptSync(null))
-					.isInstanceOf(IllegalArgumentException.class)
-					.hasMessageContaining("nonNull");
-			assertThatThrownBy(() -> mailer.sendMailAndGetReceiptAsync(null))
+			assertThatThrownBy(() -> mailer.sync().sendMail(null))
 					.isInstanceOf(IllegalArgumentException.class)
 					.hasMessageContaining("nonNull");
 		}
@@ -368,12 +305,9 @@ public class ResultHandlingTest {
 					.withPlainText("")
 					.buildEmail();
 
-			assertSchedulingFailure(mailer.sendMail(email, true).getCompletion());
-			assertSchedulingFailure(mailer.sendMailAndGetReceipt(email, true).getCompletion());
-			assertSchedulingFailure(mailer.sendMailAsync(email).getCompletion());
-			assertSchedulingFailure(mailer.sendMailAndGetReceiptAsync(email).getCompletion());
-			assertSchedulingFailure(mailer.sendMailsInSimpleBatch(Collections.singletonList(email), true).getCompletion());
-			assertThatThrownBy(() -> mailer.testConnection(true).get())
+			assertSchedulingFailure(mailer.async().sendMail(email).getCompletion());
+			assertSchedulingFailure(mailer.async().sendMailsInSimpleBatch(Collections.singletonList(email)).getCompletion());
+			assertThatThrownBy(() -> mailer.async().testConnection().get())
 					.isInstanceOf(ExecutionException.class)
 					.hasCauseInstanceOf(IllegalArgumentException.class)
 					.hasRootCauseMessage("cannot send async email, executor service is already shut down!");
@@ -395,9 +329,8 @@ public class ResultHandlingTest {
 			 Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					 .withSMTPServer("localhost", 0)
 					 .withCustomMailer(new FailingConnectionTestMailer())
-					 .async()
 					 .buildMailer()) {
-			final CompletableFuture<Void> f = mailer.testConnection(true);
+			final CompletableFuture<?> f = mailer.async().testConnection();
 
 			assertThatThrownBy(f::get).isInstanceOf(ExecutionException.class);
 
@@ -406,15 +339,14 @@ public class ResultHandlingTest {
 	}
 
 	@Test
-	public void testConnectionShouldUseBuilderAsyncDefault() throws Exception {
+	public void asynchronousViewShouldReturnBeforeConnectionTestingFinishes() throws Exception {
 		final BlockingTestConnectionMailer blockingMailer = new BlockingTestConnectionMailer();
 		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(blockingMailer)
-				.async()
 				.buildMailer();
 
-		assertNoArgTestConnectionReturnsBeforeCustomConnectionTestCompletes(mailer, blockingMailer);
+		assertAsyncTestConnectionReturnsBeforeCustomConnectionTestCompletes(mailer, blockingMailer);
 	}
 
 	@Test
@@ -426,16 +358,15 @@ public class ResultHandlingTest {
 			final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServer("localhost", 0)
 					.withCustomMailer(blockingMailer)
-					.async()
 					.buildMailer();
 
-			assertNoArgTestConnectionReturnsBeforeCustomConnectionTestCompletes(mailer, blockingMailer);
+			assertAsyncTestConnectionReturnsBeforeCustomConnectionTestCompletes(mailer, blockingMailer);
 
 			moduleLoaderMockedStatic.verify(ModuleLoader::loadBatchModule, never());
 		}
 	}
 
-	private void assertNoArgTestConnectionReturnsBeforeCustomConnectionTestCompletes(final Mailer mailer, final BlockingTestConnectionMailer blockingMailer) throws Exception {
+	private void assertAsyncTestConnectionReturnsBeforeCustomConnectionTestCompletes(final Mailer mailer, final BlockingTestConnectionMailer blockingMailer) throws Exception {
 		final ExecutorService caller = Executors.newSingleThreadExecutor();
 		Future<?> testConnectionCall = null;
 
@@ -443,7 +374,7 @@ public class ResultHandlingTest {
 			testConnectionCall = caller.submit(new Runnable() {
 				@Override
 				public void run() {
-					mailer.testConnection();
+					mailer.async().testConnection();
 				}
 			});
 
@@ -460,20 +391,11 @@ public class ResultHandlingTest {
 	}
 
 	@NotNull
-	private CompletableFuture<Void> sendAsyncMailUsingMailerAPI(boolean sendSuccesfully) {
+	private CompletableFuture<MailSubmissionReceipt> sendAsyncMailUsingMailerAPI(boolean sendSuccesfully) {
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
-				.buildMailer().sendMailAsync(createCompleteEmail()).getCompletion();
-	}
-
-	@NotNull
-	private CompletableFuture<Void> sendAsyncMailUsingMailerBuilderAPI(boolean sendSuccesfully) {
-		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-				.withSMTPServer("localhost", 0)
-				.withCustomMailer(new MySimulatingMailer(sendSuccesfully))
-				.async()
-				.buildMailer().sendMail(createCompleteEmail()).getCompletion();
+				.buildMailer().async().sendMail(createCompleteEmail()).getCompletion();
 	}
 
 	@NotNull
@@ -483,16 +405,6 @@ public class ResultHandlingTest {
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withPlainText("")
 				.buildEmail();
-	}
-
-	@FunctionalInterface
-	private interface SynchronousSend {
-		void send(Mailer mailer, Email email);
-	}
-
-	@FunctionalInterface
-	private interface AsynchronousSend {
-		CompletableFuture<?> send(Mailer mailer, Email email);
 	}
 
 	private static class MySimulatingMailer implements CustomMailer {

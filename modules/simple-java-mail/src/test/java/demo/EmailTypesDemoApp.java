@@ -3,12 +3,12 @@ package demo;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.ModuleLoaderTestHelper;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 
 import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,7 +40,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	}
 
 	private static void testSimplePlainText(Mailer mailerTLS) {
-		final CompletableFuture<Void> result = mailerTLS.sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+		final MailSubmissionReceipt result = mailerTLS.sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - simple (using plain text)")
@@ -51,13 +51,13 @@ public class EmailTypesDemoApp extends DemoAppBase {
 						"Formal structure:\n" +
 						"- plain text (root)")
 				.clearHTMLText()
-				.buildEmail()).getCompletion();
+				.buildEmail());
 
-		assertThat(result).isCompleted();
+		assertThat(result).isNotNull();
 	}
 
 	private static void testSimpleHTMLText(Mailer mailerTLS) {
-		mailerTLS.sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+		mailerTLS.sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - simple (using HTML text)")
@@ -72,7 +72,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	}
 
 	private static void testMixed(Mailer mailerTLS) throws IOException {
-		mailerTLS.sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+		mailerTLS.sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - mixed")
@@ -88,7 +88,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 
 	private static void testRelated(Mailer mailerTLS) {
 		// makes it related
-		mailerTLS.sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+		mailerTLS.sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - related")
@@ -107,7 +107,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	}
 
 	private static void testAlternative(Mailer mailerTLS) {
-		mailerTLS.sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+		mailerTLS.sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - alternative")
@@ -125,7 +125,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	}
 
 	private static void testMixedRelated(Mailer mailerTLS) throws IOException {
-		mailerTLS.sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+		mailerTLS.sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - mixed + related")
@@ -148,7 +148,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	}
 
 	private static void testMixedAlternative(Mailer mailerTLS) throws IOException {
-		mailerTLS.sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+		mailerTLS.sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - mixed + alternative")
@@ -171,7 +171,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	}
 
 	private static void testRelatedAlternative(Mailer mailerTLS) {
-		mailerTLS.sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+		mailerTLS.sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - related + alternative")
@@ -194,7 +194,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	}
 
 	private static void testMixedRelatedAlternative(Mailer mailerTLS) throws IOException {
-		mailerTLS.sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+		mailerTLS.sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.withRecipients(demoRecipient())
 				.from("Simple Java Mail demo", "simplejavamail@demo.app")
 				.withSubject("Demo email - mixed + related + alternative")

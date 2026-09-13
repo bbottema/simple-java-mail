@@ -175,7 +175,7 @@ public class SessionBasedEmailToMimeMessageConverter {
     private MimeMessage convertAndLogMimeMessage(final Email email) throws MessagingException {
         val message = convertMimeMessage(email, session);
 
-        SessionLogger.logSession(session, operationalConfig.isAsync(), "mail");
+        SessionLogger.logSession(session, "mail");
 
         if (message.getMessageID() != null) {
             //noinspection deprecation

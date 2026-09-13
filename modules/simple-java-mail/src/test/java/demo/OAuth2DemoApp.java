@@ -16,6 +16,6 @@ public class OAuth2DemoApp extends DemoAppBase {
 	public static void main(final String[] args) throws IOException {
 		Email email = FullEmailDemoApp.produceMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailersEmail();
 
-		mailerOAuth2Builder.buildMailer().sendMail(email);
+		mailerOAuth2Builder.buildMailer().sync().sendMail(email);
 	}
 }

@@ -4,6 +4,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSend;
 import org.simplejavamail.api.mailer.MailSendOutcome;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ public final class MailSendExecutionDemoApp extends DemoAppBase {
         }, observations).buildMailer()) {
             final List<CompletableFuture<Void>> completions = new ArrayList<>();
             for (int number = 1; number <= EMAIL_COUNT; number++) {
-                final MailSend<Void> send = mailer.sendMailAsync(email(number));
+                final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email(number));
                 if (number == EMAIL_COUNT) {
                     send.requestCancellation();
                 }

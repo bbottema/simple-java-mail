@@ -7,15 +7,12 @@ import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedOptionData;
-import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.slf4j.Logger;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import static java.lang.String.format;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -51,7 +48,7 @@ class CliCommandLineConsumerResultHandler {
 		final CliMailerProfile profile = CliMailerProfile.create(environment.config(), receivedOptions, profileKey,
 				environment.configurationWorkingDirectory());
 		try (MailerProvider.Lease lease = environment.mailerProvider().acquire(profile, mailerBuilder::buildMailer)) {
-			awaitCompletion(lease.mailer().sendMail(email).getCompletion(), "sending email");
+			lease.mailer().sync().sendMail(email);
 		}
 	}
 
@@ -62,8 +59,7 @@ class CliCommandLineConsumerResultHandler {
 		final CliMailerProfile profile = CliMailerProfile.create(environment.config(), receivedOptions, profileKey,
 				environment.configurationWorkingDirectory());
 		try (MailerProvider.Lease lease = environment.mailerProvider().acquire(profile, mailerBuilder::buildMailer)) {
-			final Mailer mailer = lease.mailer();
-			awaitCompletion(mailer.testConnection(mailer.getOperationalConfig().isAsync()), "testing connection");
+			lease.mailer().sync().testConnection();
 		}
 	}
 
@@ -92,17 +88,6 @@ class CliCommandLineConsumerResultHandler {
 		throw new CliExecutionException(
 				"The selected email options did not produce a completable email builder",
 				new IllegalStateException("Unsupported email builder: " + selectedEmailBuilder.getClass().getName()));
-	}
-
-	private static void awaitCompletion(@NotNull final Future<Void> future, final String activity) {
-		try {
-			future.get();
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new CliExecutionException("Interrupted while " + activity, e);
-		} catch (ExecutionException e) {
-			throw new CliExecutionException("Error while " + activity, e);
-		}
 	}
 
 	@SuppressWarnings("unchecked")

@@ -133,7 +133,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 				new Class<?>[] {MailerRegularBuilder.class, MailerFromSessionBuilder.class});
 		assertThat(options).extracting(CliDeclaredOptionSpec::getName)
 				.contains("--mailer:withAsyncQueueCapacity", "--mailer:withAsyncQueueOverflowPolicy", "--mailer:withAsyncQueueWaitTimeoutMillis")
-				.doesNotContain("--mailer:getAsyncQueueSnapshot", "--mailer:getAsyncQueueConfig");
+				.doesNotContain("--mailer:getAsyncQueueSnapshot", "--mailer:getAsyncQueueConfig", "--mailer:async", "--mailer:async--help");
 	}
 
 	@Test
@@ -232,20 +232,21 @@ public class BuilderApiToPicocliCommandsMapperTest {
 
 	@Test
 	public void mailerFacadeSendApisAreNotGeneratedAsCliBuilderOption() throws Exception {
-		Method simpleBatchSend = Mailer.class.getMethod("sendMailsInSimpleBatch", Iterable.class);
-		assertThat(methodIsCliCompatible(simpleBatchSend).isCompatible()).isFalse();
-		assertThat(methodIsCliCompatible(simpleBatchSend).getReason()).contains("@BuilderApiNode missing");
+		for (Class<?> view : List.of(Mailer.Sync.class, Mailer.Async.class)) {
+			for (Method operation : view.getMethods()) {
+				assertThat(methodIsCliCompatible(operation).isCompatible()).isFalse();
+				assertThat(methodIsCliCompatible(operation).getReason()).contains("@BuilderApiNode missing");
+			}
+		}
 		Method openConnectionSend = Mailer.class.getMethod("withOpenConnection", OpenConnectionCallback.class);
 		assertThat(methodIsCliCompatible(openConnectionSend).isCompatible()).isFalse();
 		assertThat(methodIsCliCompatible(openConnectionSend).getReason()).contains("@BuilderApiNode missing");
-		Method sendMailAndGetReceipt = Mailer.class.getMethod("sendMailAndGetReceipt", Email.class);
-		assertThat(methodIsCliCompatible(sendMailAndGetReceipt).isCompatible()).isFalse();
-		assertThat(methodIsCliCompatible(sendMailAndGetReceipt).getReason()).contains("@BuilderApiNode missing");
 
 		List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
 				new Class<?>[] { EmailStartingBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class });
 		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
-				.doesNotContain("--mailer:sendMailsInSimpleBatch", "--mailer:withOpenConnection", "--mailer:sendMailAndGetReceipt");
+				.doesNotContain("--mailer:sendMailsInSimpleBatch", "--mailer:withOpenConnection", "--mailer:sendMail", "--mailer:sendMailAndGetReceipt",
+						"--mailer:sync", "--mailer:async");
 	}
 
 	@Test

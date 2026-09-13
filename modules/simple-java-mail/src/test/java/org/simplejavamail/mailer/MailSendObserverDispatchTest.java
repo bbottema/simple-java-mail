@@ -26,7 +26,7 @@ class MailSendObserverDispatchTest {
         final List<MailSendOutcome> outcomes = new ArrayList<>();
         final MailSubmissionReceipt receipt;
         try (Mailer mailer = builder().withMailSendObserver(outcomes::add, scheduled::add).buildMailer()) {
-            receipt = mailer.sendMailAndGetReceiptSync(email());
+            receipt = mailer.sync().sendMail(email());
             assertThat(scheduled).hasSize(1);
             assertThat(outcomes).isEmpty();
         }
@@ -40,9 +40,9 @@ class MailSendObserverDispatchTest {
         try (Mailer mailer = builder().withMailSendObserver(outcome -> calls.incrementAndGet(), action -> {
             throw new RejectedExecutionException("application executor full");
         }).buildMailer()) {
-            assertThat(mailer.sendMailAndGetReceiptSync(email())).isNotNull();
+            assertThat(mailer.sync().sendMail(email())).isNotNull();
             final Email invalid = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail();
-            final Throwable failure = mailer.sendMailAsync(invalid).getCompletion().handle((value, cause) -> cause).join();
+            final Throwable failure = mailer.async().sendMail(invalid).getCompletion().handle((value, cause) -> cause).join();
             assertThat(failure).isNotInstanceOf(RejectedExecutionException.class);
             assertThat(calls).hasValue(0);
         }
@@ -55,7 +55,7 @@ class MailSendObserverDispatchTest {
         final List<MailSendOutcome> outcomes = new ArrayList<>();
         try (Mailer mailer = builder().withMailSendObserver(outcome -> abandonedObserver.incrementAndGet(), abandonedExecutor::add)
                 .withMailSendObserver(outcomes::add).buildMailer()) {
-            mailer.sendMailSync(email());
+            mailer.sync().sendMail(email());
             assertThat(outcomes).hasSize(1);
             assertThat(abandonedExecutor).isEmpty();
             assertThat(abandonedObserver).hasValue(0);
@@ -69,8 +69,8 @@ class MailSendObserverDispatchTest {
             calls.incrementAndGet();
             throw new IllegalStateException("observer failure");
         }, Runnable::run).buildMailer()) {
-            mailer.sendMailSync(email());
-            mailer.sendMailSync(email());
+            mailer.sync().sendMail(email());
+            mailer.sync().sendMail(email());
             assertThat(calls).hasValue(2);
         }
     }
@@ -82,7 +82,7 @@ class MailSendObserverDispatchTest {
         assertThatThrownBy(() -> builder.withMailSendObserver(null, Runnable::run)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> builder.withMailSendObserver(outcome -> { }, null)).isInstanceOf(NullPointerException.class);
         try (Mailer mailer = builder.buildMailer()) {
-            mailer.sendMailSync(email());
+            mailer.sync().sendMail(email());
             assertThat(outcomes).hasSize(1);
         }
     }

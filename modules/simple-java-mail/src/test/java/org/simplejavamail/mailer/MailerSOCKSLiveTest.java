@@ -107,7 +107,7 @@ public class MailerSOCKSLiveTest {
 	public void testAutomaticBridgePortWithConnectionTest() throws Exception {
 		startPlainSmtpServer();
 		try (Mailer mailer = newAuthenticatedMailer()) {
-			mailer.testConnection();
+			mailer.sync().testConnection();
 
 			assertThat(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port"))).isPositive();
 			assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
@@ -132,7 +132,7 @@ public class MailerSOCKSLiveTest {
 			final Email first = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false).buildEmail();
 			final Email second = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false).buildEmail();
 
-			mailer.sendMailsInSimpleBatch(Arrays.asList(first, second), false).getCompletion().get();
+			mailer.sync().sendMailsInSimpleBatch(Arrays.asList(first, second));
 
 			assertThat(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port"))).isPositive();
 			assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
@@ -280,9 +280,13 @@ public class MailerSOCKSLiveTest {
 		Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
 
 		if (!async) {
-			mailer.sendMail(originalEmail);
+			mailer.sync().sendMail(originalEmail);
 		} else {
-			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, async).getCompletion()).get();
+			if (async) {
+				mailer.async().sendMail(originalEmail).getCompletion().get();
+			} else {
+				mailer.sync().sendMail(originalEmail);
+			}
 		}
 		assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
 		assertThat(smtpServer.getMessages()).hasSize(1);

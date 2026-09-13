@@ -36,8 +36,8 @@ class MailSubmissionReceiptTest {
 
 	@Test
 	void receiptReturningMethodsRequireAnExplicitMailerImplementation() throws Exception {
-		assertThat(Mailer.class.getMethod("sendMailAndGetReceipt", Email.class).isDefault()).isFalse();
-		assertThat(Mailer.class.getMethod("sendMailAndGetReceipt", Email.class, boolean.class).isDefault()).isFalse();
+		assertThat(Mailer.Sync.class.getMethod("sendMail", Email.class).isDefault()).isFalse();
+		assertThat(Mailer.Async.class.getMethod("sendMail", Email.class).isDefault()).isFalse();
 	}
 
 	@ParameterizedTest

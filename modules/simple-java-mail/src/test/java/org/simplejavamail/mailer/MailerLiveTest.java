@@ -183,7 +183,7 @@ public class MailerLiveTest {
 						.build())
 				.buildEmail();
 
-		mailer.sendMail(signed);
+		mailer.sync().sendMail(signed);
 		final MimeMessageAndEnvelope capturedMail = smtpServerExtension.getOnlyMessage();
 		final MimeMessage captured = capturedMail.getMimeMessage();
 		final Email verified = EmailConverter.mimeMessageToEmail(captured, null,
@@ -430,7 +430,7 @@ public class MailerLiveTest {
 				.build().getX509Certificate();
 
 		// Build email with per-recipient cert only — no email-level encrypt config
-		mailer.sendMail(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
+		mailer.sync().sendMail(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@test.com")
 				.withRecipients(new Recipient("Benny", "benny.bottema@aegon.nl", TO, recipientCert))
 				.withPlainText("Hello, this is per-recipient encrypted!")
@@ -470,7 +470,7 @@ public class MailerLiveTest {
 				.x509Certificate(new File(RESOURCES_PKCS + "/ca.crt"))
 				.build().getX509Certificate();
 
-		mailer.sendMail(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
+		mailer.sync().sendMail(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("sender@test.com")
 				.withRecipients(new Recipient("Benny", "benny.bottema@aegon.nl", TO, correctCert))
 				.encryptWithSmime(SmimeEncryptionConfig.builder().x509Certificate(wrongCert).build()) // email-level: wrong cert
@@ -531,9 +531,9 @@ public class MailerLiveTest {
 		Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
 
 		if (!async) {
-			mailer.sendMail(originalEmail);
+			mailer.sync().sendMail(originalEmail);
 		} else {
-			verifyNonnullOrEmpty(mailer.sendMail(originalEmail, true).getCompletion()).get();
+			verifyNonnullOrEmpty(mailer.async().sendMail(originalEmail).getCompletion()).get();
 		}
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerExtension.getOnlyMessage();
 		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());
@@ -652,7 +652,7 @@ public class MailerLiveTest {
 	public void createMailSession_ReplyToMessage()
 			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
-		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
+		mailer.sync().sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerExtension.getOnlyMessage();
 		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
@@ -664,7 +664,7 @@ public class MailerLiveTest {
 				.buildEmail();
 		
 		// test received reply to initial mail
-		mailer.sendMail(reply);
+		mailer.sync().sendMail(reply);
 		MimeMessage receivedMimeMessageReply1 = smtpServerExtension.getMessage("lo.pop.replyto@somemail.com");
 		MimeMessage receivedMimeMessageReply2 = smtpServerExtension.getMessage("benny.bottema@aegon.nl");
 		Email receivedReply1 = mimeMessageToEmail(receivedMimeMessageReply1);
@@ -685,7 +685,7 @@ public class MailerLiveTest {
 	public void createMailSession_ReplyToMessage_NotAll_AndCustomReferences()
 			throws MessagingException, ExecutionException, InterruptedException {
 		// send initial mail
-		mailer.sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
+		mailer.sync().sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerExtension.getOnlyMessage();
 		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
 		
@@ -697,7 +697,7 @@ public class MailerLiveTest {
 				.buildEmail();
 		
 		// test received reply to initial mail
-		mailer.sendMail(reply);
+		mailer.sync().sendMail(reply);
 		MimeMessage receivedMimeMessageReply = smtpServerExtension.getOnlyMessage("lo.pop.replyto@somemail.com");
 		Email receivedReply = mimeMessageToEmail(receivedMimeMessageReply);
 		
@@ -715,7 +715,7 @@ public class MailerLiveTest {
 				.buildEmail();
 
 		// test received reply to initial mail
-		mailer.sendMail(replyToReply);
+		mailer.sync().sendMail(replyToReply);
 		MimeMessage receivedMimeMessageReplyToReply = smtpServerExtension.getOnlyMessage("dummy@domain.com");
 		Email receivedReplyToReply = mimeMessageToEmail(receivedMimeMessageReplyToReply);
 
@@ -780,7 +780,7 @@ public class MailerLiveTest {
 				.withRecipients(new Recipient(null, "a@b.com", TO, null))
 				.buildEmail();
 
-		assertThatThrownBy(() -> mailer.sendMail(email))
+		assertThatThrownBy(() -> mailer.sync().sendMail(email))
 				.hasMessageStartingWith("Failed to send email [ID:")
 				.getCause()
 				.isInstanceOf(EmailTooBigException.class)
@@ -791,7 +791,7 @@ public class MailerLiveTest {
 	public void testNonASCIIAttachementNames() throws MessagingException {
 		val email = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#293 Email with vers quoted printable.eml"));
 
-		mailer.sendMail(email);
+		mailer.sync().sendMail(email);
 
 		val receivedEmail = mimeMessageToEmail(smtpServerExtension.getOnlyMessage().getMimeMessage());
 

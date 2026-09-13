@@ -137,28 +137,6 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	boolean DEFAULT_DISABLE_ALL_CLIENTVALIDATION = false;
 
 	/**
-	 * Changes the default for execution-mode-selecting methods such as {@link Mailer#sendMail(Email)},
-	 * {@link Mailer#sendMailAndGetReceipt(Email)} and {@link Mailer#testConnection()} to asynchronous mode, using batch
-	 * support when available and the built-in async handler otherwise.
-	 * <p>
-	 * Explicit methods such as {@link Mailer#sendMailSync(Email)} and {@link Mailer#sendMailAsync(Email)} ignore this default.
-	 * <p>
-	 * In case of asynchronous mode, make sure you configure logging to file or inspect the returned {@link java.util.concurrent.CompletableFuture}.
-	 * <p>
-	 * Note that you can configure a couple of concurrency properties such as thread pool size, keepAlivetime, connection pool size (or even a cluster) etc.
-	 *
-	 * <p>
-	 * <strong>Note:</strong> without configuring a thread pool (see {@link #withExecutorService(ExecutorService)} or
-	 * @see #withExecutorService(ExecutorService)
-	 * @see #withThreadPoolSize(Integer)
-	 * @see #withThreadPoolKeepAliveTime(Integer)
-	 * @see #withConnectionPoolCoreSize(Integer)
-	 * @see #withConnectionPoolMaxSize(Integer)
-	 * @see #withConnectionPoolExpireAfterMillis(Integer)
-	 */
-	T async();
-
-	/**
 	 * Delegates to {@link #withProxyHost(String)} and {@link #withProxyPort(Integer)}.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more detailed API")
@@ -984,11 +962,6 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	Mailer buildMailer();
-
-	/**
-	 * @see #async()
-	 */
-	boolean isAsync();
 
 	/**
 	 * @see #withProxyHost(String)

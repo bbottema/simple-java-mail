@@ -60,6 +60,7 @@ public final class CliSupport {
 		try (PrintStream out = new PrintStream(stdout, true, StandardCharsets.UTF_8);
 			 PrintStream err = new PrintStream(stderr, true, StandardCharsets.UTF_8);
 			 CliRequestContext.Scope ignored = CliRequestContext.install(new CliRequestContext(requestId, workingDirectory))) {
+			rejectRemovedExecutionModeOption(args);
 			final List<CliDeclaredOptionSpec> declaredOptions = MetadataHolder.DECLARED_OPTIONS;
 			final CommandLine commandLine = configurePicoCli(declaredOptions, CONSOLE_TEXT_WIDTH);
 			final CommandLine.ParseResult parseResult = commandLine.parseArgs(argumentsThroughFirstHelpOption(args));
@@ -115,6 +116,15 @@ public final class CliSupport {
 			return declaredOptions;
 		} catch (IOException e) {
 			throw new CliExecutionException(ERROR_INVOKING_BUILDER_API, e);
+		}
+	}
+
+	private static void rejectRemovedExecutionModeOption(final String[] args) {
+		for (final String arg : args) {
+			if (arg.equals("--mailer:async") || arg.startsWith("--mailer:async=") || arg.equals("--mailer:async--help")) {
+				throw new IllegalArgumentException("--mailer:async was removed in 10.0.0. Remove this option: send and connect already wait for completion. "
+						+ "The daemon still runs separate requests concurrently.");
+			}
 		}
 	}
 

@@ -34,7 +34,7 @@ public final class ExactEmlSendDemoApp extends DemoAppBase {
 		final Email email = exactEmailBuilder.buildEmail();
 
 		try (Mailer mailer = mailerTLSBuilder.buildMailer()) {
-			final MailSubmissionReceipt receipt = mailer.sendMailAndGetReceiptSync(email);
+			final MailSubmissionReceipt receipt = mailer.sync().sendMail(email);
 			System.out.printf("Submitted exact EML: status=%s Message-ID=%s accepted=%s%n",
 					receipt.getStatus(), receipt.getEmailId(), receipt.getAcceptedRecipients());
 		}

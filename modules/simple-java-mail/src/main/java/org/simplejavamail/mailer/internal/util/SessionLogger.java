@@ -15,10 +15,10 @@ public class SessionLogger {
 	/**
 	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
 	 */
-	public static void logSession(final Session session, boolean async, final String activity) {
+	public static void logSession(final Session session, final String activity) {
 		final TransportStrategy transportStrategy = TransportStrategy.findStrategyForSession(session);
 		final Properties properties = session.getProperties();
 		final String sessionDetails = (transportStrategy != null) ? transportStrategy.toString(properties) : properties.toString();
-		LOGGER.debug("starting{} {} with {}", async ? " async" : "", activity, sessionDetails);
+		LOGGER.debug("starting {} with {}", activity, sessionDetails);
 	}
 }

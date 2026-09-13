@@ -66,7 +66,7 @@ class MailSendExecutionControlTest {
     void bdatCancellationDistinguishesIntermediateChunksFromPossibleCommit(final String phase) throws Exception {
         try (BlockedSmtpServer server = new BlockedSmtpServer(phase);
              Mailer mailer = builder(server).withProperty("mail.smtp.chunksize", 64).buildMailer()) {
-            final MailSend<MailSubmissionReceipt> send = mailer.sendMailAndGetReceiptAsync(email("chunked"));
+            final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email("chunked"));
             assertThat(server.blocked.await(5, SECONDS)).isTrue();
             send.requestCancellation();
             final MailSendCancelledException cancelled = (MailSendCancelledException) failure(send);
@@ -75,7 +75,7 @@ class MailSendExecutionControlTest {
             if (phase.equals("BDAT_LAST")) {
                 assertThat(receipt.getRetryDisposition()).isEqualTo(MailRetryDisposition.DUPLICATE_RISK);
             }
-            assertThat(mailer.sendMailAndGetReceiptSync(email("next-chunked")).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+            assertThat(mailer.sync().sendMail(email("next-chunked")).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
         }
     }
 
@@ -88,7 +88,7 @@ class MailSendExecutionControlTest {
             final CompletableFuture<MailSubmissionReceipt> send = CompletableFuture.supplyAsync(() -> {
                 try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
                     modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
-                    return mailer.sendMailAndGetReceiptSync(email("accepted-before-quit"));
+                    return mailer.sync().sendMail(email("accepted-before-quit"));
                 }
             }, caller);
             assertThat(server.blocked.await(8, SECONDS)).isTrue();
@@ -105,7 +105,7 @@ class MailSendExecutionControlTest {
             final Email large = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                     .from("sender@example.org").withRecipients(to(null, "large@example.org"))
                     .withPlainText("x".repeat(8_000_000)).buildEmail();
-            final MailSend<MailSubmissionReceipt> send = mailer.sendMailAndGetReceiptAsync(large);
+            final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(large);
             assertThat(server.blocked.await(5, SECONDS)).isTrue();
             send.requestCancellation();
             final MailSendCancelledException cancellation = (MailSendCancelledException) failure(send);
@@ -128,7 +128,7 @@ class MailSendExecutionControlTest {
             final Email attachment = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                     .from("sender@example.org").withRecipients(to(null, "attachment@example.org"))
                     .withAttachment("blocked", source).buildEmail();
-            final MailSend<Void> send = mailer.sendMailAsync(attachment);
+            final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(attachment);
             try {
                 assertThat(reading.await(5, SECONDS)).isTrue();
                 send.requestCancellation();
@@ -147,11 +147,11 @@ class MailSendExecutionControlTest {
     void simultaneousHealthyLeasesAreUnaffectedByOneAbortedLease() throws Exception {
         try (BlockedSmtpServer server = new BlockedSmtpServer(".");
              Mailer mailer = builder(server).withThreadPoolSize(4).withConnectionPoolMaxSize(4).buildMailer()) {
-            final MailSend<Void> blocked = mailer.sendMailAsync(email("cancelled"));
+            final MailSend<MailSubmissionReceipt> blocked = mailer.async().sendMail(email("cancelled"));
             assertThat(server.blocked.await(5, SECONDS)).isTrue();
             final List<MailSend<MailSubmissionReceipt>> healthy = new CopyOnWriteArrayList<>();
             for (int index = 0; index < 12; index++) {
-                healthy.add(mailer.sendMailAndGetReceiptAsync(email("healthy-" + index)));
+                healthy.add(mailer.async().sendMail(email("healthy-" + index)));
             }
             blocked.requestCancellation();
             assertThat(failure(blocked)).isInstanceOf(MailSendCancelledException.class);
@@ -184,7 +184,7 @@ class MailSendExecutionControlTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (BlockedSmtpServer server = new BlockedSmtpServer("SECOND_REPLY");
              Mailer mailer = builder(server).withMailSendTimeout(Duration.ofSeconds(5)).withMailSendObserver(outcomes::add).buildMailer()) {
-            final MailSend<Void> batch = mailer.sendMailsInSimpleBatch(List.of(email("first"), email("second"), email("untouched")), true);
+            final MailSend<Void> batch = mailer.async().sendMailsInSimpleBatch(List.of(email("first"), email("second"), email("untouched")));
             assertThat(failure(batch)).isInstanceOf(MailSendTimeoutException.class);
             assertThat(outcomes).hasSize(2);
             assertThat(outcomes.get(0).isSuccessful()).isTrue();
@@ -205,7 +205,7 @@ class MailSendExecutionControlTest {
                      }
                  }
              }).buildMailer()) {
-            mailer.sendMailsInSimpleBatch(List.of(email("first"), email("second")), true).getCompletion().get(5, SECONDS);
+            mailer.async().sendMailsInSimpleBatch(List.of(email("first"), email("second"))).getCompletion().get(5, SECONDS);
             assertThat(callbacks).hasValue(2);
         }
     }
@@ -216,7 +216,7 @@ class MailSendExecutionControlTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (BlockedSmtpServer server = new BlockedSmtpServer(phase);
              Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
-            final MailSend<MailSubmissionReceipt> send = mailer.sendMailAndGetReceiptAsync(email("cancelled"));
+            final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email("cancelled"));
             assertThat(server.blocked.await(5, SECONDS)).as(phase).isTrue();
             send.requestCancellation();
             send.requestCancellation();
@@ -233,13 +233,13 @@ class MailSendExecutionControlTest {
             } else if (cancellation.getSubmissionReceipt().isPresent()) {
                 assertThat(cancellation.getSubmissionReceipt().get().getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
             }
-            final MailSubmissionReceipt next = mailer.sendMailAndGetReceiptAsync(email("fresh")).getCompletion().get(5, SECONDS);
+            final MailSubmissionReceipt next = mailer.async().sendMail(email("fresh")).getCompletion().get(5, SECONDS);
             assertThat(next.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
             assertThat(next.getRecipientResults()).allSatisfy(recipient ->
                     assertThat(recipient.getEnvelopeAddress()).contains("fresh@example.org"));
             assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(next);
             send.requestCancellation();
-            assertThat(mailer.sendMailAndGetReceiptSync(email("after-late-request")).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+            assertThat(mailer.sync().sendMail(email("after-late-request")).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
         }
     }
 
@@ -248,7 +248,7 @@ class MailSendExecutionControlTest {
     void deadlineAbortsBlockedIoLongBeforeTheSocketTimeout(final String phase) throws Exception {
         try (BlockedSmtpServer server = new BlockedSmtpServer(phase);
              Mailer mailer = builder(server).withMailSendTimeout(Duration.ofMillis(500)).buildMailer()) {
-            final MailSend<MailSubmissionReceipt> send = mailer.sendMailAndGetReceiptAsync(email("deadline"));
+            final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email("deadline"));
             assertThat(server.blocked.await(5, SECONDS)).isTrue();
             assertThat(failure(send)).isInstanceOf(MailSendTimeoutException.class);
         }
@@ -263,14 +263,14 @@ class MailSendExecutionControlTest {
              Mailer mailer = builder(server).withMailSendObserver(outcome -> {
                  if (!outcome.isSuccessful()) {
                      try {
-                         nested.set(currentMailer.get().sendMailAndGetReceiptSync(email("observer-reentrant")));
+                         nested.set(currentMailer.get().sync().sendMail(email("observer-reentrant")));
                      } catch (Throwable failure) {
                          nestedFailure.set(failure);
                      }
                  }
              }).buildMailer()) {
             currentMailer.set(mailer);
-            final MailSend<Void> send = mailer.sendMailAsync(email("cancelled"));
+            final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email("cancelled"));
             assertThat(server.blocked.await(5, SECONDS)).isTrue();
             send.requestCancellation();
             assertThat(failure(send)).isInstanceOf(MailSendCancelledException.class);
@@ -284,10 +284,10 @@ class MailSendExecutionControlTest {
         try (BlockedSmtpServer server = new BlockedSmtpServer("HELD_REPLY");
              Mailer mailer = builder(server).withThreadPoolSize(2).buildMailer()) {
             final List<Thread> workers = recordSendWorkers(mailer);
-            final MailSend<MailSubmissionReceipt> owner = mailer.sendMailAndGetReceiptAsync(email("owner"));
+            final MailSend<MailSubmissionReceipt> owner = mailer.async().sendMail(email("owner"));
             try {
                 assertThat(server.blocked.await(5, SECONDS)).isTrue();
-                final MailSend<Void> waiter = mailer.sendMailAsync(email("waiter"));
+                final MailSend<MailSubmissionReceipt> waiter = mailer.async().sendMail(email("waiter"));
                 awaitBlockedPoolClaim(workers);
                 waiter.requestCancellation();
                 assertThat(failure(waiter)).isInstanceOf(MailSendCancelledException.class)
@@ -298,7 +298,7 @@ class MailSendExecutionControlTest {
                 server.releaseReply.countDown();
             }
             assertThat(owner.getCompletion().get(5, SECONDS).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
-            assertThat(mailer.sendMailAndGetReceiptSync(email("after-cancelled-claim")).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+            assertThat(mailer.sync().sendMail(email("after-cancelled-claim")).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
             assertThat(server.connections).as("the current borrower's connection remains reusable").hasValue(1);
             assertThat(server.messages).as("the cancelled claimant never submits an email").hasValue(2);
         }
@@ -314,7 +314,7 @@ class MailSendExecutionControlTest {
                 .withTransportModeLoggingOnly(true).withExecutorService(callerExecutor).withMailSendObserver(outcomes::add).buildMailer()) {
             callerExecutor.execute(() -> await(release));
             final Iterable<Email> emails = () -> { iterations.incrementAndGet(); return List.of(email("untouched")).iterator(); };
-            final MailSend<Void> send = mailer.sendMailsInSimpleBatch(emails, true);
+            final MailSend<Void> send = mailer.async().sendMailsInSimpleBatch(emails);
             send.requestCancellation();
             assertThat(failure(send)).isInstanceOf(MailSendCancelledException.class);
             assertThat(iterations).hasValue(0);
@@ -334,7 +334,7 @@ class MailSendExecutionControlTest {
             final Session session = Session.getInstance(properties);
             try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
                     .withMailSendTimeout(Duration.ofSeconds(1)).buildMailer()) {
-                assertThat(failure(mailer.sendMailAsync(email("unsupported")))).isInstanceOf(IllegalStateException.class)
+                assertThat(failure(mailer.async().sendMail(email("unsupported")))).isInstanceOf(IllegalStateException.class)
                         .hasMessageContaining("Simple Java Mail can't stop its network calls")
                         .hasMessageContaining("Remove the total timeout from your builder or configuration")
                         .hasMessageContaining("If you can't change the configuration that sets it");

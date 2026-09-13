@@ -55,7 +55,7 @@ class SmtpRecipientRepliesTest {
 	void collectsSuccessRepliesRegardlessOfSessionReportingPreference(final boolean reportSuccess) throws Exception {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withProperty("mail.smtp.reportsuccess", reportSuccess).buildMailer()) {
-			final MailSubmissionReceipt receipt = mailer.sendMailAndGetReceiptSync(email("accepted-one", "accepted-two"));
+			final MailSubmissionReceipt receipt = mailer.sync().sendMail(email("accepted-one", "accepted-two"));
 			assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
 			assertThat(receipt.getRetryDisposition()).isEqualTo(MailRetryDisposition.DO_NOT_RETRY);
 			assertThat(receipt.getRecipientResults()).hasSize(2).allSatisfy(recipient -> {
@@ -155,22 +155,22 @@ class SmtpRecipientRepliesTest {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(poolSize).withThreadPoolSize(6)
 				.withProperty("mail.smtp.sendpartial", true).withMailSendObserver(outcomes::add).buildMailer()) {
-			mailer.sendMailAndGetReceiptAsync(email("accepted-warmup")).getCompletion().get(10, TimeUnit.SECONDS);
+			mailer.async().sendMail(email("accepted-warmup")).getCompletion().get(10, TimeUnit.SECONDS);
 			final List<CompletableFuture<MailSubmissionReceipt>> attempts = new ArrayList<>();
 			for (int index = 0; index < 12; index++) {
 				final String tag = "accepted-" + index;
-				attempts.add(mailer.sendMailAndGetReceiptAsync(email(tag)).getCompletion());
+				attempts.add(mailer.async().sendMail(email(tag)).getCompletion());
 			}
 			for (final CompletableFuture<MailSubmissionReceipt> attempt : attempts) {
 				attempt.get(10, TimeUnit.SECONDS);
 			}
 			for (int index = 0; index < 4; index++) {
-				final CompletableFuture<MailSubmissionReceipt> rejected = mailer.sendMailAndGetReceiptAsync(
+				final CompletableFuture<MailSubmissionReceipt> rejected = mailer.async().sendMail(
 						email("accepted-partial-" + index, "temporary-" + index)).getCompletion();
 				assertThat(rejected.handle((receipt, failure) -> failure).get(10, TimeUnit.SECONDS)).isNotNull();
-				mailer.sendMailAndGetReceiptAsync(email("accepted-after-failure-" + index)).getCompletion().get(10, TimeUnit.SECONDS);
+				mailer.async().sendMail(email("accepted-after-failure-" + index)).getCompletion().get(10, TimeUnit.SECONDS);
 			}
-			mailer.sendMailAndGetReceiptAsync(email("accepted-recovery")).getCompletion().get(10, TimeUnit.SECONDS);
+			mailer.async().sendMail(email("accepted-recovery")).getCompletion().get(10, TimeUnit.SECONDS);
 			assertThat(outcomes).hasSize(22);
 			assertThat(outcomes.stream().filter(MailSendOutcome::isSuccessful).count()).isEqualTo(18);
 			for (final MailSendOutcome outcome : outcomes) {
@@ -194,7 +194,7 @@ class SmtpRecipientRepliesTest {
 				final List<CompletableFuture<MailSubmissionReceipt>> attempts = new ArrayList<>();
 				for (int index = 0; index < 3; index++) {
 					final String tag = wave + "-" + index;
-					attempts.add(mailer.sendMailAndGetReceiptAsync(index == 1 ? email("accepted-" + tag)
+					attempts.add(mailer.async().sendMail(index == 1 ? email("accepted-" + tag)
 							: email("accepted-" + tag, "temporary-" + tag)).getCompletion());
 				}
 				for (final CompletableFuture<MailSubmissionReceipt> attempt : attempts) {
@@ -218,8 +218,8 @@ class SmtpRecipientRepliesTest {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
 				.withMailSendObserver(outcomes::add).buildMailer()) {
-			final ExecutionException failedBatch = catchThrowableOfType(() -> mailer.sendMailsInSimpleBatch(
-					List.of(email("accepted-first"), email("temporary-second"), email("untouched-third")), true).getCompletion()
+			final ExecutionException failedBatch = catchThrowableOfType(() -> mailer.async().sendMailsInSimpleBatch(
+					List.of(email("accepted-first"), email("temporary-second"), email("untouched-third"))).getCompletion()
 					.get(10, TimeUnit.SECONDS), ExecutionException.class);
 			assertThat(failedBatch).isNotNull();
 			final Throwable failure = failedBatch.getCause();
@@ -241,11 +241,11 @@ class SmtpRecipientRepliesTest {
 				.withMailSendObserver(outcome -> {
 					receipts.add(outcome.getSubmissionReceipt().orElseThrow());
 					if (receipts.size() == 1) {
-						configuredMailer.get().sendMailAndGetReceiptSync(email("accepted-reentrant"));
+						configuredMailer.get().sync().sendMail(email("accepted-reentrant"));
 					}
 				}).buildMailer()) {
 			configuredMailer.set(mailer);
-			mailer.sendMailAndGetReceiptSync(email("accepted-first"));
+			mailer.sync().sendMail(email("accepted-first"));
 			assertThat(receipts).hasSize(2);
 			assertThat(server.connections.get()).isEqualTo(1);
 		}
@@ -256,7 +256,7 @@ class SmtpRecipientRepliesTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withMailSendObserver(outcomes::add).buildMailer()) {
-			mailer.sendMailsInSimpleBatch(List.of(email("accepted-batch-one"), email("accepted-batch-two")), true).getCompletion().get(10, TimeUnit.SECONDS);
+			mailer.async().sendMailsInSimpleBatch(List.of(email("accepted-batch-one"), email("accepted-batch-two"))).getCompletion().get(10, TimeUnit.SECONDS);
 			mailer.withOpenConnection(sender -> {
 				final MailSubmissionReceipt first = sender.sendMailAndGetReceipt(email("accepted-open-one"));
 				assertThat(outcomes).hasSize(3);
@@ -271,7 +271,7 @@ class SmtpRecipientRepliesTest {
 	}
 
 	private static MailSubmissionException failure(final Mailer mailer, final Email email) {
-		final MailSubmissionException failure = catchThrowableOfType(() -> mailer.sendMailAndGetReceiptSync(email), MailSubmissionException.class);
+		final MailSubmissionException failure = catchThrowableOfType(() -> mailer.sync().sendMail(email), MailSubmissionException.class);
 		assertThat(failure).isNotNull();
 		return failure;
 	}

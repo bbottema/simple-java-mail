@@ -53,7 +53,7 @@ class ExactEmailSendingTest {
 
 		final MailSubmissionReceipt receipt;
 		try (Mailer mailer = smtpMailer()) {
-			receipt = mailer.sendMailAndGetReceiptSync(email);
+			receipt = mailer.sync().sendMail(email);
 		}
 
 		assertThat(receipt.getEmailId()).isEqualTo("<smtp-exact@simplejavamail.org>");
@@ -80,7 +80,7 @@ class ExactEmailSendingTest {
 				.withTransportModeLoggingOnly(true)
 				.withMailSendObserver(outcomes::add)
 				.buildMailer()) {
-			receipt = mailer.sendMailAndGetReceiptSync(email);
+			receipt = mailer.sync().sendMail(email);
 		}
 
 		assertThat(receipt.getEmailId()).isNull();
@@ -114,7 +114,7 @@ class ExactEmailSendingTest {
 				.withEmailValidator(validator)
 				.withCustomMailer(customMailer)
 				.buildMailer()) {
-			mailer.sendMailSync(email);
+			mailer.sync().sendMail(email);
 		}
 
 		verify(customMailer).sendMessage(any(OperationalConfig.class), any(Session.class), same(email), messageCaptor.capture());
@@ -136,7 +136,7 @@ class ExactEmailSendingTest {
 				.withTransportModeLoggingOnly(true)
 				.withMailSendObserver(outcomes::add)
 				.buildMailer()) {
-			receipt = mailer.sendMailAndGetReceiptAsync(email).getCompletion().get(5, TimeUnit.SECONDS);
+			receipt = mailer.async().sendMail(email).getCompletion().get(5, TimeUnit.SECONDS);
 		}
 
 		assertThat(receipt.getEmailId()).isEqualTo("<logging-exact@simplejavamail.org>");
@@ -160,9 +160,9 @@ class ExactEmailSendingTest {
 				.withSMTPServer("unreachable.example.invalid", 25)
 				.withCustomMailer(customMailer)
 				.buildMailer()) {
-			mailer.sendMailsInSimpleBatch(Arrays.asList(
+			mailer.sync().sendMailsInSimpleBatch(Arrays.asList(
 					exactEmail(firstEml, "first@example.org", null),
-					exactEmail(secondEml, "second@example.org", null)), false);
+					exactEmail(secondEml, "second@example.org", null)));
 		}
 
 		assertThat(submittedMessages).hasSize(2);

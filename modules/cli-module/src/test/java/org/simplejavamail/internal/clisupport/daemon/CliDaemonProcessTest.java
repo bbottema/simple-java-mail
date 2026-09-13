@@ -190,6 +190,57 @@ class CliDaemonProcessTest {
 	}
 
 	@Test
+	void concurrentDaemonRequestsKeepBothSynchronousSendsInFlight() throws Exception {
+		final CountDownLatch bothSending = new CountDownLatch(2);
+		final CountDownLatch releaseSends = new CountDownLatch(1);
+		// Hold each send at RCPT so both requests must be in SMTP submission at once.
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> {
+			bothSending.countDown();
+			try {
+				assertThat(releaseSends.await(25, TimeUnit.SECONDS)).isTrue();
+			} catch (InterruptedException interrupted) {
+				Thread.currentThread().interrupt();
+				throw new AssertionError(interrupted);
+			}
+			return true;
+		}).port(0);
+		final ExecutorService clients = Executors.newFixedThreadPool(2);
+		smtp.start();
+		Invocation start = null;
+		try {
+			start = invoke(true, "daemon", "start", "--daemon-instance=smtp-pool");
+			assertThat(start.exitCode).as(start.output).isZero();
+			final List<Future<Invocation>> sends = new ArrayList<>();
+			for (int index = 0; index < 2; index++) {
+				final List<String> arguments = new ArrayList<>(Arrays.asList(sendArguments(smtp.getServer().getPortAllocated(), "concurrent-" + index)));
+				// Both requests reuse the same Mailer profile, with up to two connections and no prewarming.
+				arguments.set(arguments.indexOf("--mailer:withConnectionPoolCoreSize") + 1, "0");
+				arguments.set(arguments.indexOf("--mailer:withConnectionPoolMaxSize") + 1, "2");
+				sends.add(clients.submit(() -> invoke(true, arguments.toArray(new String[0]))));
+			}
+			assertThat(bothSending.await(20, TimeUnit.SECONDS)).as("Two daemon requests must submit recipients concurrently").isTrue();
+			assertThat(sends).allSatisfy(send -> assertThat(send.isDone()).isFalse());
+			releaseSends.countDown();
+			for (Future<Invocation> send : sends) {
+				final Invocation result = send.get(15, TimeUnit.SECONDS);
+				assertThat(result.exitCode).as(result.output).isZero();
+				assertThat(result.output).doesNotContain("MailSubmissionReceipt");
+			}
+			assertThat(smtp.getMessages()).hasSize(2);
+			final Invocation status = invoke(true, "daemon", "status", "--daemon-instance=smtp-pool");
+			assertThat(status.exitCode).as(status.output).isZero();
+			assertThat(status.output).contains("mailers=1");
+		} finally {
+			releaseSends.countDown();
+			clients.shutdownNow();
+			if (start != null && start.exitCode == CliExitCode.SUCCESS.code()) {
+				invoke(true, "daemon", "stop", "--daemon-instance=smtp-pool");
+			}
+			smtp.stop();
+		}
+	}
+
+	@Test
 	void daemonAndMailerReuseRemainAvailableWithoutTheOptionalBatchStack() throws Exception {
 		final String classPath = withoutBatchStack(System.getProperty("java.class.path"));
 		assertThat(classPath).doesNotContain("batch-module", "smtp-connection-pool", "clustered-object-pool");

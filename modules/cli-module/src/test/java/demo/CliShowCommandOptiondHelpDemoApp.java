@@ -12,6 +12,6 @@ public class CliShowCommandOptiondHelpDemoApp {
 		System.out.println("\n\n\n\n\n\n---------------------");
 		CliSupport.runCLI(new String[] {"send", "--mailer:clearProxy--help",});
 		System.out.println("\n\n\n\n\n\n---------------------");
-		CliSupport.runCLI(new String[] {"send", "--mailer:async--help",});
+		CliSupport.runCLI(new String[] {"send", "--mailer:withSMTPServer--help",});
 	}
 }

@@ -659,7 +659,7 @@ public class MailerTest {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false).buildEmail();
 		final CustomMailer customMailerMock = mock(CustomMailer.class);
 
-		getMailerWithCustomMailer(customMailerMock).sendMailSync(email);
+		getMailerWithCustomMailer(customMailerMock).sync().sendMail(email);
 
 		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
@@ -674,7 +674,7 @@ public class MailerTest {
 
 		MailSubmissionReceipt receipt;
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
-			receipt = mailer.sendMailAndGetReceiptSync(createBatchEmail("Receipt email", "receipt@example.com"));
+			receipt = mailer.sync().sendMail(createBatchEmail("Receipt email", "receipt@example.com"));
 		}
 
 		assertThat(transportState.connectCount.get()).isEqualTo(1);
@@ -704,7 +704,7 @@ public class MailerTest {
 
 		MailSubmissionReceipt receipt;
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
-			receipt = mailer.sendMailAndGetReceiptAsync(createBatchEmail("Async receipt email", "receipt@example.com")).getCompletion().get();
+			receipt = mailer.async().sendMail(createBatchEmail("Async receipt email", "receipt@example.com")).getCompletion().get();
 		}
 
 		assertThat(transportState.connectCount.get()).isEqualTo(1);
@@ -721,7 +721,7 @@ public class MailerTest {
 
 		MailSubmissionReceipt receipt;
 		try (Mailer mailer = getMailerWithCustomMailer(customMailerMock)) {
-			receipt = mailer.sendMailAndGetReceiptSync(email);
+			receipt = mailer.sync().sendMail(email);
 		}
 
 		assertThat(receipt.getEmailId()).isEqualTo(email.getId());
@@ -742,7 +742,7 @@ public class MailerTest {
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withTransportModeLoggingOnly(true)
 				.buildMailer()) {
-			receipt = mailer.sendMailAndGetReceiptSync(email);
+			receipt = mailer.sync().sendMail(email);
 		}
 
 		assertThat(receipt.getEmailId()).isEqualTo(email.getId());
@@ -769,7 +769,7 @@ public class MailerTest {
 		final MailSubmissionException failure;
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			try {
-				mailer.sendMailAndGetReceiptSync(createBatchEmail("Partial receipt email",
+				mailer.sync().sendMail(createBatchEmail("Partial receipt email",
 						"accepted@example.com", "unsent@example.com", "invalid@example.com"));
 				throw new AssertionError("Expected partial submission to fail");
 			} catch (final MailSubmissionException expected) {
@@ -805,7 +805,7 @@ public class MailerTest {
 			moduleLoader.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
 
 			try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
-				assertThatThrownBy(() -> mailer.sendMailAndGetReceiptSync(
+				assertThatThrownBy(() -> mailer.sync().sendMail(
 						createBatchEmail("Direct unknown receipt email", "unknown@example.com")))
 						.isInstanceOfSatisfying(MailSubmissionException.class, failure -> {
 							assertThat(failure.getCause()).isSameAs(providerFailure);
@@ -829,7 +829,7 @@ public class MailerTest {
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			try {
-				mailer.sendMailAndGetReceiptAsync(createBatchEmail("Unknown receipt email", "unknown@example.com")).getCompletion().get();
+				mailer.async().sendMail(createBatchEmail("Unknown receipt email", "unknown@example.com")).getCompletion().get();
 				throw new AssertionError("Expected asynchronous submission to fail");
 			} catch (final ExecutionException expected) {
 				assertThat(expected.getCause()).isInstanceOf(MailSubmissionException.class);
@@ -857,9 +857,9 @@ public class MailerTest {
 					outcomes.add(outcome);
 				})
 				.buildMailer()) {
-			mailer.sendMailsInSimpleBatch(Arrays.asList(
+			mailer.sync().sendMailsInSimpleBatch(Arrays.asList(
 					createBatchEmail("First batch email", "first@example.com"),
-					createBatchEmail("Second batch email", "second@example.com")), false);
+					createBatchEmail("Second batch email", "second@example.com")));
 		}
 
 		assertThat(transportState.connectCount.get()).isEqualTo(1);
@@ -888,9 +888,9 @@ public class MailerTest {
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
 				.withOAuth2AccessTokenProvider(provider)
 				.buildMailer()) {
-			mailer.sendMailsInSimpleBatch(Arrays.asList(
+			mailer.sync().sendMailsInSimpleBatch(Arrays.asList(
 					createBatchEmail("First batch email", "first@example.com"),
-					createBatchEmail("Second batch email", "second@example.com")), false);
+					createBatchEmail("Second batch email", "second@example.com")));
 		}
 
 		assertThat(providerCalls).hasValue(1);
@@ -1099,7 +1099,7 @@ public class MailerTest {
 		final Email email = EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false).buildEmail();
 		final CustomMailer customMailerMock = mock(CustomMailer.class);
 
-		getMailerWithCustomMailer(customMailerMock).sendMailsInSimpleBatch(Arrays.asList(email, email), false);
+		getMailerWithCustomMailer(customMailerMock).sync().sendMailsInSimpleBatch(Arrays.asList(email, email));
 
 		verify(customMailerMock, times(2)).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
@@ -1109,7 +1109,7 @@ public class MailerTest {
 	public void testCustomMailer_testConnection() {
 		final CustomMailer customMailerMock = mock(CustomMailer.class);
 
-		getMailerWithCustomMailer(customMailerMock).testConnection();
+		getMailerWithCustomMailer(customMailerMock).sync().testConnection();
 
 		verify(customMailerMock).testConnection(any(OperationalConfig.class), any(Session.class));
 		verifyNoMoreInteractions(customMailerMock);

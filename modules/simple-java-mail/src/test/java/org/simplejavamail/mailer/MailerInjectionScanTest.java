@@ -43,7 +43,7 @@ public class MailerInjectionScanTest {
 		createFullyConfiguredMailerBuilder(false, "", null)
 				.withCustomMailer(customMailerMock)
 				.disablingAllClientValidation(true).buildMailer()
-				.sendMail(email);
+				.sync().sendMail(email);
 
 		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
 		verifyNoMoreInteractions(customMailerMock);
@@ -52,7 +52,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_subject() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// example from https://framework.zend.com/security/advisory/ZF2015-04
 						.withSubject("test1\r\nContent-Type: text/html; charset = \"iso-8859-1\"\r\n\r\n" +
 								"<iframe src=\"http://example.com/\"></iframe><!--")
@@ -67,7 +67,7 @@ public class MailerInjectionScanTest {
 				.disablingAllClientValidation(true)
 				.resetDisableAllClientValidations()
 				.buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// example from https://framework.zend.com/security/advisory/ZF2015-04
 						.withSubject("test1\r\nContent-Type: text/html; charset = \"iso-8859-1\"\r\n\r\n" +
 								"<iframe src=\"http://example.com/\"></iframe><!--")
@@ -79,7 +79,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_fromRecipient() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// passes address validation, but %0A is a URL-encoded newline using in CRLF injection attacks
 						.from("naughty%0Atooth@notsosweet.hell")
 						.withReturnReceiptTo().buildEmail()))
@@ -90,7 +90,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_replyToRecipient() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// passes address validation, but %0A is a URL-encoded newline using in CRLF injection attacks
 						.withReplyTo("naughty%0Atooth@notsosweet.hell")
 						.buildEmail()))
@@ -101,7 +101,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_bounceTo() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// passes address validation, but %0A is a URL-encoded newline using in CRLF injection attacks
 						.withBounceTo("naughty%0Atooth@notsosweet.hell").buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
@@ -111,7 +111,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_DispositionNotificationTo() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// passes address validation, but %0A is a URL-encoded newline using in CRLF injection attacks
 						.withDispositionNotificationTo("naughty%0Atooth@notsosweet.hell").buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
@@ -121,7 +121,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_ReturnReceiptTo() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// passes address validation, but %0A is a URL-encoded newline using in CRLF injection attacks
 						.withReturnReceiptTo("naughty%0Atooth@notsosweet.hell").buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
@@ -131,7 +131,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_DispositionNotificationToName() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// passes address validation, but %0A is a URL-encoded newline using in CRLF injection attacks
 						.withDispositionNotificationTo("naughty %0A tooth", "sweetytooth@notsosweet.hell").buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
@@ -141,19 +141,19 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_RecipientAddress() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						.withRecipients(EmailHelper.parsedRecipients(null, false, CC, "sweety pie <naughty%0Apie@evil.laugh>")).buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
 				.hasMessage("Suspected of injection attack, field: email.recipient.address with suspicious value: naughty%0Apie@evil.laugh");
 
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "naughty%0Apie <sweety_pie@evil.laugh>")).buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
 				.hasMessage("Suspected of injection attack, field: email.recipient.name with suspicious value: naughty%0Apie");
 
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						.withRecipients(EmailHelper.parsedRecipients(null, false, BCC, "sweety pie <sweety_pie@evil.laugh>, evil%0Alaugh <sweety_pie@evil.laugh>")).buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
 				.hasMessage("Suspected of injection attack, field: email.recipient.name with suspicious value: evil%0Alaugh");
@@ -162,7 +162,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_attachmentName() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						.clearEmbeddedImages()
 						.withEmbeddedImage("naughty\ntooth", "moomoo".getBytes(), "text/plain")
 						.buildEmail()))
@@ -170,7 +170,7 @@ public class MailerInjectionScanTest {
 				.hasMessage("Suspected of injection attack, field: email.embeddedImage.name with suspicious value: naughty\\ntooth");
 
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						.clearAttachments()
 						.withAttachment("naughty\ntooth", "moomoo".getBytes(), "text/plain")
 						.buildEmail()))
@@ -181,7 +181,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_attachmentNestedName() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// example from https://framework.zend.com/security/advisory/ZF2015-04
 						.clearEmbeddedImages()
 						.withEmbeddedImage("sweety tooth", new NamedDataSource("naughty\ntooth", new ByteArrayDataSource("moomoo".getBytes(), "text/plain")))
@@ -190,7 +190,7 @@ public class MailerInjectionScanTest {
 				.hasMessage("Suspected of injection attack, field: email.embeddedImage.datasource.name with suspicious value: naughty\\ntooth");
 
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						.clearAttachments()
 						.withAttachment("sweety tooth", new NamedDataSource("naughty\ntooth", new ByteArrayDataSource("moomoo".getBytes(), "text/plain")))
 						.buildEmail()))
@@ -201,7 +201,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_attachmentDescription() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						.clearAttachments()
 						.withAttachment("sweety tooth", new ByteArrayDataSource("moomoo".getBytes(), "text/plain"), "evil\ndescription")
 						.buildEmail()))
@@ -212,7 +212,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_headerName() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						.withHeader("bad%0Aname", "good value")
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
@@ -222,7 +222,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_headerValue() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
-				.sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
+				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						.withHeader("good name", "bad\rvalue")
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)

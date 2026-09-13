@@ -119,6 +119,9 @@ public class MailerImpl implements Mailer {
 	private final MailSendObserverNotifier mailSendObserverNotifier;
 	private final MailSendOperations mailSendOperations;
 
+	private final Sync synchronousView = new SynchronousView();
+	private final Async asynchronousView = new AsynchronousView();
+
 	@Nullable private Future<Void> shutdownFuture;
 
 	MailerImpl(@NotNull final MailerFromSessionBuilderImpl fromSessionBuilder) {
@@ -399,56 +402,40 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	/**
-	 * @see Mailer#testConnection()
-	 */
+	/** @see Mailer#sync() */
 	@Override
-	public void testConnection() {
-		this.testConnection(getOperationalConfig().isAsync());
+	@NotNull
+	public Sync sync() {
+		return synchronousView;
 	}
 
-	/**
-	 * @see Mailer#testConnection(boolean)
-	 */
+	/** @see Mailer#async() */
+	@Override
 	@NotNull
-	public synchronized CompletableFuture<Void> testConnection(boolean async) {
-		if (!async) {
-			TestConnectionClosure testConnectionClosure = new TestConnectionClosure(operationalConfig, session, proxyServer, false, smtpConnectionCounter);
-			testConnectionClosure.run();
-			return CompletableFuture.completedFuture(null);
-		}
+	public Async async() {
+		return asynchronousView;
+	}
 
+	/** @see Mailer.Sync#testConnection() */
+	private synchronized void testConnectionSynchronously() {
+		new TestConnectionClosure(operationalConfig, session, proxyServer, smtpConnectionCounter).run();
+	}
+
+	/** @see Mailer.Async#testConnection() */
+	private synchronized CompletableFuture<Void> testConnectionAsynchronously() {
 		try {
 			return executeMailOperationAsync("testSMTPConnection process", () ->
-					new TestConnectionClosure(operationalConfig, session, proxyServer, true, smtpConnectionCounter).run());
-		} catch (RuntimeException e) {
-			return AsyncOperationHelper.failedFuture(e);
+					new TestConnectionClosure(operationalConfig, session, proxyServer, smtpConnectionCounter).run());
+		} catch (RuntimeException failure) {
+			return AsyncOperationHelper.failedFuture(failure);
 		}
 	}
 
 	/**
-	 * @see Mailer#sendMailSync(Email)
+	 * @see Mailer.Sync#sendMail(Email)
 	 */
-	@Override
-	public final void sendMailSync(final Email email) {
-		sendMailAndGetReceiptSync(email);
-	}
-
-	/**
-	 * @see Mailer#sendMailAsync(Email)
-	 */
-	@Override
 	@NotNull
-	public final MailSend<Void> sendMailAsync(final Email email) {
-		return withoutReceipt(sendMailAndGetReceiptAsync(email));
-	}
-
-	/**
-	 * @see Mailer#sendMailAndGetReceiptSync(Email)
-	 */
-	@Override
-	@NotNull
-	public final MailSubmissionReceipt sendMailAndGetReceiptSync(final Email userProvidedEmail) {
+	private MailSubmissionReceipt sendMailSynchronously(final Email userProvidedEmail) {
 		final Email checkedEmail = verifyNonnull(userProvidedEmail);
 		final MailSendAttempt attempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
 		final MailSendOperation<MailSubmissionReceipt> operation = beginEmailOperation(attempt);
@@ -457,11 +444,10 @@ public class MailerImpl implements Mailer {
 	}
 
 	/**
-	 * @see Mailer#sendMailAndGetReceiptAsync(Email)
+	 * @see Mailer.Async#sendMail(Email)
 	 */
-	@Override
 	@NotNull
-	public final MailSend<MailSubmissionReceipt> sendMailAndGetReceiptAsync(final Email userProvidedEmail) {
+	private MailSend<MailSubmissionReceipt> sendMailAsynchronously(final Email userProvidedEmail) {
 		final Email checkedEmail = verifyNonnull(userProvidedEmail);
 		final MailSendAttempt attempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
 		final MailSendOperation<MailSubmissionReceipt> operation;
@@ -477,60 +463,6 @@ public class MailerImpl implements Mailer {
 			// Preparation already notified on the caller thread with this exact failure.
 		}
 		return operation.handle();
-	}
-
-	/**
-	 * @see Mailer#sendMail(Email)
-	 */
-	@Override
-	@NotNull
-	public final MailSend<Void> sendMail(final Email email) {
-		return sendMail(email, getOperationalConfig().isAsync());
-	}
-
-	/**
-	 * @see Mailer#sendMail(Email, boolean)
-	 */
-	@Override
-	@NotNull
-	public final MailSend<Void> sendMail(final Email email, @SuppressWarnings("SameParameterValue") final boolean async) {
-		if (async) {
-			return sendMailAsync(email);
-		}
-		sendMailSync(email);
-		return new MailSend<>(CompletableFuture.completedFuture(null), () -> { });
-	}
-
-	/**
-	 * @see Mailer#sendMailAndGetReceipt(Email)
-	 */
-	@Override
-	@NotNull
-	public final MailSend<MailSubmissionReceipt> sendMailAndGetReceipt(final Email email) {
-		return sendMailAndGetReceipt(email, getOperationalConfig().isAsync());
-	}
-
-	/**
-	 * @see Mailer#sendMailAndGetReceipt(Email, boolean)
-	 */
-	@Override
-	@NotNull
-	public final MailSend<MailSubmissionReceipt> sendMailAndGetReceipt(final Email email, final boolean async) {
-		return async
-				? sendMailAndGetReceiptAsync(email)
-				: new MailSend<>(CompletableFuture.completedFuture(sendMailAndGetReceiptSync(email)), () -> { });
-	}
-
-	private MailSend<Void> withoutReceipt(final MailSend<MailSubmissionReceipt> receiptSend) {
-		final CompletableFuture<Void> completion = new CompletableFuture<>();
-		receiptSend.getCompletion().whenComplete((receipt, failure) -> {
-			if (failure == null) {
-				completion.complete(null);
-			} else {
-				completion.completeExceptionally(failure);
-			}
-		});
-		return new MailSend<>(completion, receiptSend::requestCancellation);
 	}
 
 	private MailSendOperation<MailSubmissionReceipt> beginEmailOperation(final MailSendAttempt attempt) {
@@ -605,45 +537,34 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	/**
-	 * @see Mailer#sendMailsInSimpleBatch(Iterable)
-	 */
-	@Override
-	@NotNull
-	public final MailSend<Void> sendMailsInSimpleBatch(final Iterable<Email> emails) {
-		return sendMailsInSimpleBatch(emails, getOperationalConfig().isAsync());
+	/** @see Mailer.Sync#sendMailsInSimpleBatch(Iterable) */
+	private void sendSimpleBatchSynchronously(final Iterable<Email> emails) {
+		final Iterable<Email> checkedEmails = verifyNonnull(emails);
+		final MailSendOperation<Void> operation = mailSendOperations.begin(unused -> { }, failure -> { });
+		operation.executeSync(() -> {
+			sendSimpleBatch(checkedEmails, operation.control());
+			return null;
+		});
 	}
 
-	/**
-	 * @see Mailer#sendMailsInSimpleBatch(Iterable, boolean)
-	 */
-	@Override
-	@NotNull
-	public final MailSend<Void> sendMailsInSimpleBatch(final Iterable<Email> emails, final boolean async) {
-		val checkedEmails = verifyNonnull(emails);
+	/** @see Mailer.Async#sendMailsInSimpleBatch(Iterable) */
+	private MailSend<Void> sendSimpleBatchAsynchronously(final Iterable<Email> emails) {
+		final Iterable<Email> checkedEmails = verifyNonnull(emails);
 		final MailSendOperation<Void> operation;
 		try {
 			operation = mailSendOperations.begin(unused -> { }, failure -> { });
 		} catch (final RuntimeException failure) {
-			if (!async) {
-				throw failure;
-			}
 			return new MailSend<>(AsyncOperationHelper.failedFuture(failure), () -> { });
 		}
-		final Supplier<Void> batch = () -> {
-			validateDeadlineSupport();
+		operation.schedule(() -> {
 			sendSimpleBatch(checkedEmails, operation.control());
 			return null;
-		};
-		if (async) {
-			operation.schedule(batch);
-		} else {
-			operation.executeSync(batch);
-		}
+		});
 		return operation.handle();
 	}
 
 	private void sendSimpleBatch(@NotNull final Iterable<Email> emails, final MailSendControl control) {
+		validateDeadlineSupport();
 		new SendMailsInSimpleBatchClosure(operationalConfig, session, emails, this::prepareEmailForSending, mailSendObserverNotifier,
 				proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, control)
 				.run();
@@ -838,5 +759,53 @@ public class MailerImpl implements Mailer {
 			throw new IllegalStateException("A Mailer worker cannot wait for its own shutdown; close the Mailer from its owning application thread");
 		}
 		shutdownConnectionPool().get();
+	}
+
+	/** Fixed execution choices over this Mailer's existing paths; owns no resources or locks. */
+	private final class SynchronousView implements Sync {
+		/** @see Mailer.Sync#sendMail(Email) */
+		@Override
+		@NotNull
+		public MailSubmissionReceipt sendMail(final Email email) {
+			return sendMailSynchronously(email);
+		}
+
+		/** @see Mailer.Sync#sendMailsInSimpleBatch(Iterable) */
+		@Override
+		public void sendMailsInSimpleBatch(final Iterable<Email> emails) {
+			sendSimpleBatchSynchronously(emails);
+		}
+
+		/** @see Mailer.Sync#testConnection() */
+		@Override
+		public void testConnection() {
+			testConnectionSynchronously();
+		}
+
+	}
+
+	/** Fixed execution choices over this Mailer's existing paths; owns no resources or locks. */
+	private final class AsynchronousView implements Async {
+		/** @see Mailer.Async#sendMail(Email) */
+		@Override
+		@NotNull
+		public MailSend<MailSubmissionReceipt> sendMail(final Email email) {
+			return sendMailAsynchronously(email);
+		}
+
+		/** @see Mailer.Async#sendMailsInSimpleBatch(Iterable) */
+		@Override
+		@NotNull
+		public MailSend<Void> sendMailsInSimpleBatch(final Iterable<Email> emails) {
+			return sendSimpleBatchAsynchronously(emails);
+		}
+
+		/** @see Mailer.Async#testConnection() */
+		@Override
+		@NotNull
+		public CompletableFuture<Void> testConnection() {
+			return testConnectionAsynchronously();
+		}
+
 	}
 }

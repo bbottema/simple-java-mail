@@ -60,7 +60,7 @@ class EmailSerializationSmtpTest {
 
 		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", SMTP_PORT).buildMailer();
 		try {
-			mailer.sendMail(restored);
+			mailer.sync().sendMail(restored);
 		} finally {
 			mailer.close();
 		}
