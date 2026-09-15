@@ -28,14 +28,15 @@ class CliCommandLineProducer {
     
     static final String OPTION_HELP_POSTFIX = "--help";
     static final String EMPTY_PARAM_LABEL = "<empty>";
+    static final String AUTHENTICATE_OPTION = "--authenticate";
     
     @SuppressWarnings("SameParameterValue")
     static CommandLine configurePicoCli(List<CliDeclaredOptionSpec> declaredOptions, int maxTextWidth) {
         CommandSpec rootCommandsHolder = createDefaultCommandSpec("SimpleJavaMail",
                 "Simple Java Mail Command Line Interface.%n" +
                         "%n" +
-                        "All commands and their options are a direct translation of the Simple Java Mail builder API and translate back into builder calls " +
-                        "(as such, the order of --options matter as well as combinations). Furthermore, all documentation is taken from the " +
+                        "Builder options are a direct translation of the Simple Java Mail builder API and translate back into builder calls " +
+                        "(as such, the order of --options matter as well as combinations). Their documentation is taken from the " +
                         "builder API Javadoc. Essentially you configure builders just like you would in Java, but with CLI commands.%n" +
                         "%n" +
                         "@|bold Note that each and every |@@|"+COMMAND_OPTION_STYLE+",bold --option|@ @|bold has an |@@|"+COMMAND_OPTION_STYLE+",bold --option--help|@ @|bold variation for full documentation.|@" +
@@ -48,25 +49,50 @@ class CliCommandLineProducer {
                 .customSynopsis("",
                         colorizeOptionsInText("\tsend     [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE),
                         colorizeOptionsInText("\tconnect  [--help -h, --version -V] --mailer:options", COMMAND_OPTION_STYLE),
+                        colorizeOptionsInText("\tprobe    [--help -h, --version -V] [--authenticate] --mailer:options", COMMAND_OPTION_STYLE),
                         colorizeOptionsInText("\tvalidate [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE));
     
         createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email.",
                 colorizeOptionsInText("\tsend [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         createRootCommand(rootCommandsHolder, "connect", "Test a server connection, including possible authentication and any proxy settings",
                 colorizeOptionsInText("\tconnect [--help -h, --version -V] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+        createProbeCommand(rootCommandsHolder, declaredOptions, maxTextWidth);
         createRootCommand(rootCommandsHolder, "validate", "Rehearse preparing an email with the mailer's defaults, overrides, MIME security and size limit, without connecting to SMTP",
                 colorizeOptionsInText("\tvalidate [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         
         return new CommandLine(rootCommandsHolder).setUsageHelpWidth(maxTextWidth).setSeparator(" ");
     }
+
+    /** Probe authentication is a per-command choice, not a generated builder option or a Mailer default. */
+    private static void createProbeCommand(final CommandSpec rootCommandsHolder,
+            final List<CliDeclaredOptionSpec> declaredOptions, final int maxTextWidth) {
+        final CommandSpec probe = createRootCommand(rootCommandsHolder, "probe",
+                "Inspect SMTP capabilities and TLS without sending an email. The probe does not authenticate unless --authenticate is supplied. "
+                        + "Connects even in logging-only mode. Prints the report to stdout, including failures: "
+                        + "exit 0 for success, 3 for a failed or unsupported probe, 2 for invalid arguments.",
+                colorizeOptionsInText("\tprobe [--help -h, --version -V] [--authenticate] --mailer:options", COMMAND_OPTION_STYLE),
+                declaredOptions, maxTextWidth);
+        final String authenticationHelp = "Test the configured SMTP credentials as part of this probe. "
+                + "Without this flag, the probe does not use configured SMTP credentials. Proxy authentication still follows the proxy settings. "
+                + "A nonzero connection-pool core size can separately open and authenticate send connections when the Mailer is built; "
+                + "use core size 0 (the default), including any per-cluster override, to avoid warming a send pool. "
+                + "No email is sent in either mode.";
+        probe.addOption(OptionSpec.builder(AUTHENTICATE_OPTION)
+                .type(boolean.class).arity("0").paramLabel(EMPTY_PARAM_LABEL)
+                .description(authenticationHelp).build());
+        probe.addOption(OptionSpec.builder(AUTHENTICATE_OPTION + OPTION_HELP_POSTFIX)
+                .type(boolean.class).arity("0").paramLabel(EMPTY_PARAM_LABEL)
+                .hidden(true).help(true).description(authenticationHelp).build());
+    }
     
-    private static void createRootCommand(CommandSpec rootCommandsHolder, String name, String description, String synopsis,
+    private static CommandSpec createRootCommand(CommandSpec rootCommandsHolder, String name, String description, String synopsis,
                                                  List<CliDeclaredOptionSpec> declaredOptions, int maxTextWidth) {
         final CommandSpec rootCommand = createDefaultCommandSpec(name, description);
 		final Collection<CliBuilderApiType> compatibleBuilderApiTypes = CliBuilderApiType.findForCliSynopsis(synopsis);
         rootCommand.usageMessage().customSynopsis(synopsis);
 		populateRootCommands(rootCommand, declaredOptions, compatibleBuilderApiTypes, maxTextWidth);
         rootCommandsHolder.addSubcommand(rootCommand.name(), rootCommand);
+        return rootCommand;
     }
     
     private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> declaredOptions, Collection<CliBuilderApiType> compatibleBuilderApiTypes, int maxTextWidth) {

@@ -1,6 +1,6 @@
 # Simple Java Mail CLI daemon
 
-The daemon is optional. Ordinary `sjm send`, `connect`, and `validate` commands still run once in the current process and close their Mailer. The CLI requires Java 17 or newer; the non-CLI libraries require Java 11 or newer.
+The daemon is optional. Ordinary `sjm send`, `connect`, `probe`, and `validate` commands still run once in the current process and close their Mailer. The CLI requires Java 17 or newer; the non-CLI libraries require Java 11 or newer.
 
 ## Commands
 
@@ -19,7 +19,7 @@ sjm send --daemon=off ...              # explicit one-shot
 sjm send --no-daemon ...               # alias for off
 ```
 
-The selector works the same way for `connect` and `validate`. Bare `--daemon` is the same as `-d`. Help and version output are always produced locally. There is no automatic one-shot fallback after a daemon request may have been accepted.
+The selector works the same way for `connect`, `probe`, and `validate`. Bare `--daemon` is the same as `-d`. Help and version output are always produced locally. There is no automatic one-shot fallback after a daemon request may have been accepted.
 
 The equivalent startup defaults are the JVM property `simplejavamail.cli.daemon` or environment variable `SIMPLEJAVAMAIL_CLI_DAEMON`, plus `simplejavamail.cli.daemon.instance` or `SIMPLEJAVAMAIL_CLI_DAEMON_INSTANCE`. An explicit command-line selector wins.
 
@@ -32,6 +32,19 @@ sjm daemon status --daemon-instance=work
 ```
 
 You do not need an instance per SMTP account. One daemon keeps a bounded registry and derives a private identity from the complete captured configuration and request Mailer options. Different hosts, credentials, trust, proxy, pool, or Session settings use separate Mailers. Equivalent repeated options can reuse the matching Mailer.
+
+## SMTP diagnostics
+
+`sjm probe` prints the Java API's SMTP connection report without submitting an email. It connects even in logging-only mode. Add `--authenticate` to test configured SMTP credentials for this invocation; later commands keep their own authentication choice. Proxy authentication and TLS client certificates follow the existing Mailer configuration in either mode.
+
+```text
+sjm probe --mailer:withSMTPServer smtp.example.org 587 --mailer:withTransportStrategy SMTP_TLS
+sjm probe --daemon=require --authenticate  # credentials come from the daemon's configuration
+```
+
+The daemon can reuse the same Mailer for probes with and without authentication, but each probe uses a fresh dedicated SMTP connection, not a pooled send transport. Reports are returned to the requesting client, including failed and unsupported reports. Exit code 0 means success, 3 means a failed or unsupported probe, and 2 means invalid arguments; daemon routing errors retain the codes below. Execution exceptions go to stderr. See the [CLI diagnostic examples](https://www.simplejavamail.org/cli.html#section-probe) for sample output and report interpretation.
+
+The authentication flag does not control send-pool warm-up. Building a Mailer with a nonzero pool core size can separately open and authenticate pooled connections. Keep the pool core size at 0 (the default), including any per-cluster override, when that is unwanted. A probe does not stop pools already running in the daemon.
 
 ## Batch and connection reuse
 
@@ -89,7 +102,7 @@ An ambiguous result does not mean SMTP rejected the message. It means the client
 
 `sjm daemon run` is the portable contract. It stays in the foreground and handles authenticated stop plus JVM/operating-system shutdown through one drain path.
 
-The daemon is part of the CLI, not a separate application to install. After installing `sjm`, use `sjm send -d ...` to start or reuse it on demand. The same applies to `connect` and `validate`. Use `sjm daemon start` only when you explicitly want to start it before the first command.
+The daemon is part of the CLI, not a separate application to install. After installing `sjm`, use `sjm send -d ...` to start or reuse it on demand. The same applies to `connect`, `probe`, and `validate`. Use `sjm daemon start` only when you explicitly want to start it before the first command.
 
 The standalone archive includes one optional, tested Linux convenience at `daemon/systemd/sjm-daemon.service`. It is not enabled during installation. Windows users do not need a Scheduled Task or Windows Service: on-demand acquisition launches a hidden per-user process.
 

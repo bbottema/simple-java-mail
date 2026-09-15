@@ -67,7 +67,8 @@ public final class CliSupport {
 			if (!CliCommandLineConsumerUsageHelper.writeHelpIfRequested(parseResult, CONSOLE_TEXT_WIDTH, out, err)) {
 				final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parseResult, declaredOptions);
 				commandExecutionStarted = true;
-				CliCommandLineConsumerResultHandler.executeReceivedCommand(received, environment, profileKey);
+				final CliExitCode category = CliCommandLineConsumerResultHandler.executeReceivedCommand(received, environment, profileKey, out);
+				return new CliExecutionResult(category, stdout.asString(), stderr.asString());
 			}
 			return CliExecutionResult.success(stdout.asString(), stderr.asString());
 		} catch (CommandLine.ParameterException e) {
@@ -90,6 +91,7 @@ public final class CliSupport {
 			runCLI(new String[] { "send", declaredOption.getName() + "--help" });
 			System.out.print("\n\n\n");
 		}
+		runCLI(new String[] { "probe", CliCommandLineProducer.AUTHENTICATE_OPTION + CliCommandLineProducer.OPTION_HELP_POSTFIX });
 	}
 
 	private static List<CliDeclaredOptionSpec> loadOrGenerateDeclaredOptions() {

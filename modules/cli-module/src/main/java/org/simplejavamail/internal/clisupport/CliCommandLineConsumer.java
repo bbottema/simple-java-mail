@@ -58,7 +58,8 @@ class CliCommandLineConsumer {
 			receivedOptions.add(new CliReceivedOptionData(cliOption.getKey(), convertProvidedOptionValues(providedStringValues, sourceMethod)));
         }
         
-        return new CliReceivedCommand(matchedCommand, receivedOptions);
+        return new CliReceivedCommand(matchedCommand, receivedOptions,
+                mailCommand.matchedOptionValue(CliCommandLineProducer.AUTHENTICATE_OPTION, false));
     }
 	
 	private static Map<CliDeclaredOptionSpec, OptionSpec> matchProvidedOptions(Iterable<CliDeclaredOptionSpec> declaredOptions, List<OptionSpec> providedOptions) {

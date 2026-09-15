@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Isolate command stdout/stderr assertions from the test suite's console logging. -->
+<Configuration status="OFF">
+    <Loggers>
+        <Root level="OFF"/>
+    </Loggers>
+</Configuration>
