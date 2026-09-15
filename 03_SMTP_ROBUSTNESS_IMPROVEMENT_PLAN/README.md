@@ -1,14 +1,15 @@
 # SMTP robustness improvement plan
 
-> **Implementation status:** Phases 1 and 2 are complete and accepted. Phase 3's SMTP capability-probe story (#733) is also complete and accepted as of 15 September 2026: Java and CLI entry points, immutable reports, a dedicated Angus connection, optional authentication, local SMTP/TLS tests, a separately packaged non-Angus adapter fixture, a demo and website guidance. Holistic review found no further blocking defects; Java 11 and Java 21 non-live verification passed. The Angus safety gate was resolved through supported socket/provider hooks; the original negative characterization remains in the tests. These are unreleased 10.0.0 changes. Phase 3 as a whole is not complete: the separate authentication-policy step and later phases remain proposals. Benchmarking is not part of this work.
+> **Implementation status:** Phases 1, 2 and 3 are complete and accepted. Phase 3's SMTP capability-probe story (#733) was accepted on 15 September 2026: Java and CLI entry points, immutable reports, a dedicated Angus connection, optional authentication, local SMTP/TLS tests, a separately packaged non-Angus adapter fixture, a demo and website guidance. Step 5's construction-time STARTTLS guard and documentation (#735) were accepted the same day, completing Phase 3. Holistic review found no further blocking defects; Java 11 and Java 21 non-live verification passed. The Angus safety gate was resolved through supported socket/provider hooks; the original negative characterization remains in the tests. These are unreleased 10.0.0 changes. Later phases remain proposals. Benchmarking is not part of this work.
 
-- Status: Phases 1 and 2 and phase 3's capability-probe story complete and accepted; authentication-policy work remains; unreleased
+- Status: Phases 1, 2 and 3 complete and accepted; unreleased
+- Step 5 completion: [Authentication/TLS characterization](phase-3-diagnostics-and-security/05a-authentication-tls-characterization.md) led to the [construction-time guardrail](phase-3-diagnostics-and-security/05b-mandatory-starttls-configuration-guardrail.md), implemented, verified and accepted under [#735](https://github.com/bbottema/simple-java-mail/issues/735). The opportunistic default is retained, including with credentials; conflicting mandatory STARTTLS overrides are rejected. No public signature changed.
 - Resumption after the pool fix: The supporting-library patches and Simple Java Mail 9.3.4 are released. This 10.0.0 checkout now adopts SMTP Connection Pool 4.1.0 and retains all eight mixed-failure waiter-recovery regression cases from the patch. Integration verification is recorded in [step 2](phase-2-execution-control/02-bound-asynchronous-submission-and-expose-backpressure.md). See the [dependency finding](phase-1-transaction-truth/01-preserve-recipient-replies-and-derive-retry-guidance.md#separate-dependency-finding).
 - Plan order: 03 of 03
 - Preceded by: [02 - CLI daemon improvement plan](../02_CLI_DAEMON_IMPROVEMENT_PLAN/README.md) in planning order only
 - GitHub parent issue: [#722](https://github.com/bbottema/simple-java-mail/issues/722)
 - Execution-view migration: [#734](https://github.com/bbottema/simple-java-mail/issues/734), accepted on 13 September 2026; see the [plan and probe-review bookmark](phase-3-diagnostics-and-security/04a-explicit-mailer-execution-views.md). The probe implementation remains separate under #733.
-- GitHub child issues: [#723](https://github.com/bbottema/simple-java-mail/issues/723) (phase 1), [#725](https://github.com/bbottema/simple-java-mail/issues/725) and [#726](https://github.com/bbottema/simple-java-mail/issues/726) (phase 2), [#733](https://github.com/bbottema/simple-java-mail/issues/733) (phase 3 capability probe); later children not created
+- GitHub child issues: [#723](https://github.com/bbottema/simple-java-mail/issues/723) (phase 1), [#725](https://github.com/bbottema/simple-java-mail/issues/725) and [#726](https://github.com/bbottema/simple-java-mail/issues/726) (phase 2), [#733](https://github.com/bbottema/simple-java-mail/issues/733) (phase 3 capability probe) and [#735](https://github.com/bbottema/simple-java-mail/issues/735) (phase 3 STARTTLS configuration); later children not created
 - Release train: 10.x; assign an exact release milestone to each child only when scheduled
 - Working branch for planning: `codex/10.0.0`
 - Baseline inspected: 7 September 2026
@@ -56,9 +57,9 @@ The parent issue should maintain this release-oriented table:
 | 1 | [#723](https://github.com/bbottema/simple-java-mail/issues/723) | Major feature | 10.0.0 | - | Recipient replies and retry guidance |
 | 2 | [#725](https://github.com/bbottema/simple-java-mail/issues/725) | Major feature | 10.0.0 | - | Bounded async demand and visible overflow |
 | 3 | [#726](https://github.com/bbottema/simple-java-mail/issues/726) | Major feature | 10.0.0 | - | Deadlines and protocol-aware cancellation |
-| 4 | [#733](https://github.com/bbottema/simple-java-mail/issues/733) | Enhancement | 10.0.0 | - | Safe SMTP capability diagnostics |
+| 4 | [#733](https://github.com/bbottema/simple-java-mail/issues/733) | Major feature | 10.0.0 | - | Safe SMTP capability diagnostics |
 | 4a | [#734](https://github.com/bbottema/simple-java-mail/issues/734) | Enhancement | 10.0.0 | - | Explicit sync/async views and unified receipt-returning sends |
-| 5 | Not created | Security + enhancement | Unscheduled | - | Explicit authentication-over-TLS policy |
+| 5 | [#735](https://github.com/bbottema/simple-java-mail/issues/735) | Security + enhancement | 10.0.0 | - | Reject contradictory mandatory STARTTLS settings; retain the opportunistic default (complete; unreleased) |
 | 6 | Not created | Enhancement | Unscheduled | - | Complete DSN identifiers and recipient metadata |
 | 7 | Not created | Enhancement | Unscheduled | - | Per-message REQUIRETLS |
 | 8 | Not created | Enhancement | Unscheduled | - | Explicit SMTPUTF8 and 8BITMIME requirements |
@@ -120,7 +121,7 @@ Step 3's [supporting-library cancellation plan](phase-2-execution-control/suppor
 
 - [x] [4a. Explicit Mailer execution views](phase-3-diagnostics-and-security/04a-explicit-mailer-execution-views.md) - #734; accepted independently of the probe
 - [x] [4. Add a structured SMTP capability probe](phase-3-diagnostics-and-security/04-add-structured-smtp-capability-probe.md) - [#733](https://github.com/bbottema/simple-java-mail/issues/733), Java/CLI implementation, provider fixture and holistic review accepted on 15 September 2026
-- [ ] [5. Make authenticated plaintext fallback explicit](phase-3-diagnostics-and-security/05-make-authenticated-plaintext-fallback-explicit.md)
+- [x] [5. Make authenticated plaintext fallback explicit](phase-3-diagnostics-and-security/05-make-authenticated-plaintext-fallback-explicit.md) - #735 implemented, verified and accepted on 15 September 2026; opportunistic default retained
 
 ### Phase 4: Model modern ESMTP requirements
 

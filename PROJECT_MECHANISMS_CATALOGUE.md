@@ -152,6 +152,12 @@ Daemon execution uses a bounded registry keyed by the captured immutable configu
 
 The in-memory request ledger attaches duplicate UUIDs to the original result and rejects changed content under the same UUID. Entry count, retained output bytes, and retention time are bounded; output pressure replaces old results with lightweight replay tombstones instead of permitting re-execution. It is deliberately not a durable queue. If the client loses the response after submission, it reports an ambiguous outcome and does not automatically resend or fall back to one-shot mode.
 
+## Mandatory STARTTLS Configuration Consistency
+
+`MailerImpl` validates the final extra properties during construction, after the strategy-configured Session is created but before `MailSendOperations`, proxy setup, provider lifecycle configuration or cluster registration. `SMTP_TLS` and `SMTP_OAUTH2` reject a direct `mail.smtp.starttls.required` override unless it is Boolean true or an untrimmed case-insensitive `"true"` string. Only direct entries are checked, matching the existing `Properties.putAll` copy behavior; no source is resolved again and no configured value is rewritten or rendered in the error.
+
+This applies to regular-builder, library-owned Sessions, including logging-only mode. Caller-owned Sessions and `CustomMailer` are exempt. Opportunistic SMTP, trust/identity settings and port defaults are unchanged. The check adds no probe preflight, send state, lock or resource owner, and does not protect against post-construction Session mutation or arbitrary provider/socket replacement. See [10.0.0 migration guidance](MIGRATION-10.0.md#conflicting-mandatory-starttls-overrides-now-fail-construction) and [#735](https://github.com/bbottema/simple-java-mail/issues/735).
+
 ## Dedicated SMTP Connection Diagnostics
 
 `mailer.sync().probeConnection()` and `mailer.async().probeConnection()` inspect a fresh connection without an Email, pool lease, mail-send observer or send-control operation. Authentication is opt-in for each call through the boolean overloads. `testConnection()` on each view keeps the existing health-check behavior; the probe is not a replacement health-check implementation.

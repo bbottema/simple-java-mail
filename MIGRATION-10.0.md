@@ -281,6 +281,26 @@ Loading or replacing one snapshot does not change the other factory, an existing
 
 Static inbound methods on `EmailConverter` use `SimpleJavaMail.fromDefaults()` when they produce an email builder. Use `mail.converter()` when parsed or converted emails must retain a particular explicit snapshot.
 
+## Conflicting mandatory STARTTLS overrides now fail construction
+
+In 10.0.0, selecting `SMTP_TLS` or `SMTP_OAUTH2` while disabling `mail.smtp.starttls.required` through extra properties fails during `buildMailer()`, before proxy, pool or send-operation setup. Previously, this combination could authenticate without encryption when STARTTLS was absent. The same check applies to Java, property-file, Spring and CLI configuration, including logging-only mode.
+
+Remove the conflicting override to keep mandatory STARTTLS:
+
+```java
+// Remove: .withProperty("mail.smtp.starttls.required", "false")
+Mailer mailer = mail.mailerBuilder()
+        .withSMTPServer("smtp.example.com", 587, "username", "password")
+        .withTransportStrategy(TransportStrategy.SMTP_TLS)
+        .buildMailer();
+```
+
+Also remove `simplejavamail.extraproperties.mail.smtp.starttls.required=false` from external configuration. A final Java `.withProperty("mail.smtp.starttls.required", null)` can remove an inherited override without changing the factory snapshot. Omit the property to keep the strategy default, or supply `Boolean.TRUE` or a case-insensitive `"true"` string without surrounding whitespace. Other values, including malformed strings and non-Boolean objects, fail construction.
+
+If opportunistic username/password authentication is intended, choose `TransportStrategy.SMTP` instead. This is still the default with or without credentials: try STARTTLS when offered, allow plaintext when absent, and fail if the attempted upgrade or certificate validation fails. OAuth2 keeps mandatory STARTTLS; do not switch an access token to the password strategy as a workaround.
+
+Caller-owned Sessions and `CustomMailer` transports are exempt. This is a construction-time consistency check, not a guard against later Session mutation, arbitrary provider/protocol or socket-factory replacement, or explicit certificate-trust exceptions. Public signatures, default strategies and default ports are unchanged. Use `mail.getConfig().getDiagnostics()` to locate an externally supplied override; builder overrides are not part of that snapshot.
+
 ## Opportunistic TLS moved to the Mailer builder
 
 `TransportStrategy` is now stateless. Replace the mutable enum call:
