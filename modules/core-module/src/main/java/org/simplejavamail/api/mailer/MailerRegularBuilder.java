@@ -40,15 +40,17 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	T withOpportunisticTLS(boolean opportunisticTLS);
 
 	/**
-	 * To learn more about the various transport modes, the properties they set and the security
-	 * implications, please refer to the full TransportStrategy<br>
-	 * <a href="www.javadoc.io/page/org.simplejavamail/simple-java-mail/latest/org/simplejavamail/mailer/config/TransportStrategy.html">javadoc</a>.
+	 * Selects how the Mailer connects and whether TLS is optional or required. See {@link TransportStrategy} for the protocols,
+	 * generated properties and security implications.
 	 * <p>
 	 * <strong>Note:</strong> if no server port has been set, a default will be taken based on the transport strategy, since every different
 	 * connection type uses a different default port.
+	 * <p>
+	 * Supplying credentials does not change the strategy. Choose {@link TransportStrategy#SMTP_TLS} when password authentication must require TLS;
+	 * plain {@link TransportStrategy#SMTP} remains opportunistic. See {@link #buildMailer()} for validation of conflicting extra properties.
 	 *
-	 * @param transportStrategy The name of the transport strategy to use: {@link TransportStrategy#SMTP}, {@link TransportStrategy#SMTPS} or
-	 *                                {@link TransportStrategy#SMTP_TLS}. Defaults to {@link TransportStrategy#SMTP}.
+	 * @param transportStrategy The name of the transport strategy to use: {@link TransportStrategy#SMTP}, {@link TransportStrategy#SMTPS},
+	 *                                {@link TransportStrategy#SMTP_TLS}, or {@link TransportStrategy#SMTP_OAUTH2}. Defaults to {@link TransportStrategy#SMTP}.
 	 */
 	T withTransportStrategy(@NotNull TransportStrategy transportStrategy);
 
@@ -156,6 +158,18 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * <p>
 	 * Values not set directly on this builder keep the immutable configuration snapshot captured when the builder was requested from its configured
 	 * factory. Later configuration loads do not change the resulting Mailer.
+	 * <p>
+	 * For {@link TransportStrategy#SMTP_TLS} and {@link TransportStrategy#SMTP_OAUTH2}, an extra {@code mail.smtp.starttls.required} property
+	 * must be {@link Boolean#TRUE} or a case-insensitive {@code "true"} string, without surrounding whitespace. Omit it to use the strategy default.
+	 * Other values fail construction before proxy, pool or send-operation setup, including in logging-only mode. Remove the conflicting override
+	 * to keep mandatory TLS. For opportunistic username/password authentication, choose {@link TransportStrategy#SMTP} instead;
+	 * do not switch access tokens to the password strategy as a workaround.
+	 * <p>
+	 * This check applies to Sessions created by this builder, unless a {@link CustomMailer} owns the transport. Caller-supplied Sessions are not checked.
+	 * It validates this particular override at construction time; it does not freeze the Session, validate custom providers or socket factories, or
+	 * change certificate-trust and server-identity settings.
+	 *
+	 * @throws org.simplejavamail.MailException If an extra property disables mandatory STARTTLS on a library-owned SMTP transport.
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	Mailer buildMailer();

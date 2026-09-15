@@ -50,6 +50,7 @@ import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_OAUTH2;
+import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.findStrategyForSession;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -176,6 +177,9 @@ public class MailerImpl implements Mailer {
 		if (session == null) {
 			session = createMailSessionWithoutOAuth2Validation(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"), opportunisticTLS);
 		}
+		if (ownsSession && operationalConfig.getCustomMailer() == null) {
+			validateMandatoryStartTls(transportStrategy, operationalConfig.getProperties());
+		}
 		this.session = session;
 		this.operationalConfig = operationalConfig;
 		this.mailSendObserverNotifier = new MailSendObserverNotifier(mailSendObserver, observerExecutor, operationalConfig.isTransportModeLoggingOnly());
@@ -198,6 +202,27 @@ public class MailerImpl implements Mailer {
 			session.getProperties().put(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY, oauth2AccessTokenProvider);
 		}
 		initCluster(session, operationalConfig);
+	}
+
+	/**
+	 * Rejects a contradictory override before proxy/pool setup; caller-owned Sessions and custom transports keep their existing ownership.
+	 *
+	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#buildMailer()
+	 */
+	private static void validateMandatoryStartTls(@Nullable final TransportStrategy transportStrategy, @NotNull final Properties additionalProperties) {
+		if (transportStrategy != SMTP_TLS && transportStrategy != SMTP_OAUTH2) {
+			return;
+		}
+		// Only direct entries are copied by initSession. Angus accepts Boolean true or the untrimmed, case-insensitive string "true".
+		final Object requiredOverride = additionalProperties.get("mail.smtp.starttls.required");
+		if (requiredOverride == null || Boolean.TRUE.equals(requiredOverride)
+				|| requiredOverride instanceof String && "true".equalsIgnoreCase((String) requiredOverride)) {
+			return;
+		}
+		final String correction = transportStrategy == SMTP_OAUTH2
+				? "Remove that override so the access token is sent only after TLS succeeds."
+				: "Remove that override to require TLS, or choose TransportStrategy.SMTP if you want opportunistic TLS.";
+		throw new MailerException(transportStrategy + " requires STARTTLS, but mail.smtp.starttls.required disables it. " + correction);
 	}
 
 	/**

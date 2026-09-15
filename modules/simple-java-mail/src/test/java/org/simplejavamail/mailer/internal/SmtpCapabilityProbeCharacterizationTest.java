@@ -443,6 +443,10 @@ class SmtpCapabilityProbeCharacterizationTest {
             assertThat(reader.readLine()).isEqualTo(command);
         }
 
+        String readLine() throws IOException {
+            return reader.readLine();
+        }
+
         void expectClosed() throws IOException {
             assertThat(reader.readLine()).as("peer must close without sending mail").isNull();
         }

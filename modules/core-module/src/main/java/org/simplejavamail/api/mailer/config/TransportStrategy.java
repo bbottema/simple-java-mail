@@ -16,20 +16,18 @@ import static java.lang.String.format;
 public enum TransportStrategy {
 
 	/**
-	 * Vanilla SMTP with an insecure STARTTLS upgrade (if supported).
+	 * SMTP with an optional STARTTLS upgrade. This is the default strategy, including when a username and password are supplied.
 	 * <p>
-	 * This {@code TransportStrategy} falls back to plaintext when a mail server does not indicate support for
-	 * STARTTLS. Additionally, even if a TLS session is negotiated, <strong>server certificates are not validated in
-	 * any way</strong>.
+	 * With the default opportunistic-TLS setting, the connection upgrades to TLS when the server advertises STARTTLS. If STARTTLS is absent,
+	 * the connection may continue without encryption, including password authentication. Supplying credentials does not make TLS mandatory.
 	 * <p>
-	 * This {@code TransportStrategy} only offers protection against passive network eavesdroppers when the mail server
-	 * indicates support for STARTTLS. Active network attackers can trivially bypass the encryption 1) by tampering with
-	 * the STARTTLS indicator, 2) by presenting a self-signed certificate, 3) by presenting a certificate issued by an
-	 * untrusted certificate authority; or 4) by presenting a certificate that was issued by a valid certificate
-	 * authority to a domain other than the mail server's.
+	 * When TLS is used, normal Mailer configuration enables certificate-chain and server-identity checks unless the caller configures an
+	 * explicit exception. A refused STARTTLS command or a failed TLS handshake or certificate check fails the connection; it does not trigger
+	 * a retry without TLS. Disabling the optional upgrade explicitly through
+	 * {@link org.simplejavamail.api.mailer.MailerRegularBuilder#withOpportunisticTLS(boolean)} is a separate configuration choice.
 	 * <p>
-	 * For proper mail transport encryption, see {@link TransportStrategy#SMTPS} or
-	 * {@link TransportStrategy#SMTP_TLS}.
+	 * An active network attacker can suppress the STARTTLS advertisement before those checks begin. Choose {@link #SMTP_TLS} or {@link #SMTPS}
+	 * when encryption is required. Caller-owned Sessions and custom transports retain their own security configuration.
 	 * <p>
 	 * Implementation notes:
 	 * <ul>

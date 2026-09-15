@@ -334,12 +334,13 @@ class SmtpConnectionProbeTest {
     @Test
     void noAuthDoesNotResolveOAuth2TokenProvider() throws Exception {
         final AtomicInteger tokenRequests = new AtomicInteger();
-        try (Peer server = new Peer(false, peer -> { peer.greet(PLAIN); peer.quit(); });
+        try (Peer server = new Peer(false, peer -> { peer.startTls(SECURE); peer.quit(); });
              Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", server.port(), "probe-user")
                      .withTransportStrategy(TransportStrategy.SMTP_OAUTH2).withOAuth2AccessTokenProvider(() -> {
                          tokenRequests.incrementAndGet();
                          return "secret-oauth-token";
-                     }).withProperty("mail.smtp.starttls.required", "false").withProperty("mail.smtp.localhost", "probe.example.test")
+                     }).withCustomSSLFactoryInstance((SSLSocketFactory) session(true).getProperties().get("mail.smtp.ssl.socketFactory"))
+                     .withProperty("mail.smtp.localhost", "probe.example.test")
                      .buildMailer()) {
             assertThat(mailer.sync().probeConnection().isSuccessful()).isTrue();
             assertThat(tokenRequests).hasValue(0);
@@ -352,7 +353,7 @@ class SmtpConnectionProbeTest {
         final String initialResponse = Base64.getEncoder().encodeToString(
                 "user=probe-user\u0001auth=Bearer secret-oauth-token\u0001\u0001".getBytes(StandardCharsets.UTF_8));
         try (Peer server = new Peer(false, peer -> {
-            peer.greet("250-localhost\r\n250 AUTH XOAUTH2");
+            peer.startTls("250-localhost\r\n250 AUTH XOAUTH2");
             peer.expect("AUTH XOAUTH2 " + initialResponse);
             peer.reply("235 authenticated");
             peer.quit();
@@ -360,7 +361,8 @@ class SmtpConnectionProbeTest {
                 .withTransportStrategy(TransportStrategy.SMTP_OAUTH2).withOAuth2AccessTokenProvider(() -> {
                     tokenRequests.incrementAndGet();
                     return "secret-oauth-token";
-                }).withProperty("mail.smtp.starttls.required", "false").withProperty("mail.smtp.localhost", "probe.example.test")
+                }).withCustomSSLFactoryInstance((SSLSocketFactory) session(true).getProperties().get("mail.smtp.ssl.socketFactory"))
+                .withProperty("mail.smtp.localhost", "probe.example.test")
                 .buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection(true);
             assertThat(report.isSuccessful()).as(report.toString()).isTrue();
