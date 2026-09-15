@@ -1,5 +1,6 @@
 module org.simplejavamail {
 	uses org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+	uses org.simplejavamail.api.mailer.spi.SmtpConnectionProbeAdapter;
 
 	requires static com.github.spotbugs.annotations;
 	requires static org.jetbrains.annotations;

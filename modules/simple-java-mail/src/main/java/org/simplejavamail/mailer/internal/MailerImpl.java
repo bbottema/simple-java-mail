@@ -16,6 +16,7 @@ import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
+import org.simplejavamail.api.mailer.SmtpConnectionReport;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -431,6 +432,24 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
+	/** @see Mailer.Sync#probeConnection(boolean) */
+	private synchronized SmtpConnectionReport probeConnectionSynchronously(final boolean authenticate) {
+		// Lock the owning Mailer, not its view, so shutdown cannot close the shared proxy during this connection.
+		if (shutdownFuture != null) {
+			throw new IllegalStateException("This Mailer is shutting down. Build a new Mailer before probing another connection.");
+		}
+		return SmtpConnectionProbe.probe(session, operationalConfig, authenticate, proxyServer, smtpConnectionCounter);
+	}
+
+	/** @see Mailer.Async#probeConnection(boolean) */
+	private CompletableFuture<SmtpConnectionReport> probeConnectionAsynchronously(final boolean authenticate) {
+		try {
+			return CompletableFuture.supplyAsync(() -> probeConnectionSynchronously(authenticate), operationalConfig.getExecutorService());
+		} catch (RuntimeException failure) {
+			return AsyncOperationHelper.failedFuture(failure);
+		}
+	}
+
 	/**
 	 * @see Mailer.Sync#sendMail(Email)
 	 */
@@ -782,6 +801,19 @@ public class MailerImpl implements Mailer {
 			testConnectionSynchronously();
 		}
 
+		/** @see Mailer.Sync#probeConnection() */
+		@Override
+		@NotNull
+		public SmtpConnectionReport probeConnection() {
+			return probeConnection(false);
+		}
+
+		/** @see Mailer.Sync#probeConnection(boolean) */
+		@Override
+		@NotNull
+		public SmtpConnectionReport probeConnection(final boolean authenticate) {
+			return probeConnectionSynchronously(authenticate);
+		}
 	}
 
 	/** Fixed execution choices over this Mailer's existing paths; owns no resources or locks. */
@@ -807,5 +839,18 @@ public class MailerImpl implements Mailer {
 			return testConnectionAsynchronously();
 		}
 
+		/** @see Mailer.Async#probeConnection() */
+		@Override
+		@NotNull
+		public CompletableFuture<SmtpConnectionReport> probeConnection() {
+			return probeConnection(false);
+		}
+
+		/** @see Mailer.Async#probeConnection(boolean) */
+		@Override
+		@NotNull
+		public CompletableFuture<SmtpConnectionReport> probeConnection(final boolean authenticate) {
+			return probeConnectionAsynchronously(authenticate);
+		}
 	}
 }

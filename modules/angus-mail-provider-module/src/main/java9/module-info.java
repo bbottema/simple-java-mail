@@ -10,4 +10,6 @@ module org.simplejavamail.mailprovider.angus {
             with org.simplejavamail.internal.mailprovider.angus.AngusMailTransportAdapter;
     provides org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter
             with org.simplejavamail.internal.mailprovider.angus.AngusMailTransportLifecycleAdapter;
+    provides org.simplejavamail.api.mailer.spi.SmtpConnectionProbeAdapter
+            with org.simplejavamail.internal.mailprovider.angus.AngusSmtpConnectionProbeAdapter;
 }

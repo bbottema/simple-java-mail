@@ -626,10 +626,13 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 
 	/**
 	 * Determines whether at the very last moment an email is sent out using JavaMail's native API or whether the email is simply only logged.
+	 * Configured SMTP settings are retained for explicit connection probes, which still connect even in logging-only mode.
+	 * Logging-only sending does not require an SMTP host.
 	 *
 	 * @param transportModeLoggingOnly Flag {@code true} or {@code false} that enables or disables logging only mode when sending emails.
 	 *
 	 * @see #resetTransportModeLoggingOnly()
+	 * @see Mailer.Sync#probeConnection()
 	 */
 	T withTransportModeLoggingOnly(@NotNull Boolean transportModeLoggingOnly);
 

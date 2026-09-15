@@ -64,6 +64,8 @@ class MailerExecutionViewsTest {
 		assertThatThrownBy(() -> sync.sendMailsInSimpleBatch(untouched)).isInstanceOf(RejectedExecutionException.class);
 		assertThatThrownBy(() -> async.sendMailsInSimpleBatch(untouched).getCompletion().get(5, SECONDS))
 				.isInstanceOf(ExecutionException.class).hasCauseInstanceOf(RejectedExecutionException.class);
+		assertThatThrownBy(sync::probeConnection).isInstanceOf(IllegalStateException.class);
+		assertThatThrownBy(() -> async.probeConnection().get(5, SECONDS)).isInstanceOf(ExecutionException.class);
 		assertThat(iteratorCalls).hasValue(0);
 		assertThat(transport.sessions).isEmpty();
 	}
@@ -95,7 +97,11 @@ class MailerExecutionViewsTest {
 			sync.testConnection();
 			assertThat(transport.synchronousTestOwnerLock).hasValue(true);
 			async.testConnection().get(5, SECONDS);
-			assertThat(outcomes).hasSize(6); // connection tests are not email attempts
+			assertThat(sync.probeConnection().isSupported()).isFalse();
+			assertThat(sync.probeConnection(true).isSupported()).isFalse();
+			assertThat(async.probeConnection().get(5, SECONDS).isSupported()).isFalse();
+			assertThat(async.probeConnection(true).get(5, SECONDS).isSupported()).isFalse();
+			assertThat(outcomes).hasSize(6); // tests/probes are not email attempts
 			assertThat(transport.sessions).hasSize(8).allSatisfy(session -> assertThat(session).isSameAs(mailer.getSession()));
 			assertThat(transport.configurations).allSatisfy(config -> assertThat(config).isSameAs(mailer.getOperationalConfig()));
 			assertThat(transport.sendThreads.get(0)).isNotSameAs(Thread.currentThread());

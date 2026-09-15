@@ -1,0 +1,2 @@
+# The isolated fixture supplies its own provider metadata rather than borrowing Angus resources.
+rfc822=smtp

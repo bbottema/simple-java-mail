@@ -1,14 +1,20 @@
 package org.simplejavamail.managedangus;
 
 import jakarta.mail.Transport;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Provider;
+import jakarta.mail.Session;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.SmtpConnectionReport;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
+import org.simplejavamail.api.mailer.spi.SmtpConnectionProbeAdapter;
 import org.simplejavamail.config.ConfigLoader;
 
 import java.time.Duration;
 import java.util.ServiceLoader;
+import java.util.Properties;
 
 /** This little program catches module-access failures when Jakarta Mail reflectively constructs the managed Angus provider. */
 public final class ManagedAngusConsumer {
@@ -30,6 +36,17 @@ public final class ManagedAngusConsumer {
                 abort.run();
                 if (transport.isConnected()) {
                     throw new AssertionError("The probe must not open a connection");
+                }
+                final Provider selected = mailer.getSession().getProvider(strategy == TransportStrategy.SMTPS ? "smtps" : "smtp");
+                final SmtpConnectionProbeAdapter probe = ServiceLoader.load(SmtpConnectionProbeAdapter.class).stream()
+                        .map(ServiceLoader.Provider::get).filter(adapter -> adapter.supportsProvider(selected))
+                        .findFirst().orElseThrow(() -> new AssertionError("Connection-probe SPI was not discovered"));
+                final Session dedicated = Session.getInstance((Properties) mailer.getSession().getProperties().clone());
+                final SmtpConnectionReport report = probe.probe(dedicated, false, candidate -> {
+                    throw new MessagingException("Stop before network access");
+                });
+                if (!report.isSupported() || report.isSuccessful() || report.getFailurePhase().isEmpty()) {
+                    throw new AssertionError("Connection-probe adapter could not produce a safe failure report");
                 }
             }
         }

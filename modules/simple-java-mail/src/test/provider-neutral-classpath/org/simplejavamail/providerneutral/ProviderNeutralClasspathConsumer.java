@@ -28,6 +28,10 @@ import org.simplejavamail.api.mailer.MailSendTimeoutException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.SmtpCapabilities;
+import org.simplejavamail.api.mailer.SmtpConnectionReport;
+import org.simplejavamail.api.mailer.SmtpTlsDetails;
+import org.simplejavamail.api.mailer.spi.SmtpConnectionProbeAdapter;
 import org.simplejavamail.api.mailer.SmtpRecipientStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
@@ -48,6 +52,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -96,6 +101,7 @@ public final class ProviderNeutralClasspathConsumer {
 		assertExecutionControlApiIsAvailable(simpleJavaMail, source);
 		assertUnknownTransportFailureApiIsAvailable();
 		assertRecipientReplyApiIsAvailable();
+		assertConnectionProbeApiIsAvailable();
 		assertExecutionViewsApiIsAvailable();
 		assertConfigDiagnosticsApiIsAvailable(simpleJavaMail);
 		assertExactEmailApiIsAvailable(simpleJavaMail);
@@ -115,6 +121,23 @@ public final class ProviderNeutralClasspathConsumer {
 		@SuppressWarnings("unused") final BiFunction<Mailer.Async, Iterable<Email>, MailSend<Void>> asyncBatch = Mailer.Async::sendMailsInSimpleBatch;
 		@SuppressWarnings("unused") final Consumer<Mailer.Sync> connectionTest = Mailer.Sync::testConnection;
 		@SuppressWarnings("unused") final Function<Mailer.Async, CompletableFuture<Void>> asyncTest = Mailer.Async::testConnection;
+	}
+
+	/** The connection report and its optional adapter must link without Angus, including all four Mailer entry points. */
+	private static void assertConnectionProbeApiIsAvailable() {
+		@SuppressWarnings("unused") final Function<Mailer.Sync, SmtpConnectionReport> probe = Mailer.Sync::probeConnection;
+		@SuppressWarnings("unused") final BiFunction<Mailer.Sync, Boolean, SmtpConnectionReport> authenticatedProbe = Mailer.Sync::probeConnection;
+		@SuppressWarnings("unused") final Function<Mailer.Async, CompletableFuture<SmtpConnectionReport>> asyncProbe = Mailer.Async::probeConnection;
+		@SuppressWarnings("unused") final BiFunction<Mailer.Async, Boolean, CompletableFuture<SmtpConnectionReport>> asyncAuthProbe = Mailer.Async::probeConnection;
+		@SuppressWarnings("unused") final Function<SmtpConnectionProbeAdapter, Class<?>> adapterType = Object::getClass;
+		final SmtpConnectionReport report = SmtpConnectionReport.builder().host("localhost").port(25).protocol("smtp")
+				.startedAt(Instant.EPOCH).completedAt(Instant.EPOCH).supported(true).connected(true).tlsActive(true)
+				.afterTls(new SmtpCapabilities(Map.of("DSN", List.of(""), "SIZE", List.of("100"))))
+				.tlsDetails(new SmtpTlsDetails("TLSv1.3", "example", List.of("CN=localhost"), true, null)).warnings(List.of()).build();
+		if (!report.isSuccessful() || !report.getEffectiveCapabilities().orElseThrow().supports("DSN")
+				|| report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize().orElseThrow() != 100) {
+			throw new AssertionError("SMTP connection probe API is unavailable");
+		}
 	}
 
 	/** Verifies the factory snapshot and grouped diagnostic API can be linked through the public config package. */

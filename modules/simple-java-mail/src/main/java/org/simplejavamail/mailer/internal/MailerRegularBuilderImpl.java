@@ -21,6 +21,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMTP_USERNAME;
 import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY;
 import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.emptyAsNull;
+import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
 /**
@@ -200,11 +201,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	}
 
 	/**
-	 * For internal use.
+	 * Keeps supplied SMTP settings available to explicit connection probes, including in logging-only mode.
+	 * Logging-only sends can still be built without an SMTP host; CustomMailer continues to own its connection settings.
 	 */
 	@Nullable
 	ServerConfig buildServerConfig() {
-		if (!isTransportModeLoggingOnly() && getCustomMailer() == null) {
+		if (getCustomMailer() == null && (!isTransportModeLoggingOnly() || !valueNullOrEmpty(host))) {
 			checkArgumentNotEmpty(host, "SMTP server host missing");
 			final int serverPort = ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
 			return new ServerConfigImpl(verifyNonnullOrEmpty(getHost()), serverPort, username, password, customSSLFactory, customSSLFactoryInstance);

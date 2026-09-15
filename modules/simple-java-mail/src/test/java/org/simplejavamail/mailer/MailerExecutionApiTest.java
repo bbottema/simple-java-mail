@@ -10,6 +10,7 @@ import org.simplejavamail.api.mailer.MailSender;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
+import org.simplejavamail.api.mailer.SmtpConnectionReport;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.mailer.internal.MailerImpl;
 
@@ -37,7 +38,7 @@ class MailerExecutionApiTest {
 		assertThat(Mailer.class.getMethod("sync").getReturnType()).isEqualTo(Mailer.Sync.class);
 		assertThat(Mailer.class.getMethod("async").getReturnType()).isEqualTo(Mailer.Async.class);
 		for (Class<?> view : List.of(Mailer.Sync.class, Mailer.Async.class)) {
-			assertThat(view.getDeclaredMethods()).hasSize(3).allSatisfy(method -> {
+			assertThat(view.getDeclaredMethods()).hasSize(5).allSatisfy(method -> {
 				assertThat(Modifier.isAbstract(method.getModifiers())).isTrue();
 				assertThat(method.isDefault()).isFalse();
 			});
@@ -49,13 +50,17 @@ class MailerExecutionApiTest {
 		assertThat(Mailer.Sync.class.getMethod("sendMail", Email.class).getReturnType()).isEqualTo(MailSubmissionReceipt.class);
 		assertThat(Mailer.Sync.class.getMethod("sendMailsInSimpleBatch", Iterable.class).getReturnType()).isEqualTo(void.class);
 		assertThat(Mailer.Sync.class.getMethod("testConnection").getReturnType()).isEqualTo(void.class);
+		assertThat(Mailer.Sync.class.getMethod("probeConnection").getReturnType()).isEqualTo(SmtpConnectionReport.class);
+		assertThat(Mailer.Sync.class.getMethod("probeConnection", boolean.class).getReturnType()).isEqualTo(SmtpConnectionReport.class);
 		assertGenericReturn(Mailer.Async.class.getMethod("sendMail", Email.class), MailSend.class, MailSubmissionReceipt.class);
 		assertGenericReturn(Mailer.Async.class.getMethod("sendMailsInSimpleBatch", Iterable.class), MailSend.class, Void.class);
 		assertGenericReturn(Mailer.Async.class.getMethod("testConnection"), CompletableFuture.class, Void.class);
+		assertGenericReturn(Mailer.Async.class.getMethod("probeConnection"), CompletableFuture.class, SmtpConnectionReport.class);
+		assertGenericReturn(Mailer.Async.class.getMethod("probeConnection", boolean.class), CompletableFuture.class, SmtpConnectionReport.class);
 		for (Class<?> owner : List.of(Mailer.class, MailerImpl.class)) {
 			assertThat(owner.getMethods()).extracting(Method::getName).doesNotContain(
 					"sendMail", "sendMailSync", "sendMailAsync", "sendMailAndGetReceipt", "sendMailAndGetReceiptSync",
-					"sendMailAndGetReceiptAsync", "sendMailsInSimpleBatch", "testConnection");
+					"sendMailAndGetReceiptAsync", "sendMailsInSimpleBatch", "testConnection", "probeConnection", "probeConnectionAsync");
 		}
 		assertThat(MailerGenericBuilder.class.getMethods()).extracting(Method::getName).doesNotContain("async", "isAsync");
 		assertThat(OperationalConfig.class.getMethods()).extracting(Method::getName).doesNotContain("isAsync");
@@ -69,7 +74,9 @@ class MailerExecutionApiTest {
 				+ "MailSend<MailSubmissionReceipt> send = async.sendMail(email); send.requestCancellation();"
 				+ "CompletableFuture<MailSubmissionReceipt> completed = send.getCompletion();"
 				+ "sync.sendMailsInSimpleBatch(emails); MailSend<Void> batch = async.sendMailsInSimpleBatch(emails);"
-				+ "sync.testConnection(); CompletableFuture<Void> test = async.testConnection();");
+				+ "sync.testConnection(); CompletableFuture<Void> test = async.testConnection();"
+				+ "SmtpConnectionReport probe = sync.probeConnection(); probe = sync.probeConnection(true);"
+				+ "CompletableFuture<SmtpConnectionReport> pending = async.probeConnection(); pending = async.probeConnection(true);");
 	}
 
 	@ParameterizedTest
@@ -81,6 +88,8 @@ class MailerExecutionApiTest {
 			"mailer.sendMailAndGetReceiptSync(email);", "mailer.sendMailAndGetReceiptAsync(email);",
 			"mailer.sendMailsInSimpleBatch(emails);", "mailer.sendMailsInSimpleBatch(emails, true);",
 			"mailer.testConnection();", "mailer.testConnection(true);", "mailer.testConnection(false);",
+			"mailer.probeConnection();", "mailer.probeConnection(true);",
+			"mailer.probeConnectionAsync();", "mailer.probeConnectionAsync(true);",
 			"mailer.sync().sendMailAndGetReceipt(email);", "mailer.async().sendMailAndGetReceipt(email);",
 			"mailer.sync().sendMail(email, true);", "mailer.async().testConnection(true);",
 			"MailSend<Void> send = mailer.async().sendMail(email);", "mailer.async().close();"

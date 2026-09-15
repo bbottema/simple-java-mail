@@ -134,6 +134,35 @@ public interface Mailer extends AutoCloseable {
 		 */
 		void testConnection();
 
+		/**
+		 * Inspects a fresh SMTP connection on the calling thread without SMTP authentication or sending an email.
+		 * Does not call a Jakarta Mail authenticator/token provider or use cached SMTP credentials. Configured proxy and TLS client authentication
+		 * still apply. This reports a new negotiation with the configured endpoint, not every endpoint in its cluster.
+		 *
+		 * @return Immutable connection facts, or a safe partial/unsupported report. Connection failures are in the report.
+		 * @see #probeConnection(boolean)
+		 */
+		@NotNull SmtpConnectionReport probeConnection();
+
+		/**
+		 * Inspects a dedicated SMTP connection on the calling thread, optionally testing configured credentials.
+		 * Authentication is an explicit choice for this call, never a change to ordinary send settings. Successful connection setup is not proof
+		 * that authentication occurred; the report records these separately.
+		 * <p>
+		 * Like {@link #testConnection()}, this connects even in logging-only mode. It never sends an email, borrows a pool lease or notifies
+		 * the mail-send observer. CustomMailer and unsupported providers return an unsupported report without connecting.
+		 * The original Session's properties/provider are left unchanged.
+		 * <p>
+		 * Uses provider connection/read timeouts, not total mail-send deadlines. TLS metadata may be unavailable with custom provider/security hooks.
+		 * Advertised capabilities and successful connection setup prove neither future message acceptance nor delivery.
+		 * AUTH exchanges and raw exceptions are not exposed. Coordination uses the owning Mailer's connection-test/shutdown monitor.
+		 *
+		 * @param authenticate Whether to use the configured password/authenticator or OAuth2 token provider.
+		 * @return Immutable facts after dedicated transport/proxy cleanup is attempted, including any connection/cleanup failure and earlier facts.
+		 * @throws IllegalStateException If this Mailer has started shutting down.
+		 * @see Async#probeConnection(boolean)
+		 */
+		@NotNull SmtpConnectionReport probeConnection(boolean authenticate);
 	}
 
 	/**
@@ -193,6 +222,23 @@ public interface Mailer extends AutoCloseable {
 		 */
 		@NotNull CompletableFuture<Void> testConnection();
 
+		/**
+		 * Schedules the unauthenticated equivalent of {@link Sync#probeConnection()} on this Mailer's executor.
+		 * @return A report after cleanup; scheduling or shutdown failures complete the future exceptionally.
+		 * @see #probeConnection(boolean)
+		 */
+		@NotNull CompletableFuture<SmtpConnectionReport> probeConnection();
+
+		/**
+		 * Schedules the dedicated connection inspection described by {@link Sync#probeConnection(boolean)}.
+		 * Connection failures are returned as safe reports; scheduling or Mailer-shutdown failures complete the future exceptionally.
+		 * Timing in the report starts when execution begins, excluding executor queue time. Cancelling this future does not abort network I/O;
+		 * configure the provider's connection/read timeouts. No send observers or total send deadlines are involved.
+		 *
+		 * @param authenticate Whether this probe should test configured credentials.
+		 * @return The report after dedicated transport/proxy cleanup is attempted.
+		 */
+		@NotNull CompletableFuture<SmtpConnectionReport> probeConnection(boolean authenticate);
 	}
 
 	/**

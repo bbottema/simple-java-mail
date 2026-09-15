@@ -213,6 +213,31 @@
 										<java classname="org.simplejavamail.providerneutral.ProviderNeutralClasspathConsumer"
 											  fork="true" failonerror="true"
 											  classpath="${project.build.directory}/provider-neutral-classpath-classes${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${providerNeutralPath}" />
+										<!-- The same external adapter JAR must work through META-INF/services and JPMS provides, without Angus. -->
+										<mkdir dir="${project.build.directory}/third-party-probe-classes" />
+										<javac srcdir="${project.basedir}/src/test/third-party-probe"
+											   destdir="${project.build.directory}/third-party-probe-classes"
+											   modulepath="${project.build.directory}/classes/META-INF/versions/9${path.separator}${providerNeutralPath}"
+											   release="${library.java.release}" includeantruntime="false">
+											<compilerarg value="--patch-module" />
+											<compilerarg value="org.simplejavamail=${project.build.directory}/${project.build.finalName}.jar" />
+										</javac>
+										<jar destfile="${project.build.directory}/third-party-probe-fixture.jar"
+											 basedir="${project.build.directory}/third-party-probe-classes">
+											<fileset dir="${project.basedir}/src/test/third-party-probe" includes="META-INF/**" />
+										</jar>
+										<java classname="org.simplejavamail.thirdpartyprobe.ThirdPartyProbeConsumer"
+											  fork="true" failonerror="true" timeout="30000"
+											  classpath="${project.build.directory}/third-party-probe-fixture.jar${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${providerNeutralPath}">
+											<arg value="classpath" />
+										</java>
+										<exec executable="${java.home}/bin/java" failonerror="true" timeout="30000">
+											<arg value="--module-path" />
+											<arg path="${project.build.directory}/third-party-probe-fixture.jar${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${providerNeutralPath}" />
+											<arg value="--module" />
+											<arg value="org.simplejavamail.thirdpartyprobe.fixture/org.simplejavamail.thirdpartyprobe.ThirdPartyProbeConsumer" />
+											<arg value="jpms" />
+										</exec>
 										<loadfile property="managedAngusPath" srcFile="${project.build.directory}/managed-angus-runtime-path.txt" />
 										<mkdir dir="${project.build.directory}/managed-angus-jpms-classes" />
 										<javac srcdir="${project.basedir}/src/test/managed-angus-jpms"
