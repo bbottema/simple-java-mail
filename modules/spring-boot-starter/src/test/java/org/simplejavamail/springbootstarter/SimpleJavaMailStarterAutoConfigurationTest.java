@@ -1,6 +1,9 @@
 package org.simplejavamail.springbootstarter;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
@@ -34,6 +37,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SimpleJavaMailStarterAutoConfigurationTest {
+
+	@ParameterizedTest
+	@ValueSource(strings = {"SMTP_TLS", "SMTP_OAUTH2"})
+	void contradictoryStartTlsCommandLinePropertyFailsStartup(final String strategy) {
+		assertThatThrownBy(() -> {
+			try (ConfigurableApplicationContext ignored = applicationBuilder().run(
+					"--simplejavamail.transportstrategy=" + strategy,
+					"--simplejavamail.smtp.username=test-user", "--simplejavamail.smtp.password=fake-password-or-token",
+					"--simplejavamail.extraproperties.mail.smtp.starttls.required=false")) {
+				// Close the application if the conflicting configuration is unexpectedly accepted.
+			}
+		}).hasRootCauseInstanceOf(MailException.class)
+				.hasStackTraceContaining(strategy + " requires STARTTLS, but mail.smtp.starttls.required disables it.");
+	}
+
+	@Test
+	void commandLinePropertyCanCorrectALowerPriorityStartTlsOverride() {
+		try (ConfigurableApplicationContext context = applicationBuilder().properties(
+				"simplejavamail.transportstrategy=SMTP_TLS", "simplejavamail.extraproperties.mail.smtp.starttls.required=false")
+				.run("--simplejavamail.extraproperties.mail.smtp.starttls.required=true")) {
+			assertThat(context.getBean(Mailer.class).getSession().getProperty("mail.smtp.starttls.required")).isEqualTo("true");
+			assertThat(context.getBean(SimpleJavaMailConfig.class).getDiagnostics().toString())
+					.contains("simplejavamail.extraproperties.mail.smtp.starttls.required = true (source: commandLineArgs)");
+		}
+	}
 
 	@Test
 	void commandLineTimeoutReachesFactoryMailerAndDiagnostics() {

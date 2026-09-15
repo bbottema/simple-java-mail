@@ -19,6 +19,27 @@ public class CliProcessSmokeTest {
 	@TempDir Path temporaryDirectory;
 
 	@Test
+	void contradictoryStartTlsOptionExitsWithAnActionableError() throws Exception {
+		final Path outputFile = temporaryDirectory.resolve("starttls-conflict.log");
+		final Process process = new ProcessBuilder(cliCommand("connect", "--daemon=off",
+				"--mailer:withSMTPServer", "localhost", "1", "test-user", "fake-password",
+				"--mailer:withTransportStrategy", "SMTP_TLS",
+				"--mailer:withProperty", "mail.smtp.starttls.required", "false"))
+				.redirectErrorStream(true).redirectOutput(outputFile.toFile()).start();
+		try {
+			assertThat(process.waitFor(20, TimeUnit.SECONDS)).isTrue();
+			final String output = Files.readString(outputFile);
+			assertThat(process.exitValue()).as(output).isEqualTo(CliExitCode.COMMAND_FAILED.code());
+			assertThat(output).contains("SMTP_TLS requires STARTTLS", "Remove that override", "TransportStrategy.SMTP")
+					.doesNotContain("test-user", "fake-password", "Connection refused");
+		} finally {
+			if (process.isAlive()) {
+				process.destroyForcibly();
+			}
+		}
+	}
+
+	@Test
 	void removedAsyncOptionInAnArgumentFileExitsWithTheMigrationMessage() throws Exception {
 		final Path arguments = temporaryDirectory.resolve("removed-option.args");
 		final Path outputFile = temporaryDirectory.resolve("removed-option.log");
