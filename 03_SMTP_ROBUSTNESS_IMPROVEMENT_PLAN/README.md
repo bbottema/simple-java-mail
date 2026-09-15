@@ -1,8 +1,8 @@
 # SMTP robustness improvement plan
 
-> **Implementation status:** Phases 1 and 2 are complete and accepted. The Angus safety gate was resolved through supported socket/provider hooks; the original negative characterization remains in the tests. These are unreleased 10.0.0 changes. Later phases remain proposals. Benchmarking is not part of this work.
+> **Implementation status:** Phases 1 and 2 are complete and accepted. Phase 3's SMTP capability-probe story (#733) is also complete and accepted as of 15 September 2026: Java and CLI entry points, immutable reports, a dedicated Angus connection, optional authentication, local SMTP/TLS tests, a separately packaged non-Angus adapter fixture, a demo and website guidance. Holistic review found no further blocking defects; Java 11 and Java 21 non-live verification passed. The Angus safety gate was resolved through supported socket/provider hooks; the original negative characterization remains in the tests. These are unreleased 10.0.0 changes. Phase 3 as a whole is not complete: the separate authentication-policy step and later phases remain proposals. Benchmarking is not part of this work.
 
-- Status: Phases 1 and 2 complete and accepted; unreleased
+- Status: Phases 1 and 2 and phase 3's capability-probe story complete and accepted; authentication-policy work remains; unreleased
 - Resumption after the pool fix: The supporting-library patches and Simple Java Mail 9.3.4 are released. This 10.0.0 checkout now adopts SMTP Connection Pool 4.1.0 and retains all eight mixed-failure waiter-recovery regression cases from the patch. Integration verification is recorded in [step 2](phase-2-execution-control/02-bound-asynchronous-submission-and-expose-backpressure.md). See the [dependency finding](phase-1-transaction-truth/01-preserve-recipient-replies-and-derive-retry-guidance.md#separate-dependency-finding).
 - Plan order: 03 of 03
 - Preceded by: [02 - CLI daemon improvement plan](../02_CLI_DAEMON_IMPROVEMENT_PLAN/README.md) in planning order only
@@ -119,8 +119,7 @@ Step 3's [supporting-library cancellation plan](phase-2-execution-control/suppor
 ### Phase 3: Make connection behavior diagnosable and safe
 
 - [x] [4a. Explicit Mailer execution views](phase-3-diagnostics-and-security/04a-explicit-mailer-execution-views.md) - #734; accepted independently of the probe
-
-- [ ] [4. Add a structured SMTP capability probe](phase-3-diagnostics-and-security/04-add-structured-smtp-capability-probe.md)
+- [x] [4. Add a structured SMTP capability probe](phase-3-diagnostics-and-security/04-add-structured-smtp-capability-probe.md) - [#733](https://github.com/bbottema/simple-java-mail/issues/733), Java/CLI implementation, provider fixture and holistic review accepted on 15 September 2026
 - [ ] [5. Make authenticated plaintext fallback explicit](phase-3-diagnostics-and-security/05-make-authenticated-plaintext-fallback-explicit.md)
 
 ### Phase 4: Model modern ESMTP requirements

@@ -62,7 +62,11 @@ For bursty background work, `mailerBuilder.withAsyncQueueCapacity(100)` bounds w
 
 For an obsolete notification, retain its `MailSend` and call `requestCancellation()`. A total budget is opt-in with `withMailSendTimeout(Duration.ofSeconds(30))`. Neither a request nor a timeout proves non-acceptance: inspect the eventual completion and any receipt. See [deadlines and cancellation](https://www.simplejavamail.org/sending-and-execution.html#section-send-deadlines).
 
-Before sending, `mailer.sync().testConnection()` checks the SMTP path. Choose message preflight by what your code needs back:
+Before sending, `mailer.sync().testConnection()` checks the SMTP path. For a structured explanation, `mailer.sync().probeConnection()` returns separate pre-/post-TLS capabilities, TLS metadata where available, and safe failure details from a fresh dedicated connection. It does not authenticate by default; `probeConnection(true)` explicitly tests configured credentials, and `mailer.async().probeConnection(...)` runs in the background. Neither sends an email. See [SMTP capability diagnostics](https://www.simplejavamail.org/debugging.html#section-smtp-capabilities) and the loopback-only [probe demo](modules/simple-java-mail/src/test/java/demo/SmtpConnectionProbeDemoApp.java).
+
+The CLI exposes the same report through `sjm probe`, optionally with `--authenticate`, for both one-shot and daemon execution. Failed and unsupported reports remain on stdout with exit code 3; successful probes return 0. See the [CLI probe examples](https://www.simplejavamail.org/cli.html#section-probe).
+
+Choose message preflight by what your code needs back:
 
 | Need | Call |
 | --- | --- |

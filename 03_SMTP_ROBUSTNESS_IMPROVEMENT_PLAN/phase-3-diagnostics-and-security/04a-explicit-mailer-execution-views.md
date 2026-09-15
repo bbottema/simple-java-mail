@@ -1,6 +1,6 @@
 # Step 4a: Explicit Mailer sync/async execution views
 
-- Status: Complete and accepted; implementation and verification finished on 12 September 2026, production review accepted on 13 September 2026. Delivery is separate from the unfinished probe.
+- Status: Complete and accepted; implementation and verification finished on 12 September 2026, production review accepted on 13 September 2026. Delivered independently of the probe, which was subsequently completed and accepted under #733 on 15 September 2026.
 - Parent: [#722](https://github.com/bbottema/simple-java-mail/issues/722); cross-linked with the [SMTP probe, #733](https://github.com/bbottema/simple-java-mail/issues/733).
 - Child issue: [#734](https://github.com/bbottema/simple-java-mail/issues/734), milestone 10.0.0.
 - Classification: separate 10.0.0 `enhancement`; do not reopen completed Phase 2 issues.
@@ -10,9 +10,9 @@
 
 The first probe batch presented the Mailer entry points, `SmtpConnectionPhase`, and `SmtpConnectionReport`. Transport strategy has since been removed from the report, construction, and website output; focused verification passed. The entry-point portion is superseded by this redesign.
 
-No later production batch has been presented. After reviewing this migration, resume with `SmtpCapabilities`, `SmtpTlsDetails`, and `SmtpDiagnosticText`. The CLI probe command and third-party adapter fixture remain separate, unfinished work under #733. Do not mark Phase 3 complete.
+At this historical bookmark, no later production batch had been presented; the next batch was `SmtpCapabilities`, `SmtpTlsDetails`, and `SmtpDiagnosticText`. The CLI probe command and third-party adapter fixture were still separate, unfinished work under #733. That follow-up is now accepted; see the [completed probe plan](04-add-structured-smtp-capability-probe.md). Phase 3's separate authentication-policy step remains unfinished.
 
-The accepted migration is committed independently: it includes the existing send, simple-batch and connection-test families. The probe declarations, implementations, types, tests and documentation remain uncommitted under #733. That follow-up adds the agreed probe methods to these same views; no temporary aliases or unsupported-operation stubs are introduced to make this commit stand alone.
+The accepted migration was committed independently: it includes the existing send, simple-batch and connection-test families. The probe declarations, implementations, types, tests and documentation were left for #733. That follow-up adds the agreed probe methods to these same views; no temporary aliases or unsupported-operation stubs were introduced to make the migration commit stand alone.
 
 ## Public API
 
